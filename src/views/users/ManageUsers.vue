@@ -71,9 +71,12 @@
             <!-- Fecha -->
             <div>
               <label class="block text-xs text-rv-pink mb-1.5 font-medium">Creado</label>
-              <span class="inline-block px-3 py-2 text-sm text-gray-400 bg-black/20 rounded-lg">
-                {{ formatDate(user.createdAt) }}
-              </span>
+              <input
+                type="date"
+                :value="formatDateForInput(user.createdAt)"
+                @change="updateCreatedAt(user, $event)"
+                class="user-input date-input"
+              />
             </div>
           </div>
 
@@ -352,6 +355,30 @@ export default defineComponent({
       });
     };
 
+    const formatDateForInput = (dateString: string) => {
+      if (!dateString) return "";
+      const date = new Date(dateString);
+      return date.toISOString().split("T")[0];
+    };
+
+    const updateCreatedAt = async (user: User, event: Event) => {
+      const input = event.target as HTMLInputElement;
+      const newDate = input.value ? new Date(input.value) : null;
+
+      if (!newDate) return;
+
+      try {
+        await userStore.updateUserSuperAdminStore(user.id, {
+          createdAt: newDate,
+        });
+        user.createdAt = newDate.toISOString();
+        SwalService.success("Fecha actualizada");
+      } catch (error) {
+        console.error("Error updating createdAt:", error);
+        SwalService.error("Error al actualizar fecha");
+      }
+    };
+
     const passwordValidation = (password: string) => {
       if (!password) return "";
       if (password.length < 6) return "Mínimo 6 caracteres";
@@ -526,6 +553,8 @@ export default defineComponent({
       showPasswordModal,
       showNotesModal,
       formatDate,
+      formatDateForInput,
+      updateCreatedAt,
       passwordValidation,
       updateField,
       toggleRole,
@@ -574,6 +603,10 @@ export default defineComponent({
 
 .user-input::placeholder {
   color: #6b7280;
+}
+
+.date-input {
+  color-scheme: dark;
 }
 
 .action-btn {
