@@ -123,11 +123,10 @@
                                 mantenemos nuestros trabajos a tiempo completo. Aun así, mantener activo el
                                 <em>hosting</em> de esta
                                 plataforma nos supone un gasto mensual.
-                                Por ello, y de forma simbólica, pedimos una <strong>aportación de 2€ al año</strong>
-                                para poder seguir desarrollando y mejorando este proyecto. Si deseas colaborar con más,
-                                eres
-                                totalmente libre de hacerlo.
-                                Hemos habilitado un <strong>una cuenta de PayPal</strong> donde puedes realizar tu aportación.
+                                Por ello, podéis sentiros libres para <strong>aportar lo que consideréis al proyecto</strong>
+                                para que podamos seguir desarrollando y mejorando este proyecto. 
+                                Hemos habilitado un <strong>una cuenta de PayPal</strong> donde puedes realizar tu
+                                aportación.
                                 Notifícanos a
                                 <strong>contacto@riffvalley.es</strong> cualquier duda con respecto a esto sin problema.
                                 Aquí tienes
