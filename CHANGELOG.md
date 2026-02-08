@@ -1,3 +1,9 @@
+## <small>1.11.3 (2026-02-08)</small>
+
+* fix: how to use 2.0 ([fb1bf20](https://github.com/riffvalley/riffvalley-app-front/commit/fb1bf20))
+* fix: how to use actualizado ([26cb13e](https://github.com/riffvalley/riffvalley-app-front/commit/26cb13e))
+* fix: how to use titles ([cb60e74](https://github.com/riffvalley/riffvalley-app-front/commit/cb60e74))
+
 ## <small>1.11.2 (2026-02-07)</small>
 
 * fix: how to use actualizado ([25e5720](https://github.com/riffvalley/riffvalley-app-front/commit/25e5720))
