@@ -256,7 +256,7 @@ function getFridayOfWeek(month: number, week: number, year: number): string {
     monday.setDate(monday.getDate() + (week - 1) * 7);
 
     const friday = new Date(monday);
-    friday.setDate(friday.getDate() + 5);
+    friday.setDate(friday.getDate() + 4);
 
     return friday.toISOString().split('T')[0];
 }
