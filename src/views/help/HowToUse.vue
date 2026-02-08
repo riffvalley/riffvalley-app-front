@@ -76,15 +76,12 @@
                 <div class="max-w-4xl mx-auto px-4 py-4">
                     <h1
                         class="text-xl font-bold mb-3 text-white bg-gray-700 px-4 py-1 rounded-full text-center inline-block mx-auto shadow">
-                        Suscripción anual
+                        ¿Qué es Riff Valley app?
                     </h1>
 
                     <div class="space-y-4">
 
                         <div>
-                            <h2 class="text-xl font-semibold">
-                                ¿Qué es Riff Valley app?
-                            </h2>
                             <p class="text-gray-700">
                                 <strong>Riff Valley app</strong> es un proyecto que hemos creado un grupo de amigos,
                                 paralelo
@@ -109,7 +106,7 @@
 
                         <div>
                             <h2 class="text-xl font-semibold mt-6">
-                                <i class="fa-solid fa-receipt text-md mr-2"></i>¿Por qué una suscripción?
+                                <i class="fa-solid fa-receipt text-md mr-2"></i>¿Te gusta lo que ves?
                             </h2>
                             <p class="text-gray-700">
                                 Creamos esta app por <strong>pura pasión por la música</strong>, pero como muchos
