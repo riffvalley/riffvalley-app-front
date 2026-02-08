@@ -36,6 +36,27 @@
         </button>
       </div>
 
+      <!-- Filtro por tipo -->
+      <div v-if="!loading && lists.length > 0" class="flex flex-wrap gap-2 mb-4">
+        <button @click="filterSpecialType = ''"
+          :class="[
+            'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+            !filterSpecialType ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+          ]">
+          Todas
+        </button>
+        <button v-for="opt in specialTypeOptions" :key="opt.value" @click="filterSpecialType = opt.value"
+          :class="[
+            'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+            filterSpecialType === opt.value
+              ? getTypeColors(opt.value).badgeBg + ' ' + getTypeColors(opt.value).badgeText + ' ring-2 ring-offset-1 ring-current'
+              : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+          ]">
+          <i :class="[getTypeColors(opt.value).icon, 'mr-1 text-xs']"></i>
+          {{ opt.label }}
+        </button>
+      </div>
+
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-20">
         <i class="fa-solid fa-spinner fa-spin text-4xl text-indigo-500 mb-4"></i>
@@ -62,11 +83,25 @@
             'bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 overflow-hidden flex flex-col justify-between h-full',
             list.specialType ? 'border-t-4 ' + getTypeColors(list.specialType).border : ''
           ]">
+        <div v-for="list in filteredLists" :key="list.id"
+          :class="[
+            'bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 overflow-hidden flex flex-col justify-between h-full',
+            list.specialType ? 'border-t-4 ' + getTypeColors(list.specialType).border : ''
+          ]">
 
           <div class="p-4 flex items-center gap-3">
             <div
               :class="['flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center', getTypeColors(list.specialType).iconBg, getTypeColors(list.specialType).iconText]">
               <i :class="[getTypeColors(list.specialType).icon, 'text-sm']"></i>
+              :class="['flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center', getTypeColors(list.specialType).iconBg, getTypeColors(list.specialType).iconText]">
+              <i :class="[getTypeColors(list.specialType).icon, 'text-sm']"></i>
+            </div>
+            <div class="flex flex-col gap-1 min-w-0">
+              <h3 class="font-bold text-gray-800 text-base leading-tight line-clamp-2 mr-2">{{ list.name }}</h3>
+              <span v-if="list.specialType"
+                :class="['inline-block text-xs font-medium px-2 py-0.5 rounded-full w-fit capitalize', getTypeColors(list.specialType).badgeBg, getTypeColors(list.specialType).badgeText]">
+                {{ list.specialType }}
+              </span>
             </div>
             <div class="flex flex-col gap-1 min-w-0">
               <h3 class="font-bold text-gray-800 text-base leading-tight line-clamp-2 mr-2">{{ list.name }}</h3>
@@ -106,10 +141,25 @@
 
         <div class="p-6 space-y-4">
           <div>
+        <div class="p-6 space-y-4">
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Lista</label>
             <input v-model="newListName" type="text"
               class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
               placeholder="Ej: Lo mejor del Indie 2024" @keyup.enter="createList" autofocus />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Lista Especial</label>
+            <select v-model="newListSpecialType"
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
+              <option disabled value="">Selecciona un tipo</option>
+              <option value="web">Web</option>
+              <option value="app">App</option>
+              <option value="noticias">Noticias</option>
+              <option value="videos">Videos</option>
+              <option value="riffValley">Riff Valley</option>
+              <option value="otros">Otros</option>
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Lista Especial</label>
@@ -132,6 +182,7 @@
             Cancelar
           </button>
           <button @click="createList" :disabled="!newListName || !newListSpecialType || creating"
+          <button @click="createList" :disabled="!newListName || !newListSpecialType || creating"
             class="px-5 py-2.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2">
             <i v-if="creating" class="fa-solid fa-circle-notch fa-spin"></i>
             <span v-else>Crear Lista</span>
@@ -145,6 +196,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from "vue";
+import { defineComponent, ref, computed, onMounted } from "vue";
 import { getSpecialLists, postList, deleteList } from "@services/list/list";
 import { useRouter } from "vue-router";
 import SwalService from "@services/swal/SwalService";
@@ -157,6 +209,7 @@ export default defineComponent({
     const router = useRouter();
     const showCreateModal = ref(false);
     const newListName = ref("");
+    const newListSpecialType = ref("");
     const newListSpecialType = ref("");
     const creating = ref(false);
     const filterSpecialType = ref("");
@@ -175,28 +228,17 @@ export default defineComponent({
     const getTypeColors = (specialType: string) => specialTypeColors[specialType] || defaultColors;
 
     const specialTypeOptions = [
+      { value: "web", label: "Web" },
       { value: "app", label: "App" },
       { value: "noticias", label: "Noticias" },
-      { value: "otros", label: "Otros" },
-      { value: "riffValley", label: "Riff Valley" },
       { value: "videos", label: "Videos" },
-      { value: "web", label: "Web" },
+      { value: "riffValley", label: "Riff Valley" },
+      { value: "otros", label: "Otros" },
     ];
 
-    const specialTypeOrder: Record<string, number> = {
-      app: 0, noticias: 1, otros: 2, riffValley: 3, videos: 4, web: 5,
-    };
-
     const filteredLists = computed(() => {
-      const base = filterSpecialType.value
-        ? lists.value.filter((l: any) => l.specialType === filterSpecialType.value)
-        : lists.value;
-      return [...base].sort((a: any, b: any) => {
-        const orderA = specialTypeOrder[a.specialType] ?? 99;
-        const orderB = specialTypeOrder[b.specialType] ?? 99;
-        if (orderA !== orderB) return orderA - orderB;
-        return (a.name || "").localeCompare(b.name || "");
-      });
+      if (!filterSpecialType.value) return lists.value;
+      return lists.value.filter((l: any) => l.specialType === filterSpecialType.value);
     });
 
     const fetchLists = async () => {
@@ -240,6 +282,7 @@ export default defineComponent({
       showCreateModal.value = false;
       newListName.value = "";
       newListSpecialType.value = "";
+      newListSpecialType.value = "";
     };
 
     const createList = async () => {
@@ -249,6 +292,8 @@ export default defineComponent({
       try {
         await postList({
           name: newListName.value,
+          type: 'special',
+          specialType: newListSpecialType.value
           type: 'special',
           specialType: newListSpecialType.value
         });
@@ -273,11 +318,16 @@ export default defineComponent({
       filterSpecialType,
       specialTypeOptions,
       getTypeColors,
+      filteredLists,
+      filterSpecialType,
+      specialTypeOptions,
+      getTypeColors,
       loading,
       goToEdit,
       deleteItem,
       showCreateModal,
       newListName,
+      newListSpecialType,
       newListSpecialType,
       creating,
       closeModal,
