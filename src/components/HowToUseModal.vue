@@ -83,15 +83,12 @@
                 <div class="max-w-4xl mx-auto px-4 py-4">
                     <h1
                         class="text-xl font-bold mb-3 text-white bg-gray-700 px-4 py-1 rounded-full text-center inline-block mx-auto shadow">
-                        Suscripción anual
+                        ¿Qué es Riff Valley app?
                     </h1>
 
                     <div class="space-y-4">
 
                         <div>
-                            <h2 class="text-xl font-semibold">
-                                ¿Qué es Riff Valley app?
-                            </h2>
                             <p class="text-gray-700">
                                 <strong>Riff Valley app</strong> es un proyecto que hemos creado un grupo de amigos, paralelo
                                 al medio
@@ -115,7 +112,7 @@
 
                         <div>
                             <h2 class="text-xl font-semibold mt-6">
-                                <i class="fa-solid fa-receipt text-md mr-2"></i>¿Por qué una suscripción?
+                                <i class="fa-solid fa-receipt text-md mr-2"></i>¿Te gusta lo que ves?
                             </h2>
                             <p class="text-gray-700">
                                 Creamos esta app por <strong>pura pasión por la música</strong>, pero como muchos
@@ -123,11 +120,10 @@
                                 mantenemos nuestros trabajos a tiempo completo. Aun así, mantener activo el
                                 <em>hosting</em> de esta
                                 plataforma nos supone un gasto mensual.
-                                Por ello, y de forma simbólica, pedimos una <strong>aportación de 2€ al año</strong>
-                                para poder seguir desarrollando y mejorando este proyecto. Si deseas colaborar con más,
-                                eres
-                                totalmente libre de hacerlo.
-                                Hemos habilitado un <strong>una cuenta de PayPal</strong> donde puedes realizar tu aportación.
+                                Por ello, podéis sentiros libres para <strong>aportar lo que consideréis al proyecto</strong>
+                                para que podamos seguir desarrollando y mejorando este proyecto. 
+                                Hemos habilitado un <strong>una cuenta de PayPal</strong> donde puedes realizar tu
+                                aportación.
                                 Notifícanos a
                                 <strong>contacto@riffvalley.es</strong> cualquier duda con respecto a esto sin problema.
                                 Aquí tienes

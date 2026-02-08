@@ -1,3 +1,23 @@
+## 1.12.0 (2026-02-08)
+
+* feat: list types (#76) ([d0cf612](https://github.com/riffvalley/riffvalley-app-front/commit/d0cf612)), closes [#76](https://github.com/riffvalley/riffvalley-app-front/issues/76)
+
+## <small>1.11.4 (2026-02-08)</small>
+
+* fix: fix bugs  (#75) ([4f63ecd](https://github.com/riffvalley/riffvalley-app-front/commit/4f63ecd)), closes [#75](https://github.com/riffvalley/riffvalley-app-front/issues/75)
+
+## <small>1.11.3 (2026-02-08)</small>
+
+* fix: how to use 2.0 ([fb1bf20](https://github.com/riffvalley/riffvalley-app-front/commit/fb1bf20))
+* fix: how to use actualizado ([26cb13e](https://github.com/riffvalley/riffvalley-app-front/commit/26cb13e))
+* fix: how to use titles ([cb60e74](https://github.com/riffvalley/riffvalley-app-front/commit/cb60e74))
+
+## <small>1.11.2 (2026-02-07)</small>
+
+* fix: how to use actualizado ([25e5720](https://github.com/riffvalley/riffvalley-app-front/commit/25e5720))
+* Fix/duplicates (#72) ([c4c336c](https://github.com/riffvalley/riffvalley-app-front/commit/c4c336c)), closes [#72](https://github.com/riffvalley/riffvalley-app-front/issues/72)
+* users and claude (#71) ([1a4028d](https://github.com/riffvalley/riffvalley-app-front/commit/1a4028d)), closes [#71](https://github.com/riffvalley/riffvalley-app-front/issues/71)
+
 ## <small>1.11.1 (2026-01-11)</small>
 
 * Merge pull request #70 from riffvalley/fix/duplicates ([b311a68](https://github.com/riffvalley/riffvalley-app-front/commit/b311a68)), closes [#70](https://github.com/riffvalley/riffvalley-app-front/issues/70)
