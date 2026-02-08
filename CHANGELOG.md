@@ -1,3 +1,8 @@
+## <small>1.11.1 (2026-01-11)</small>
+
+* Merge pull request #70 from riffvalley/fix/duplicates ([b311a68](https://github.com/riffvalley/riffvalley-app-front/commit/b311a68)), closes [#70](https://github.com/riffvalley/riffvalley-app-front/issues/70)
+* fix: duplicates ([65c6301](https://github.com/riffvalley/riffvalley-app-front/commit/65c6301))
+
 ## 1.11.0 (2026-01-11)
 
 * cambio vista mantenimiento ([73871d6](https://github.com/riffvalley/riffvalley-app-front/commit/73871d6))
