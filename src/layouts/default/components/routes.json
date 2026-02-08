@@ -141,7 +141,14 @@
     "icon": "fa-solid fa-newspaper"
   },
   {
-    "to": "/users",
+    "to": "/import-discs",
+    "label": "Importar Discos",
+    "activeClass": "bg-gray-700",
+    "type": "riff-valley",
+    "requiredRole": "riffValley",
+    "icon": "fa-solid fa-upload"
+  },
+  {
     "label": "Usuarios",
     "activeClass": "bg-gray-700",
     "type": "management",
