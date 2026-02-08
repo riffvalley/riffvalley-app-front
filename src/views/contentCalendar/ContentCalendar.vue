@@ -455,9 +455,10 @@ async function handleDropToCalendar(contentId: string, dateStr: string | null) {
         // Reload both backlog and current month
         await loadBacklogContents();
         await loadContentsByMonth(currentYear.value, currentMonth.value);
-        // No need to manually update events - calendarEvents is reactive
+        SwalService.success(dateStr ? 'Evento programado correctamente' : 'Evento movido al backlog');
     } catch (error) {
         console.error('Error updating content date:', error);
+        SwalService.error('Error al mover el evento');
     }
 }
 
@@ -502,6 +503,7 @@ async function handleCreateContent(data: any) {
         await loadBacklogContents();
         // Also reload current month to preserve scheduled events
         await loadContentsByMonth(currentYear.value, currentMonth.value);
+        SwalService.success('Evento creado correctamente');
     } catch (error) {
         console.error('Error creating content:', error);
         SwalService.error('Error al crear el contenido. Por favor, intenta de nuevo.');
@@ -565,6 +567,7 @@ async function executeDeleteContent() {
         // Reload data
         await loadBacklogContents();
         await loadContentsByMonth(currentYear.value, currentMonth.value);
+        SwalService.success('Evento eliminado correctamente');
     } catch (error) {
         console.error('Error deleting content:', error);
         SwalService.error('No se pudo eliminar el evento');
@@ -636,8 +639,10 @@ async function handleUpdateContent(data: any) {
         // Reload both backlog and current month
         await loadBacklogContents();
         await loadContentsByMonth(currentYear.value, currentMonth.value);
+        SwalService.success('Evento actualizado correctamente');
     } catch (error) {
         console.error('Error updating content:', error);
+        SwalService.error('Error al actualizar el evento');
     }
 }
 
@@ -663,8 +668,7 @@ async function updateListStatus(list: any) {
     if (!list || !list.id) return;
     try {
         await updateList(list.id, { status: list.status });
-        // Optionally show success toast
-        // SwalService.success('Estado actualizado');
+        SwalService.success('Estado actualizado');
     } catch (error) {
         console.error('Error updating status:', error);
         SwalService.error('Error al actualizar estado');
@@ -677,6 +681,7 @@ async function updateRadarField(field: string, value: any) {
         await updateList(radarDetails.value.id, { [field]: value });
         radarDetails.value = { ...radarDetails.value, [field]: value };
         await loadContentsByMonth(currentYear.value, currentMonth.value);
+        SwalService.success('Fecha actualizada correctamente');
     } catch (error) {
         console.error(`Error updating ${field}:`, error);
         SwalService.error('Error al actualizar fecha');
