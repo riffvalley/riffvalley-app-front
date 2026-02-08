@@ -1,3 +1,23 @@
+## <small>1.11.1 (2026-01-11)</small>
+
+* Merge pull request #70 from riffvalley/fix/duplicates ([b311a68](https://github.com/riffvalley/riffvalley-app-front/commit/b311a68)), closes [#70](https://github.com/riffvalley/riffvalley-app-front/issues/70)
+* fix: duplicates ([65c6301](https://github.com/riffvalley/riffvalley-app-front/commit/65c6301))
+
+## 1.11.0 (2026-01-11)
+
+* cambio vista mantenimiento ([73871d6](https://github.com/riffvalley/riffvalley-app-front/commit/73871d6))
+* fix temporal: how to use, replace Spam Music ([8f71593](https://github.com/riffvalley/riffvalley-app-front/commit/8f71593))
+* fix ui how to use and select homepage ([2fc67b0](https://github.com/riffvalley/riffvalley-app-front/commit/2fc67b0))
+* fix UI selector year in homepage (top users) ([7a17c20](https://github.com/riffvalley/riffvalley-app-front/commit/7a17c20))
+* Fix/reunions (#68) ([3002c60](https://github.com/riffvalley/riffvalley-app-front/commit/3002c60)), closes [#68](https://github.com/riffvalley/riffvalley-app-front/issues/68)
+* Fix/stadistics (#66) ([7951e21](https://github.com/riffvalley/riffvalley-app-front/commit/7951e21)), closes [#66](https://github.com/riffvalley/riffvalley-app-front/issues/66)
+* Merge branch 'dev' of https://github.com/Tottibero/spammusic-front into dev ([58586cf](https://github.com/riffvalley/riffvalley-app-front/commit/58586cf))
+* Merge branch 'dev' of https://github.com/Tottibero/spammusic-front into dev ([bdee31f](https://github.com/riffvalley/riffvalley-app-front/commit/bdee31f))
+* Merge branch 'main' into dev ([9eb6cbc](https://github.com/riffvalley/riffvalley-app-front/commit/9eb6cbc))
+* Merge branch 'main' into dev ([89fe541](https://github.com/riffvalley/riffvalley-app-front/commit/89fe541))
+* select years (#58) ([7d59593](https://github.com/riffvalley/riffvalley-app-front/commit/7d59593)), closes [#58](https://github.com/riffvalley/riffvalley-app-front/issues/58)
+* feat: manteniance mode ([584b8f2](https://github.com/riffvalley/riffvalley-app-front/commit/584b8f2))
+
 ## <small>1.10.1 (2026-01-07)</small>
 
 * fix: radars (#64) ([efd8776](https://github.com/Tottibero/spammusic-front/commit/efd8776)), closes [#64](https://github.com/Tottibero/spammusic-front/issues/64)
