@@ -104,8 +104,6 @@ import DeleteConfirmModal from './components/DeleteConfirmModal.vue';
 const authStore = useAuthStore();
 const showOnlyMyEvents = ref(false);
 
-// Debug: verificar que el usuario está cargado
-console.log('ContentCalendar - authStore:', { userId: authStore.userId, username: authStore.username });
 const router = useRouter();
 const calendarRef = ref<InstanceType<typeof FullCalendar>>();
 const showCreateModal = ref(false);
@@ -170,18 +168,13 @@ const calendarEvents = computed(() => {
         .filter(c => c.publicationDate)
         .map(c => {
             let start = c.publicationDate;
-            let allDay = false;
 
-            // Handle ISO strings with midnight UTC time
-            // If it's effectively "midnight UTC" (T00:00:00.000Z), treat as date-only (All Day) 
-            // for types that are date-based (not time-sensitive meetings)
-            // This prevents timezone shifts displaying it on previous day
-            const isMidnightUTC = start.endsWith('T00:00:00.000Z') || start.endsWith('T00:00:00Z');
-
-            if (isMidnightUTC || c.type === 'reunion') {
-                start = start.split('T')[0];
-                allDay = true;
-            }
+            // Always extract just the date part and treat as all-day.
+            // In dayGridMonth view, non-allDay events render as small transparent dots
+            // instead of full colored bars. Extracting the date-only string also
+            // prevents timezone shifts that could display the event on the wrong day.
+            start = start.split('T')[0];
+            const allDay = true;
 
             // Calculate end date for FullCalendar (exclusive)
             let end = undefined;
@@ -409,9 +402,13 @@ const calendarOptions = ref({
                 jsEvent.clientY <= backlogRect.bottom
             ) {
                 const contentId = info.event.id;
-                // Remove visual event immediately to prevent revert animation
-                info.event.remove();
-                await handleDropToCalendar(contentId, null as any); // Send null to move to backlog
+                try {
+                    await handleDropToCalendar(contentId, null as any); // Send null to move to backlog
+                } catch {
+                    // Reload to restore consistent state
+                    await loadBacklogContents();
+                    await loadContentsByMonth(currentYear.value, currentMonth.value);
+                }
             }
         }
     }
@@ -472,7 +469,7 @@ async function handleCreateContent(data: any) {
     // Validate mandatory date types
     const mandatoryDateTypes = ['reunion', 'radar', 'best'];
     if (mandatoryDateTypes.includes(contentData.type) && !contentData.publicationDate) {
-        alert(`El contenido tipo "${getContentTypeLabel(contentData.type)}" requiere una fecha de publicación obligatoria`);
+        SwalService.error(`El contenido tipo "${getContentTypeLabel(contentData.type)}" requiere una fecha de publicación obligatoria`);
         return;
     }
 
@@ -507,7 +504,7 @@ async function handleCreateContent(data: any) {
         await loadContentsByMonth(currentYear.value, currentMonth.value);
     } catch (error) {
         console.error('Error creating content:', error);
-        alert('Error al crear el contenido. Por favor, intenta de nuevo.');
+        SwalService.error('Error al crear el contenido. Por favor, intenta de nuevo.');
     }
 }
 
@@ -521,12 +518,9 @@ function openEditModal(content: Content) {
         authorId: content.author?.id || ''
     };
 
-    if (content.type === 'photos') {
-        selectedContent.value = content;
-        showActionsModal.value = true;
-    } else {
-        showEditModal.value = true;
-    }
+    // Photos and reunions open their specialized actions modal directly from calendar click,
+    // but from backlog or generic edit they should use the standard edit modal
+    showEditModal.value = true;
 }
 
 function toggleMyEventsFilter() {
@@ -573,7 +567,7 @@ async function executeDeleteContent() {
         await loadContentsByMonth(currentYear.value, currentMonth.value);
     } catch (error) {
         console.error('Error deleting content:', error);
-        alert('No se pudo eliminar el evento');
+        SwalService.error('No se pudo eliminar el evento');
     }
 }
 
@@ -622,7 +616,7 @@ async function handleUpdateContent(data: any) {
     // Validate mandatory date types
     const mandatoryDateTypes = ['reunion', 'radar', 'best'];
     if (mandatoryDateTypes.includes(contentData.type) && !contentData.publicationDate) {
-        alert(`El contenido tipo "${getContentTypeLabel(contentData.type)}" requiere una fecha de publicación obligatoria`);
+        SwalService.error(`El contenido tipo "${getContentTypeLabel(contentData.type)}" requiere una fecha de publicación obligatoria`);
         return;
     }
 
@@ -632,6 +626,7 @@ async function handleUpdateContent(data: any) {
             name: contentData.name,
             notes: contentData.notes || undefined,
             publicationDate: contentData.publicationDate ? new Date(contentData.publicationDate).toISOString() : null,
+            closeDate: contentData.closeDate || null,
             authorId: contentData.authorId
         });
 
@@ -719,9 +714,9 @@ async function loadBacklogContents() {
         // Load all contents to get backlog items (those without publicationDate)
         const allData = await getContents();
         const backlog = allData.filter(c => !c.publicationDate);
-        // Ensure allContents only contains backlog items before merging with month contents
-        // This prevents duplication if loadContentsByMonth is called right after
-        allContents.value = backlog;
+        // Preserve existing scheduled items while updating backlog
+        const scheduledItems = allContents.value.filter(c => c.publicationDate);
+        allContents.value = [...backlog, ...scheduledItems];
     } catch (error) {
         console.error('Error loading backlog contents:', error);
     }
