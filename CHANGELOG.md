@@ -1,3 +1,17 @@
+## <small>1.12.3 (2026-02-18)</small>
+
+* fix: UI Home ([8552b9b](https://github.com/riffvalley/riffvalley-app-front/commit/8552b9b))
+* fix: UI Home ([f1b64d0](https://github.com/riffvalley/riffvalley-app-front/commit/f1b64d0))
+* Dev (#87) ([4e461fa](https://github.com/riffvalley/riffvalley-app-front/commit/4e461fa)), closes [#87](https://github.com/riffvalley/riffvalley-app-front/issues/87) [#85](https://github.com/riffvalley/riffvalley-app-front/issues/85) [#86](https://github.com/riffvalley/riffvalley-app-front/issues/86)
+* Feature/home news (#85) ([4c3f5e0](https://github.com/riffvalley/riffvalley-app-front/commit/4c3f5e0)), closes [#85](https://github.com/riffvalley/riffvalley-app-front/issues/85)
+* Feature/home news (#86) ([048cd86](https://github.com/riffvalley/riffvalley-app-front/commit/048cd86)), closes [#86](https://github.com/riffvalley/riffvalley-app-front/issues/86)
+* Merge branch 'main' into dev ([4fd7f51](https://github.com/riffvalley/riffvalley-app-front/commit/4fd7f51))
+
+## <small>1.12.2 (2026-02-12)</small>
+
+* fix: eye password again ([aceee09](https://github.com/riffvalley/riffvalley-app-front/commit/aceee09))
+* Fix/duplicates (#84) ([2b099d2](https://github.com/riffvalley/riffvalley-app-front/commit/2b099d2)), closes [#84](https://github.com/riffvalley/riffvalley-app-front/issues/84)
+
 ## <small>1.12.1 (2026-02-10)</small>
 
 * Fix: how to use, password eye and avatar ([1ee1e64](https://github.com/riffvalley/riffvalley-app-front/commit/1ee1e64))
