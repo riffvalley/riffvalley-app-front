@@ -1,3 +1,7 @@
+## <small>1.11.4 (2026-02-08)</small>
+
+* fix: fix bugs  (#75) ([4f63ecd](https://github.com/riffvalley/riffvalley-app-front/commit/4f63ecd)), closes [#75](https://github.com/riffvalley/riffvalley-app-front/issues/75)
+
 ## <small>1.11.3 (2026-02-08)</small>
 
 * fix: how to use 2.0 ([fb1bf20](https://github.com/riffvalley/riffvalley-app-front/commit/fb1bf20))
