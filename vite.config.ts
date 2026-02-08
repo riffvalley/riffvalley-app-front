@@ -15,5 +15,14 @@ export default defineConfig({
       '@assets': path.resolve(__dirname, 'src/helpers'),
     },
   },
-  plugins: [vue()]
+  plugins: [vue()],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:3000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
 });
