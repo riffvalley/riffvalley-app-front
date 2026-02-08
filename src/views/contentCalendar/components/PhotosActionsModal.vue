@@ -124,19 +124,43 @@ const emit = defineEmits<{
     delete: [];
 }>();
 
+// Helper to format date for datetime-local input (YYYY-MM-DDThh:mm)
+function formatForInput(dateStr: string): string {
+    if (!dateStr) return '';
+
+    if (dateStr.endsWith('Z')) {
+        if (dateStr.endsWith('T00:00:00.000Z') || dateStr.endsWith('T00:00:00Z')) {
+            return dateStr.slice(0, 16);
+        }
+        const date = new Date(dateStr);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    if (dateStr.length >= 16) return dateStr.slice(0, 16);
+    if (dateStr.length === 10) return dateStr + 'T00:00';
+    return dateStr;
+}
+
 const formData = ref({
+    type: 'photos' as const,
     name: props.content.name,
     notes: props.content.notes || '',
-    publicationDate: props.content.publicationDate || '',
+    publicationDate: formatForInput(props.content.publicationDate || ''),
     authorId: (props.content as any).authorId || props.content.author?.id || ''
 });
 
 // Watch for content changes
 watch(() => props.content, (newContent) => {
     formData.value = {
+        type: 'photos',
         name: newContent.name,
         notes: newContent.notes || '',
-        publicationDate: newContent.publicationDate || '',
+        publicationDate: formatForInput(newContent.publicationDate || ''),
         authorId: (newContent as any).authorId || newContent.author?.id || ''
     };
 }, { deep: true });

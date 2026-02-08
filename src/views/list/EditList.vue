@@ -11,9 +11,19 @@
             <input id="name" v-model="form.name" type="text"
               class="flex-grow rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
               placeholder="Enter list name" required />
+            <select v-if="form.type === ListType.SPECIAL" v-model="form.specialType"
+              class="rounded-md border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm">
+              <option disabled value="">Tipo</option>
+              <option value="web">Web</option>
+              <option value="app">App</option>
+              <option value="noticias">Noticias</option>
+              <option value="videos">Videos</option>
+              <option value="riffValley">Riff Valley</option>
+              <option value="otros">Otros</option>
+            </select>
             <button v-if="form.type === ListType.SPECIAL" type="submit"
               class="bg-indigo-600 text-white text-sm px-4 rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500">
-              Guardar Nombre
+              Guardar
             </button>
           </div>
         </div>
@@ -172,6 +182,7 @@ export default defineComponent({
     const form = reactive({
       name: "",
       type: "",
+      specialType: "",
       listDate: "",
       status: ListStatus.NEW,
       releaseDate: "",
@@ -201,13 +212,17 @@ export default defineComponent({
     const submitForm = async () => {
       try {
         console.log("Updating list with data:", form);
-        const response = await updateList(props.id, {
+        const payload: any = {
           name: form.name,
           type: form.type,
           listDate: form.listDate || null,
           releaseDate: form.releaseDate || null,
           status: form.status,
-        });
+        };
+        if (form.type === ListType.SPECIAL) {
+          payload.specialType = form.specialType || null;
+        }
+        const response = await updateList(props.id, payload);
         console.log("List updated successfully:", response);
         SwalService.success("List updated successfully!");
       } catch (error) {

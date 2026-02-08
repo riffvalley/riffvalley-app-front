@@ -15,6 +15,27 @@
         </button>
       </div>
 
+      <!-- Filtro por tipo -->
+      <div v-if="!loading && lists.length > 0" class="flex flex-wrap gap-2 mb-4">
+        <button @click="filterSpecialType = ''"
+          :class="[
+            'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+            !filterSpecialType ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+          ]">
+          Todas
+        </button>
+        <button v-for="opt in specialTypeOptions" :key="opt.value" @click="filterSpecialType = opt.value"
+          :class="[
+            'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+            filterSpecialType === opt.value
+              ? getTypeColors(opt.value).badgeBg + ' ' + getTypeColors(opt.value).badgeText + ' ring-2 ring-offset-1 ring-current'
+              : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+          ]">
+          <i :class="[getTypeColors(opt.value).icon, 'mr-1 text-xs']"></i>
+          {{ opt.label }}
+        </button>
+      </div>
+
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-20">
         <i class="fa-solid fa-spinner fa-spin text-4xl text-indigo-500 mb-4"></i>
@@ -36,15 +57,24 @@
 
       <!-- Grid Layout Compacto -->
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <div v-for="list in lists" :key="list.id"
-          class="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 overflow-hidden flex flex-col justify-between h-full">
+        <div v-for="list in filteredLists" :key="list.id"
+          :class="[
+            'bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 overflow-hidden flex flex-col justify-between h-full',
+            list.specialType ? 'border-t-4 ' + getTypeColors(list.specialType).border : ''
+          ]">
 
           <div class="p-4 flex items-center gap-3">
             <div
-              class="flex-shrink-0 w-8 h-8 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-500">
-              <i class="fa-solid fa-list-ul text-sm"></i>
+              :class="['flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center', getTypeColors(list.specialType).iconBg, getTypeColors(list.specialType).iconText]">
+              <i :class="[getTypeColors(list.specialType).icon, 'text-sm']"></i>
             </div>
-            <h3 class="font-bold text-gray-800 text-base leading-tight line-clamp-2 mr-2">{{ list.name }}</h3>
+            <div class="flex flex-col gap-1 min-w-0">
+              <h3 class="font-bold text-gray-800 text-base leading-tight line-clamp-2 mr-2">{{ list.name }}</h3>
+              <span v-if="list.specialType"
+                :class="['inline-block text-xs font-medium px-2 py-0.5 rounded-full w-fit capitalize', getTypeColors(list.specialType).badgeBg, getTypeColors(list.specialType).badgeText]">
+                {{ list.specialType }}
+              </span>
+            </div>
           </div>
 
           <div class="px-4 pb-4 flex gap-2 mt-auto">
@@ -74,12 +104,25 @@
           </button>
         </div>
 
-        <div class="p-6">
-          <div class="mb-4">
+        <div class="p-6 space-y-4">
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Lista</label>
             <input v-model="newListName" type="text"
               class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
               placeholder="Ej: Lo mejor del Indie 2024" @keyup.enter="createList" autofocus />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Lista Especial</label>
+            <select v-model="newListSpecialType"
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
+              <option disabled value="">Selecciona un tipo</option>
+              <option value="web">Web</option>
+              <option value="app">App</option>
+              <option value="noticias">Noticias</option>
+              <option value="videos">Videos</option>
+              <option value="riffValley">Riff Valley</option>
+              <option value="otros">Otros</option>
+            </select>
           </div>
         </div>
 
@@ -88,7 +131,7 @@
             class="px-5 py-2.5 rounded-lg text-gray-700 font-medium hover:bg-gray-200 transition-colors">
             Cancelar
           </button>
-          <button @click="createList" :disabled="!newListName || creating"
+          <button @click="createList" :disabled="!newListName || !newListSpecialType || creating"
             class="px-5 py-2.5 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2">
             <i v-if="creating" class="fa-solid fa-circle-notch fa-spin"></i>
             <span v-else>Crear Lista</span>
@@ -101,7 +144,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from "vue";
+import { defineComponent, ref, computed, onMounted } from "vue";
 import { getSpecialLists, postList, deleteList } from "@services/list/list";
 import { useRouter } from "vue-router";
 import SwalService from "@services/swal/SwalService";
@@ -114,7 +157,36 @@ export default defineComponent({
     const router = useRouter();
     const showCreateModal = ref(false);
     const newListName = ref("");
+    const newListSpecialType = ref("");
     const creating = ref(false);
+    const filterSpecialType = ref("");
+
+    const specialTypeColors: Record<string, { border: string; iconBg: string; iconText: string; badgeBg: string; badgeText: string; icon: string }> = {
+      web: { border: "border-t-blue-500", iconBg: "bg-blue-50", iconText: "text-blue-500", badgeBg: "bg-blue-100", badgeText: "text-blue-700", icon: "fa-solid fa-globe" },
+      app: { border: "border-t-purple-500", iconBg: "bg-purple-50", iconText: "text-purple-500", badgeBg: "bg-purple-100", badgeText: "text-purple-700", icon: "fa-solid fa-mobile-screen" },
+      noticias: { border: "border-t-amber-500", iconBg: "bg-amber-50", iconText: "text-amber-500", badgeBg: "bg-amber-100", badgeText: "text-amber-700", icon: "fa-solid fa-newspaper" },
+      videos: { border: "border-t-red-500", iconBg: "bg-red-50", iconText: "text-red-500", badgeBg: "bg-red-100", badgeText: "text-red-700", icon: "fa-solid fa-video" },
+      riffValley: { border: "border-t-emerald-500", iconBg: "bg-emerald-50", iconText: "text-emerald-500", badgeBg: "bg-emerald-100", badgeText: "text-emerald-700", icon: "fa-solid fa-music" },
+      otros: { border: "border-t-gray-500", iconBg: "bg-gray-100", iconText: "text-gray-500", badgeBg: "bg-gray-200", badgeText: "text-gray-700", icon: "fa-solid fa-ellipsis" },
+    };
+
+    const defaultColors = { border: "", iconBg: "bg-indigo-50", iconText: "text-indigo-500", badgeBg: "bg-indigo-100", badgeText: "text-indigo-700", icon: "fa-solid fa-list-ul" };
+
+    const getTypeColors = (specialType: string) => specialTypeColors[specialType] || defaultColors;
+
+    const specialTypeOptions = [
+      { value: "web", label: "Web" },
+      { value: "app", label: "App" },
+      { value: "noticias", label: "Noticias" },
+      { value: "videos", label: "Videos" },
+      { value: "riffValley", label: "Riff Valley" },
+      { value: "otros", label: "Otros" },
+    ];
+
+    const filteredLists = computed(() => {
+      if (!filterSpecialType.value) return lists.value;
+      return lists.value.filter((l: any) => l.specialType === filterSpecialType.value);
+    });
 
     const fetchLists = async () => {
       loading.value = true;
@@ -156,6 +228,7 @@ export default defineComponent({
     const closeModal = () => {
       showCreateModal.value = false;
       newListName.value = "";
+      newListSpecialType.value = "";
     };
 
     const createList = async () => {
@@ -165,7 +238,8 @@ export default defineComponent({
       try {
         await postList({
           name: newListName.value,
-          type: 'special'
+          type: 'special',
+          specialType: newListSpecialType.value
         });
         SwalService.success("Lista creada correctamente");
         closeModal();
@@ -184,11 +258,16 @@ export default defineComponent({
 
     return {
       lists,
+      filteredLists,
+      filterSpecialType,
+      specialTypeOptions,
+      getTypeColors,
       loading,
       goToEdit,
       deleteItem,
       showCreateModal,
       newListName,
+      newListSpecialType,
       creating,
       closeModal,
       createList

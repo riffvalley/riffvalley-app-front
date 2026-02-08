@@ -166,8 +166,8 @@ watch(() => props.content, (newContent) => {
         type: newContent.type,
         name: newContent.name,
         notes: newContent.notes || '',
-        publicationDate: newContent.publicationDate || '',
-        closeDate: newContent.closeDate || '',
+        publicationDate: formatForInput(newContent.publicationDate || ''),
+        closeDate: newContent.closeDate ? newContent.closeDate.split('T')[0] : '',
         authorId: newContent.author?.id || '',
         listDate: newContent.list?.listDate || ''
     };
