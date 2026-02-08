@@ -175,17 +175,28 @@ export default defineComponent({
     const getTypeColors = (specialType: string) => specialTypeColors[specialType] || defaultColors;
 
     const specialTypeOptions = [
-      { value: "web", label: "Web" },
       { value: "app", label: "App" },
       { value: "noticias", label: "Noticias" },
-      { value: "videos", label: "Videos" },
-      { value: "riffValley", label: "Riff Valley" },
       { value: "otros", label: "Otros" },
+      { value: "riffValley", label: "Riff Valley" },
+      { value: "videos", label: "Videos" },
+      { value: "web", label: "Web" },
     ];
 
+    const specialTypeOrder: Record<string, number> = {
+      app: 0, noticias: 1, otros: 2, riffValley: 3, videos: 4, web: 5,
+    };
+
     const filteredLists = computed(() => {
-      if (!filterSpecialType.value) return lists.value;
-      return lists.value.filter((l: any) => l.specialType === filterSpecialType.value);
+      const base = filterSpecialType.value
+        ? lists.value.filter((l: any) => l.specialType === filterSpecialType.value)
+        : lists.value;
+      return [...base].sort((a: any, b: any) => {
+        const orderA = specialTypeOrder[a.specialType] ?? 99;
+        const orderB = specialTypeOrder[b.specialType] ?? 99;
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.name || "").localeCompare(b.name || "");
+      });
     });
 
     const fetchLists = async () => {
