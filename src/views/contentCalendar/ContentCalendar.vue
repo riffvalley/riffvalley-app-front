@@ -191,6 +191,13 @@ const calendarEvents = computed(() => {
             start = start.split('T')[0];
             const allDay = true;
 
+            // Always extract just the date part and treat as all-day.
+            // In dayGridMonth view, non-allDay events render as small transparent dots
+            // instead of full colored bars. Extracting the date-only string also
+            // prevents timezone shifts that could display the event on the wrong day.
+            start = start.split('T')[0];
+            const allDay = true;
+
             // Calculate end date for FullCalendar (exclusive)
             let end = undefined;
             if (c.closeDate) {
@@ -440,6 +447,13 @@ const calendarOptions = ref({
                     await loadBacklogContents();
                     await loadContentsByMonth(currentYear.value, currentMonth.value);
                 }
+                try {
+                    await handleDropToCalendar(contentId, null as any); // Send null to move to backlog
+                } catch {
+                    // Reload to restore consistent state
+                    await loadBacklogContents();
+                    await loadContentsByMonth(currentYear.value, currentMonth.value);
+                }
             }
         }
     }
@@ -487,8 +501,10 @@ async function handleDropToCalendar(contentId: string, dateStr: string | null) {
         await loadBacklogContents();
         await loadContentsByMonth(currentYear.value, currentMonth.value);
         SwalService.success(dateStr ? 'Evento programado correctamente' : 'Evento movido al backlog');
+        SwalService.success(dateStr ? 'Evento programado correctamente' : 'Evento movido al backlog');
     } catch (error) {
         console.error('Error updating content date:', error);
+        SwalService.error('Error al mover el evento');
         SwalService.error('Error al mover el evento');
     }
 }
@@ -501,6 +517,7 @@ async function handleCreateContent(data: any) {
     // Validate mandatory date types
     const mandatoryDateTypes = ['reunion', 'radar', 'best'];
     if (mandatoryDateTypes.includes(contentData.type) && !contentData.publicationDate) {
+        SwalService.error(`El contenido tipo "${getContentTypeLabel(contentData.type)}" requiere una fecha de publicación obligatoria`);
         SwalService.error(`El contenido tipo "${getContentTypeLabel(contentData.type)}" requiere una fecha de publicación obligatoria`);
         return;
     }
@@ -535,8 +552,10 @@ async function handleCreateContent(data: any) {
         // Also reload current month to preserve scheduled events
         await loadContentsByMonth(currentYear.value, currentMonth.value);
         SwalService.success('Evento creado correctamente');
+        SwalService.success('Evento creado correctamente');
     } catch (error) {
         console.error('Error creating content:', error);
+        SwalService.error('Error al crear el contenido. Por favor, intenta de nuevo.');
         SwalService.error('Error al crear el contenido. Por favor, intenta de nuevo.');
     }
 }
@@ -551,6 +570,9 @@ function openEditModal(content: Content) {
         authorId: content.author?.id || ''
     };
 
+    // Photos and reunions open their specialized actions modal directly from calendar click,
+    // but from backlog or generic edit they should use the standard edit modal
+    showEditModal.value = true;
     // Photos and reunions open their specialized actions modal directly from calendar click,
     // but from backlog or generic edit they should use the standard edit modal
     showEditModal.value = true;
@@ -641,24 +663,6 @@ async function executeDeleteContent() {
         await loadBacklogContents();
         await loadContentsByMonth(currentYear.value, currentMonth.value);
         SwalService.success('Evento eliminado correctamente');
-    } catch (error) {
-        console.error('Error deleting content:', error);
-        SwalService.error('No se pudo eliminar el evento');
-    }
-}
-
-async function handleDeleteFromBacklog(content: Content) {
-    const result = await SwalService.confirm(
-        '¿Eliminar evento?',
-        `Vas a eliminar "${content.name}". Esta acción no se puede deshacer.`,
-        'warning'
-    );
-    if (!result.isConfirmed) return;
-
-    try {
-        await deleteContent(content.id);
-        allContents.value = allContents.value.filter(c => c.id !== content.id);
-        await loadBacklogContents();
         SwalService.success('Evento eliminado correctamente');
     } catch (error) {
         console.error('Error deleting content:', error);
@@ -712,6 +716,7 @@ async function handleUpdateContent(data: any) {
     const mandatoryDateTypes = ['reunion', 'radar', 'best'];
     if (mandatoryDateTypes.includes(contentData.type) && !contentData.publicationDate) {
         SwalService.error(`El contenido tipo "${getContentTypeLabel(contentData.type)}" requiere una fecha de publicación obligatoria`);
+        SwalService.error(`El contenido tipo "${getContentTypeLabel(contentData.type)}" requiere una fecha de publicación obligatoria`);
         return;
     }
 
@@ -721,6 +726,7 @@ async function handleUpdateContent(data: any) {
             name: contentData.name,
             notes: contentData.notes || undefined,
             publicationDate: contentData.publicationDate ? new Date(contentData.publicationDate).toISOString() : null,
+            closeDate: contentData.closeDate || null,
             closeDate: contentData.closeDate || null,
             authorId: contentData.authorId
         });
@@ -732,8 +738,10 @@ async function handleUpdateContent(data: any) {
         await loadBacklogContents();
         await loadContentsByMonth(currentYear.value, currentMonth.value);
         SwalService.success('Evento actualizado correctamente');
+        SwalService.success('Evento actualizado correctamente');
     } catch (error) {
         console.error('Error updating content:', error);
+        SwalService.error('Error al actualizar el evento');
         SwalService.error('Error al actualizar el evento');
     }
 }
@@ -761,6 +769,7 @@ async function updateListStatus(list: any) {
     try {
         await updateList(list.id, { status: list.status });
         SwalService.success('Estado actualizado');
+        SwalService.success('Estado actualizado');
     } catch (error) {
         console.error('Error updating status:', error);
         SwalService.error('Error al actualizar estado');
@@ -773,6 +782,7 @@ async function updateRadarField(field: string, value: any) {
         await updateList(radarDetails.value.id, { [field]: value });
         radarDetails.value = { ...radarDetails.value, [field]: value };
         await loadContentsByMonth(currentYear.value, currentMonth.value);
+        SwalService.success('Fecha actualizada correctamente');
         SwalService.success('Fecha actualizada correctamente');
     } catch (error) {
         console.error(`Error updating ${field}:`, error);
@@ -811,6 +821,9 @@ async function loadBacklogContents() {
         // Load all contents to get backlog items (those without publicationDate)
         const allData = await getContents();
         const backlog = allData.filter(c => !c.publicationDate);
+        // Preserve existing scheduled items while updating backlog
+        const scheduledItems = allContents.value.filter(c => c.publicationDate);
+        allContents.value = [...backlog, ...scheduledItems];
         // Preserve existing scheduled items while updating backlog
         const scheduledItems = allContents.value.filter(c => c.publicationDate);
         allContents.value = [...backlog, ...scheduledItems];
