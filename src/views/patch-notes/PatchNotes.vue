@@ -154,7 +154,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, onUnmounted } from 'vue';
+import { defineComponent, ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { getProductionVersionsPaginated } from '@services/versions/versions';
 import type { Version, VersionItem, ChangeType } from '@services/versions/versions';
 
@@ -197,6 +197,16 @@ export default defineComponent({
         console.error('Error loading versions:', error);
       } finally {
         loading.value = false;
+        await nextTick();
+        checkIfNeedsMore();
+      }
+    };
+
+    const checkIfNeedsMore = () => {
+      if (!hasMore.value || loading.value || !loadMoreTrigger.value) return;
+      const rect = loadMoreTrigger.value.getBoundingClientRect();
+      if (rect.top < window.innerHeight + 200) {
+        loadMore();
       }
     };
 
