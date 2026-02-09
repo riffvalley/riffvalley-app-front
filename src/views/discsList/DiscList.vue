@@ -339,6 +339,16 @@ export default defineComponent({
         console.error("Error fetching data:", error);
       } finally {
         loading.value = false;
+        await nextTick();
+        checkIfNeedsMore();
+      }
+    };
+
+    const checkIfNeedsMore = () => {
+      if (!hasMore.value || loading.value || !loadMore.value) return;
+      const rect = loadMore.value.getBoundingClientRect();
+      if (rect.top < window.innerHeight) {
+        fetchData();
       }
     };
 

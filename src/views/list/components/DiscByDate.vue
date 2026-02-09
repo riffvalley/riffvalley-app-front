@@ -103,6 +103,7 @@ import {
   onMounted,
   watch,
   computed,
+  nextTick,
 } from "vue";
 import { getDiscsDated } from "@services/discs/discs";
 import { getRvUsers } from "@services/users/users";
@@ -263,6 +264,16 @@ export default defineComponent({
         console.error("Error fetching discs:", error);
       } finally {
         loading.value = false;
+        await nextTick();
+        checkIfNeedsMore();
+      }
+    };
+
+    const checkIfNeedsMore = () => {
+      if (!hasMore.value || loading.value || !scrollObserver.value) return;
+      const rect = scrollObserver.value.getBoundingClientRect();
+      if (rect.top < window.innerHeight) {
+        fetchDiscs();
       }
     };
 
