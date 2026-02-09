@@ -67,18 +67,42 @@
         <form @submit.prevent="changePassword" class="space-y-4">
           <div>
             <label for="password" class="block font-medium mb-1">Nueva contraseña</label>
-            <input v-model="password" type="password" id="password" class="w-full p-2 border border-gray-300 rounded-lg"
-              placeholder="Crea tu nueva contraseña" required />
-            <p v-if="passwordError" class="text-red-500 text-sm mt-1">
-              {{ passwordError }}
-            </p>
+            <div class="relative">
+              <input v-model="password" :type="showPassword ? 'text' : 'password'" id="password"
+                class="w-full p-2 pr-10 border border-gray-300 rounded-lg"
+                placeholder="Crea tu nueva contraseña" required />
+              <button type="button" @click="showPassword = !showPassword"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
+              </button>
+            </div>
+            <ul v-if="password" class="mt-2 space-y-1 text-sm">
+              <li :class="password.length >= 6 ? 'text-green-600' : 'text-red-500'">
+                <i :class="password.length >= 6 ? 'fa-solid fa-check' : 'fa-solid fa-xmark'" class="w-4 inline-block"></i>
+                Mínimo 6 caracteres
+              </li>
+              <li :class="/[A-Z]/.test(password) ? 'text-green-600' : 'text-red-500'">
+                <i :class="/[A-Z]/.test(password) ? 'fa-solid fa-check' : 'fa-solid fa-xmark'" class="w-4 inline-block"></i>
+                Al menos una mayúscula
+              </li>
+              <li :class="/[0-9]/.test(password) ? 'text-green-600' : 'text-red-500'">
+                <i :class="/[0-9]/.test(password) ? 'fa-solid fa-check' : 'fa-solid fa-xmark'" class="w-4 inline-block"></i>
+                Al menos un número
+              </li>
+            </ul>
           </div>
 
           <div>
             <label for="confirmPassword" class="block font-medium mb-1">Confirmar Contraseña</label>
-            <input v-model="confirmPassword" type="password" id="confirmPassword"
-              class="w-full p-2 border border-gray-300 rounded-lg" placeholder="Confirma tu nueva contraseña"
-              required />
+            <div class="relative">
+              <input v-model="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" id="confirmPassword"
+                class="w-full p-2 pr-10 border border-gray-300 rounded-lg" placeholder="Confirma tu nueva contraseña"
+                required />
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <i :class="showConfirmPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
+              </button>
+            </div>
           </div>
 
           <p v-if="passwordMismatch" class="text-red-500 text-sm -mt-2">
@@ -117,6 +141,8 @@ export default {
     const password = ref("");
     const confirmPassword = ref("");
     const errorMessage = ref("");
+    const showPassword = ref(false);
+    const showConfirmPassword = ref(false);
 
     // Avatares
     const selectedAvatar = ref("");
@@ -210,7 +236,7 @@ export default {
     return {
       ready,
       // contraseña
-      password, confirmPassword, passwordMismatch, passwordError, changePassword, errorMessage,
+      password, confirmPassword, showPassword, showConfirmPassword, passwordMismatch, passwordError, changePassword, errorMessage,
       // avatares
       categories, avatarsByCategory, allAvatars,
       openCategory, toggleCategory,
