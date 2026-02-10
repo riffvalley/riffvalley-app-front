@@ -158,13 +158,19 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm text-rv-pink mb-1.5 font-medium">Contraseña</label>
-                <input
-                  v-model="newUser.password"
-                  type="password"
-                  placeholder="Mínimo 6 caracteres"
-                  class="modal-input"
-                  required
-                />
+                <div class="relative">
+                  <input
+                    v-model="newUser.password"
+                    :type="showCreatePassword ? 'text' : 'password'"
+                    placeholder="Mínimo 6 caracteres"
+                    class="modal-input pr-10"
+                    required
+                  />
+                  <button type="button" @click="showCreatePassword = !showCreatePassword"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none">
+                    <i :class="showCreatePassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
+                  </button>
+                </div>
                 <p v-if="passwordValidation(newUser.password)" class="mt-1.5 text-sm text-red-400">
                   {{ passwordValidation(newUser.password) }}
                 </p>
@@ -221,13 +227,19 @@
           <form @submit.prevent="updatePassword">
             <div>
               <label class="block text-sm text-rv-pink mb-1.5 font-medium">Nueva contraseña</label>
-              <input
-                v-model="newPassword"
-                type="password"
-                placeholder="Mínimo 6 caracteres"
-                class="modal-input"
-                required
-              />
+              <div class="relative">
+                <input
+                  v-model="newPassword"
+                  :type="showChangePassword ? 'text' : 'password'"
+                  placeholder="Mínimo 6 caracteres"
+                  class="modal-input pr-10"
+                  required
+                />
+                <button type="button" @click="showChangePassword = !showChangePassword"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none">
+                  <i :class="showChangePassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
+                </button>
+              </div>
               <p v-if="passwordValidation(newPassword)" class="mt-1.5 text-sm text-red-400">
                 {{ passwordValidation(newPassword) }}
               </p>
@@ -311,6 +323,8 @@ export default defineComponent({
     const showCreateModal = ref(false);
     const showPasswordModal = ref(false);
     const showNotesModal = ref(false);
+    const showCreatePassword = ref(false);
+    const showChangePassword = ref(false);
 
     const newUser = ref({
       email: "",
@@ -435,6 +449,7 @@ export default defineComponent({
 
     const closeCreateModal = () => {
       showCreateModal.value = false;
+      showCreatePassword.value = false;
     };
 
     const createUser = async () => {
@@ -475,6 +490,7 @@ export default defineComponent({
       showPasswordModal.value = false;
       selectedUser.value = null;
       newPassword.value = "";
+      showChangePassword.value = false;
     };
 
     const updatePassword = async () => {
@@ -552,6 +568,8 @@ export default defineComponent({
       showCreateModal,
       showPasswordModal,
       showNotesModal,
+      showCreatePassword,
+      showChangePassword,
       formatDate,
       formatDateForInput,
       updateCreatedAt,
