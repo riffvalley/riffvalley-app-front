@@ -1,3 +1,22 @@
+## <small>1.12.1 (2026-02-10)</small>
+
+* Fix: how to use, password eye and avatar ([1ee1e64](https://github.com/riffvalley/riffvalley-app-front/commit/1ee1e64))
+* Fix: new avatar and how to use ([5bf41ae](https://github.com/riffvalley/riffvalley-app-front/commit/5bf41ae))
+* Fix/duplicates (#77) ([0d17d09](https://github.com/riffvalley/riffvalley-app-front/commit/0d17d09)), closes [#77](https://github.com/riffvalley/riffvalley-app-front/issues/77) [#71](https://github.com/riffvalley/riffvalley-app-front/issues/71)
+* Fix/duplicates (#77) (#81) ([ed84996](https://github.com/riffvalley/riffvalley-app-front/commit/ed84996)), closes [#77](https://github.com/riffvalley/riffvalley-app-front/issues/77) [#81](https://github.com/riffvalley/riffvalley-app-front/issues/81) [#71](https://github.com/riffvalley/riffvalley-app-front/issues/71)
+* Fix/duplicates (#77) (#81) (#82) ([b357c96](https://github.com/riffvalley/riffvalley-app-front/commit/b357c96)), closes [#77](https://github.com/riffvalley/riffvalley-app-front/issues/77) [#81](https://github.com/riffvalley/riffvalley-app-front/issues/81) [#82](https://github.com/riffvalley/riffvalley-app-front/issues/82) [#71](https://github.com/riffvalley/riffvalley-app-front/issues/71)
+* Fix/duplicates (#78) ([a0b2aea](https://github.com/riffvalley/riffvalley-app-front/commit/a0b2aea)), closes [#78](https://github.com/riffvalley/riffvalley-app-front/issues/78)
+* Fix/duplicates (#79) ([6409d34](https://github.com/riffvalley/riffvalley-app-front/commit/6409d34)), closes [#79](https://github.com/riffvalley/riffvalley-app-front/issues/79)
+* Fix/duplicates (#80) ([35217c3](https://github.com/riffvalley/riffvalley-app-front/commit/35217c3)), closes [#80](https://github.com/riffvalley/riffvalley-app-front/issues/80)
+* Merge branch 'dev' of https://github.com/riffvalley/riffvalley-app-front into dev ([fdc6563](https://github.com/riffvalley/riffvalley-app-front/commit/fdc6563))
+* Merge branch 'dev' of https://github.com/riffvalley/riffvalley-app-front into dev ([e1de954](https://github.com/riffvalley/riffvalley-app-front/commit/e1de954))
+* Merge branch 'main' into dev ([0e04622](https://github.com/riffvalley/riffvalley-app-front/commit/0e04622))
+* fix: password eye ([37dcd0a](https://github.com/riffvalley/riffvalley-app-front/commit/37dcd0a))
+
+## 1.12.0 (2026-02-08)
+
+* feat: list types (#76) ([d0cf612](https://github.com/riffvalley/riffvalley-app-front/commit/d0cf612)), closes [#76](https://github.com/riffvalley/riffvalley-app-front/issues/76)
+
 ## <small>1.11.4 (2026-02-08)</small>
 
 * fix: fix bugs  (#75) ([4f63ecd](https://github.com/riffvalley/riffvalley-app-front/commit/4f63ecd)), closes [#75](https://github.com/riffvalley/riffvalley-app-front/issues/75)
