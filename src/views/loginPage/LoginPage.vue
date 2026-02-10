@@ -1,5 +1,5 @@
 <template>
-<div class="min-h-[100svh] flex flex-col items-center justify-center
+  <div class="min-h-[100svh] flex flex-col items-center justify-center
             scale-[0.92] sm:scale-100 origin-center">
 
     <!-- CARD ÚNICA -->
@@ -38,8 +38,13 @@
           <div class="relative">
             <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="Contraseña" class="w-full px-4 py-2 pr-10 border rounded-full
                      focus:outline-none focus:ring-2 focus:ring-rv-pink/40" />
-            <button type="button" @click="showPassword = !showPassword"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
+            <button type="button" @click="showPassword = !showPassword" class="absolute right-3 top-1/2 -translate-y-1/2
+         bg-transparent
+         text-gray-400 hover:text-gray-600
+         border-0
+         outline-none focus:outline-none focus-visible:outline-none
+         ring-0 focus:ring-0 focus-visible:ring-0
+         active:bg-transparent">
               <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
             </button>
           </div>

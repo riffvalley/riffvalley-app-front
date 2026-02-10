@@ -72,7 +72,14 @@
                 class="w-full p-2 pr-10 border border-gray-300 rounded-lg"
                 placeholder="Crea tu nueva contraseña" required />
               <button type="button" @click="showPassword = !showPassword"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
+                  class="absolute right-3 top-1/2 -translate-y-1/2
+        bg-transparent
+         text-gray-400 hover:text-gray-600
+         border-0
+         outline-none focus:outline-none focus-visible:outline-none
+         ring-0 focus:ring-0 focus-visible:ring-0
+         active:bg-transparent"
+>
                 <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
               </button>
             </div>
@@ -98,10 +105,23 @@
               <input v-model="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" id="confirmPassword"
                 class="w-full p-2 pr-10 border border-gray-300 rounded-lg" placeholder="Confirma tu nueva contraseña"
                 required />
-              <button type="button" @click="showConfirmPassword = !showConfirmPassword"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
-                <i :class="showConfirmPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
-              </button>
+<button
+  type="button"
+  @click="showConfirmPassword = !showConfirmPassword"
+  class="absolute right-3 top-1/2 -translate-y-1/2
+        bg-transparent
+         text-gray-400 hover:text-gray-600
+         border-0
+         outline-none focus:outline-none focus-visible:outline-none
+         ring-0 focus:ring-0 focus-visible:ring-0
+         active:bg-transparent"
+>
+  <i
+    :class="showConfirmPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"
+    class="text-sm"
+  ></i>
+</button>
+
             </div>
           </div>
 
@@ -172,7 +192,7 @@ export default {
         "/avatar/avatar39.png", "/avatar/avatar40.png", "/avatar/avatar41.png", "/avatar/avatar42.png", "/avatar/avatar43.png", "/avatar/avatar44.png", "/avatar/avatar45.png", "/avatar/avatar46.png", "/avatar/avatar47.png", "/avatar/avatar48.png", "/avatar/avatar49.png", "/avatar/avatar50.png",
       ],
       misc: [
-        "/avatar/avatar20.png",
+        "/avatar/avatar20.png", "/avatar/avatar52.png", "/avatar/avatar53.png",
       ],
 
     });
