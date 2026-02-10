@@ -19,10 +19,10 @@
                         <i class="fa-solid fa-house text-md mr-2"></i>¿Qué se puede hacer en Home?
                     </h2>
                     <p class="text-gray-700">
-                        En la sección <strong>Home</strong> podrás ver los discos mejor valorados por los usuarios
+                        En la sección <strong>Home</strong> podrás ver el <strong>top 20</strong> discos mejor valorados por los usuarios
                         semanal,
                         mensual, anual e históricamente. Es una
-                        forma rápida de descubrir los lanzamientos más destacados según la comunidad, ideal si tienes
+                        forma rápida de descubrir los lanzamientos más destacados según los votos de la comunidad, ideal si tienes
                         poco
                         tiempo libre.
                     </p>

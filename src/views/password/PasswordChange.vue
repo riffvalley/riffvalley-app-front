@@ -146,7 +146,7 @@ export default {
         "/avatar/avatar39.png", "/avatar/avatar40.png", "/avatar/avatar41.png", "/avatar/avatar42.png", "/avatar/avatar43.png", "/avatar/avatar44.png", "/avatar/avatar45.png", "/avatar/avatar46.png", "/avatar/avatar47.png", "/avatar/avatar48.png", "/avatar/avatar49.png", "/avatar/avatar50.png",
       ],
       misc: [
-        "/avatar/avatar20.png",
+        "/avatar/avatar20.png", "/avatar/avatar52.png", "/avatar/avatar53.png",
       ],
 
     });
