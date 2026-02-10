@@ -35,8 +35,14 @@
           <input type="text" v-model="username" placeholder="Usuario" class="w-full px-4 py-2 border rounded-full
                    focus:outline-none focus:ring-2 focus:ring-rv-pink/40" />
 
-          <input type="password" v-model="password" placeholder="Contraseña" class="w-full px-4 py-2 border rounded-full
-                   focus:outline-none focus:ring-2 focus:ring-rv-pink/40" />
+          <div class="relative">
+            <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="Contraseña" class="w-full px-4 py-2 pr-10 border rounded-full
+                     focus:outline-none focus:ring-2 focus:ring-rv-pink/40" />
+            <button type="button" @click="showPassword = !showPassword"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
+              <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
+            </button>
+          </div>
 
           <button type="submit" class="w-full bg-gradient-to-r from-[#0c6ddc] to-[#0a56b3]
          text-white font-bold py-2 rounded-full
@@ -166,6 +172,7 @@ export default defineComponent({
     const password = ref('');
     const loading = ref(false);
     const error = ref<string | null>(null);
+    const showPassword = ref(false);
     const showHowToUse = ref(false); // 👈 control del modal
 
     const authStore = useAuthStore();
@@ -187,6 +194,7 @@ export default defineComponent({
     return {
       username,
       password,
+      showPassword,
       loading,
       error,
       handleLogin,
