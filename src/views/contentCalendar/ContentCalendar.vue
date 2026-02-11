@@ -666,6 +666,25 @@ async function executeDeleteContent() {
     }
 }
 
+async function handleDeleteFromBacklog(content: Content) {
+    const result = await SwalService.confirm(
+        '¿Eliminar evento?',
+        `Vas a eliminar "${content.name}". Esta acción no se puede deshacer.`,
+        'warning'
+    );
+    if (!result.isConfirmed) return;
+
+    try {
+        await deleteContent(content.id);
+        allContents.value = allContents.value.filter(c => c.id !== content.id);
+        await loadBacklogContents();
+        SwalService.success('Evento eliminado correctamente');
+    } catch (error) {
+        console.error('Error deleting content:', error);
+        SwalService.error('No se pudo eliminar el evento');
+    }
+}
+
 async function toggleAsignation(asig: any) {
     const newState = !asig.done;
     // Optimistic UI update
