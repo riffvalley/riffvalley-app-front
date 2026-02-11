@@ -2,7 +2,8 @@
     <div class="flex h-screen overflow-hidden bg-gray-50">
         <!-- Backlog Panel Component -->
         <BacklogPanel :backlog-items="backlogItems" :show-only-my-events="showOnlyMyEvents" :user-id="authStore.userId"
-            @create-new="showCreateModal = true" @edit-content="openEditModal" ref="backlogPanelRef" />
+            @create-new="showCreateModal = true" @edit-content="openEditModal" @delete-content="handleDeleteFromBacklog"
+            ref="backlogPanelRef" />
 
         <!-- Calendar Panel -->
         <div class="flex-1 flex flex-col overflow-hidden">
@@ -65,6 +66,16 @@
             :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
             @update="handleUpdateContent" @delete="confirmDeleteContent" @navigate-reunions="goToReunions" />
 
+        <ArticleActionsModal v-else-if="selectedContent?.type === 'article'" :show="showActionsModal"
+            :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
+            @update="handleUpdateContent" @update-article="handleUpdateArticle"
+            @delete="confirmDeleteContent" @navigate-kanban="goToArticlesKanban" />
+
+        <VideoActionsModal v-else-if="selectedContent?.type === 'video'" :show="showActionsModal"
+            :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
+            @update="handleUpdateContent" @update-video="handleUpdateVideo"
+            @delete="confirmDeleteContent" @navigate-kanban="goToVideosKanban" />
+
         <GenericActionsModal v-else :show="showActionsModal" :content="selectedContent"
             @close="showActionsModal = false" @edit="editFromActions" @delete="confirmDeleteContent" />
 
@@ -89,6 +100,8 @@ import { updateAsignationService } from '@services/asignation/asignation';
 import { deleteList, getListDetails, updateList } from '@services/list/list';
 
 import { useRouter } from 'vue-router';
+import { updateArticle } from '@services/articles/articles';
+import { updateVideo } from '@services/videos/videos';
 
 import BacklogPanel from './components/BacklogPanel.vue';
 import CreateContentModal from './components/CreateContentModal.vue';
@@ -96,6 +109,8 @@ import EditContentModal from './components/EditContentModal.vue';
 import RadarActionsModal from './components/RadarActionsModal.vue';
 import PhotosActionsModal from './components/PhotosActionsModal.vue';
 import ReunionActionsModal from './components/ReunionActionsModal.vue';
+import ArticleActionsModal from './components/ArticleActionsModal.vue';
+import VideoActionsModal from './components/VideoActionsModal.vue';
 import GenericActionsModal from './components/GenericActionsModal.vue';
 import LegendModal from './components/LegendModal.vue';
 import DeleteConfirmModal from './components/DeleteConfirmModal.vue';
@@ -205,6 +220,7 @@ const calendarEvents = computed(() => {
                     contentType: c.type,
                     notes: c.notes,
                     author: c.author,
+                    editor: (c as any).article?.editor || (c as any).video?.editor || null,
                     list: c.list
                 }
             };
@@ -241,6 +257,7 @@ const calendarOptions = ref({
     },
     eventContent: (arg: any) => {
         const author = arg.event.extendedProps.author;
+        const editor = arg.event.extendedProps.editor;
         const notes = arg.event.extendedProps.notes || '';
         const isMyEvent = authStore.userId && author?.id === authStore.userId;
         const shouldDim = showOnlyMyEvents.value && !isMyEvent;
@@ -260,12 +277,30 @@ const calendarOptions = ref({
             container.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.2)';
         }
 
+        // Avatars container (author + editor)
+        const avatarsContainer = document.createElement('div');
+        avatarsContainer.className = 'flex items-center -space-x-1.5 flex-shrink-0';
+
         if (author?.image) {
             const img = document.createElement('img');
             img.src = author.image;
             img.alt = author.username;
-            img.className = 'w-5 h-5 rounded-full object-cover flex-shrink-0';
-            container.appendChild(img);
+            img.className = 'w-5 h-5 rounded-full object-cover border border-white';
+            img.title = author.username;
+            avatarsContainer.appendChild(img);
+        }
+
+        if (editor?.image) {
+            const editorImg = document.createElement('img');
+            editorImg.src = editor.image;
+            editorImg.alt = editor.username;
+            editorImg.className = 'w-5 h-5 rounded-full object-cover border border-white';
+            editorImg.title = `Editor: ${editor.username}`;
+            avatarsContainer.appendChild(editorImg);
+        }
+
+        if (avatarsContainer.childElementCount > 0) {
+            container.appendChild(avatarsContainer);
         }
 
         const textContainer = document.createElement('div');
@@ -279,7 +314,9 @@ const calendarOptions = ref({
         if (author?.username) {
             const authorName = document.createElement('div');
             authorName.className = 'text-[10px] opacity-75 truncate';
-            authorName.textContent = author.username;
+            authorName.textContent = editor?.username
+                ? `${author.username} / ${editor.username}`
+                : author.username;
             textContainer.appendChild(authorName);
         }
 
@@ -294,16 +331,10 @@ const calendarOptions = ref({
             selectedContent.value = content;
             showActionsModal.value = true;
 
-            // Pre-fill editing content for photos and reunions for the direct modal
-            if (content.type === 'photos' || content.type === 'reunion') {
+            // Pre-fill editing content for modals that need it
+            if (['photos', 'reunion', 'article', 'video'].includes(content.type)) {
                 editingContentId.value = content.id;
-                editingContent.value = {
-                    type: content.type,
-                    name: content.name,
-                    notes: content.notes || '',
-                    publicationDate: content.publicationDate || '',
-                    authorId: content.author?.id || ''
-                };
+                editingContent.value = content;
             }
 
             if ((content.type === 'radar' || content.type === 'best') && content.list?.id) {
@@ -536,6 +567,48 @@ function goToReunions() {
     router.push('/reunions');
 }
 
+function goToArticlesKanban() {
+    showActionsModal.value = false;
+    router.push('/articles');
+}
+
+function goToVideosKanban() {
+    showActionsModal.value = false;
+    router.push('/videos');
+}
+
+async function handleUpdateArticle(data: any) {
+    try {
+        await updateArticle(data.articleId, {
+            name: data.name,
+            type: data.type,
+            status: data.status,
+            link: data.link,
+            userId: data.userId,
+            editorId: data.editorId
+        });
+    } catch (error) {
+        console.error('Error updating article:', error);
+        SwalService.error('Error al actualizar el artículo');
+    }
+}
+
+async function handleUpdateVideo(data: any) {
+    try {
+        await updateVideo(data.videoId, {
+            name: data.name,
+            type: data.type,
+            status: data.status,
+            link: data.link,
+            userId: data.userId,
+            editorId: data.editorId
+        });
+    } catch (error) {
+        console.error('Error updating video:', error);
+        SwalService.error('Error al actualizar el video');
+    }
+}
+
 
 function editFromActions() {
     if (selectedContent.value) {
@@ -567,6 +640,25 @@ async function executeDeleteContent() {
         // Reload data
         await loadBacklogContents();
         await loadContentsByMonth(currentYear.value, currentMonth.value);
+        SwalService.success('Evento eliminado correctamente');
+    } catch (error) {
+        console.error('Error deleting content:', error);
+        SwalService.error('No se pudo eliminar el evento');
+    }
+}
+
+async function handleDeleteFromBacklog(content: Content) {
+    const result = await SwalService.confirm(
+        '¿Eliminar evento?',
+        `Vas a eliminar "${content.name}". Esta acción no se puede deshacer.`,
+        'warning'
+    );
+    if (!result.isConfirmed) return;
+
+    try {
+        await deleteContent(content.id);
+        allContents.value = allContents.value.filter(c => c.id !== content.id);
+        await loadBacklogContents();
         SwalService.success('Evento eliminado correctamente');
     } catch (error) {
         console.error('Error deleting content:', error);

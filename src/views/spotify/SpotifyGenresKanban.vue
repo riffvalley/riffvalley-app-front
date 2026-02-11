@@ -1,13 +1,11 @@
 <template>
-    <div class="p-6 h-full flex flex-col">
+    <div class="p-6 min-h-[calc(100vh-64px)] flex flex-col">
         <div class="flex items-center justify-between mb-6">
             <h1 class="text-2xl font-semibold">Tablero de Géneros</h1>
-            <div class="flex gap-2">
-                <button class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800" @click="openCreate">
-                    Nueva lista
-                </button>
-                <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300" @click="reload">
-                    Recargar
+            <div class="flex gap-2 items-center">
+                <button class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800"
+                    @click="openCreate">
+                    Nuevo Género
                 </button>
             </div>
         </div>
@@ -19,7 +17,7 @@
         <!-- Kanban Board -->
         <div v-else class="flex gap-4 h-full overflow-x-auto pb-4">
             <div v-for="col in columns" :key="col.id"
-                class="flex-1 min-w-[300px] rounded-xl p-4 flex flex-col max-h-full"
+                class="flex-1 min-w-[220px] rounded-xl p-2 flex flex-col max-h-full"
                 :class="[col.bgClass, col.borderClass]" @dragover.prevent="onDragOver" @drop="onDrop(col.id)">
                 <!-- Column Header -->
                 <h2 class="font-bold mb-4 flex items-center justify-between sticky top-0 pb-2 z-10"
@@ -36,7 +34,7 @@
                         class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-move hover:shadow-md transition-shadow group relative"
                         draggable="true" @dragstart="onDragStart(item)">
                         <!-- Card Content -->
-                        <div class="flex justify-between items-start mb-2">
+                        <div class="mb-2">
                             <h3 class="font-semibold text-gray-900 leading-tight">
                                 {{ item.name }}
                             </h3>
@@ -47,17 +45,18 @@
                             <!-- User Selector (Click to Edit) -->
                             <div class="relative group mt-3">
                                 <!-- Visual Display (Click to edit) -->
-                                <div v-if="editingUserItemId !== item.id" @click="startEditingUser(item.id)"
-                                    class="flex items-center gap-2 p-1.5 rounded-lg border border-transparent bg-gray-50 hover:bg-gray-100 transition-all cursor-pointer">
+                                <div v-if="editingUserItemId !== item.id"
+                                    @click="startEditingUser(item.id)"
+                                    class="flex items-center gap-2 p-1.5 rounded-lg border border-transparent bg-gray-50 transition-all hover:bg-gray-100 cursor-pointer">
                                     <template v-if="item.user">
                                         <img v-if="item.user.image" :src="item.user.image"
                                             class="w-5 h-5 rounded-full object-cover bg-gray-200" alt="Avatar" />
                                         <div v-else
                                             class="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold text-black/50">
-                                            {{ item.user.username.charAt(0).toUpperCase() }}
+                                            {{ (item.user.username || '?').charAt(0).toUpperCase() }}
                                         </div>
                                         <span class="text-xs font-medium text-gray-700 truncate min-w-0 flex-1">{{
-                                            item.user.username }}</span>
+                                            item.user.username || 'Usuario desconocido' }}</span>
                                     </template>
                                     <template v-else>
                                         <div class="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
@@ -81,7 +80,7 @@
                             <!-- Action Buttons and Date -->
                             <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
                                 <!-- Date -->
-                                <span class="text-xs text-gray-400">{{ fmtDate(item.updateDate) }}</span>
+                                <span class="text-xs text-gray-400">{{ fmtDate(item.updateDate || '') }}</span>
 
                                 <!-- Buttons -->
                                 <div class="flex items-center gap-2">
@@ -100,7 +99,7 @@
                                     </button>
 
                                     <!-- Spotify Link -->
-                                    <a :href="item.link" target="_blank"
+                                    <a v-if="item.link" :href="item.link" target="_blank"
                                         class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-[#1DB954] hover:bg-green-100 transition-colors"
                                         title="Abrir en Spotify">
                                         <i class="fa-brands fa-spotify text-base"></i>
@@ -150,14 +149,17 @@ import {
     updateSpotify,
     removeSpotify,
     type Spotify,
-    type SpotifyEstado,
+    type SpotifyStatus,
     toISO
 } from '@services/spotify/spotify';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
+import { useAuthStore } from '@stores/auth/auth';
 import SwalService from '@services/swal/SwalService';
 
+const authStore = useAuthStore();
+
 // --- Types ---
-type ColumnId = SpotifyEstado;
+type ColumnId = SpotifyStatus;
 
 interface Column {
     id: ColumnId;
@@ -171,32 +173,40 @@ interface Column {
 // --- Constants ---
 const columns: Column[] = [
     {
-        id: 'por_actualizar',
-        label: 'Por actualizar',
+        id: 'not_started',
+        label: 'Not Started',
         bgClass: 'bg-red-50',
         borderClass: 'border-t-4 border-red-500',
         textClass: 'text-red-900',
         countClass: 'bg-red-200 text-red-800'
     },
     {
-        id: 'en_desarrollo',
-        label: 'En desarrollo',
+        id: 'in_progress',
+        label: 'In Progress',
         bgClass: 'bg-orange-50',
         borderClass: 'border-t-4 border-orange-500',
         textClass: 'text-orange-900',
         countClass: 'bg-orange-200 text-orange-800'
     },
     {
-        id: 'para_publicar',
-        label: 'Para publicar',
+        id: 'editing',
+        label: 'Editing',
+        bgClass: 'bg-yellow-50',
+        borderClass: 'border-t-4 border-yellow-500',
+        textClass: 'text-yellow-900',
+        countClass: 'bg-yellow-200 text-yellow-800'
+    },
+    {
+        id: 'ready',
+        label: 'Ready',
         bgClass: 'bg-blue-50',
         borderClass: 'border-t-4 border-blue-500',
         textClass: 'text-blue-900',
         countClass: 'bg-blue-200 text-blue-800'
     },
     {
-        id: 'publicada',
-        label: 'Publicada',
+        id: 'published',
+        label: 'Published',
         bgClass: 'bg-green-50',
         borderClass: 'border-t-4 border-green-500',
         textClass: 'text-green-900',
@@ -225,7 +235,7 @@ const form = reactive({
 });
 
 // --- Getters ---
-function getItems(status: SpotifyEstado) {
+function getItems(status: SpotifyStatus) {
     return items.value.filter(i => i.status === status);
 }
 
@@ -239,12 +249,10 @@ async function reload() {
     loading.value = true;
     error.value = null;
     try {
-        const [fetchedItems, fetchedUsers] = await Promise.all([
-            getSpotifyGenres(),
-            getUsersRv()
-        ]);
-        items.value = fetchedItems;
-        users.value = fetchedUsers;
+        if (users.value.length === 0) {
+            users.value = await getUsersRv();
+        }
+        items.value = await getSpotifyGenres();
     } catch (e: any) {
         console.error(e);
         error.value = e?.response?.data?.message || 'Error cargando datos';
@@ -269,31 +277,23 @@ async function onDrop(targetState: ColumnId) {
     if (!draggedItem.value) return;
 
     const item = draggedItem.value;
+
+    if (targetState === 'published') {
+        draggedItem.value = null;
+        return;
+    }
+
     if (item.status === targetState) return;
 
     const originalState = item.status;
-    const originalDate = item.updateDate;
 
-    // Optimistic update
-    const newDate = toISO(new Date());
     item.status = targetState;
-    
-    // Solo actualizar fecha si es publicada
-    if (targetState === 'publicada') {
-        item.updateDate = newDate;
-    }
 
     try {
-        const payload: any = { status: targetState };
-        if (targetState === 'publicada') {
-            payload.updateDate = newDate;
-        }
-
-        await updateSpotify(item.id, payload);
+        await updateSpotify(item.id, { status: targetState });
     } catch (e: any) {
         console.error(e);
-        item.status = originalState; // Revert
-        item.updateDate = originalDate;
+        item.status = originalState;
         const errorMessage = e?.response?.data?.message || 'No se pudo actualizar el estado';
         SwalService.error(errorMessage);
     } finally {
@@ -319,17 +319,13 @@ function stopEditingUser() {
 
 async function onUserChange(item: Spotify, event: Event) {
     const select = event.target as HTMLSelectElement;
-    const newUserId = select.value || null; // null if empty string
+    const newUserId = select.value || null;
 
-    // Stop editing
     editingUserItemId.value = null;
 
-    // Optimistic? No, let's wait for confirmation or just do it. 
-    // Select usually implies immediate action.
     const oldUser = item.user;
 
     if (newUserId) {
-        // Encontrar el username para la UI optimista (o poner placeholder)
         const u = users.value.find(x => x.id === newUserId);
         item.user = {
             id: newUserId,
@@ -341,14 +337,10 @@ async function onUserChange(item: Spotify, event: Event) {
     }
 
     try {
-        // We send userId. If empty string, we might need to send null or something depending on backend.
-        // Assuming backend handles nullable string or check how update works. 
-        // DTO has userId?: string.
         await updateSpotify(item.id, { userId: newUserId || undefined });
-        // Success toast? Maybe not needed for small interactions.
     } catch (e) {
         console.error(e);
-        item.user = oldUser; // Revert
+        item.user = oldUser;
         SwalService.error('Error asignando usuario');
     }
 }
@@ -387,23 +379,32 @@ async function save() {
                 name: form.name,
                 link: form.link
             });
-            // Update local
             const idx = items.value.findIndex(x => x.id === editingId.value);
             if (idx !== -1) items.value[idx] = updated;
+            closeModal();
+            await nextTick();
             SwalService.success('Género actualizado');
         } else {
-            // Create new
             const created = await createSpotify({
                 name: form.name,
                 link: form.link,
-                status: 'por_actualizar', // Default state
-                type: 'genero',         // Fixed type
-                updateDate: toISO(new Date())
+                status: 'not_started',
+                type: 'genero',
+                updateDate: toISO(new Date()),
+                userId: authStore.userId || undefined
             });
+            if (!created.user && authStore.userId) {
+                created.user = {
+                    id: authStore.userId,
+                    username: authStore.username || 'Yo',
+                    image: authStore.image || undefined
+                } as any;
+            }
             items.value.push(created);
+            closeModal();
+            await nextTick();
             SwalService.success('Género creado');
         }
-        closeModal();
     } catch (e) {
         console.error(e);
         SwalService.error('Error guardando género');

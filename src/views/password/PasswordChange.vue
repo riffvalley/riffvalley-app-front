@@ -72,14 +72,7 @@
                 class="w-full p-2 pr-10 border border-gray-300 rounded-lg"
                 placeholder="Crea tu nueva contraseña" required />
               <button type="button" @click="showPassword = !showPassword"
-                  class="absolute right-3 top-1/2 -translate-y-1/2
-        bg-transparent
-         text-gray-400 hover:text-gray-600
-         border-0
-         outline-none focus:outline-none focus-visible:outline-none
-         ring-0 focus:ring-0 focus-visible:ring-0
-         active:bg-transparent"
->
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
                 <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
               </button>
             </div>
@@ -105,23 +98,10 @@
               <input v-model="confirmPassword" :type="showConfirmPassword ? 'text' : 'password'" id="confirmPassword"
                 class="w-full p-2 pr-10 border border-gray-300 rounded-lg" placeholder="Confirma tu nueva contraseña"
                 required />
-<button
-  type="button"
-  @click="showConfirmPassword = !showConfirmPassword"
-  class="absolute right-3 top-1/2 -translate-y-1/2
-        bg-transparent
-         text-gray-400 hover:text-gray-600
-         border-0
-         outline-none focus:outline-none focus-visible:outline-none
-         ring-0 focus:ring-0 focus-visible:ring-0
-         active:bg-transparent"
->
-  <i
-    :class="showConfirmPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"
-    class="text-sm"
-  ></i>
-</button>
-
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
+                <i :class="showConfirmPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
+              </button>
             </div>
           </div>
 
