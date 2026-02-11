@@ -28,11 +28,28 @@
                         <p v-if="content.notes" class="text-sm text-gray-600 mb-3 line-clamp-2">{{ content.notes }}
                         </p>
 
-                        <!-- Author info -->
-                        <div v-if="content.author" class="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
-                            <img v-if="content.author.image" :src="content.author.image" :alt="content.author.username"
-                                class="w-6 h-6 rounded-full object-cover" />
-                            <span class="text-xs text-gray-500 font-medium">{{ content.author.username }}</span>
+                        <!-- Author/Editor info + Delete -->
+                        <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                            <div class="flex items-center gap-2">
+                                <div class="flex items-center -space-x-1.5">
+                                    <img v-if="content.author?.image" :src="content.author.image"
+                                        :alt="content.author.username"
+                                        class="w-6 h-6 rounded-full object-cover border border-white"
+                                        :title="content.author.username" />
+                                    <img v-if="getEditor(content)?.image" :src="getEditor(content).image"
+                                        :alt="getEditor(content).username"
+                                        class="w-6 h-6 rounded-full object-cover border border-white"
+                                        :title="'Editor: ' + getEditor(content).username" />
+                                </div>
+                                <span class="text-xs text-gray-500 font-medium truncate max-w-[120px]">
+                                    {{ content.author?.username }}{{ getEditor(content) ? ` / ${getEditor(content).username}` : '' }}
+                                </span>
+                            </div>
+                            <button @click.stop="$emit('delete-content', content)"
+                                class="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 transition-colors"
+                                title="Eliminar">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -60,6 +77,7 @@ defineProps<Props>();
 defineEmits<{
     'create-new': [];
     'edit-content': [content: Content];
+    'delete-content': [content: Content];
 }>();
 
 const backlogContainerRef = ref<HTMLElement | null>(null);
@@ -88,6 +106,10 @@ function getContentTypeBadge(type: string): string {
         reunion: 'bg-orange-100 text-orange-700'
     };
     return badges[type] || 'bg-gray-100 text-gray-700';
+}
+
+function getEditor(content: any): any {
+    return content.article?.editor || content.video?.editor || null;
 }
 
 function getContentTypeLabel(type: string): string {
