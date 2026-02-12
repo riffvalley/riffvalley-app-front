@@ -1,3 +1,8 @@
+## <small>1.12.2 (2026-02-12)</small>
+
+* fix: eye password again ([aceee09](https://github.com/riffvalley/riffvalley-app-front/commit/aceee09))
+* Fix/duplicates (#84) ([2b099d2](https://github.com/riffvalley/riffvalley-app-front/commit/2b099d2)), closes [#84](https://github.com/riffvalley/riffvalley-app-front/issues/84)
+
 ## <small>1.12.1 (2026-02-10)</small>
 
 * Fix: how to use, password eye and avatar ([1ee1e64](https://github.com/riffvalley/riffvalley-app-front/commit/1ee1e64))
