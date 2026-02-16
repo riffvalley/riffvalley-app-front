@@ -1,17 +1,27 @@
 <template>
     <div class="p-6 min-h-[calc(100vh-64px)] flex flex-col">
         <div class="flex items-center justify-between mb-6">
-            <h1 class="text-2xl font-semibold">Tablero de Festivales</h1>
+            <h1 class="text-2xl font-semibold">Tablero de Videos</h1>
             <div class="flex gap-2 items-center">
+                <!-- User Filter -->
+                <div class="relative group">
+                    <select v-model="selectedUserId" @change="reload"
+                        class="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-black focus:border-black block w-full p-2.5">
+                        <option v-for="user in users" :key="user.id" :value="user.id">
+                            {{ user.username }}
+                        </option>
+                    </select>
+                </div>
+
                 <button class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800"
                     @click="openCreate">
-                    Nuevo Festival
+                    Nuevo Video
                 </button>
             </div>
         </div>
 
         <!-- Loading / Error -->
-        <div v-if="loading" class="text-center py-10">Cargando festivales...</div>
+        <div v-if="loading" class="text-center py-10">Cargando videos...</div>
         <div v-else-if="error" class="text-red-500 text-center py-10">{{ error }}</div>
 
         <!-- Kanban Board -->
@@ -35,6 +45,13 @@
                         draggable="true" @dragstart="onDragStart(item)">
                         <!-- Card Content -->
                         <div class="mb-2">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded"
+                                    :class="getTypeColor(item.type)">
+                                    {{ item.type }}
+                                </span>
+                                <span class="text-[10px] text-gray-400">{{ fmtDate(item.updateDate || '') }}</span>
+                            </div>
                             <h3 class="font-semibold text-gray-900 leading-tight">
                                 {{ item.name }}
                             </h3>
@@ -77,12 +94,46 @@
                                 </select>
                             </div>
 
-                            <!-- Action Buttons and Date -->
-                            <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
-                                <!-- Date -->
-                                <span class="text-xs text-gray-400">{{ fmtDate(item.updateDate || '') }}</span>
+                            <!-- Editor Selector (Click to Edit) -->
+                            <div class="relative group mt-1">
+                                <!-- Visual Display (Click to edit) -->
+                                <div v-if="editingEditorItemId !== item.id"
+                                    @click="startEditingEditor(item.id)"
+                                    class="flex items-center gap-2 p-1.5 rounded-lg border border-transparent bg-purple-50/50 transition-all hover:bg-purple-100/50 cursor-pointer">
+                                    <template v-if="item.editor">
+                                        <img v-if="item.editor.image" :src="item.editor.image"
+                                            class="w-5 h-5 rounded-full object-cover bg-gray-200" alt="Avatar" />
+                                        <div v-else
+                                            class="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center text-[10px] font-bold text-purple-500">
+                                            {{ (item.editor.username || '?').charAt(0).toUpperCase() }}
+                                        </div>
+                                        <span class="text-xs font-medium text-purple-700 truncate min-w-0 flex-1">
+                                            <span class="text-[10px] text-purple-400 mr-1">Editor:</span>
+                                            {{ item.editor.username || 'Editor desconocido' }}
+                                        </span>
+                                    </template>
+                                    <template v-else>
+                                        <div
+                                            class="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center">
+                                            <i class="fa-solid fa-pen-nib text-purple-300 text-[10px]"></i>
+                                        </div>
+                                        <span class="text-xs text-purple-400 flex-1">Sin editor</span>
+                                    </template>
+                                </div>
 
-                                <!-- Buttons -->
+                                <!-- Actual Select (Visible only when editing) -->
+                                <select v-else :value="item.editor?.id || ''" @change="onEditorChange(item, $event)"
+                                    @blur="stopEditingEditor" ref="editorSelectRef"
+                                    class="w-full text-xs p-1.5 bg-white border border-purple-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200">
+                                    <option value="">Sin editor</option>
+                                    <option v-for="user in users" :key="user.id" :value="user.id">
+                                        {{ user.username }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex items-center justify-end pt-2 border-t border-gray-100 mt-2">
                                 <div class="flex items-center gap-2">
                                     <!-- Edit -->
                                     <button @click="openEdit(item)"
@@ -98,12 +149,27 @@
                                         <i class="fa-solid fa-trash text-xs"></i>
                                     </button>
 
-                                    <!-- Spotify Link -->
+                                    <!-- Link -->
                                     <a v-if="item.link" :href="item.link" target="_blank"
-                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-[#1DB954] hover:bg-green-100 transition-colors"
-                                        title="Abrir en Spotify">
-                                        <i class="fa-brands fa-spotify text-base"></i>
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+                                        title="Abrir enlace">
+                                        <i class="fa-solid fa-link text-xs"></i>
                                     </a>
+
+                                    <!-- List: Navigate -->
+                                    <button v-if="item.listId"
+                                        @click="router.push(`/videos/list/${item.listId}?videoType=${item.type}`)"
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                                        title="Ver lista">
+                                        <i class="fa-solid fa-list text-xs"></i>
+                                    </button>
+
+                                    <!-- List: Create -->
+                                    <button v-else @click="handleCreateList(item)"
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+                                        title="Crear lista">
+                                        <i class="fa-solid fa-list text-xs"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -116,16 +182,24 @@
         <div v-if="showModal" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
             @click.self="closeModal">
             <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-                <h3 class="text-lg font-bold">{{ isEditing ? 'Editar Festival' : 'Nuevo Festival' }}</h3>
+                <h3 class="text-lg font-bold">{{ isEditing ? 'Editar Video' : 'Nuevo Video' }}</h3>
 
                 <div>
-                    <label class="block text-sm font-medium mb-1">Nombre</label>
+                    <label class="block text-sm font-medium mb-1">Título</label>
                     <input v-model="form.name" type="text"
                         class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium mb-1">Enlace</label>
+                    <label class="block text-sm font-medium mb-1">Tipo</label>
+                    <select v-model="form.type"
+                        class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40">
+                        <option v-for="t in types" :key="t" :value="t">{{ t }}</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Enlace (Opcional)</label>
                     <input v-model="form.link" type="url"
                         class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
                 </div>
@@ -144,22 +218,27 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive, nextTick } from 'vue';
 import {
-    getSpotifyFestivals,
-    createSpotify,
-    updateSpotify,
-    removeSpotify,
-    type Spotify,
-    type SpotifyStatus,
+    getVideos,
+    createVideo,
+    updateVideo,
+    deleteVideo,
+    createVideoList,
+    type Video,
+    type VideoStatus,
+    type VideoType,
+    VIDEO_TYPES,
     toISO
-} from '@services/spotify/spotify';
+} from '@services/videos/videos';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
 import { useAuthStore } from '@stores/auth/auth';
+import { useRouter } from 'vue-router';
 import SwalService from '@services/swal/SwalService';
 
 const authStore = useAuthStore();
+const router = useRouter();
 
 // --- Types ---
-type ColumnId = SpotifyStatus;
+type ColumnId = VideoStatus;
 
 interface Column {
     id: ColumnId;
@@ -214,16 +293,23 @@ const columns: Column[] = [
     },
 ];
 
+const types = VIDEO_TYPES;
+
 // --- State ---
-const items = ref<Spotify[]>([]);
+const items = ref<Video[]>([]);
 const users = ref<Superuser[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const draggedItem = ref<Spotify | null>(null);
+const draggedItem = ref<Video | null>(null);
+const selectedUserId = ref<string>('');
 
 // User Edit State
 const editingUserItemId = ref<string | null>(null);
 const userSelectRef = ref<HTMLSelectElement | null>(null);
+
+// Editor Edit State
+const editingEditorItemId = ref<string | null>(null);
+const editorSelectRef = ref<HTMLSelectElement | null>(null);
 
 // Modal state
 const showModal = ref(false);
@@ -231,17 +317,29 @@ const isEditing = ref(false);
 const editingId = ref<string | null>(null);
 const form = reactive({
     name: '',
+    type: 'best' as VideoType,
     link: ''
 });
 
 // --- Getters ---
-function getItems(status: SpotifyStatus) {
+function getItems(status: VideoStatus) {
     return items.value.filter(i => i.status === status);
 }
 
 function fmtDate(iso: string) {
     if (!iso) return '';
     return new Date(iso).toLocaleDateString() + ' ' + new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function getTypeColor(type: VideoType) {
+    switch (type) {
+        case 'best':
+            return 'bg-indigo-100 text-indigo-700';
+        case 'custom':
+            return 'bg-teal-100 text-teal-700';
+        default:
+            return 'bg-gray-100 text-gray-700';
+    }
 }
 
 // --- Logic ---
@@ -252,7 +350,28 @@ async function reload() {
         if (users.value.length === 0) {
             users.value = await getUsersRv();
         }
-        items.value = await getSpotifyFestivals();
+
+        if (!selectedUserId.value && authStore.userId) {
+            const isRv = users.value.some(u => u.id === authStore.userId);
+            if (isRv) {
+                selectedUserId.value = authStore.userId;
+            } else if (users.value.length > 0) {
+                selectedUserId.value = users.value[0].id;
+            }
+        }
+
+        if (selectedUserId.value) {
+            const videos = await getVideos(selectedUserId.value);
+            // Normalizar: el backend puede devolver list como objeto anidado
+            videos.forEach((v: any) => {
+                if (!v.listId && v.list?.id) {
+                    v.listId = v.list.id;
+                }
+            });
+            items.value = videos;
+        } else {
+            items.value = [];
+        }
     } catch (e: any) {
         console.error(e);
         error.value = e?.response?.data?.message || 'Error cargando datos';
@@ -263,7 +382,7 @@ async function reload() {
 }
 
 // --- Drag & Drop ---
-function onDragStart(item: Spotify) {
+function onDragStart(item: Video) {
     draggedItem.value = item;
 }
 
@@ -290,7 +409,7 @@ async function onDrop(targetState: ColumnId) {
     item.status = targetState;
 
     try {
-        await updateSpotify(item.id, { status: targetState });
+        await updateVideo(item.id, { status: targetState });
     } catch (e: any) {
         console.error(e);
         item.status = originalState;
@@ -317,7 +436,7 @@ function stopEditingUser() {
     editingUserItemId.value = null;
 }
 
-async function onUserChange(item: Spotify, event: Event) {
+async function onUserChange(item: Video, event: Event) {
     const select = event.target as HTMLSelectElement;
     const newUserId = select.value || null;
 
@@ -337,11 +456,55 @@ async function onUserChange(item: Spotify, event: Event) {
     }
 
     try {
-        await updateSpotify(item.id, { userId: newUserId || undefined });
+        await updateVideo(item.id, { userId: newUserId || undefined });
     } catch (e) {
         console.error(e);
         item.user = oldUser;
         SwalService.error('Error asignando usuario');
+    }
+}
+
+// --- Editor Assignment ---
+async function startEditingEditor(itemId: string) {
+    editingEditorItemId.value = itemId;
+    await nextTick();
+    const selects = editorSelectRef.value as unknown as HTMLSelectElement[];
+    if (Array.isArray(selects) && selects.length > 0) {
+        selects[0]?.focus();
+    } else if (editorSelectRef.value) {
+        (editorSelectRef.value as HTMLSelectElement).focus();
+    }
+}
+
+function stopEditingEditor() {
+    editingEditorItemId.value = null;
+}
+
+async function onEditorChange(item: Video, event: Event) {
+    const select = event.target as HTMLSelectElement;
+    const newEditorId = select.value || null;
+
+    editingEditorItemId.value = null;
+
+    const oldEditor = item.editor;
+
+    if (newEditorId) {
+        const u = users.value.find(x => x.id === newEditorId);
+        item.editor = {
+            id: newEditorId,
+            username: u?.username || '...',
+            image: u?.image
+        };
+    } else {
+        item.editor = undefined;
+    }
+
+    try {
+        await updateVideo(item.id, { editorId: newEditorId || undefined });
+    } catch (e) {
+        console.error(e);
+        item.editor = oldEditor;
+        SwalService.error('Error asignando editor');
     }
 }
 
@@ -350,15 +513,17 @@ function openCreate() {
     isEditing.value = false;
     editingId.value = null;
     form.name = '';
+    form.type = 'best';
     form.link = '';
     showModal.value = true;
 }
 
-function openEdit(item: Spotify) {
+function openEdit(item: Video) {
     isEditing.value = true;
     editingId.value = item.id;
     form.name = item.name;
-    form.link = item.link;
+    form.type = item.type;
+    form.link = item.link || '';
     showModal.value = true;
 }
 
@@ -368,29 +533,29 @@ function closeModal() {
 }
 
 async function save() {
-    if (!form.name || !form.link) {
-        SwalService.error('Completa todos los campos');
+    if (!form.name || !form.type) {
+        SwalService.error('Completa los campos obligatorios');
         return;
     }
 
     try {
         if (isEditing.value && editingId.value) {
-            const updated = await updateSpotify(editingId.value, {
+            const updated = await updateVideo(editingId.value, {
                 name: form.name,
-                link: form.link
+                type: form.type,
+                link: form.link || undefined
             });
             const idx = items.value.findIndex(x => x.id === editingId.value);
             if (idx !== -1) items.value[idx] = updated;
             closeModal();
             await nextTick();
-            SwalService.success('Festival actualizado');
+            SwalService.success('Video actualizado');
         } else {
-            const created = await createSpotify({
+            const created = await createVideo({
                 name: form.name,
-                link: form.link,
+                type: form.type,
+                link: form.link || undefined,
                 status: 'not_started',
-                type: 'festival',
-                updateDate: toISO(new Date()),
                 userId: authStore.userId || undefined
             });
             if (!created.user && authStore.userId) {
@@ -403,31 +568,43 @@ async function save() {
             items.value.push(created);
             closeModal();
             await nextTick();
-            SwalService.success('Festival creado');
+            SwalService.success('Video creado');
         }
     } catch (e) {
         console.error(e);
-        SwalService.error('Error guardando festival');
+        SwalService.error('Error guardando video');
     }
 }
 
 // --- Delete Item ---
-async function confirmDelete(item: Spotify) {
+async function confirmDelete(item: Video) {
     const result = await SwalService.confirm(
-        '¿Eliminar festival?',
+        '¿Eliminar video?',
         `Vas a eliminar "${item.name}". Esta acción no se puede deshacer.`,
         'warning'
     );
 
     if (result.isConfirmed) {
         try {
-            await removeSpotify(item.id);
+            await deleteVideo(item.id);
             items.value = items.value.filter(i => i.id !== item.id);
-            SwalService.success('Festival eliminado');
+            SwalService.success('Video eliminado');
         } catch (e) {
             console.error(e);
-            SwalService.error('Error eliminando festival');
+            SwalService.error('Error eliminando video');
         }
+    }
+}
+
+// --- Create Video List ---
+async function handleCreateList(item: Video) {
+    try {
+        const response = await createVideoList(item.id);
+        item.listId = response.list?.id;
+        SwalService.success('Lista creada');
+    } catch (e: any) {
+        console.error(e);
+        SwalService.error('Error creando lista');
     }
 }
 

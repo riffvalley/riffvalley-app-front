@@ -92,6 +92,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, requiresRole: "superUser" },
   },
   {
+    path: "/news",
+    name: "News",
+    component: () => import("/src/views/news/ManageNews.vue"),
+    meta: { requiresAuth: true, requiresRole: "superUser" },
+  },
+  {
     path: "/versions",
     name: "versions-admin",   // 👈 cambia aquí
     component: () => import("/src/views/versions/ManageVersions.vue"),
@@ -178,8 +184,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/spotify",
     name: "Spotify",
-    component: () => import("/src/views/spotify/ListSpotify.vue"),
-    meta: { requiresAuth: true },
+    redirect: "/spotify/festivales",
   },
   {
     path: "/spotify/festivales",
@@ -225,15 +230,16 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: "/videos",
-    name: "VideoLists",
-    component: () => import("/src/views/videos/VideoLists.vue"),
+    name: "Videos",
+    component: () => import("/src/views/videos/VideosKanban.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
-    path: "/videos/:id",
-    name: "VideoDetalle",
-    component: () => import("/src/views/videos/VideoDetalle.vue"),
+    path: "/videos/list/:id",
+    name: "VideoListDetalle",
+    component: () => import("/src/views/videos/VideoListDetalle.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
+    props: true,
   },
   {
     path: "/maintenance",

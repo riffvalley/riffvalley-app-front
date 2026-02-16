@@ -23,10 +23,10 @@ console.log(SidebarMenu);
 // FontAwesome
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { faBookmark, faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faBookmark, faHeart, faPen, faTrash, faCloudArrowUp } from '@fortawesome/free-solid-svg-icons';
 
 // Agregar iconos a la librería de FontAwesome
-library.add(faBookmark, faHeart);
+library.add(faBookmark, faHeart, faPen, faTrash, faCloudArrowUp);
 
 import './index.css';      // Tailwind
 import './style.css';      // su CSS global
