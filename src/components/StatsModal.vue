@@ -8,14 +8,37 @@
        ring-0 focus:ring-0 focus-visible:ring-0">
         <i class="fas fa-times"></i>
       </button>
-      <h2 class="text-xl font-bold mb-4 text-center text-gray-800">Estadísticas detalladas</h2>
+      <h2 class="text-xl font-bold mb-6 text-center text-gray-800">Estadísticas detalladas</h2>
 
-      <!-- Aquí va tu contenido -->
-      <p class="text-center text-sm text-gray-600">Contenido en construcción...</p>
+      <!-- Estadísticas de discos -->
+      <div class="text-center text-sm sm:text-base md:text-lg">
+        <h3 class="text-2xl md:text-3xl font-bold text-rv-navy mb-4">
+          Estadísticas de discos
+        </h3>
+        <p class="text-lg md:text-xl text-rv-navy">
+          Total de discos:
+          <span class="font-semibold text-rv-navy">{{ stats.totalDiscs }}</span>
+        </p>
+        <p class="text-lg mt-2">
+          Total de votos:
+          <span class="font-semibold text-rv-navy">{{ stats.totalVotes }}</span>
+        </p>
+        <div class="mt-4 w-full max-w-[320px] mx-auto overflow-hidden">
+          <RatingBarChart :rating-distribution="ratingDistribution" />
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// Este modal no tiene lógica aún, solo muestra un contenedor.
+import RatingBarChart from '@views/homePage/components/RatingBarChar.vue';
+
+interface Props {
+  stats: { totalDiscs: number; totalVotes: number };
+  ratingDistribution: Array<{ rate: number; count: number }>;
+}
+
+defineProps<Props>();
+defineEmits<{ close: [] }>();
 </script>

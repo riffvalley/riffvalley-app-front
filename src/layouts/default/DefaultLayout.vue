@@ -38,7 +38,7 @@
 
 
 <script lang="ts">
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import SidebarMenu from "./components/SidebarMenu.vue";
 
@@ -50,6 +50,7 @@ export default {
   setup() {
     const menuVisible = ref(false);
     const route = useRoute();
+    const isLoginPage = computed(() => ["Login", "Maintenance"].includes(route.name as string));
 
     // ✅ Alternar menú con botón de hamburguesa
     const toggleMenu = () => {
@@ -92,6 +93,7 @@ export default {
 
     return {
       menuVisible,
+      isLoginPage,
       toggleMenu,
       closeMenu,
     };
