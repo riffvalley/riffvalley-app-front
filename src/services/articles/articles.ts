@@ -6,14 +6,14 @@ import api from '@services/api/api';
 // =========================
 export type ArticleState =
     | 'not_started'
-    | 'writing'
+    | 'in_progress'
     | 'editing'
     | 'ready'
     | 'published';
 
 export const ARTICLE_STATES: ArticleState[] = [
     'not_started',
-    'writing',
+    'in_progress',
     'editing',
     'ready',
     'published',
@@ -45,6 +45,8 @@ export interface Article {
     updatedAt: string; // ISO
     user?: { id: string; username: string; image?: string }; // Usuario asignado
     userId?: string;
+    editor?: { id: string; username: string; image?: string }; // Editor asignado
+    editorId?: string;
 }
 
 // =========================
@@ -57,6 +59,7 @@ export interface CreateArticleDto {
     link?: string;
     updateDate?: string;
     userId?: string;
+    editorId?: string;
 }
 
 export interface UpdateArticleDto extends Partial<CreateArticleDto> { }

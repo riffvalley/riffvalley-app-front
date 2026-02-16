@@ -14,7 +14,7 @@
                     </select>
                 </div>
 
-                <button v-if="isOwner" class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800" @click="openCreate">
+                <button class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800" @click="openCreate">
                     Nuevo Artículo
                 </button>
 
@@ -61,9 +61,8 @@
                             <!-- User Selector (Click to Edit) -->
                             <div class="relative group mt-3">
                                 <!-- Visual Display (Click to edit) -->
-                                <div v-if="editingUserItemId !== item.id" @click="isOwner && startEditingUser(item.id)"
-                                    class="flex items-center gap-2 p-1.5 rounded-lg border border-transparent bg-gray-50 transition-all"
-                                    :class="isOwner ? 'hover:bg-gray-100 cursor-pointer' : 'cursor-default'">
+                                <div v-if="editingUserItemId !== item.id" @click="startEditingUser(item.id)"
+                                    class="flex items-center gap-2 p-1.5 rounded-lg border border-transparent bg-gray-50 transition-all hover:bg-gray-100 cursor-pointer">
                                     <template v-if="item.user">
                                         <img v-if="item.user.image" :src="item.user.image"
                                             class="w-5 h-5 rounded-full object-cover bg-gray-200" alt="Avatar" />
@@ -93,6 +92,42 @@
                                 </select>
                             </div>
 
+                            <!-- Editor Selector (Click to Edit) -->
+                            <div class="relative group mt-1">
+                                <!-- Visual Display (Click to edit) -->
+                                <div v-if="editingEditorItemId !== item.id" @click="startEditingEditor(item.id)"
+                                    class="flex items-center gap-2 p-1.5 rounded-lg border border-transparent bg-purple-50/50 transition-all hover:bg-purple-100/50 cursor-pointer">
+                                    <template v-if="item.editor">
+                                        <img v-if="item.editor.image" :src="item.editor.image"
+                                            class="w-5 h-5 rounded-full object-cover bg-gray-200" alt="Avatar" />
+                                        <div v-else
+                                            class="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center text-[10px] font-bold text-purple-500">
+                                            {{ (item.editor.username || '?').charAt(0).toUpperCase() }}
+                                        </div>
+                                        <span class="text-xs font-medium text-purple-700 truncate min-w-0 flex-1">
+                                            <span class="text-[10px] text-purple-400 mr-1">Editor:</span>
+                                            {{ item.editor.username || 'Editor desconocido' }}
+                                        </span>
+                                    </template>
+                                    <template v-else>
+                                        <div class="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center">
+                                            <i class="fa-solid fa-pen-nib text-purple-300 text-[10px]"></i>
+                                        </div>
+                                        <span class="text-xs text-purple-400 flex-1">Sin editor</span>
+                                    </template>
+                                </div>
+
+                                <!-- Actual Select (Visible only when editing) -->
+                                <select v-else :value="item.editor?.id || ''" @change="onEditorChange(item, $event)"
+                                    @blur="stopEditingEditor" ref="editorSelectRef"
+                                    class="w-full text-xs p-1.5 bg-white border border-purple-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200">
+                                    <option value="">Sin editor</option>
+                                    <option v-for="user in users" :key="user.id" :value="user.id">
+                                        {{ user.username }}
+                                    </option>
+                                </select>
+                            </div>
+
                             <!-- Action Buttons and Date -->
                             <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
                                 <!-- Date -->
@@ -101,14 +136,14 @@
                                 <!-- Buttons -->
                                 <div class="flex items-center gap-2">
                                     <!-- Edit -->
-                                    <button v-if="isOwner" @click="openEdit(item)"
+                                    <button @click="openEdit(item)"
                                         class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
                                         title="Editar">
                                         <i class="fa-solid fa-pen text-xs"></i>
                                     </button>
 
                                     <!-- Delete -->
-                                    <button v-if="isOwner" @click="confirmDelete(item)"
+                                    <button @click="confirmDelete(item)"
                                         class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                                         title="Eliminar">
                                         <i class="fa-solid fa-trash text-xs"></i>
@@ -166,7 +201,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, nextTick, computed } from 'vue';
+import { ref, onMounted, reactive, nextTick } from 'vue';
 import {
     getArticles,
     createArticle,
@@ -207,8 +242,8 @@ const columns: Column[] = [
         countClass: 'bg-red-200 text-red-800'
     },
     {
-        id: 'writing',
-        label: 'Writing',
+        id: 'in_progress',
+        label: 'In Progress',
         bgClass: 'bg-orange-50',
         borderClass: 'border-t-4 border-orange-500',
         textClass: 'text-orange-900',
@@ -250,14 +285,13 @@ const error = ref<string | null>(null);
 const draggedItem = ref<Article | null>(null);
 const selectedUserId = ref<string>(''); // For filtering
 
-// Computed
-const isOwner = computed(() => {
-    return selectedUserId.value === authStore.userId;
-});
-
 // User Edit State
 const editingUserItemId = ref<string | null>(null);
 const userSelectRef = ref<HTMLSelectElement | null>(null);
+
+// Editor Edit State
+const editingEditorItemId = ref<string | null>(null);
+const editorSelectRef = ref<HTMLSelectElement | null>(null);
 
 // Modal state
 const showModal = ref(false);
@@ -348,41 +382,23 @@ async function onDrop(targetState: ColumnId) {
     if (!draggedItem.value) return;
 
     const item = draggedItem.value;
-    
-    // Check if dragging is allowed (only own items or if no filter is active? 
-    // Requirement says: "El kanban del usuario se va a poder editar, pero si cambias de usuario son de lectura")
-    // Let's assume editing is allowed if it's "my kanban" (filtered by me) or maybe always allowed for admins?
-    // Let's enforce: If filtered by another user (not me), read only.
-    if (selectedUserId.value && selectedUserId.value !== authStore.userId) {
-        SwalService.error('No puedes editar el tablero de otro usuario');
+
+    if (targetState === 'published') {
+        draggedItem.value = null;
         return;
     }
 
     if (item.status === targetState) return;
 
     const originalState = item.status;
-    const originalDate = item.updateDate;
 
-    // Optimistic update
-    const newDate = toISO(new Date());
     item.status = targetState;
 
-    // Solo actualizar fecha si es publicada
-    if (targetState === 'published') {
-        item.updateDate = newDate;
-    }
-
     try {
-        const payload: any = { status: targetState };
-        if (targetState === 'published') {
-            payload.updateDate = newDate;
-        }
-
-        await updateArticle(item.id, payload);
+        await updateArticle(item.id, { status: targetState });
     } catch (e: any) {
         console.error(e);
-        item.status = originalState; // Revert
-        item.updateDate = originalDate;
+        item.status = originalState;
         const errorMessage = e?.response?.data?.message || 'No se pudo actualizar el estado';
         SwalService.error(errorMessage);
     } finally {
@@ -436,6 +452,50 @@ async function onUserChange(item: Article, event: Event) {
     }
 }
 
+// --- Editor Assignment ---
+async function startEditingEditor(itemId: string) {
+    editingEditorItemId.value = itemId;
+    await nextTick();
+    const selects = editorSelectRef.value as unknown as HTMLSelectElement[];
+    if (Array.isArray(selects) && selects.length > 0) {
+        selects[0]?.focus();
+    } else if (editorSelectRef.value) {
+        (editorSelectRef.value as HTMLSelectElement).focus();
+    }
+}
+
+function stopEditingEditor() {
+    editingEditorItemId.value = null;
+}
+
+async function onEditorChange(item: Article, event: Event) {
+    const select = event.target as HTMLSelectElement;
+    const newEditorId = select.value || null;
+
+    editingEditorItemId.value = null;
+
+    const oldEditor = item.editor;
+
+    if (newEditorId) {
+        const u = users.value.find(x => x.id === newEditorId);
+        item.editor = {
+            id: newEditorId,
+            username: u?.username || '...',
+            image: u?.image
+        };
+    } else {
+        item.editor = undefined;
+    }
+
+    try {
+        await updateArticle(item.id, { editorId: newEditorId || undefined });
+    } catch (e) {
+        console.error(e);
+        item.editor = oldEditor;
+        SwalService.error('Error asignando editor');
+    }
+}
+
 // --- Create / Edit Item ---
 function openCreate() {
     isEditing.value = false;
@@ -448,11 +508,6 @@ function openCreate() {
 
 function openEdit(item: Article) {
     // Read-only check
-    if (selectedUserId.value && selectedUserId.value !== authStore.userId) {
-        SwalService.error('Solo lectura');
-        return;
-    }
-
     isEditing.value = true;
     editingId.value = item.id;
     form.name = item.name;

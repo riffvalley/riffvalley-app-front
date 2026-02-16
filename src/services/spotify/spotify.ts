@@ -4,19 +4,19 @@ import api from '@services/api/api';
 // =========================
 // Tipos
 // =========================
-export type SpotifyEstado =
-  | 'actualizada'
-  | 'publicada'
-  | 'para_publicar'
-  | 'por_actualizar'
-  | 'en_desarrollo';
+export type SpotifyStatus =
+  | 'not_started'
+  | 'in_progress'
+  | 'editing'
+  | 'ready'
+  | 'published';
 
-export const SPOTIFY_ESTADOS: SpotifyEstado[] = [
-  'actualizada',
-  'publicada',
-  'para_publicar',
-  'por_actualizar',
-  'en_desarrollo',
+export const SPOTIFY_STATUSES: SpotifyStatus[] = [
+  'not_started',
+  'in_progress',
+  'editing',
+  'ready',
+  'published',
 ];
 
 export type SpotifyTipo = 'festival' | 'especial' | 'genero' | 'otras';
@@ -26,13 +26,14 @@ export const SPOTIFY_TIPOS: SpotifyTipo[] = ['festival', 'especial', 'genero', '
 export interface Spotify {
   id: string;
   name: string;
-  status: SpotifyEstado;
+  status: SpotifyStatus;
   link: string;
   type: SpotifyTipo;
   updateDate: string; // ISO
   createdAt: string; // ISO
   updatedAt: string; // ISO
   user?: { id: string; username: string; image?: string }; // Usuario asignado
+  userId?: string;
 }
 
 // =========================
@@ -40,7 +41,7 @@ export interface Spotify {
 // =========================
 export interface CreateSpotifyDto {
   name: string;
-  status: SpotifyEstado;
+  status: SpotifyStatus;
   link: string;
   type: SpotifyTipo;
   /** ISO8601, ej "2025-09-22T10:00:00Z" */
@@ -59,9 +60,8 @@ export const toISO = (d: Date) => d.toISOString();
 export interface ListSpotifyParams {
   limit?: number;
   offset?: number;
-  /** búsqueda por texto si la añades en el backend (nombre, etc.) */
   q?: string;
-  status?: SpotifyEstado;
+  status?: SpotifyStatus;
   type?: SpotifyTipo;
 }
 
