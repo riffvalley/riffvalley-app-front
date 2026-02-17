@@ -86,6 +86,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, requiresRole: "superUser" },
   },
   {
+    path: "/news",
+    name: "News",
+    component: () => import("/src/views/news/ManageNews.vue"),
+    meta: { requiresAuth: true, requiresRole: "superUser" },
+  },
+  {
     path: "/versions",
     name: "versions-admin",   // 👈 cambia aquí
     component: () => import("/src/views/versions/ManageVersions.vue"),
