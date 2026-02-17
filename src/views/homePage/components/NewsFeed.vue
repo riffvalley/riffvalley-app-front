@@ -155,9 +155,9 @@ function handleBodyClick(e: MouseEvent) {
 }
 
 const appTypeImages: Record<string, string> = {
-  version: '/news/version.png',
-  new_feature: '/news/funcionalidad.png',
-  team_notes: '/news/equipo.png',
+  version: '/news/version.jpg',
+  new_feature: '/news/funcionalidad.jpg',
+  team_notes: '/news/equipo.jpg',
 };
 
 function mapFeedPost(fp: FeedPost): NewsPost {
