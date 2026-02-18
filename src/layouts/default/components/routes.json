@@ -167,6 +167,14 @@
     "icon": "fa-solid fa-bullhorn"
   },
   {
+    "to": "/news",
+    "label": "Noticias",
+    "activeClass": "bg-gray-700",
+    "type": "management",
+    "requiredRole": "superUser",
+    "icon": "fa-solid fa-bullhorn"
+  },
+  {
     "to": "/versions",
     "label": "Versiones",
     "activeClass": "bg-gray-700",
