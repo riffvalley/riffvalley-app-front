@@ -141,20 +141,19 @@
     "icon": "fa-solid fa-newspaper"
   },
   {
-    "to": "/import-discs",
-    "label": "Importar Discos",
-    "activeClass": "bg-gray-700",
-    "type": "riff-valley",
-    "requiredRole": "riffValley",
-    "icon": "fa-solid fa-upload"
-  },
-  {
-    "to": "/users",
     "label": "Usuarios",
     "activeClass": "bg-gray-700",
     "type": "management",
     "requiredRole": "superUser",
     "icon": "fa-solid fa-users"
+  },
+  {
+    "to": "/news",
+    "label": "Noticias",
+    "activeClass": "bg-gray-700",
+    "type": "management",
+    "requiredRole": "superUser",
+    "icon": "fa-solid fa-bullhorn"
   },
   {
     "to": "/news",
