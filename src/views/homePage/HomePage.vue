@@ -140,34 +140,29 @@
       </div>
     </div>
 
-<!-- Título + subtítulo + botón -->
-<div class="flex flex-col items-center justify-center py-8 gap-2">
-  <h2 class="text-2xl md:text-3xl font-bold text-rv-navy text-center">
-    Mejores discos
-  </h2>
+    <!-- Título + subtítulo + botón -->
+    <div class="flex flex-col items-center justify-center py-8 gap-2">
+      <h2 class="text-2xl md:text-3xl font-bold text-rv-navy text-center">
+        Mejores discos
+      </h2>
 
-  <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-    <p class="text-sm md:text-base text-gray-600">
-      Solo top 20 discos mejor valorados
-    </p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+        <p class="text-sm md:text-base text-gray-600">
+          Solo top 20 discos mejor valorados
+        </p>
 
-    <router-link
-      :to="{ name: 'DiscList' }"
-      class="group inline-flex items-center gap-2
+        <router-link :to="{ name: 'DiscList' }" class="group inline-flex items-center gap-2
              px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
              bg-gray-200 text-rv-navy hover:bg-rv-navy hover:text-white
              border-0 outline-none focus:outline-none focus-visible:outline-none
-             ring-0 focus:ring-0 focus-visible:ring-0"
-    >
-      <i
-        class="fa-solid fa-arrow-up rotate-45
+             ring-0 focus:ring-0 focus-visible:ring-0">
+          <i class="fa-solid fa-arrow-up rotate-45
                transition-colors duration-200
-               group-hover:text-white"
-      ></i>
-      <span>Ver todos los Discos</span>
-    </router-link>
-  </div>
-</div>
+               group-hover:text-white"></i>
+          <span>Ver todos los Discos</span>
+        </router-link>
+      </div>
+    </div>
 
 
     <!-- Columna 1: Selector de género -->
