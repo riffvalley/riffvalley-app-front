@@ -141,20 +141,30 @@
     "icon": "fa-solid fa-newspaper"
   },
   {
-    "to": "/import-discs",
-    "label": "Importar Discos",
-    "activeClass": "bg-gray-700",
-    "type": "riff-valley",
-    "requiredRole": "riffValley",
-    "icon": "fa-solid fa-upload"
+    "label": "Usuarios",
+    "type": "management",
+    "requiredRole": "superUser",
+    "icon": "fa-solid fa-users",
+    "children": [
+      {
+        "to": "/users",
+        "label": "Gestionar",
+        "icon": "fa-solid fa-user-gear"
+      },
+      {
+        "to": "/users/stats",
+        "label": "Estadísticas",
+        "icon": "fa-solid fa-chart-bar"
+      }
+    ]
   },
   {
-    "to": "/users",
-    "label": "Usuarios",
+    "to": "/news",
+    "label": "Noticias",
     "activeClass": "bg-gray-700",
     "type": "management",
     "requiredRole": "superUser",
-    "icon": "fa-solid fa-users"
+    "icon": "fa-solid fa-bullhorn"
   },
   {
     "to": "/news",
