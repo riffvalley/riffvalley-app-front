@@ -141,6 +141,7 @@
     "icon": "fa-solid fa-newspaper"
   },
   {
+    "to": "/users",
     "label": "Usuarios",
     "activeClass": "bg-gray-700",
     "type": "management",
@@ -153,7 +154,7 @@
     "activeClass": "bg-gray-700",
     "type": "management",
     "requiredRole": "superUser",
-    "icon": "fa-solid fa-bullhorn"
+    "icon": "fa-solid fa-users"
   },
   {
     "to": "/news",
