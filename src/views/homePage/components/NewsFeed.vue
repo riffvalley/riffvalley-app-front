@@ -1,54 +1,75 @@
 <template>
   <div>
-    <h3 class="text-2xl md:text-3xl font-bold text-rv-navy mb-4 text-center">Novedades Riff Valley</h3>
-
     <div v-if="loading" class="text-center text-gray-400 py-6">Cargando novedades...</div>
 
     <div v-else-if="posts.length === 0" class="text-center text-gray-400 py-6">No hay novedades disponibles</div>
 
-    <div v-else class="flex flex-col gap-2 sm:grid sm:grid-cols-2 md:grid-cols-3 sm:gap-1.5">
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-1.5">
       <component
         :is="post.source === 'app' ? 'button' : 'a'"
         v-for="post in posts"
         :key="post.id"
         v-bind="post.source === 'app' ? {} : { href: post.link, target: '_blank', rel: 'noopener noreferrer' }"
         @click="post.source === 'app' ? openAppPost(post) : undefined"
-        class="group relative block rounded-md overflow-hidden sm:aspect-square md:aspect-square text-left"
+        class="group text-left
+       bg-transparent border-0 p-0 appearance-none
+       outline-none focus:outline-none focus-visible:outline-none
+       ring-0 focus:ring-0 focus-visible:ring-0
+       sm:relative sm:block sm:rounded-md sm:overflow-hidden sm:aspect-square"
       >
-        <!-- Mobile: layout horizontal -->
-        <div class="flex items-center gap-4 sm:hidden">
-          <div class="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
-            <img v-if="post.image" :src="post.image" :alt="post.title"
-              class="w-full h-full object-cover brightness-[0.5]" loading="lazy" />
-            <div v-else class="w-full h-full bg-rv-navy"></div>
-          </div>
-          <div class="flex-1 min-w-0">
-            <h4 class="text-rv-navy font-bold text-xs leading-snug line-clamp-2" v-html="post.title"></h4>
-            <div class="flex items-center gap-1.5 mt-0.5">
-              <span class="text-gray-400 text-[9px]">{{ post.date }}</span>
-              <span v-if="post.source === 'app'"
-                class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-rv-blue/90 text-white">
-                {{ typeLabel(post.newsType!) }}
-              </span>
-              <span v-else-if="post.source === 'riffvalley.es'"
-                class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-rv-pink/90 text-white">
-                riffvalley.es
-              </span>
-              <span v-else
-                class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-yellow-400/90 text-rv-navy">
-                <i class="fa-brands fa-telegram mr-0.5"></i>Canal
-              </span>
-            </div>
-          </div>
-        </div>
+<!-- Mobile: layout horizontal -->
+<div class="sm:hidden flex items-center gap-3 p-3 bg-white rounded-md">
+  <div class="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
+    <img
+      v-if="post.image"
+      :src="post.image"
+      :alt="post.title"
+      class="w-full h-full object-cover brightness-[0.85]"
+      loading="lazy"
+    />
+    <div v-else class="w-full h-full bg-rv-navy"></div>
+  </div>
+
+  <div class="flex-1 min-w-0">
+    <h4
+      class="text-rv-navy font-bold text-xs leading-snug line-clamp-2"
+      v-html="post.title"
+    ></h4>
+
+    <div class="flex items-center gap-2 mt-1">
+      <span class="text-gray-400 text-[9px] shrink-0">{{ post.date }}</span>
+
+      <span
+        v-if="post.source === 'app'"
+        class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-rv-blue/90 text-white"
+      >
+        {{ typeLabel(post.newsType!) }}
+      </span>
+
+      <span
+        v-else-if="post.source === 'riffvalley.es'"
+        class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-rv-pink/90 text-white"
+      >
+        riffvalley.es
+      </span>
+
+      <span
+        v-else
+        class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-yellow-400/90 text-rv-navy"
+      >
+        <i class="fa-brands fa-telegram mr-0.5"></i>Canal
+      </span>
+    </div>
+  </div>
+</div>
 
         <!-- Desktop/Tablet: layout tarjeta -->
         <div class="hidden sm:block h-full">
           <img v-if="post.image" :src="post.image" :alt="post.title"
-            class="absolute inset-0 w-full h-full object-cover transition-all duration-300 brightness-[0.4] group-hover:brightness-[0.6]"
+            class="absolute inset-0 w-full h-full object-cover transition-all duration-300 brightness-[0.85] group-hover:brightness-[0.55]"
             loading="lazy" />
           <div v-else class="absolute inset-0 bg-rv-navy"></div>
-          <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent"></div>
           <div class="absolute top-1.5 left-1.5">
             <span v-if="post.source === 'app'"
               class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-rv-blue/90 text-white">
@@ -71,30 +92,56 @@
     </div>
 
     <!-- Modal de noticia de la app -->
-    <Teleport to="body">
-      <div v-if="selectedNews" class="news-modal-overlay" @click.self="selectedNews = null">
-        <div class="news-modal-content">
-          <button @click="selectedNews = null" class="news-modal-close">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+<Teleport to="body">
+  <div
+    v-if="selectedNews"
+    class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/50 z-50"
+    @click.self="selectedNews = null"
+  >
+    <div
+      class="bg-white p-4 sm:p-6 rounded-lg shadow-xl w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+    >
+      <!-- Close button (mismo estilo que ya usáis) -->
+      <button
+        @click="selectedNews = null"
+        class="absolute top-3 right-3 text-white bg-rv-navy hover:bg-[#e46e8a]
+               rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all
+               border-0 outline-none focus:outline-none focus-visible:outline-none
+               ring-0 focus:ring-0 focus-visible:ring-0"
+        aria-label="Cerrar"
+        title="Cerrar"
+      >
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
 
-          <div class="flex items-center gap-2 mb-3">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rv-blue/15 text-rv-blue">
-              {{ typeLabel(selectedNews.type) }}
-            </span>
-            <span class="text-gray-400 text-xs">
-              {{ selectedNews.date }}
-            </span>
-          </div>
+      <!-- Header -->
+      <div class="flex items-center gap-2 mb-3">
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rv-blue/15 text-rv-blue">
+          {{ typeLabel(selectedNews.type) }}
+        </span>
 
-          <h3 class="text-xl font-bold text-white mb-4">{{ selectedNews.title }}</h3>
-
-          <div class="news-body-content" v-html="selectedNews.body" @click="handleBodyClick"></div>
-        </div>
+        <span class="text-gray-500 text-xs">
+          {{ selectedNews.date }}
+        </span>
       </div>
-    </Teleport>
+
+      <!-- Title -->
+      <h3 class="text-xl font-bold text-rv-navy mb-4">
+        {{ selectedNews.title }}
+      </h3>
+
+      <!-- Body -->
+<div
+  class="news-prose"
+  v-html="selectedNews.body"
+  @click="handleBodyClick"
+/>
+
+    </div>
+  </div>
+</Teleport>
   </div>
 </template>
 
@@ -205,105 +252,12 @@ onMounted(fetchPosts);
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
-/* Modal */
-.news-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 1rem;
-}
-
-.news-modal-content {
-  position: relative;
-  background: #00021f;
-  border: 1px solid rgba(176, 102, 159, 0.3);
-  border-radius: 16px;
-  padding: 1.5rem;
-  width: 100%;
-  max-width: 42rem;
-  max-height: 85vh;
-  overflow-y: auto;
-}
-
-.news-modal-close {
-  position: absolute;
-  right: 1rem;
-  top: 1rem;
-  color: #e46e8a;
-  transition: opacity 0.2s;
-}
-
-.news-modal-close:hover {
-  opacity: 0.7;
-}
-
-/* Estilos para el contenido HTML de la noticia */
-.news-body-content {
-  color: #d1d5db;
-  font-size: 0.95rem;
-  line-height: 1.7;
-}
-
-.news-body-content :deep(h1),
-.news-body-content :deep(h2),
-.news-body-content :deep(h3) {
-  color: #fff;
-  font-weight: 700;
-  margin-top: 1.25rem;
-  margin-bottom: 0.5rem;
-}
-
-.news-body-content :deep(h1) { font-size: 1.5rem; }
-.news-body-content :deep(h2) { font-size: 1.25rem; }
-.news-body-content :deep(h3) { font-size: 1.1rem; }
-
-.news-body-content :deep(p) {
-  margin-bottom: 0.75rem;
-}
-
-.news-body-content :deep(ul),
-.news-body-content :deep(ol) {
-  padding-left: 1.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.news-body-content :deep(ul) { list-style: disc; }
-.news-body-content :deep(ol) { list-style: decimal; }
-
-.news-body-content :deep(li) {
-  margin-bottom: 0.25rem;
-}
-
-.news-body-content :deep(a) {
-  color: #e46e8a;
+:deep(.news-prose a) {
+  color: #0c6ddc; /* su rv-blue */
   text-decoration: underline;
+  font-weight: 600;
 }
-
-.news-body-content :deep(a:hover) {
-  color: #b0669f;
-}
-
-.news-body-content :deep(img) {
-  max-width: 100%;
-  border-radius: 8px;
-  margin: 0.75rem 0;
-}
-
-.news-body-content :deep(blockquote) {
-  border-left: 3px solid #e46e8a;
-  padding-left: 1rem;
-  margin: 0.75rem 0;
-  color: #9ca3af;
-  font-style: italic;
-}
-
-.news-body-content :deep(strong) {
-  color: #fff;
+:deep(.news-prose a:hover) {
+  opacity: 0.85;
 }
 </style>
