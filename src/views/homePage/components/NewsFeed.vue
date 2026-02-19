@@ -27,7 +27,7 @@
       class="w-full h-full object-cover brightness-[0.85]"
       loading="lazy"
     />
-    <div v-else class="w-full h-full bg-rv-navy"></div>
+    <img v-else src="/news/default.jpg" :alt="post.title" class="w-full h-full object-cover brightness-[0.85]" loading="lazy" />
   </div>
 
   <div class="flex-1 min-w-0">
@@ -68,7 +68,7 @@
           <img v-if="post.image" :src="post.image" :alt="post.title"
             class="absolute inset-0 w-full h-full object-cover transition-all duration-300 brightness-[0.85] group-hover:brightness-[0.55]"
             loading="lazy" />
-          <div v-else class="absolute inset-0 bg-rv-navy"></div>
+          <img v-else src="/news/default.jpg" :alt="post.title" class="absolute inset-0 w-full h-full object-cover brightness-[0.85]" loading="lazy" />
 <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent"></div>
           <div class="absolute top-1.5 left-1.5">
             <span v-if="post.source === 'app'"
