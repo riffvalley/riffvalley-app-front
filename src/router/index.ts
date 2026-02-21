@@ -74,6 +74,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
+    path: "/import-discs",
+    name: "ImportDiscs",
+    component: () => import("/src/views/importPage/ImportDiscs.vue"),
+    meta: { requiresAuth: true, requiresRole: "riffValley" },
+  },
+  {
     path: "/password",
     name: "Password",
     component: () => import("/src/views/password/PasswordChange.vue"),
