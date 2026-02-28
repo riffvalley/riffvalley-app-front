@@ -53,7 +53,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/petitions",
     name: "Petitions",
     component: () => import("@/views/petitions/PetitionsPage.vue"),
-    meta: { requiresAuth: true, requiresRole: "user" },
+    meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/recap",
