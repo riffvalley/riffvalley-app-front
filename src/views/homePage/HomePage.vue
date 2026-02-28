@@ -362,12 +362,12 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
 import { defineComponent, ref, onMounted, computed, watch } from "vue";
 import { getTopRatedOrFeaturedAndStats } from "@services/discs/discs";
 import type { Disc, DiscsStatsResponse } from "@services/discs/disc";
-import { getGenres } from "@services/genres/genres";
 import DiscCard from "@components/DiscCardComponent.vue";
 import StatsModal from "@components/StatsModal.vue";
 import DiscFilters from "@components/DiscFilters.vue";
 import NewsFeed from "./components/NewsFeed.vue";
-import { getCountries } from "@services/countries/countries";
+import { useCatalogStore } from "@stores/catalog/catalog";
+import { getAvailableYears } from "@helpers/dateConstants";
 
 export default defineComponent({
   components: {
@@ -399,17 +399,7 @@ export default defineComponent({
     // Almacena el rango seleccionado mediante el <select>
     const selectedOption = ref<{ start: string; end: string; label: string } | null>(null);
 
-    const availableYears = computed(() => {
-      const years: number[] = [];
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth();
-      const startYear = 2025;
-      const endYear = (currentMonth === 11 ? currentYear + 1 : currentYear);
-      for (let i = endYear; i >= startYear; i--) {
-        years.push(i);
-      }
-      return years;
-    });
+    const availableYears = computed(() => [...getAvailableYears()].reverse());
 
     const availableStatsYears = computed(() => {
       const options: { value: number | string; label: string }[] = availableYears.value.map(year => ({
@@ -421,27 +411,12 @@ export default defineComponent({
       return options;
     });
 
+    const catalogStore = useCatalogStore();
+
     // Filtros
     const searchQuery = ref("");
     const selectedGenre = ref("");
-    const genres = ref<any[]>([]);
-    const countries = ref<any[]>([]);
     const selectedCountry = ref("");
-
-    // Función para obtener los géneros
-    const fetchGenres = async () => {
-      try {
-        const response = await getGenres(150, 0);
-        genres.value = response.data.sort((a, b) => a.name.localeCompare(b.name));
-      } catch (error) {
-        console.error("Error fetching genres:", error);
-      }
-    };
-
-    const fetchCountries = async () => {
-      const countriesResponse = await getCountries(250, 0);
-      countries.value = countriesResponse.data.sort((a, b) => a.name.localeCompare(b.name));
-    };
 
     // Función auxiliar para formatear la fecha en formato local (YYYY-MM-DD)
     const formatLocalDate = (date: Date): string => {
@@ -664,9 +639,6 @@ export default defineComponent({
 
     onMounted(async () => {
       console.log('HomePage mounting...');
-      await fetchGenres();
-      await fetchCountries();
-
       if (selectedPeriod.value === "week" && weekOptions.value.length) {
         selectedOption.value = weekOptions.value[weekOptions.value.length - 1];
       }
@@ -694,8 +666,8 @@ export default defineComponent({
       searchQuery,
       selectedGenre,
       selectedCountry,
-      genres,
-      countries
+      genres: computed(() => catalogStore.genres),
+      countries: computed(() => catalogStore.countries),
     };
   },
 });

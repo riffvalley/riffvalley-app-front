@@ -16,11 +16,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, watch } from "vue";
+import { defineComponent, ref, computed, watch, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import DefaultLayout from "./layouts/default/DefaultLayout.vue";
 import LoginLayout from "./layouts/auth/LoginLayout.vue";
 import SidebarMenu from "@/layouts/default/components/SidebarMenu.vue";
+import { useCatalogStore } from "@stores/catalog/catalog";
 
 export default defineComponent({
   name: "App",
@@ -30,6 +31,11 @@ export default defineComponent({
   setup() {
     const menuVisible = ref(false);
     const route = useRoute();
+    const catalogStore = useCatalogStore();
+
+    onMounted(() => {
+      catalogStore.fetchCatalog();
+    });
 
     const closeMenuHandler = () => {
       console.log("✅ `closeMenuHandler()` ejecutado en App.vue");

@@ -178,6 +178,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getCurrentWeeklyLists, getPastWeeklyLists } from '@services/list/list';
+import { MONTHS } from '@helpers/dateConstants';
 
 const router = useRouter();
 const currentLists = ref<any[]>([]);
@@ -187,10 +188,7 @@ const currentDate = new Date();
 const selectedYear = ref(currentDate.getFullYear());
 const selectedMonth = ref(currentDate.getMonth() + 1);
 
-const monthNames = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
+const monthNames = MONTHS;
 
 // Generar años disponibles (últimos 5 años)
 const availableYears = ref<number[]>([]);

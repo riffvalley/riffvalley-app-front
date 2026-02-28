@@ -172,6 +172,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { ContentType } from '@services/contents/contents';
+import { MONTHS } from '@helpers/dateConstants';
 
 interface Props {
     show: boolean;
@@ -220,9 +221,7 @@ watch([() => props.show, () => formData.value.type], ([isOpen, type]) => {
 });
 
 function getMonthName(month: number): string {
-    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    return months[month - 1];
+    return MONTHS[month - 1];
 }
 
 function getWeeksInMonth(month: number, year: number): number {

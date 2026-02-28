@@ -88,9 +88,8 @@ import { defineComponent, ref, onMounted, watch, nextTick, computed } from "vue"
 import { getDiscs } from "@services/discs/discs";
 import DiscCard from "@components/DiscCardComponent.vue";
 import Datepicker from "@vuepic/vue-datepicker";
-import { getGenres } from "@services/genres/genres";
-import { getCountries } from "@services/countries/countries";
 import { getRatesByUser } from "@services/rates/rates";
+import { useCatalogStore } from "@stores/catalog/catalog";
 import { getFavoritesByUser } from "@services/favorites/favorites";
 import { getPendingsByUser } from "@services/pendings/pendings";
 import DiscFilters from "@components/DiscFilters.vue";
@@ -120,14 +119,13 @@ export default defineComponent({
     const totalFavorites = ref("");
     const totalPendings = ref("");
 
+    const catalogStore = useCatalogStore();
+
     //filtros
     const searchQuery = ref("");
     const selectedWeek = ref(null);
-    const genres = ref<any[]>([]);
     const selectedGenre = ref("");
-    const countries = ref<any[]>([]);
     const selectedCountry = ref("");
-    const countriesLoaded = ref(false);
     const menuVisible = ref(false);
 
     const orderBy = ref<string>("disc.releaseDate:DESC,artist.name:ASC");
@@ -152,19 +150,6 @@ export default defineComponent({
       await nextTick();
     };
 
-    const fetchGenres = async () => {
-      try {
-        const response = await getGenres(50, 0);
-        genres.value = response.data;
-      } catch (error) {
-        console.error("Error fetching genres:", error);
-      }
-    };
-
-    const fetchCountries = async () => {
-      const countriesResponse = await getCountries(250, 0);
-      countries.value = countriesResponse.data.sort((a, b) => a.name.localeCompare(b.name));
-    };
 
     const fetchData = async (reset = false) => {
       let type;
@@ -405,8 +390,6 @@ export default defineComponent({
     });
 
     onMounted(() => {
-      fetchGenres();
-      fetchCountries();
       fetchData();
       setupObserver();
     });
@@ -423,8 +406,8 @@ export default defineComponent({
       selectedWeek,
       selectedGenre,
       selectedCountry,
-      genres,
-      countries,
+      genres: computed(() => catalogStore.genres),
+      countries: computed(() => catalogStore.countries),
       viewMode,
       menuVisible,
       countriesLoaded,
