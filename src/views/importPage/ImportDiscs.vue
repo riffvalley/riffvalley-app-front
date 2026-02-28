@@ -27,7 +27,7 @@
       <p v-if="selectedFile" class="mt-1 text-sm text-gray-500">
         Archivo seleccionado: {{ selectedFile.name }}
       </p>
-      <button @click="uploadFile" :disabled="!selectedFile || uploading"
+      <button @click="handleUpload" :disabled="!selectedFile || uploading"
         class="mt-2 px-5 py-2 md:px-6 md:py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-bold rounded-full
          hover:from-green-600 hover:to-green-700 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">
         <span v-if="uploading">Importando...</span>
@@ -56,6 +56,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue';
+import { downloadDiscTemplate, uploadDiscFile } from '@services/imports/imports';
 
 export default defineComponent({
   name: 'ImportDiscs',
@@ -86,31 +87,26 @@ export default defineComponent({
 
     const downloadTemplate = async () => {
       try {
-        const response = await fetch('/api/excel/template/download');
-        if (!response.ok) {
-          throw new Error('Failed to download template');
-        }
-        const blob = await response.blob();
+        const blob = await downloadDiscTemplate();
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         const today = new Date();
-        const dateStr = today.getFullYear().toString() + 
-                        (today.getMonth() + 1).toString().padStart(2, '0') + 
+        const dateStr = today.getFullYear().toString() +
+                        (today.getMonth() + 1).toString().padStart(2, '0') +
                         today.getDate().toString().padStart(2, '0');
-        link.download = `template_discos_${dateStr}.xlsx`; 
+        link.download = `template_discos_${dateStr}.xlsx`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
       } catch (error) {
-        console.error('Download failed:', error);
         messageType.value = 'error';
         message.value = 'Error al descargar la plantilla.';
       }
     };
 
-    const uploadFile = async () => {
+    const handleUpload = async () => {
       if (!selectedFile.value) return;
 
       uploading.value = true;
@@ -118,37 +114,22 @@ export default defineComponent({
       importErrors.value = [];
 
       try {
-        const formData = new FormData();
-        formData.append('file', selectedFile.value);
+        const result = await uploadDiscFile(selectedFile.value);
 
-        const response = await fetch('/api/excel/template/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => null);
-          throw new Error(errorData?.message || 'Error al importar los discos.');
-        }
-
-        const result = await response.json().catch(() => null);
-
-        if (result?.errors?.length) {
+        if (result.errors?.length) {
           importErrors.value = result.errors;
         }
 
-        messageType.value = result?.errors?.length ? 'info' : 'success';
-        message.value = `Importación completada: ${result?.created ?? 0} discos creados` +
-          (result?.errors?.length ? `, ${result.errors.length} errores.` : '.');
+        messageType.value = result.errors?.length ? 'info' : 'success';
+        message.value = `Importación completada: ${result.created ?? 0} discos creados` +
+          (result.errors?.length ? `, ${result.errors.length} errores.` : '.');
         selectedFile.value = null;
 
-        // Reset the file input
         const fileInput = document.getElementById('file') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
       } catch (error: any) {
-        console.error('Upload failed:', error);
         messageType.value = 'error';
-        message.value = error.message || 'Error al importar los discos.';
+        message.value = error.response?.data?.message || error.message || 'Error al importar los discos.';
       } finally {
         uploading.value = false;
       }
@@ -161,7 +142,7 @@ export default defineComponent({
       uploading,
       importErrors,
       downloadTemplate,
-      uploadFile,
+      handleUpload,
       onFileChange,
     };
   },
@@ -169,5 +150,9 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Additional styles if needed */
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+}
 </style>
