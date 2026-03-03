@@ -563,8 +563,6 @@ export default defineComponent({
           dateRange = undefined;
         }
 
-        console.log('Fetching discs with genre:', selectedGenre.value);
-
         // Rango para stats y distribution basado en selectedStatsYear
         let statsRange: [string, string] | undefined = undefined;
 
@@ -587,6 +585,13 @@ export default defineComponent({
             ...disc.artist,
             country: disc.artist?.country ?? null,
           },
+          userRate: disc.userRate
+            ? {
+                ...disc.userRate,
+                rate: disc.userRate.rate != null ? parseFloat(disc.userRate.rate) : null,
+                cover: disc.userRate.cover != null ? parseFloat(disc.userRate.cover) : null,
+              }
+            : null,
         }));
         stats.value.totalDiscs = response.totalDiscs;
         stats.value.totalVotes = response.totalVotes;
@@ -605,7 +610,6 @@ export default defineComponent({
     // Actualiza la opción seleccionada cuando cambia el período, género, país o año
     // ---------------------------------
     watch([selectedPeriod, selectedGenre, selectedCountry, selectedYear, selectedStatsYear], () => {
-      console.log('Period, Genre, Country or Year changed:', { period: selectedPeriod.value, genre: selectedGenre.value, country: selectedCountry.value, year: selectedYear.value });
       if (selectedPeriod.value === "week") {
         selectedOption.value = weekOptions.value[weekOptions.value.length - 1];
       } else if (selectedPeriod.value === "month") {
@@ -638,7 +642,6 @@ export default defineComponent({
     };
 
     onMounted(async () => {
-      console.log('HomePage mounting...');
       if (selectedPeriod.value === "week" && weekOptions.value.length) {
         selectedOption.value = weekOptions.value[weekOptions.value.length - 1];
       }

@@ -78,7 +78,6 @@ export default {
 
     // Obtener una imagen aleatoria de la carpeta correspondiente
     const imagePath = await this.getRandomImagePath(roundedCategory);
-    console.log("imagePath", imagePath)
     // Obtener título y mensaje aleatorio desde el JSON
     const { title, message } = this.getRandomMessage(roundedCategory);
 
@@ -107,7 +106,6 @@ export default {
    */
   async getRandomImagePath(category: number): Promise<string> {
     const basePath = `/votaciones/${category}/`; // Funciona en Vite y Netlify
-    console.log(import.meta.env.BASE_URL)
     const images = {
       1: ["brrrr.gif"],
       2: ["furiouskirby.gif"],

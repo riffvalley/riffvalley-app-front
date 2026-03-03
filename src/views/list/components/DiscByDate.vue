@@ -308,17 +308,11 @@ export default defineComponent({
 
       if (userId) {
         try {
-          console.log(
-            `Assigned user ${userId} to disc ${discId} for list ${props.listId}`
-          );
           const response = await postAsignationService({
             userId,
             discId,
             listId: props.listId,
           });
-
-          // Muestra la respuesta del servidor
-          console.log("Assignment created successfully:", response);
 
           // Actualiza la store con la nueva asignación
           asignationStore.addAsignation(response);
@@ -349,11 +343,6 @@ export default defineComponent({
     };
 
     const removeAsignationFromDisc = (removedAsignation: any) => {
-      // ... (resto del código de removeAsignationFromDisc, sin cambios) ...
-      console.log(
-        "Removed Asignation:",
-        JSON.stringify(removedAsignation, null, 2)
-      );
 
       if (removedAsignation && removedAsignation.disc) {
         const discId = removedAsignation.disc.id;
@@ -361,7 +350,6 @@ export default defineComponent({
         // Eliminar al usuario asignado del select
         if (selectedUser[discId]) {
           delete selectedUser[discId];
-          console.log(`Removed selected user for disc: ${discId}`);
         }
 
         // Actualizar la propiedad `hasExistingAsignation`
@@ -417,7 +405,6 @@ export default defineComponent({
         );
 
         if (removedAsignation) {
-          console.log("Removed Asignation:", removedAsignation);
           removeAsignationFromDisc(removedAsignation);
         }
       },
@@ -439,17 +426,10 @@ export default defineComponent({
 
       if (userId && asignationId) {
         try {
-          console.log(
-            `Updating assignment for user ${userId} to disc ${discId} with asignationId ${asignationId} for list ${props.listId}`
-          );
-
-          // Aquí deberías realizar la llamada al servicio de actualización
           const response = await asignationStore.updateAsignationStore({
             id: asignationId,
             userId,
           });
-
-          console.log("Assignment updated successfully:", response);
 
           SwalService.success('Assignment updated successfully.');
         } catch (error) {

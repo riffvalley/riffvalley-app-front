@@ -1,5 +1,5 @@
 <template>
-  <div :class="{ 'menu-open': menuVisible }" class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
     <h1 v-if="!embedded" class="text-4xl font-bold mb-8 text-center text-gray-900">
       Calendario
     </h1>
@@ -330,7 +330,6 @@ export default defineComponent({
         }))
     );
 
-    genres2.value = ["list", "of", "options"];
 
     const fetchDiscs = async () => {
       if (loading.value || !hasMore.value) return;
@@ -437,13 +436,6 @@ export default defineComponent({
             const album = response.data.albums.items[0];
             disc.link = album.external_urls.spotify;
             disc.image = album.images?.[0]?.url || null;
-            console.log("disc.image", disc.image);
-
-            console.log("Datos enviados al backend:", {
-              link: disc.link,
-              image: disc.image,
-            });
-
             await updateDisc(disc.id, {
               link: disc.link,
               image: disc.image,

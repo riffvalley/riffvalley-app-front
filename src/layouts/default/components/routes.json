@@ -149,6 +149,14 @@
     "icon": "fa-solid fa-upload"
   },
   {
+    "to": "/national-releases",
+    "label": "Lanzamientos Nacionales",
+    "activeClass": "bg-gray-700",
+    "type": "riff-valley",
+    "requiredRole": "riffValley",
+    "icon": "fa-solid fa-flag"
+  },
+  {
     "label": "Usuarios",
     "type": "management",
     "requiredRole": "superUser",

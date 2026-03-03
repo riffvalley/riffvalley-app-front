@@ -146,7 +146,6 @@ export default defineComponent({
 
     const handleGenreChange = async (newValue: string) => {
       selectedGenre.value = newValue;
-      console.log("selectedGenre" + selectedGenre.value);
       await nextTick();
     };
 
@@ -155,7 +154,6 @@ export default defineComponent({
       let type;
       if (loading.value) return;
       loading.value = true;
-      console.log("selectedGenre.value", selectedGenre.value);
       try {
         if (reset) {
           discs.value = [];
@@ -190,8 +188,8 @@ export default defineComponent({
                 country: rate.disc.artist?.country ?? null,
               },
               userRate: {
-                rate: rate.rate,
-                cover: rate.cover,
+                rate: rate.rate != null ? parseFloat(rate.rate) : null,
+                cover: rate.cover != null ? parseFloat(rate.cover) : null,
                 id: rate.id,
               },
               commentCount: rate.disc.commentCount,
@@ -219,8 +217,8 @@ export default defineComponent({
                 country: rate.disc.artist?.country ?? null,
               },
               userRate: {
-                rate: rate.rate,
-                cover: rate.cover,
+                rate: rate.rate != null ? parseFloat(rate.rate) : null,
+                cover: rate.cover != null ? parseFloat(rate.cover) : null,
                 id: rate.id,
               },
               commentCount: rate.disc.commentCount,
@@ -253,15 +251,14 @@ export default defineComponent({
               userRate: favorite.disc.userRate
                 ? {
                   id: favorite.disc.userRate.id,
-                  rate: favorite.disc.userRate.rate,
-                  cover: favorite.disc.userRate.cover,
+                  rate: favorite.disc.userRate.rate != null ? parseFloat(favorite.disc.userRate.rate) : null,
+                  cover: favorite.disc.userRate.cover != null ? parseFloat(favorite.disc.userRate.cover) : null,
                 }
                 : null,
               commentCount: favorite.disc.commentCount,
               voteCount: favorite.disc.voteCount,
             }))
           );
-          console.log("disc.value", discs.value);
         } else if (viewMode.value === "pendientes") {
           response = await getPendingsByUser(
             limit.value,
@@ -283,8 +280,8 @@ export default defineComponent({
               userRate: pending.disc.userRate
                 ? {
                   id: pending.disc.userRate.id,
-                  rate: pending.disc.userRate.rate,
-                  cover: pending.disc.userRate.cover,
+                  rate: pending.disc.userRate.rate != null ? parseFloat(pending.disc.userRate.rate) : null,
+                  cover: pending.disc.userRate.cover != null ? parseFloat(pending.disc.userRate.cover) : null,
                 }
                 : null,
               commentCount: pending.disc.commentCount,
@@ -314,7 +311,16 @@ export default defineComponent({
             votedType
           );
           totalDisc.value = response.totalItems;
-          discs.value.push(...response.data);
+          discs.value.push(...response.data.map((disc) => ({
+            ...disc,
+            userRate: disc.userRate
+              ? {
+                  ...disc.userRate,
+                  rate: disc.userRate.rate != null ? parseFloat(disc.userRate.rate) : null,
+                  cover: disc.userRate.cover != null ? parseFloat(disc.userRate.cover) : null,
+                }
+              : null,
+          })));
         }
 
         totalItems.value = response.totalItems;
@@ -410,7 +416,6 @@ export default defineComponent({
       countries: computed(() => catalogStore.countries),
       viewMode,
       menuVisible,
-      countriesLoaded,
       loadMore,
       totalDisc,
       totalRates,

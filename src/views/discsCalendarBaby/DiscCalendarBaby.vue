@@ -313,13 +313,6 @@ export default defineComponent({
             const album = response.data.albums.items[0];
             disc.link = album.external_urls.spotify;
             disc.image = album.images?.[0]?.url || null;
-            console.log("disc.image", disc.image);
-
-            console.log("Datos enviados al backend:", {
-              link: disc.link,
-              image: disc.image,
-            });
-
             await updateDisc(disc.id, {
               link: disc.link,
               image: disc.image,

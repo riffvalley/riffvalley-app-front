@@ -38,15 +38,13 @@ export default defineComponent({
     });
 
     const closeMenuHandler = () => {
-      console.log("✅ `closeMenuHandler()` ejecutado en App.vue");
       menuVisible.value = false;
     };
 
     // Detectar si estamos en la página de login o mantenimiento (para ocultar sidebar)
-    const isLoginPage = computed(() => ["Login", "Maintenance"].includes(route.name as string));
+    const isLoginPage = computed(() => ["Login", "Maintenance", "NationalReleasePublic"].includes(route.name as string));
 
     watch(route, () => {
-      console.log("🔄 Cambio de ruta detectado, cerrando menú...");
       menuVisible.value = false;
     });
 
@@ -79,7 +77,7 @@ export default defineComponent({
       closeMenuHandler,
       isLoginPage, // ✅ Nueva variable reactiva para detectar login
       layoutComponent: computed(() => {
-        return ["Login", "Maintenance"].includes(route.name as string) ? LoginLayout : DefaultLayout;
+        return ["Login", "Maintenance", "NationalReleasePublic"].includes(route.name as string) ? LoginLayout : DefaultLayout;
       }),
     };
   },

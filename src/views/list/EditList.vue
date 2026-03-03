@@ -198,7 +198,6 @@ export default defineComponent({
     const loadListDetails = async () => {
       try {
         const details: any = await getListDetails(props.id); // Tipado temporal como any para evitar error void
-        console.log("List details fetched:", details);
         asignations.value = details.asignations || [];
         Object.assign(form, details); // Pre-fill form with list details
       } catch (error) {
@@ -211,7 +210,6 @@ export default defineComponent({
 
     const submitForm = async () => {
       try {
-        console.log("Updating list with data:", form);
         const payload: any = {
           name: form.name,
           type: form.type,
@@ -222,8 +220,7 @@ export default defineComponent({
         if (form.type === ListType.SPECIAL) {
           payload.specialType = form.specialType || null;
         }
-        const response = await updateList(props.id, payload);
-        console.log("List updated successfully:", response);
+        await updateList(props.id, payload);
         SwalService.success("List updated successfully!");
       } catch (error) {
         console.error("Error updating list:", error);

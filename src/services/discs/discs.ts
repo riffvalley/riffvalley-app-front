@@ -103,14 +103,10 @@ export async function updateDisc(
     artistId?: string;
   }
 ): Promise<void> {
-  console.log("entra", id);
-  console.log("Datos enviados al backend:", data);
-
   await api.patch(`/discs/${id}`, data);
 }
 
 export async function deleteDisc(id: string): Promise<void> {
-  console.log(`Deleting disc with id: ${id}`);
   await api.delete(`/discs/${id}`);
 }
 

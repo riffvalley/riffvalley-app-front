@@ -440,9 +440,7 @@ export default defineComponent({
     };
 
     const toggleVotes = async () => {
-      console.log("Before toggle:", showVotes.value); // ADD THIS
       showVotes.value = !showVotes.value;
-      console.log("After toggle:", showVotes.value); // ADD THIS
       try {
         if (!showVotes.value) return; // si se está cerrando, no pida nada
         votes.value = await getDiscRates(props.id);
