@@ -248,18 +248,6 @@ const routes: Array<RouteRecordRaw> = [
     props: true,
   },
   {
-    path: "/national-releases/form",
-    name: "NationalReleasePublic",
-    component: () => import("/src/views/nationalReleases/NationalReleaseForm.vue"),
-    meta: { requiresAuth: false },
-  },
-  {
-    path: "/national-releases",
-    name: "NationalReleasesAdmin",
-    component: () => import("/src/views/nationalReleases/NationalReleasesAdmin.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
-  },
-  {
     path: "/maintenance",
     name: "Maintenance",
     component: () => import("/src/views/maintenance/MaintenancePage.vue"),
