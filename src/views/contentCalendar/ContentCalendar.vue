@@ -55,8 +55,8 @@
             :show="showActionsModal" :content="selectedContent" :radar-details="radarDetails"
             :loading="loadingRadarDetails" @close="showActionsModal = false" @update-field="updateRadarField"
             @update-status="updateListStatus" @toggle-asignation="toggleAsignation" @delete-list="deleteRadarList"
-            @navigate-detail="navigateToRadarDetail" @copy-artist-disc="copyArtistAndDisc"
-            @copy-image="copyToClipboard" />
+            @delete="confirmDeleteContent" @navigate-detail="navigateToRadarDetail"
+            @copy-artist-disc="copyArtistAndDisc" @copy-image="copyToClipboard" />
 
         <PhotosActionsModal v-else-if="selectedContent?.type === 'photos'" :show="showActionsModal"
             :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
