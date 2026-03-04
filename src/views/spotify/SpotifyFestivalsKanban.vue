@@ -190,7 +190,7 @@ const columns: Column[] = [
     },
     {
         id: 'editing',
-        label: 'Editing',
+        label: 'Reviewing',
         bgClass: 'bg-yellow-50',
         borderClass: 'border-t-4 border-yellow-500',
         textClass: 'text-yellow-900',

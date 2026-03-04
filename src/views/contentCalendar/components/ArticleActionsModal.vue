@@ -221,7 +221,7 @@ function getStatusLabel(status: ArticleState): string {
     const labels: Record<ArticleState, string> = {
         not_started: 'Not Started',
         in_progress: 'In Progress',
-        editing: 'Editing',
+        editing: 'Reviewing',
         ready: 'Ready',
         published: 'Published'
     };
