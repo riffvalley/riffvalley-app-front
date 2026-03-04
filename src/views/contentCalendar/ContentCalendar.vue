@@ -58,7 +58,8 @@
             @toggle-asignation="toggleAsignation" @delete-list="deleteRadarList"
             @delete="confirmDeleteContent" @navigate-detail="navigateToRadarDetail"
             @copy-artist-disc="copyArtistAndDisc" @copy-image="copyToClipboard"
-            @update-author="handleUpdateContentAuthor" />
+            @update-author="handleUpdateContentAuthor"
+            @update-dates="handleUpdateRadarDates" />
 
         <PhotosActionsModal v-else-if="selectedContent?.type === 'photos'" :show="showActionsModal"
             :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
@@ -407,7 +408,7 @@ const calendarOptions = ref({
         }
 
         try {
-            await updateContent(contentId, { publicationDate: newDate });
+            await updateContent(contentId, { publicationDate: toCalendarDate(newDate) });
             await loadBacklogContents();
             await loadContentsByMonth(currentYear.value, currentMonth.value);
             SwalService.success('Evento reprogramado correctamente');
@@ -499,9 +500,18 @@ function getContentTypeColor(type: ContentType) {
 //     }
 // }
 
+// Converts a "YYYY-MM-DD" date string from FullCalendar to "YYYY-MM-DDT18:00:00.000Z".
+// Using 18:00 UTC avoids day-shift issues in any reasonable timezone (UTC-18 to UTC+5).
+function toCalendarDate(dateStr: string | null): string | null {
+    if (!dateStr) return null;
+    // If it already has a time component, leave it as-is
+    if (dateStr.includes('T')) return dateStr;
+    return dateStr + 'T18:00:00.000Z';
+}
+
 async function handleDropToCalendar(contentId: string, dateStr: string | null) {
     try {
-        await updateContent(contentId, { publicationDate: dateStr });
+        await updateContent(contentId, { publicationDate: toCalendarDate(dateStr) });
         // Reload both backlog and current month
         await loadBacklogContents();
         await loadContentsByMonth(currentYear.value, currentMonth.value);
@@ -798,6 +808,27 @@ async function updateRadarField(field: string, value: any) {
         SwalService.error('Error al actualizar fecha');
     }
 }
+
+async function handleUpdateRadarDates(publicationDate: string, closeDate: string | null) {
+    if (!selectedContent.value) return;
+    const contentId = selectedContent.value.id;
+    try {
+        await updateContent(contentId, {
+            publicationDate: toCalendarDate(publicationDate),
+            closeDate: closeDate ? toCalendarDate(closeDate) : null
+        });
+        const item = allContents.value.find(c => c.id === contentId);
+        if (item) {
+            item.publicationDate = toCalendarDate(publicationDate)!;
+            item.closeDate = closeDate ? toCalendarDate(closeDate) : null;
+        }
+        SwalService.success('Fechas actualizadas');
+    } catch (error) {
+        console.error('Error updating dates:', error);
+        SwalService.error('Error al actualizar las fechas');
+    }
+}
+
 
 async function handleUpdateContentAuthor(authorId: string) {
     if (!selectedContent.value) return;
