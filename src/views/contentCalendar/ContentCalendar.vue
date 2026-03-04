@@ -199,9 +199,11 @@ const calendarEvents = computed(() => {
             if (c.closeDate) {
                 // Parse closeDate securely. If ISO, take date part.
                 const closeDateStr = c.closeDate.split('T')[0]; // "YYYY-MM-DD"
-                // Add 1 day
-                const d = new Date(closeDateStr);
-                d.setDate(d.getDate() + 1);
+                // Add 1 day using UTC noon to avoid timezone-based day shifts.
+                // new Date("YYYY-MM-DD") parses as UTC midnight, and local setDate()
+                // arithmetic can roll back to the same UTC day in UTC+ timezones.
+                const d = new Date(closeDateStr + 'T12:00:00.000Z');
+                d.setUTCDate(d.getUTCDate() + 1);
                 const calculatedEnd = d.toISOString().split('T')[0];
 
                 // Sanity check: end date must be after start date
