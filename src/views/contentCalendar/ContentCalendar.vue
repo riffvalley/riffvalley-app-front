@@ -829,6 +829,7 @@ async function handleUpdateRadarDates(publicationDate: string, closeDate: string
     }
 }
 
+
 async function handleUpdateContentAuthor(authorId: string) {
     if (!selectedContent.value) return;
     const contentId = selectedContent.value.id;

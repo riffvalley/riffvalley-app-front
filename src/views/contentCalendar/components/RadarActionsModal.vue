@@ -6,7 +6,17 @@
             <div class="flex justify-between items-center mb-6 border-b pb-4">
                 <div>
                     <h3 class="text-2xl font-bold text-gray-800">{{ content?.name }}</h3>
-                    <p class="text-gray-500 text-sm mt-1">Gestión de asignaciones y detalles</p>
+                    <div class="flex items-center gap-3 mt-1">
+                        <p class="text-gray-500 text-sm">Gestión de asignaciones y detalles</p>
+                        <div v-if="content?.publicationDate" class="flex items-center gap-1.5 text-xs text-gray-500">
+                            <i class="fa-solid fa-calendar-check text-indigo-400"></i>
+                            <span>{{ formatContentDate(content.publicationDate) }}</span>
+                            <template v-if="content?.closeDate">
+                                <span class="text-gray-300">→</span>
+                                <span>{{ formatContentDate(content.closeDate) }}</span>
+                            </template>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-4">
