@@ -53,10 +53,12 @@
         <!-- Actions Modals -->
         <RadarActionsModal v-if="selectedContent?.type === 'radar' || selectedContent?.type === 'best'"
             :show="showActionsModal" :content="selectedContent" :radar-details="radarDetails"
-            :loading="loadingRadarDetails" @close="showActionsModal = false" @update-field="updateRadarField"
-            @update-status="updateListStatus" @toggle-asignation="toggleAsignation" @delete-list="deleteRadarList"
+            :loading="loadingRadarDetails" :rv-users="rvUsers" @close="showActionsModal = false"
+            @update-field="updateRadarField" @update-status="updateListStatus"
+            @toggle-asignation="toggleAsignation" @delete-list="deleteRadarList"
             @delete="confirmDeleteContent" @navigate-detail="navigateToRadarDetail"
-            @copy-artist-disc="copyArtistAndDisc" @copy-image="copyToClipboard" />
+            @copy-artist-disc="copyArtistAndDisc" @copy-image="copyToClipboard"
+            @update-author="handleUpdateContentAuthor" />
 
         <PhotosActionsModal v-else-if="selectedContent?.type === 'photos'" :show="showActionsModal"
             :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
@@ -794,6 +796,23 @@ async function updateRadarField(field: string, value: any) {
     } catch (error) {
         console.error(`Error updating ${field}:`, error);
         SwalService.error('Error al actualizar fecha');
+    }
+}
+
+async function handleUpdateContentAuthor(authorId: string) {
+    if (!selectedContent.value) return;
+    const contentId = selectedContent.value.id;
+    try {
+        await updateContent(contentId, { authorId });
+        const item = allContents.value.find(c => c.id === contentId);
+        if (item) {
+            const user = rvUsers.value.find((u: any) => u.id === authorId);
+            if (user) item.author = user;
+        }
+        SwalService.success('Autor actualizado');
+    } catch (error) {
+        console.error('Error updating author:', error);
+        SwalService.error('Error al actualizar el autor');
     }
 }
 
