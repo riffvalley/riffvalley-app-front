@@ -254,8 +254,10 @@ function formatRadarDate(dateStr: string): string {
 
 function formatContentDate(dateStr: string): string {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    // Split on 'T' to get just the date part (same logic as the calendar),
+    // avoiding timezone-based day shifts from new Date() parsing.
+    const [year, month, day] = dateStr.split('T')[0].split('-');
+    return `${day}/${month}/${year}`;
 }
 
 function getStatusClass(status: string): string {

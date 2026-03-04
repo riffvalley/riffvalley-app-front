@@ -407,7 +407,7 @@ const calendarOptions = ref({
         }
 
         try {
-            await updateContent(contentId, { publicationDate: newDate });
+            await updateContent(contentId, { publicationDate: toCalendarDate(newDate) });
             await loadBacklogContents();
             await loadContentsByMonth(currentYear.value, currentMonth.value);
             SwalService.success('Evento reprogramado correctamente');
@@ -499,9 +499,18 @@ function getContentTypeColor(type: ContentType) {
 //     }
 // }
 
+// Converts a "YYYY-MM-DD" date string from FullCalendar to "YYYY-MM-DDT18:00:00.000Z".
+// Using 18:00 UTC avoids day-shift issues in any reasonable timezone (UTC-18 to UTC+5).
+function toCalendarDate(dateStr: string | null): string | null {
+    if (!dateStr) return null;
+    // If it already has a time component, leave it as-is
+    if (dateStr.includes('T')) return dateStr;
+    return dateStr + 'T18:00:00.000Z';
+}
+
 async function handleDropToCalendar(contentId: string, dateStr: string | null) {
     try {
-        await updateContent(contentId, { publicationDate: dateStr });
+        await updateContent(contentId, { publicationDate: toCalendarDate(dateStr) });
         // Reload both backlog and current month
         await loadBacklogContents();
         await loadContentsByMonth(currentYear.value, currentMonth.value);
