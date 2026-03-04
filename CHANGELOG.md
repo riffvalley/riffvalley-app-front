@@ -1,3 +1,12 @@
+## 1.13.0 (2026-03-04)
+
+* feat(national-releases): add national releases form and admin view (#112) ([c2dac4f](https://github.com/riffvalley/riffvalley-app-front/commit/c2dac4f)), closes [#112](https://github.com/riffvalley/riffvalley-app-front/issues/112)
+* Feat/backlog boolean field (#110) ([c1df49e](https://github.com/riffvalley/riffvalley-app-front/commit/c1df49e)), closes [#110](https://github.com/riffvalley/riffvalley-app-front/issues/110)
+* Feat/user management improvements (#111) ([71a1520](https://github.com/riffvalley/riffvalley-app-front/commit/71a1520)), closes [#111](https://github.com/riffvalley/riffvalley-app-front/issues/111)
+* Fix/calendar ghost events (#107) ([df604ff](https://github.com/riffvalley/riffvalley-app-front/commit/df604ff)), closes [#107](https://github.com/riffvalley/riffvalley-app-front/issues/107)
+* Fix/calendar ghost events (#108) ([1e962e6](https://github.com/riffvalley/riffvalley-app-front/commit/1e962e6)), closes [#108](https://github.com/riffvalley/riffvalley-app-front/issues/108)
+* Fix/calendar ghost events (#109) ([9bba005](https://github.com/riffvalley/riffvalley-app-front/commit/9bba005)), closes [#109](https://github.com/riffvalley/riffvalley-app-front/issues/109)
+
 ## <small>1.12.4 (2026-03-04)</small>
 
 * fix(calendar): eliminar eventos fantasma al arrastrar desde el backlog (#106) ([f34c578](https://github.com/riffvalley/riffvalley-app-front/commit/f34c578)), closes [#106](https://github.com/riffvalley/riffvalley-app-front/issues/106)
