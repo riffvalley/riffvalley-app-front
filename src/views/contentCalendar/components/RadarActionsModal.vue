@@ -6,37 +6,23 @@
             <div class="flex justify-between items-center mb-6 border-b pb-4">
                 <div>
                     <h3 class="text-2xl font-bold text-gray-800">{{ content?.name }}</h3>
-                    <div class="flex items-center gap-3 mt-1">
-                        <p class="text-gray-500 text-sm">Gestión de asignaciones y detalles</p>
-                        <div v-if="content?.publicationDate" class="flex items-center gap-1.5 text-xs text-gray-500">
-                            <i class="fa-solid fa-calendar-check text-indigo-400"></i>
-                            <span>{{ formatContentDate(content.publicationDate) }}</span>
-                            <template v-if="content?.closeDate">
-                                <span class="text-gray-300">→</span>
-                                <span>{{ formatContentDate(content.closeDate) }}</span>
-                            </template>
-                        </div>
-                    </div>
+                    <p class="text-gray-500 text-sm mt-1">Gestión de asignaciones y detalles</p>
                 </div>
 
                 <div class="flex items-center gap-4">
-                    <div v-if="radarDetails"
-                        class="flex items-center gap-2 bg-indigo-900/10 p-1 rounded-lg border border-indigo-500/20 mr-2">
+                    <div class="flex items-center gap-2 bg-indigo-900/10 p-1 rounded-lg border border-indigo-500/20 mr-2">
                         <div class="flex items-center gap-2 px-3 py-1.5 bg-indigo-900/80 rounded-md text-white border border-indigo-500/30 shadow-sm"
-                            title="Fecha Lista">
+                            title="Fecha inicio del evento">
                             <i class="fa-regular fa-calendar text-indigo-300 text-xs"></i>
-                            <input type="date" :value="formatRadarDate(radarDetails.listDate)" :min="radarMinListDate"
-                                :max="radarMaxListDate"
-                                @change="(e) => $emit('update-field', 'listDate', (e.target as HTMLInputElement).value)"
+                            <input type="date" v-model="localStartDate"
+                                @change="emitDates"
                                 class="bg-transparent border-none p-0 text-white text-xs font-bold focus:ring-0 cursor-pointer w-[80px]" />
                         </div>
-                        <div v-if="content?.type !== 'best'"
-                            class="flex items-center gap-2 px-3 py-1.5 bg-indigo-900/80 rounded-md text-white border border-indigo-500/30 shadow-sm"
-                            title="Fecha Cierre">
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-indigo-900/80 rounded-md text-white border border-indigo-500/30 shadow-sm"
+                            title="Fecha fin del evento">
                             <i class="fa-regular fa-clock text-indigo-300 text-xs"></i>
-                            <input type="date" :value="formatRadarDate(radarDetails.closeDate)" :min="radarMinCloseDate"
-                                :max="radarMaxCloseDate"
-                                @change="(e) => $emit('update-field', 'closeDate', (e.target as HTMLInputElement).value)"
+                            <input type="date" v-model="localEndDate"
+                                @change="emitDates"
                                 class="bg-transparent border-none p-0 text-white text-xs font-bold focus:ring-0 cursor-pointer w-[80px]" />
                         </div>
                     </div>
@@ -182,7 +168,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
 
 interface RadarDetails {
@@ -213,49 +199,25 @@ const emit = defineEmits<{
     'copy-artist-disc': [artist: string, disc: string];
     'copy-image': [image: string];
     'update-author': [authorId: string];
+    'update-dates': [publicationDate: string, closeDate: string | null];
 }>();
 
 const selectedAuthorId = ref(props.content?.author?.id ?? '');
+const localStartDate = ref(props.content?.publicationDate?.split('T')[0] ?? '');
+const localEndDate = ref(props.content?.closeDate?.split('T')[0] ?? '');
 
 watch(() => props.content, (c) => {
     selectedAuthorId.value = c?.author?.id ?? '';
+    localStartDate.value = c?.publicationDate?.split('T')[0] ?? '';
+    localEndDate.value = c?.closeDate?.split('T')[0] ?? '';
 });
 
-const radarMinListDate = computed(() => {
-    if (!props.radarDetails?.listDate) return undefined;
-    const d = new Date(props.radarDetails.listDate);
-    d.setDate(d.getDate() - 7);
-    return d.toISOString().split('T')[0];
-});
-
-const radarMaxListDate = computed(() => {
-    if (!props.radarDetails?.listDate) return undefined;
-    const d = new Date(props.radarDetails.listDate);
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().split('T')[0];
-});
-
-const radarMinCloseDate = computed(() => {
-    if (!props.radarDetails?.listDate) return undefined;
-    return formatRadarDate(props.radarDetails.listDate);
-});
-
-const radarMaxCloseDate = computed(() => {
-    if (!props.radarDetails?.closeDate) return undefined;
-    const d = new Date(props.radarDetails.closeDate);
-    d.setDate(d.getDate() + 14);
-    return d.toISOString().split('T')[0];
-});
-
-function formatRadarDate(dateStr: string): string {
-    if (!dateStr) return '';
-    return dateStr.split('T')[0];
+function emitDates() {
+    emit('update-dates', localStartDate.value, localEndDate.value || null);
 }
 
 function formatContentDate(dateStr: string): string {
     if (!dateStr) return '';
-    // Split on 'T' to get just the date part (same logic as the calendar),
-    // avoiding timezone-based day shifts from new Date() parsing.
     const [year, month, day] = dateStr.split('T')[0].split('-');
     return `${day}/${month}/${year}`;
 }

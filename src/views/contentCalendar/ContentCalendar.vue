@@ -58,7 +58,8 @@
             @toggle-asignation="toggleAsignation" @delete-list="deleteRadarList"
             @delete="confirmDeleteContent" @navigate-detail="navigateToRadarDetail"
             @copy-artist-disc="copyArtistAndDisc" @copy-image="copyToClipboard"
-            @update-author="handleUpdateContentAuthor" />
+            @update-author="handleUpdateContentAuthor"
+            @update-dates="handleUpdateRadarDates" />
 
         <PhotosActionsModal v-else-if="selectedContent?.type === 'photos'" :show="showActionsModal"
             :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
@@ -805,6 +806,26 @@ async function updateRadarField(field: string, value: any) {
     } catch (error) {
         console.error(`Error updating ${field}:`, error);
         SwalService.error('Error al actualizar fecha');
+    }
+}
+
+async function handleUpdateRadarDates(publicationDate: string, closeDate: string | null) {
+    if (!selectedContent.value) return;
+    const contentId = selectedContent.value.id;
+    try {
+        await updateContent(contentId, {
+            publicationDate: toCalendarDate(publicationDate),
+            closeDate: closeDate ? toCalendarDate(closeDate) : null
+        });
+        const item = allContents.value.find(c => c.id === contentId);
+        if (item) {
+            item.publicationDate = toCalendarDate(publicationDate)!;
+            item.closeDate = closeDate ? toCalendarDate(closeDate) : null;
+        }
+        SwalService.success('Fechas actualizadas');
+    } catch (error) {
+        console.error('Error updating dates:', error);
+        SwalService.error('Error al actualizar las fechas');
     }
 }
 
