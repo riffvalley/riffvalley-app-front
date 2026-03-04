@@ -6,7 +6,17 @@
             <div class="flex justify-between items-center mb-6 border-b pb-4">
                 <div>
                     <h3 class="text-2xl font-bold text-gray-800">{{ content?.name }}</h3>
-                    <p class="text-gray-500 text-sm mt-1">Gestión de asignaciones y detalles</p>
+                    <div class="flex items-center gap-3 mt-1">
+                        <p class="text-gray-500 text-sm">Gestión de asignaciones y detalles</p>
+                        <div v-if="content?.publicationDate" class="flex items-center gap-1.5 text-xs text-gray-500">
+                            <i class="fa-solid fa-calendar-check text-indigo-400"></i>
+                            <span>{{ formatContentDate(content.publicationDate) }}</span>
+                            <template v-if="content?.closeDate">
+                                <span class="text-gray-300">→</span>
+                                <span>{{ formatContentDate(content.closeDate) }}</span>
+                            </template>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-4">
@@ -130,13 +140,33 @@
                 </div>
             </div>
 
-            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button @click="$emit('delete-list')"
+            <div class="flex justify-between items-center pt-4 border-t border-gray-100">
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                        <i class="fa-regular fa-user mr-1"></i>Autor
+                    </label>
+                    <select v-model="selectedAuthorId"
+                        @change="emit('update-author', selectedAuthorId)"
+                        class="border-gray-200 rounded-lg text-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 py-1.5 pl-2 pr-7">
+                        <option value="">Sin autor</option>
+                        <option v-for="user in rvUsers" :key="user.id" :value="user.id">
+                            {{ user.username }}
+                        </option>
+                    </select>
+                </div>
+
+                <div class="flex gap-3">
+                <button v-if="content?.list" @click="$emit('delete-list')"
                     class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 flex items-center gap-2 transition-colors">
                     <i class="fa-solid fa-trash"></i>
                     Borrar Lista
                 </button>
-                <button @click="$emit('navigate-detail')"
+                <button v-else @click="$emit('delete')"
+                    class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 flex items-center gap-2 transition-colors">
+                    <i class="fa-solid fa-trash"></i>
+                    Borrar Evento
+                </button>
+                <button v-if="content?.list" @click="$emit('navigate-detail')"
                     class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 flex items-center gap-2 transition-colors">
                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
                     Ir al Detalle
@@ -145,13 +175,14 @@
                     class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     Cerrar
                 </button>
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
 
 interface RadarDetails {
@@ -166,20 +197,29 @@ interface Props {
     content: Content | null;
     radarDetails: RadarDetails | null;
     loading: boolean;
+    rvUsers: any[];
 }
 
 const props = defineProps<Props>();
 
-defineEmits<{
+const emit = defineEmits<{
     close: [];
     'update-field': [field: string, value: string];
     'update-status': [details: RadarDetails];
     'toggle-asignation': [asig: any];
     'delete-list': [];
+    'delete': [];
     'navigate-detail': [];
     'copy-artist-disc': [artist: string, disc: string];
     'copy-image': [image: string];
+    'update-author': [authorId: string];
 }>();
+
+const selectedAuthorId = ref(props.content?.author?.id ?? '');
+
+watch(() => props.content, (c) => {
+    selectedAuthorId.value = c?.author?.id ?? '';
+});
 
 const radarMinListDate = computed(() => {
     if (!props.radarDetails?.listDate) return undefined;
@@ -210,6 +250,12 @@ const radarMaxCloseDate = computed(() => {
 function formatRadarDate(dateStr: string): string {
     if (!dateStr) return '';
     return dateStr.split('T')[0];
+}
+
+function formatContentDate(dateStr: string): string {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function getStatusClass(status: string): string {
