@@ -572,6 +572,25 @@ export default defineComponent({
       }
     });
 
+    const removeDisc = (discId: string) => {
+      for (let i = groupedDiscs.value.length - 1; i >= 0; i--) {
+        const group = groupedDiscs.value[i];
+        const idx = group.discs.findIndex((d: any) => d.id === discId);
+        if (idx !== -1) {
+          group.discs.splice(idx, 1);
+          if (group.discs.length === 0) {
+            groupedDiscs.value.splice(i, 1);
+          }
+          break;
+        }
+      }
+    };
+
+    const handleDateChange = (discId: string, newDate: string) => {
+      // Remueve el disco del grupo actual; se reubicará en el próximo fetch
+      removeDisc(discId);
+    };
+
     return {
       groupedDiscs,
       groupState,
@@ -601,6 +620,8 @@ export default defineComponent({
       optionsReady,
       genresLoaded,
       countriesLoaded,
+      removeDisc,
+      handleDateChange,
     };
   },
 });

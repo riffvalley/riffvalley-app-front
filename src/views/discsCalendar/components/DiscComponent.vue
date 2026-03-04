@@ -463,6 +463,7 @@ export default defineComponent({
     const deleteDiscFunction = async (discId: string) => {
       try {
         await deleteDisc(discId);
+        emit("disc-deleted", props.disc.id);
         Swal.fire({
           title: "¡Eliminado!",
           text: "El disco se eliminó correctamente.",
@@ -472,9 +473,23 @@ export default defineComponent({
           position: "top-end",
           showConfirmButton: false,
         });
-        emit("disc-deleted", props.disc.id);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error al eliminar el disco:", error);
+        const status = error?.response?.status;
+        Swal.fire({
+          title: status === 404 ? "Ya eliminado" : "Error",
+          text: status === 404
+            ? "Este disco ya no existe. Recargá la página."
+            : "No se pudo eliminar el disco.",
+          icon: status === 404 ? "warning" : "error",
+          timer: 4000,
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+        });
+        if (status === 404) {
+          emit("disc-deleted", props.disc.id);
+        }
       }
     };
 

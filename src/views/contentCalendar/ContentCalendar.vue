@@ -384,6 +384,14 @@ const calendarOptions = ref({
             info.draggedEl.parentNode?.removeChild(info.draggedEl);
         }
     },
+    eventReceive: (info: any) => {
+        // FullCalendar automatically adds an event to its internal state when an
+        // external element is dropped (droppable: true). Since calendarEvents is a
+        // reactive computed that drives all displayed events, this auto-added event
+        // creates a duplicate ghost. Remove it immediately and let the reactive
+        // update (triggered by loadContentsByMonth after the API call) handle display.
+        info.event.remove();
+    },
     eventDrop: async (info: any) => {
         const contentId = info.event.id;
         const newDate = info.event.startStr;
@@ -396,7 +404,16 @@ const calendarOptions = ref({
             return;
         }
 
-        await handleDropToCalendar(contentId, newDate);
+        try {
+            await updateContent(contentId, { publicationDate: newDate });
+            await loadBacklogContents();
+            await loadContentsByMonth(currentYear.value, currentMonth.value);
+            SwalService.success('Evento reprogramado correctamente');
+        } catch (error) {
+            console.error('Error updating content date:', error);
+            info.revert();
+            SwalService.error('Error al mover el evento');
+        }
     },
     eventDragStop: async (info: any) => {
         const jsEvent = info.jsEvent;
