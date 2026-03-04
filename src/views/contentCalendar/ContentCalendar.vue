@@ -162,10 +162,10 @@ const editingContent = ref<any>({
     authorId: ''
 });
 
-// Backlog items (content without publicationDate)
+// Backlog items (content with backlog: true)
 const backlogItems = computed(() => {
     return allContents.value
-        .filter(c => !c.publicationDate)
+        .filter(c => c.backlog)
         .sort((a, b) => {
             // Primero ordenar por usuario: 'riff valley' primero
             const aIsRiffValley = a.author?.username?.toLowerCase() === 'riff valley';
@@ -179,11 +179,10 @@ const backlogItems = computed(() => {
         });
 });
 
-// Calendar events (content with publicationDate)
-// Calendar events (content with publicationDate)
+// Calendar events (content with publicationDate and not in backlog)
 const calendarEvents = computed(() => {
     return allContents.value
-        .filter(c => c.publicationDate)
+        .filter(c => !c.backlog && c.publicationDate)
         .map(c => {
             let start = c.publicationDate;
 
@@ -410,7 +409,7 @@ const calendarOptions = ref({
         }
 
         try {
-            await updateContent(contentId, { publicationDate: toCalendarDate(newDate) });
+            await updateContent(contentId, { publicationDate: toCalendarDate(newDate), backlog: false });
             await loadBacklogContents();
             await loadContentsByMonth(currentYear.value, currentMonth.value);
             SwalService.success('Evento reprogramado correctamente');
@@ -513,7 +512,10 @@ function toCalendarDate(dateStr: string | null): string | null {
 
 async function handleDropToCalendar(contentId: string, dateStr: string | null) {
     try {
-        await updateContent(contentId, { publicationDate: toCalendarDate(dateStr) });
+        await updateContent(contentId, {
+            publicationDate: toCalendarDate(dateStr),
+            backlog: dateStr === null
+        });
         // Reload both backlog and current month
         await loadBacklogContents();
         await loadContentsByMonth(currentYear.value, currentMonth.value);
@@ -865,11 +867,11 @@ async function loadContentsByMonth(year: number, month: number) {
     try {
         const monthContents = await getContentsByMonth(year, month);
 
-        // Keep backlog items (no publicationDate) and add new month contents
-        const backlogItems = allContents.value.filter(c => !c.publicationDate);
-        const scheduledItems = monthContents.filter(c => c.publicationDate);
+        // Keep backlog items and add new month contents
+        const currentBacklog = allContents.value.filter(c => c.backlog);
+        const scheduledItems = monthContents.filter(c => !c.backlog && c.publicationDate);
 
-        allContents.value = [...backlogItems, ...scheduledItems];
+        allContents.value = [...currentBacklog, ...scheduledItems];
     } catch (error) {
         console.error('Error loading contents by month:', error);
     }
@@ -877,11 +879,9 @@ async function loadContentsByMonth(year: number, month: number) {
 
 async function loadBacklogContents() {
     try {
-        // Load all contents to get backlog items (those without publicationDate)
-        const allData = await getContents();
-        const backlog = allData.filter(c => !c.publicationDate);
+        const backlog = await getContents(true);
         // Preserve existing scheduled items while updating backlog
-        const scheduledItems = allContents.value.filter(c => c.publicationDate);
+        const scheduledItems = allContents.value.filter(c => !c.backlog && c.publicationDate);
         allContents.value = [...backlog, ...scheduledItems];
     } catch (error) {
         console.error('Error loading backlog contents:', error);

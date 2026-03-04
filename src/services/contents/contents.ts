@@ -39,6 +39,7 @@ export interface Content {
     publicationDate: string; // ISO date string
     closeDate: string | null;
     reunionId?: string | null;
+    backlog: boolean;
     author: Author;
 
     // Relations based on type
@@ -66,13 +67,16 @@ export interface UpdateContentDto {
     closeDate?: string | null;
     reunionId?: string;
     authorId?: string;
+    backlog?: boolean;
 }
 
 export interface ContentsByMonthResponse extends Array<Content> { }
 
 // Services
-export async function getContents(): Promise<Content[]> {
-    const response = await api.get<Content[]>("/contents");
+export async function getContents(backlog?: boolean): Promise<Content[]> {
+    const response = await api.get<Content[]>("/contents", {
+        params: backlog !== undefined ? { backlog } : undefined,
+    });
     return response.data;
 }
 
