@@ -25,6 +25,20 @@
       </div>
     </div>
 
+    <!-- Meses pendientes -->
+    <div v-if="pendingMonths.length > 0" class="flex flex-wrap gap-2 mb-4">
+      <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide self-center">Pendientes:</span>
+      <button
+        v-for="m in pendingMonths"
+        :key="m"
+        @click="openPendingModal(m)"
+        class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+      >
+        <i class="fas fa-clock text-[10px]"></i>
+        {{ MONTHS.find(mo => mo.value === m)?.label }}
+      </button>
+    </div>
+
     <!-- Filtros -->
     <div class="flex flex-wrap gap-3 mb-6">
       <div>
@@ -208,6 +222,52 @@
       </div>
     </div>
 
+    <!-- Modal pendientes por mes -->
+    <div
+      v-if="pendingModal.show"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      @click.self="pendingModal.show = false"
+    >
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 flex flex-col max-h-[80vh]">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold">
+            Pendientes — {{ MONTHS.find(m => m.value === pendingModal.month)?.label }}
+          </h2>
+          <button @click="pendingModal.show = false" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+
+        <div v-if="pendingModal.loading" class="text-center py-8 text-gray-400">Cargando...</div>
+        <div v-else-if="pendingModal.releases.length === 0" class="text-center py-8 text-gray-400">
+          No hay lanzamientos pendientes.
+        </div>
+        <ul v-else class="space-y-1.5 overflow-y-auto flex-1">
+          <li
+            v-for="release in pendingModal.releases"
+            :key="release.id"
+            class="bg-gray-50 rounded-xl px-4 py-2.5 flex items-center gap-3"
+          >
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
+                <span class="text-gray-400 font-normal">[{{ release.genre }}]</span>
+                <span class="truncate">{{ release.artistName }} — {{ release.discName }}</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" :class="discTypeClass(release.discType)">
+                  {{ discTypeLabel(release.discType) }}
+                </span>
+              </p>
+              <span class="text-xs text-gray-400"><i class="far fa-calendar mr-1"></i>{{ formatDate(release.releaseDay) }}</span>
+            </div>
+            <a v-if="release.link" :href="release.link" target="_blank"
+              class="w-7 h-7 flex items-center justify-center rounded-full transition-colors flex-shrink-0"
+              :class="linkClass(release.link)">
+              <i :class="linkIcon(release.link)" class="text-sm"></i>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
     <!-- Modal carga masiva -->
     <div
       v-if="showBulk"
@@ -360,17 +420,41 @@ export default defineComponent({
       year: now.getFullYear(),
     });
 
+    const pendingMonths = ref<number[]>([]);
+
     const fetchReleases = async () => {
       loading.value = true;
       try {
         const params: { month?: number; year?: number } = {};
         if (filters.month !== undefined) params.month = filters.month;
         if (filters.year !== undefined) params.year = filters.year;
-        releases.value = await getNationalReleases(params);
+        const result = await getNationalReleases(params);
+        releases.value = result.data;
+        if (result.pendingMonths) pendingMonths.value = result.pendingMonths;
       } catch {
         SwalService.error('No se pudieron cargar los lanzamientos');
       } finally {
         loading.value = false;
+      }
+    };
+
+    // --- Modal pendientes ---
+    const pendingModal = reactive<{ show: boolean; month: number; loading: boolean; releases: NationalRelease[] }>({
+      show: false, month: 0, loading: false, releases: [],
+    });
+
+    const openPendingModal = async (month: number) => {
+      pendingModal.month = month;
+      pendingModal.releases = [];
+      pendingModal.loading = true;
+      pendingModal.show = true;
+      try {
+        const result = await getNationalReleases({ month, year: filters.year, approved: false });
+        pendingModal.releases = result.data;
+      } catch {
+        SwalService.error('No se pudieron cargar los pendientes');
+      } finally {
+        pendingModal.loading = false;
       }
     };
 
@@ -582,6 +666,9 @@ export default defineComponent({
       YEARS,
       DISC_TYPES,
       fetchReleases,
+      pendingMonths,
+      pendingModal,
+      openPendingModal,
       editingRelease,
       editForm,
       saving,
