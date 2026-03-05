@@ -207,86 +207,50 @@
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="showBulk = false"
     >
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl p-6 flex flex-col max-h-[90vh]">
-        <div class="flex items-center justify-between mb-4">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between mb-3">
           <h2 class="text-lg font-bold">Carga masiva</h2>
           <button @click="showBulk = false" class="text-gray-400 hover:text-gray-600">
             <i class="fas fa-xmark"></i>
           </button>
         </div>
 
-        <!-- Tabla compacta -->
-        <div class="overflow-auto flex-1">
-          <table class="w-full text-xs border-collapse">
-            <thead>
-              <tr class="text-gray-400 uppercase tracking-wide">
-                <th class="text-left pb-2 pr-2 font-semibold w-[18%]">Artista <span class="text-red-400">*</span></th>
-                <th class="text-left pb-2 pr-2 font-semibold w-[18%]">Disco <span class="text-red-400">*</span></th>
-                <th class="text-left pb-2 pr-2 font-semibold w-[9%]">Tipo <span class="text-red-400">*</span></th>
-                <th class="text-left pb-2 pr-2 font-semibold w-[15%]">Género <span class="text-red-400">*</span></th>
-                <th class="text-left pb-2 pr-2 font-semibold w-[15%]">Fecha <span class="text-red-400">*</span></th>
-                <th class="text-left pb-2 pr-2 font-semibold w-[19%]">Enlace</th>
-                <th class="w-6"></th>
-              </tr>
-            </thead>
-            <tbody class="space-y-1">
-              <tr v-for="(row, i) in bulkRows" :key="i" class="group">
-                <td class="pr-2 pb-1.5">
-                  <input v-model="row.artistName" type="text" placeholder="Artista"
-                    class="w-full border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rv-pink" />
-                </td>
-                <td class="pr-2 pb-1.5">
-                  <input v-model="row.discName" type="text" placeholder="Disco"
-                    class="w-full border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rv-pink" />
-                </td>
-                <td class="pr-2 pb-1.5">
-                  <select v-model="row.discType"
-                    class="w-full border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rv-pink bg-white">
-                    <option value="single">Single</option>
-                    <option value="ep">EP</option>
-                    <option value="album">Álbum</option>
-                  </select>
-                </td>
-                <td class="pr-2 pb-1.5">
-                  <input v-model="row.genre" type="text" placeholder="Género"
-                    class="w-full border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rv-pink" />
-                </td>
-                <td class="pr-2 pb-1.5">
-                  <input v-model="row.releaseDay" type="date" min="2026-01-01"
-                    class="w-full border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rv-pink" />
-                </td>
-                <td class="pr-2 pb-1.5">
-                  <input v-model="row.link" type="url" placeholder="https://..."
-                    class="w-full border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rv-pink" />
-                </td>
-                <td class="pb-1.5">
-                  <button v-if="bulkRows.length > 1" @click="bulkRows.splice(i, 1)"
-                    class="w-6 h-6 flex items-center justify-center rounded-full text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors">
-                    <i class="fas fa-xmark text-xs"></i>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <p class="text-xs text-gray-400 mb-2 font-mono bg-gray-50 rounded-lg px-3 py-2 leading-relaxed">
+          Fecha [género] banda - título (single/ep/disco) enlace<br/>
+          <span class="text-gray-300">Ej: 2026-03-10 [Rock nacional] Babasónicos - Tema A (single) https://...</span>
+        </p>
 
-        <div class="mt-3 flex items-center justify-between gap-3 pt-3 border-t border-gray-100">
-          <button @click="bulkRows.push(makeBulkRow())"
-            class="flex items-center gap-1.5 text-xs font-medium text-gray-400 hover:text-rv-pink transition-colors">
-            <i class="fas fa-plus text-xs"></i> Añadir fila
+        <textarea
+          v-model="bulkText"
+          rows="12"
+          placeholder="2026-03-10 [Rock nacional] Babasónicos - Tema A (single)&#10;2026-03-15 [Metal] Metallica - Black Album (disco) https://spotify.com/..."
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none flex-1"
+          spellcheck="false"
+        ></textarea>
+
+        <!-- Preview parseado -->
+        <div v-if="bulkParsed.length > 0" class="mt-2 text-xs text-gray-500 flex items-center gap-1.5">
+          <i class="fas fa-check-circle text-green-500"></i>
+          {{ bulkParsed.length }} línea{{ bulkParsed.length !== 1 ? 's' : '' }} válida{{ bulkParsed.length !== 1 ? 's' : '' }}
+          <span v-if="bulkParseErrors.length > 0" class="text-yellow-500 ml-2">
+            · {{ bulkParseErrors.length }} con error
+          </span>
+        </div>
+        <ul v-if="bulkParseErrors.length > 0" class="mt-1 space-y-0.5 max-h-20 overflow-auto">
+          <li v-for="e in bulkParseErrors" :key="e" class="text-xs text-red-400 font-mono">{{ e }}</li>
+        </ul>
+
+        <div class="mt-3 flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+          <p v-if="bulkError" class="text-red-500 text-xs flex-1">{{ bulkError }}</p>
+          <button @click="showBulk = false"
+            class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 transition-colors">
+            Cancelar
           </button>
-          <div class="flex items-center gap-2">
-            <p v-if="bulkError" class="text-red-500 text-xs">{{ bulkError }}</p>
-            <button @click="showBulk = false"
-              class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 transition-colors">
-              Cancelar
-            </button>
-            <button @click="handleBulkSubmit" :disabled="bulkSaving"
-              class="px-5 py-2 rounded-xl text-sm font-bold bg-rv-navy text-white hover:opacity-90 disabled:opacity-50 transition-opacity">
-              <span v-if="bulkSaving">Enviando...</span>
-              <span v-else>Enviar {{ bulkRows.length }} {{ bulkRows.length === 1 ? 'lanzamiento' : 'lanzamientos' }}</span>
-            </button>
-          </div>
+          <button @click="handleBulkSubmit" :disabled="bulkSaving || bulkParsed.length === 0"
+            class="px-5 py-2 rounded-xl text-sm font-bold bg-rv-navy text-white hover:opacity-90 disabled:opacity-50 transition-opacity">
+            <span v-if="bulkSaving">Enviando...</span>
+            <span v-else>Enviar {{ bulkParsed.length }} {{ bulkParsed.length === 1 ? 'lanzamiento' : 'lanzamientos' }}</span>
+          </button>
         </div>
       </div>
     </div>
@@ -295,7 +259,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, onMounted } from 'vue';
+import { defineComponent, ref, reactive, computed, onMounted } from 'vue';
 import {
   getNationalReleases,
   updateNationalRelease,
@@ -441,37 +405,57 @@ export default defineComponent({
     const showBulk = ref(false);
     const bulkSaving = ref(false);
     const bulkError = ref('');
+    const bulkText = ref('');
 
-    const makeBulkRow = () => ({ artistName: '', discName: '', discType: 'single' as DiscType, genre: '', releaseDay: '', link: '' });
-    const bulkRows = ref([makeBulkRow()]);
+    // Formato: YYYY-MM-DD [género] banda - título (single|ep|disco|album) enlace?
+    const TYPE_MAP: Record<string, DiscType> = {
+      single: 'single', ep: 'ep', disco: 'album', album: 'album',
+    };
+
+    const bulkParsed = computed(() => {
+      return bulkText.value
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l.length > 0)
+        .flatMap(line => {
+          const m = line.match(
+            /^(\d{4}-\d{2}-\d{2})\s+\[([^\]]+)\]\s+(.+?)\s+-\s+(.+?)\s+\((single|ep|disco|album)\)(?:\s+(https?:\/\/\S+))?$/i
+          );
+          if (!m) return [];
+          const [, releaseDay, genre, artistName, discName, typeRaw, link] = m;
+          return [{
+            releaseDay,
+            genre: genre.trim(),
+            artistName: artistName.trim(),
+            discName: discName.trim(),
+            discType: TYPE_MAP[typeRaw.toLowerCase()],
+            ...(link ? { link } : {}),
+          }];
+        });
+    });
+
+    const bulkParseErrors = computed(() => {
+      return bulkText.value
+        .split('\n')
+        .map(l => l.trim())
+        .filter(l => l.length > 0)
+        .filter(line => !line.match(
+          /^(\d{4}-\d{2}-\d{2})\s+\[([^\]]+)\]\s+(.+?)\s+-\s+(.+?)\s+\((single|ep|disco|album)\)(?:\s+(https?:\/\/\S+))?$/i
+        ));
+    });
 
     const openBulk = () => {
-      bulkRows.value = [makeBulkRow()];
+      bulkText.value = '';
       bulkError.value = '';
       showBulk.value = true;
     };
 
     const handleBulkSubmit = async () => {
       bulkError.value = '';
-      for (let i = 0; i < bulkRows.value.length; i++) {
-        const r = bulkRows.value[i];
-        if (!r.artistName.trim() || !r.discName.trim() || !r.genre.trim() || !r.releaseDay) {
-          bulkError.value = `Fila ${i + 1}: completa todos los campos obligatorios.`;
-          return;
-        }
-      }
+      if (bulkParsed.value.length === 0) return;
       bulkSaving.value = true;
       try {
-        const created = await createNationalReleaseBulk(
-          bulkRows.value.map(r => ({
-            artistName: r.artistName.trim(),
-            discName: r.discName.trim(),
-            discType: r.discType,
-            genre: r.genre.trim(),
-            releaseDay: r.releaseDay,
-            ...(r.link.trim() ? { link: r.link.trim() } : {}),
-          }))
-        );
+        const created = await createNationalReleaseBulk(bulkParsed.value as any);
         releases.value.push(...created);
         showBulk.value = false;
         SwalService.success(`${created.length} lanzamiento${created.length !== 1 ? 's' : ''} añadido${created.length !== 1 ? 's' : ''}`);
@@ -551,11 +535,12 @@ export default defineComponent({
       handleDelete,
       toggleApproved,
       showBulk,
-      bulkRows,
+      bulkText,
+      bulkParsed,
+      bulkParseErrors,
       bulkSaving,
       bulkError,
       openBulk,
-      makeBulkRow,
       handleBulkSubmit,
       formatDate,
       discTypeLabel,
