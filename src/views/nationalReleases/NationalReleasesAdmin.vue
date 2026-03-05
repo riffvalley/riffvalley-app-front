@@ -119,6 +119,12 @@
                   <i :class="release.approved ? 'fas fa-check-circle' : 'fas fa-circle'" class="text-xs"></i>
                   {{ release.approved ? 'Aprobado' : 'Pendiente' }}
                 </button>
+                <!-- Enlace -->
+                <a v-if="release.link" :href="release.link" target="_blank" :title="release.link"
+                  class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+                  :class="linkClass(release.link)">
+                  <i :class="linkIcon(release.link)" class="text-sm"></i>
+                </a>
                 <button @click="openEdit(release)" title="Editar"
                   class="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors">
                   <i class="fas fa-pen text-xs"></i>
