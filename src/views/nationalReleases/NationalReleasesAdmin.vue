@@ -61,17 +61,16 @@
       No hay lanzamientos para los filtros seleccionados.
     </div>
 
-    <!-- Secciones -->
+    <!-- Secciones por día -->
     <div v-else class="space-y-5">
-      <div v-for="section in sections" :key="section.type">
-        <template v-if="byType(section.type).length > 0">
-          <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ section.title }}</p>
-          <ul class="space-y-1.5">
-            <li
-              v-for="release in byType(section.type)"
-              :key="release.id"
-              class="bg-white rounded-xl shadow-rv px-4 py-2.5 flex items-center gap-3"
-            >
+      <div v-for="group in byDay" :key="group.day">
+        <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ group.label }}</p>
+        <ul class="space-y-1.5">
+          <li
+            v-for="release in group.releases"
+            :key="release.id"
+            class="bg-white rounded-xl shadow-rv px-4 py-2.5 flex items-center gap-3"
+          >
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-gray-800 truncate">
                   <span class="text-gray-400 font-normal">[{{ release.genre }}]</span>
@@ -113,8 +112,7 @@
                 </button>
               </div>
             </li>
-          </ul>
-        </template>
+        </ul>
       </div>
     </div>
 
@@ -313,6 +311,23 @@ export default defineComponent({
     ];
 
     const byType = (type: DiscType) => releases.value.filter(r => r.discType === type);
+
+    const byDay = computed(() => {
+      const sorted = [...releases.value].sort((a, b) => a.releaseDay.localeCompare(b.releaseDay));
+      const groups: { day: string; label: string; releases: typeof sorted }[] = [];
+      for (const release of sorted) {
+        const existing = groups.find(g => g.day === release.releaseDay);
+        if (existing) {
+          existing.releases.push(release);
+        } else {
+          const label = new Date(release.releaseDay + 'T12:00:00').toLocaleDateString('es-ES', {
+            weekday: 'long', day: 'numeric', month: 'long',
+          });
+          groups.push({ day: release.releaseDay, label, releases: [release] });
+        }
+      }
+      return groups;
+    });
 
     const copyFormatted = async () => {
       const byType = (type: DiscType) =>
@@ -558,6 +573,7 @@ export default defineComponent({
       copyFormatted,
       sections,
       byType,
+      byDay,
       filters,
       MONTHS,
       YEARS,
