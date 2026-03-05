@@ -6,27 +6,33 @@
             <div class="flex justify-between items-center mb-6 border-b pb-4">
                 <div>
                     <h3 class="text-2xl font-bold text-gray-800">{{ content?.name }}</h3>
-                    <p class="text-gray-500 text-sm mt-1">Gestión de asignaciones y detalles</p>
+                    <div class="flex items-center gap-3 mt-1">
+                        <p class="text-gray-500 text-sm">Gestión de asignaciones y detalles</p>
+                        <div v-if="content?.publicationDate" class="flex items-center gap-1.5 text-xs text-gray-500">
+                            <i class="fa-solid fa-calendar-check text-indigo-400"></i>
+                            <span>{{ formatContentDate(content.publicationDate) }}</span>
+                            <template v-if="content?.closeDate">
+                                <span class="text-gray-300">→</span>
+                                <span>{{ formatContentDate(content.closeDate) }}</span>
+                            </template>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex items-center gap-4">
-                    <div v-if="radarDetails"
-                        class="flex items-center gap-2 bg-indigo-900/10 p-1 rounded-lg border border-indigo-500/20 mr-2">
+                    <div class="flex items-center gap-2 bg-indigo-900/10 p-1 rounded-lg border border-indigo-500/20 mr-2">
                         <div class="flex items-center gap-2 px-3 py-1.5 bg-indigo-900/80 rounded-md text-white border border-indigo-500/30 shadow-sm"
-                            title="Fecha Lista">
+                            title="Fecha inicio del evento">
                             <i class="fa-regular fa-calendar text-indigo-300 text-xs"></i>
-                            <input type="date" :value="formatRadarDate(radarDetails.listDate)" :min="radarMinListDate"
-                                :max="radarMaxListDate"
-                                @change="(e) => $emit('update-field', 'listDate', (e.target as HTMLInputElement).value)"
+                            <input type="date" v-model="localStartDate"
+                                @change="emitDates"
                                 class="bg-transparent border-none p-0 text-white text-xs font-bold focus:ring-0 cursor-pointer w-[80px]" />
                         </div>
-                        <div v-if="content?.type !== 'best'"
-                            class="flex items-center gap-2 px-3 py-1.5 bg-indigo-900/80 rounded-md text-white border border-indigo-500/30 shadow-sm"
-                            title="Fecha Cierre">
+                        <div class="flex items-center gap-2 px-3 py-1.5 bg-indigo-900/80 rounded-md text-white border border-indigo-500/30 shadow-sm"
+                            title="Fecha fin del evento">
                             <i class="fa-regular fa-clock text-indigo-300 text-xs"></i>
-                            <input type="date" :value="formatRadarDate(radarDetails.closeDate)" :min="radarMinCloseDate"
-                                :max="radarMaxCloseDate"
-                                @change="(e) => $emit('update-field', 'closeDate', (e.target as HTMLInputElement).value)"
+                            <input type="date" v-model="localEndDate"
+                                @change="emitDates"
                                 class="bg-transparent border-none p-0 text-white text-xs font-bold focus:ring-0 cursor-pointer w-[80px]" />
                         </div>
                     </div>
@@ -130,13 +136,33 @@
                 </div>
             </div>
 
-            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
-                <button @click="$emit('delete-list')"
+            <div class="flex justify-between items-center pt-4 border-t border-gray-100">
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                        <i class="fa-regular fa-user mr-1"></i>Autor
+                    </label>
+                    <select v-model="selectedAuthorId"
+                        @change="emit('update-author', selectedAuthorId)"
+                        class="border-gray-200 rounded-lg text-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 py-1.5 pl-2 pr-7">
+                        <option value="">Sin autor</option>
+                        <option v-for="user in rvUsers" :key="user.id" :value="user.id">
+                            {{ user.username }}
+                        </option>
+                    </select>
+                </div>
+
+                <div class="flex gap-3">
+                <button v-if="content?.list" @click="$emit('delete-list')"
                     class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 flex items-center gap-2 transition-colors">
                     <i class="fa-solid fa-trash"></i>
                     Borrar Lista
                 </button>
-                <button @click="$emit('navigate-detail')"
+                <button v-else @click="$emit('delete')"
+                    class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 flex items-center gap-2 transition-colors">
+                    <i class="fa-solid fa-trash"></i>
+                    Borrar Evento
+                </button>
+                <button v-if="content?.list" @click="$emit('navigate-detail')"
                     class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 flex items-center gap-2 transition-colors">
                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
                     Ir al Detalle
@@ -145,13 +171,14 @@
                     class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     Cerrar
                 </button>
+                </div>
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
 
 interface RadarDetails {
@@ -166,50 +193,43 @@ interface Props {
     content: Content | null;
     radarDetails: RadarDetails | null;
     loading: boolean;
+    rvUsers: any[];
 }
 
 const props = defineProps<Props>();
 
-defineEmits<{
+const emit = defineEmits<{
     close: [];
     'update-field': [field: string, value: string];
     'update-status': [details: RadarDetails];
     'toggle-asignation': [asig: any];
     'delete-list': [];
+    'delete': [];
     'navigate-detail': [];
     'copy-artist-disc': [artist: string, disc: string];
     'copy-image': [image: string];
+    'update-author': [authorId: string];
+    'update-dates': [publicationDate: string, closeDate: string | null];
 }>();
 
-const radarMinListDate = computed(() => {
-    if (!props.radarDetails?.listDate) return undefined;
-    const d = new Date(props.radarDetails.listDate);
-    d.setDate(d.getDate() - 7);
-    return d.toISOString().split('T')[0];
+const selectedAuthorId = ref(props.content?.author?.id ?? '');
+const localStartDate = ref(props.content?.publicationDate?.split('T')[0] ?? '');
+const localEndDate = ref(props.content?.closeDate?.split('T')[0] ?? '');
+
+watch(() => props.content, (c) => {
+    selectedAuthorId.value = c?.author?.id ?? '';
+    localStartDate.value = c?.publicationDate?.split('T')[0] ?? '';
+    localEndDate.value = c?.closeDate?.split('T')[0] ?? '';
 });
 
-const radarMaxListDate = computed(() => {
-    if (!props.radarDetails?.listDate) return undefined;
-    const d = new Date(props.radarDetails.listDate);
-    d.setDate(d.getDate() + 7);
-    return d.toISOString().split('T')[0];
-});
+function emitDates() {
+    emit('update-dates', localStartDate.value, localEndDate.value || null);
+}
 
-const radarMinCloseDate = computed(() => {
-    if (!props.radarDetails?.listDate) return undefined;
-    return formatRadarDate(props.radarDetails.listDate);
-});
-
-const radarMaxCloseDate = computed(() => {
-    if (!props.radarDetails?.closeDate) return undefined;
-    const d = new Date(props.radarDetails.closeDate);
-    d.setDate(d.getDate() + 14);
-    return d.toISOString().split('T')[0];
-});
-
-function formatRadarDate(dateStr: string): string {
+function formatContentDate(dateStr: string): string {
     if (!dateStr) return '';
-    return dateStr.split('T')[0];
+    const [year, month, day] = dateStr.split('T')[0].split('-');
+    return `${day}/${month}/${year}`;
 }
 
 function getStatusClass(status: string): string {
