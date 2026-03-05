@@ -97,6 +97,12 @@
                   <i :class="release.approved ? 'fas fa-check-circle' : 'fas fa-circle'" class="text-xs"></i>
                   {{ release.approved ? 'Aprobado' : 'Pendiente' }}
                 </button>
+                <!-- Enlace -->
+                <a v-if="release.link" :href="release.link" target="_blank" :title="release.link"
+                  class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+                  :class="linkClass(release.link)">
+                  <i :class="linkIcon(release.link)" class="text-sm"></i>
+                </a>
                 <button @click="openEdit(release)" title="Editar"
                   class="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors">
                   <i class="fas fa-pen text-xs"></i>
@@ -517,6 +523,20 @@ export default defineComponent({
         day: '2-digit', month: '2-digit', year: 'numeric',
       });
 
+    const linkIcon = (url: string) => {
+      if (url.includes('spotify.com')) return 'fa-brands fa-spotify';
+      if (url.includes('youtube.com') || url.includes('youtu.be')) return 'fa-brands fa-youtube';
+      if (url.includes('bandcamp.com')) return 'fa-brands fa-bandcamp';
+      return 'fa-solid fa-link';
+    };
+
+    const linkClass = (url: string) => {
+      if (url.includes('spotify.com')) return 'bg-green-50 text-[#1DB954] hover:bg-green-100';
+      if (url.includes('youtube.com') || url.includes('youtu.be')) return 'bg-red-50 text-red-500 hover:bg-red-100';
+      if (url.includes('bandcamp.com')) return 'bg-sky-50 text-sky-500 hover:bg-sky-100';
+      return 'bg-gray-50 text-gray-500 hover:bg-gray-100';
+    };
+
     const discTypeLabel = (type: DiscType) =>
       ({ single: 'Single', ep: 'EP', album: 'Álbum' })[type];
 
@@ -559,6 +579,8 @@ export default defineComponent({
       openBulk,
       handleBulkSubmit,
       formatDate,
+      linkIcon,
+      linkClass,
       discTypeLabel,
       discTypeClass,
     };
