@@ -49,7 +49,7 @@ export async function createNationalRelease(
 }
 
 export async function getNationalReleases(params?: { month?: number; year?: number }): Promise<NationalRelease[]> {
-  const response = await publicApi.get<NationalRelease[]>("/national-releases", { params });
+  const response = await api.get<NationalRelease[]>("/national-releases/all", { params });
   return response.data;
 }
 
