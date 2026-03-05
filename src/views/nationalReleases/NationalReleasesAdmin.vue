@@ -25,6 +25,20 @@
       </div>
     </div>
 
+    <!-- Meses pendientes -->
+    <div v-if="pendingMonths.length > 0" class="flex flex-wrap gap-2 mb-4">
+      <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide self-center">Pendientes:</span>
+      <button
+        v-for="m in pendingMonths"
+        :key="m"
+        @click="openPendingModal(m)"
+        class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+      >
+        <i class="fas fa-clock text-[10px]"></i>
+        {{ MONTHS.find(mo => mo.value === m)?.label }}
+      </button>
+    </div>
+
     <!-- Filtros -->
     <div class="flex flex-wrap gap-3 mb-6">
       <div>
@@ -61,21 +75,23 @@
       No hay lanzamientos para los filtros seleccionados.
     </div>
 
-    <!-- Secciones -->
+    <!-- Secciones por día -->
     <div v-else class="space-y-5">
-      <div v-for="section in sections" :key="section.type">
-        <template v-if="byType(section.type).length > 0">
-          <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ section.title }}</p>
-          <ul class="space-y-1.5">
-            <li
-              v-for="release in byType(section.type)"
-              :key="release.id"
-              class="bg-white rounded-xl shadow-rv px-4 py-2.5 flex items-center gap-3"
-            >
+      <div v-for="group in byDay" :key="group.day">
+        <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ group.label }}</p>
+        <ul class="space-y-1.5">
+          <li
+            v-for="release in group.releases"
+            :key="release.id"
+            class="bg-white rounded-xl shadow-rv px-4 py-2.5 flex items-center gap-3"
+          >
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-800 truncate">
+                <p class="text-sm font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
                   <span class="text-gray-400 font-normal">[{{ release.genre }}]</span>
-                  {{ release.artistName }} — {{ release.discName }}
+                  <span class="truncate">{{ release.artistName }} — {{ release.discName }}</span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" :class="discTypeClass(release.discType)">
+                    {{ discTypeLabel(release.discType) }}
+                  </span>
                 </p>
                 <div class="flex items-center gap-3 mt-0.5">
                   <span class="text-xs text-gray-400"><i class="far fa-calendar mr-1"></i>{{ formatDate(release.releaseDay) }}</span>
@@ -85,6 +101,12 @@
                 </div>
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
+                <!-- Enlace -->
+                <a v-if="release.link" :href="release.link" target="_blank" :title="release.link"
+                  class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+                  :class="linkClass(release.link)">
+                  <i :class="linkIcon(release.link)" class="text-sm"></i>
+                </a>
                 <!-- Toggle aprobado -->
                 <button
                   @click="toggleApproved(release)"
@@ -113,8 +135,7 @@
                 </button>
               </div>
             </li>
-          </ul>
-        </template>
+        </ul>
       </div>
     </div>
 
@@ -203,6 +224,81 @@
             <span v-if="saving">Guardando...</span>
             <span v-else>Guardar</span>
           </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal pendientes por mes -->
+    <div
+      v-if="pendingModal.show"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      @click.self="pendingModal.show = false"
+    >
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 flex flex-col max-h-[80vh]">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold">
+            Pendientes — {{ MONTHS.find(m => m.value === pendingModal.month)?.label }}
+          </h2>
+          <button @click="pendingModal.show = false" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+
+        <div v-if="pendingModal.loading" class="text-center py-8 text-gray-400">Cargando...</div>
+        <div v-else-if="pendingModal.releases.length === 0" class="text-center py-8 text-gray-400">
+          No hay lanzamientos pendientes.
+        </div>
+        <div v-else class="space-y-5 overflow-y-auto flex-1">
+          <div v-for="group in pendingByDay" :key="group.day">
+            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ group.label }}</p>
+            <ul class="space-y-1.5">
+              <li
+                v-for="release in group.releases"
+                :key="release.id"
+                class="bg-white rounded-xl shadow-rv px-4 py-2.5 flex items-center gap-3"
+              >
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
+                    <span class="text-gray-400 font-normal">[{{ release.genre }}]</span>
+                    <span class="truncate">{{ release.artistName }} — {{ release.discName }}</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" :class="discTypeClass(release.discType)">
+                      {{ discTypeLabel(release.discType) }}
+                    </span>
+                  </p>
+                  <div class="flex items-center gap-3 mt-0.5">
+                    <span class="text-xs text-gray-400"><i class="far fa-calendar mr-1"></i>{{ formatDate(release.releaseDay) }}</span>
+                    <span v-if="release.publishAt" class="text-xs text-yellow-600 font-medium">
+                      <i class="fas fa-clock mr-1"></i>Publica el {{ formatDate(release.publishAt) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <a v-if="release.link" :href="release.link" target="_blank" :title="release.link"
+                    class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+                    :class="linkClass(release.link)">
+                    <i :class="linkIcon(release.link)" class="text-sm"></i>
+                  </a>
+                  <button
+                    @click="toggleApproved(release)"
+                    :title="release.approved ? 'Aprobado — click para desaprobar' : 'No aprobado — click para aprobar'"
+                    :class="release.approved ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'"
+                    class="flex items-center gap-1.5 px-2.5 h-7 rounded-full text-xs font-semibold transition-colors"
+                  >
+                    <i :class="release.approved ? 'fas fa-check-circle' : 'fas fa-circle'" class="text-xs"></i>
+                    {{ release.approved ? 'Aprobado' : 'Pendiente' }}
+                  </button>
+                  <button @click="openEdit(release)" title="Editar"
+                    class="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors">
+                    <i class="fas fa-pen text-xs"></i>
+                  </button>
+                  <button @click="handleDelete(release)" title="Eliminar"
+                    class="w-7 h-7 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                    <i class="fas fa-trash text-xs"></i>
+                  </button>
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>
@@ -314,6 +410,26 @@ export default defineComponent({
 
     const byType = (type: DiscType) => releases.value.filter(r => r.discType === type);
 
+    function groupByDay(list: NationalRelease[]) {
+      const sorted = [...list].sort((a, b) => a.releaseDay.localeCompare(b.releaseDay));
+      const groups: { day: string; label: string; releases: NationalRelease[] }[] = [];
+      for (const release of sorted) {
+        const existing = groups.find(g => g.day === release.releaseDay);
+        if (existing) {
+          existing.releases.push(release);
+        } else {
+          const label = new Date(release.releaseDay + 'T12:00:00').toLocaleDateString('es-ES', {
+            weekday: 'long', day: 'numeric', month: 'long',
+          });
+          groups.push({ day: release.releaseDay, label, releases: [release] });
+        }
+      }
+      return groups;
+    }
+
+    const byDay = computed(() => groupByDay(releases.value));
+    const pendingByDay = computed(() => groupByDay(pendingModal.releases));
+
     const copyFormatted = async () => {
       const byType = (type: DiscType) =>
         releases.value
@@ -342,17 +458,41 @@ export default defineComponent({
       year: now.getFullYear(),
     });
 
+    const pendingMonths = ref<number[]>([]);
+
     const fetchReleases = async () => {
       loading.value = true;
       try {
         const params: { month?: number; year?: number } = {};
         if (filters.month !== undefined) params.month = filters.month;
         if (filters.year !== undefined) params.year = filters.year;
-        releases.value = await getNationalReleases(params);
+        const result = await getNationalReleases(params);
+        releases.value = result.data;
+        if (result.pendingMonths) pendingMonths.value = result.pendingMonths;
       } catch {
         SwalService.error('No se pudieron cargar los lanzamientos');
       } finally {
         loading.value = false;
+      }
+    };
+
+    // --- Modal pendientes ---
+    const pendingModal = reactive<{ show: boolean; month: number; loading: boolean; releases: NationalRelease[] }>({
+      show: false, month: 0, loading: false, releases: [],
+    });
+
+    const openPendingModal = async (month: number) => {
+      pendingModal.month = month;
+      pendingModal.releases = [];
+      pendingModal.loading = true;
+      pendingModal.show = true;
+      try {
+        const result = await getNationalReleases({ month, year: filters.year, approved: false });
+        pendingModal.releases = result.data;
+      } catch {
+        SwalService.error('No se pudieron cargar los pendientes');
+      } finally {
+        pendingModal.loading = false;
       }
     };
 
@@ -558,11 +698,16 @@ export default defineComponent({
       copyFormatted,
       sections,
       byType,
+      byDay,
+      pendingByDay,
       filters,
       MONTHS,
       YEARS,
       DISC_TYPES,
       fetchReleases,
+      pendingMonths,
+      pendingModal,
+      openPendingModal,
       editingRelease,
       editForm,
       saving,
