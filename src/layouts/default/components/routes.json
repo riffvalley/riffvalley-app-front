@@ -171,6 +171,11 @@
         "to": "/users/stats",
         "label": "Estadísticas",
         "icon": "fa-solid fa-chart-bar"
+      },
+      {
+        "to": "/users/activity",
+        "label": "Actividad",
+        "icon": "fa-solid fa-bolt"
       }
     ]
   },

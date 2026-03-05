@@ -53,10 +53,13 @@
         <!-- Actions Modals -->
         <RadarActionsModal v-if="selectedContent?.type === 'radar' || selectedContent?.type === 'best'"
             :show="showActionsModal" :content="selectedContent" :radar-details="radarDetails"
-            :loading="loadingRadarDetails" @close="showActionsModal = false" @update-field="updateRadarField"
-            @update-status="updateListStatus" @toggle-asignation="toggleAsignation" @delete-list="deleteRadarList"
-            @navigate-detail="navigateToRadarDetail" @copy-artist-disc="copyArtistAndDisc"
-            @copy-image="copyToClipboard" />
+            :loading="loadingRadarDetails" :rv-users="rvUsers" @close="showActionsModal = false"
+            @update-field="updateRadarField" @update-status="updateListStatus"
+            @toggle-asignation="toggleAsignation" @delete-list="deleteRadarList"
+            @delete="confirmDeleteContent" @navigate-detail="navigateToRadarDetail"
+            @copy-artist-disc="copyArtistAndDisc" @copy-image="copyToClipboard"
+            @update-author="handleUpdateContentAuthor"
+            @update-dates="handleUpdateRadarDates" />
 
         <PhotosActionsModal v-else-if="selectedContent?.type === 'photos'" :show="showActionsModal"
             :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
@@ -159,10 +162,10 @@ const editingContent = ref<any>({
     authorId: ''
 });
 
-// Backlog items (content without publicationDate)
+// Backlog items (content with backlog: true)
 const backlogItems = computed(() => {
     return allContents.value
-        .filter(c => !c.publicationDate)
+        .filter(c => c.backlog)
         .sort((a, b) => {
             // Primero ordenar por usuario: 'riff valley' primero
             const aIsRiffValley = a.author?.username?.toLowerCase() === 'riff valley';
@@ -176,11 +179,10 @@ const backlogItems = computed(() => {
         });
 });
 
-// Calendar events (content with publicationDate)
-// Calendar events (content with publicationDate)
+// Calendar events (content with publicationDate and not in backlog)
 const calendarEvents = computed(() => {
     return allContents.value
-        .filter(c => c.publicationDate)
+        .filter(c => !c.backlog && c.publicationDate)
         .map(c => {
             let start = c.publicationDate;
 
@@ -196,9 +198,11 @@ const calendarEvents = computed(() => {
             if (c.closeDate) {
                 // Parse closeDate securely. If ISO, take date part.
                 const closeDateStr = c.closeDate.split('T')[0]; // "YYYY-MM-DD"
-                // Add 1 day
-                const d = new Date(closeDateStr);
-                d.setDate(d.getDate() + 1);
+                // Add 1 day using UTC noon to avoid timezone-based day shifts.
+                // new Date("YYYY-MM-DD") parses as UTC midnight, and local setDate()
+                // arithmetic can roll back to the same UTC day in UTC+ timezones.
+                const d = new Date(closeDateStr + 'T12:00:00.000Z');
+                d.setUTCDate(d.getUTCDate() + 1);
                 const calculatedEnd = d.toISOString().split('T')[0];
 
                 // Sanity check: end date must be after start date
@@ -384,6 +388,14 @@ const calendarOptions = ref({
             info.draggedEl.parentNode?.removeChild(info.draggedEl);
         }
     },
+    eventReceive: (info: any) => {
+        // FullCalendar automatically adds an event to its internal state when an
+        // external element is dropped (droppable: true). Since calendarEvents is a
+        // reactive computed that drives all displayed events, this auto-added event
+        // creates a duplicate ghost. Remove it immediately and let the reactive
+        // update (triggered by loadContentsByMonth after the API call) handle display.
+        info.event.remove();
+    },
     eventDrop: async (info: any) => {
         const contentId = info.event.id;
         const newDate = info.event.startStr;
@@ -396,7 +408,16 @@ const calendarOptions = ref({
             return;
         }
 
-        await handleDropToCalendar(contentId, newDate);
+        try {
+            await updateContent(contentId, { publicationDate: toCalendarDate(newDate), backlog: false });
+            await loadBacklogContents();
+            await loadContentsByMonth(currentYear.value, currentMonth.value);
+            SwalService.success('Evento reprogramado correctamente');
+        } catch (error) {
+            console.error('Error updating content date:', error);
+            info.revert();
+            SwalService.error('Error al mover el evento');
+        }
     },
     eventDragStop: async (info: any) => {
         const jsEvent = info.jsEvent;
@@ -480,9 +501,21 @@ function getContentTypeColor(type: ContentType) {
 //     }
 // }
 
+// Converts a "YYYY-MM-DD" date string from FullCalendar to "YYYY-MM-DDT18:00:00.000Z".
+// Using 18:00 UTC avoids day-shift issues in any reasonable timezone (UTC-18 to UTC+5).
+function toCalendarDate(dateStr: string | null): string | null {
+    if (!dateStr) return null;
+    // If it already has a time component, leave it as-is
+    if (dateStr.includes('T')) return dateStr;
+    return dateStr + 'T18:00:00.000Z';
+}
+
 async function handleDropToCalendar(contentId: string, dateStr: string | null) {
     try {
-        await updateContent(contentId, { publicationDate: dateStr });
+        await updateContent(contentId, {
+            publicationDate: toCalendarDate(dateStr),
+            backlog: dateStr === null
+        });
         // Reload both backlog and current month
         await loadBacklogContents();
         await loadContentsByMonth(currentYear.value, currentMonth.value);
@@ -780,6 +813,44 @@ async function updateRadarField(field: string, value: any) {
     }
 }
 
+async function handleUpdateRadarDates(publicationDate: string, closeDate: string | null) {
+    if (!selectedContent.value) return;
+    const contentId = selectedContent.value.id;
+    try {
+        await updateContent(contentId, {
+            publicationDate: toCalendarDate(publicationDate),
+            closeDate: closeDate ? toCalendarDate(closeDate) : null
+        });
+        const item = allContents.value.find(c => c.id === contentId);
+        if (item) {
+            item.publicationDate = toCalendarDate(publicationDate)!;
+            item.closeDate = closeDate ? toCalendarDate(closeDate) : null;
+        }
+        SwalService.success('Fechas actualizadas');
+    } catch (error) {
+        console.error('Error updating dates:', error);
+        SwalService.error('Error al actualizar las fechas');
+    }
+}
+
+
+async function handleUpdateContentAuthor(authorId: string) {
+    if (!selectedContent.value) return;
+    const contentId = selectedContent.value.id;
+    try {
+        await updateContent(contentId, { authorId });
+        const item = allContents.value.find(c => c.id === contentId);
+        if (item) {
+            const user = rvUsers.value.find((u: any) => u.id === authorId);
+            if (user) item.author = user;
+        }
+        SwalService.success('Autor actualizado');
+    } catch (error) {
+        console.error('Error updating author:', error);
+        SwalService.error('Error al actualizar el autor');
+    }
+}
+
 async function loadRvUsers() {
     try {
         rvUsers.value = await getRvUsers();
@@ -796,11 +867,11 @@ async function loadContentsByMonth(year: number, month: number) {
     try {
         const monthContents = await getContentsByMonth(year, month);
 
-        // Keep backlog items (no publicationDate) and add new month contents
-        const backlogItems = allContents.value.filter(c => !c.publicationDate);
-        const scheduledItems = monthContents.filter(c => c.publicationDate);
+        // Keep backlog items and add new month contents
+        const currentBacklog = allContents.value.filter(c => c.backlog);
+        const scheduledItems = monthContents.filter(c => !c.backlog && c.publicationDate);
 
-        allContents.value = [...backlogItems, ...scheduledItems];
+        allContents.value = [...currentBacklog, ...scheduledItems];
     } catch (error) {
         console.error('Error loading contents by month:', error);
     }
@@ -808,11 +879,9 @@ async function loadContentsByMonth(year: number, month: number) {
 
 async function loadBacklogContents() {
     try {
-        // Load all contents to get backlog items (those without publicationDate)
-        const allData = await getContents();
-        const backlog = allData.filter(c => !c.publicationDate);
+        const backlog = await getContents(true);
         // Preserve existing scheduled items while updating backlog
-        const scheduledItems = allContents.value.filter(c => c.publicationDate);
+        const scheduledItems = allContents.value.filter(c => !c.backlog && c.publicationDate);
         allContents.value = [...backlog, ...scheduledItems];
     } catch (error) {
         console.error('Error loading backlog contents:', error);
