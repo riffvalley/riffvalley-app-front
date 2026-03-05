@@ -16,6 +16,8 @@ export interface NationalRelease {
   genre: string;
   releaseDay: string;
   publishAt: string | null;
+  link: string | null;
+  approved: boolean;
   createdAt: string;
 }
 
@@ -26,6 +28,7 @@ export interface CreateNationalReleaseDto {
   genre: string;
   releaseDay: string;
   publishAt?: string | null;
+  link?: string | null;
 }
 
 export interface UpdateNationalReleaseDto {
@@ -35,6 +38,8 @@ export interface UpdateNationalReleaseDto {
   genre?: string;
   releaseDay?: string;
   publishAt?: string | null;
+  link?: string | null;
+  approved?: boolean;
 }
 
 export async function createNationalRelease(dto: CreateNationalReleaseDto): Promise<NationalRelease>;
@@ -46,8 +51,13 @@ export async function createNationalRelease(
   return response.data;
 }
 
+export async function createNationalReleaseBulk(dto: CreateNationalReleaseDto[]): Promise<NationalRelease[]> {
+  const response = await api.post<NationalRelease[]>("/national-releases/bulk", dto);
+  return response.data;
+}
+
 export async function getNationalReleases(params?: { month?: number; year?: number }): Promise<NationalRelease[]> {
-  const response = await publicApi.get<NationalRelease[]>("/national-releases", { params });
+  const response = await api.get<NationalRelease[]>("/national-releases/all", { params });
   return response.data;
 }
 

@@ -7,6 +7,13 @@
       <div class="flex items-center gap-3">
         <span class="text-sm text-gray-400">{{ releases.length }} registros</span>
         <button
+          @click="openBulk"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 border border-gray-200 hover:border-rv-pink hover:text-rv-pink"
+        >
+          <i class="fas fa-upload text-xs"></i>
+          Carga masiva
+        </button>
+        <button
           v-if="releases.length > 0"
           @click="copyFormatted"
           :class="copied ? 'bg-green-500 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-rv-blue hover:text-rv-blue'"
@@ -77,7 +84,19 @@
                   </span>
                 </div>
               </div>
-              <div class="flex items-center gap-1.5 flex-shrink-0">
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <!-- Toggle aprobado -->
+                <button
+                  @click="toggleApproved(release)"
+                  :title="release.approved ? 'Aprobado — click para desaprobar' : 'No aprobado — click para aprobar'"
+                  :class="release.approved
+                    ? 'bg-green-100 text-green-600 hover:bg-green-200'
+                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'"
+                  class="flex items-center gap-1.5 px-2.5 h-7 rounded-full text-xs font-semibold transition-colors"
+                >
+                  <i :class="release.approved ? 'fas fa-check-circle' : 'fas fa-circle'" class="text-xs"></i>
+                  {{ release.approved ? 'Aprobado' : 'Pendiente' }}
+                </button>
                 <button @click="openEdit(release)" title="Editar"
                   class="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors">
                   <i class="fas fa-pen text-xs"></i>
@@ -155,6 +174,12 @@
               class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
           </div>
 
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Enlace</label>
+            <input v-model="editForm.link" type="url" placeholder="https://..."
+              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+          </div>
+
         </div>
 
         <div class="flex justify-end gap-2 mt-6">
@@ -176,15 +201,70 @@
       </div>
     </div>
 
+    <!-- Modal carga masiva -->
+    <div
+      v-if="showBulk"
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      @click.self="showBulk = false"
+    >
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 flex flex-col max-h-[90vh]">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-lg font-bold">Carga masiva</h2>
+          <button @click="showBulk = false" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+
+        <p class="text-xs text-gray-400 mb-2 font-mono bg-gray-50 rounded-lg px-3 py-2 leading-relaxed">
+          Fecha [género] banda - título (single/ep/disco) enlace<br/>
+          <span class="text-gray-300">Ej: 2026-03-10 [Rock nacional] Babasónicos - Tema A (single) https://...</span>
+        </p>
+
+        <textarea
+          v-model="bulkText"
+          rows="12"
+          placeholder="2026-03-10 [Rock nacional] Babasónicos - Tema A (single)&#10;2026-03-15 [Metal] Metallica - Black Album (disco) https://spotify.com/..."
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none flex-1"
+          spellcheck="false"
+        ></textarea>
+
+        <!-- Preview parseado -->
+        <div v-if="bulkParsed.length > 0" class="mt-2 text-xs text-gray-500 flex items-center gap-1.5">
+          <i class="fas fa-check-circle text-green-500"></i>
+          {{ bulkParsed.length }} línea{{ bulkParsed.length !== 1 ? 's' : '' }} válida{{ bulkParsed.length !== 1 ? 's' : '' }}
+          <span v-if="bulkParseErrors.length > 0" class="text-yellow-500 ml-2">
+            · {{ bulkParseErrors.length }} con error
+          </span>
+        </div>
+        <ul v-if="bulkParseErrors.length > 0" class="mt-1 space-y-0.5 max-h-20 overflow-auto">
+          <li v-for="e in bulkParseErrors" :key="e" class="text-xs text-red-400 font-mono">{{ e }}</li>
+        </ul>
+
+        <div class="mt-3 flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+          <p v-if="bulkError" class="text-red-500 text-xs flex-1">{{ bulkError }}</p>
+          <button @click="showBulk = false"
+            class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 transition-colors">
+            Cancelar
+          </button>
+          <button @click="handleBulkSubmit" :disabled="bulkSaving || bulkParsed.length === 0"
+            class="px-5 py-2 rounded-xl text-sm font-bold bg-rv-navy text-white hover:opacity-90 disabled:opacity-50 transition-opacity">
+            <span v-if="bulkSaving">Enviando...</span>
+            <span v-else>Enviar {{ bulkParsed.length }} {{ bulkParsed.length === 1 ? 'lanzamiento' : 'lanzamientos' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, onMounted } from 'vue';
+import { defineComponent, ref, reactive, computed, onMounted } from 'vue';
 import {
   getNationalReleases,
   updateNationalRelease,
   deleteNationalRelease,
+  createNationalReleaseBulk,
   type NationalRelease,
   type DiscType,
 } from '@services/national-releases/nationalReleases';
@@ -280,6 +360,7 @@ export default defineComponent({
       genre: '',
       releaseDay: '',
       publishAt: '',
+      link: '',
     });
 
     const openEdit = (release: NationalRelease) => {
@@ -290,6 +371,7 @@ export default defineComponent({
       editForm.genre = release.genre;
       editForm.releaseDay = release.releaseDay;
       editForm.publishAt = release.publishAt ?? '';
+      editForm.link = release.link ?? '';
     };
 
     const handleSaveEdit = async () => {
@@ -304,6 +386,8 @@ export default defineComponent({
         if (editForm.releaseDay !== editingRelease.value.releaseDay) dto.releaseDay = editForm.releaseDay;
         const currentPublishAt = editingRelease.value.publishAt ?? '';
         if (editForm.publishAt !== currentPublishAt) dto.publishAt = editForm.publishAt || null;
+        const currentLink = editingRelease.value.link ?? '';
+        if (editForm.link !== currentLink) dto.link = editForm.link || null;
 
         const updated = await updateNationalRelease(editingRelease.value.id, dto);
         const idx = releases.value.findIndex(r => r.id === updated.id);
@@ -314,6 +398,99 @@ export default defineComponent({
         SwalService.error(error.response?.data?.message || 'Error al guardar');
       } finally {
         saving.value = false;
+      }
+    };
+
+    // --- Carga masiva ---
+    const showBulk = ref(false);
+    const bulkSaving = ref(false);
+    const bulkError = ref('');
+    const bulkText = ref('');
+
+    const TYPE_MAP: Record<string, DiscType> = {
+      single: 'single', ep: 'ep', disco: 'album', album: 'album',
+    };
+
+    const MONTH_MAP: Record<string, string> = {
+      enero: '01', febrero: '02', marzo: '03', abril: '04',
+      mayo: '05', junio: '06', julio: '07', agosto: '08',
+      septiembre: '09', octubre: '10', noviembre: '11', diciembre: '12',
+    };
+
+    function parseDate(raw: string): string | null {
+      // YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+      // "D de mes" o "DD de mes"
+      const m = raw.match(/^(\d{1,2})\s+de\s+(\w+)$/i);
+      if (m) {
+        const month = MONTH_MAP[m[2].toLowerCase()];
+        if (!month) return null;
+        const year = new Date().getFullYear();
+        return `${year}-${month}-${m[1].padStart(2, '0')}`;
+      }
+      return null;
+    }
+
+    const LINE_RE = /^(.+?)\s+\[([^\]]+)\]\s+(.+?)\s+[—–-]\s+(.+?)\s+\((single|ep|disco|album)\)(?:\s+(https?:\/\/\S+))?$/i;
+
+    function parseLine(line: string) {
+      const m = line.match(LINE_RE);
+      if (!m) return null;
+      const [, dateRaw, genre, artistName, discName, typeRaw, link] = m;
+      const releaseDay = parseDate(dateRaw.trim());
+      if (!releaseDay) return null;
+      return {
+        releaseDay,
+        genre: genre.trim(),
+        artistName: artistName.trim(),
+        discName: discName.trim(),
+        discType: TYPE_MAP[typeRaw.toLowerCase()],
+        ...(link ? { link } : {}),
+      };
+    }
+
+    const bulkParsed = computed(() =>
+      bulkText.value.split('\n').map(l => l.trim()).filter(l => l.length > 0).flatMap(l => {
+        const r = parseLine(l);
+        return r ? [r] : [];
+      })
+    );
+
+    const bulkParseErrors = computed(() =>
+      bulkText.value.split('\n').map(l => l.trim()).filter(l => l.length > 0).filter(l => !parseLine(l))
+    );
+
+    const openBulk = () => {
+      bulkText.value = '';
+      bulkError.value = '';
+      showBulk.value = true;
+    };
+
+    const handleBulkSubmit = async () => {
+      bulkError.value = '';
+      if (bulkParsed.value.length === 0) return;
+      bulkSaving.value = true;
+      try {
+        const created = await createNationalReleaseBulk(bulkParsed.value as any);
+        releases.value.push(...created);
+        showBulk.value = false;
+        SwalService.success(`${created.length} lanzamiento${created.length !== 1 ? 's' : ''} añadido${created.length !== 1 ? 's' : ''}`);
+      } catch (error: any) {
+        bulkError.value = error.response?.data?.message || 'Error al enviar';
+      } finally {
+        bulkSaving.value = false;
+      }
+    };
+
+    // --- Aprobar ---
+    const toggleApproved = async (release: NationalRelease) => {
+      const newValue = !release.approved;
+      release.approved = newValue;
+      try {
+        await updateNationalRelease(release.id, { approved: newValue });
+      } catch (error: any) {
+        release.approved = !newValue;
+        SwalService.error(error.response?.data?.message || 'Error al actualizar');
       }
     };
 
@@ -372,6 +549,15 @@ export default defineComponent({
       openEdit,
       handleSaveEdit,
       handleDelete,
+      toggleApproved,
+      showBulk,
+      bulkText,
+      bulkParsed,
+      bulkParseErrors,
+      bulkSaving,
+      bulkError,
+      openBulk,
+      handleBulkSubmit,
       formatDate,
       discTypeLabel,
       discTypeClass,
