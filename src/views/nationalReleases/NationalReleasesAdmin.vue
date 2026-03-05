@@ -242,29 +242,58 @@
         <div v-else-if="pendingModal.releases.length === 0" class="text-center py-8 text-gray-400">
           No hay lanzamientos pendientes.
         </div>
-        <ul v-else class="space-y-1.5 overflow-y-auto flex-1">
-          <li
-            v-for="release in pendingModal.releases"
-            :key="release.id"
-            class="bg-gray-50 rounded-xl px-4 py-2.5 flex items-center gap-3"
-          >
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
-                <span class="text-gray-400 font-normal">[{{ release.genre }}]</span>
-                <span class="truncate">{{ release.artistName }} — {{ release.discName }}</span>
-                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" :class="discTypeClass(release.discType)">
-                  {{ discTypeLabel(release.discType) }}
-                </span>
-              </p>
-              <span class="text-xs text-gray-400"><i class="far fa-calendar mr-1"></i>{{ formatDate(release.releaseDay) }}</span>
-            </div>
-            <a v-if="release.link" :href="release.link" target="_blank"
-              class="w-7 h-7 flex items-center justify-center rounded-full transition-colors flex-shrink-0"
-              :class="linkClass(release.link)">
-              <i :class="linkIcon(release.link)" class="text-sm"></i>
-            </a>
-          </li>
-        </ul>
+        <div v-else class="space-y-5 overflow-y-auto flex-1">
+          <div v-for="group in pendingByDay" :key="group.day">
+            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ group.label }}</p>
+            <ul class="space-y-1.5">
+              <li
+                v-for="release in group.releases"
+                :key="release.id"
+                class="bg-white rounded-xl shadow-rv px-4 py-2.5 flex items-center gap-3"
+              >
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
+                    <span class="text-gray-400 font-normal">[{{ release.genre }}]</span>
+                    <span class="truncate">{{ release.artistName }} — {{ release.discName }}</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" :class="discTypeClass(release.discType)">
+                      {{ discTypeLabel(release.discType) }}
+                    </span>
+                  </p>
+                  <div class="flex items-center gap-3 mt-0.5">
+                    <span class="text-xs text-gray-400"><i class="far fa-calendar mr-1"></i>{{ formatDate(release.releaseDay) }}</span>
+                    <span v-if="release.publishAt" class="text-xs text-yellow-600 font-medium">
+                      <i class="fas fa-clock mr-1"></i>Publica el {{ formatDate(release.publishAt) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <a v-if="release.link" :href="release.link" target="_blank" :title="release.link"
+                    class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+                    :class="linkClass(release.link)">
+                    <i :class="linkIcon(release.link)" class="text-sm"></i>
+                  </a>
+                  <button
+                    @click="toggleApproved(release)"
+                    :title="release.approved ? 'Aprobado — click para desaprobar' : 'No aprobado — click para aprobar'"
+                    :class="release.approved ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'"
+                    class="flex items-center gap-1.5 px-2.5 h-7 rounded-full text-xs font-semibold transition-colors"
+                  >
+                    <i :class="release.approved ? 'fas fa-check-circle' : 'fas fa-circle'" class="text-xs"></i>
+                    {{ release.approved ? 'Aprobado' : 'Pendiente' }}
+                  </button>
+                  <button @click="openEdit(release)" title="Editar"
+                    class="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors">
+                    <i class="fas fa-pen text-xs"></i>
+                  </button>
+                  <button @click="handleDelete(release)" title="Eliminar"
+                    class="w-7 h-7 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                    <i class="fas fa-trash text-xs"></i>
+                  </button>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -375,9 +404,9 @@ export default defineComponent({
 
     const byType = (type: DiscType) => releases.value.filter(r => r.discType === type);
 
-    const byDay = computed(() => {
-      const sorted = [...releases.value].sort((a, b) => a.releaseDay.localeCompare(b.releaseDay));
-      const groups: { day: string; label: string; releases: typeof sorted }[] = [];
+    function groupByDay(list: NationalRelease[]) {
+      const sorted = [...list].sort((a, b) => a.releaseDay.localeCompare(b.releaseDay));
+      const groups: { day: string; label: string; releases: NationalRelease[] }[] = [];
       for (const release of sorted) {
         const existing = groups.find(g => g.day === release.releaseDay);
         if (existing) {
@@ -390,7 +419,10 @@ export default defineComponent({
         }
       }
       return groups;
-    });
+    }
+
+    const byDay = computed(() => groupByDay(releases.value));
+    const pendingByDay = computed(() => groupByDay(pendingModal.releases));
 
     const copyFormatted = async () => {
       const byType = (type: DiscType) =>
@@ -661,6 +693,7 @@ export default defineComponent({
       sections,
       byType,
       byDay,
+      pendingByDay,
       filters,
       MONTHS,
       YEARS,
