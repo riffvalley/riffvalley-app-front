@@ -72,9 +72,12 @@
             class="bg-white rounded-xl shadow-rv px-4 py-2.5 flex items-center gap-3"
           >
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-800 truncate">
+                <p class="text-sm font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
                   <span class="text-gray-400 font-normal">[{{ release.genre }}]</span>
-                  {{ release.artistName }} — {{ release.discName }}
+                  <span class="truncate">{{ release.artistName }} — {{ release.discName }}</span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" :class="discTypeClass(release.discType)">
+                    {{ discTypeLabel(release.discType) }}
+                  </span>
                 </p>
                 <div class="flex items-center gap-3 mt-0.5">
                   <span class="text-xs text-gray-400"><i class="far fa-calendar mr-1"></i>{{ formatDate(release.releaseDay) }}</span>
