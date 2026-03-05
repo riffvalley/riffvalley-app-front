@@ -174,6 +174,12 @@
               class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
           </div>
 
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Enlace</label>
+            <input v-model="editForm.link" type="url" placeholder="https://..."
+              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+          </div>
+
         </div>
 
         <div class="flex justify-end gap-2 mt-6">
@@ -214,11 +220,12 @@
           <table class="w-full text-xs border-collapse">
             <thead>
               <tr class="text-gray-400 uppercase tracking-wide">
-                <th class="text-left pb-2 pr-2 font-semibold w-[22%]">Artista <span class="text-red-400">*</span></th>
-                <th class="text-left pb-2 pr-2 font-semibold w-[22%]">Disco <span class="text-red-400">*</span></th>
-                <th class="text-left pb-2 pr-2 font-semibold w-[10%]">Tipo <span class="text-red-400">*</span></th>
-                <th class="text-left pb-2 pr-2 font-semibold w-[20%]">Género <span class="text-red-400">*</span></th>
-                <th class="text-left pb-2 pr-2 font-semibold w-[18%]">Fecha <span class="text-red-400">*</span></th>
+                <th class="text-left pb-2 pr-2 font-semibold w-[18%]">Artista <span class="text-red-400">*</span></th>
+                <th class="text-left pb-2 pr-2 font-semibold w-[18%]">Disco <span class="text-red-400">*</span></th>
+                <th class="text-left pb-2 pr-2 font-semibold w-[9%]">Tipo <span class="text-red-400">*</span></th>
+                <th class="text-left pb-2 pr-2 font-semibold w-[15%]">Género <span class="text-red-400">*</span></th>
+                <th class="text-left pb-2 pr-2 font-semibold w-[15%]">Fecha <span class="text-red-400">*</span></th>
+                <th class="text-left pb-2 pr-2 font-semibold w-[19%]">Enlace</th>
                 <th class="w-6"></th>
               </tr>
             </thead>
@@ -246,6 +253,10 @@
                 </td>
                 <td class="pr-2 pb-1.5">
                   <input v-model="row.releaseDay" type="date" min="2026-01-01"
+                    class="w-full border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rv-pink" />
+                </td>
+                <td class="pr-2 pb-1.5">
+                  <input v-model="row.link" type="url" placeholder="https://..."
                     class="w-full border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-rv-pink" />
                 </td>
                 <td class="pb-1.5">
@@ -385,6 +396,7 @@ export default defineComponent({
       genre: '',
       releaseDay: '',
       publishAt: '',
+      link: '',
     });
 
     const openEdit = (release: NationalRelease) => {
@@ -395,6 +407,7 @@ export default defineComponent({
       editForm.genre = release.genre;
       editForm.releaseDay = release.releaseDay;
       editForm.publishAt = release.publishAt ?? '';
+      editForm.link = release.link ?? '';
     };
 
     const handleSaveEdit = async () => {
@@ -409,6 +422,8 @@ export default defineComponent({
         if (editForm.releaseDay !== editingRelease.value.releaseDay) dto.releaseDay = editForm.releaseDay;
         const currentPublishAt = editingRelease.value.publishAt ?? '';
         if (editForm.publishAt !== currentPublishAt) dto.publishAt = editForm.publishAt || null;
+        const currentLink = editingRelease.value.link ?? '';
+        if (editForm.link !== currentLink) dto.link = editForm.link || null;
 
         const updated = await updateNationalRelease(editingRelease.value.id, dto);
         const idx = releases.value.findIndex(r => r.id === updated.id);
@@ -427,7 +442,7 @@ export default defineComponent({
     const bulkSaving = ref(false);
     const bulkError = ref('');
 
-    const makeBulkRow = () => ({ artistName: '', discName: '', discType: 'single' as DiscType, genre: '', releaseDay: '' });
+    const makeBulkRow = () => ({ artistName: '', discName: '', discType: 'single' as DiscType, genre: '', releaseDay: '', link: '' });
     const bulkRows = ref([makeBulkRow()]);
 
     const openBulk = () => {
@@ -454,6 +469,7 @@ export default defineComponent({
             discType: r.discType,
             genre: r.genre.trim(),
             releaseDay: r.releaseDay,
+            ...(r.link.trim() ? { link: r.link.trim() } : {}),
           }))
         );
         releases.value.push(...created);

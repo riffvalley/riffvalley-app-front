@@ -16,6 +16,7 @@ export interface NationalRelease {
   genre: string;
   releaseDay: string;
   publishAt: string | null;
+  link: string | null;
   approved: boolean;
   createdAt: string;
 }
@@ -27,6 +28,7 @@ export interface CreateNationalReleaseDto {
   genre: string;
   releaseDay: string;
   publishAt?: string | null;
+  link?: string | null;
 }
 
 export interface UpdateNationalReleaseDto {
@@ -36,6 +38,7 @@ export interface UpdateNationalReleaseDto {
   genre?: string;
   releaseDay?: string;
   publishAt?: string | null;
+  link?: string | null;
   approved?: boolean;
 }
 

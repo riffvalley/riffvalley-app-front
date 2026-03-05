@@ -141,6 +141,19 @@
                 />
               </div>
             </div>
+
+            <div>
+              <label class="block text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                Enlace
+              </label>
+              <input
+                v-model="disc.link"
+                type="url"
+                placeholder="https://..."
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800
+                       focus:outline-none focus:ring-2 focus:ring-rv-pink focus:border-transparent"
+              />
+            </div>
           </div>
 
         </div>
@@ -195,7 +208,7 @@ const DISC_TYPES: { value: DiscType; label: string }[] = [
 const MIN_DATE = '2026-01-01';
 
 function makeDisc() {
-  return { discName: '', discType: 'single' as DiscType, releaseDay: '', publishAt: '' };
+  return { discName: '', discType: 'single' as DiscType, releaseDay: '', publishAt: '', link: '' };
 }
 
 export default defineComponent({
@@ -260,6 +273,7 @@ export default defineComponent({
           discType: disc.discType,
           releaseDay: disc.releaseDay,
           ...(disc.publishAt ? { publishAt: disc.publishAt } : {}),
+          ...(disc.link.trim() ? { link: disc.link.trim() } : {}),
         }));
 
         if (payload.length === 1) {
