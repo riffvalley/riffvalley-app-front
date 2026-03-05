@@ -634,6 +634,10 @@ export default defineComponent({
       release.approved = newValue;
       try {
         await updateNationalRelease(release.id, { approved: newValue });
+        if (pendingModal.show && pendingModal.releases.every(r => r.approved)) {
+          pendingMonths.value = pendingMonths.value.filter(m => m !== pendingModal.month);
+          pendingModal.show = false;
+        }
       } catch (error: any) {
         release.approved = !newValue;
         SwalService.error(error.response?.data?.message || 'Error al actualizar');
