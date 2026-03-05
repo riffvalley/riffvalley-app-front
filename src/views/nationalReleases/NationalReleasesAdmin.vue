@@ -77,7 +77,19 @@
                   </span>
                 </div>
               </div>
-              <div class="flex items-center gap-1.5 flex-shrink-0">
+              <div class="flex items-center gap-2 flex-shrink-0">
+                <!-- Toggle aprobado -->
+                <button
+                  @click="toggleApproved(release)"
+                  :title="release.approved ? 'Aprobado — click para desaprobar' : 'No aprobado — click para aprobar'"
+                  :class="release.approved
+                    ? 'bg-green-100 text-green-600 hover:bg-green-200'
+                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'"
+                  class="flex items-center gap-1.5 px-2.5 h-7 rounded-full text-xs font-semibold transition-colors"
+                >
+                  <i :class="release.approved ? 'fas fa-check-circle' : 'fas fa-circle'" class="text-xs"></i>
+                  {{ release.approved ? 'Aprobado' : 'Pendiente' }}
+                </button>
                 <button @click="openEdit(release)" title="Editar"
                   class="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors">
                   <i class="fas fa-pen text-xs"></i>
@@ -317,6 +329,18 @@ export default defineComponent({
       }
     };
 
+    // --- Aprobar ---
+    const toggleApproved = async (release: NationalRelease) => {
+      const newValue = !release.approved;
+      release.approved = newValue;
+      try {
+        await updateNationalRelease(release.id, { approved: newValue });
+      } catch (error: any) {
+        release.approved = !newValue;
+        SwalService.error(error.response?.data?.message || 'Error al actualizar');
+      }
+    };
+
     // --- Eliminar ---
     const handleDelete = async (release: NationalRelease) => {
       const result = await SwalService.confirm(
@@ -372,6 +396,7 @@ export default defineComponent({
       openEdit,
       handleSaveEdit,
       handleDelete,
+      toggleApproved,
       formatDate,
       discTypeLabel,
       discTypeClass,

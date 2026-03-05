@@ -16,6 +16,7 @@ export interface NationalRelease {
   genre: string;
   releaseDay: string;
   publishAt: string | null;
+  approved: boolean;
   createdAt: string;
 }
 
@@ -35,6 +36,7 @@ export interface UpdateNationalReleaseDto {
   genre?: string;
   releaseDay?: string;
   publishAt?: string | null;
+  approved?: boolean;
 }
 
 export async function createNationalRelease(dto: CreateNationalReleaseDto): Promise<NationalRelease>;
