@@ -56,8 +56,13 @@ export async function createNationalReleaseBulk(dto: CreateNationalReleaseDto[])
   return response.data;
 }
 
-export async function getNationalReleases(params?: { month?: number; year?: number }): Promise<NationalRelease[]> {
-  const response = await api.get<NationalRelease[]>("/national-releases/all", { params });
+export interface NationalReleasesResponse {
+  data: NationalRelease[];
+  pendingMonths?: number[];
+}
+
+export async function getNationalReleases(params?: { month?: number; year?: number; approved?: boolean }): Promise<NationalReleasesResponse> {
+  const response = await api.get<NationalReleasesResponse>("/national-releases/all", { params });
   return response.data;
 }
 
