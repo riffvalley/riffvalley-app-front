@@ -407,42 +407,58 @@ export default defineComponent({
     const bulkError = ref('');
     const bulkText = ref('');
 
-    // Formato: YYYY-MM-DD [género] banda - título (single|ep|disco|album) enlace?
     const TYPE_MAP: Record<string, DiscType> = {
       single: 'single', ep: 'ep', disco: 'album', album: 'album',
     };
 
-    const bulkParsed = computed(() => {
-      return bulkText.value
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => l.length > 0)
-        .flatMap(line => {
-          const m = line.match(
-            /^(\d{4}-\d{2}-\d{2})\s+\[([^\]]+)\]\s+(.+?)\s+-\s+(.+?)\s+\((single|ep|disco|album)\)(?:\s+(https?:\/\/\S+))?$/i
-          );
-          if (!m) return [];
-          const [, releaseDay, genre, artistName, discName, typeRaw, link] = m;
-          return [{
-            releaseDay,
-            genre: genre.trim(),
-            artistName: artistName.trim(),
-            discName: discName.trim(),
-            discType: TYPE_MAP[typeRaw.toLowerCase()],
-            ...(link ? { link } : {}),
-          }];
-        });
-    });
+    const MONTH_MAP: Record<string, string> = {
+      enero: '01', febrero: '02', marzo: '03', abril: '04',
+      mayo: '05', junio: '06', julio: '07', agosto: '08',
+      septiembre: '09', octubre: '10', noviembre: '11', diciembre: '12',
+    };
 
-    const bulkParseErrors = computed(() => {
-      return bulkText.value
-        .split('\n')
-        .map(l => l.trim())
-        .filter(l => l.length > 0)
-        .filter(line => !line.match(
-          /^(\d{4}-\d{2}-\d{2})\s+\[([^\]]+)\]\s+(.+?)\s+-\s+(.+?)\s+\((single|ep|disco|album)\)(?:\s+(https?:\/\/\S+))?$/i
-        ));
-    });
+    function parseDate(raw: string): string | null {
+      // YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+      // "D de mes" o "DD de mes"
+      const m = raw.match(/^(\d{1,2})\s+de\s+(\w+)$/i);
+      if (m) {
+        const month = MONTH_MAP[m[2].toLowerCase()];
+        if (!month) return null;
+        const year = new Date().getFullYear();
+        return `${year}-${month}-${m[1].padStart(2, '0')}`;
+      }
+      return null;
+    }
+
+    const LINE_RE = /^(.+?)\s+\[([^\]]+)\]\s+(.+?)\s+[—–-]\s+(.+?)\s+\((single|ep|disco|album)\)(?:\s+(https?:\/\/\S+))?$/i;
+
+    function parseLine(line: string) {
+      const m = line.match(LINE_RE);
+      if (!m) return null;
+      const [, dateRaw, genre, artistName, discName, typeRaw, link] = m;
+      const releaseDay = parseDate(dateRaw.trim());
+      if (!releaseDay) return null;
+      return {
+        releaseDay,
+        genre: genre.trim(),
+        artistName: artistName.trim(),
+        discName: discName.trim(),
+        discType: TYPE_MAP[typeRaw.toLowerCase()],
+        ...(link ? { link } : {}),
+      };
+    }
+
+    const bulkParsed = computed(() =>
+      bulkText.value.split('\n').map(l => l.trim()).filter(l => l.length > 0).flatMap(l => {
+        const r = parseLine(l);
+        return r ? [r] : [];
+      })
+    );
+
+    const bulkParseErrors = computed(() =>
+      bulkText.value.split('\n').map(l => l.trim()).filter(l => l.length > 0).filter(l => !parseLine(l))
+    );
 
     const openBulk = () => {
       bulkText.value = '';
