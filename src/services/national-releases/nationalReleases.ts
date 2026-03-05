@@ -48,6 +48,11 @@ export async function createNationalRelease(
   return response.data;
 }
 
+export async function createNationalReleaseBulk(dto: CreateNationalReleaseDto[]): Promise<NationalRelease[]> {
+  const response = await api.post<NationalRelease[]>("/national-releases/bulk", dto);
+  return response.data;
+}
+
 export async function getNationalReleases(params?: { month?: number; year?: number }): Promise<NationalRelease[]> {
   const response = await api.get<NationalRelease[]>("/national-releases/all", { params });
   return response.data;
