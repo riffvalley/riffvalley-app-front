@@ -161,6 +161,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from "vue";
 import axios from "axios";
+import { getArtistInfo } from "@services/lastfm/lastfm.ts";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
 
 export default defineComponent({
@@ -186,15 +187,7 @@ export default defineComponent({
     // Función para obtener datos adicionales desde Last.fm
     const fetchLastFmData = async (artistName: string) => {
       try {
-        const response = await axios.get("https://ws.audioscrobbler.com/2.0/", {
-          params: {
-            method: "artist.getinfo",
-            artist: artistName,
-            api_key: "288147ee12920ea60b59f72f491ebada",
-            format: "json",
-          },
-        });
-        lastFmData.value = response.data.artist;
+        lastFmData.value = await getArtistInfo(artistName);
       } catch (err: any) {
         console.error("Error al obtener datos de Last.fm:", err);
       }
