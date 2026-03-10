@@ -56,6 +56,11 @@
           <div v-show="groupState[index]" class="mt-4 overflow-x-auto">
             <!-- Contenedor de botones centrado -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-2 mt-4 w-full">
+              <button v-if="isSuperUser" @click="buscarImagenesLastFm(group.releaseDate)"
+                class="bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 transition-all duration-200 hover:shadow-md transform hover:scale-105 w-full max-w-[300px] sm:max-w-none sm:w-auto text-center self-center">
+                Last.fm búsqueda
+              </button>
+
               <button v-if="new Date(group.releaseDate) < new Date()" @click="buscarEnlacesSpotify(group.discs)"
                 class="bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600 transition-all duration-200 hover:shadow-md transform hover:scale-105 w-full max-w-[300px] sm:max-w-none sm:w-auto text-center self-center">
                 Buscar enlaces en Spotify
@@ -110,10 +115,12 @@ import axios from "axios";
 import { updateDisc, deleteDisc, getDiscsDated } from "@services/discs/discs";
 import { getGenres } from "@services/genres/genres";
 import { getCountries } from "@services/countries/countries";
+import { fillImages } from "@services/lastfm/lastfm.ts";
 import DiscComponent from "./components/DiscComponent.vue";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
 import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
+import { useAuthStore } from "@stores/auth/auth";
 
 export default defineComponent({
   components: { DiscComponent, DiscFilters, SimpleSelect },
@@ -127,6 +134,8 @@ export default defineComponent({
   emits: ["close"],
 
   setup(props) {
+    const authStore = useAuthStore();
+    const isSuperUser = computed(() => authStore.hasRole("superUser"));
     const groupedDiscs = ref<any[]>([]);
     const groupState = reactive({});
 
@@ -546,6 +555,14 @@ export default defineComponent({
       URL.revokeObjectURL(link.href);
     };
 
+    const buscarImagenesLastFm = async (releaseDate: string) => {
+      const date = new Date(releaseDate);
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      const week = Math.ceil(date.getDate() / 7);
+      await fillImages(month, year, week);
+    };
+
     const resetAndFetch = () => {
       offset.value = 0;
 
@@ -622,6 +639,8 @@ export default defineComponent({
       countriesLoaded,
       removeDisc,
       handleDateChange,
+      isSuperUser,
+      buscarImagenesLastFm,
     };
   },
 });
