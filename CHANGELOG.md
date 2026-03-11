@@ -1,3 +1,7 @@
+## 1.15.0 (2026-03-11)
+
+* feat(kanban): add backlog field and optional date to content creation forms (#126) ([736faa1](https://github.com/riffvalley/riffvalley-app-front/commit/736faa1)), closes [#126](https://github.com/riffvalley/riffvalley-app-front/issues/126)
+
 ## 1.14.0 (2026-03-10)
 
 * feat(lastfm): add fill-images button in disc calendar for superUser (#125) ([4bc5b92](https://github.com/riffvalley/riffvalley-app-front/commit/4bc5b92)), closes [#125](https://github.com/riffvalley/riffvalley-app-front/issues/125)
