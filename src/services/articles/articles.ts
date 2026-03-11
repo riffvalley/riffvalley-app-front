@@ -41,6 +41,7 @@ export interface Article {
     type: ArticleType;
     link?: string; // Optional link if needed
     updateDate: string | null; // ISO
+    backlog: boolean;
     createdAt: string; // ISO
     updatedAt: string; // ISO
     user?: { id: string; username: string; image?: string }; // Usuario asignado
@@ -60,6 +61,7 @@ export interface CreateArticleDto {
     type: ArticleType;
     link?: string;
     updateDate?: string;
+    backlog?: boolean;
     userId?: string;
     editorId?: string;
     coauthorId?: string;

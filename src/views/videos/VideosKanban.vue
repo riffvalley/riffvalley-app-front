@@ -204,6 +204,12 @@
                         class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium mb-1">Fecha (Opcional)</label>
+                    <input v-model="form.updateDate" type="date"
+                        class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
+                </div>
+
                 <div class="flex justify-end gap-2 pt-2">
                     <button @click="closeModal" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
                     <button @click="save"
@@ -318,7 +324,8 @@ const editingId = ref<string | null>(null);
 const form = reactive({
     name: '',
     type: 'best' as VideoType,
-    link: ''
+    link: '',
+    updateDate: ''
 });
 
 // --- Getters ---
@@ -515,6 +522,7 @@ function openCreate() {
     form.name = '';
     form.type = 'best';
     form.link = '';
+    form.updateDate = '';
     showModal.value = true;
 }
 
@@ -524,6 +532,7 @@ function openEdit(item: Video) {
     form.name = item.name;
     form.type = item.type;
     form.link = item.link || '';
+    form.updateDate = item.updateDate ? item.updateDate.slice(0, 10) : '';
     showModal.value = true;
 }
 
@@ -543,7 +552,9 @@ async function save() {
             const updated = await updateVideo(editingId.value, {
                 name: form.name,
                 type: form.type,
-                link: form.link || undefined
+                link: form.link || undefined,
+                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
+                backlog: !form.updateDate
             });
             const idx = items.value.findIndex(x => x.id === editingId.value);
             if (idx !== -1) items.value[idx] = updated;
@@ -556,6 +567,8 @@ async function save() {
                 type: form.type,
                 link: form.link || undefined,
                 status: 'not_started',
+                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
+                backlog: !form.updateDate,
                 userId: authStore.userId || undefined
             });
             if (!created.user && authStore.userId) {

@@ -30,6 +30,7 @@ export interface Spotify {
   link: string;
   type: SpotifyTipo;
   updateDate: string; // ISO
+  backlog: boolean;
   createdAt: string; // ISO
   updatedAt: string; // ISO
   user?: { id: string; username: string; image?: string }; // Usuario asignado
@@ -45,7 +46,8 @@ export interface CreateSpotifyDto {
   link: string;
   type: SpotifyTipo;
   /** ISO8601, ej "2025-09-22T10:00:00Z" */
-  updateDate: string;
+  updateDate?: string;
+  backlog?: boolean;
   userId?: string;
 }
 
