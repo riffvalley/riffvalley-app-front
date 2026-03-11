@@ -29,6 +29,7 @@ export interface Video {
     type: VideoType;
     link?: string;
     updateDate: string | null; // ISO
+    backlog: boolean;
     createdAt: string; // ISO
     updatedAt: string; // ISO
     user?: { id: string; username: string; image?: string }; // Usuario asignado
@@ -47,6 +48,7 @@ export interface CreateVideoDto {
     type: VideoType;
     link?: string;
     updateDate?: string;
+    backlog?: boolean;
     userId?: string;
     editorId?: string;
     listId?: string;
