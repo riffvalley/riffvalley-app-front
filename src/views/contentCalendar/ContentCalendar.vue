@@ -547,7 +547,8 @@ async function handleCreateContent(data: any) {
             publicationDate: contentData.publicationDate ? new Date(contentData.publicationDate).toISOString() : undefined,
             closeDate: contentData.closeDate || undefined,
             authorId: contentData.authorId,
-            listDate: contentData.listDate || undefined
+            listDate: contentData.listDate || undefined,
+            backlog: !contentData.publicationDate
         });
 
         newContent.value = {
