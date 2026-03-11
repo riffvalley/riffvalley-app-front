@@ -57,6 +57,7 @@ export interface CreateContentDto {
     reunionId?: string;
     authorId: string;
     listDate?: string;
+    backlog?: boolean;
 }
 
 export interface UpdateContentDto {
