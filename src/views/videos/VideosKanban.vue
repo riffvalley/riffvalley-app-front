@@ -553,8 +553,7 @@ async function save() {
                 name: form.name,
                 type: form.type,
                 link: form.link || undefined,
-                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
-                backlog: !form.updateDate
+                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined
             });
             const idx = items.value.findIndex(x => x.id === editingId.value);
             if (idx !== -1) items.value[idx] = updated;
@@ -568,7 +567,6 @@ async function save() {
                 link: form.link || undefined,
                 status: 'not_started',
                 updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
-                backlog: !form.updateDate,
                 userId: authStore.userId || undefined
             });
             if (!created.user && authStore.userId) {
