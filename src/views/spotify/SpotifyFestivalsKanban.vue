@@ -387,8 +387,7 @@ async function save() {
             const updated = await updateSpotify(editingId.value, {
                 name: form.name,
                 link: form.link,
-                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
-                backlog: !form.updateDate
+                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined
             });
             const idx = items.value.findIndex(x => x.id === editingId.value);
             if (idx !== -1) items.value[idx] = updated;
@@ -402,7 +401,6 @@ async function save() {
                 status: 'not_started',
                 type: 'festival',
                 updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
-                backlog: !form.updateDate,
                 userId: authStore.userId || undefined
             });
             if (!created.user && authStore.userId) {
