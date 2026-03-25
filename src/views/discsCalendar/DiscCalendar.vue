@@ -198,7 +198,10 @@ export default defineComponent({
             const matchesGenre =
               !selectedGenre.value ||
               String(disc.genre?.id ?? "") === String(selectedGenre.value);
-            return matchesSearch && matchesGenre;
+            const matchesCountry =
+              !selectedCountry.value ||
+              String(disc.artist?.countryId ?? "") === String(selectedCountry.value);
+            return matchesSearch && matchesGenre && matchesCountry;
           }),
         }))
         .filter((g) => g.discs.length > 0);
@@ -263,7 +266,7 @@ export default defineComponent({
         const response = await getDiscsDated(limit.value, offset.value, [
           startDate,
           endDate,
-        ], selectedCountry.value || undefined);
+        ]);
 
         response.data.forEach((group, index) => {
           groupState[index] = false;
@@ -391,7 +394,7 @@ export default defineComponent({
         const response = await getDiscsDated(limit.value, offset.value, [
           startDate,
           endDate,
-        ], selectedCountry.value || undefined);
+        ]);
 
         response.data.forEach((newGroup: any) => {
           newGroup.discs.forEach((disc: any) => {
@@ -571,10 +574,6 @@ export default defineComponent({
 
     watch(selectedYear, () => {
       selectMonth(0); // Cargar enero al cambiar el año
-    });
-
-    watch(selectedCountry, () => {
-      resetAndFetch();
     });
 
     onMounted(() => {
