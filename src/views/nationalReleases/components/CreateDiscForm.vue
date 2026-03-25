@@ -182,11 +182,11 @@ export default defineComponent({
       emit('submit', {
         discName: form.discName.trim(),
         artistName: form.artistName.trim(),
-        genreId: form.genreId,
-        releaseDate: form.releaseDate,
+        ...(form.genreId && { genreId: form.genreId }),
+        ...(form.releaseDate && { releaseDate: form.releaseDate }),
         ep: form.ep,
         debut: form.debut,
-        link: form.link.trim(),
+        ...(form.link.trim() && { link: form.link.trim() }),
         ...(form.image.trim() && { image: form.image.trim() }),
       });
     };
