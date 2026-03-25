@@ -32,15 +32,14 @@
       <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
         Género <span class="text-rv-pink">*</span>
       </label>
-      <SearchableSelect
+      <select
         v-model="form.genreId"
-        :options="genres"
-        title="name"
-        trackby="id"
-        placeholder="Buscar género..."
-        triggerPlaceholder="Selecciona un género"
-        :max="150"
-      />
+        required
+        class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink bg-white"
+      >
+        <option value="" disabled>Selecciona un género</option>
+        <option v-for="genre in genres" :key="genre.id" :value="genre.id">{{ genre.name }}</option>
+      </select>
       <p class="text-xs text-gray-400 mt-1">
         <i class="fas fa-tag mr-1"></i>Género del lanzamiento: <span class="font-medium text-gray-500">{{ release.genre }}</span>
       </p>
@@ -130,11 +129,9 @@
 import { defineComponent, reactive, ref, onMounted, type PropType } from 'vue';
 import { getAllGenres, type Genre } from '@services/genres/genres';
 import type { NationalRelease } from '@services/national-releases/nationalReleases';
-import SearchableSelect from '@components/SearchableSelect.vue';
 
 export default defineComponent({
   name: 'CreateDiscForm',
-  components: { SearchableSelect },
   props: {
     release: {
       type: Object as PropType<NationalRelease>,
