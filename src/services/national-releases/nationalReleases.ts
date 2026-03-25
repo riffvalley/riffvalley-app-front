@@ -70,6 +70,21 @@ export interface LinkDiscCreateDto {
   image: string;
 }
 
+export interface CreateNationalReleaseFromDiscDto {
+  discId: string;
+  releaseDay: string;
+  approved?: boolean;
+  publishAt?: string;
+  discType?: DiscType;
+  genre?: string;
+  link?: string;
+}
+
+export async function createNationalReleaseFromDisc(dto: CreateNationalReleaseFromDiscDto): Promise<NationalRelease> {
+  const response = await api.post<NationalRelease>("/national-releases/from-disc", dto);
+  return response.data;
+}
+
 export async function linkDisc(id: string, dto: LinkDiscByIdDto | LinkDiscCreateDto): Promise<NationalRelease> {
   const response = await api.patch<NationalRelease>(`/national-releases/${id}/link-disc`, dto);
   return response.data;

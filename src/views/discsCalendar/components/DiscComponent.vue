@@ -133,6 +133,17 @@
           Borrar
         </button>
       </div>
+
+      <!-- Fila 4: Novedad nacional (solo si el artista es español) -->
+      <div v-if="isSpanish">
+        <button
+          @click="addNationalRelease"
+          :disabled="addingNational"
+          class="w-full bg-gradient-to-r from-rv-pink to-rv-purple hover:opacity-90 disabled:opacity-50 text-white font-semibold px-3 py-2 rounded-lg shadow-md transition-all duration-200 text-sm"
+        >
+          {{ addingNational ? "Añadiendo..." : "🇪🇸 Añadir a novedades nacionales" }}
+        </button>
+      </div>
     </div>
   </div>
 
@@ -207,6 +218,7 @@ import {
 } from "vue";
 import type { PropType } from "vue";
 import { updateDisc, deleteDisc } from "@services/discs/discs";
+import { createNationalReleaseFromDisc } from "@services/national-releases/nationalReleases";
 import { updateArtist, postArtist } from "@services/artist/artist";
 import { postPendingService, deletePendingService } from "@services/pendings/pendings";
 import Swal from "sweetalert2";
@@ -776,6 +788,27 @@ export default defineComponent({
     const closeDiscDetail = () => (showDiscDetail.value = false);
     const closeArtistDetail = () => (showArtistDetail.value = false);
 
+    // --- Novedad nacional ---
+    const isSpanish = computed(() => {
+      const country = props.countries.find(c => c.id === editedArtist.countryId);
+      return country?.isoCode === 'ES';
+    });
+
+    const addingNational = ref(false);
+
+    const addNationalRelease = async () => {
+      addingNational.value = true;
+      try {
+        const releaseDay = new Date(props.disc.releaseDate).toISOString().split('T')[0];
+        await createNationalReleaseFromDisc({ discId: props.disc.id, releaseDay });
+        Swal.fire({ icon: 'success', title: 'Añadido a novedades nacionales', timer: 2000, showConfirmButton: false });
+      } catch (error: any) {
+        Swal.fire({ icon: 'error', title: error.response?.data?.message || 'Error al añadir' });
+      } finally {
+        addingNational.value = false;
+      }
+    };
+
     onMounted(() => {
       window.addEventListener("resize", updateSize);
     });
@@ -828,6 +861,9 @@ export default defineComponent({
       creatingNewArtist,
       toggleDebut,
       isFocused,
+      isSpanish,
+      addingNational,
+      addNationalRelease,
     };
   },
 });
