@@ -137,6 +137,14 @@
       <!-- Fila 4: Novedad nacional (solo si el artista es español) -->
       <div v-if="isSpanish">
         <button
+          v-if="disc.nationalReleaseId"
+          disabled
+          class="w-full bg-gray-200 text-gray-500 font-semibold px-3 py-2 rounded-lg text-sm cursor-not-allowed"
+        >
+          ✓ Ya en novedades nacionales
+        </button>
+        <button
+          v-else
           @click="addNationalRelease"
           :disabled="addingNational"
           class="w-full bg-gradient-to-r from-rv-pink to-rv-purple hover:opacity-90 disabled:opacity-50 text-white font-semibold px-3 py-2 rounded-lg shadow-md transition-all duration-200 text-sm"
@@ -255,6 +263,7 @@ export default defineComponent({
         verified: boolean;
         releaseDate: Date;
         pendingId: string | null;
+        nationalReleaseId: string | null;
       }>,
       required: true,
     },
@@ -800,7 +809,8 @@ export default defineComponent({
       addingNational.value = true;
       try {
         const releaseDay = new Date(props.disc.releaseDate).toISOString().split('T')[0];
-        await createNationalReleaseFromDisc({ discId: props.disc.id, releaseDay });
+        const created = await createNationalReleaseFromDisc({ discId: props.disc.id, releaseDay });
+        props.disc.nationalReleaseId = created.id;
         Swal.fire({ icon: 'success', title: 'Añadido a novedades nacionales', timer: 2000, showConfirmButton: false });
       } catch (error: any) {
         Swal.fire({ icon: 'error', title: error.response?.data?.message || 'Error al añadir' });
