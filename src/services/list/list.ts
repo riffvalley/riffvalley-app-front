@@ -60,6 +60,24 @@ export async function getSpecialLists(): Promise<any> {
   return response.data;
 }
 
+export interface WpPost {
+  position: number;
+  wpPostId: number;
+  link: string;
+  title: string;
+  skipped?: boolean;
+}
+
+export interface CreateWpPostsResponse {
+  created: number;
+  posts: WpPost[];
+}
+
+export async function createWpPosts(id: string): Promise<CreateWpPostsResponse> {
+  const response = await api.post<CreateWpPostsResponse>(`/lists/${id}/wp-posts`);
+  return response.data;
+}
+
 export async function deleteList(id: string): Promise<void> {
   await api.delete(`/lists/${id}`);
 }

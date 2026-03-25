@@ -83,6 +83,11 @@
               class="bg-red-500 text-white text-sm px-4 py-1 rounded-md hover:bg-red-600 focus:ring-2 focus:ring-red-500">
               Revert Status
             </button>
+            <button type="button" @click="publishToWordPress" :disabled="publishingWp"
+              class="bg-orange-500 text-white text-sm px-4 py-1 rounded-md hover:bg-orange-600 disabled:opacity-50 focus:ring-2 focus:ring-orange-400">
+              <i class="fab fa-wordpress mr-1"></i>
+              {{ publishingWp ? 'Publicando...' : 'Publicar en WordPress' }}
+            </button>
           </div>
         </template>
       </form>
@@ -133,7 +138,8 @@
 
 <script lang="ts">
 import { defineComponent, reactive, ref, onMounted, computed } from "vue";
-import { getListDetails, updateList } from "@services/list/list";
+import Swal from "sweetalert2";
+import { getListDetails, updateList, createWpPosts } from "@services/list/list";
 import DiscsByDate from "./components/DiscByDate.vue";
 import AsignationList from "./components/AsignationList.vue";
 import SpecialAsignationList from "./components/SpecialAsignationList.vue";
@@ -252,6 +258,30 @@ export default defineComponent({
     const canRevertStatus = () => form.status !== ListStatus.NEW;
     const canAdvanceStatus = () => form.status !== ListStatus.SMPUBLISHED;
 
+    const publishingWp = ref(false);
+
+    const publishToWordPress = async () => {
+      publishingWp.value = true;
+      try {
+        const result = await createWpPosts(props.id);
+        const postsHtml = result.posts
+          .map(p => `<li class="mb-1">
+            ${p.skipped ? '⚠️ Ya existía' : '✅ Creado'} —
+            <a href="${p.link}" target="_blank" class="text-blue-600 underline">${p.title}</a>
+          </li>`)
+          .join('');
+        Swal.fire({
+          icon: 'success',
+          title: `${result.created} post(s) creados en WordPress`,
+          html: `<ul class="text-left text-sm mt-2">${postsHtml}</ul>`,
+        });
+      } catch (error: any) {
+        SwalService.error(error.response?.data?.message || 'Error al publicar en WordPress');
+      } finally {
+        publishingWp.value = false;
+      }
+    };
+
     const openLink = () => {
       if (form.link) {
         window.open(form.link, "_blank");
@@ -322,6 +352,8 @@ export default defineComponent({
       showStatusInfo,
       statusList,
       asignations,
+      publishingWp,
+      publishToWordPress,
     };
   },
 });
