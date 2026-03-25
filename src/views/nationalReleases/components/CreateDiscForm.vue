@@ -127,7 +127,7 @@
 
 <script lang="ts">
 import { defineComponent, reactive, ref, onMounted, type PropType } from 'vue';
-import { getAllGenres, type Genre } from '@services/genres/genres';
+import { getGenres, type Genre } from '@services/genres/genres';
 import type { NationalRelease } from '@services/national-releases/nationalReleases';
 
 export default defineComponent({
@@ -152,7 +152,8 @@ export default defineComponent({
 
     onMounted(async () => {
       try {
-        genres.value = await getAllGenres();
+        const response = await getGenres(200, 0);
+        genres.value = response.data;
       } catch {
         // El select quedará vacío pero el formulario es usable
       }
