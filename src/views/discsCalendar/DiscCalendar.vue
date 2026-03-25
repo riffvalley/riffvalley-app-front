@@ -8,7 +8,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start mb-6">
       <DiscFilters :externalRow1="true" :searchQuery="searchQuery" :selectedGenre="selectedGenre"
         :selectedCountry="selectedCountry" :genres="genreOptions" :countries="countries" :showWeekPicker="false"
-        :showCountryFilter="false" @update:searchQuery="searchQuery = $event"
+        :showCountryFilter="true" @update:searchQuery="searchQuery = $event"
         @update:selectedGenre="selectedGenre = $event" @update:selectedCountry="selectedCountry = $event"
         selectClass="w-full min-w-0" @reset-and-fetch="resetAndFetch" />
 
@@ -263,7 +263,7 @@ export default defineComponent({
         const response = await getDiscsDated(limit.value, offset.value, [
           startDate,
           endDate,
-        ]);
+        ], selectedCountry.value || undefined);
 
         response.data.forEach((group, index) => {
           groupState[index] = false;
@@ -391,7 +391,7 @@ export default defineComponent({
         const response = await getDiscsDated(limit.value, offset.value, [
           startDate,
           endDate,
-        ]);
+        ], selectedCountry.value || undefined);
 
         response.data.forEach((newGroup: any) => {
           newGroup.discs.forEach((disc: any) => {
@@ -571,6 +571,10 @@ export default defineComponent({
 
     watch(selectedYear, () => {
       selectMonth(0); // Cargar enero al cambiar el año
+    });
+
+    watch(selectedCountry, () => {
+      resetAndFetch();
     });
 
     onMounted(() => {
