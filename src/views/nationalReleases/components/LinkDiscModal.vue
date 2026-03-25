@@ -78,6 +78,7 @@
 <script lang="ts">
 import { defineComponent, ref, type PropType } from 'vue';
 import { linkDisc, type NationalRelease } from '@services/national-releases/nationalReleases';
+import { createDiscWithArtist, type CreateDiscWithArtistDto } from '@services/discs/discs';
 import SwalService from '@services/swal/SwalService';
 import SuggestedDiscCard from './SuggestedDiscCard.vue';
 import CreateDiscForm from './CreateDiscForm.vue';
@@ -111,19 +112,11 @@ export default defineComponent({
       }
     };
 
-    const handleCreate = async (formData: {
-      name: string;
-      artistId: string;
-      genreId: string;
-      releaseDate: string;
-      ep: boolean;
-      debut: boolean;
-      link: string;
-      image: string;
-    }) => {
+    const handleCreate = async (formData: CreateDiscWithArtistDto) => {
       saving.value = true;
       try {
-        const updated = await linkDisc(props.release.id, formData);
+        const newDisc = await createDiscWithArtist(formData);
+        const updated = await linkDisc(props.release.id, { discId: newDisc.id });
         SwalService.success('Disco creado y vinculado correctamente');
         emit('linked', updated);
       } catch (error: any) {
