@@ -791,7 +791,7 @@ export default defineComponent({
     // --- Novedad nacional ---
     const isSpanish = computed(() => {
       const country = props.countries.find(c => c.id === editedArtist.countryId);
-      return country?.isoCode === 'ES';
+      return country?.isoCode?.toLowerCase() === 'es';
     });
 
     const addingNational = ref(false);
