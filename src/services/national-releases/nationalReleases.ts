@@ -8,6 +8,16 @@ const publicApi = axios.create({
 
 export type DiscType = "single" | "ep" | "album";
 
+export interface LinkedDisc {
+  id: string;
+  name: string;
+  image: string;
+  ep: boolean;
+  link: string;
+  artist: { id: string; name: string };
+  genre: { id: string; name: string; color: string };
+}
+
 export interface NationalRelease {
   id: string;
   artistName: string;
@@ -19,6 +29,9 @@ export interface NationalRelease {
   link: string | null;
   approved: boolean;
   createdAt: string;
+  discId: string | null;
+  disc: LinkedDisc | null;
+  suggestedDisc?: LinkedDisc | null;
 }
 
 export interface CreateNationalReleaseDto {
@@ -40,6 +53,26 @@ export interface UpdateNationalReleaseDto {
   publishAt?: string | null;
   link?: string | null;
   approved?: boolean;
+}
+
+export interface LinkDiscByIdDto {
+  discId: string;
+}
+
+export interface LinkDiscCreateDto {
+  name: string;
+  artistId: string;
+  genreId: string;
+  releaseDate: string;
+  ep: boolean;
+  debut: boolean;
+  link: string;
+  image: string;
+}
+
+export async function linkDisc(id: string, dto: LinkDiscByIdDto | LinkDiscCreateDto): Promise<NationalRelease> {
+  const response = await api.patch<NationalRelease>(`/national-releases/${id}/link-disc`, dto);
+  return response.data;
 }
 
 export async function createNationalRelease(dto: CreateNationalReleaseDto): Promise<NationalRelease>;
