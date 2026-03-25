@@ -103,12 +103,11 @@
     <!-- Imagen -->
     <div>
       <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-        Imagen (URL) <span class="text-rv-pink">*</span>
+        Imagen (URL)
       </label>
       <input
         v-model="form.image"
         type="url"
-        required
         placeholder="https://..."
         class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
       />
@@ -248,7 +247,6 @@ export default defineComponent({
       if (!form.genreId) { validationError.value = 'Debes seleccionar un género.'; return; }
       if (!form.releaseDate) { validationError.value = 'La fecha es obligatoria.'; return; }
       if (!form.link.trim()) { validationError.value = 'El enlace es obligatorio.'; return; }
-      if (!form.image.trim()) { validationError.value = 'La imagen es obligatoria.'; return; }
 
       emit('submit', {
         name: form.name.trim(),
