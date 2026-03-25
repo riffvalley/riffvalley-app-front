@@ -152,8 +152,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, type PropType } from 'vue';
-import type { Genre } from '@services/genres/genres';
+import { defineComponent, reactive, ref, onMounted, type PropType } from 'vue';
+import { getAllGenres, type Genre } from '@services/genres/genres';
 import type { NationalRelease } from '@services/national-releases/nationalReleases';
 import { searchArtists, type ArtistResult } from '@services/artist/artist';
 import SearchableSelect from '@components/SearchableSelect.vue';
@@ -164,10 +164,6 @@ export default defineComponent({
   props: {
     release: {
       type: Object as PropType<NationalRelease>,
-      required: true,
-    },
-    genres: {
-      type: Array as PropType<Genre[]>,
       required: true,
     },
     saving: {
@@ -181,6 +177,16 @@ export default defineComponent({
   },
   emits: ['submit', 'cancel'],
   setup(props, { emit }) {
+    const genres = ref<Genre[]>([]);
+
+    onMounted(async () => {
+      try {
+        genres.value = await getAllGenres();
+      } catch {
+        // El select quedará vacío pero el formulario es usable
+      }
+    });
+
     const form = reactive({
       name: props.release.discName,
       genreId: '',
@@ -257,6 +263,7 @@ export default defineComponent({
     artistQuery.value = props.release.artistName;
 
     return {
+      genres,
       form,
       artistQuery,
       artistResults,

@@ -62,13 +62,8 @@
 
       <!-- Formulario de creación -->
       <template v-else>
-        <p v-if="genres.length === 0" class="text-center py-6 text-gray-400">
-          <i class="fas fa-spinner fa-spin mr-2"></i>Cargando géneros...
-        </p>
         <CreateDiscForm
-          v-else
           :release="release"
-          :genres="genres"
           :saving="saving"
           :cancel-label="release.suggestedDisc ? 'Volver a la sugerencia' : 'Cancelar'"
           @submit="handleCreate"
@@ -81,8 +76,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, type PropType } from 'vue';
-import { getAllGenres, type Genre } from '@services/genres/genres';
+import { defineComponent, ref, type PropType } from 'vue';
 import { linkDisc, type NationalRelease } from '@services/national-releases/nationalReleases';
 import SwalService from '@services/swal/SwalService';
 import SuggestedDiscCard from './SuggestedDiscCard.vue';
@@ -99,14 +93,9 @@ export default defineComponent({
   },
   emits: ['close', 'linked'],
   setup(props, { emit }) {
-    const genres = ref<Genre[]>([]);
     const saving = ref(false);
     const useCreateForm = ref(!props.release.suggestedDisc && !props.release.disc);
     const overriding = ref(false);
-
-    onMounted(async () => {
-      genres.value = await getAllGenres();
-    });
 
     const confirmSuggested = async () => {
       if (!props.release.suggestedDisc) return;
@@ -145,7 +134,6 @@ export default defineComponent({
     };
 
     return {
-      genres,
       saving,
       useCreateForm,
       overriding,
