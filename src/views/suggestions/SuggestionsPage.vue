@@ -36,7 +36,7 @@
           <input
             v-model="form.title"
             type="text"
-            placeholder="Resume el problema o sugerencia"
+            :placeholder="form.type === 'bug' ? 'Describe el problema...' : 'Describe tu sugerencia...'"
             maxlength="200"
             class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
           />
@@ -50,7 +50,7 @@
           <textarea
             v-model="form.description"
             rows="4"
-            placeholder="Explica con detalle..."
+            :placeholder="form.type === 'bug' ? 'Explica el problema con detalle...' : 'Explica tu idea con detalle...'"
             class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none"
           ></textarea>
         </div>
