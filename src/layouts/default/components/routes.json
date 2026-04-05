@@ -14,7 +14,7 @@
     "icon": "fa-solid fa-compact-disc"
   },
   {
-    "to": "/artists/management",
+    "to": "/artists",
     "label": "Artistas",
     "activeClass": "bg-gray-700",
     "type": "disc-app",

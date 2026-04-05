@@ -254,7 +254,7 @@ const routes: Array<RouteRecordRaw> = [
     props: true,
   },
   {
-    path: "/artists/management",
+    path: "/artists",
     name: "ArtistManagement",
     component: () => import("/src/views/artists/ArtistManagement.vue"),
     meta: { requiresAuth: true },
