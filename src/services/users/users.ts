@@ -17,13 +17,11 @@ export async function postUserService(payload: any): Promise<void> {
 
 export async function updateUserService( updateUserDto: any) {
 
-  console.log("update rate", updateUserDto);
   return api.patch(`/auth`, updateUserDto);
 }
 
 export async function updateUserSuperAdminService( id: string, updateUserDto: any) {
 
-  console.log("update rate", updateUserDto);
   return api.patch(`/auth/superadmin/${id}`, updateUserDto);
 }
 

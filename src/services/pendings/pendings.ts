@@ -6,7 +6,6 @@ export async function postPendingService(payload: any): Promise<void> {
 }
 
 export async function deletePendingService(id: string): Promise<void> {
-  console.log(`Deleting pending with id: ${id}`);
   await api.delete(`/pendings/${id}`);
 }
 

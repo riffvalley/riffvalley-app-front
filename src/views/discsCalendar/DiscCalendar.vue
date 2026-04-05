@@ -1,5 +1,5 @@
 <template>
-  <div :class="{ 'menu-open': menuVisible }" class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
     <h1 v-if="!embedded" class="text-4xl font-bold mb-8 text-center text-gray-900">
       Calendario
     </h1>
@@ -117,6 +117,8 @@ import { getGenres } from "@services/genres/genres";
 import { getCountries } from "@services/countries/countries";
 import { fillImages } from "@services/lastfm/lastfm.ts";
 import DiscComponent from "./components/DiscComponent.vue";
+import { useCatalogStore } from "@stores/catalog/catalog";
+import { MONTHS, getYearOptions } from "@helpers/dateConstants";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
 import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
@@ -139,35 +141,11 @@ export default defineComponent({
     const groupedDiscs = ref<any[]>([]);
     const groupState = reactive({});
 
-    const months = [
-      "Enero",
-      "Febrero",
-      "Marzo",
-      "Abril",
-      "Mayo",
-      "Junio",
-      "Julio",
-      "Agosto",
-      "Septiembre",
-      "Octubre",
-      "Noviembre",
-      "Diciembre",
-    ];
+    const months = MONTHS;
+    const yearOptions = getYearOptions();
 
     const selectedMonth = ref(new Date().getMonth());
     const selectedYear = ref(new Date().getFullYear());
-
-    const yearOptions = computed(() => {
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth();
-      const startYear = 2025;
-      const endYear = (currentMonth === 11 ? currentYear + 1 : currentYear);
-      const years = [];
-      for (let i = startYear; i <= endYear; i++) {
-        years.push({ value: i, label: String(i) });
-      }
-      return years;
-    });
 
     const focusDiscId = toRef(props, "focusDiscId");
 
@@ -351,22 +329,18 @@ export default defineComponent({
 
     const loadMore = ref<HTMLDivElement | null>(null);
 
-    const genres = ref<any[]>([]);
+    const catalogStore = useCatalogStore();
+
     const genreOptions = computed(() =>
-      (genres.value ?? [])
+      (catalogStore.genres ?? [])
         .filter((g) => g && g.id)
         .map((g) => ({
           id: g.id,
           name: g.name && g.name.trim() ? g.name : "(Sin nombre)",
           color: g.color ?? null,
         }))
-        .sort((a, b) => a.name.localeCompare(b.name))
     );
 
-    const genres2 = ref<any[]>([]);
-    const countries = ref<any[]>([]);
-
-    genres2.value = ["list", "of", "options"];
 
     const fetchDiscs = async () => {
       if (loading.value || !hasMore.value) return;
@@ -446,22 +420,7 @@ export default defineComponent({
       return `${formattedDate}, ${formattedWeekday}`;
     };
 
-    const genresLoaded = ref(false);
-    const countriesLoaded = ref(false);
-
-    const fetchGenres = async () => {
-      const genresResponse = await getGenres(150, 0);
-      genres.value = genresResponse.data.sort((a, b) => a.name.localeCompare(b.name));
-      genresLoaded.value = true;
-    };
-
-    const fetchCountries = async () => {
-      const countriesResponse = await getCountries(250, 0);
-      countries.value = countriesResponse.data.sort((a, b) => a.name.localeCompare(b.name));
-      countriesLoaded.value = true;
-    };
-
-    const optionsReady = computed(() => genresLoaded.value && countriesLoaded.value);
+    const optionsReady = computed(() => catalogStore.loaded);
 
     const buscarEnlacesSpotify = async (discs: any[]) => {
       const token = await obtenerTokenSpotify();
@@ -488,13 +447,6 @@ export default defineComponent({
             const album = response.data.albums.items[0];
             disc.link = album.external_urls.spotify;
             disc.image = album.images?.[0]?.url || null;
-            console.log("disc.image", disc.image);
-
-            console.log("Datos enviados al backend:", {
-              link: disc.link,
-              image: disc.image,
-            });
-
             await updateDisc(disc.id, {
               link: disc.link,
               image: disc.image,
@@ -583,8 +535,6 @@ export default defineComponent({
       const d = initial.value;
       selectMonth(d ? d.getMonth() : new Date().getMonth());
 
-      fetchCountries();
-      fetchGenres();
     });
 
     const observer = new IntersectionObserver((entries) => {
@@ -615,7 +565,7 @@ export default defineComponent({
     return {
       groupedDiscs,
       groupState,
-      genres,
+      genres: computed(() => catalogStore.genres),
       loadMore,
       loading,
       hasMore,
@@ -632,7 +582,7 @@ export default defineComponent({
       selectedWeek,
       resetAndFetch,
       filteredGroupedDiscs,
-      countries,
+      countries: computed(() => catalogStore.countries),
       genreOptions,
       selectedYear,
       yearOptions,

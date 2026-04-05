@@ -304,8 +304,6 @@ async function saveEdit(it: VersionItem, dto: { description: string; type: any; 
   try {
     const updated = await updateVersionItem(version.value.id, it.id, dto as any);
 
-    console.log('Updated item from backend:', updated);
-
     // El backend devuelve backUser/frontUser con solo el id, necesitamos enriquecerlos
     const updatedWithIds = updated as any;
 
@@ -334,8 +332,6 @@ async function saveEdit(it: VersionItem, dto: { description: string; type: any; 
         };
       }
     }
-
-    console.log('Final enriched item:', updatedWithIds);
 
     Object.assign(it, updated);
     kanbanRef.value!.editing[it.id] = false;

@@ -10,7 +10,6 @@ export async function updatecommentService(
   updatecommentDto: any
 ) {
   // PATCH /comments/:id
-  console.log("update comment", updatecommentDto);
   return api.patch(`/comments/${ratingId}`, updatecommentDto);
 }
 
@@ -21,7 +20,6 @@ export async function getDisccomments(discId: string): Promise<any[]> {
 }
 
 export async function deleteCommentService(id: string): Promise<void> {
-  console.log(`Deleting comment with id: ${id}`);
   await api.delete(`/comments/${id}`);
 }
 
@@ -30,7 +28,6 @@ export async function updateCommentService(
   updatecommentDto: any
 ) {
   // PATCH /comments/:id
-  console.log("update comment", updatecommentDto);
   const response = await api.patch(`/comments/${ratingId}`, updatecommentDto);
   return response.data; 
 }

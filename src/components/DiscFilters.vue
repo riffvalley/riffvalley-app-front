@@ -122,6 +122,7 @@
 import { defineComponent, ref, watch, computed } from "vue";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import SimpleSelect from '@components/SimpleSelect.vue';
+import { MONTHS, getAvailableYears } from '@helpers/dateConstants';
 
 type RangeTuple = [string, string];
 type Option = { key: string; label: string; start: string; end: string };
@@ -161,20 +162,8 @@ export default defineComponent({
     const weeksMonth = ref<number>(0);
     const weeksYear = ref<number>(new Date().getFullYear()); // 2025 ahora
 
-    const monthNames = [
-      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-    ];
-
-    const availableYears = computed(() => {
-      const base = 2025;
-      const current = new Date().getFullYear();
-      const currentMonth = new Date().getMonth();
-      const endYear = (currentMonth === 11 ? current + 1 : current);
-      const arr: number[] = [];
-      for (let y = base; y <= endYear; y++) arr.push(y);
-      return arr;
-    });
+    const monthNames = MONTHS;
+    const availableYears = getAvailableYears();
 
     // Utils UTC
     const isoStartUTC = (d: Date) => {
@@ -206,7 +195,7 @@ export default defineComponent({
 
     const yearsOptions = computed(() => [
       { value: 0, label: "Todos los años" },
-      ...availableYears.value.map(y => ({ value: y, label: String(y) })),
+      ...availableYears.map(y => ({ value: y, label: String(y) })),
     ]);
 
     const periodOptions = computed(() => {
