@@ -36,7 +36,6 @@ export interface UpdateRequestDto {
   ep?: boolean;
   debut?: boolean;
   adminNotes?: string;
-  status?: 'pending';
 }
 
 export async function createRequest(dto: CreateRequestDto): Promise<DiscRequest> {
@@ -61,6 +60,11 @@ export async function updateRequest(id: string, dto: UpdateRequestDto): Promise<
 
 export async function approveRequest(id: string): Promise<void> {
   await api.post(`/requests/${id}/approve`);
+}
+
+export async function reopenRequest(id: string): Promise<DiscRequest> {
+  const response = await api.post<DiscRequest>(`/requests/${id}/reopen`);
+  return response.data;
 }
 
 export async function rejectRequest(id: string, adminNotes: string): Promise<DiscRequest> {
