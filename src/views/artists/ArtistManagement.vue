@@ -475,15 +475,17 @@
             </div>
             <div>
               <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">País</label>
-              <select
+              <SearchableSelect
                 v-model="editModal.countryId"
-                class="border border-gray-200 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-rv-pink"
-              >
-                <option value="">Sin país</option>
-                <option v-for="c in countries" :key="c.id" :value="c.id">
-                  {{ c.name }} ({{ c.isoCode?.toUpperCase() }})
-                </option>
-              </select>
+                :options="countries"
+                title="name"
+                trackby="id"
+                placeholder="Buscar país..."
+                trigger-placeholder="Sin país"
+                all-label="Sin país"
+                :max="250"
+                class="rounded-xl text-sm border-gray-200"
+              />
             </div>
           </div>
 
