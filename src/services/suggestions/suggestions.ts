@@ -46,8 +46,8 @@ export async function createSuggestion(dto: CreateSuggestionDto): Promise<Sugges
   return data;
 }
 
-export async function getSuggestions(): Promise<Suggestion[]> {
-  const { data } = await api.get<Suggestion[]>('/suggestions');
+export async function getSuggestions(type?: SuggestionType): Promise<Suggestion[]> {
+  const { data } = await api.get<Suggestion[]>('/suggestions', { params: type ? { type } : {} });
   return data;
 }
 
