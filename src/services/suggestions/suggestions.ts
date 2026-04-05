@@ -46,13 +46,13 @@ export async function createSuggestion(dto: CreateSuggestionDto): Promise<Sugges
   return data;
 }
 
-export async function getSuggestions(type?: SuggestionType): Promise<Suggestion[]> {
-  const { data } = await api.get<Suggestion[]>('/suggestions', { params: type ? { type } : {} });
+export async function getSuggestions(params?: { type?: SuggestionType; status?: SuggestionStatus }): Promise<Suggestion[]> {
+  const { data } = await api.get<Suggestion[]>('/suggestions', { params });
   return data;
 }
 
-export async function getMySuggestions(): Promise<Suggestion[]> {
-  const { data } = await api.get<Suggestion[]>('/suggestions/my');
+export async function getMySuggestions(params?: { type?: SuggestionType; status?: SuggestionStatus }): Promise<Suggestion[]> {
+  const { data } = await api.get<Suggestion[]>('/suggestions/my', { params });
   return data;
 }
 

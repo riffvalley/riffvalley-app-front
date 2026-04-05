@@ -20,7 +20,7 @@
       <button
         v-for="t in typeTabs"
         :key="t.value"
-        @click="setType(t.value)"
+        @click="setFilter('type', t.value)"
         :class="activeType === t.value ? t.activeClass : 'bg-white text-gray-500 hover:text-rv-navy border border-gray-200'"
         class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors shadow-sm"
       >
@@ -33,7 +33,7 @@
       <button
         v-for="s in statusTabs"
         :key="s.value"
-        @click="activeStatus = s.value"
+        @click="setFilter('status', s.value)"
         :class="activeStatus === s.value ? 'bg-rv-navy text-white' : 'bg-white text-gray-500 hover:text-rv-navy border border-gray-200'"
         class="px-3 py-1 rounded-full text-xs font-medium transition-colors shadow-sm"
       >
@@ -46,14 +46,14 @@
     <div v-if="loading" class="text-center py-12 text-gray-400">Cargando...</div>
 
     <!-- Vacío -->
-    <div v-else-if="filtered.length === 0" class="text-center py-12 text-gray-400 bg-white rounded-2xl shadow-rv">
+    <div v-else-if="suggestions.length === 0" class="text-center py-12 text-gray-400 bg-white rounded-2xl shadow-rv">
       <i class="fa-solid fa-inbox text-3xl mb-3 block text-gray-300"></i>
       No hay {{ activeType === 'bug' ? 'bugs' : activeType === 'suggestion' ? 'sugerencias' : 'entradas' }} en este estado.
     </div>
 
     <!-- Lista -->
     <ul v-else class="space-y-3">
-      <li v-for="s in filtered" :key="s.id" class="bg-white rounded-2xl shadow-rv px-5 py-4">
+      <li v-for="s in suggestions" :key="s.id" class="bg-white rounded-2xl shadow-rv px-5 py-4">
         <div class="flex items-start gap-4">
           <img v-if="s.user?.image" :src="s.user.image" class="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5" />
           <div v-else class="w-9 h-9 rounded-full bg-rv-navy/10 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -214,7 +214,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted } from 'vue';
+import { defineComponent, ref, onMounted } from 'vue';
 import {
   getSuggestions,
   createSuggestion,
@@ -251,12 +251,6 @@ export default defineComponent({
       { value: 'all', label: 'Todas' },
     ];
 
-    const filtered = computed(() =>
-      activeStatus.value === 'all'
-        ? suggestions.value
-        : suggestions.value.filter(s => s.status === activeStatus.value)
-    );
-
     const countByStatus = (status: string) =>
       status === 'all' ? suggestions.value.length : suggestions.value.filter(s => s.status === status).length;
 
@@ -282,15 +276,18 @@ export default defineComponent({
     const fetchAll = async () => {
       loading.value = true;
       try {
-        const type = activeType.value === 'all' ? undefined : activeType.value;
-        suggestions.value = await getSuggestions(type);
+        const params: { type?: SuggestionType; status?: SuggestionStatus } = {};
+        if (activeType.value !== 'all') params.type = activeType.value;
+        if (activeStatus.value !== 'all') params.status = activeStatus.value as SuggestionStatus;
+        suggestions.value = await getSuggestions(params);
       } finally {
         loading.value = false;
       }
     };
 
-    const setType = (type: SuggestionType | 'all') => {
-      activeType.value = type;
+    const setFilter = (key: 'type' | 'status', value: string) => {
+      if (key === 'type') activeType.value = value as SuggestionType | 'all';
+      if (key === 'status') activeStatus.value = value;
       fetchAll();
     };
 
@@ -422,10 +419,10 @@ export default defineComponent({
 
     return {
       suggestions, loading, activeType, activeStatus,
-      typeTabs, statusTabs, filtered,
+      typeTabs, statusTabs,
       createModal, rejectModal, doneModal,
       typeOptions, priorityOptions,
-      countByStatus, setType,
+      countByStatus, setFilter,
       openCreateModal, handleCreate,
       openRejectModal, handleReject,
       openDoneModal, handleDone,
