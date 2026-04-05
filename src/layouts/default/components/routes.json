@@ -195,7 +195,7 @@
   },
   {
     "to": "/suggestions/management",
-    "label": "Sugerencias",
+    "label": "Bugs / Sugerencias",
     "activeClass": "bg-gray-700",
     "type": "management",
     "requiredRole": "superUser",
