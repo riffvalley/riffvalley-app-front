@@ -202,6 +202,14 @@
     ]
   },
   {
+    "to": "/suggestions/management",
+    "label": "Sugerencias",
+    "activeClass": "bg-gray-700",
+    "type": "management",
+    "requiredRole": "superUser",
+    "icon": "fa-solid fa-bug"
+  },
+  {
     "to": "/news",
     "label": "Noticias",
     "activeClass": "bg-gray-700",
