@@ -232,6 +232,7 @@ import {
   updateRequest,
   approveRequest,
   rejectRequest,
+  reopenRequest,
   type DiscRequest,
 } from '@services/requests/requests';
 import { useCatalogStore } from '@stores/catalog/catalog';
@@ -335,7 +336,7 @@ export default defineComponent({
     // --- Reabrir ---
     const handleReopen = async (req: DiscRequest) => {
       try {
-        const updated = await updateRequest(req.id, { status: 'pending' });
+        const updated = await reopenRequest(req.id);
         const idx = requests.value.findIndex(r => r.id === req.id);
         if (idx !== -1) requests.value[idx] = updated;
         SwalService.success('Petición reabierta');

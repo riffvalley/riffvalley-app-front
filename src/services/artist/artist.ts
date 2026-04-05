@@ -40,6 +40,9 @@ export async function updateArtist(
     description?: string;
   }
 ): Promise<void> {
+  console.log("Actualizando artista", id);
+  console.log("Datos enviados al backend:", data);
+
   await api.patch(`/artists/${id}`, data);
 }
 
