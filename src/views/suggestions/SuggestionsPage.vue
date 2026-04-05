@@ -12,36 +12,20 @@
       <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Enviar nuevo</h2>
       <form @submit.prevent="handleSubmit" class="space-y-4">
 
-        <!-- Tipo y prioridad -->
-        <div class="flex gap-3 flex-wrap">
-          <div class="flex gap-2">
-            <button
-              type="button"
-              v-for="t in typeOptions"
-              :key="t.value"
-              @click="form.type = t.value"
-              :class="form.type === t.value
-                ? t.activeClass
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
-              class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
-            >
-              <i :class="t.icon" class="mr-1"></i>{{ t.label }}
-            </button>
-          </div>
-          <div class="flex gap-2">
-            <button
-              type="button"
-              v-for="p in priorityOptions"
-              :key="p.value"
-              @click="form.priority = p.value"
-              :class="form.priority === p.value
-                ? p.activeClass
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
-              class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
-            >
-              {{ p.label }}
-            </button>
-          </div>
+        <!-- Tipo -->
+        <div class="flex gap-2">
+          <button
+            type="button"
+            v-for="t in typeOptions"
+            :key="t.value"
+            @click="form.type = t.value"
+            :class="form.type === t.value
+              ? t.activeClass
+              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
+            class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
+          >
+            <i :class="t.icon" class="mr-1"></i>{{ t.label }}
+          </button>
         </div>
 
         <!-- Título -->
@@ -105,9 +89,6 @@
                 <span :class="typeClass(s.type)" class="text-xs font-semibold px-2 py-0.5 rounded-full">
                   <i :class="typeIcon(s.type)" class="mr-1"></i>{{ typeLabel(s.type) }}
                 </span>
-                <span :class="priorityClass(s.priority)" class="text-xs font-semibold px-2 py-0.5 rounded-full">
-                  {{ priorityLabel(s.priority) }}
-                </span>
                 <span :class="statusClass(s.status)" class="text-xs font-semibold px-2 py-0.5 rounded-full">
                   {{ statusLabel(s.status) }}
                 </span>
@@ -137,7 +118,6 @@ import {
   getMySuggestions,
   type Suggestion,
   type SuggestionType,
-  type SuggestionPriority,
 } from '@services/suggestions/suggestions';
 import SwalService from '@services/swal/SwalService';
 
@@ -152,18 +132,11 @@ export default defineComponent({
       title: '',
       description: '',
       type: 'suggestion' as SuggestionType,
-      priority: 'medium' as SuggestionPriority,
     });
 
     const typeOptions = [
       { value: 'suggestion', label: 'Sugerencia', icon: 'fa-solid fa-lightbulb', activeClass: 'bg-blue-500 text-white' },
       { value: 'bug', label: 'Bug', icon: 'fa-solid fa-bug', activeClass: 'bg-red-500 text-white' },
-    ];
-
-    const priorityOptions = [
-      { value: 'low', label: 'Baja', activeClass: 'bg-green-500 text-white' },
-      { value: 'medium', label: 'Media', activeClass: 'bg-amber-500 text-white' },
-      { value: 'high', label: 'Alta', activeClass: 'bg-red-500 text-white' },
     ];
 
     const fetchMine = async () => {
@@ -181,7 +154,7 @@ export default defineComponent({
       try {
         const created = await createSuggestion(form.value);
         suggestions.value.unshift(created);
-        form.value = { title: '', description: '', type: 'suggestion', priority: 'medium' };
+        form.value = { title: '', description: '', type: 'suggestion' };
         SwalService.success('Enviado correctamente');
       } catch {
         SwalService.error('Error al enviar');
@@ -197,10 +170,6 @@ export default defineComponent({
     const typeIcon = (t: SuggestionType) => t === 'bug' ? 'fa-solid fa-bug' : 'fa-solid fa-lightbulb';
     const typeClass = (t: SuggestionType) => t === 'bug' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600';
 
-    const priorityLabel = (p: SuggestionPriority) => ({ low: 'Baja', medium: 'Media', high: 'Alta' }[p]);
-    const priorityClass = (p: SuggestionPriority) =>
-      ({ low: 'bg-green-100 text-green-600', medium: 'bg-amber-100 text-amber-600', high: 'bg-red-100 text-red-600' }[p]);
-
     const statusLabel = (s: string) => ({ in_progress: 'Pendiente', done: 'Hecho', rejected: 'Rechazado' }[s] ?? s);
     const statusClass = (s: string) =>
       ({ in_progress: 'bg-amber-100 text-amber-600', done: 'bg-green-100 text-green-600', rejected: 'bg-red-100 text-red-600' }[s] ?? '');
@@ -209,10 +178,9 @@ export default defineComponent({
 
     return {
       suggestions, loading, submitting, form,
-      typeOptions, priorityOptions,
+      typeOptions,
       handleSubmit, formatDate,
       typeLabel, typeIcon, typeClass,
-      priorityLabel, priorityClass,
       statusLabel, statusClass,
     };
   },
