@@ -87,6 +87,7 @@ import GenreBarChart from './components/GenreBarChart.vue';
 import ScoreDistributionChart from './components/ScoreDistributionChart.vue';
 import MonthlyVotesChart from './components/MonthlyVotesChart.vue';
 import SimpleSelect from '@components/SimpleSelect.vue';
+import { getYearOptions } from '@helpers/dateConstants';
 
 export default defineComponent({
   name: 'Statistics',
@@ -112,17 +113,7 @@ export default defineComponent({
     // Year filter
     const selectedYear = ref<number | null>(null);
 
-    const yearOptions = computed(() => {
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth();
-      const startYear = 2025;
-      const endYear = currentMonth === 11 ? currentYear + 1 : currentYear;
-      const years = [];
-      for (let i = startYear; i <= endYear; i++) {
-        years.push({ value: i, label: String(i) });
-      }
-      return years;
-    });
+    const yearOptions = getYearOptions();
 
     const fetchData = async () => {
       loading.value = true;

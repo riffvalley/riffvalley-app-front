@@ -225,7 +225,6 @@ export default defineComponent({
           content: newPoint.value.content,
           reunionId: props.id,
         });
-        console.log(response)
         points.value.push({ ...response, showContent: false });
         newPoint.value = { titulo: "", content: "" };
         showNewPointForm.value = false;
@@ -287,7 +286,6 @@ export default defineComponent({
 
     const togglePointDone = async (id, done) => {
       try {
-        console.log("id: " + id)
         const response = await updatePoint(id, {
           done,
         });

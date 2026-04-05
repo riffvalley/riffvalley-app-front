@@ -18,7 +18,6 @@ import "vue-circle-flags/dist/vue-circle-flags.css";
 
 // Importar SidebarMenu
 import SidebarMenu from "./layouts/default/components/SidebarMenu.vue";
-console.log(SidebarMenu);
 
 // FontAwesome
 import { library } from '@fortawesome/fontawesome-svg-core';

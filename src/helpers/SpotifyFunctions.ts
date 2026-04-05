@@ -124,7 +124,6 @@ export const buscarEnlacesSpotify = async (discs: any[]): Promise<any[] | undefi
   for (const disc of discs) {
       // Comprobación clave: Si ya tiene un enlace, no buscar.
       if (disc.link && disc.link !== "No se encontró el álbum" && disc.link !== "Error al realizar la búsqueda") {
-          console.log(`Disco ya buscado: ${disc.name}`);
           updatedDiscs.push(disc); // Añadir el disco tal cual, ya que no necesita actualización.
           continue; // Saltar al siguiente disco en el bucle.
       }

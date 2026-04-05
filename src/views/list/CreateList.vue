@@ -103,10 +103,6 @@ export default defineComponent({
 
     const submitForm = async () => {
       try {
-        // Muestra los datos que se están enviando (opcional para depuración)
-        console.log("Submitting form data:", form);
-
-        // Llama a la función postList con los datos del formulario
         const response = await postList({
           name: form.name,
           type: form.type,
@@ -117,10 +113,6 @@ export default defineComponent({
           status: "new",
         });
 
-        // Muestra la respuesta del servidor
-        console.log("List created successfully:", response);
-
-        // Opcional: muestra una notificación de éxito
         SwalService.success("List created successfully!");
         router.push({ name: "ListDefault" });
       } catch (error) {

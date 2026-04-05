@@ -122,8 +122,6 @@ export default defineComponent({
 
     // Maneja el checkbox
     const handleCheck = (userId: string, assignment: any) => {
-      console.log("Usuario ID:", userId);
-      console.log("Assignment:", assignment);
     };
 
     const toggleDone = async (asignation: any) => {

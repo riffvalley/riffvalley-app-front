@@ -23,9 +23,6 @@ export async function updateArtist(
     countryId?: string;
   }
 ): Promise<void> {
-  console.log("Actualizando artista", id);
-  console.log("Datos enviados al backend:", data);
-
   await api.patch(`/artists/${id}`, data);
 }
 
