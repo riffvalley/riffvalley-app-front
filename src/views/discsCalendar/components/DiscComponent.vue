@@ -133,6 +133,25 @@
           Borrar
         </button>
       </div>
+
+      <!-- Fila 4: Novedad nacional (solo si el artista es español) -->
+      <div v-if="isSpanish">
+        <button
+          v-if="disc.nationalReleaseId"
+          disabled
+          class="w-full bg-gray-200 text-gray-500 font-semibold px-3 py-2 rounded-lg text-sm cursor-not-allowed"
+        >
+          ✓ Ya en novedades nacionales
+        </button>
+        <button
+          v-else
+          @click="addNationalRelease"
+          :disabled="addingNational"
+          class="w-full bg-gradient-to-r from-rv-pink to-rv-purple hover:opacity-90 disabled:opacity-50 text-white font-semibold px-3 py-2 rounded-lg shadow-md transition-all duration-200 text-sm"
+        >
+          {{ addingNational ? "Añadiendo..." : "🇪🇸 Añadir a novedades nacionales" }}
+        </button>
+      </div>
     </div>
   </div>
 
@@ -142,18 +161,79 @@
     <div v-if="showArtistModal"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 bg-gray-900 bg-opacity-50">
       <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-        <h2 class="text-lg font-semibold mb-4">Actualizar o crear Artista</h2>
-        <label class="flex items-center mb-4">
-          <input type="checkbox" v-model="creatingNewArtist" class="mr-2" />
-          Crear nuevo artista
-        </label>
-        <input v-model="newArtistName" type="text" placeholder="Introduce el nombre del artista"
-          class="border p-2 w-full rounded-md" />
-        <div class="flex justify-end mt-4 space-x-2">
+        <h2 class="text-lg font-semibold mb-4">Editar Artista</h2>
+
+        <!-- Modo: renombrar -->
+        <div v-if="!creatingNewArtist && !assigningExistingArtist">
+          <input v-model="newArtistName" type="text" placeholder="Introduce el nombre del artista"
+            class="border p-2 w-full rounded-md" />
+        </div>
+
+        <!-- Modo: crear nuevo (corregir ambigüedad de país) -->
+        <div v-if="creatingNewArtist">
+          <input v-model="newArtistName" type="text" placeholder="Nombre del nuevo artista"
+            class="border p-2 w-full rounded-md" />
+          <div class="mt-3">
+            <p class="text-sm text-gray-600 mb-1">País del nuevo artista:</p>
+            <SearchableSelect
+              v-model="newArtistCountryId"
+              :options="countries"
+              title="name"
+              trackby="id"
+              placeholder="Buscar país..."
+              trigger-placeholder="Selecciona un país"
+              all-label="Todos los países"
+              :max="300"
+              class="rounded-full text-rv-navy text-sm border-rv-navy/20 shadow-lg"
+            />
+          </div>
+        </div>
+
+        <!-- Modo: asignar existente -->
+        <div v-if="assigningExistingArtist">
+          <input
+            v-model="artistSearchQuery"
+            @input="onArtistSearchInput"
+            type="text"
+            placeholder="Buscar artista por nombre..."
+            class="border p-2 w-full rounded-md"
+          />
+          <div class="mt-2 max-h-48 overflow-y-auto border rounded-md">
+            <div v-if="artistSearchLoading" class="p-3 text-sm text-gray-500 text-center">Buscando...</div>
+            <div v-else-if="artistSearchResults.length === 0 && artistSearchQuery" class="p-3 text-sm text-gray-400 text-center">Sin resultados</div>
+            <button
+              v-for="artist in artistSearchResults"
+              :key="artist.id"
+              @click="assignExistingArtist(artist)"
+              class="w-full text-left px-3 py-2 hover:bg-rv-pink/10 border-b last:border-b-0 transition-colors"
+            >
+              <span class="font-medium text-sm">{{ artist.name }}</span>
+              <span class="text-xs text-gray-500 ml-2">{{ artist.country?.name }} ({{ artist.country?.isoCode }})</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Opciones de modo -->
+        <div class="mt-4 flex flex-col gap-2 text-sm">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" :checked="creatingNewArtist" @change="creatingNewArtist = !creatingNewArtist; assigningExistingArtist = false" class="mr-1" />
+            Crear nuevo artista (corregir ambigüedad de país)
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" :checked="assigningExistingArtist" @change="assigningExistingArtist = !assigningExistingArtist; creatingNewArtist = false; artistSearchQuery = ''; artistSearchResults = []" class="mr-1" />
+            Asignar artista existente
+          </label>
+        </div>
+
+        <div v-if="!assigningExistingArtist" class="flex justify-end mt-4 space-x-2">
           <button @click="closeArtistModal"
             class="bg-gray-400 text-white px-4 py-2 rounded-full transition-all duration-200 hover:shadow-md transform hover:scale-105">Cancelar</button>
           <button @click="handleArtistUpdate"
             class="bg-rv-pink text-white px-4 py-2 rounded-full transition-all duration-200 hover:shadow-md transform hover:scale-105">Guardar</button>
+        </div>
+        <div v-else class="flex justify-end mt-4">
+          <button @click="closeArtistModal"
+            class="bg-gray-400 text-white px-4 py-2 rounded-full transition-all duration-200 hover:shadow-md transform hover:scale-105">Cancelar</button>
         </div>
       </div>
     </div>
@@ -207,7 +287,9 @@ import {
 } from "vue";
 import type { PropType } from "vue";
 import { updateDisc, deleteDisc } from "@services/discs/discs";
-import { updateArtist, postArtist } from "@services/artist/artist";
+import { createNationalReleaseFromDisc } from "@services/national-releases/nationalReleases";
+import { updateArtist, postArtist, searchArtistsByName } from "@services/artist/artist";
+import type { ArtistWithCountry } from "@services/artist/artist";
 import { postPendingService, deletePendingService } from "@services/pendings/pendings";
 import Swal from "sweetalert2";
 import axios from "axios";
@@ -243,6 +325,7 @@ export default defineComponent({
         verified: boolean;
         releaseDate: Date;
         pendingId: string | null;
+        nationalReleaseId: string | null;
       }>,
       required: true,
     },
@@ -708,9 +791,54 @@ export default defineComponent({
     // Modales detalle
     const showArtistModal = ref(false);
     const newArtistName = ref("");
+    const newArtistCountryId = ref<string | null>(null);
     const creatingNewArtist = ref(false);
+
+    // Asignar artista existente
+    const assigningExistingArtist = ref(false);
+    const artistSearchQuery = ref("");
+    const artistSearchResults = ref<ArtistWithCountry[]>([]);
+    const artistSearchLoading = ref(false);
+    let artistSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const onArtistSearchInput = () => {
+      if (artistSearchTimer) clearTimeout(artistSearchTimer);
+      if (!artistSearchQuery.value.trim()) {
+        artistSearchResults.value = [];
+        return;
+      }
+      artistSearchTimer = setTimeout(async () => {
+        artistSearchLoading.value = true;
+        try {
+          artistSearchResults.value = await searchArtistsByName(artistSearchQuery.value.trim());
+        } catch {
+          artistSearchResults.value = [];
+        } finally {
+          artistSearchLoading.value = false;
+        }
+      }, 400);
+    };
+
+    const assignExistingArtist = async (artist: ArtistWithCountry) => {
+      try {
+        await updateDisc(props.disc.id, { artistId: artist.id });
+        props.disc.artist = { id: artist.id, name: artist.name, countryId: artist.countryId };
+        editedArtist.countryId = artist.countryId;
+        emit("artist-created", artist.id, artist.name);
+        closeArtistModal();
+        Swal.fire({ icon: "success", title: `Artista asignado: ${artist.name}`, timer: 2000, showConfirmButton: false, toast: true, position: "top-end" });
+      } catch {
+        Swal.fire("Error", "No se pudo asignar el artista.", "error");
+      }
+    };
+
     const openArtistModal = () => {
       newArtistName.value = props.disc.artist.name;
+      newArtistCountryId.value = props.disc.artist.countryId ?? null;
+      creatingNewArtist.value = false;
+      assigningExistingArtist.value = false;
+      artistSearchQuery.value = "";
+      artistSearchResults.value = [];
       showArtistModal.value = true;
     };
     const closeArtistModal = () => {
@@ -719,10 +847,13 @@ export default defineComponent({
     const handleArtistUpdate = async () => {
       try {
         if (creatingNewArtist.value) {
-          const newArtist = await postArtist({ name: newArtistName.value });
-          // actualiza artista en el disco
-          props.disc.artist = newArtist as any;
+          const newArtist = await postArtist({
+            name: newArtistName.value,
+            ...(newArtistCountryId.value && { countryId: newArtistCountryId.value }),
+          });
           await updateDisc(props.disc.id, { artistId: newArtist.id });
+          props.disc.artist = { id: newArtist.id, name: newArtist.name, countryId: newArtist.countryId };
+          editedArtist.countryId = newArtist.countryId;
           emit("artist-created", newArtist.id, newArtist.name);
           Swal.fire("¡Éxito!", "Nuevo artista creado correctamente.", "success");
         } else {
@@ -776,6 +907,28 @@ export default defineComponent({
     const closeDiscDetail = () => (showDiscDetail.value = false);
     const closeArtistDetail = () => (showArtistDetail.value = false);
 
+    // --- Novedad nacional ---
+    const isSpanish = computed(() => {
+      const country = props.countries.find(c => c.id === editedArtist.countryId);
+      return country?.isoCode?.toLowerCase() === 'es';
+    });
+
+    const addingNational = ref(false);
+
+    const addNationalRelease = async () => {
+      addingNational.value = true;
+      try {
+        const releaseDay = new Date(props.disc.releaseDate).toISOString().split('T')[0];
+        const created = await createNationalReleaseFromDisc({ discId: props.disc.id, releaseDay });
+        props.disc.nationalReleaseId = created.id;
+        Swal.fire({ icon: 'success', title: 'Añadido a novedades nacionales', timer: 2000, showConfirmButton: false });
+      } catch (error: any) {
+        Swal.fire({ icon: 'error', title: error.response?.data?.message || 'Error al añadir' });
+      } finally {
+        addingNational.value = false;
+      }
+    };
+
     onMounted(() => {
       window.addEventListener("resize", updateSize);
     });
@@ -804,6 +957,13 @@ export default defineComponent({
       openArtistModal,
       handleArtistUpdate,
       closeArtistModal,
+      newArtistCountryId,
+      assigningExistingArtist,
+      artistSearchQuery,
+      artistSearchResults,
+      artistSearchLoading,
+      onArtistSearchInput,
+      assignExistingArtist,
       showArtistModal,
       newArtistName,
       updateDiscLink,
@@ -828,6 +988,9 @@ export default defineComponent({
       creatingNewArtist,
       toggleDebut,
       isFocused,
+      isSpanish,
+      addingNational,
+      addNationalRelease,
     };
   },
 });
