@@ -99,7 +99,7 @@
                 <i class="fa-solid fa-circle-xmark mr-1"></i>{{ s.rejectionReason }}
               </p>
               <p v-if="s.versionItem" class="text-xs text-green-600 mt-1.5">
-                <i class="fa-solid fa-code-branch mr-1"></i>Incluido en: {{ s.versionItem.description }}
+                <i class="fa-solid fa-check-circle mr-1"></i>Implementado
               </p>
               <p class="text-xs text-gray-400 mt-1.5">{{ formatDate(s.createdAt) }}</p>
             </div>
