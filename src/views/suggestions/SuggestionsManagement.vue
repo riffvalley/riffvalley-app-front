@@ -7,20 +7,12 @@
         <h1 class="text-2xl font-bold">Gestión de Sugerencias</h1>
         <p class="text-gray-400 text-sm mt-0.5">{{ suggestions.length }} en total</p>
       </div>
-      <div class="flex gap-2">
-        <button
-          @click="openCreateModal('bug')"
-          class="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
-        >
-          <i class="fa-solid fa-bug"></i> Nuevo bug
-        </button>
-        <button
-          @click="openCreateModal('suggestion')"
-          class="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
-        >
-          <i class="fa-solid fa-lightbulb"></i> Nueva sugerencia
-        </button>
-      </div>
+      <button
+        @click="openCreateModal"
+        class="flex items-center gap-2 bg-rv-navy text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
+      >
+        <i class="fa-solid fa-plus"></i> Nueva
+      </button>
     </div>
 
     <!-- Tabs tipo -->
@@ -28,12 +20,11 @@
       <button
         v-for="t in typeTabs"
         :key="t.value"
-        @click="activeType = t.value"
+        @click="setType(t.value)"
         :class="activeType === t.value ? t.activeClass : 'bg-white text-gray-500 hover:text-rv-navy border border-gray-200'"
         class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors shadow-sm"
       >
         <i :class="t.icon" class="mr-1.5"></i>{{ t.label }}
-        <span class="ml-1 text-xs opacity-70">({{ countByType(t.value) }})</span>
       </button>
     </div>
 
@@ -62,11 +53,7 @@
 
     <!-- Lista -->
     <ul v-else class="space-y-3">
-      <li
-        v-for="s in filtered"
-        :key="s.id"
-        class="bg-white rounded-2xl shadow-rv px-5 py-4"
-      >
+      <li v-for="s in filtered" :key="s.id" class="bg-white rounded-2xl shadow-rv px-5 py-4">
         <div class="flex items-start gap-4">
           <img v-if="s.user?.image" :src="s.user.image" class="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5" />
           <div v-else class="w-9 h-9 rounded-full bg-rv-navy/10 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -121,86 +108,54 @@
       </li>
     </ul>
 
-    <!-- Modal: crear bug -->
+    <!-- Modal: crear -->
     <Teleport to="body">
-      <div v-if="createModal.show && createModal.type === 'bug'"
+      <div v-if="createModal.show"
         class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
         @click.self="createModal.show = false">
         <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative">
           <button @click="createModal.show = false"
             class="absolute top-3 right-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center text-base font-bold">&times;</button>
-          <div class="flex items-center gap-2 mb-4">
-            <span class="bg-red-100 text-red-600 rounded-full w-8 h-8 flex items-center justify-center">
-              <i class="fa-solid fa-bug text-sm"></i>
-            </span>
-            <h3 class="text-lg font-bold">Nuevo bug</h3>
-          </div>
+          <h3 class="text-lg font-bold mb-4">Nueva sugerencia / bug</h3>
           <form @submit.prevent="handleCreate" class="space-y-4">
-            <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Título *</label>
-              <input v-model="createModal.form.title" type="text" maxlength="200" placeholder="¿Qué falla?"
-                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400" />
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Descripción / pasos para reproducir *</label>
-              <textarea v-model="createModal.form.description" rows="4" placeholder="Explica cómo ocurre el problema..."
-                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"></textarea>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Severidad</label>
-              <div class="flex gap-2">
-                <button type="button" v-for="p in priorityOptions" :key="p.value"
-                  @click="createModal.form.priority = p.value"
-                  :class="createModal.form.priority === p.value ? p.activeClass : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
-                  class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors">{{ p.label }}</button>
-              </div>
-            </div>
-            <button type="submit" :disabled="createModal.saving || !createModal.form.title.trim() || !createModal.form.description.trim()"
-              class="w-full bg-red-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-40">
-              {{ createModal.saving ? 'Guardando...' : 'Crear bug' }}
-            </button>
-          </form>
-        </div>
-      </div>
-    </Teleport>
 
-    <!-- Modal: crear sugerencia -->
-    <Teleport to="body">
-      <div v-if="createModal.show && createModal.type === 'suggestion'"
-        class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-        @click.self="createModal.show = false">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative">
-          <button @click="createModal.show = false"
-            class="absolute top-3 right-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center text-base font-bold">&times;</button>
-          <div class="flex items-center gap-2 mb-4">
-            <span class="bg-blue-100 text-blue-600 rounded-full w-8 h-8 flex items-center justify-center">
-              <i class="fa-solid fa-lightbulb text-sm"></i>
-            </span>
-            <h3 class="text-lg font-bold">Nueva sugerencia</h3>
-          </div>
-          <form @submit.prevent="handleCreate" class="space-y-4">
+            <!-- Tipo -->
+            <div class="flex gap-2">
+              <button type="button" v-for="t in typeOptions" :key="t.value"
+                @click="createModal.form.type = t.value"
+                :class="createModal.form.type === t.value ? t.activeClass : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
+                class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors">
+                <i :class="t.icon" class="mr-1"></i>{{ t.label }}
+              </button>
+            </div>
+
+            <!-- Prioridad -->
+            <div class="flex gap-2">
+              <button type="button" v-for="p in priorityOptions" :key="p.value"
+                @click="createModal.form.priority = p.value"
+                :class="createModal.form.priority === p.value ? p.activeClass : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
+                class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors">
+                {{ p.label }}
+              </button>
+            </div>
+
             <div>
               <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Título *</label>
-              <input v-model="createModal.form.title" type="text" maxlength="200" placeholder="Resume tu idea..."
-                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              <input v-model="createModal.form.title" type="text" maxlength="200"
+                :placeholder="createModal.form.type === 'bug' ? 'Describe el problema...' : 'Describe tu sugerencia...'"
+                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
             </div>
+
             <div>
               <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Descripción *</label>
-              <textarea v-model="createModal.form.description" rows="4" placeholder="Explica la idea con detalle..."
-                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"></textarea>
+              <textarea v-model="createModal.form.description" rows="4"
+                :placeholder="createModal.form.type === 'bug' ? 'Explica el problema con detalle...' : 'Explica tu idea con detalle...'"
+                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none"></textarea>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Prioridad</label>
-              <div class="flex gap-2">
-                <button type="button" v-for="p in priorityOptions" :key="p.value"
-                  @click="createModal.form.priority = p.value"
-                  :class="createModal.form.priority === p.value ? p.activeClass : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
-                  class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors">{{ p.label }}</button>
-              </div>
-            </div>
+
             <button type="submit" :disabled="createModal.saving || !createModal.form.title.trim() || !createModal.form.description.trim()"
-              class="w-full bg-blue-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-40">
-              {{ createModal.saving ? 'Guardando...' : 'Crear sugerencia' }}
+              class="w-full bg-rv-navy text-white py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-40">
+              {{ createModal.saving ? 'Guardando...' : 'Crear' }}
             </button>
           </form>
         </div>
@@ -296,29 +251,19 @@ export default defineComponent({
       { value: 'all', label: 'Todas' },
     ];
 
-    const typeFiltered = computed(() =>
-      activeType.value === 'all'
-        ? suggestions.value
-        : suggestions.value.filter(s => s.type === activeType.value)
-    );
-
     const filtered = computed(() =>
       activeStatus.value === 'all'
-        ? typeFiltered.value
-        : typeFiltered.value.filter(s => s.status === activeStatus.value)
+        ? suggestions.value
+        : suggestions.value.filter(s => s.status === activeStatus.value)
     );
 
-    const countByType = (type: string) =>
-      type === 'all' ? suggestions.value.length : suggestions.value.filter(s => s.type === type).length;
-
     const countByStatus = (status: string) =>
-      status === 'all' ? typeFiltered.value.length : typeFiltered.value.filter(s => s.status === status).length;
+      status === 'all' ? suggestions.value.length : suggestions.value.filter(s => s.status === status).length;
 
     const createModal = ref({
       show: false,
       saving: false,
-      type: 'suggestion' as SuggestionType,
-      form: { title: '', description: '', priority: 'medium' as SuggestionPriority },
+      form: { title: '', description: '', type: 'suggestion' as SuggestionType, priority: 'medium' as SuggestionPriority },
     });
 
     const rejectModal = ref({
@@ -337,24 +282,29 @@ export default defineComponent({
     const fetchAll = async () => {
       loading.value = true;
       try {
-        suggestions.value = await getSuggestions();
+        const type = activeType.value === 'all' ? undefined : activeType.value;
+        suggestions.value = await getSuggestions(type);
       } finally {
         loading.value = false;
       }
     };
 
-    const openCreateModal = (type: SuggestionType) => {
-      createModal.value.type = type;
-      createModal.value.form = { title: '', description: '', priority: 'medium' };
+    const setType = (type: SuggestionType | 'all') => {
+      activeType.value = type;
+      fetchAll();
+    };
+
+    const openCreateModal = () => {
+      createModal.value.form = { title: '', description: '', type: 'suggestion', priority: 'medium' };
       createModal.value.show = true;
     };
 
     const handleCreate = async () => {
-      const { form, type } = createModal.value;
+      const { form } = createModal.value;
       if (!form.title.trim() || !form.description.trim()) return;
       createModal.value.saving = true;
       try {
-        const created = await createSuggestion({ ...form, type });
+        const created = await createSuggestion(form);
         suggestions.value.unshift(created);
         createModal.value.show = false;
         SwalService.success('Creado correctamente');
@@ -442,6 +392,11 @@ export default defineComponent({
       if (idx !== -1) suggestions.value[idx] = updated;
     };
 
+    const typeOptions = [
+      { value: 'suggestion', label: 'Sugerencia', icon: 'fa-solid fa-lightbulb', activeClass: 'bg-blue-500 text-white' },
+      { value: 'bug', label: 'Bug', icon: 'fa-solid fa-bug', activeClass: 'bg-red-500 text-white' },
+    ];
+
     const priorityOptions = [
       { value: 'low', label: 'Baja', activeClass: 'bg-green-500 text-white' },
       { value: 'medium', label: 'Media', activeClass: 'bg-amber-500 text-white' },
@@ -469,8 +424,8 @@ export default defineComponent({
       suggestions, loading, activeType, activeStatus,
       typeTabs, statusTabs, filtered,
       createModal, rejectModal, doneModal,
-      priorityOptions,
-      countByType, countByStatus,
+      typeOptions, priorityOptions,
+      countByStatus, setType,
       openCreateModal, handleCreate,
       openRejectModal, handleReject,
       openDoneModal, handleDone,
