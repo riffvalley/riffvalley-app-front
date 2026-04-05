@@ -254,6 +254,12 @@ const routes: Array<RouteRecordRaw> = [
     props: true,
   },
   {
+    path: "/artists/management",
+    name: "ArtistManagement",
+    component: () => import("/src/views/artists/ArtistManagement.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/national-releases/form",
     name: "NationalReleasePublic",
     component: () => import("/src/views/nationalReleases/NationalReleaseForm.vue"),
