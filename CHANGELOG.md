@@ -1,3 +1,8 @@
+## <small>1.15.1 (2026-03-13)</small>
+
+* fix(kanban): remove backlog field from articles, videos and spotify (#128) ([4a3d4ef](https://github.com/riffvalley/riffvalley-app-front/commit/4a3d4ef)), closes [#128](https://github.com/riffvalley/riffvalley-app-front/issues/128)
+* Feat/kanban backlog field (#127) ([6b52b41](https://github.com/riffvalley/riffvalley-app-front/commit/6b52b41)), closes [#127](https://github.com/riffvalley/riffvalley-app-front/issues/127)
+
 ## 1.15.0 (2026-03-11)
 
 * feat(kanban): add backlog field and optional date to content creation forms (#126) ([736faa1](https://github.com/riffvalley/riffvalley-app-front/commit/736faa1)), closes [#126](https://github.com/riffvalley/riffvalley-app-front/issues/126)

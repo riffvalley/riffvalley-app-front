@@ -14,6 +14,13 @@
     "icon": "fa-solid fa-compact-disc"
   },
   {
+    "to": "/artists/management",
+    "label": "Artistas",
+    "activeClass": "bg-gray-700",
+    "type": "disc-app",
+    "icon": "fa-solid fa-microphone"
+  },
+  {
     "to": "/calendar",
     "label": "Calendario",
     "activeClass": "bg-gray-700",

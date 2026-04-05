@@ -612,8 +612,7 @@ async function save() {
                 name: form.name,
                 type: form.type,
                 link: form.link || undefined,
-                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
-                backlog: !form.updateDate
+                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined
             });
             // Update local
             const idx = items.value.findIndex(x => x.id === editingId.value);
@@ -629,7 +628,6 @@ async function save() {
                 link: form.link || undefined,
                 status: 'not_started', // Default state
                 updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
-                backlog: !form.updateDate,
                 userId: authStore.userId || undefined // Always assign to current session user
             });
             // Manually hydrate user for optimistic UI if API doesn't return it
