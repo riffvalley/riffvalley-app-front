@@ -128,6 +128,38 @@
                                 </select>
                             </div>
 
+                            <!-- Coauthor Selector (Click to Edit) -->
+                            <div class="relative group mt-1">
+                                <div v-if="editingCoauthorItemId !== item.id" @click="startEditingCoauthor(item.id)"
+                                    class="flex items-center gap-2 p-1.5 rounded-lg border border-transparent bg-indigo-50/50 transition-all hover:bg-indigo-100/50 cursor-pointer">
+                                    <template v-if="item.coauthor">
+                                        <img v-if="item.coauthor.image" :src="item.coauthor.image"
+                                            class="w-5 h-5 rounded-full object-cover bg-gray-200" alt="Avatar" />
+                                        <div v-else
+                                            class="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-bold text-indigo-500">
+                                            {{ (item.coauthor.username || '?').charAt(0).toUpperCase() }}
+                                        </div>
+                                        <span class="text-xs font-medium text-indigo-700 truncate min-w-0 flex-1">
+                                            <span class="text-[10px] text-indigo-400 mr-1">Coautor:</span>{{ item.coauthor.username }}
+                                        </span>
+                                    </template>
+                                    <template v-else>
+                                        <div class="w-5 h-5 rounded-full bg-indigo-100 flex items-center justify-center">
+                                            <i class="fa-solid fa-user-plus text-indigo-300 text-[10px]"></i>
+                                        </div>
+                                        <span class="text-xs text-indigo-300 flex-1">Sin coautor</span>
+                                    </template>
+                                </div>
+                                <select v-else :value="item.coauthor?.id || ''" @change="onCoauthorChange(item, $event)"
+                                    @blur="editingCoauthorItemId = null" ref="coauthorSelectRef"
+                                    class="w-full text-xs p-1.5 bg-white border border-indigo-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                    <option value="">Sin coautor</option>
+                                    <option v-for="user in users" :key="user.id" :value="user.id">
+                                        {{ user.username }}
+                                    </option>
+                                </select>
+                            </div>
+
                             <!-- Action Buttons and Date -->
                             <div class="flex items-center justify-between pt-2 border-t border-gray-100 mt-2">
                                 <!-- Date -->
@@ -186,6 +218,12 @@
                 <div>
                     <label class="block text-sm font-medium mb-1">Enlace (Opcional)</label>
                     <input v-model="form.link" type="url"
+                        class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-1">Fecha (Opcional)</label>
+                    <input v-model="form.updateDate" type="date"
                         class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
                 </div>
 
@@ -251,7 +289,7 @@ const columns: Column[] = [
     },
     {
         id: 'editing',
-        label: 'Editing',
+        label: 'Reviewing',
         bgClass: 'bg-yellow-50',
         borderClass: 'border-t-4 border-yellow-500',
         textClass: 'text-yellow-900',
@@ -293,6 +331,10 @@ const userSelectRef = ref<HTMLSelectElement | null>(null);
 const editingEditorItemId = ref<string | null>(null);
 const editorSelectRef = ref<HTMLSelectElement | null>(null);
 
+// Coauthor Edit State
+const editingCoauthorItemId = ref<string | null>(null);
+const coauthorSelectRef = ref<HTMLSelectElement | null>(null);
+
 // Modal state
 const showModal = ref(false);
 const isEditing = ref(false);
@@ -300,7 +342,8 @@ const editingId = ref<string | null>(null);
 const form = reactive({
     name: '',
     type: 'articulo' as ArticleType, // Default
-    link: ''
+    link: '',
+    updateDate: ''
 });
 
 // --- Getters ---
@@ -496,6 +539,40 @@ async function onEditorChange(item: Article, event: Event) {
     }
 }
 
+// --- Coauthor Assignment ---
+async function startEditingCoauthor(itemId: string) {
+    editingCoauthorItemId.value = itemId;
+    await nextTick();
+    const selects = coauthorSelectRef.value as unknown as HTMLSelectElement[];
+    if (Array.isArray(selects) && selects.length > 0) {
+        selects[0]?.focus();
+    } else if (coauthorSelectRef.value) {
+        (coauthorSelectRef.value as HTMLSelectElement).focus();
+    }
+}
+
+async function onCoauthorChange(item: Article, event: Event) {
+    const select = event.target as HTMLSelectElement;
+    const newCoauthorId = select.value || null;
+    editingCoauthorItemId.value = null;
+
+    const oldCoauthor = item.coauthor;
+    if (newCoauthorId) {
+        const u = users.value.find(x => x.id === newCoauthorId);
+        item.coauthor = { id: newCoauthorId, username: u?.username || '...', image: u?.image };
+    } else {
+        item.coauthor = undefined;
+    }
+
+    try {
+        await updateArticle(item.id, { coauthorId: newCoauthorId || undefined });
+    } catch (e) {
+        console.error(e);
+        item.coauthor = oldCoauthor;
+        SwalService.error('Error asignando coautor');
+    }
+}
+
 // --- Create / Edit Item ---
 function openCreate() {
     isEditing.value = false;
@@ -503,6 +580,7 @@ function openCreate() {
     form.name = '';
     form.type = 'articulo';
     form.link = '';
+    form.updateDate = '';
     showModal.value = true;
 }
 
@@ -513,6 +591,7 @@ function openEdit(item: Article) {
     form.name = item.name;
     form.type = item.type;
     form.link = item.link || '';
+    form.updateDate = item.updateDate ? item.updateDate.slice(0, 10) : '';
     showModal.value = true;
 }
 
@@ -532,7 +611,8 @@ async function save() {
             const updated = await updateArticle(editingId.value, {
                 name: form.name,
                 type: form.type,
-                link: form.link || undefined
+                link: form.link || undefined,
+                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined
             });
             // Update local
             const idx = items.value.findIndex(x => x.id === editingId.value);
@@ -547,7 +627,7 @@ async function save() {
                 type: form.type,
                 link: form.link || undefined,
                 status: 'not_started', // Default state
-                updateDate: toISO(new Date()),
+                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
                 userId: authStore.userId || undefined // Always assign to current session user
             });
             // Manually hydrate user for optimistic UI if API doesn't return it

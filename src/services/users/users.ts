@@ -28,3 +28,44 @@ export async function updateUserSuperAdminService( id: string, updateUserDto: an
 export async function deleteUserService(id: string): Promise<void> {
   await api.delete(`/auth/${id}`);
 }
+
+export async function deactivateUserService(id: string): Promise<void> {
+  await api.patch(`/auth/${id}/deactivate`);
+}
+
+export async function activateUserService(id: string): Promise<void> {
+  await api.patch(`/auth/${id}/activate`);
+}
+
+export interface ActivityVote {
+  id: string;
+  rate: number | null;
+  cover: number | null;
+  createdAt: string;
+  editedAt: string | null;
+  user: { id: string; username: string; image?: string };
+  disc: { id: string; name: string };
+}
+
+export interface GlobalActivityResponse {
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+  data: ActivityVote[];
+}
+
+export interface UserActivityResponse {
+  votes: (Omit<ActivityVote, 'user'> & { disc: any })[];
+  logins: { date: string }[];
+}
+
+export async function getGlobalActivity(limit = 20, offset = 0): Promise<GlobalActivityResponse> {
+  const response = await api.get<GlobalActivityResponse>('/auth/activity', { params: { limit, offset } });
+  return response.data;
+}
+
+export async function getUserActivity(userId: string): Promise<UserActivityResponse> {
+  const response = await api.get<UserActivityResponse>(`/auth/${userId}/activity`);
+  return response.data;
+}

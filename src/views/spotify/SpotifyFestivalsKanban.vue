@@ -130,6 +130,12 @@
                         class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium mb-1">Fecha (Opcional)</label>
+                    <input v-model="form.updateDate" type="date"
+                        class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
+                </div>
+
                 <div class="flex justify-end gap-2 pt-2">
                     <button @click="closeModal" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
                     <button @click="save"
@@ -190,7 +196,7 @@ const columns: Column[] = [
     },
     {
         id: 'editing',
-        label: 'Editing',
+        label: 'Reviewing',
         bgClass: 'bg-yellow-50',
         borderClass: 'border-t-4 border-yellow-500',
         textClass: 'text-yellow-900',
@@ -231,7 +237,8 @@ const isEditing = ref(false);
 const editingId = ref<string | null>(null);
 const form = reactive({
     name: '',
-    link: ''
+    link: '',
+    updateDate: ''
 });
 
 // --- Getters ---
@@ -351,6 +358,7 @@ function openCreate() {
     editingId.value = null;
     form.name = '';
     form.link = '';
+    form.updateDate = '';
     showModal.value = true;
 }
 
@@ -359,6 +367,7 @@ function openEdit(item: Spotify) {
     editingId.value = item.id;
     form.name = item.name;
     form.link = item.link;
+    form.updateDate = item.updateDate ? item.updateDate.slice(0, 10) : '';
     showModal.value = true;
 }
 
@@ -377,7 +386,8 @@ async function save() {
         if (isEditing.value && editingId.value) {
             const updated = await updateSpotify(editingId.value, {
                 name: form.name,
-                link: form.link
+                link: form.link,
+                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined
             });
             const idx = items.value.findIndex(x => x.id === editingId.value);
             if (idx !== -1) items.value[idx] = updated;
@@ -390,7 +400,7 @@ async function save() {
                 link: form.link,
                 status: 'not_started',
                 type: 'festival',
-                updateDate: toISO(new Date()),
+                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
                 userId: authStore.userId || undefined
             });
             if (!created.user && authStore.userId) {

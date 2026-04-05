@@ -1,3 +1,47 @@
+## <small>1.15.1 (2026-03-13)</small>
+
+* fix(kanban): remove backlog field from articles, videos and spotify (#128) ([4a3d4ef](https://github.com/riffvalley/riffvalley-app-front/commit/4a3d4ef)), closes [#128](https://github.com/riffvalley/riffvalley-app-front/issues/128)
+* Feat/kanban backlog field (#127) ([6b52b41](https://github.com/riffvalley/riffvalley-app-front/commit/6b52b41)), closes [#127](https://github.com/riffvalley/riffvalley-app-front/issues/127)
+
+## 1.15.0 (2026-03-11)
+
+* feat(kanban): add backlog field and optional date to content creation forms (#126) ([736faa1](https://github.com/riffvalley/riffvalley-app-front/commit/736faa1)), closes [#126](https://github.com/riffvalley/riffvalley-app-front/issues/126)
+
+## 1.14.0 (2026-03-10)
+
+* feat(lastfm): add fill-images button in disc calendar for superUser (#125) ([4bc5b92](https://github.com/riffvalley/riffvalley-app-front/commit/4bc5b92)), closes [#125](https://github.com/riffvalley/riffvalley-app-front/issues/125)
+* Dev (#119) ([2a69307](https://github.com/riffvalley/riffvalley-app-front/commit/2a69307)), closes [#119](https://github.com/riffvalley/riffvalley-app-front/issues/119) [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#93](https://github.com/riffvalley/riffvalley-app-front/issues/93) [#94](https://github.com/riffvalley/riffvalley-app-front/issues/94) [#99](https://github.com/riffvalley/riffvalley-app-front/issues/99) [#101](https://github.com/riffvalley/riffvalley-app-front/issues/101) [#115](https://github.com/riffvalley/riffvalley-app-front/issues/115)
+* Feat/national releases (#113) ([ca794d4](https://github.com/riffvalley/riffvalley-app-front/commit/ca794d4)), closes [#113](https://github.com/riffvalley/riffvalley-app-front/issues/113)
+* Feat/national releases (#114) ([673f651](https://github.com/riffvalley/riffvalley-app-front/commit/673f651)), closes [#114](https://github.com/riffvalley/riffvalley-app-front/issues/114)
+* Feat/national releases (#116) ([41a2740](https://github.com/riffvalley/riffvalley-app-front/commit/41a2740)), closes [#116](https://github.com/riffvalley/riffvalley-app-front/issues/116)
+* Merge dev to main (#118) ([a0e1b86](https://github.com/riffvalley/riffvalley-app-front/commit/a0e1b86)), closes [#118](https://github.com/riffvalley/riffvalley-app-front/issues/118) [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#93](https://github.com/riffvalley/riffvalley-app-front/issues/93) [#94](https://github.com/riffvalley/riffvalley-app-front/issues/94) [#99](https://github.com/riffvalley/riffvalley-app-front/issues/99) [#101](https://github.com/riffvalley/riffvalley-app-front/issues/101) [#115](https://github.com/riffvalley/riffvalley-app-front/issues/115)
+* Merge dev to main (#120) ([c93cade](https://github.com/riffvalley/riffvalley-app-front/commit/c93cade)), closes [#120](https://github.com/riffvalley/riffvalley-app-front/issues/120) [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#93](https://github.com/riffvalley/riffvalley-app-front/issues/93) [#94](https://github.com/riffvalley/riffvalley-app-front/issues/94) [#99](https://github.com/riffvalley/riffvalley-app-front/issues/99) [#101](https://github.com/riffvalley/riffvalley-app-front/issues/101) [#115](https://github.com/riffvalley/riffvalley-app-front/issues/115)
+* Merge dev to main (#122) ([ac7964e](https://github.com/riffvalley/riffvalley-app-front/commit/ac7964e)), closes [#122](https://github.com/riffvalley/riffvalley-app-front/issues/122) [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#93](https://github.com/riffvalley/riffvalley-app-front/issues/93) [#94](https://github.com/riffvalley/riffvalley-app-front/issues/94) [#99](https://github.com/riffvalley/riffvalley-app-front/issues/99) [#101](https://github.com/riffvalley/riffvalley-app-front/issues/101) [#115](https://github.com/riffvalley/riffvalley-app-front/issues/115)
+
+## 1.13.0 (2026-03-04)
+
+* feat(national-releases): add national releases form and admin view (#112) ([c2dac4f](https://github.com/riffvalley/riffvalley-app-front/commit/c2dac4f)), closes [#112](https://github.com/riffvalley/riffvalley-app-front/issues/112)
+* Feat/backlog boolean field (#110) ([c1df49e](https://github.com/riffvalley/riffvalley-app-front/commit/c1df49e)), closes [#110](https://github.com/riffvalley/riffvalley-app-front/issues/110)
+* Feat/user management improvements (#111) ([71a1520](https://github.com/riffvalley/riffvalley-app-front/commit/71a1520)), closes [#111](https://github.com/riffvalley/riffvalley-app-front/issues/111)
+* Fix/calendar ghost events (#107) ([df604ff](https://github.com/riffvalley/riffvalley-app-front/commit/df604ff)), closes [#107](https://github.com/riffvalley/riffvalley-app-front/issues/107)
+* Fix/calendar ghost events (#108) ([1e962e6](https://github.com/riffvalley/riffvalley-app-front/commit/1e962e6)), closes [#108](https://github.com/riffvalley/riffvalley-app-front/issues/108)
+* Fix/calendar ghost events (#109) ([9bba005](https://github.com/riffvalley/riffvalley-app-front/commit/9bba005)), closes [#109](https://github.com/riffvalley/riffvalley-app-front/issues/109)
+
+## <small>1.12.4 (2026-03-04)</small>
+
+* fix(calendar): eliminar eventos fantasma al arrastrar desde el backlog (#106) ([f34c578](https://github.com/riffvalley/riffvalley-app-front/commit/f34c578)), closes [#106](https://github.com/riffvalley/riffvalley-app-front/issues/106)
+* Dev (#100) ([842ae6b](https://github.com/riffvalley/riffvalley-app-front/commit/842ae6b)), closes [#100](https://github.com/riffvalley/riffvalley-app-front/issues/100)
+* Dev (#102) ([6214110](https://github.com/riffvalley/riffvalley-app-front/commit/6214110)), closes [#102](https://github.com/riffvalley/riffvalley-app-front/issues/102)
+* Dev (#104) ([d7c9bb4](https://github.com/riffvalley/riffvalley-app-front/commit/d7c9bb4)), closes [#104](https://github.com/riffvalley/riffvalley-app-front/issues/104) [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#93](https://github.com/riffvalley/riffvalley-app-front/issues/93) [#94](https://github.com/riffvalley/riffvalley-app-front/issues/94) [#99](https://github.com/riffvalley/riffvalley-app-front/issues/99) [#101](https://github.com/riffvalley/riffvalley-app-front/issues/101)
+* Dev (#95) ([9bec432](https://github.com/riffvalley/riffvalley-app-front/commit/9bec432)), closes [#95](https://github.com/riffvalley/riffvalley-app-front/issues/95)
+* Dev (#96) ([454e3f3](https://github.com/riffvalley/riffvalley-app-front/commit/454e3f3)), closes [#96](https://github.com/riffvalley/riffvalley-app-front/issues/96)
+* Feature/home news (#89) (#90) ([e19f857](https://github.com/riffvalley/riffvalley-app-front/commit/e19f857)), closes [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#90](https://github.com/riffvalley/riffvalley-app-front/issues/90)
+* fix:import discs (#105) ([7889e92](https://github.com/riffvalley/riffvalley-app-front/commit/7889e92)), closes [#105](https://github.com/riffvalley/riffvalley-app-front/issues/105)
+* Revert "Dev (#95)" (#97) ([c56d57e](https://github.com/riffvalley/riffvalley-app-front/commit/c56d57e)), closes [#95](https://github.com/riffvalley/riffvalley-app-front/issues/95) [#97](https://github.com/riffvalley/riffvalley-app-front/issues/97)
+* Revert "Feature/home news (#89) (#90)" (#91) ([0d32ae5](https://github.com/riffvalley/riffvalley-app-front/commit/0d32ae5)), closes [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#90](https://github.com/riffvalley/riffvalley-app-front/issues/90) [#91](https://github.com/riffvalley/riffvalley-app-front/issues/91)
+* Revert "Feature/home news (#89) (#90)" (#92) ([90d3301](https://github.com/riffvalley/riffvalley-app-front/commit/90d3301)), closes [#89](https://github.com/riffvalley/riffvalley-app-front/issues/89) [#90](https://github.com/riffvalley/riffvalley-app-front/issues/90) [#92](https://github.com/riffvalley/riffvalley-app-front/issues/92)
+* revert: back to pre-5pm state (633c949) ([f12aad2](https://github.com/riffvalley/riffvalley-app-front/commit/f12aad2))
+
 ## <small>1.12.3 (2026-02-18)</small>
 
 * fix: UI Home ([8552b9b](https://github.com/riffvalley/riffvalley-app-front/commit/8552b9b))

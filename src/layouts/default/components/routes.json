@@ -14,6 +14,13 @@
     "icon": "fa-solid fa-compact-disc"
   },
   {
+    "to": "/artists/management",
+    "label": "Artistas",
+    "activeClass": "bg-gray-700",
+    "type": "disc-app",
+    "icon": "fa-solid fa-microphone"
+  },
+  {
     "to": "/calendar",
     "label": "Calendario",
     "activeClass": "bg-gray-700",
@@ -149,6 +156,14 @@
     "icon": "fa-solid fa-upload"
   },
   {
+    "to": "/national-releases",
+    "label": "Lanzamientos Nacionales",
+    "activeClass": "bg-gray-700",
+    "type": "riff-valley",
+    "requiredRole": "riffValley",
+    "icon": "fa-solid fa-flag"
+  },
+  {
     "label": "Usuarios",
     "type": "management",
     "requiredRole": "superUser",
@@ -163,6 +178,11 @@
         "to": "/users/stats",
         "label": "Estadísticas",
         "icon": "fa-solid fa-chart-bar"
+      },
+      {
+        "to": "/users/activity",
+        "label": "Actividad",
+        "icon": "fa-solid fa-bolt"
       }
     ]
   },

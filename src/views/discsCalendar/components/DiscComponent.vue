@@ -133,6 +133,25 @@
           Borrar
         </button>
       </div>
+
+      <!-- Fila 4: Novedad nacional (solo si el artista es español) -->
+      <div v-if="isSpanish">
+        <button
+          v-if="disc.nationalReleaseId"
+          disabled
+          class="w-full bg-gray-200 text-gray-500 font-semibold px-3 py-2 rounded-lg text-sm cursor-not-allowed"
+        >
+          ✓ Ya en novedades nacionales
+        </button>
+        <button
+          v-else
+          @click="addNationalRelease"
+          :disabled="addingNational"
+          class="w-full bg-gradient-to-r from-rv-pink to-rv-purple hover:opacity-90 disabled:opacity-50 text-white font-semibold px-3 py-2 rounded-lg shadow-md transition-all duration-200 text-sm"
+        >
+          {{ addingNational ? "Añadiendo..." : "🇪🇸 Añadir a novedades nacionales" }}
+        </button>
+      </div>
     </div>
   </div>
 
@@ -207,6 +226,7 @@ import {
 } from "vue";
 import type { PropType } from "vue";
 import { updateDisc, deleteDisc } from "@services/discs/discs";
+import { createNationalReleaseFromDisc } from "@services/national-releases/nationalReleases";
 import { updateArtist, postArtist } from "@services/artist/artist";
 import { postPendingService, deletePendingService } from "@services/pendings/pendings";
 import Swal from "sweetalert2";
@@ -243,6 +263,7 @@ export default defineComponent({
         verified: boolean;
         releaseDate: Date;
         pendingId: string | null;
+        nationalReleaseId: string | null;
       }>,
       required: true,
     },
@@ -463,6 +484,7 @@ export default defineComponent({
     const deleteDiscFunction = async (discId: string) => {
       try {
         await deleteDisc(discId);
+        emit("disc-deleted", props.disc.id);
         Swal.fire({
           title: "¡Eliminado!",
           text: "El disco se eliminó correctamente.",
@@ -472,9 +494,23 @@ export default defineComponent({
           position: "top-end",
           showConfirmButton: false,
         });
-        emit("disc-deleted", props.disc.id);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error al eliminar el disco:", error);
+        const status = error?.response?.status;
+        Swal.fire({
+          title: status === 404 ? "Ya eliminado" : "Error",
+          text: status === 404
+            ? "Este disco ya no existe. Recargá la página."
+            : "No se pudo eliminar el disco.",
+          icon: status === 404 ? "warning" : "error",
+          timer: 4000,
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+        });
+        if (status === 404) {
+          emit("disc-deleted", props.disc.id);
+        }
       }
     };
 
@@ -761,6 +797,28 @@ export default defineComponent({
     const closeDiscDetail = () => (showDiscDetail.value = false);
     const closeArtistDetail = () => (showArtistDetail.value = false);
 
+    // --- Novedad nacional ---
+    const isSpanish = computed(() => {
+      const country = props.countries.find(c => c.id === editedArtist.countryId);
+      return country?.isoCode?.toLowerCase() === 'es';
+    });
+
+    const addingNational = ref(false);
+
+    const addNationalRelease = async () => {
+      addingNational.value = true;
+      try {
+        const releaseDay = new Date(props.disc.releaseDate).toISOString().split('T')[0];
+        const created = await createNationalReleaseFromDisc({ discId: props.disc.id, releaseDay });
+        props.disc.nationalReleaseId = created.id;
+        Swal.fire({ icon: 'success', title: 'Añadido a novedades nacionales', timer: 2000, showConfirmButton: false });
+      } catch (error: any) {
+        Swal.fire({ icon: 'error', title: error.response?.data?.message || 'Error al añadir' });
+      } finally {
+        addingNational.value = false;
+      }
+    };
+
     onMounted(() => {
       window.addEventListener("resize", updateSize);
     });
@@ -813,6 +871,9 @@ export default defineComponent({
       creatingNewArtist,
       toggleDebut,
       isFocused,
+      isSpanish,
+      addingNational,
+      addNationalRelease,
     };
   },
 });

@@ -98,6 +98,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, requiresRole: "superUser" },
   },
   {
+    path: "/users/activity",
+    name: "UserActivity",
+    component: () => import("/src/views/users/UserActivity.vue"),
+    meta: { requiresAuth: true, requiresRole: "superUser" },
+  },
+  {
     path: "/news",
     name: "News",
     component: () => import("/src/views/news/ManageNews.vue"),
@@ -246,6 +252,24 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("/src/views/videos/VideoListDetalle.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
     props: true,
+  },
+  {
+    path: "/artists/management",
+    name: "ArtistManagement",
+    component: () => import("/src/views/artists/ArtistManagement.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/national-releases/form",
+    name: "NationalReleasePublic",
+    component: () => import("/src/views/nationalReleases/NationalReleaseForm.vue"),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: "/national-releases",
+    name: "NationalReleasesAdmin",
+    component: () => import("/src/views/nationalReleases/NationalReleasesAdmin.vue"),
+    meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/maintenance",

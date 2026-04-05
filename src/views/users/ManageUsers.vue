@@ -82,6 +82,12 @@
 
           <!-- Acciones -->
           <div class="flex items-center gap-2 lg:ml-4 pt-3 lg:pt-0 border-t border-white/10 lg:border-0">
+            <!-- Indicador baneado -->
+            <span v-if="!user.isActive"
+              class="text-xs font-bold px-2 py-1 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 whitespace-nowrap">
+              Baneado
+            </span>
+
             <button
               @click="openNotesModal(user)"
               class="action-btn action-btn-blue"
@@ -102,10 +108,21 @@
               </svg>
             </button>
 
+            <!-- Ban / Reactivar -->
+            <button
+              @click="confirmBanUser(user)"
+              class="action-btn"
+              :class="user.isActive ? 'action-btn-orange' : 'action-btn-green'"
+              :title="user.isActive ? 'Banear' : 'Reactivar'"
+            >
+              <i :class="user.isActive ? 'fa-solid fa-user-slash' : 'fa-solid fa-user-check'" class="h-5 w-5 text-sm"></i>
+            </button>
+
+            <!-- Borrar físico -->
             <button
               @click="confirmDeleteUser(user)"
               class="action-btn action-btn-red"
-              title="Eliminar"
+              title="Eliminar permanentemente"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -301,6 +318,7 @@
 import { defineComponent, ref, onMounted } from "vue";
 import { useUserStore } from "@stores/user/users";
 import SwalService from "@services/swal/SwalService";
+import { deactivateUserService, activateUserService } from "@services/users/users";
 
 interface User {
   id: string;
@@ -309,6 +327,7 @@ interface User {
   roles: string[];
   createdAt: string;
   notes: string | null;
+  isActive: boolean;
 }
 
 export default defineComponent({
@@ -534,10 +553,36 @@ export default defineComponent({
       }
     };
 
+    const confirmBanUser = async (user: User) => {
+      const action = user.isActive ? 'banear' : 'reactivar';
+      const title = user.isActive ? '¿Banear usuario?' : '¿Reactivar usuario?';
+      const text = user.isActive
+        ? `${user.username} no podrá iniciar sesión. Puedes reactivarlo en cualquier momento.`
+        : `${user.username} podrá volver a iniciar sesión.`;
+
+      const result = await SwalService.confirm(title, text, 'warning');
+      if (!result.isConfirmed) return;
+
+      try {
+        if (user.isActive) {
+          await deactivateUserService(user.id);
+          user.isActive = false;
+          SwalService.success(`${user.username} baneado correctamente`);
+        } else {
+          await activateUserService(user.id);
+          user.isActive = true;
+          SwalService.success(`${user.username} reactivado correctamente`);
+        }
+      } catch (error) {
+        console.error(`Error al ${action} usuario:`, error);
+        SwalService.error(`Error al ${action} usuario`);
+      }
+    };
+
     const confirmDeleteUser = (user: User) => {
       SwalService.confirm(
-        "¿Eliminar usuario?",
-        `Se eliminará permanentemente a ${user.username}`,
+        "¿Eliminar usuario permanentemente?",
+        `Se borrarán todos los datos de ${user.username} y no se podrá recuperar.`,
         "warning"
       ).then(async (result) => {
         if (result.isConfirmed) {
@@ -585,6 +630,7 @@ export default defineComponent({
       openNotesModal,
       closeNotesModal,
       saveNotes,
+      confirmBanUser,
       confirmDeleteUser,
     };
   },
@@ -668,6 +714,24 @@ export default defineComponent({
 
 .action-btn-red:hover {
   background: rgba(239, 68, 68, 0.3);
+}
+
+.action-btn-orange {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+}
+
+.action-btn-orange:hover {
+  background: rgba(249, 115, 22, 0.3);
+}
+
+.action-btn-green {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.action-btn-green:hover {
+  background: rgba(34, 197, 94, 0.3);
 }
 
 /* Modal styles */

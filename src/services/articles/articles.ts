@@ -47,6 +47,8 @@ export interface Article {
     userId?: string;
     editor?: { id: string; username: string; image?: string }; // Editor asignado
     editorId?: string;
+    coauthor?: { id: string; username: string; image?: string }; // Coautor
+    coauthorId?: string;
 }
 
 // =========================
@@ -60,6 +62,7 @@ export interface CreateArticleDto {
     updateDate?: string;
     userId?: string;
     editorId?: string;
+    coauthorId?: string;
 }
 
 export interface UpdateArticleDto extends Partial<CreateArticleDto> { }

@@ -106,6 +106,24 @@ export async function updateDisc(
   await api.patch(`/discs/${id}`, data);
 }
 
+export interface CreateDiscWithArtistDto {
+  discName: string;
+  artistName: string;
+  genreId?: string;
+  releaseDate?: string;
+  ep?: boolean;
+  debut?: boolean;
+  link?: string;
+  image?: string;
+  description?: string;
+  countryId?: string;
+}
+
+export async function createDiscWithArtist(dto: CreateDiscWithArtistDto): Promise<Disc> {
+  const response = await api.post<Disc>("/discs/with-artist", dto);
+  return response.data;
+}
+
 export async function deleteDisc(id: string): Promise<void> {
   await api.delete(`/discs/${id}`);
 }

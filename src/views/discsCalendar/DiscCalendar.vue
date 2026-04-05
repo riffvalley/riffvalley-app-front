@@ -8,7 +8,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start mb-6">
       <DiscFilters :externalRow1="true" :searchQuery="searchQuery" :selectedGenre="selectedGenre"
         :selectedCountry="selectedCountry" :genres="genreOptions" :countries="countries" :showWeekPicker="false"
-        :showCountryFilter="false" @update:searchQuery="searchQuery = $event"
+        :showCountryFilter="true" @update:searchQuery="searchQuery = $event"
         @update:selectedGenre="selectedGenre = $event" @update:selectedCountry="selectedCountry = $event"
         selectClass="w-full min-w-0" @reset-and-fetch="resetAndFetch" />
 
@@ -56,6 +56,11 @@
           <div v-show="groupState[index]" class="mt-4 overflow-x-auto">
             <!-- Contenedor de botones centrado -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-2 mt-4 w-full">
+              <button v-if="isSuperUser" @click="buscarImagenesLastFm(group.releaseDate)"
+                class="bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 transition-all duration-200 hover:shadow-md transform hover:scale-105 w-full max-w-[300px] sm:max-w-none sm:w-auto text-center self-center">
+                Last.fm búsqueda
+              </button>
+
               <button v-if="new Date(group.releaseDate) < new Date()" @click="buscarEnlacesSpotify(group.discs)"
                 class="bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600 transition-all duration-200 hover:shadow-md transform hover:scale-105 w-full max-w-[300px] sm:max-w-none sm:w-auto text-center self-center">
                 Buscar enlaces en Spotify
@@ -108,12 +113,16 @@ import {
 } from "vue";
 import axios from "axios";
 import { updateDisc, deleteDisc, getDiscsDated } from "@services/discs/discs";
+import { getGenres } from "@services/genres/genres";
+import { getCountries } from "@services/countries/countries";
+import { fillImages } from "@services/lastfm/lastfm.ts";
 import DiscComponent from "./components/DiscComponent.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";
 import { MONTHS, getYearOptions } from "@helpers/dateConstants";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
 import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
+import { useAuthStore } from "@stores/auth/auth";
 
 export default defineComponent({
   components: { DiscComponent, DiscFilters, SimpleSelect },
@@ -127,6 +136,8 @@ export default defineComponent({
   emits: ["close"],
 
   setup(props) {
+    const authStore = useAuthStore();
+    const isSuperUser = computed(() => authStore.hasRole("superUser"));
     const groupedDiscs = ref<any[]>([]);
     const groupState = reactive({});
 
@@ -230,7 +241,7 @@ export default defineComponent({
         const response = await getDiscsDated(limit.value, offset.value, [
           startDate,
           endDate,
-        ]);
+        ], selectedCountry.value || undefined);
 
         response.data.forEach((group, index) => {
           groupState[index] = false;
@@ -354,7 +365,7 @@ export default defineComponent({
         const response = await getDiscsDated(limit.value, offset.value, [
           startDate,
           endDate,
-        ]);
+        ], selectedCountry.value || undefined);
 
         response.data.forEach((newGroup: any) => {
           newGroup.discs.forEach((disc: any) => {
@@ -496,6 +507,14 @@ export default defineComponent({
       URL.revokeObjectURL(link.href);
     };
 
+    const buscarImagenesLastFm = async (releaseDate: string) => {
+      const date = new Date(releaseDate);
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+      const week = Math.ceil(date.getDate() / 7);
+      await fillImages(month, year, week);
+    };
+
     const resetAndFetch = () => {
       offset.value = 0;
 
@@ -503,7 +522,11 @@ export default defineComponent({
     };
 
     watch(selectedYear, () => {
-      selectMonth(0); // Cargar enero al cambiar el año
+      selectMonth(0);
+    });
+
+    watch(selectedCountry, () => {
+      selectMonth(selectedMonth.value);
     });
 
     onMounted(() => {
@@ -519,6 +542,25 @@ export default defineComponent({
         fetchDiscs();
       }
     });
+
+    const removeDisc = (discId: string) => {
+      for (let i = groupedDiscs.value.length - 1; i >= 0; i--) {
+        const group = groupedDiscs.value[i];
+        const idx = group.discs.findIndex((d: any) => d.id === discId);
+        if (idx !== -1) {
+          group.discs.splice(idx, 1);
+          if (group.discs.length === 0) {
+            groupedDiscs.value.splice(i, 1);
+          }
+          break;
+        }
+      }
+    };
+
+    const handleDateChange = (discId: string, newDate: string) => {
+      // Remueve el disco del grupo actual; se reubicará en el próximo fetch
+      removeDisc(discId);
+    };
 
     return {
       groupedDiscs,
@@ -547,6 +589,12 @@ export default defineComponent({
       closing,
       focusDiscId,
       optionsReady,
+      genresLoaded,
+      countriesLoaded,
+      removeDisc,
+      handleDateChange,
+      isSuperUser,
+      buscarImagenesLastFm,
     };
   },
 });

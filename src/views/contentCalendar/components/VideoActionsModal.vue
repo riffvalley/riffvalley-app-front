@@ -221,7 +221,7 @@ function getStatusLabel(status: VideoStatus): string {
     const labels: Record<VideoStatus, string> = {
         not_started: 'Not Started',
         in_progress: 'In Progress',
-        editing: 'Editing',
+        editing: 'Reviewing',
         ready: 'Ready',
         published: 'Published'
     };

@@ -37,6 +37,13 @@
 
           <!-- Right: Controls Compact Group -->
           <div class="flex flex-wrap items-center gap-3 z-10 w-full md:w-auto justify-end">
+             <!-- WordPress Button -->
+             <button @click="publishToWordPress" :disabled="publishingWp"
+               class="bg-orange-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-orange-600 disabled:opacity-50 focus:ring-2 focus:ring-orange-400 flex items-center gap-2 shadow-sm">
+               <i class="fab fa-wordpress"></i>
+               {{ publishingWp ? 'Publicando...' : 'Publicar en WordPress' }}
+             </button>
+
              <!-- Status Badge -->
              <div class="relative">
                 <select 
@@ -115,8 +122,9 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getListDetails, updateList } from '@services/list/list';
+import { getListDetails, updateList, createWpPosts } from '@services/list/list';
 import SwalService from '@services/swal/SwalService';
+import Swal from 'sweetalert2';
 import { useAsignationStore } from '@stores/asignation/asignation';
 import { useUserStore } from '@stores/user/users';
 import DiscsByDate from '../list/components/DiscByDate.vue';
@@ -129,6 +137,7 @@ const userStore = useUserStore();
 
 const list = ref<any>(null);
 const loading = ref(true);
+const publishingWp = ref(false);
 
 function formatDateForInput(dateString: string) {
   if (!dateString) return '';
@@ -249,6 +258,29 @@ async function updateField(field: string, value: any) {
     SwalService.error('No se pudo guardar el cambio');
     // Revertir cambio local si falla? Sería ideal.
     // Por ahora simplificado.
+  }
+}
+
+async function publishToWordPress() {
+  if (!list.value) return;
+  publishingWp.value = true;
+  try {
+    const result = await createWpPosts(list.value.id);
+    const postsHtml = result.posts
+      .map(p => `<li class="mb-1">
+        ${p.skipped ? '⚠️ Ya existía' : '✅ Creado'} —
+        <a href="${p.link}" target="_blank" class="text-blue-600 underline">${p.title}</a>
+      </li>`)
+      .join('');
+    Swal.fire({
+      icon: 'success',
+      title: `${result.created} post(s) creados en WordPress`,
+      html: `<ul class="text-left text-sm mt-2">${postsHtml}</ul>`,
+    });
+  } catch (error: any) {
+    SwalService.error(error.response?.data?.message || 'Error al publicar en WordPress');
+  } finally {
+    publishingWp.value = false;
   }
 }
 
