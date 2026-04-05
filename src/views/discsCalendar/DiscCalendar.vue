@@ -113,8 +113,6 @@ import {
 } from "vue";
 import axios from "axios";
 import { updateDisc, deleteDisc, getDiscsDated } from "@services/discs/discs";
-import { getGenres } from "@services/genres/genres";
-import { getCountries } from "@services/countries/countries";
 import { fillImages } from "@services/lastfm/lastfm.ts";
 import DiscComponent from "./components/DiscComponent.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";
@@ -589,8 +587,6 @@ export default defineComponent({
       closing,
       focusDiscId,
       optionsReady,
-      genresLoaded,
-      countriesLoaded,
       removeDisc,
       handleDateChange,
       isSuperUser,
