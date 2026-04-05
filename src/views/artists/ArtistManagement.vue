@@ -112,7 +112,7 @@
             </div>
             <div class="flex items-center gap-1.5 flex-shrink-0">
               <button
-                v-if="isManager && isEmpty(artist)"
+                v-if="isManager"
                 @click="confirmDelete(artist)"
                 class="bg-red-100 hover:bg-red-200 text-red-500 rounded-full w-7 h-7 flex items-center justify-center transition-all"
                 title="Eliminar artista"
