@@ -4,7 +4,7 @@
     <!-- Cabecera -->
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
       <div>
-        <h1 class="text-2xl font-bold">Gestión de Sugerencias</h1>
+        <h1 class="text-2xl font-bold">Gestión de Bugs / Sugerencias</h1>
         <p class="text-gray-400 text-sm mt-0.5">{{ suggestions.length }} en total</p>
       </div>
       <button
