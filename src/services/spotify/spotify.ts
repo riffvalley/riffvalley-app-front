@@ -45,7 +45,7 @@ export interface CreateSpotifyDto {
   link: string;
   type: SpotifyTipo;
   /** ISO8601, ej "2025-09-22T10:00:00Z" */
-  updateDate: string;
+  updateDate?: string;
   userId?: string;
 }
 

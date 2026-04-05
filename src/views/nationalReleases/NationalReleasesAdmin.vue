@@ -107,6 +107,20 @@
                   :class="linkClass(release.link)">
                   <i :class="linkIcon(release.link)" class="text-sm"></i>
                 </a>
+                <!-- Vincular disco (solo album/ep) -->
+                <button
+                  v-if="release.discType !== 'single'"
+                  @click="openLinkDisc(release)"
+                  :title="release.disc ? 'Disco vinculado — click para cambiar' : (release.suggestedDisc ? 'Hay una sugerencia disponible' : 'Vincular disco')"
+                  :class="release.disc
+                    ? 'bg-green-50 text-green-600 hover:bg-green-100'
+                    : release.suggestedDisc
+                      ? 'bg-amber-50 text-amber-500 hover:bg-amber-100'
+                      : 'bg-gray-50 text-gray-400 hover:bg-gray-100'"
+                  class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+                >
+                  <i class="fas fa-link text-xs"></i>
+                </button>
                 <!-- Toggle aprobado -->
                 <button
                   @click="toggleApproved(release)"
@@ -119,12 +133,6 @@
                   <i :class="release.approved ? 'fas fa-check-circle' : 'fas fa-circle'" class="text-xs"></i>
                   {{ release.approved ? 'Aprobado' : 'Pendiente' }}
                 </button>
-                <!-- Enlace -->
-                <a v-if="release.link" :href="release.link" target="_blank" :title="release.link"
-                  class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
-                  :class="linkClass(release.link)">
-                  <i :class="linkIcon(release.link)" class="text-sm"></i>
-                </a>
                 <button @click="openEdit(release)" title="Editar"
                   class="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors">
                   <i class="fas fa-pen text-xs"></i>
@@ -357,6 +365,14 @@
       </div>
     </div>
 
+    <!-- Modal vincular disco -->
+    <LinkDiscModal
+      v-if="linkingRelease"
+      :release="linkingRelease"
+      @close="linkingRelease = null"
+      @linked="onLinked"
+    />
+
   </div>
 </template>
 
@@ -371,6 +387,7 @@ import {
   type DiscType,
 } from '@services/national-releases/nationalReleases';
 import SwalService from '@services/swal/SwalService';
+import LinkDiscModal from './components/LinkDiscModal.vue';
 
 const DISC_TYPES: { value: DiscType; label: string }[] = [
   { value: 'single', label: 'Single' },
@@ -397,6 +414,7 @@ const YEARS = [2025, 2026];
 
 export default defineComponent({
   name: 'NationalReleasesAdmin',
+  components: { LinkDiscModal },
   setup() {
     const releases = ref<NationalRelease[]>([]);
     const loading = ref(false);
@@ -634,10 +652,27 @@ export default defineComponent({
       release.approved = newValue;
       try {
         await updateNationalRelease(release.id, { approved: newValue });
+        if (pendingModal.show && pendingModal.releases.every(r => r.approved)) {
+          pendingMonths.value = pendingMonths.value.filter(m => m !== pendingModal.month);
+          pendingModal.show = false;
+        }
       } catch (error: any) {
         release.approved = !newValue;
         SwalService.error(error.response?.data?.message || 'Error al actualizar');
       }
+    };
+
+    // --- Vincular disco ---
+    const linkingRelease = ref<NationalRelease | null>(null);
+
+    const openLinkDisc = (release: NationalRelease) => {
+      linkingRelease.value = release;
+    };
+
+    const onLinked = (updated: NationalRelease) => {
+      const idx = releases.value.findIndex(r => r.id === updated.id);
+      if (idx !== -1) releases.value[idx] = updated;
+      linkingRelease.value = null;
     };
 
     // --- Eliminar ---
@@ -728,6 +763,9 @@ export default defineComponent({
       linkClass,
       discTypeLabel,
       discTypeClass,
+      linkingRelease,
+      openLinkDisc,
+      onLinked,
     };
   },
 });

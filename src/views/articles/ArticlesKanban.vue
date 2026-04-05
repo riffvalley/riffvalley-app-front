@@ -221,6 +221,12 @@
                         class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
                 </div>
 
+                <div>
+                    <label class="block text-sm font-medium mb-1">Fecha (Opcional)</label>
+                    <input v-model="form.updateDate" type="date"
+                        class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
+                </div>
+
                 <div class="flex justify-end gap-2 pt-2">
                     <button @click="closeModal" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
                     <button @click="save"
@@ -336,7 +342,8 @@ const editingId = ref<string | null>(null);
 const form = reactive({
     name: '',
     type: 'articulo' as ArticleType, // Default
-    link: ''
+    link: '',
+    updateDate: ''
 });
 
 // --- Getters ---
@@ -573,6 +580,7 @@ function openCreate() {
     form.name = '';
     form.type = 'articulo';
     form.link = '';
+    form.updateDate = '';
     showModal.value = true;
 }
 
@@ -583,6 +591,7 @@ function openEdit(item: Article) {
     form.name = item.name;
     form.type = item.type;
     form.link = item.link || '';
+    form.updateDate = item.updateDate ? item.updateDate.slice(0, 10) : '';
     showModal.value = true;
 }
 
@@ -602,7 +611,8 @@ async function save() {
             const updated = await updateArticle(editingId.value, {
                 name: form.name,
                 type: form.type,
-                link: form.link || undefined
+                link: form.link || undefined,
+                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined
             });
             // Update local
             const idx = items.value.findIndex(x => x.id === editingId.value);
@@ -617,7 +627,7 @@ async function save() {
                 type: form.type,
                 link: form.link || undefined,
                 status: 'not_started', // Default state
-                updateDate: toISO(new Date()),
+                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
                 userId: authStore.userId || undefined // Always assign to current session user
             });
             // Manually hydrate user for optimistic UI if API doesn't return it
