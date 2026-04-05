@@ -14,7 +14,7 @@
     "icon": "fa-solid fa-compact-disc"
   },
   {
-    "to": "/artists/management",
+    "to": "/artists",
     "label": "Artistas",
     "activeClass": "bg-gray-700",
     "type": "disc-app",
@@ -50,6 +50,13 @@
     "type": "disc-app",
     "requiredRole": "babyUser",
     "icon": "fa-solid fa-lightbulb"
+  },
+  {
+    "to": "/suggestions",
+    "label": "Bugs y Sugerencias",
+    "activeClass": "bg-gray-700",
+    "type": "disc-app",
+    "icon": "fa-solid fa-bug"
   },
   {
     "to": "/import",
@@ -185,6 +192,14 @@
         "icon": "fa-solid fa-bolt"
       }
     ]
+  },
+  {
+    "to": "/suggestions/management",
+    "label": "Bugs / Sugerencias",
+    "activeClass": "bg-gray-700",
+    "type": "management",
+    "requiredRole": "superUser",
+    "icon": "fa-solid fa-bug"
   },
   {
     "to": "/news",

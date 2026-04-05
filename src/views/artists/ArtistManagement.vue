@@ -38,7 +38,7 @@
         trigger-placeholder="Todos los géneros"
         all-label="Todos los géneros"
         :max="150"
-        class="rounded-full text-rv-navy text-sm border-rv-navy/20 shadow-lg"
+        class="w-full sm:w-56 rounded-full text-rv-navy text-sm border-rv-navy/20 shadow-lg"
       />
     </div>
 
@@ -54,14 +54,14 @@
         v-for="artist in artists"
         :key="artist.id"
         :class="[
-          'rounded-2xl border overflow-hidden transition-all flex',
+          'rounded-2xl border overflow-hidden transition-all flex flex-col sm:flex-row',
           isEmpty(artist) && isManager
             ? 'border-red-400 ring-2 ring-red-300'
             : 'border-gray-200 bg-white'
         ]"
       >
         <!-- Imagen izquierda 320x320 -->
-        <div class="relative w-80 h-80 flex-shrink-0">
+        <div class="relative w-full h-48 sm:w-80 sm:h-80 flex-shrink-0">
           <img
             v-if="artist.image"
             :src="artist.image"
@@ -112,7 +112,7 @@
             </div>
             <div class="flex items-center gap-1.5 flex-shrink-0">
               <button
-                v-if="isManager && isEmpty(artist)"
+                v-if="isManager"
                 @click="confirmDelete(artist)"
                 class="bg-red-100 hover:bg-red-200 text-red-500 rounded-full w-7 h-7 flex items-center justify-center transition-all"
                 title="Eliminar artista"
