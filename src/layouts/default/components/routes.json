@@ -56,7 +56,7 @@
     "label": "Bugs y Sugerencias",
     "activeClass": "bg-gray-700",
     "type": "disc-app",
-    "requiredRole": "babyUser",
+    "excludeRole": "superUser",
     "icon": "fa-solid fa-bug"
   },
   {

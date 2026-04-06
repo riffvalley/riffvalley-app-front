@@ -246,6 +246,7 @@ type AppRoute = {
   type: 'disc-app' | 'new-discs' | 'riff-valley' | 'management' | 'bottom';
   activeClass?: string;
   requiredRole?: string;
+  excludeRole?: string;
   icon?: string;
   children?: AppRoute[];
 };
@@ -272,9 +273,8 @@ export default defineComponent({
 
     const filterByRole = (routes: AppRoute[]) => {
       return routes.filter((route) => {
-        if (route.requiredRole) {
-          return authStore.hasRole(route.requiredRole);
-        }
+        if (route.excludeRole && authStore.hasRole(route.excludeRole)) return false;
+        if (route.requiredRole) return authStore.hasRole(route.requiredRole);
         return true;
       });
     };
