@@ -92,6 +92,16 @@ export interface ArtistManagementResponse {
   data: ArtistManagementItem[];
 }
 
+export interface DeleteOrphansResponse {
+  deleted: number;
+  artists: string[];
+}
+
+export async function deleteOrphanArtists(): Promise<DeleteOrphansResponse> {
+  const response = await api.delete<DeleteOrphansResponse>("/artists/orphans/all");
+  return response.data;
+}
+
 export async function getArtistsManagement(params: {
   query?: string;
   limit?: number;

@@ -3,7 +3,19 @@
     <!-- Cabecera -->
     <div class="flex items-center justify-between mb-6">
       <h1 class="text-2xl font-bold">Artistas</h1>
-      <span class="text-sm text-gray-400">{{ totalItems }} artistas</span>
+      <div class="flex items-center gap-3">
+        <span class="text-sm text-gray-400">{{ totalItems }} artistas</span>
+        <button
+          v-if="isManager"
+          @click="deleteOrphans"
+          :disabled="deletingOrphans"
+          class="text-xs font-semibold px-3 py-1.5 rounded-xl border border-red-200 text-red-500 bg-white hover:bg-red-50 transition-colors disabled:opacity-40"
+          title="Eliminar artistas sin discos ni lanzamientos"
+        >
+          <i class="fa-solid fa-broom mr-1.5"></i>
+          {{ deletingOrphans ? 'Limpiando...' : 'Limpiar huérfanos' }}
+        </button>
+      </div>
     </div>
 
     <!-- Filtros -->
@@ -534,7 +546,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, reactive, watch, onMounted } from "vue";
-import { getArtistsManagement, deleteArtist, updateArtist, searchArtistsByName } from "@services/artist/artist";
+import { getArtistsManagement, deleteArtist, updateArtist, searchArtistsByName, deleteOrphanArtists } from "@services/artist/artist";
 import { getArtistInfo } from "@services/lastfm/lastfm";
 import type { ArtistManagementItem, ArtistManagementDisc } from "@services/artist/artist";
 import { getCountries } from "@services/countries/countries";
@@ -569,6 +581,7 @@ export default defineComponent({
     const authStore = useAuthStore();
     const isManager = authStore.hasRole?.('riffValley') || authStore.hasRole?.('superUser')
       || (authStore.roles || '').includes('riffValley') || (authStore.roles || '').includes('superUser');
+    const deletingOrphans = ref(false);
     let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
     const editModal = reactive({
@@ -768,6 +781,35 @@ export default defineComponent({
       }
     };
 
+    const deleteOrphans = async () => {
+      const result = await Swal.fire({
+        title: '¿Limpiar artistas huérfanos?',
+        text: 'Se eliminarán todos los artistas que no tienen discos ni lanzamientos nacionales.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, limpiar',
+        cancelButtonText: 'Cancelar',
+      });
+      if (!result.isConfirmed) return;
+      deletingOrphans.value = true;
+      try {
+        const res = await deleteOrphanArtists();
+        await fetchArtists(1);
+        Swal.fire({
+          icon: 'success',
+          title: `${res.deleted} artistas eliminados`,
+          html: res.artists.length ? `<div class="text-sm text-gray-500 max-h-40 overflow-y-auto text-left">${res.artists.join('<br>')}</div>` : undefined,
+          confirmButtonColor: '#00021f',
+        });
+      } catch {
+        Swal.fire({ icon: 'error', title: 'Error al limpiar huérfanos', timer: 3000, showConfirmButton: false, toast: true, position: 'top-end' });
+      } finally {
+        deletingOrphans.value = false;
+      }
+    };
+
     const formatDate = (date: string) =>
       new Date(date).toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" });
 
@@ -881,6 +923,8 @@ export default defineComponent({
       selectedGenreId,
       needsReview,
       isManager,
+      deletingOrphans,
+      deleteOrphans,
       editModal,
       onQueryInput,
       goToPage,
