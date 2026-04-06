@@ -13,7 +13,7 @@
           title="Eliminar artistas sin discos ni lanzamientos"
         >
           <i class="fa-solid fa-broom mr-1.5"></i>
-          {{ deletingOrphans ? 'Limpiando...' : 'Limpiar huérfanos' }}
+          {{ deletingOrphans ? 'Limpiando...' : `Limpiar huérfanos (${orphanCount})` }}
         </button>
       </div>
     </div>
@@ -572,6 +572,7 @@ export default defineComponent({
     const totalItems = ref(0);
     const totalPages = ref(1);
     const currentPage = ref(1);
+    const orphanCount = ref(0);
     const loading = ref(false);
     const query = ref("");
     const countries = ref<Country[]>([]);
@@ -603,6 +604,7 @@ export default defineComponent({
         totalItems.value = res.totalItems;
         totalPages.value = res.totalPages;
         currentPage.value = res.currentPage;
+        orphanCount.value = res.orphanCount ?? 0;
       } catch {
         Swal.fire({ icon: "error", title: "Error al cargar artistas", timer: 3000, showConfirmButton: false, toast: true, position: "top-end" });
       } finally {
@@ -923,6 +925,7 @@ export default defineComponent({
       selectedGenreId,
       needsReview,
       isManager,
+      orphanCount,
       deletingOrphans,
       deleteOrphans,
       editModal,

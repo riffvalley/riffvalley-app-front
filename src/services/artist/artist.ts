@@ -89,6 +89,7 @@ export interface ArtistManagementResponse {
   totalPages: number;
   currentPage: number;
   limit: number;
+  orphanCount: number;
   data: ArtistManagementItem[];
 }
 
