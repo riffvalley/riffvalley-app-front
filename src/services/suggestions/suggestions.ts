@@ -46,8 +46,19 @@ export async function createSuggestion(dto: CreateSuggestionDto): Promise<Sugges
   return data;
 }
 
-export async function getSuggestions(params?: { type?: SuggestionType; status?: SuggestionStatus }): Promise<Suggestion[]> {
-  const { data } = await api.get<Suggestion[]>('/suggestions', { params });
+export interface SuggestionCounts {
+  in_progress: number;
+  done: number;
+  rejected: number;
+}
+
+export interface SuggestionsResponse {
+  data: Suggestion[];
+  counts: SuggestionCounts;
+}
+
+export async function getSuggestions(params?: { type?: SuggestionType; status?: SuggestionStatus }): Promise<SuggestionsResponse> {
+  const { data } = await api.get<SuggestionsResponse>('/suggestions', { params });
   return data;
 }
 

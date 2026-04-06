@@ -5,7 +5,7 @@
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
       <div>
         <h1 class="text-2xl font-bold">Gestión de Bugs / Sugerencias</h1>
-        <p class="text-gray-400 text-sm mt-0.5">{{ suggestions.length }} en total</p>
+        <p class="text-gray-400 text-sm mt-0.5">{{ counts.in_progress + counts.done + counts.rejected }} en total</p>
       </div>
       <button
         @click="openCreateModal"
@@ -226,6 +226,7 @@ import {
   type Suggestion,
   type SuggestionType,
   type SuggestionPriority,
+  type SuggestionCounts,
 } from '@services/suggestions/suggestions';
 import type { VersionItem } from '@services/versions/versions';
 import SwalService from '@services/swal/SwalService';
@@ -234,6 +235,7 @@ export default defineComponent({
   name: 'SuggestionsManagement',
   setup() {
     const suggestions = ref<Suggestion[]>([]);
+    const counts = ref<SuggestionCounts>({ in_progress: 0, done: 0, rejected: 0 });
     const loading = ref(false);
     const activeType = ref<SuggestionType | 'all'>('all');
     const activeStatus = ref('in_progress');
@@ -251,8 +253,10 @@ export default defineComponent({
       { value: 'all', label: 'Todas' },
     ];
 
-    const countByStatus = (status: string) =>
-      status === 'all' ? suggestions.value.length : suggestions.value.filter(s => s.status === status).length;
+    const countByStatus = (status: string) => {
+      if (status === 'all') return counts.value.in_progress + counts.value.done + counts.value.rejected;
+      return counts.value[status as keyof SuggestionCounts] ?? 0;
+    };
 
     const createModal = ref({
       show: false,
@@ -279,7 +283,9 @@ export default defineComponent({
         const params: { type?: SuggestionType; status?: SuggestionStatus } = {};
         if (activeType.value !== 'all') params.type = activeType.value;
         if (activeStatus.value !== 'all') params.status = activeStatus.value as SuggestionStatus;
-        suggestions.value = await getSuggestions(params);
+        const res = await getSuggestions(params);
+        suggestions.value = res.data;
+        counts.value = res.counts;
       } finally {
         loading.value = false;
       }
@@ -418,7 +424,7 @@ export default defineComponent({
     onMounted(fetchAll);
 
     return {
-      suggestions, loading, activeType, activeStatus,
+      suggestions, counts, loading, activeType, activeStatus,
       typeTabs, statusTabs,
       createModal, rejectModal, doneModal,
       typeOptions, priorityOptions,
