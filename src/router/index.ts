@@ -56,6 +56,18 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
+    path: "/suggestions",
+    name: "Suggestions",
+    component: () => import("/src/views/suggestions/SuggestionsPage.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/suggestions/management",
+    name: "SuggestionsManagement",
+    component: () => import("/src/views/suggestions/SuggestionsManagement.vue"),
+    meta: { requiresAuth: true, requiresRole: "superUser" },
+  },
+  {
     path: "/recap",
     name: "Recap",
     component: () => import("/src/views/weekRecap/WeekRecap.vue"),
