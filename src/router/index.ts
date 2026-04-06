@@ -59,7 +59,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/suggestions",
     name: "Suggestions",
     component: () => import("/src/views/suggestions/SuggestionsPage.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresRole: "babyUser" },
   },
   {
     path: "/suggestions/management",
