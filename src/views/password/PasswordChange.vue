@@ -175,7 +175,7 @@ export default {
       music: [
         "/avatar/avatar1.png", "/avatar/avatar2.png", "/avatar/avatar3.png", "/avatar/avatar4.png",
         "/avatar/avatar5.png", "/avatar/avatar6.png", "/avatar/avatar7.png", "/avatar/avatar8.png", "/avatar/avatar9.png", "/avatar/avatar10.png", "/avatar/avatar11.png", "/avatar/avatar12.png", "/avatar/avatar13.png", "/avatar/avatar14.png",
-        "/avatar/avatar15.png", "/avatar/avatar16.png", "/avatar/avatar17.png", "/avatar/avatar18.png", "/avatar/avatar19.png",
+        "/avatar/avatar15.png", "/avatar/avatar16.png", "/avatar/avatar17.png", "/avatar/avatar18.png", 
       ],
       animals: [
         "/avatar/avatar21.png", "/avatar/avatar22.png", "/avatar/avatar23.png", "/avatar/avatar24.png",
@@ -186,7 +186,7 @@ export default {
         "/avatar/avatar39.png", "/avatar/avatar40.png", "/avatar/avatar41.png", "/avatar/avatar42.png", "/avatar/avatar43.png", "/avatar/avatar44.png", "/avatar/avatar45.png", "/avatar/avatar46.png", "/avatar/avatar47.png", "/avatar/avatar48.png", "/avatar/avatar49.png", "/avatar/avatar50.png",
       ],
       misc: [
-        "/avatar/avatar20.png", "/avatar/avatar52.png", "/avatar/avatar53.png",
+        "/avatar/avatar20.png", "/avatar/avatar19.png", "/avatar/avatar54.png", "/avatar/avatar52.png", "/avatar/avatar53.png",
       ],
 
     });
