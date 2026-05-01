@@ -54,6 +54,10 @@
             <span v-if="req.genre"><i class="fas fa-tag mr-1"></i>{{ req.genre.name }}</span>
             <span v-if="req.country"><i class="fas fa-flag mr-1"></i>{{ req.country.name }}</span>
             <span><i class="far fa-clock mr-1"></i>{{ formatDate(req.createdAt) }}</span>
+            <span v-if="req.user">
+  <i class="fas fa-user mr-1"></i>
+{{ req.user.username || req.user.name || req.user.email || req.user.id }}
+</span>
           </p>
           <p v-if="req.adminNotes" class="text-xs text-gray-500 mt-1.5 italic">
             <i class="fas fa-comment-dots mr-1"></i>"{{ req.adminNotes }}"
@@ -404,6 +408,9 @@ export default defineComponent({
       loading.value = true;
       try {
         requests.value = await getAllRequests();
+console.log('PETICIONES:', requests.value);
+console.log('PRIMERA PETICIÓN:', requests.value[0]);
+console.log('USUARIO:', requests.value[0]?.user);
       } catch {
         SwalService.error('No se pudieron cargar las peticiones');
       } finally {
