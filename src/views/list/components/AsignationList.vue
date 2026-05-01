@@ -66,9 +66,37 @@
                   </div>
 
                   <!-- Artist -->
-                  <p class="text-[10px] text-gray-500 font-medium truncate mb-1" :title="asignation.disc.artist.name">
-                    {{ asignation.disc.artist.name }}
-                  </p>
+<div class="flex items-center gap-1.5 min-w-0 mb-1">
+  <p class="text-[10px] text-gray-500 font-medium truncate" :title="asignation.disc.artist.name">
+    {{ asignation.disc.artist.name }}
+  </p>
+
+  <span
+    v-if="asignation.disc.genre"
+    class="px-1.5 py-0.5 rounded-full text-[8px] font-bold text-white shadow-sm truncate max-w-[80px] flex-shrink-0"
+    :style="{ backgroundColor: asignation.disc.genre.color || '#9ca3af' }"
+  >
+    {{ asignation.disc.genre.name }}
+  </span>
+
+  <div v-if="getDiscCountry(asignation.disc)?.isoCode" class="relative group flex-shrink-0">
+    <template v-if="getDiscCountry(asignation.disc).isoCode === 'int'">
+      <img
+        src="/int.svg"
+        alt="Internacional"
+        class="h-4 w-4 rounded-full cursor-help object-cover"
+      />
+    </template>
+
+    <template v-else-if="getDiscCountry(asignation.disc).isoCode.length >= 2">
+      <CircleFlags
+        :country="getDiscCountry(asignation.disc).isoCode.slice(0, 2).toLowerCase()"
+        :show-flag-name="false"
+        class="h-4 w-4 cursor-help"
+      />
+    </template>
+  </div>
+</div>
                   
                   <!-- Actions Row Compact -->
                   <div class="flex items-center gap-1 mt-1">
@@ -187,6 +215,23 @@
                         :style="{ backgroundColor: asignation.disc.genre.color || '#9ca3af' }">
                         {{ asignation.disc.genre.name }}
                       </span>
+                      <div v-if="getDiscCountry(asignation.disc)?.isoCode" class="relative group flex-shrink-0">
+  <template v-if="getDiscCountry(asignation.disc).isoCode === 'int'">
+    <img
+      src="/int.svg"
+      alt="Internacional"
+      class="h-4 w-4 rounded-full cursor-help object-cover"
+    />
+  </template>
+
+  <template v-else-if="getDiscCountry(asignation.disc).isoCode.length >= 2">
+    <CircleFlags
+      :country="getDiscCountry(asignation.disc).isoCode.slice(0, 2).toLowerCase()"
+      :show-flag-name="false"
+      class="h-4 w-4 cursor-help"
+    />
+  </template>
+</div>
                   </div>
                   
                   <!-- Actions Row Compact -->
@@ -311,6 +356,7 @@ import { useAsignationStore } from "@stores/asignation/asignation";
 import { useUserStore } from "@stores/user/users";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import SwalService from "@services/swal/SwalService";
+import CircleFlags from "vue-circle-flags";
 
 export default defineComponent({
   name: "AsignationList",
@@ -344,6 +390,12 @@ export default defineComponent({
       await nextTick();
       // Opcional: enfocar el select si usamos refs
     };
+
+const getDiscCountry = (disc: any) => {
+  console.log('DISC COUNTRY DEBUG:', disc);
+
+  return disc.artist?.country || disc.artistCountry || disc.country || null;
+};
 
     const changeUser = async (asignation: any, event: Event) => {
       const select = event.target as HTMLSelectElement;
@@ -558,7 +610,8 @@ export default defineComponent({
       startEditingUser,
       changeUser,
       // Quick Move
-      moveTo
+      moveTo,
+      getDiscCountry,
     };
   },
 });

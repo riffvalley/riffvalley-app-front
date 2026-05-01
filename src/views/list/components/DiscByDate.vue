@@ -49,9 +49,31 @@
                   <!-- Bandera (con fallback por si el backend manda artistCountry plano) -->
                   <div v-if="(disc.artist?.country?.isoCode?.length >= 2) || (disc.artistCountry?.isoCode?.length >= 2)"
                     class="relative group">
-                    <CircleFlags
-                      :country="(disc.artist?.country?.isoCode || disc.artistCountry?.isoCode).slice(0, 2).toLowerCase()"
-                      :show-flag-name="false" class="h-5 w-5 cursor-help" aria-hidden="true" />
+                    <div v-if="disc.artist?.country?.isoCode || disc.artistCountry?.isoCode" class="relative group">
+                      <template v-if="(disc.artist?.country?.isoCode || disc.artistCountry?.isoCode) === 'int'">
+                        <img src="/int.svg" alt="Internacional" class="h-5 w-5 rounded-full cursor-help object-cover"
+                          aria-hidden="true" />
+                      </template>
+
+                      <template v-else-if="(disc.artist?.country?.isoCode || disc.artistCountry?.isoCode)?.length >= 2">
+                        <CircleFlags
+                          :country="(disc.artist?.country?.isoCode || disc.artistCountry?.isoCode).slice(0, 2).toLowerCase()"
+                          :show-flag-name="false" class="h-7 w-7 cursor-help" aria-hidden="true" />
+                      </template>
+
+                      <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-[9px] font-semibold
+    text-white bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300
+    max-w-[160px] whitespace-normal text-center z-20"
+                        style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                        {{
+                          countryAbbr[disc.artist?.country?.name]
+                          || disc.artist?.country?.name
+                          || countryAbbr[disc.artistCountry?.name]
+                          || disc.artistCountry?.name
+                          || (disc.artist?.country?.isoCode || disc.artistCountry?.isoCode)?.slice(0, 2).toUpperCase()
+                        }}
+                      </span>
+                    </div>
                     <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-[9px] font-semibold
            text-white bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300
            max-w-[160px] whitespace-normal text-center z-20"
@@ -104,6 +126,7 @@ import {
   watch,
   computed,
   nextTick,
+  type PropType,
 } from "vue";
 import { getDiscsDated } from "@services/discs/discs";
 import { getRvUsers } from "@services/users/users";
@@ -115,12 +138,14 @@ import { useAsignationStore } from "@stores/asignation/asignation";
 import { updateAsignationService } from "@services/asignation/asignation";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import DiscFilters from "@components/DiscFilters.vue"; // Importa DiscFilters
+import CircleFlags from "vue-circle-flags";
 
 export default defineComponent({
   name: "DiscsByDate",
   components: {
     SpotifyArtistButton,
     DiscFilters, // Registra DiscFilters
+      CircleFlags,
   },
 
   props: {

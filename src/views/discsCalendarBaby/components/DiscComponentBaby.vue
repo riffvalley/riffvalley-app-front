@@ -67,9 +67,24 @@
           Álbum debut
         </p>
 
-        <div v-if="artistCountry?.isoCode && artistCountry.isoCode.length >= 2" class="relative group">
-          <CircleFlags :country="artistCountry.isoCode.slice(0, 2).toLowerCase()" :show-flag-name="false"
-            class="h-5 w-5 cursor-help" aria-hidden="true" />
+<div v-if="artistCountry?.isoCode" class="relative group">
+  <template v-if="artistCountry.isoCode === 'int'">
+    <img
+      src="/int.svg"
+      alt="Internacional"
+      class="h-7 w-7 rounded-full cursor-help object-cover"
+      aria-hidden="true"
+    />
+  </template>
+
+  <template v-else-if="artistCountry.isoCode.length >= 2">
+    <CircleFlags
+      :country="artistCountry.isoCode.slice(0, 2).toLowerCase()"
+      :show-flag-name="false"
+      class="h-5 w-5 cursor-help"
+      aria-hidden="true"
+    />
+  </template>
           <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-[9px] font-semibold
                text-white bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300
                max-w-[160px] whitespace-normal text-center z-20"
