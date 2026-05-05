@@ -69,6 +69,8 @@
       </div>
     </div>
 
+
+
     <!-- Botones inferiores -->
     <div class="mt-5 flex items-center justify-center gap-3">
       <!-- Cómo usar la app -->
@@ -91,8 +93,27 @@
     <div class="mt-1 mb-1 flex justify-center">
     </div>
 
+    <!-- Solicitud de acceso -->
+<div class="mt-3 w-full max-w-sm px-4">
+  <button
+    @click="showAccessRequest = true"
+    class="w-full rounded-2xl bg-white/95 px-4 py-3 text-center shadow-md
+      border border-gray-100
+      hover:-translate-y-[1px] hover:shadow-lg
+      transition-all duration-150"
+  >
+    <p class="text-sm font-bold text-[#211d1d]">
+      ¿Te gusta lo que ves y quieres votar discos?
+    </p>
+
+    <p class="mt-1 text-xs text-gray-500">
+      Solicita acceso a Riff Valley app
+    </p>
+  </button>
+</div>
+
     <!-- Redes sociales -->
-    <div class="mt-4 flex items-center justify-center gap-3">
+    <div class="mt-5 flex items-center justify-center gap-3">
       <a href="https://www.instagram.com/riffvalleyes" target="_blank" class="w-10 h-10 flex items-center justify-center rounded-full
            bg-gray-100 text-[#211d1d]
            shadow-md
@@ -162,17 +183,24 @@
 
     <HowToUseModal v-if="showHowToUse" @close="showHowToUse = false" />
   </div>
+
+  <AccessRequestModal
+  v-if="showAccessRequest"
+  @close="showAccessRequest = false"
+/>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
 import { useAuthStore } from '../../stores/auth/auth';
 import { useRouter } from 'vue-router';
-import HowToUseModal from '@/components/HowToUseModal.vue'; // 👈 ajuste aquí
+import HowToUseModal from '@/components/HowToUseModal.vue';
+import AccessRequestModal from '@/components/AccessRequestModal.vue';
 
 export default defineComponent({
   components: {
     HowToUseModal,
+      AccessRequestModal,
   },
   setup() {
     const username = ref('');
@@ -180,7 +208,8 @@ export default defineComponent({
     const loading = ref(false);
     const error = ref<string | null>(null);
     const showPassword = ref(false);
-    const showHowToUse = ref(false); // 👈 control del modal
+    const showHowToUse = ref(false); 
+    const showAccessRequest = ref(false);
 
     const authStore = useAuthStore();
     const router = useRouter();
@@ -205,7 +234,8 @@ export default defineComponent({
       loading,
       error,
       handleLogin,
-      showHowToUse, // 👈 exportamos control
+      showHowToUse,
+      showAccessRequest,
     };
   },
 });

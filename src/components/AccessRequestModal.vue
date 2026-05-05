@@ -28,19 +28,19 @@
         </button>
 
         <!-- Cabecera -->
-        <div class="bg-rv-navy px-5 pt-6 pb-5 text-center text-white">
-          <h2 class="pr-8">
-            <span class="inline-flex items-center justify-center rounded-full
-              bg-white/15 px-4 py-1 text-sm font-bold tracking-wide">
-              SOLICITAR ACCESO
-            </span>
-          </h2>
+<div class="w-full bg-gradient-to-r from-[#0c6ddc] to-[#0a56b3] px-5 pt-6 pb-5 text-white">
+  <h2 class="pr-8 text-left">
+    <span class="inline-flex items-center justify-center rounded-full
+      bg-white/15 px-4 py-1 text-sm font-bold tracking-wide">
+      SOLICITAR ACCESO
+    </span>
+  </h2>
 
-          <p class="mt-4 text-sm text-white/85 leading-relaxed">
-            Dinos tu email y un alias para poder darte acceso a Riff Valley app.
-            Te contactaremos por privado para más instrucciones.
-          </p>
-        </div>
+  <p class="mt-4 text-sm text-white/85 leading-relaxed text-left">
+    Dinos tu email y un alias para poder darte acceso a Riff Valley app.
+    Te contactaremos por privado para más instrucciones.
+  </p>
+</div>
 
         <!-- Formulario -->
         <form @submit.prevent="submitRequest" class="p-5 space-y-4">
