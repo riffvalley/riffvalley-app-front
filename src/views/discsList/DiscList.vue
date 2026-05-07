@@ -38,6 +38,18 @@
         Mis portadas <span v-if="totalCovers !== ''">({{ totalCovers }})</span>
       </label>
 
+      <label
+  class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
+  :class="viewMode === 'comments'
+    ? 'bg-rv-purple text-white'
+    : 'bg-gray-200 text-rv-navy hover:bg-gray-300'
+  "
+>
+  <input type="radio" v-model="viewMode" value="comments" class="hidden" />
+  Mis comentarios
+  <span v-if="totalComments !== ''">({{ totalComments }})</span>
+</label>
+
       <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
         :class="viewMode === 'favorites'
           ? 'bg-red-500 text-white'
@@ -59,22 +71,101 @@
       </label>
     </div>
     <!-- donde hoy tienes el select de orden -->
-    <div v-if="viewMode === 'all' || viewMode === 'rates' || viewMode === 'covers' || viewMode === 'favorites'"
-      class="mb-6 flex justify-start">
+<div
+  v-if="viewMode === 'all' || viewMode === 'rates' || viewMode === 'covers' || viewMode === 'favorites'"
+  class="mb-6 flex justify-start"
+>
       <SimpleSelect class="select-pill w-full md:w-64" v-model="orderBy" :options="orderOptionsForTab"
         :placeholder="'Ordenar por'" />
     </div>
 
     <!-- Contenedor de cuadrícula para las tarjetas -->
-    <div class="cards-grid">
-      <DiscCard v-for="disc in discs" :key="disc.id" :id="disc.id" :ep="disc.ep" :artistCountry="disc.artist?.country"
-        :image="disc.image" :name="disc.name" :releaseDate="disc.releaseDate"
-        :artistName="disc.artist?.name || 'Desconocido'" :genreName="disc.genre?.name" :genreColor="disc.genre?.color"
-        :link="disc.link" :averageRate="disc.averageRate" :averageCover="disc.averageCover" :rate="disc.userRate?.rate"
-        :cover="disc.userRate?.cover" :isNew="!disc.userRate" :userDiscRate="disc.userRate?.id"
-        :favoriteId="disc.favoriteId" :pendingId="disc.pendingId" :comment-count="disc.commentCount"
-        :rateCount="disc.voteCount" :debut="disc.debut" />
+<!-- Listado de comentarios -->
+<div v-if="viewMode === 'comments'" class="space-y-4">
+  <div
+    v-for="comment in userComments"
+    :key="comment.id"
+    class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 flex gap-4"
+  >
+    <img
+      :src="comment.disc?.image"
+      :alt="comment.disc?.name"
+      class="w-20 h-20 rounded-xl object-cover shrink-0 bg-gray-100"
+    />
+
+    <div class="flex-1 min-w-0">
+      <div class="flex flex-wrap items-center gap-2 mb-1">
+        <span class="font-bold text-rv-navy">
+          {{ comment.disc?.artist?.name || 'Desconocido' }}
+        </span>
+
+        <span class="text-gray-400">–</span>
+
+        <span class="italic text-gray-800">
+          {{ comment.disc?.name }}
+        </span>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-3">
+        <span
+          v-if="comment.disc?.genre?.name"
+          class="px-2 py-0.5 rounded-full text-white"
+          :style="{ backgroundColor: comment.disc?.genre?.color || '#1f2937' }"
+        >
+          {{ comment.disc.genre.name }}
+        </span>
+
+        <span v-if="comment.disc?.releaseDate">
+          {{ formatDate(comment.disc.releaseDate) }}
+        </span>
+      </div>
+
+      <p class="text-sm text-gray-700 bg-gray-50 rounded-xl px-3 py-2">
+        “{{ comment.comment }}”
+      </p>
+
+      <p class="mt-2 text-xs text-gray-400">
+        Comentado el {{ formatDate(comment.createdAt) }}
+      </p>
     </div>
+  </div>
+
+  <p
+    v-if="!loading && userComments.length === 0"
+    class="text-center text-gray-500 text-sm mt-8"
+  >
+    Todavía no has escrito comentarios.
+  </p>
+</div>
+
+<!-- Contenedor de cuadrícula para las tarjetas -->
+<div v-else class="cards-grid">
+  <DiscCard
+    v-for="disc in discs"
+    :key="disc.id"
+    :id="disc.id"
+    :ep="disc.ep"
+    :artistCountry="disc.artist?.country"
+    :image="disc.image"
+    :name="disc.name"
+    :releaseDate="disc.releaseDate"
+    :artistName="disc.artist?.name || 'Desconocido'"
+    :genreName="disc.genre?.name"
+    :genreColor="disc.genre?.color"
+    :link="disc.link"
+    :averageRate="disc.averageRate"
+    :averageCover="disc.averageCover"
+    :rate="disc.userRate?.rate"
+    :cover="disc.userRate?.cover"
+    :isNew="!disc.userRate"
+    :userDiscRate="disc.userRate?.id"
+    :favoriteId="disc.favoriteId"
+    :pendingId="disc.pendingId"
+    :comment-count="disc.commentCount"
+    :rateCount="disc.voteCount"
+    :debut="disc.debut"
+  />
+</div>
 
     <!-- Elemento para disparar la carga adicional -->
     <div ref="loadMore" class="mt-10 text-center">
@@ -95,6 +186,7 @@ import { getPendingsByUser } from "@services/pendings/pendings";
 import DiscFilters from "@components/DiscFilters.vue";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
+import { getCommentsByUser } from "@services/comments/comments";
 
 export default defineComponent({
   components: {
@@ -118,6 +210,8 @@ export default defineComponent({
     const totalCovers = ref("");
     const totalFavorites = ref("");
     const totalPendings = ref("");
+    const totalComments = ref("");
+    const userComments = ref<any[]>([]);
 
     const catalogStore = useCatalogStore();
 
@@ -149,6 +243,18 @@ export default defineComponent({
       await nextTick();
     };
 
+    const formatDate = (dateStr: string) => {
+  if (!dateStr) return "";
+
+  const date = new Date(dateStr);
+
+  return date.toLocaleDateString("es-ES", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
 
     const fetchData = async (reset = false) => {
       let type;
@@ -157,6 +263,7 @@ export default defineComponent({
       try {
         if (reset) {
           discs.value = [];
+          userComments.value = [];
           offset.value = 0;
           hasMore.value = true;
           totalCovers.value = "";
@@ -164,6 +271,8 @@ export default defineComponent({
           totalFavorites.value = "";
           totalRates.value = "";
           totalPendings.value = "";
+          totalComments.value = "";
+          
         }
 
         let response;
@@ -225,6 +334,22 @@ export default defineComponent({
               voteCount: rate.disc.voteCount,
             }))
           );
+
+          } else if (viewMode.value === "comments") {
+response = await getCommentsByUser(
+  limit.value,
+  offset.value,
+  searchQuery.value,
+  selectedWeek.value,
+  selectedGenre.value,
+  selectedCountry.value,
+  orderBy.value
+);
+
+  totalComments.value = response.totalItems;
+
+  userComments.value.push(...response.data);
+
         } else if (viewMode.value === "favorites") {
           response = await getFavoritesByUser(
             limit.value,
@@ -422,12 +547,15 @@ export default defineComponent({
       totalCovers,
       totalFavorites,
       totalPendings,
+      totalComments,
       resetAndFetch,
       handleGenreChange,
       orderBy,
       orderOptions,
       orderOptionsForTab,
       defaultOrderByForTab,
+      userComments,
+formatDate,
     };
   },
 });

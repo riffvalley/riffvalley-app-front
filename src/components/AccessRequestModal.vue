@@ -38,7 +38,7 @@
 
   <p class="mt-4 text-sm text-white/85 leading-relaxed text-left">
     Dinos tu email y un alias para poder darte acceso a Riff Valley app.
-    Te contactaremos por privado para más instrucciones.
+    Te contactaremos por correo para más instrucciones.
   </p>
 </div>
 
