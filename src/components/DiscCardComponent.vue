@@ -4,7 +4,7 @@
   <!-- Tarjeta individual -->
   <div class="card w-full max-w-[20rem] border rounded shadow-lg bg-white flex flex-col mx-auto p-2 relative">
     <!-- Badge Debut -->
-    <div v-if="debut" class="absolute -top-3 -left-2 z-20
+    <div v-if="debut" class="absolute -top-3 -left-2 z-index
          px-2 py-1 rounded-full text-[10px] font-bold
          text-rv-purple shadow-sm
          bg-white border-rv-purple border-2">
@@ -12,7 +12,7 @@
     </div>
 
     <!-- Botón editar (solo Riff Valley) -->
-    <button v-if="canModerate" type="button" class="absolute bottom-30 translate-y-28 left-2 z-30 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200
+    <button v-if="canModerate" type="button" class="absolute bottom-30 translate-y-28 left-2 z-index w-8 h-8 rounded-full bg-white shadow-md border border-gray-200
          flex items-center justify-center hover:bg-gray-50" title="Editar en calendario" @click="openCalendarModal">
       <i class="fa-solid fa-wrench text-rv-navy text-sm"></i>
     </button>
