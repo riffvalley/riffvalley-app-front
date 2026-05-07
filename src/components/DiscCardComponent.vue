@@ -150,7 +150,7 @@
     </div>
 
     <!-- Botones para votos y enviar calificación -->
-    <div class="flex mt-2 space-x-2 w-full">
+<div class="flex mt-2 gap-1 w-full">
       <button @click="toggleVotes"
         class="w-1/3 bg-rv-navy text-white font-bold py-2 px-1 rounded-lg shadow-md border-4 border-transparent hover:border-rv-navy hover:bg-gradient-to-l from-gray-800 to-rv-navy flex items-center justify-center space-x-1">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
@@ -184,7 +184,7 @@
         <template v-else>
           <i class="fa-solid fa-pen-to-square text-white text-md"></i>
         </template>
-        <span>{{ hasVoted ? "Modificar" : "Votar" }}</span>
+        <span>{{ hasVoted ? "Editar" : "Votar" }}</span>
       </button>
     </div>
 
