@@ -16,8 +16,11 @@ colors: {
     purple: '#b0669f',
     blue: '#0064d6',
     blueDark: '#00309b',
-    navy: '#00021f', 
+    navy: '#00021f',
     white: '#ffffff',
+    darkBg: '#00021f',
+    darkCard: '#404157',
+    darkSurface: '#2a2b3d',
   },
 },
 backgroundImage: {

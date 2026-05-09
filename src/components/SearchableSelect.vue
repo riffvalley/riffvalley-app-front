@@ -462,8 +462,67 @@ export default {
 }
 
 .search__results li.text-gray-900 {
-  background-color: #e46e8a !important;
+  background-color: #00021f !important;
   color: #ffffff !important;
   font-weight: 600;
+}
+
+html.dark .search_input_trigger,
+:global(html.dark) .search_input_trigger {
+  background: #404157 !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+
+html.dark .search_input_trigger p,
+html.dark .search_input_trigger i,
+:global(html.dark) .search_input_trigger p,
+:global(html.dark) .search_input_trigger i {
+  color: #ffffff !important;
+}
+
+html.dark .searchable__select,
+:global(html.dark) .searchable__select {
+  background: #00021f !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+html.dark .search__input,
+:global(html.dark) .search__input {
+  background: #00021f !important;
+  color: #ffffff !important;
+}
+
+html.dark .search__input::placeholder,
+:global(html.dark) .search__input::placeholder {
+  color: #9ca3af !important;
+}
+
+html.dark .search__results,
+:global(html.dark) .search__results {
+  background: #00021f !important;
+}
+
+html.dark .search__results li,
+:global(html.dark) .search__results li {
+  background: #00021f !important;
+  color: #ffffff !important;
+}
+
+html.dark .search__results li:hover,
+:global(html.dark) .search__results li:hover {
+  background: #404157 !important;
+}
+
+html.dark .search__results li.active,
+:global(html.dark) .search__results li.active {
+  background: #e46e8a !important;
+  color: #ffffff !important;
+}
+
+html.dark .search__results li.text-gray-900,
+:global(html.dark) .search__results li.text-gray-900 {
+  background: #e46e8a !important;
+  color: #ffffff !important;
 }
 </style>

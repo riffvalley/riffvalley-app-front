@@ -1,6 +1,6 @@
 <template>
   <div :class="{ 'menu-open': menuVisible }" class="max-w-[100rem] mx-auto mt-10 px-4">
-<h1 class="text-4xl font-bold mb-8 text-center text-rv-navy">
+<h1 class="text-4xl font-bold mb-8 text-center text-rv-navy dark:text-white">
   Discos
 </h1>
 
@@ -12,10 +12,10 @@
 
     <div class="filters-wrap flex justify-start space-x-2 mb-6">
       <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-lg font-medium transition-all duration-200"
-        :class="viewMode === 'all'
-          ? 'bg-rv-navy text-white'
-          : 'bg-gray-200 text-rv-navy hover:bg-gray-300'
-          ">
+:class="viewMode === 'all'
+  ? 'bg-gray-200 text-rv-navy'
+  : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
+">
         <input type="radio" v-model="viewMode" value="all" class="hidden" />
         Todos los discos <span v-if="totalDisc !== ''">({{ totalDisc }})</span>
       </label>
@@ -23,7 +23,7 @@
       <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
         :class="viewMode === 'rates'
           ? 'bg-blue-500 text-white'
-          : 'bg-gray-200 hover:bg-gray-300'
+          : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
           ">
         <input type="radio" v-model="viewMode" value="rates" class="hidden" />
         Mis votos <span v-if="totalRates !== ''">({{ totalRates }})</span>
@@ -32,7 +32,7 @@
       <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
         :class="viewMode === 'covers'
           ? 'bg-green-500 text-white'
-          : 'bg-gray-200 hover:bg-gray-300'
+          : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
           ">
         <input type="radio" v-model="viewMode" value="covers" class="hidden" />
         Mis portadas <span v-if="totalCovers !== ''">({{ totalCovers }})</span>
@@ -42,7 +42,7 @@
   class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
   :class="viewMode === 'comments'
     ? 'bg-rv-purple text-white'
-    : 'bg-gray-200 text-rv-navy hover:bg-gray-300'
+    : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
   "
 >
   <input type="radio" v-model="viewMode" value="comments" class="hidden" />
@@ -53,7 +53,7 @@
       <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
         :class="viewMode === 'favorites'
           ? 'bg-red-500 text-white'
-          : 'bg-gray-200 text-rv-navy hover:bg-gray-300'
+          : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
           ">
         <input type="radio" v-model="viewMode" value="favorites" class="hidden" />
         Favoritos
@@ -63,7 +63,7 @@
       <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
         :class="viewMode === 'pendientes'
           ? 'bg-yellow-500 text-white'
-          : 'bg-gray-200 text-rv-navy hover:bg-gray-300'
+          : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
           ">
         <input type="radio" v-model="viewMode" value="pendientes" class="hidden" />
         Pendientes
@@ -85,28 +85,28 @@
   <div
     v-for="comment in userComments"
     :key="comment.id"
-    class="bg-white rounded-2xl shadow-md border border-gray-100 p-4 flex gap-4"
+    class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-md border border-gray-100 dark:border-white/20 p-4 flex gap-4"
   >
     <img
       :src="comment.disc?.image"
       :alt="comment.disc?.name"
-      class="w-20 h-20 rounded-xl object-cover shrink-0 bg-gray-100"
+      class="w-20 h-20 rounded-xl object-cover shrink-0 bg-gray-100 dark:bg-rv-darkSurface"
     />
 
     <div class="flex-1 min-w-0">
       <div class="flex flex-wrap items-center gap-2 mb-1">
-        <span class="font-bold text-rv-navy">
+        <span class="font-bold text-rv-navy dark:text-white">
           {{ comment.disc?.artist?.name || 'Desconocido' }}
         </span>
 
         <span class="text-gray-400">–</span>
 
-        <span class="italic text-gray-800">
+        <span class="italic text-gray-800 dark:text-gray-200">
           {{ comment.disc?.name }}
         </span>
       </div>
 
-      <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500 mb-3">
+      <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-300 mb-3">
         <span
           v-if="comment.disc?.genre?.name"
           class="px-2 py-0.5 rounded-full text-white"
@@ -120,7 +120,7 @@
         </span>
       </div>
 
-      <p class="text-sm text-gray-700 bg-gray-50 rounded-xl px-3 py-2">
+      <p class="text-sm text-gray-700 dark:text-gray-100 bg-gray-50 dark:bg-rv-darkSurface rounded-xl px-3 py-2">
         “{{ comment.comment }}”
       </p>
 
@@ -132,7 +132,7 @@
 
   <p
     v-if="!loading && userComments.length === 0"
-    class="text-center text-gray-500 text-sm mt-8"
+    class="text-center text-gray-500 dark:text-gray-300 text-sm mt-8"
   >
     Todavía no has escrito comentarios.
   </p>
@@ -169,7 +169,9 @@
 
     <!-- Elemento para disparar la carga adicional -->
     <div ref="loadMore" class="mt-10 text-center">
-      <span v-if="loading" class="text-rv-navy">Cargando más discos...</span>
+      <span v-if="loading" class="text-rv-navy dark:text-white">
+  Cargando más discos...
+</span>
     </div>
   </div>
 </template>

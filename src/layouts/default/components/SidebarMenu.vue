@@ -1,6 +1,6 @@
 <template>
   <aside :class="[
-    'w-72 bg-rv-navy text-white fixed left-0 top-0 z-30 transform transition-transform duration-300 h-screen flex flex-col border-r border-white/10',
+    'w-72 bg-rv-navy text-white fixed left-0 top-0 z-30 transform transition-transform duration-300 h-screen flex flex-col border-r border-white/10 dark:border-r-2 dark:border-white/20',
     menuVisible ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
   ]">
 
@@ -208,6 +208,43 @@
       </ul>
     </div>
 
+<!-- Switch modo oscuro -->
+<div class="px-2 mb-3 shrink-0">
+  <label class="flex items-center justify-end pr-2 gap-3 text-white/75 cursor-pointer">
+    <!-- Sol -->
+    <i
+      class="fa-solid fa-sun text-sm transition-colors"
+      :class="!isDark ? 'text-rv-pink' : 'text-white/45'"
+    ></i>
+
+    <!-- Toggle -->
+    <button
+      type="button"
+      role="switch"
+      :aria-checked="isDark"
+      @click="$emit('toggle-theme')"
+      class="relative w-11 h-6 rounded-full transition-all duration-300
+        border border-white/20
+        bg-white/15 hover:bg-white/25
+        outline-none focus:outline-none focus-visible:outline-none
+        ring-0 focus:ring-0 focus-visible:ring-0"
+    >
+      <span
+        class="absolute top-1/2 left-0.5 -translate-y-1/2
+          w-5 h-5 rounded-full bg-white shadow-md
+          transition-transform duration-300"
+        :class="isDark ? 'translate-x-5' : 'translate-x-0'"
+      ></span>
+    </button>
+
+    <!-- Luna -->
+    <i
+      class="fa-solid fa-moon text-sm transition-colors"
+      :class="isDark ? 'text-rv-pink' : 'text-white/45'"
+    ></i>
+  </label>
+</div>
+
     <!-- Version link -->
     <div class="flex justify-end px-4 mb-2 shrink-0">
       <router-link to="/patch-notes"
@@ -252,10 +289,11 @@ type AppRoute = {
 
 export default defineComponent({
   name: 'SidebarMenu',
-  props: {
-    menuVisible: { type: Boolean, required: true },
-  },
-  emits: ['close-menu'],
+props: {
+  menuVisible: { type: Boolean, required: true },
+  isDark: { type: Boolean, required: true },
+},
+emits: ['close-menu', 'toggle-theme'],
   setup(_, { emit }) {
     const authStore = useAuthStore();
     const allRoutes = routesData as AppRoute[];

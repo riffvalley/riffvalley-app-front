@@ -332,15 +332,15 @@ export default defineComponent({
   --pill-pr: 1.0rem;
   /* padding-right (sube si la flecha pisa el texto) */
   --pill-radius: 9999px;
-  --pill-border: 1px solid rgb(229 231 235);
+--pill-border: 1px solid rgb(229 231 235);
   /* border-gray-200 */
   --pill-shadow: 0 1px 3px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .06);
-  --pill-bg: #fff;
-  --pill-ring: 2px solid rgba(209, 213, 219, .8);
+--pill-bg: #fff;
+--pill-text: #00021f;
+--pill-ring: 2px solid rgba(209, 213, 219, .8);
   /* ring-gray-300 */
 }
 
-/* Base común para input + select nativo */
 .pill-control {
   width: 100%;
   height: var(--pill-h);
@@ -349,9 +349,9 @@ export default defineComponent({
   padding-right: var(--pill-pr);
   border-radius: var(--pill-radius);
   border: var(--pill-border);
-  background: var(--pill-bg);
+  background: var(--pill-bg) !important;
   box-shadow: var(--pill-shadow);
-
+  color: var(--pill-text) !important;
   outline: none;
 }
 
@@ -360,31 +360,43 @@ export default defineComponent({
   outline: var(--pill-ring);
 }
 
-/* SearchableSelect: aplicamos exactamente lo mismo al trigger */
 :deep(.select-pill .search_input_trigger) {
   width: 100%;
   height: var(--pill-h);
   line-height: var(--pill-lh);
   padding-left: calc(var(--pill-pl) + 0.5rem);
-  /* un poco más si el icono va dentro */
   padding-right: var(--pill-pr);
   border-radius: var(--pill-radius);
-  border: var(--pill-border);
-  background: var(--pill-bg);
+  border: var(--pill-border) !important;
+  background: var(--pill-bg) !important;
   box-shadow: var(--pill-shadow);
   position: relative;
+  color: var(--pill-text) !important;
+}
+
+:deep(.select-pill .search__input) {
+  padding-left: 0;
+  color: var(--pill-text);
 }
 
 :deep(.select-pill .search_input_trigger:focus) {
   outline: var(--pill-ring);
 }
 
-:deep(.select-pill .search__input) {
-  padding-left: 0;
-}
-
 /* ya damos PL en el trigger */
 :deep(.select-pill .search_input_trigger svg) {
   right: .75rem;
+}
+
+html.dark .pill-control,
+:global(html.dark) .pill-control {
+  background: #404157 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+html.dark .pill-control::placeholder,
+:global(html.dark) .pill-control::placeholder {
+  color: #cbd5e1 !important;
 }
 </style>

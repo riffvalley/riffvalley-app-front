@@ -13,13 +13,19 @@
     </button>
 
     <!-- Sidebar -->
-    <SidebarMenu v-if="!isLoginPage" :menuVisible="menuVisible" @close-menu="closeMenu" />
+<SidebarMenu
+  v-if="!isLoginPage"
+  :menuVisible="menuVisible"
+  :isDark="isDark"
+  @toggle-theme="toggleTheme"
+  @close-menu="closeMenu"
+/>
 
     <!-- Contenido principal -->
-    <main :class="[
-      'flex-1 bg-gray-100 p-6 transition-all duration-300',
-      menuVisible ? 'ml-72' : 'ml-0 md:ml-72',
-    ]">
+<main :class="[
+'flex-1 bg-gray-100 dark:bg-rv-darkBg text-rv-navy dark:text-white p-6 transition-[margin] duration-300',
+  menuVisible ? 'ml-72' : 'ml-0 md:ml-72',
+]">
       <slot />
     </main>
 
@@ -41,6 +47,7 @@
 import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import SidebarMenu from "./components/SidebarMenu.vue";
+import { useTheme } from "@/composables/useTheme";
 
 export default {
   name: "DefaultLayout",
@@ -50,6 +57,8 @@ export default {
   setup() {
     const menuVisible = ref(false);
     const route = useRoute();
+    const { isDark, initTheme, toggleTheme } = useTheme();
+initTheme();
     const isLoginPage = computed(() => ["Login", "Maintenance"].includes(route.name as string));
 
     // ✅ Alternar menú con botón de hamburguesa
@@ -90,12 +99,15 @@ export default {
     const closeMenu = () => {
       menuVisible.value = false;
     };
+    
 
     return {
       menuVisible,
       isLoginPage,
       toggleMenu,
       closeMenu,
+      isDark,
+toggleTheme,
     };
   },
 };
@@ -139,5 +151,17 @@ export default {
 .fade-slide-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+html,
+body,
+#app {
+  background: #f3f4f6;
+}
+
+html.dark,
+html.dark body,
+html.dark #app {
+  background: #00021f;
 }
 </style>

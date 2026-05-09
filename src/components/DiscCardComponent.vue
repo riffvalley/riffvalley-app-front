@@ -2,9 +2,12 @@
 
 
   <!-- Tarjeta individual -->
-  <div class="card w-full max-w-[20rem] border rounded shadow-lg bg-white flex flex-col mx-auto p-2 relative">
+  <div class="card w-full max-w-[20rem] border-2 rounded shadow-lg 
+  bg-white dark:bg-rv-darkCard
+  border-gray-100 dark:border-white/20
+  flex flex-col mx-auto p-2 relative">
     <!-- Badge Debut -->
-    <div v-if="debut" class="absolute -top-3 -left-2 z-index
+    <div v-if="debut" class="absolute -top-3 -left-2 z-10
          px-2 py-1 rounded-full text-[10px] font-bold
          text-rv-purple shadow-sm
          bg-white border-rv-purple border-2">
@@ -12,13 +15,13 @@
     </div>
 
     <!-- Botón editar (solo Riff Valley) -->
-    <button v-if="canModerate" type="button" class="absolute bottom-30 translate-y-28 left-2 z-index w-8 h-8 rounded-full bg-white shadow-md border border-gray-200
+    <button v-if="canModerate" type="button" class="absolute bottom-30 translate-y-28 left-2 z-10 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200
          flex items-center justify-center hover:bg-gray-50" title="Editar en calendario" @click="openCalendarModal">
       <i class="fa-solid fa-wrench text-rv-navy text-sm"></i>
     </button>
 
     <div class="flex items-center justify-between px-2 p-1">
-      <p class="text-xs text-gray-500">{{ formattedDate }}</p>
+      <p class="text-xs text-gray-500 dark:text-gray-300">{{ formattedDate }}</p>
       <div class="flex items-center space-x-2">
         <p v-if="isEP" class="px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500 text-center shadow-sm">
           EP
@@ -59,17 +62,23 @@
         <img :src="computedImage" :alt="name"
           class="w-24 h-24 object-cover rounded mb-2 shadow-md cursor-zoom-in hover:opacity-80" @click="openImage" />
         <div class="flex space-x-2 mt-1">
-          <div class="flex flex-col items-center w-16 h-12 border rounded-lg shadow-md bg-gray-100 mb-1">
-            <p class="text-sm font-bold text-blue-600 mt-1">
+          <div class="flex flex-col items-center w-16 h-12 rounded-lg
+  bg-gray-100 dark:bg-rv-darkSurface
+  border border-gray-200 dark:border-white/60
+  shadow-sm mb-1">
+            <p class="text-sm font-bold text-blue-600 dark:text-blue-300 mt-1">
               {{ averageRate ? averageRate.toFixed(2) : "-" }}
             </p>
-            <p class="text-xs text-rv-navy">Disco</p>
+            <p class="text-xs text-rv-navy dark:text-gray-200">Disco</p>
           </div>
-          <div class="flex flex-col items-center w-16 h-12 border rounded-lg shadow-md bg-gray-100 mb-1">
-            <p class="text-sm font-bold text-green-600 mt-1">
+          <div class="flex flex-col items-center w-16 h-12 rounded-lg
+  bg-gray-100 dark:bg-rv-darkSurface
+  border border-gray-200 dark:border-white/60
+  shadow-sm mb-1">
+            <p class="text-sm font-bold text-green-600 dark:text-green-300 mt-1">
               {{ averageCover ? averageCover.toFixed(2) : "-" }}
             </p>
-            <p class="text-xs text-rv-navy">Portada</p>
+            <p class="text-xs text-rv-navy dark:text-gray-200">Portada</p>
           </div>
         </div>
       </div>
@@ -78,29 +87,27 @@
       <div class="ml-2 flex flex-1 flex-col">
         <!-- Título y artista -->
         <div class="flex justify-between items-center">
-          <h2 @click="openDiscDetail" class="text-sm text-rv-navy font-semibold italic truncate cursor-pointer">
+          <h2 @click="openDiscDetail"
+            class="text-sm text-rv-navy dark:text-white font-semibold italic truncate cursor-pointer">
             {{ name }}
           </h2>
         </div>
         <div class="flex justify-between items-center">
           <!-- El nombre del artista se hace clickable para abrir ArtistDetail -->
-          <p @click="openArtistDetail" class="text-xs text-gray-500 font-semibold cursor-pointer hover:underline">
+          <p @click="openArtistDetail"
+            class="text-xs text-gray-500 dark:text-gray-300 font-semibold cursor-pointer hover:underline">
             {{ artistName }}
           </p>
         </div>
 
         <!-- Botón de Escuchar -->
         <div class="flex items-center space-x-2 mt-1">
-<a
-  v-if="link"
-  @click="openPlatformLink(link)"
-  class="px-2 py-1 rounded-full cursor-pointer font-medium text-white
+          <a v-if="link" @click="openPlatformLink(link)" class="px-2 py-1 rounded-full cursor-pointer font-medium text-white
          text-center shadow-sm bg-green-500 hover:bg-green-600
          transition-all w-1/2
-         text-[10px] overflow-hidden text-ellipsis whitespace-nowrap"
->
-  Escuchar
-</a>
+         text-[10px] overflow-hidden text-ellipsis whitespace-nowrap">
+            Escuchar
+          </a>
 
           <!-- Íconos: corazón y bookmark -->
           <div class="flex space-x-2 items-center">
@@ -108,12 +115,12 @@
               <font-awesome-icon :icon="['fas', 'heart']"
                 class="h-7 w-5 cursor-pointer transition-all duration-300 ease-in-out" :class="{
                   'text-red-500 scale-110': favoriteId,
-                  'text-gray-500 hover:text-red-400': !favoriteId,
+                  'text-gray-400 hover:text-red-400': !favoriteId,
                 }" @click="toggleHeart" />
               <span class="pointer-events-none hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2
          px-2 py-1 text-[9px] font-semibold text-white bg-rv-navy rounded
          opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                Favs
+                Fav
               </span>
 
             </div>
@@ -122,7 +129,7 @@
               <font-awesome-icon :icon="['fas', 'bookmark']"
                 class="h-5 w-5 mt-1 cursor-pointer transition-all duration-300 ease-in-out" :class="{
                   'text-yellow-400 scale-110': pendingId,
-                  'text-gray-500 hover:text-yellow-300': !pendingId,
+                  'text-gray-400 hover:text-yellow-300': !pendingId,
                 }" />
               <span class="pointer-events-none hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2
          px-2 py-1 text-[9px] font-semibold text-white bg-rv-navy rounded
@@ -135,24 +142,29 @@
 
         <!-- Formulario de votación -->
         <div class="flex flex-col space-y-1">
-          <label class="text-xs text-gray-500 translate-x-1.5">
+          <label class="text-xs text-gray-500 dark:text-gray-300 translate-x-1.5">
             Disco:
-            <input type="number" step="0.01" v-model="localRating.rate" min="1" max="10"
-              class="px-0 py-1 border w-16 rounded text-xs font-bold text-center text-gray-500 mt-3 mb-1 ml-0.5" />
+            <input type="number" step="0.01" v-model="localRating.rate" min="1" max="10" class="px-0 py-1 border rounded w-16 text-xs font-bold text-center
+        bg-white dark:bg-rv-darkSurface
+        text-gray-500 dark:text-white
+        border-gray-300 dark:border-gray-200/40" />
           </label>
-          <label class="text-xs text-gray-500">
+
+          <label class="text-xs text-gray-500 dark:text-gray-300">
             Portada:
-            <input type="number" step="0.01" v-model="localRating.cover" min="1" max="10"
-              class="px-0 py-1 w-16 border font-bold rounded text-center text-xs mb-1 ml-0.5" />
+            <input type="number" step="0.01" v-model="localRating.cover" min="1" max="10" class="px-0 py-1 border rounded w-16 text-xs font-bold text-center
+        bg-white dark:bg-rv-darkSurface
+        text-gray-500 dark:text-white
+        border-gray-300 dark:border-gray-200/40" />
           </label>
         </div>
       </div>
     </div>
 
     <!-- Botones para votos y enviar calificación -->
-<div class="flex mt-2 gap-1 w-full">
+    <div class="flex mt-2 gap-1 w-full">
       <button @click="toggleVotes"
-        class="w-1/3 bg-rv-navy text-white font-bold py-2 px-1 rounded-lg shadow-md border-4 border-transparent hover:border-rv-navy hover:bg-gradient-to-l from-gray-800 to-rv-navy flex items-center justify-center space-x-1">
+        class="w-1/3 bg-rv-navy text-white font-bold py-2 px-1 rounded-lg shadow-md border-2 border-transparent hover:border-rv-navy hover:bg-gradient-to-l from-gray-800 to-rv-navy flex items-center justify-center space-x-1">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
           class="size-4">
           <path stroke-linecap="round" stroke-linejoin="round"
@@ -165,18 +177,18 @@
       </button>
 
       <button @click="openComentsModal"
-        class="w-1/3 gap-2 bg-rv-navy text-white font-bold py-2 px-2 rounded-lg shadow-md border-4 border-transparent hover:border-rv-navy hover:bg-gradient-to-l from-gray-800 to-rv-navy flex items-center justify-center">
+        class="w-1/3 gap-2 bg-rv-navy text-white font-bold py-2 px-2 rounded-lg shadow-md border-2 border-transparent hover:border-rv-navy hover:bg-gradient-to-l from-gray-800 to-rv-navy flex items-center justify-center">
         <i class="fa-solid fa-comment-dots text-white text-md"></i>
         <span class="flex items-center">
           Chat
           <span v-if="commentCount > 0" class="ml-1 mt-1 text-[9px] text-[#ffbaca]">(<span class="inline">{{
             commentCount
-          }}</span>)</span>
+              }}</span>)</span>
         </span>
       </button>
 
       <button @click="submitRating" :disabled="disableSubmitButton"
-        class="w-1/3 bg-rv-navy text-white font-bold py-2 px-1 rounded-lg shadow-md border-4 border-transparent hover:border-[#e46e8a] hover:bg-gradient-to-r hover:from-[#e46e8a] hover:to-[#ff8da8] flex items-center justify-center space-x-1"
+        class="w-1/3 bg-rv-navy text-white font-bold py-2 px-1 rounded-lg shadow-md border-2 border-transparent hover:border-[#e46e8a] hover:bg-gradient-to-r hover:from-[#e46e8a] hover:to-[#ff8da8] flex items-center justify-center space-x-1"
         :class="{ 'opacity-50 cursor-not-allowed': disableSubmitButton }">
         <template v-if="hasVoted">
           <i class="fa-solid fa-arrows-rotate text-white text-md"></i>
@@ -636,7 +648,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   background-color: white;
-  border: 1px solid #e5e7eb;
+  border: 2px solid #e5e7eb;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 0.5rem;
@@ -672,5 +684,9 @@ export default defineComponent({
 .card button {
   height: 2rem;
   font-size: 0.75rem;
+}
+
+:global(.dark) input[type="number"] {
+  color-scheme: dark;
 }
 </style>
