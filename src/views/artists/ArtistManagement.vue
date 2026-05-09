@@ -1,10 +1,10 @@
 <template>
-  <div class="p-6 max-w-5xl mx-auto">
+<div class="px-3 sm:px-6 py-5 max-w-5xl mx-auto">
     <!-- Cabecera -->
-    <div class="flex items-center justify-between mb-6">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
       <h1 class="text-2xl font-bold">Artistas</h1>
-      <div class="flex items-center gap-3">
-        <span class="text-sm text-gray-400">{{ totalItems }} artistas</span>
+<div class="flex flex-wrap items-center gap-3">
+        <span class="text-sm text-gray-400 dark:text-gray-400">{{ totalItems }} artistas</span>
         <button
           v-if="isManager"
           @click="deleteOrphans"
@@ -19,13 +19,13 @@
     </div>
 
     <!-- Filtros -->
-    <div class="flex flex-wrap gap-3 mb-6 items-center">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-3 mb-6 items-center">
       <input
         v-model="query"
         @input="onQueryInput"
         type="text"
         placeholder="Buscar por nombre..."
-        class="border border-gray-200 rounded-xl px-4 py-2 text-sm w-full max-w-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
+class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm w-full bg-white dark:bg-rv-darkCard text-rv-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-rv-pink"
       />
       <button
         v-if="isManager"
@@ -34,7 +34,7 @@
           'text-xs font-semibold px-3 py-2 rounded-xl border transition-all',
           needsReview === true
             ? 'bg-amber-500 border-amber-500 text-white'
-            : 'bg-white border-gray-200 text-gray-600 hover:border-amber-400 hover:text-amber-500'
+            : 'bg-white border-gray-200 dark:border-white/10 text-gray-600 hover:border-amber-400 hover:text-amber-500'
         ]"
       >
         <i class="fa-solid fa-clock-rotate-left mr-1.5"></i>
@@ -50,14 +50,14 @@
         trigger-placeholder="Todos los géneros"
         all-label="Todos los géneros"
         :max="150"
-        class="w-full sm:w-56 rounded-full text-rv-navy text-sm border-rv-navy/20 shadow-lg"
+        class="w-full sm:w-56 rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 shadow-lg"
       />
     </div>
 
     <!-- Lista -->
-    <div v-if="loading" class="text-center text-gray-400 py-12">Cargando...</div>
+    <div v-if="loading" class="text-center text-gray-400 dark:text-gray-400 py-12">Cargando...</div>
 
-    <div v-else-if="artists.length === 0" class="text-center text-gray-400 py-12">
+    <div v-else-if="artists.length === 0" class="text-center text-gray-400 dark:text-gray-400 py-12">
       No se encontraron artistas.
     </div>
 
@@ -69,11 +69,11 @@
           'rounded-2xl border overflow-hidden transition-all flex flex-col sm:flex-row',
           isEmpty(artist) && isManager
             ? 'border-red-400 ring-2 ring-red-300'
-            : 'border-gray-200 bg-white'
+            : 'border-gray-200 dark:border-white/10 bg-white dark:bg-rv-navy dark:border-white/10'
         ]"
       >
         <!-- Imagen izquierda 320x320 -->
-        <div class="relative w-full h-48 sm:w-80 sm:h-80 flex-shrink-0">
+<div class="relative w-full h-44 sm:w-64 md:w-80 sm:h-80 flex-shrink-0">
           <img
             v-if="artist.image"
             :src="artist.image"
@@ -89,19 +89,19 @@
         </div>
 
         <!-- Contenido derecho -->
-        <div class="flex-1 p-4 flex flex-col min-w-0">
+<div class="flex-1 p-3 sm:p-4 flex flex-col min-w-0">
 
           <!-- Header: nombre + país + acciones -->
           <div class="flex items-start justify-between gap-2 mb-3">
             <div class="flex flex-col gap-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <span
-                  class="font-bold text-rv-navy text-base leading-tight truncate cursor-pointer hover:text-rv-pink transition-colors"
+                  class="font-bold text-rv-navy dark:text-white text-base leading-tight truncate cursor-pointer hover:text-rv-pink transition-colors"
                   @click="toggleLastFm(artist)"
                 >{{ artist.name }}</span>
                 <button
                   @click="toggleLastFm(artist)"
-                  class="text-[10px] font-medium text-gray-500 bg-gray-100 hover:bg-gray-200 px-2 py-0.5 rounded-full transition-colors flex-shrink-0"
+                  class="text-[10px] font-medium text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 px-2 py-0.5 rounded-full transition-colors flex-shrink-0"
                 >ver más</button>
               </div>
               <div class="flex items-center gap-1.5">
@@ -112,9 +112,9 @@
                     :show-flag-name="false"
                     class="h-4 w-4"
                   />
-                  <span class="text-xs text-gray-500">{{ artist.country.name }}</span>
+                  <span class="text-xs text-gray-500 dark:text-gray-300">{{ artist.country.name }}</span>
                 </template>
-                <span v-else :class="isManager ? 'text-xs text-red-400 font-semibold italic' : 'text-xs text-gray-400 italic'">Sin país</span>
+                <span v-else :class="isManager ? 'text-xs text-red-400 font-semibold italic' : 'text-xs text-gray-400 dark:text-gray-400 italic'">Sin país</span>
               </div>
               <template v-if="isEmpty(artist) && isManager">
                 <span class="text-xs font-semibold text-red-300 bg-red-900/50 px-2 py-0.5 rounded-full uppercase tracking-wide w-fit">
@@ -134,7 +134,7 @@
               <button
                 v-if="isManager"
                 @click="openEditModal(artist)"
-                class="bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full w-7 h-7 flex items-center justify-center transition-all"
+                class="bg-gray-100 dark:bg-white/10 hover:bg-gray-200 text-gray-500 dark:text-gray-300 rounded-full w-7 h-7 flex items-center justify-center transition-all"
                 title="Editar artista"
               >
                 <i class="fa-solid fa-pen text-xs"></i>
@@ -144,19 +144,19 @@
 
           <!-- Discos -->
           <div v-if="artist.discs.length > 0" class="mt-1">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            <p class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-2">
               Discos ({{ artist.discs.length }})
             </p>
             <div class="flex flex-col gap-1">
               <div
                 v-for="disc in artist.discs"
                 :key="disc.id"
-                class="flex items-center gap-3 text-sm text-gray-700"
+class="flex items-center gap-2 sm:gap-3 text-sm text-gray-700 dark:text-gray-200 min-w-0"
               >
                 <img
                   v-if="disc.image"
                   :src="disc.image"
-                  class="w-14 h-14 rounded-lg object-cover flex-shrink-0 transition-transform duration-200 hover:scale-[2] hover:shadow-xl hover:z-10 cursor-zoom-in"
+                  class="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover flex-shrink-0 transition-transform duration-200 hover:scale-[2] hover:shadow-xl hover:z-10 cursor-zoom-in"
                 />
                 <div
                   v-else
@@ -165,23 +165,35 @@
                   <i class="fa-solid fa-compact-disc text-lg"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <span
-                    class="font-medium truncate cursor-pointer hover:underline text-rv-navy"
-                    @click="openDiscDetail(disc, artist)"
-                  >{{ disc.name }}</span>
-                  <span class="text-xs text-gray-400 ml-2">{{ formatDate(disc.releaseDate) }}</span>
-                  <span v-if="disc.genre" class="text-xs ml-2" :style="{ color: disc.genre.color }">
-                    {{ disc.genre.name }}
-                  </span>
+<div class="flex flex-col sm:block min-w-0">
+  <span
+    class="font-medium truncate cursor-pointer hover:underline text-rv-navy dark:text-white block"
+    @click="openDiscDetail(disc, artist)"
+  >
+    {{ disc.name }}
+  </span>
+
+  <span class="text-xs text-gray-400 dark:text-gray-400 sm:ml-2">
+    {{ formatDate(disc.releaseDate) }}
+  </span>
+
+  <span
+    v-if="disc.genre"
+    class="text-xs sm:ml-2"
+    :style="{ color: disc.genre.color }"
+  >
+    {{ disc.genre.name }}
+  </span>
+</div>
                 </div>
                 <button
                   @click="openDiscCard(disc, artist)"
-                  class="flex flex-col items-center w-14 h-10 border rounded-lg shadow-sm bg-gray-100 flex-shrink-0 justify-center hover:border-rv-pink hover:bg-rv-pink/10 transition-colors cursor-pointer"
+                  class="flex flex-col items-center w-14 h-10 border rounded-lg shadow-sm bg-gray-100 dark:bg-white/10 flex-shrink-0 justify-center hover:border-rv-pink hover:bg-rv-pink/10 transition-colors cursor-pointer"
                 >
-                  <p class="text-sm font-bold text-blue-600 leading-none">
+                  <p class="text-sm font-bold text-rv-navy dark:text-rv-pink leading-none">
                     {{ disc.rateCount > 0 ? disc.averageRate.toFixed(2) : '-' }}
                   </p>
-                  <p class="text-[10px] text-rv-navy leading-none mt-0.5">
+                  <p class="text-[10px] text-rv-navy dark:text-gray-300 leading-none mt-0.5">
                     {{ disc.rateCount > 0 ? `(${disc.rateCount})` : 'Sin votos' }}
                   </p>
                 </button>
@@ -191,14 +203,14 @@
 
           <!-- Lanzamientos nacionales (solo los que no tienen disco ya listado) -->
           <div v-if="extraReleases(artist).length > 0" class="mt-3">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+            <p class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-2">
               Lanzamientos ({{ extraReleases(artist).length }})
             </p>
             <div class="flex flex-col gap-1">
               <div
                 v-for="nr in extraReleases(artist)"
                 :key="nr.id"
-                class="text-sm text-gray-700 flex items-center gap-2 flex-wrap"
+                class="text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2 flex-wrap"
               >
                 <span
                   class="text-xs font-semibold px-2 py-0.5 rounded-full capitalize text-white"
@@ -211,7 +223,7 @@
                   {{ nr.discType || 'álbum' }}
                 </span>
                 <span class="font-medium">{{ nr.discName }}</span>
-                <span class="text-xs text-gray-400">{{ formatDate(nr.releaseDay) }}</span>
+                <span class="text-xs text-gray-400 dark:text-gray-400">{{ formatDate(nr.releaseDay) }}</span>
                 <a
                   v-if="nr.link"
                   :href="nr.link"
@@ -232,7 +244,7 @@
     </div>
 
     <!-- Paginación -->
-    <div v-if="totalPages > 1" class="flex items-center justify-center gap-3 mt-8">
+<div v-if="totalPages > 1" class="flex items-center justify-center gap-2 sm:gap-3 mt-8 flex-wrap">
       <button
         @click="goToPage(currentPage - 1)"
         :disabled="currentPage <= 1"
@@ -240,7 +252,9 @@
       >
         <i class="fa-solid fa-chevron-left"></i>
       </button>
-      <span class="text-sm text-gray-600">Página {{ currentPage }} de {{ totalPages }}</span>
+<span class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+  Página {{ currentPage }} de {{ totalPages }}
+</span>
       <button
         @click="goToPage(currentPage + 1)"
         :disabled="currentPage >= totalPages"
@@ -267,12 +281,12 @@
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
       @click.self="selectedDiscCard = null; discCardLoading = false"
     >
-      <div class="bg-white rounded-2xl shadow-xl p-4 w-full max-w-md relative">
+      <div class="bg-white dark:bg-rv-darkBg rounded-2xl shadow-xl text-rv-navy dark:text-white p-4 w-full max-w-md relative">
         <button
           @click="selectedDiscCard = null; discCardLoading = false"
-          class="absolute top-3 right-3 z-10 bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 rounded-full w-8 h-8 flex items-center justify-center text-base font-bold shadow transition-all"
+          class="absolute top-3 right-3 z-10 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 text-gray-600 hover:text-gray-900 rounded-full w-8 h-8 flex items-center justify-center text-base font-bold shadow transition-all"
         >&times;</button>
-        <div v-if="discCardLoading" class="py-8 text-center text-gray-400 text-sm">Cargando...</div>
+        <div v-if="discCardLoading" class="py-8 text-center text-gray-400 dark:text-gray-400 text-sm">Cargando...</div>
         <DiscCardComponent v-else
           :id="selectedDiscCard.id"
           :image="selectedDiscCard.image || ''"
@@ -302,14 +316,14 @@
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-40"
       @click.self="lastFmModalShow = false"
     >
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[92vh] overflow-y-auto relative">
+      <div class="bg-white dark:bg-rv-darkBg rounded-2xl shadow-xl text-rv-navy dark:text-white w-full max-w-3xl max-h-[92vh] overflow-y-auto relative">
         <button
           @click="lastFmModalShow = false"
           class="absolute top-3 right-3 text-white bg-black/30 hover:bg-black/50 rounded-full w-8 h-8 flex items-center justify-center z-10 text-base"
         >&times;</button>
 
         <!-- Cabecera con imagen del artista -->
-        <div class="relative h-72 bg-gray-100 overflow-hidden rounded-t-2xl">
+        <div class="relative h-72 bg-gray-100 dark:bg-white/10 overflow-hidden rounded-t-2xl">
           <img
             v-if="lastFmModalArtistImage"
             :src="lastFmModalArtistImage"
@@ -337,7 +351,7 @@
           </div>
         </div>
 
-        <div v-if="!lastFmModalData" class="p-8 text-center text-gray-400 text-sm">
+        <div v-if="!lastFmModalData" class="p-8 text-center text-gray-400 dark:text-gray-400 text-sm">
           <i class="fa-brands fa-lastfm text-2xl text-red-400 mb-2 block"></i>
           Cargando...
         </div>
@@ -347,18 +361,18 @@
           <!-- Stats -->
           <div v-if="lastFmModalData?.stats" class="flex gap-3">
             <div class="flex-1 bg-gray-50 rounded-xl p-3 text-center">
-              <p class="text-lg font-bold text-rv-navy">{{ Number(lastFmModalData.stats.listeners).toLocaleString('es-ES') }}</p>
-              <p class="text-xs text-gray-400 uppercase tracking-wide">Oyentes</p>
+              <p class="text-lg font-bold text-rv-navy dark:text-white">{{ Number(lastFmModalData.stats.listeners).toLocaleString('es-ES') }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-400 uppercase tracking-wide">Oyentes</p>
             </div>
             <div class="flex-1 bg-gray-50 rounded-xl p-3 text-center">
-              <p class="text-lg font-bold text-rv-navy">{{ Number(lastFmModalData.stats.playcount).toLocaleString('es-ES') }}</p>
-              <p class="text-xs text-gray-400 uppercase tracking-wide">Reproducciones</p>
+              <p class="text-lg font-bold text-rv-navy dark:text-white">{{ Number(lastFmModalData.stats.playcount).toLocaleString('es-ES') }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-400 uppercase tracking-wide">Reproducciones</p>
             </div>
           </div>
 
           <!-- Tags -->
           <div v-if="lastFmModalData?.tags?.tag?.length">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Etiquetas</p>
+            <p class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-2">Etiquetas</p>
             <div class="flex flex-wrap gap-1.5">
               <a
                 v-for="tag in lastFmModalData.tags.tag"
@@ -373,24 +387,24 @@
 
           <!-- Biografía -->
           <div v-if="lastFmModalData?.bio?.content">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Biografía</p>
+            <p class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-2">Biografía</p>
             <div
-              class="text-sm text-gray-700 leading-relaxed"
+              class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed"
               v-html="cleanBio(lastFmModalData.bio.content)"
             ></div>
-            <p v-if="lastFmModalData.bio.published" class="text-xs text-gray-400 mt-2">
+            <p v-if="lastFmModalData.bio.published" class="text-xs text-gray-400 dark:text-gray-400 mt-2">
               Publicado: {{ lastFmModalData.bio.published }}
             </p>
           </div>
 
           <!-- Discos en la app (si el artista existe en BD) -->
           <div v-if="lastFmModalDbArtist?.discs?.length">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Discos en la app</p>
+            <p class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-2">Discos en la app</p>
             <div class="flex flex-col gap-1.5">
               <div
                 v-for="disc in lastFmModalDbArtist.discs"
                 :key="disc.id"
-                class="flex items-center gap-3 text-sm text-gray-700 cursor-pointer hover:bg-gray-50 rounded-xl p-1 -mx-1 transition-colors"
+                class="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-50 rounded-xl p-1 -mx-1 transition-colors"
                 @click="openDbDisc(disc)"
               >
                 <img
@@ -398,17 +412,17 @@
                   :src="disc.image"
                   class="w-10 h-10 rounded-lg object-cover flex-shrink-0"
                 />
-                <div v-else class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300 flex-shrink-0">
+                <div v-else class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-300 flex-shrink-0">
                   <i class="fa-solid fa-compact-disc text-sm"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <span class="font-medium truncate text-rv-navy block hover:underline">{{ disc.name }}</span>
-                  <span class="text-xs text-gray-400">{{ formatDate(disc.releaseDate) }}</span>
+                  <span class="font-medium truncate text-rv-navy dark:text-white dark:text-white block hover:underline">{{ disc.name }}</span>
+                  <span class="text-xs text-gray-400 dark:text-gray-400">{{ formatDate(disc.releaseDate) }}</span>
                   <span v-if="disc.genre" class="text-xs ml-2" :style="{ color: disc.genre.color }">{{ disc.genre.name }}</span>
                 </div>
                 <div class="flex flex-col items-center w-12 text-center flex-shrink-0">
                   <span class="text-sm font-bold text-blue-600">{{ disc.rateCount > 0 ? disc.averageRate.toFixed(1) : '-' }}</span>
-                  <span class="text-[10px] text-gray-400">{{ disc.rateCount > 0 ? `(${disc.rateCount})` : 'Sin votos' }}</span>
+                  <span class="text-[10px] text-gray-400 dark:text-gray-400">{{ disc.rateCount > 0 ? `(${disc.rateCount})` : 'Sin votos' }}</span>
                 </div>
                 <i class="fa-solid fa-chevron-right text-xs text-gray-300 flex-shrink-0"></i>
               </div>
@@ -417,13 +431,13 @@
 
           <!-- Artistas similares -->
           <div v-if="lastFmModalData?.similar?.artist?.length">
-            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Artistas similares</p>
+            <p class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-2">Artistas similares</p>
             <div class="flex flex-wrap gap-2">
               <button
                 v-for="sim in lastFmModalData.similar.artist"
                 :key="sim.name"
                 @click="loadSimilarArtist(sim.name)"
-                class="px-2.5 py-1 bg-gray-100 hover:bg-rv-pink hover:text-white rounded-full text-xs text-rv-navy font-medium transition-colors"
+                class="px-2.5 py-1 bg-gray-100 dark:bg-white/10 hover:bg-rv-pink hover:text-white rounded-full text-xs text-rv-navy font-medium transition-colors"
               >{{ sim.name }}</button>
             </div>
           </div>
@@ -440,9 +454,9 @@
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
       @click.self="closeEditModal"
     >
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+<div class="bg-white dark:bg-rv-darkBg rounded-2xl shadow-xl text-rv-navy dark:text-white w-[94vw] max-w-md max-h-[92vh] overflow-y-auto">
         <!-- Imagen de cabecera -->
-        <div class="relative w-full h-36 bg-gray-100 flex items-center justify-center">
+        <div class="relative w-full h-36 bg-gray-100 dark:bg-white/10 flex items-center justify-center">
           <img
             v-if="editModal.image"
             :src="editModal.image"
@@ -478,15 +492,15 @@
           <!-- Nombre + País en fila -->
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">Nombre</label>
+              <label class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-1 block">Nombre</label>
               <input
                 v-model="editModal.name"
                 type="text"
-                class="border border-gray-200 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-rv-pink"
+      class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm w-full bg-white dark:bg-rv-darkCard text-rv-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-rv-pink"
               />
             </div>
             <div>
-              <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">País</label>
+              <label class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-1 block">País</label>
               <SearchableSelect
                 v-model="editModal.countryId"
                 :options="countries"
@@ -496,30 +510,30 @@
                 trigger-placeholder="Sin país"
                 all-label="Sin país"
                 :max="250"
-                class="rounded-xl text-sm border-gray-200"
+                class="rounded-xl text-sm border-gray-200 dark:border-white/10"
               />
             </div>
           </div>
 
           <!-- URL imagen -->
           <div>
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">Imagen (URL)</label>
+            <label class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-1 block">Imagen (URL)</label>
             <input
               v-model="editModal.image"
               type="text"
               placeholder="https://..."
-              class="border border-gray-200 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-rv-pink"
+class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm w-full bg-white dark:bg-rv-darkCard text-rv-navy dark:text-white focus:outline-none focus:ring-2 focus:ring-rv-pink"
             />
           </div>
 
           <!-- Descripción -->
           <div>
-            <label class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1 block">Descripción</label>
+            <label class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-1 block">Descripción</label>
             <textarea
               v-model="editModal.description"
               rows="2"
               placeholder="Descripción del artista..."
-              class="border border-gray-200 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none"
+              class="border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm w-full focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none"
             />
           </div>
         </div>
@@ -527,7 +541,7 @@
         <div class="flex justify-end gap-2 mt-5">
           <button
             @click="closeEditModal"
-            class="px-4 py-2 text-sm rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all"
+            class="px-4 py-2 text-sm rounded-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 text-gray-700 dark:text-gray-200 transition-all"
           >
             Cancelar
           </button>
@@ -802,7 +816,7 @@ export default defineComponent({
         Swal.fire({
           icon: 'success',
           title: `${res.deleted} artistas eliminados`,
-          html: res.artists.length ? `<div class="text-sm text-gray-500 max-h-40 overflow-y-auto text-left">${res.artists.join('<br>')}</div>` : undefined,
+          html: res.artists.length ? `<div class="text-sm text-gray-500 dark:text-gray-300 max-h-40 overflow-y-auto text-left">${res.artists.join('<br>')}</div>` : undefined,
           confirmButtonColor: '#00021f',
         });
       } catch {
