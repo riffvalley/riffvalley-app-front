@@ -88,7 +88,7 @@
         <!-- Título y artista -->
         <div class="flex justify-between items-center">
           <h2 @click="openDiscDetail"
-            class="text-sm text-rv-navy dark:text-white font-semibold italic truncate cursor-pointer">
+            class="text-sm text-rv-navy dark:text-white font-semibold italic cursor-pointer pr-1">
             {{ name }}
           </h2>
         </div>
