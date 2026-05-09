@@ -168,11 +168,22 @@
 </div>
 
     <!-- Elemento para disparar la carga adicional -->
-    <div ref="loadMore" class="mt-10 text-center">
-      <span v-if="loading" class="text-rv-navy dark:text-white">
-  Cargando más discos...
-</span>
-    </div>
+<div
+  ref="loadMore"
+  class="mt-10 flex flex-col items-center justify-center gap-3"
+>
+  <i
+    v-if="loading"
+    class="fa-solid fa-compact-disc animate-spin text-rv-pink text-3xl"
+  ></i>
+
+  <span
+    v-if="loading"
+    class="text-sm font-medium text-rv-navy dark:text-white"
+  >
+    Cargando discos...
+  </span>
+</div>
   </div>
 </template>
 
