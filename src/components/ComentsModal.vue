@@ -4,7 +4,7 @@
       @click.self="$emit('close')">
       <transition name="scale">
         <div ref="modal"
-          class="bg-white rounded-lg shadow-lg relative w-full max-w-2xl sm:max-w-lg md:max-w-xl lg:max-w-2xl flex flex-col max-h-[90vh] sm:max-h-[90vh] h-auto">
+          class="bg-white dark:bg-rv-darkCard rounded-lg shadow-lg relative w-full max-w-2xl sm:max-w-lg md:max-w-xl lg:max-w-2xl flex flex-col max-h-[90vh] sm:max-h-[90vh] h-auto border border-gray-100 dark:border-white/10">
           <!-- Botón para cerrar el modal -->
           <button @click="$emit('close')" aria-label="Cerrar" title="Cerrar" class="absolute top-2 right-2 text-white bg-rv-navy hover:bg-[#e46e8a]
          rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all
@@ -14,18 +14,18 @@
           </button>
 
           <!-- Cabecera -->
-          <div class="border-b px-4 py-6 text-center">
+          <div class="border-b border-gray-200 dark:border-white/10 px-4 py-6 text-center">
             <h2 class="mb-4">
               <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-md font-bold">
                 CHAT
               </span>
             </h2>
-            <p class="text-lg text-gray-800 mt-2">
+            <p class="text-lg text-gray-800 dark:text-white mt-2">
               {{ artistName }} – <span class="italic">{{ albumName }}</span>
             </p>
           </div>
 
-          <div class="flex-1 overflow-y-auto px-4 py-3 space-y-4 max-h-[70vh] sm:max-h-[80vh]">
+          <div class="flex-1 overflow-y-auto px-4 py-3 space-y-4 max-h-[70vh] sm:max-h-[80vh] bg-white dark:bg-rv-darkCard">
             <CommentItem v-for="comment in comments" :key="comment.id" :comment="comment" :disc-id="discId" :depth="0"
               :avatar-size="64" @reply-added="onReplyAdded" @deleted="handleCommentDeleted"
               @comment-updated="handleCommentUpdated"
@@ -35,13 +35,14 @@
           <UserModal v-if="showUserModal" :username="selectedUserName" :user-id="selectedUserId"
             :avatar-src="selectedUserAvatar" @close="showUserModal = false" />
 
-          <div class="bg-rv-navy border-t rounded-b-lg px-4 py-3">
+          <div class="bg-rv-navy dark:bg-rv-darkSurface border-t border-rv-navy dark:border-white/10 rounded-b-lg px-4 py-3">
             <form @submit.prevent="submitTopComment" class="flex space-x-2">
               <input v-model="topCommentText" type="text" placeholder="Escribe un comentario..." class="flex-1 rounded-lg px-3 py-2 text-sm sm:text-base
-         border border-gray-200 bg-white
-         outline-none focus:outline-none focus-visible:outline-none
-         ring-0 focus:ring-0 focus-visible:ring-0
-         focus:border-rv-navy" />
+border border-gray-200 dark:border-white/10 bg-white dark:bg-rv-darkCard
+text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500
+outline-none focus:outline-none focus-visible:outline-none
+ring-0 focus:ring-0 focus-visible:ring-0
+focus:border-rv-navy dark:focus:border-rv-purple" />
               <button type="submit"
                 class="bg-rv-pink text-white font-semibold px-4 py-2 rounded-full hover:bg-rv-pink/90 transition-all">
                 Enviar

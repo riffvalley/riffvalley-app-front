@@ -1,9 +1,11 @@
 <template>
-  <div :class="depth > 0 ? 'ml-6 border-l pl-3' : ''" class="space-y-2 text-left">
+  <div :class="depth > 0 ? 'ml-6 border-l border-gray-200 dark:border-white/10 pl-3' : ''" class="space-y-2 text-left">
     <!-- Formulario de edición -->
-    <div v-if="showEditForm" class="p-3 bg-gray-100 rounded">
+    <div v-if="showEditForm" class="p-3 bg-gray-100 dark:bg-rv-darkSurface rounded border border-gray-100 dark:border-white/10">
       <input v-model="editText" type="text"
-        class="border rounded w-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        class="border border-gray-300 dark:border-white/10 rounded w-full px-3 py-2 
+bg-white dark:bg-rv-darkCard text-gray-800 dark:text-white
+focus:outline-none focus:ring-2 focus:ring-blue-500" />
       <div class="flex space-x-2 mt-2">
         <button @click="submitEdit" class="bg-rv-blue rounded-full text-white px-3 py-1 text-xs hover:bg-rv-blue/80">
           Guardar
@@ -15,7 +17,7 @@
     </div>
 
     <!-- Vista del comentario (si no está en edición) -->
-    <div v-else class="p-3 bg-gray-100 rounded flex items-start space-x-3">
+    <div v-else class="p-3 bg-gray-100 dark:bg-rv-darkSurface rounded flex items-start space-x-3 border border-gray-100 dark:border-white/10">
       <!-- Avatar del usuario -->
       <div class="relative overflow-hidden rounded-full bg-gray-100 dark:bg-gray-500 shrink-0" :style="avatarStyle">
         <img v-if="displayedAvatar" :src="displayedAvatar" alt="Avatar" class="block object-cover"
@@ -28,12 +30,15 @@
 
       <!-- Contenido del comentario -->
       <div class="flex-1">
-        <p class="text-gray-800 text-left">{{ localComment.comment }}</p>
+<p class="text-gray-800 dark:text-gray-100 text-left">{{ localComment.comment }}</p>
 
         <!-- Autor y fecha -->
-        <div v-if="!localComment.isDeleted" class="text-xs text-gray-500 mt-1">
+        <div v-if="!localComment.isDeleted" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
           <button
-            class="bg-gray-300 hover:bg-gray-300/75 text-rv-navy rounded-full shadow-sm hover:underline focus:outline-none"
+            class="bg-gray-300 dark:bg-rv-darkCard hover:bg-gray-300/75 dark:hover:bg-rv-purple 
+text-rv-navy dark:text-white rounded-full shadow-sm hover:underline 
+px-2 py-0.5 border border-transparent dark:border-white/10
+focus:outline-none"
             @click="$emit('open-user', {
               username: localComment.user.username,
               id: localComment.user.id,
@@ -103,11 +108,14 @@
     <!-- Formulario para responder, solo si el comentario no está eliminado -->
     <div v-if="showReplyForm && !localComment.isDeleted" class="ml-4 mt-2">
       <form @submit.prevent="submitReply" class="flex space-x-2">
-        <input v-model="replyText" type="text" placeholder="Escribe tu respuesta..." class="flex-1 border rounded-lg px-3 py-2 text-xs
-         border-gray-300
-         outline-none focus:outline-none focus-visible:outline-none
-         ring-0 focus:ring-0 focus-visible:ring-0
-         focus:border-rv-navy" />
+<input v-model="replyText" type="text" placeholder="Escribe tu respuesta..." class="flex-1 border rounded-lg px-3 py-2 text-xs
+border-gray-300 dark:border-white/10
+bg-white dark:bg-rv-darkCard
+text-gray-800 dark:text-white
+placeholder:text-gray-400 dark:placeholder:text-gray-500
+outline-none focus:outline-none focus-visible:outline-none
+ring-0 focus:ring-0 focus-visible:ring-0
+focus:border-rv-navy dark:focus:border-rv-purple" />
         <button type="submit"
           class="bg-rv-pink text-white px-3 py-1 rounded-full text-xs hover:bg-rv-pink/80 transition-colors">
           Enviar

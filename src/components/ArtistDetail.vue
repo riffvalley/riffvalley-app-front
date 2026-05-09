@@ -6,8 +6,9 @@
 >
   <!-- MODAL -->
   <div 
-    class="spotify-artist-details relative w-full max-w-2xl mx-auto my-3 sm:my-3 p-4 sm:p-4 
-    bg-gradient-to-b from-gray-50 to-gray-100 rounded-lg shadow-md max-h-[80vh] overflow-y-auto"
+class="spotify-artist-details relative w-full max-w-2xl mx-auto my-3 sm:my-3 p-4 sm:p-4 
+bg-gradient-to-b from-gray-50 to-gray-100 dark:from-rv-darkCard dark:to-rv-darkSurface
+rounded-lg shadow-md max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-white/10"
   >
 <button
   @click="$emit('close')"
@@ -21,16 +22,16 @@
   <i class="fas fa-times"></i>
 </button>
     <!-- Estado de carga -->
-    <div v-if="loading" class="text-center py-4">
+<div v-if="loading" class="text-center py-4 text-gray-600 dark:text-gray-300">
       Cargando detalles del artista...
     </div>
 
     <!-- Errores -->
     <div v-else-if="error" class="text-center py-4">
-      <h2 class="text-2xl font-bold mb-2 text-rv-navy">
+<h2 class="text-2xl font-bold mb-2 text-rv-navy dark:text-white">
         {{ artistNameProp }}
       </h2>
-      <p class="text-red-600">{{ error }}</p>
+<p class="text-red-600 dark:text-red-400">{{ error }}</p>
     </div>
 
     <!-- Información del artista -->
@@ -38,7 +39,7 @@
       <!-- Datos obtenidos de Spotify -->
       <div
         v-if="artist"
-        class="artist-info flex flex-col sm:flex-row gap-6 p-4 bg-gradient-to-b from-gray-50 to-gray-100 rounded-lg shadow-md justify-center items-center text-center">
+        class="artist-info flex flex-col sm:flex-row gap-6 p-4 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-rv-darkSurface dark:to-rv-darkCard rounded-lg shadow-md justify-center items-center text-center border border-gray-100 dark:border-white/10">
         <!-- Imagen del artista -->
         <img
           v-if="artist.images && artist.images.length"
@@ -49,17 +50,17 @@
 
         <!-- Metadatos del artista -->
         <div class="artist-meta">
-          <h2 class="text-2xl font-bold mb-2 text-rv-navy">
+          <h2 class="text-2xl font-bold mb-2 text-rv-navy dark:text-white">
             {{ artist.name }}
           </h2>
-          <p class="mb-1 text-rv-navy">
+          <p class="mb-1 text-rv-navy dark:text-gray-300">
             <strong>Seguidores:</strong>
             {{ artist.followers.total.toLocaleString() }}
           </p>
-          <p class="mb-1 text-rv-navy">
+          <p class="mb-1 text-rv-navy dark:text-gray-300">
             <strong>Popularidad:</strong> {{ artist.popularity }}
           </p>
-          <p class="mb-1 text-rv-navy">
+          <p class="mb-1 text-rv-navy dark:text-gray-300">
             <strong>Géneros:</strong>
             {{
               artist.genres && artist.genres.length
@@ -86,13 +87,13 @@
         <h3 class="text-xl font-semibold mb-3 text-rv-navy">Biografía</h3>
         <!-- La biografía de Last.fm suele venir en HTML, por eso usamos v-html -->
         <div
-          class="text-sm text-rv-n avy"
+class="text-sm text-rv-navy dark:text-gray-300"
           v-html="lastFmData.bio.summary"
         ></div>
 
         <div v-if="lastFmData.tags && lastFmData.tags.tag" class="mt-4">
-<h4 class="text-md font-semibold mb-2 text-rv-navy flex items-center justify-center gap-2">
-<i class="fab fa-lastfm text-rv-navy relative top-[1px]"></i>
+<h4 class="text-md font-semibold mb-2 text-rv-navy dark:text-white flex items-center justify-center gap-2">
+<i class="fab fa-lastfm text-rv-navy dark:text-white relative top-[1px]"></i>
   Etiquetas de Last.fm
 </h4>
 <div class="flex flex-wrap justify-center gap-2">
@@ -111,12 +112,12 @@
 
       <!-- Galería de Top Tracks -->
       <div class="top-tracks mt-6" v-if="artist">
-        <h3 class="text-xl font-semibold mb-3 text-rv-navy">Top canciones</h3>
+        <h3 class="text-xl font-semibold mb-3 text-rv-navy dark:text-white">Top canciones</h3>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div
             v-for="track in topTracks"
             :key="track.id"
-            class="track-card bg-gray-100 rounded-lg overflow-hidden shadow hover:shadow-md transition-shadow duration-300"
+            class="track-card bg-gray-100 dark:bg-rv-darkSurface rounded-lg overflow-hidden shadow hover:shadow-md transition-shadow duration-300 border border-gray-100 dark:border-white/10"
           >
             <img
               v-if="
@@ -128,13 +129,13 @@
             />
             <div class="p-2">
               <h4
-                class="text-sm font-bold text-gray-800 truncate"
+                class="text-sm font-bold text-gray-800 dark:text-white truncate"
                 :title="track.name"
               >
                 {{ track.name }}
               </h4>
               <p
-                class="text-xs text-gray-600 truncate"
+                class="text-xs text-gray-600 dark:text-gray-300 truncate"
                 :title="track.album.name"
               >
                 {{ track.album.name }}

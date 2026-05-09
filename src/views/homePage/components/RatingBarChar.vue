@@ -1,7 +1,7 @@
 <template>
-  <div class="w-full h-64">
+  <div class="w-full h-64 rounded-xl bg-white dark:bg-rv-darkSurface p-3">
     <Bar v-if="loaded" :data="chartData" :options="chartOptions" />
-    <p v-else class="text-center text-gray-500">Cargando gráfico...</p>
+    <p v-else class="text-center text-gray-500 dark:text-gray-300">Cargando gráfico...</p>
   </div>
 </template>
 
@@ -98,23 +98,40 @@ export default defineComponent({
     });
 
     // Opciones del gráfico (ocultar la leyenda)
-    const chartOptions = ref<ChartOptions<"bar">>({
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false, // ❌ Oculta la leyenda
-        },
+const chartOptions = ref<ChartOptions<"bar">>({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: false,
+    },
+    tooltip: {
+      titleColor: "#ffffff",
+      bodyColor: "#ffffff",
+      backgroundColor: "#1f2937",
+    },
+  },
+  scales: {
+    x: {
+      ticks: {
+        color: "#d1d5db",
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            stepSize: 1,
-          },
-        },
+      grid: {
+        color: "rgba(255,255,255,0.08)",
       },
-    });
+    },
+    y: {
+      beginAtZero: true,
+      ticks: {
+        stepSize: 1,
+        color: "#d1d5db",
+      },
+      grid: {
+        color: "rgba(255,255,255,0.08)",
+      },
+    },
+  },
+});
 
     // Observa cambios en ratingDistribution y actualiza los datos
     watch(

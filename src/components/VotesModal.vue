@@ -5,7 +5,7 @@
     @click.self="$emit('close')"
   >
     <div
-      class="bg-white p-4 sm:p-6 rounded-lg shadow-xl w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto"
+      class="bg-white dark:bg-rv-darkCard p-4 sm:p-6 rounded-lg shadow-xl w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-white/10"
     >
       <!-- Botón cerrar -->
       <button
@@ -28,7 +28,7 @@
           </span>
         </h2>
 
-        <p class="text-lg text-rv-navy mt-2">
+        <p class="text-lg text-rv-navy dark:text-white mt-2">
           {{ artistName }} – <span class="italic">{{ albumName }}</span>
         </p>
       </div>
@@ -36,20 +36,20 @@
       <div class="flex flex-col md:flex-row gap-4">
         <!-- Tabla -->
         <div class="w-full md:w-1/2">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-100 text-rv-navy text-xs uppercase tracking-wider">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-white/10">
+            <thead class="bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white text-xs uppercase tracking-wider">
               <tr>
-                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300">Usuario</th>
-                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300">Disco</th>
-                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300">Portada</th>
+                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300 dark:border-white/10">Usuario</th>
+                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300 dark:border-white/10">Disco</th>
+                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300 dark:border-white/10">Portada</th>
               </tr>
             </thead>
 
-            <tbody class="bg-white divide-y divide-gray-200">
+<tbody class="bg-white dark:bg-rv-darkCard divide-y divide-gray-200 dark:divide-white/10">
               <tr v-for="vote in votes" :key="vote.id">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-rv-navy">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-rv-navy dark:text-white">
                   <div class="flex items-center gap-2">
-                    <div class="relative overflow-hidden rounded-full bg-gray-200 w-10 h-10 shrink-0">
+                    <div class="relative overflow-hidden rounded-full bg-gray-200 dark:bg-rv-darkSurface w-10 h-10 shrink-0">
                       <img
                         v-if="vote.user.avatarUrl || vote.user.image"
                         :src="vote.user.avatarUrl || vote.user.image"
@@ -72,8 +72,8 @@
                     </div>
 
                     <button
-                      class="bg-gray-200 text-rv-navy px-1 rounded transition-colors duration-150
-                        hover:bg-gray-300 hover:underline border border-transparent
+class="bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1 rounded transition-colors duration-150
+hover:bg-gray-300 dark:hover:bg-rv-purple hover:underline border border-transparent dark:border-white/10
                         outline-none focus:outline-none focus-visible:outline-none
                         ring-0 focus:ring-0 focus-visible:ring-0"
                       @click="openUserModal(
@@ -87,17 +87,17 @@
                   </div>
                 </td>
 
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                   {{ vote.rate }}
                 </td>
 
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                   {{ vote.cover }}
                 </td>
               </tr>
 
               <tr v-if="votes.length === 0">
-                <td colspan="3" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td colspan="3" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                   No hay votos disponibles.
                 </td>
               </tr>
@@ -107,13 +107,13 @@
 
         <!-- Gráfica -->
         <div class="w-full md:w-1/2 flex flex-col items-center">
-          <div class="mb-4 flex items-center justify-center space-x-2 bg-gray-200 rounded-full p-1">
+<div class="mb-4 flex items-center justify-center space-x-2 bg-gray-200 dark:bg-rv-darkSurface rounded-full p-1 border border-gray-100 dark:border-white/10">
             <button
               @click="isRateSelected = true"
               :class="[
                 'text-sm font-semibold px-4 py-1 rounded-full transition-all duration-200',
                 'outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0',
-                isRateSelected ? 'bg-rv-navy text-white' : 'bg-gray-200 hover:bg-gray-300 text-rv-navy'
+                isRateSelected ? 'bg-rv-navy dark:bg-rv-purple text-white' : 'bg-gray-200 dark:bg-rv-darkSurface hover:bg-gray-300 dark:hover:bg-rv-purple text-rv-navy dark:text-white'
               ]"
             >
               Disco
@@ -124,7 +124,7 @@
               :class="[
                 'text-sm font-semibold px-4 py-1 rounded-full transition-all duration-200',
                 'outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0',
-                !isRateSelected ? 'bg-rv-navy text-white' : 'bg-gray-200 hover:bg-gray-300 text-rv-navy'
+                !isRateSelected ? 'bg-rv-navy dark:bg-rv-purple text-white' : 'bg-gray-200 dark:bg-rv-darkSurface hover:bg-gray-300 dark:hover:bg-rv-purple text-rv-navy dark:text-white'
               ]"
             >
               Portada
@@ -134,7 +134,7 @@
           <div class="relative w-full h-56 top-1 flex flex-col items-center justify-center">
             <canvas ref="doughnut" class="w-full h-full"></canvas>
 
-            <div class="flex flex-wrap justify-center gap-x-1 gap-y-1 mt-4 text-xs text-rv-navy">
+<div class="flex flex-wrap justify-center gap-x-1 gap-y-1 mt-4 text-xs text-rv-navy dark:text-gray-200">
               <div
                 v-for="(label, i) in customLegend"
                 :key="i"
@@ -322,7 +322,8 @@ export default defineComponent({
           const numVotes = validValues.length;
           const votesText = `${numVotes} voto${numVotes === 1 ? "" : "s"}`;
 
-          ctx.fillStyle = "#1f2937";
+          const isDark = document.documentElement.classList.contains("dark");
+ctx.fillStyle = isDark ? "#e5e7eb" : "#1f2937";
           ctx.font = "bold 22px sans-serif";
           ctx.fillText(average, width / 2, height / 2 + 13);
 
@@ -351,10 +352,11 @@ export default defineComponent({
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            title: {
-              display: true,
-              text: dynamicTitle,
-            },
+title: {
+  display: true,
+  text: dynamicTitle,
+  color: document.documentElement.classList.contains("dark") ? "#e5e7eb" : "#1f2937",
+},
             legend: {
               display: false,
             },

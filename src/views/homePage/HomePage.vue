@@ -1,13 +1,13 @@
 <template>
   <div class="max-w-[100rem] mx-auto mt-10 px-4">
-    <div class="bg-white shadow-lg rounded-lg p-4 sm:p-6 mb-4 max-w-[90vw] md:max-w-[100rem] mx-auto relative">
-      <h3 class="text-2xl md:text-3xl font-bold text-rv-navy mb-4 text-center">
+   <div class="home-panel bg-white dark:bg-rv-darkCard shadow-lg rounded-lg p-4 sm:p-6 mb-4 max-w-[90vw] md:max-w-[100rem] mx-auto relative border border-gray-100 dark:border-white/10">
+<h3 class="text-2xl md:text-3xl font-bold text-rv-navy dark:text-white mb-4 text-center">
         Novedades Riff Valley
       </h3>
 
       <div class="grid grid-cols-1 lg:grid-cols-[65%_1fr] gap-4 sm:gap-6 lg:gap-8 items-start">
         <!-- Novedades -->
-        <div class="lg:border-r border-gray-200 pb-4 lg:pb-0 lg:pr-4 min-w-0">
+<div class="lg:border-r border-gray-200 dark:border-white/10 pb-4 lg:pb-0 lg:pr-4 min-w-0">
           <NewsFeed />
         </div>
 
@@ -15,13 +15,13 @@
 <div class="space-y-5 flex flex-col gap-5 justify-start min-w-0">
 <!-- Riff Valley -->
 <div class="text-center min-w-0">
-  <h3 class="text-lg font-bold text-rv-navy mb-3"> Info Riff Valley</h3>
+  <h3 class="text-lg font-bold text-rv-navy dark:text-white mb-3"> Info Riff Valley</h3>
 
   <div class="inline-flex flex-col gap-2.5 w-full max-w-[26rem] mx-auto min-w-0">
 
     <!-- App -->
     <div class="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-5 min-w-0">
-      <span class="text-sm font-semibold text-rv-navy shrink-0 xl:w-24 xl:text-right
+      <span class="text-sm font-semibold text-rv-navy dark:text-white shrink-0 xl:w-24 xl:text-right
                    lg:w-full lg:text-center">
         App
       </span>
@@ -59,7 +59,7 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
 
     <!-- Web -->
     <div class="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-5 min-w-0">
-      <span class="text-sm font-semibold text-rv-navy shrink-0 xl:w-24 xl:text-right
+      <span class="text-sm font-semibold text-rv-navy dark:text-white shrink-0 xl:w-24 xl:text-right
                    lg:w-full lg:text-center">
         Web
       </span>
@@ -98,7 +98,7 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
 
     <!-- Conciertos -->
     <div class="flex flex-col xl:flex-row xl:items-center gap-2 xl:gap-5 min-w-0">
-      <span class="text-sm font-semibold text-rv-navy shrink-0 xl:w-24 xl:text-right
+      <span class="text-sm font-semibold text-rv-navy dark:text-white shrink-0 xl:w-24 xl:text-right
                    lg:w-full lg:text-center">
         Conciertos
       </span>
@@ -138,8 +138,8 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
 </div>
 
   <!-- Top Usuarios -->
-  <div class="text-center border-t border-gray-100 pt-4 min-w-0">
-    <h3 class="text-lg font-bold text-rv-navy mb-2">Top usuarios</h3>
+<div class="text-center border-t border-gray-100 dark:border-white/10 pt-4 min-w-0">
+    <h3 class="text-lg font-bold text-rv-navy dark:text-white mb-2">Top usuarios</h3>
 
     <div class="flex justify-center mb-3">
       <div class="relative inline-flex">
@@ -170,7 +170,7 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
     <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
       <!-- Más discos votados -->
       <div>
-        <h4 class="font-semibold text-rv-navy mb-1.5 text-xs">Más discos votados</h4>
+        <h4 class="font-semibold text-rv-navy dark:text-white mb-1.5 text-xs">Más discos votados</h4>
 
         <ul v-if="topUsersByRates.length > 0" class="list-none space-y-1">
           <li
@@ -180,7 +180,7 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
           >
   <span class="text-xs shrink-0" v-html="getTrophyIcon(index)"></span>
   <span class="font-medium truncate min-w-0">{{ user.user.username }}</span>
-  <span class="text-rv-navy shrink-0">{{ user.rateCount }}</span>
+  <span class="text-rv-navy dark:text-white shrink-0">{{ user.rateCount }}</span>
           </li>
         </ul>
 
@@ -189,7 +189,7 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
 
       <!-- Más portadas votadas -->
       <div>
-        <h4 class="font-semibold text-rv-navy mb-1.5 text-xs">Más portadas votadas</h4>
+        <h4 class="font-semibold text-rv-navy dark:text-white mb-1.5 text-xs">Más portadas votadas</h4>
 
         <ul v-if="topUsersByCover.length > 0" class="list-none space-y-1">
           <li
@@ -199,7 +199,7 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
           >
             <span class="mr-1.5 text-xs" v-html="getTrophyIcon(index)"></span>
             <span class="font-medium">{{ user.user.username }}</span>
-            <span class="ml-1.5 text-rv-navy">{{ user.totalCover }}</span>
+            <span class="ml-1.5 text-rv-navy dark:text-white">{{ user.totalCover }}</span>
           </li>
         </ul>
 
@@ -211,14 +211,17 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
     <div class="mt-6">
       <button
         @click="showDetailedStats = true"
-        class="group inline-flex items-center
-               px-3 py-1.5 rounded-full shadow text-xs
-               font-semibold text-rv-navy bg-gray-100
-               transition-all duration-200
-               hover:bg-rv-navy hover:text-white
-               active:bg-rv-navy active:text-white
-               border-0 outline-none focus:outline-none focus-visible:outline-none
-               ring-0 focus:ring-0 focus-visible:ring-0"
+class="group inline-flex items-center
+       px-3 py-1.5 rounded-full shadow text-xs
+       font-semibold text-rv-navy dark:text-white
+       bg-gray-100 dark:bg-rv-navy
+       transition-all duration-200
+       hover:bg-rv-navy hover:text-white
+       dark:hover:bg-rv-pink
+       active:bg-rv-navy active:text-white
+       border border-gray-200 dark:border-white/10
+       outline-none focus:outline-none focus-visible:outline-none
+       ring-0 focus:ring-0 focus-visible:ring-0"
       >
         <i class="fa-solid fa-chart-bar mr-1.5 group-hover:text-white"></i>
         Estadísticas detalladas
@@ -239,18 +242,18 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
 
     <!-- Título + subtítulo + botón -->
     <div class="flex flex-col items-center justify-center py-8 gap-2">
-      <h2 class="text-2xl md:text-3xl font-bold text-rv-navy text-center">
+<h2 class="text-2xl md:text-3xl font-bold text-rv-navy dark:text-white text-center">
         Mejores discos
       </h2>
 
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-        <p class="text-sm md:text-base text-gray-600">
+<p class="text-sm md:text-base text-gray-600 dark:text-gray-300">
           Solo top 20 discos mejor valorados
         </p>
 
         <router-link :to="{ name: 'DiscList' }" class="group inline-flex items-center gap-2
              px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
-             bg-gray-200 text-rv-navy hover:bg-rv-navy hover:text-white
+            bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple
              border-0 outline-none focus:outline-none focus-visible:outline-none
              ring-0 focus:ring-0 focus-visible:ring-0">
           <i class="fa-solid fa-arrow-up rotate-45
@@ -276,32 +279,32 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
     <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-5 mt-6 mb-8">
 
       <button @click="selectedPeriod = 'week'" :class="selectedPeriod === 'week'
-        ? 'bg-rv-navy text-white font-semibold'
-        : 'bg-gray-200 text-rv-navy hover:bg-rv-navy hover:text-white'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
+        ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold'
+        : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
        border-0 outline-none focus:outline-none focus-visible:outline-none
        ring-0 focus:ring-0 focus-visible:ring-0">
         Semana
       </button>
 
       <button @click="selectedPeriod = 'month'" :class="selectedPeriod === 'month'
-        ? 'bg-rv-navy text-white font-semibold'
-        : 'bg-gray-200 text-rv-navy hover:bg-rv-navy hover:text-white'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
+        ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold'
+        : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
        border-0 outline-none focus:outline-none focus-visible:outline-none
        ring-0 focus:ring-0 focus-visible:ring-0">
         Mes
       </button>
 
       <button @click="selectedPeriod = 'year'" :class="selectedPeriod === 'year'
-        ? 'bg-rv-navy text-white font-semibold'
-        : 'bg-gray-200 text-rv-navy hover:bg-rv-navy hover:text-white'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
+        ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold'
+        : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
        border-0 outline-none focus:outline-none focus-visible:outline-none
        ring-0 focus:ring-0 focus-visible:ring-0">
         Año
       </button>
 
       <button @click="{ selectedPeriod = 'all'; fetchDiscs(); }" :class="selectedPeriod === 'all'
-        ? 'bg-rv-navy text-white font-semibold'
-        : 'bg-gray-200 text-rv-navy hover:bg-rv-navy hover:text-white'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
+        ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold'
+        : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
        border-0 outline-none focus:outline-none focus-visible:outline-none
        ring-0 focus:ring-0 focus-visible:ring-0">
         Todos
@@ -311,8 +314,9 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
       <div v-if="selectedPeriod !== 'all'" class="relative flex gap-4">
         <div class="relative">
           <select v-model="selectedOption" @change="fetchDiscs" class="min-w-[12rem] px-4 pr-9 py-1.5 rounded-full shadow-md text-md font-semibold
-                   bg-rv-navy text-white appearance-none cursor-pointer
-                   focus:outline-none">
+         bg-rv-navy dark:bg-rv-purple text-white appearance-none cursor-pointer
+         border border-transparent dark:border-white/10
+         focus:outline-none">
             <option v-for="option in optionsForSelect" :key="option.label" :value="option">
               {{ option.label }}
             </option>
@@ -328,8 +332,9 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
         <!-- Selector de Año (solo visible si es Semana o Mes) -->
         <div v-if="selectedPeriod === 'week' || selectedPeriod === 'month'" class="relative">
           <select v-model="selectedYear" class="min-w-[6rem] px-4 pr-9 py-1.5 rounded-full shadow-md text-md font-semibold
-                   bg-rv-navy text-white appearance-none cursor-pointer
-                   focus:outline-none">
+         bg-rv-navy dark:bg-rv-purple text-white appearance-none cursor-pointer
+         border border-transparent dark:border-white/10
+         focus:outline-none">
             <option v-for="year in availableYears" :key="year" :value="year">
               {{ year }}
             </option>
@@ -689,7 +694,7 @@ export default defineComponent({
     margin: 0 auto;
   }
 
-  .bg-white {
+  .home-panel {
     padding: 1rem !important;
   }
 }

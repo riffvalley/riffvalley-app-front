@@ -18,7 +18,7 @@
        sm:relative sm:block sm:rounded-md sm:overflow-hidden sm:aspect-square"
       >
 <!-- Mobile: layout horizontal -->
-<div class="sm:hidden flex items-center gap-3 p-3 bg-white rounded-md">
+<div class="sm:hidden flex items-center gap-3 p-3 bg-white dark:bg-rv-darkSurface rounded-md border border-gray-100 dark:border-white/10">
   <div class="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
     <img
       v-if="post.image"
@@ -32,7 +32,7 @@
 
   <div class="flex-1 min-w-0">
     <h4
-      class="text-rv-navy font-bold text-xs leading-snug line-clamp-2"
+class="text-rv-navy dark:text-white font-bold text-xs leading-snug line-clamp-2"
       v-html="post.title"
     ></h4>
 
@@ -99,7 +99,7 @@
     @click.self="selectedNews = null"
   >
     <div
-      class="bg-white p-4 sm:p-6 rounded-lg shadow-xl w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto"
+  class="bg-white dark:bg-rv-darkCard p-4 sm:p-6 rounded-lg shadow-xl w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-white/10"
       role="dialog"
       aria-modal="true"
     >
@@ -122,19 +122,19 @@
           {{ typeLabel(selectedNews.type) }}
         </span>
 
-        <span class="text-gray-500 text-xs">
+<span class="text-gray-500 dark:text-gray-300 text-xs">
           {{ selectedNews.date }}
         </span>
       </div>
 
       <!-- Title -->
-      <h3 class="text-xl font-bold text-rv-navy mb-4">
+<h3 class="text-xl font-bold text-rv-navy dark:text-white mb-4">
         {{ selectedNews.title }}
       </h3>
 
       <!-- Body -->
 <div
-  class="news-prose"
+  class="news-prose text-gray-700 dark:text-gray-200"
   v-html="selectedNews.body"
   @click="handleBodyClick"
 />
@@ -259,5 +259,9 @@ onMounted(fetchPosts);
 }
 :deep(.news-prose a:hover) {
   opacity: 0.85;
+}
+
+:deep(.dark .news-prose a) {
+  color: #93c5fd;
 }
 </style>

@@ -7,7 +7,8 @@
   <!-- MODAL -->
   <div 
     class="spotify-album-details relative w-full max-w-2xl mx-auto my-3 sm:my-3 p-4 sm:p-4 
-    bg-gradient-to-b from-gray-50 to-gray-100 rounded-lg shadow-md max-h-[80vh] overflow-y-auto"
+bg-gradient-to-b from-gray-50 to-gray-100 dark:from-rv-darkCard dark:to-rv-darkSurface
+rounded-lg shadow-md max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-white/10"
   >
     <!-- Botón de cierre en la esquina superior derecha -->
 <button
@@ -22,7 +23,7 @@
   <i class="fas fa-times"></i>
 </button>
 
-    <div v-if="loading" class="text-center py-4 text-gray-600">
+<div v-if="loading" class="text-center py-4 text-gray-600 dark:text-gray-300">
       Cargando detalles del disco...
     </div>
 
@@ -32,7 +33,7 @@
 
     <div v-else-if="album">
       <!-- Información del álbum -->
-      <div class="album-info flex flex-col sm:flex-row gap-6 p-4 bg-gradient-to-b from-gray-50 to-gray-100 rounded-md shadow-md justify-center items-center text-center">
+<div class="album-info flex flex-col sm:flex-row gap-6 p-4 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-rv-darkSurface dark:to-rv-darkCard rounded-md shadow-md justify-center items-center text-center border border-gray-100 dark:border-white/10">
         <a 
     v-if="album.images?.length"
     :href="album.images[0].url" 
@@ -47,13 +48,13 @@
     />
   </a>
         <div class="album-meta flex flex-col justify-center ml-4">
-          <h2 class="text-xl sm:text-2xl font-bold mb-1 text-gray-800">
+<h2 class="text-xl sm:text-2xl font-bold mb-1 text-gray-800 dark:text-white">
             {{ album.name }}
           </h2>
-          <p class="text-gray-700"><strong>Artista(s):</strong> {{album.artists.map(a => a.name).join(", ")}}</p>
-          <p class="text-gray-700"><strong>Fecha:</strong> {{ album.release_date }}</p>
-          <p class="text-gray-700"><strong>Canciones:</strong> {{ album.total_tracks }}</p>
-          <p class="text-gray-700"><strong>Duración:</strong> {{ totalDurationFormatted }}</p>
+          <p class="text-gray-700 dark:text-gray-300"><strong>Artista(s):</strong> {{album.artists.map(a => a.name).join(", ")}}</p>
+          <p class="text-gray-700 dark:text-gray-300"><strong>Fecha:</strong> {{ album.release_date }}</p>
+          <p class="text-gray-700 dark:text-gray-300"><strong>Canciones:</strong> {{ album.total_tracks }}</p>
+          <p class="text-gray-700 dark:text-gray-300"><strong>Duración:</strong> {{ totalDurationFormatted }}</p>
 
           <!-- Botón para abrir el álbum en Spotify -->
           <div class="flex flex-col items-center">
@@ -69,15 +70,15 @@
 
       <!-- Lista de canciones -->
       <div class="track-list mt-3 sm:mt-4 text-center">
-        <h3 class="text-lg sm:text-xl font-bold mb-2 text-gray-900">Lista de canciones</h3>
+        <h3 class="text-lg sm:text-xl font-bold mb-2 text-gray-900 dark:text-white">Lista de canciones</h3>
         <ul class="flex flex-col items-center">
           <li v-for="track in tracks" :key="track.id"
             class="track-item py-1 px-2 flex flex-col sm:flex-row sm:items-center justify-center gap-1 sm:gap-2 w-full max-w-md">
             <div>
-              <p class="font-semibold text-gray-900">
+              <p class="font-semibold text-gray-900 dark:text-gray-100">
                 {{ track.track_number }}. {{ track.name }}
               </p>
-              <p class="text-xs sm:text-sm text-gray-700">Duración: {{ formatDuration(track.duration_ms) }}</p>
+              <p class="text-xs sm:text-sm text-gray-700 dark:text-gray-300">Duración: {{ formatDuration(track.duration_ms) }}</p>
             </div>
             <div v-if="track.preview_url" class="mt-1 sm:mt-0">
               <audio :src="track.preview_url" controls class="w-28 sm:w-36"></audio>
