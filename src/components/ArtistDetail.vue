@@ -84,7 +84,7 @@ rounded-lg shadow-md max-h-[80vh] overflow-y-auto border border-gray-100 dark:bo
       </div>
 
       <div v-if="lastFmData" class="lastfm-info mt-6">
-        <h3 class="text-xl font-semibold mb-3 text-rv-navy">Biografía</h3>
+        <h3 class="text-xl font-semibold mb-3 text-rv-navy dark:text-rv-white">Biografía</h3>
         <!-- La biografía de Last.fm suele venir en HTML, por eso usamos v-html -->
         <div
 class="text-sm text-rv-navy dark:text-gray-300"

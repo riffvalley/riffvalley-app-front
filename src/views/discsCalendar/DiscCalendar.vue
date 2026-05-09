@@ -1,6 +1,6 @@
 <template>
   <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
-    <h1 v-if="!embedded" class="text-4xl font-bold mb-8 text-center text-gray-900">
+<h1 v-if="!embedded" class="text-4xl font-bold mb-8 text-center text-gray-900 dark:text-white">
       Calendario
     </h1>
 
@@ -21,8 +21,8 @@
         <button v-for="(month, index) in months" :key="index" @click="selectMonth(index)" class="px-4 py-2 rounded-full transition-all duration-200 whitespace-nowrap shadow-sm mb-1 font-semibold
          border-rv-navy/15
          focus:outline-none focus:ring-0 focus:ring-offset-0" :class="selectedMonth === index
-          ? 'bg-gradient-to-tr from-rv-blue to-rv-blueDark text-white shadow-md border-transparent'
-          : 'bg-white text-rv-navy hover:border-rv-blue border-2 hover:shadow-md'">
+          ? 'bg-gradient-to-tr from-rv-blue to-rv-blueDark dark:from-rv-purple dark:to-rv-pink text-white shadow-md border-transparent'
+          : 'bg-white dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:border-rv-blue dark:hover:border-rv-purple border-2 border-gray-100 dark:border-white/10 hover:shadow-md'">
           {{ month }}
         </button>
       </div>
@@ -31,12 +31,12 @@
       <div v-for="(group, index) in filteredGroupedDiscs" :key="group.releaseDate" class="mb-8">
         <div class="group flex justify-between items-center px-5 py-3 rounded-full cursor-pointer transition-all duration-200 shadow-sm
          border border-rv-navy/10" :class="(groupState[index] || closing[index])
-          ? 'bg-gradient-to-r from-rv-navy to-rv-navy/80 shadow-md'
-          : 'bg-white hover:bg-gradient-to-r from-rv-navy to-rv-navy/80 hover:text-white hover:shadow-md'"
+          ? 'bg-gradient-to-r from-rv-navy to-rv-navy/80 dark:from-rv-purple dark:to-rv-pink shadow-md'
+          : 'bg-white dark:bg-rv-darkSurface hover:bg-gradient-to-r from-rv-navy to-rv-navy/80 dark:hover:from-rv-purple dark:hover:to-rv-pink hover:text-white hover:shadow-md'"
           @click="toggleGroup(index)">
           <h3 class="text-xl sm:text-2xl font-semibold transition-colors duration-200" :class="(groupState[index] || closing[index])
             ? 'text-white'
-            : 'text-rv-navy group-hover:text-white'">
+            : 'text-rv-navy dark:text-white group-hover:text-white'">
             {{ formatDate(group.releaseDate) }}
           </h3>
 
@@ -76,8 +76,8 @@
 
             <div v-if="optionsReady">
               <ul class="w-full mt-4">
-                <li v-for="disc in group.discs" :key="disc.id"
-                  class="flex flex-col md:flex-row md:justify-between p-4 border-b w-full">
+<li v-for="disc in group.discs" :key="disc.id"
+  class="flex flex-col md:flex-row md:justify-between p-4 border-b border-gray-200 dark:border-white/10 w-full">
                   <div :id="`disc-${disc.id}`" class="w-full">
                     <DiscComponent :disc="disc" :genres="genres" :countries="countries" :focusDiscId="focusDiscId"
                       @disc-deleted="removeDisc" @date-changed="handleDateChange" />
@@ -85,7 +85,7 @@
                 </li>
               </ul>
             </div>
-            <div v-else class="text-center text-gray-500 py-6">
+            <div v-else class="text-center text-gray-500 dark:text-gray-300 py-6">
               Cargando géneros y países…
             </div>
           </div>
@@ -96,7 +96,7 @@
 
   <!-- Cargar más -->
   <div ref="loadMore" class="text-center py-6">
-    <span v-if="loading" class="text-gray-600">Cargando discos...</span>
+<span v-if="loading" class="text-gray-600 dark:text-gray-300">Cargando discos...</span>
   </div>
 </template>
 
@@ -597,9 +597,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
-li {
-  border-bottom: 1px solid #e2e8f0;
-}
+
 
 img {
   border-radius: 4px;

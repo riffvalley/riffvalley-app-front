@@ -3,21 +3,21 @@
 
     <!-- Cabecera -->
     <div class="mb-8 text-center">
-      <h1 class="text-3xl font-bold mb-2">Sugerir un disco</h1>
-      <p class="text-gray-400 text-sm">
+      <h1 class="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Sugerir un disco</h1>
+      <p class="text-gray-400 dark:text-gray-300 text-sm">
         ¿Falta algún disco en la app? Pídelo aquí y lo revisaremos.<br />
         Solo discos de 2025 en adelante, muchas gracias.
       </p>
     </div>
 
     <!-- Formulario -->
-    <div class="bg-white rounded-2xl shadow-rv p-6 mb-8">
+    <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv p-6 mb-8 border border-gray-100 dark:border-white/10">
       <form @submit.prevent="submitRequest" class="space-y-5">
 
         <!-- Artista, disco y fecha -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1.5">
               Artista <span class="text-rv-pink">*</span>
             </label>
             <input
@@ -29,7 +29,7 @@
             />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1.5">
               Disco <span class="text-rv-pink">*</span>
             </label>
             <input
@@ -44,15 +44,17 @@
 
         <!-- Fecha -->
         <div>
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+          <label class="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1.5">
             Fecha de lanzamiento <span class="text-rv-pink">*</span>
           </label>
           <input
             v-model="form.releaseDate"
             type="date"
             min="2025-01-01"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800
-                   focus:outline-none focus:ring-2 focus:ring-rv-pink focus:border-transparent"
+            class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm
+       bg-white dark:bg-rv-darkSurface text-gray-800 dark:text-white
+       placeholder:text-gray-400 dark:placeholder:text-gray-500
+       focus:outline-none focus:ring-2 focus:ring-rv-pink focus:border-transparent"
           />
         </div>
 
@@ -95,9 +97,9 @@
           <button
             type="button"
             @click="form.ep = !form.ep"
-            :class="form.ep
-              ? 'bg-rv-pink text-white border-rv-pink'
-              : 'bg-white text-gray-500 border-gray-200 hover:border-rv-pink hover:text-rv-pink'"
+           :class="form.ep
+  ? 'bg-rv-pink text-white border-rv-pink'
+  : 'bg-white dark:bg-rv-darkSurface text-gray-500 dark:text-gray-300 border-gray-200 dark:border-white/10 hover:border-rv-pink hover:text-rv-pink dark:hover:text-white'"
             class="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors"
           >
             <i class="fas fa-compact-disc text-xs"></i>
@@ -106,9 +108,9 @@
           <button
             type="button"
             @click="form.debut = !form.debut"
-            :class="form.debut
-              ? 'bg-rv-pink text-white border-rv-pink'
-              : 'bg-white text-gray-500 border-gray-200 hover:border-rv-pink hover:text-rv-pink'"
+          :class="form.debut
+  ? 'bg-rv-pink text-white border-rv-pink'
+  : 'bg-white dark:bg-rv-darkSurface text-gray-500 dark:text-gray-300 border-gray-200 dark:border-white/10 hover:border-rv-pink hover:text-rv-pink dark:hover:text-white'"
             class="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors"
           >
             <i class="fas fa-star text-xs"></i>
@@ -137,15 +139,15 @@
 
     <!-- Mis peticiones -->
     <div>
-      <h2 class="text-lg font-bold mb-4">Mis peticiones</h2>
+      <h2 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">Mis peticiones</h2>
 
-      <div v-if="loadingRequests" class="text-gray-400 text-sm text-center py-6">
+      <div v-if="loadingRequests" class="text-gray-400 dark:text-gray-300 text-sm text-center py-6">
         Cargando...
       </div>
 
       <div v-else-if="myRequests.length === 0"
         class="text-center py-8 text-gray-400 text-sm bg-white rounded-2xl shadow-rv">
-        <i class="fas fa-inbox text-2xl mb-2 block text-gray-300"></i>
+        <i class="fas fa-inbox text-2xl mb-2 block text-gray-300 dark:text-gray-500"></i>
         Aún no has enviado ninguna petición.
       </div>
 
@@ -153,20 +155,20 @@
         <li
           v-for="req in myRequests"
           :key="req.id"
-          class="bg-white rounded-2xl shadow-rv px-5 py-4 flex items-start justify-between gap-4"
+          class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv px-5 py-4 flex items-start justify-between gap-4 border border-gray-100 dark:border-white/10"
         >
           <div class="min-w-0">
-            <p class="font-semibold text-gray-800 truncate">
+            <p class="font-semibold text-gray-800 dark:text-white truncate">
               {{ req.artistName }} — {{ req.discName }}
             </p>
-            <p class="text-xs text-gray-400 mt-1 flex flex-wrap gap-x-2">
+            <p class="text-xs text-gray-400 dark:text-gray-300 mt-1 flex flex-wrap gap-x-2">
               <span v-if="req.genre">{{ req.genre.name }}</span>
               <span v-if="req.country">{{ req.country.name }}</span>
               <span v-if="req.releaseDate">{{ formatDate(req.releaseDate) }}</span>
               <span v-if="req.ep" class="text-rv-pink font-medium">EP</span>
               <span v-if="req.debut" class="text-rv-purple font-medium">Debut</span>
             </p>
-            <p v-if="req.adminNotes" class="text-xs text-gray-500 mt-1 italic">
+            <p v-if="req.adminNotes" class="text-xs text-gray-500 dark:text-gray-300 mt-1 italic">
               "{{ req.adminNotes }}"
             </p>
           </div>

@@ -1,7 +1,7 @@
 ```
 <template>
   <div
-    class="p-3 border rounded-2xl flex flex-col sm:flex-row items-center justify-between w-full bg-white shadow-md transition"
+    class="p-3 border border-gray-200 dark:border-white/10 rounded-2xl flex flex-col sm:flex-row items-center justify-between w-full bg-white dark:bg-rv-darkCard shadow-md transition"
     :class="[
       { 'text-white': getGenreColor(disc.genreId) !== 'transparent' },
       isFocused ? 'ring-4 ring-rv-pink/70 shadow-xl scale-[1.01]' : ''
@@ -9,7 +9,7 @@
     <!-- Columna izquierda: Imagen del disco -->
     <div class="flex items-center w-full sm:w-1/3 p-4 min-w-0">
       <button v-if="!disc.image" @click="openImageModal"
-        class="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded shadow-md ml-2">
+        class="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded-full shadow-md ml-2 border border-white/20">
         <i class="fa-solid fa-image"></i>
       </button>
       <img v-if="disc.image" :src="disc.image" alt="Disc cover" class="w-24 h-24 rounded-md cursor-pointer object-cover"
@@ -25,7 +25,7 @@
           </h3>
 
           <!-- Botón editar artista -->
-          <button @click="openArtistModal" class="bg-white p-1 text-sm text-rv-navy hover:bg-gray-200 rounded-full"
+          <button @click="openArtistModal" class="bg-white dark:bg-rv-darkSurface p-1 text-sm text-rv-navy dark:text-white hover:bg-gray-200 dark:hover:bg-rv-purple rounded-full border border-gray-100 dark:border-white/10"
             title="Editar artista">
             <i class="fa-solid fa-edit text-xs"></i>
           </button>
@@ -40,7 +40,7 @@
               {{ disc.name }}
             </span>
           </a>
-          <button @click="showNameModal = true" class="bg-white p-1 text-sm text-rv-navy hover:bg-gray-200 rounded-full"
+          <button @click="showNameModal = true" class="bg-white dark:bg-rv-darkSurface p-1 text-sm text-rv-navy dark:text-white hover:bg-gray-200 dark:hover:bg-rv-purple rounded-full border border-gray-100 dark:border-white/10"
             title="Editar nombre">
             <i class="fa-solid fa-edit text-xs"></i>
           </button>
@@ -56,17 +56,17 @@
             <span>{{ linkButtonData.text }}</span>
           </a>
 
-          <span v-else-if="!disc.link" class="text-gray-400">
+          <span v-else-if="!disc.link" class="text-gray-400 dark:text-gray-300">
             <SpotifyArtistButton :artistName="disc.artist.name" />
           </span>
 
           <button @click="showLinkModal = true"
-            class="bg-white p-1 text-sm text-rv-navy hover:bg-gray-200 rounded-full">
+            class="bg-white dark:bg-rv-darkSurface p-1 text-sm text-rv-navy dark:text-white hover:bg-gray-200 dark:hover:bg-rv-purple rounded-full border border-gray-100 dark:border-white/10">
             <i class="fa-solid fa-link"></i>
           </button>
         </p>
 
-        <a class="cursor-pointer mt-2" @click="showDateModal = true">
+        <a class="cursor-pointer mt-2 text-sm hover:underline" @click="showDateModal = true">
           {{ formattedDate }}
         </a>
       </div>
@@ -80,14 +80,14 @@
         <SearchableSelect :key="`genres-${genres.length}`" v-model="editedData.genreId" :options="genres" title="name"
           trackby="id" placeholder="Buscar género..." trigger-placeholder="Selecciona un género"
           all-label="Todos los géneros" :max="200"
-          class="rounded-full text-rv-navy text-sm border-rv-navy/20 shadow-lg ring-0 focus:ring-0 focus:outline-none"
+          class="rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 dark:border-white/10 shadow-lg ring-0 focus:ring-0 focus:outline-none"
           @update:modelValue="() => saveChanges('genreId')" />
 
         <!-- País del artista -->
         <SearchableSelect :key="`countries-${countries.length}`" v-model="editedArtist.countryId" :options="countries"
           title="name" trackby="id" placeholder="Buscar país..." trigger-placeholder="Selecciona un país"
           all-label="Todos los países" :max="300"
-          class="rounded-full text-rv-navy text-sm border-rv-navy/20 shadow-lg ring-0 focus:ring-0 focus:outline-none"
+          class="rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 dark:border-white/10 shadow-lg ring-0 focus:ring-0 focus:outline-none"
           @update:modelValue="saveCountry" />
       </div>
 
@@ -139,7 +139,7 @@
         <button
           v-if="disc.nationalReleaseId"
           disabled
-          class="w-full bg-gray-200 text-gray-500 font-semibold px-3 py-2 rounded-lg text-sm cursor-not-allowed"
+          class="w-full bg-gray-200 dark:bg-rv-darkSurface text-gray-500 dark:text-gray-300 font-semibold px-3 py-2 rounded-lg text-sm cursor-not-allowed border border-gray-100 dark:border-white/10"
         >
           ✓ Ya en novedades nacionales
         </button>
@@ -160,14 +160,14 @@
     <!-- Modal para actualizar/crear artista -->
     <div v-if="showArtistModal"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 bg-gray-900 bg-opacity-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-        <h2 class="text-lg font-semibold mb-4">Actualizar o crear Artista</h2>
-        <label class="flex items-center mb-4">
+<div class="bg-white dark:bg-rv-darkCard p-6 rounded-lg shadow-lg w-96 border border-gray-100 dark:border-white/10">
+        <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Actualizar o crear Artista</h2>
+        <label class="flex items-center mb-4 text-gray-700 dark:text-gray-300">
           <input type="checkbox" v-model="creatingNewArtist" class="mr-2" />
           Crear nuevo artista
         </label>
         <input v-model="newArtistName" type="text" placeholder="Introduce el nombre del artista"
-          class="border p-2 w-full rounded-md" />
+          class="border border-gray-300 dark:border-white/10 p-2 w-full rounded-md bg-white dark:bg-rv-darkSurface text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500" />
         <div class="flex justify-end mt-4 space-x-2">
           <button @click="closeArtistModal"
             class="bg-gray-400 text-white px-4 py-2 rounded-full transition-all duration-200 hover:shadow-md transform hover:scale-105">Cancelar</button>
@@ -193,8 +193,8 @@
 
   <!-- Modal DiscDetail -->
   <div v-if="showDiscDetail" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div class="bg-white rounded-lg p-4 relative max-w-3xl w-full">
-      <button class="absolute top-2 right-2 text-gray-600 hover:text-gray-800 text-2xl" @click="closeDiscDetail">
+    <div class="bg-white dark:bg-rv-darkCard rounded-lg p-4 relative max-w-3xl w-full border border-gray-100 dark:border-white/10">
+      <button class="absolute top-2 right-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white text-2xl" @click="closeDiscDetail">
         &times;
       </button>
       <DiscDetail v-if="showDiscDetail" :disc="disc" @close="showDiscDetail = false" />
@@ -203,8 +203,8 @@
 
   <!-- Modal ArtistDetail -->
   <div v-if="showArtistDetail" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div class="bg-white rounded-lg p-4 relative max-w-3xl w-full">
-      <button class="absolute top-2 right-2 text-gray-600 hover:text-gray-800 text-2xl" @click="closeArtistDetail">
+<div class="bg-white dark:bg-rv-darkCard rounded-lg p-4 relative max-w-3xl w-full border border-gray-100 dark:border-white/10">
+      <button class="absolute top-2 right-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white text-2xl" @click="closeArtistDetail">
         &times;
       </button>
       <ArtistDetail v-if="showArtistDetail" :disc-name="disc.name" :artistName="disc.artist.name"
@@ -884,16 +884,8 @@ export default defineComponent({
   padding: 1rem;
 }
 
-.border {
-  border: 1px solid #e5e7eb;
-}
-
 .rounded-md {
   border-radius: 0.375rem;
-}
-
-.text-white {
-  color: #ffffff;
 }
 
 .truncate {
@@ -990,7 +982,6 @@ export default defineComponent({
 .modal-content {
   position: relative;
   z-index: 10000 !important;
-  background: white;
   padding: 20px;
   border-radius: 8px;
   z-index: 1100 !important;
@@ -1001,8 +992,6 @@ export default defineComponent({
 .searchable__select {
   position: absolute;
   width: 100%;
-  background-color: white;
-  border: 1px solid #ccc;
   border-radius: 0.25rem;
   z-index: 500 !important;
   margin-top: 0.25rem;

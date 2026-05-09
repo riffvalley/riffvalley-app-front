@@ -3,43 +3,41 @@
 
     <!-- Cabecera -->
     <div class="mb-8">
-      <h1 class="text-2xl font-bold mb-1">Bugs y Sugerencias</h1>
-      <p class="text-gray-400 text-sm">¿Encontraste un error o tienes una idea? Cuéntanos aquí.</p>
+      <h1 class="text-2xl font-bold mb-1 text-gray-900 dark:text-white">Bugs y Sugerencias</h1>
+      <p class="text-gray-400 dark:text-gray-300 text-sm">¿Encontraste un error o tienes una idea? Cuéntanos aquí.</p>
     </div>
 
     <!-- Formulario de creación -->
-    <div class="bg-white rounded-2xl shadow-rv p-6 mb-8">
-      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Enviar nuevo</h2>
+    <div
+      class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv p-6 mb-8 border border-gray-100 dark:border-white/10">
       <form @submit.prevent="handleSubmit" class="space-y-4">
 
         <!-- Tipo -->
         <div class="flex gap-2">
-          <button
-            type="button"
-            v-for="t in typeOptions"
-            :key="t.value"
-            @click="form.type = t.value"
+          <button type="button" v-for="t in typeOptions" :key="t.value" @click="form.type = t.value"
             :class="form.type === t.value
               ? t.activeClass
-              : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
-            class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors"
-          >
+              : 'bg-gray-100 dark:bg-rv-darkSurface text-gray-500 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-rv-purple'" class="px-3 py-1 rounded-full text-xs font-medium transition-colors
+border-0 shadow-none appearance-none
+outline-none ring-0
+focus:outline-none focus:ring-0 focus:border-0
+focus-visible:outline-none focus-visible:ring-0 focus-visible:border-0
+active:outline-none active:ring-0 active:border-0">
             <i :class="t.icon" class="mr-1"></i>{{ t.label }}
           </button>
         </div>
 
         <!-- Título -->
         <div>
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-            Título <span class="text-rv-pink">*</span>
+          <label class="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1.5"">
+            Título <span class=" text-rv-pink">*</span>
           </label>
-          <input
-            v-model="form.title"
-            type="text"
-            :placeholder="form.type === 'bug' ? 'Describe el problema...' : 'Describe tu sugerencia...'"
-            maxlength="200"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
-          />
+          <input v-model="form.title" type="text"
+            :placeholder="form.type === 'bug' ? 'Describe el problema...' : 'Describe tu sugerencia...'" maxlength="200"
+            class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm
+bg-white dark:bg-rv-darkSurface text-gray-800 dark:text-white
+placeholder:text-gray-400 dark:placeholder:text-gray-500
+focus:outline-none focus:ring-2 focus:ring-rv-pink" />
         </div>
 
         <!-- Descripción -->
@@ -47,19 +45,16 @@
           <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
             Descripción <span class="text-rv-pink">*</span>
           </label>
-          <textarea
-            v-model="form.description"
-            rows="4"
+          <textarea v-model="form.description" rows="4"
             :placeholder="form.type === 'bug' ? 'Explica el problema con detalle...' : 'Explica tu idea con detalle...'"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none"
-          ></textarea>
+            class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm
+bg-white dark:bg-rv-darkSurface text-gray-800 dark:text-white
+placeholder:text-gray-400 dark:placeholder:text-gray-500
+focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none"></textarea>
         </div>
 
-        <button
-          type="submit"
-          :disabled="submitting || !form.title.trim() || !form.description.trim()"
-          class="w-full bg-rv-navy text-white py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
-        >
+        <button type="submit" :disabled="submitting || !form.title.trim() || !form.description.trim()"
+          class="w-full bg-rv-navy text-white py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-40">
           <i class="fa-solid fa-paper-plane mr-2"></i>
           {{ submitting ? 'Enviando...' : 'Enviar' }}
         </button>
@@ -68,21 +63,18 @@
 
     <!-- Mis envíos -->
     <div>
-      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Mis envíos</h2>
+      <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-4">Mis envíos</h2>
 
-      <div v-if="loading" class="text-center py-8 text-gray-400 text-sm">Cargando...</div>
+      <div v-if="loading" class="text-center py-8 text-gray-400 dark:text-gray-300 text-sm">Cargando...</div>
 
-      <div v-else-if="suggestions.length === 0" class="text-center py-8 text-gray-400 text-sm bg-white rounded-2xl shadow-rv">
+      <div v-else-if="suggestions.length === 0"
+        class="text-center py-8 text-gray-400 dark:text-gray-300 text-sm bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv border border-gray-100 dark:border-white/10">
         <i class="fa-solid fa-inbox text-2xl mb-2 block text-gray-300"></i>
         Todavía no has enviado nada.
       </div>
 
       <ul v-else class="space-y-3">
-        <li
-          v-for="s in suggestions"
-          :key="s.id"
-          class="bg-white rounded-2xl shadow-rv px-5 py-4"
-        >
+        <li v-for="s in suggestions" :key="s.id" class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv px-5 py-4 border border-gray-100 dark:border-white/10">
           <div class="flex items-start justify-between gap-3">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 flex-wrap mb-1">
@@ -93,15 +85,15 @@
                   {{ statusLabel(s.status) }}
                 </span>
               </div>
-              <p class="font-semibold text-gray-800 text-sm">{{ s.title }}</p>
-              <p class="text-xs text-gray-500 mt-1">{{ s.description }}</p>
+              <p class="font-semibold text-gray-800 dark:text-white text-sm">{{ s.title }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-300 mt-1">{{ s.description }}</p>
               <p v-if="s.rejectionReason" class="text-xs text-red-400 mt-1.5 italic">
                 <i class="fa-solid fa-circle-xmark mr-1"></i>{{ s.rejectionReason }}
               </p>
               <p v-if="s.versionItem" class="text-xs text-green-600 mt-1.5">
                 <i class="fa-solid fa-code-branch mr-1"></i>Incluido en: {{ s.versionItem.description }}
               </p>
-              <p class="text-xs text-gray-400 mt-1.5">{{ formatDate(s.createdAt) }}</p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">{{ formatDate(s.createdAt) }}</p>
             </div>
           </div>
         </li>

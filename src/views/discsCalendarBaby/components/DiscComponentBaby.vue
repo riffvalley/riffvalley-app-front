@@ -1,12 +1,12 @@
 <template>
   <div
-    class="p-3 border rounded-2xl flex flex-col sm:flex-row items-center justify-between w-full sm:w-1/2 bg-white shadow-md"
+    class="p-3 border border-gray-200 dark:border-white/10 rounded-2xl flex flex-col sm:flex-row items-center justify-between w-full sm:w-1/2 bg-white dark:bg-rv-darkCard shadow-md"
     :style="{ backgroundColor: getGenreColor(disc.genreId) }"
     :class="{ 'text-white': getGenreColor(disc.genreId) !== 'transparent' }">
     <!-- Columna izquierda: Imagen del disco -->
     <div class="flex items-center w-full sm:w-1/3 p-4 min-w-0">
       <button v-if="!disc.image" @click="openImageModal"
-        class="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded shadow-md ml-2">
+        class="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded-full shadow-md ml-2 border border-white/20">
         <i class="fa-solid fa-image"></i>
       </button>
       <img v-if="disc.image" :src="disc.image" alt="Disc cover" class="w-28 h-28 rounded-md object-cover" />
@@ -40,7 +40,7 @@
             <i :class="[linkButtonData.icon, 'text-base']"></i>
             <span>{{ linkButtonData.text }}</span>
           </a>
-          <span v-else-if="!disc.link" class="text-gray-400">
+          <span v-else-if="!disc.link" class="text-gray-400 dark:text-gray-300">
             <SpotifyArtistButton :artistName="disc.artist.name" />
           </span>
         </p>
@@ -103,8 +103,8 @@
   </div>
 
   <div v-if="showDiscDetail" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div class="bg-white rounded-lg p-4 relative max-w-3xl w-full">
-      <button class="absolute top-2 right-2 text-gray-600 hover:text-gray-800 text-2xl" @click="closeDiscDetail">
+    <div class="bg-white dark:bg-rv-darkCard rounded-lg p-4 relative max-w-3xl w-full border border-gray-100 dark:border-white/10">
+      <button class="absolute top-2 right-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white text-2xl" @click="closeDiscDetail">
         &times;
       </button>
       <!-- Se pasa la información del disco -->
@@ -262,16 +262,8 @@ export default defineComponent({
   padding: 1rem;
 }
 
-.border {
-  border: 1px solid #e5e7eb;
-}
-
 .rounded-md {
   border-radius: 0.375rem;
-}
-
-.text-white {
-  color: #ffffff;
 }
 
 .truncate {

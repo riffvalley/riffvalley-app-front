@@ -3,8 +3,8 @@
 
     <!-- Cabecera -->
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-3xl font-bold">Peticiones de discos</h1>
-      <span class="text-sm text-gray-400">{{ filteredRequests.length }} peticiones</span>
+<h1 class="text-3xl font-bold text-gray-900 dark:text-white">Peticiones de discos</h1>
+<span class="text-sm text-gray-400 dark:text-gray-300">{{ filteredRequests.length }} peticiones</span>
     </div>
 
     <!-- Filtros de estado -->
@@ -13,9 +13,9 @@
         v-for="tab in tabs"
         :key="tab.value"
         @click="activeTab = tab.value"
-        :class="activeTab === tab.value
-          ? 'bg-rv-navy text-white'
-          : 'bg-white text-gray-500 hover:text-rv-navy border border-gray-200'"
+:class="activeTab === tab.value
+  ? 'bg-rv-navy dark:bg-rv-purple text-white'
+  : 'bg-white dark:bg-rv-darkSurface text-gray-500 dark:text-gray-300 hover:text-rv-navy dark:hover:text-white border border-gray-200 dark:border-white/10'"
         class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors shadow-sm"
       >
         {{ tab.label }}
@@ -24,12 +24,12 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-center py-12 text-gray-400">Cargando...</div>
+    <div v-if="loading" class="text-center py-12 text-gray-400 dark:text-gray-300">Cargando...</div>
 
     <!-- Vacío -->
     <div v-else-if="filteredRequests.length === 0"
-      class="text-center py-12 text-gray-400 bg-white rounded-2xl shadow-rv">
-      <i class="fas fa-inbox text-3xl mb-3 block text-gray-300"></i>
+      class="text-center py-12 text-gray-400 dark:text-gray-300 bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv border border-gray-100 dark:border-white/10"
+      <i class="fas fa-inbox text-3xl mb-3 block text-gray-300 dark:text-gray-500"></i>
       No hay peticiones {{ activeTab !== 'all' ? tabLabel(activeTab) + 's' : '' }}.
     </div>
 
@@ -38,7 +38,7 @@
       <li
         v-for="req in filteredRequests"
         :key="req.id"
-        class="bg-white rounded-2xl shadow-rv px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4"
+        class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4 border border-gray-100 dark:border-white/10"
       >
         <!-- Info -->
         <div class="flex-1 min-w-0">
@@ -59,7 +59,7 @@
 {{ req.user.username || req.user.name || req.user.email || req.user.id }}
 </span>
           </p>
-          <p v-if="req.adminNotes" class="text-xs text-gray-500 mt-1.5 italic">
+          <p v-if="req.adminNotes" class="text-xs text-gray-500 dark:text-gray-300 mt-1.5 italic">
             <i class="fas fa-comment-dots mr-1"></i>"{{ req.adminNotes }}"
           </p>
         </div>
@@ -72,7 +72,7 @@
           </span>
           <template v-if="req.status !== 'approved'">
             <button @click="openEdit(req)" title="Editar"
-              class="w-8 h-8 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors">
+              class="w-8 h-8 flex items-center justify-center rounded-full bg-green-50 dark:bg-green-500/15 text-green-600 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-500/25 transition-colors">
               <i class="fas fa-pen text-xs"></i>
             </button>
             <template v-if="req.status === 'pending'">
@@ -86,7 +86,7 @@
               </button>
             </template>
             <button v-if="req.status === 'rejected'" @click="handleReopen(req)" title="Reabrir"
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-50 text-yellow-600 hover:bg-yellow-100 text-xs font-semibold transition-colors">
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-50 dark:bg-yellow-500/15 text-yellow-600 dark:text-yellow-300 hover:bg-yellow-100 dark:hover:bg-yellow-500/25 text-xs font-semibold transition-colors">
               <i class="fas fa-rotate-left text-xs"></i>
               Reabrir
             </button>
@@ -100,26 +100,35 @@
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="editingRequest = null">
       <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
-        <h2 class="text-xl font-bold mb-5">Editar petición</h2>
+        <h2 class="text-xl font-bold mb-5 text-gray-900 dark:text-white">Editar petición</h2>
         <div class="space-y-4">
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Artista</label>
+              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1">Artista</label>
               <input v-model="editForm.artistName" type="text"
-                class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+                class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm
+bg-white dark:bg-rv-darkSurface text-gray-800 dark:text-white
+placeholder:text-gray-400 dark:placeholder:text-gray-500
+focus:outline-none focus:ring-2 focus:ring-rv-pink" />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Disco</label>
+              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1">Disco</label>
               <input v-model="editForm.discName" type="text"
-                class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+                class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm
+bg-white dark:bg-rv-darkSurface text-gray-800 dark:text-white
+placeholder:text-gray-400 dark:placeholder:text-gray-500
+focus:outline-none focus:ring-2 focus:ring-rv-pink" />
             </div>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Fecha de lanzamiento</label>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1">Fecha de lanzamiento</label>
             <input v-model="editForm.releaseDate" type="date"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+              class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm
+bg-white dark:bg-rv-darkSurface text-gray-800 dark:text-white
+placeholder:text-gray-400 dark:placeholder:text-gray-500
+focus:outline-none focus:ring-2 focus:ring-rv-pink" />
           </div>
 
           <div class="grid grid-cols-2 gap-3">
@@ -151,12 +160,12 @@
 
           <div class="flex gap-3">
             <button type="button" @click="editForm.ep = !editForm.ep"
-              :class="editForm.ep ? 'bg-rv-pink text-white border-rv-pink' : 'bg-white text-gray-500 border-gray-200'"
+              :class="editForm.ep ? 'bg-rv-pink text-white border-rv-pink' : 'bg-white dark:bg-rv-darkSurface text-gray-500 dark:text-gray-300 border-gray-200 dark:border-white/10'"
               class="flex items-center gap-1.5 px-4 py-2 rounded-xl border text-sm font-medium transition-colors">
               <i class="fas fa-compact-disc text-xs"></i> EP
             </button>
             <button type="button" @click="editForm.debut = !editForm.debut"
-              :class="editForm.debut ? 'bg-rv-pink text-white border-rv-pink' : 'bg-white text-gray-500 border-gray-200'"
+             :class="editForm.debut ? 'bg-rv-pink text-white border-rv-pink' : 'bg-white dark:bg-rv-darkSurface text-gray-500 dark:text-gray-300 border-gray-200 dark:border-white/10'"
               class="flex items-center gap-1.5 px-4 py-2 rounded-xl border text-sm font-medium transition-colors">
               <i class="fas fa-star text-xs"></i> Debut
             </button>
@@ -165,14 +174,17 @@
           <div>
             <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Notas admin</label>
             <textarea v-model="editForm.adminNotes" rows="2" placeholder="Correcciones realizadas..."
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none" />
+              class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm
+bg-white dark:bg-rv-darkSurface text-gray-800 dark:text-white
+placeholder:text-gray-400 dark:placeholder:text-gray-500
+focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none" />
           </div>
 
         </div>
 
         <div class="flex justify-end gap-2 mt-6">
           <button @click="editingRequest = null"
-            class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 transition-colors">
+            class="px-4 py-2 rounded-xl text-sm text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-rv-darkSurface transition-colors">
             Cancelar
           </button>
           <button @click="handleSaveEdit" :disabled="saving"
@@ -188,17 +200,18 @@
     <div v-if="rejectingRequest"
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="rejectingRequest = null">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-        <h2 class="text-xl font-bold mb-2">Rechazar petición</h2>
-        <p class="text-sm text-gray-500 mb-4">
-          <span class="font-medium text-gray-700">{{ rejectingRequest.artistName }} — {{ rejectingRequest.discName }}</span>
+      <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-xl w-full max-w-md p-6 border border-gray-100 dark:border-white/10">
+<h2 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">Rechazar petición</h2>
+<p class="text-sm text-gray-500 dark:text-gray-300 mb-4">
+  <span class="font-medium text-gray-700 dark:text-white">{{ rejectingRequest.artistName }} — {{ rejectingRequest.discName }}</span>
         </p>
 
         <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
           Motivo rápido
         </label>
-        <select @change="onRejectPreset" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-600
-          focus:outline-none focus:ring-2 focus:ring-rv-pink mb-3">
+        <select @change="onRejectPreset" class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm
+bg-white dark:bg-rv-darkSurface text-gray-600 dark:text-white
+focus:outline-none focus:ring-2 focus:ring-rv-pink mb-3">
           <option value="">— Selecciona un motivo —</option>
           <option v-for="reason in REJECT_REASONS" :key="reason.value" :value="reason.value">
             {{ reason.label }}
@@ -209,12 +222,15 @@
           Mensaje para el usuario <span class="text-rv-pink">*</span>
         </label>
         <textarea v-model="rejectNotes" rows="3" placeholder="Escribe o edita el motivo del rechazo..."
-          class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none" />
+          class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-sm
+bg-white dark:bg-rv-darkSurface text-gray-800 dark:text-white
+placeholder:text-gray-400 dark:placeholder:text-gray-500
+focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none" />
         <p v-if="rejectError" class="text-rv-pink text-xs mt-1">{{ rejectError }}</p>
 
         <div class="flex justify-end gap-2 mt-5">
           <button @click="rejectingRequest = null"
-            class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 transition-colors">
+            class="px-4 py-2 rounded-xl text-sm text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-rv-darkSurface transition-colors">
             Cancelar
           </button>
           <button @click="handleReject" :disabled="rejecting"
