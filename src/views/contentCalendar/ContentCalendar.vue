@@ -1,14 +1,22 @@
 <template>
-    <div class="flex h-screen overflow-hidden bg-gray-50">
-        <!-- Backlog Panel Component -->
-        <BacklogPanel :backlog-items="backlogItems" :show-only-my-events="showOnlyMyEvents" :user-id="authStore.userId"
-            @create-new="showCreateModal = true" @edit-content="openEditModal" @delete-content="handleDeleteFromBacklog"
-            ref="backlogPanelRef" />
+    <div class="relative flex h-screen overflow-hidden bg-gray-50 dark:bg-rv-darkBg">
+        <!-- Overlay móvil al abrir el backlog -->
+        <div v-if="showBacklog" class="fixed inset-0 bg-black/50 z-20 lg:hidden" @click="showBacklog = false" />
+
+        <!-- Backlog Panel -->
+        <transition name="backlog-slide" @after-enter="updateCalendarSize" @after-leave="updateCalendarSize">
+            <div v-if="showBacklog" class="fixed lg:relative inset-y-0 left-0 z-30 lg:z-auto shrink-0">
+                <BacklogPanel :backlog-items="backlogItems" :show-only-my-events="showOnlyMyEvents" :user-id="authStore.userId"
+                    @create-new="showCreateModal = true" @edit-content="openEditModal" @delete-content="handleDeleteFromBacklog"
+                    @close="showBacklog = false"
+                    ref="backlogPanelRef" />
+            </div>
+        </transition>
 
         <!-- Calendar Panel -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <div class="p-4 bg-white border-b border-gray-200 flex justify-between items-center">
-                <h1 class="text-xl font-bold text-gray-900">Calendario de Eventos</h1>
+        <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+            <div class="p-4 bg-white dark:bg-rv-darkCard border-b border-gray-200 dark:border-white/10 flex justify-between items-center">
+                <h1 class="text-xl font-bold text-gray-900 dark:text-white">Calendario RV</h1>
                 <div class="flex gap-2">
                     <!-- Botón de filtro de usuario -->
                     <button v-if="authStore.userId" @click="toggleMyEventsFilter"
@@ -18,10 +26,10 @@
                         <div class="relative">
                             <img v-if="authStore.image" :src="authStore.image" :alt="authStore.username || 'Usuario'"
                                 class="w-10 h-10 rounded-full object-cover transition-all"
-                                :class="showOnlyMyEvents ? 'ring-4 ring-indigo-600 ring-offset-2' : ''" />
+                                :class="showOnlyMyEvents ? 'ring-4 ring-rv-pink ring-offset-2' : ''" />
                             <div v-else
-                                class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg"
-                                :class="showOnlyMyEvents ? 'ring-4 ring-indigo-600 ring-offset-2' : ''">
+                                class="w-10 h-10 rounded-full bg-rv-purple flex items-center justify-center text-white font-bold text-lg"
+                                :class="showOnlyMyEvents ? 'ring-4 ring-rv-pink ring-offset-2' : ''">
                                 {{ authStore.username?.charAt(0).toUpperCase() }}
                             </div>
                         </div>
@@ -29,16 +37,26 @@
 
                     <!-- Botón de leyenda -->
                     <button @click="showLegendModal = true"
-                        class="w-10 h-10 rounded-full bg-indigo-100 hover:bg-indigo-200 text-indigo-600 font-bold text-lg transition-colors flex items-center justify-center"
+                        class="w-10 h-10 rounded-full bg-rv-navy/10 dark:bg-rv-darkSurface hover:bg-rv-navy dark:hover:bg-rv-purple text-rv-navy dark:text-white hover:text-white font-bold text-lg transition-all flex items-center justify-center"
                         title="Ver leyenda de colores">
                         ?
                     </button>
                 </div>
             </div>
 
-            <div class="flex-1 overflow-auto p-4">
-                <div class="bg-white rounded-lg shadow-lg p-4">
-                    <FullCalendar :options="calendarOptions" ref="calendarRef" />
+            <div class="flex flex-1 overflow-hidden">
+                <!-- Tab para abrir el backlog cuando está cerrado -->
+                <div v-if="!showBacklog"
+                     @click="showBacklog = true"
+                     class="shrink-0 w-8 flex items-center justify-center bg-rv-darkSurface hover:bg-rv-purple cursor-pointer transition-all"
+                     title="Mostrar backlog">
+                    <i class="fa-solid fa-chevron-right text-white/60 hover:text-white text-xs transition-colors"></i>
+                </div>
+
+                <div class="rv-calendar-wrapper flex-1 overflow-auto p-4">
+                    <div class="bg-white dark:bg-rv-darkCard rounded-lg shadow-lg p-4">
+                        <FullCalendar :options="calendarOptions" ref="calendarRef" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -90,7 +108,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
@@ -121,6 +139,7 @@ import DeleteConfirmModal from './components/DeleteConfirmModal.vue';
 
 const authStore = useAuthStore();
 const showOnlyMyEvents = ref(false);
+const showBacklog = ref(window.innerWidth >= 1024);
 
 const router = useRouter();
 const calendarRef = ref<InstanceType<typeof FullCalendar>>();
@@ -235,7 +254,8 @@ const calendarOptions = ref({
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
     locale: 'es',
-    firstDay: 1, // Empezar en lunes
+    buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día' },
+    firstDay: 1,
     height: 'auto',
     headerToolbar: {
         left: 'prev,next today',
@@ -472,7 +492,7 @@ function getContentTypeLabel(type: ContentType): string {
         photos: 'Fotos',
         spotify: 'Spotify',
         radar: 'Radar',
-        best: 'Mejores Discos',
+        best: 'Mejores del Mes',
         video: 'Video',
         reunion: 'Reunión'
     };
@@ -889,22 +909,32 @@ async function loadBacklogContents() {
     }
 }
 
-onMounted(async () => {
-    await loadRvUsers();
-    // Load backlog first
-    await loadBacklogContents();
-    // Then load current month's scheduled content
-    await loadContentsByMonth(currentYear.value, currentMonth.value);
+function updateCalendarSize() {
+    calendarRef.value?.getApi().updateSize();
+}
 
-    // Initialize Draggable
-    if (backlogPanelRef.value?.$el.querySelector('.flex-1')) {
-        new Draggable(backlogPanelRef.value?.$el.querySelector('.flex-1'), {
+function initDraggable() {
+    const container = backlogPanelRef.value?.$el.querySelector('.flex-1');
+    if (container) {
+        new Draggable(container, {
             itemSelector: '.fc-event',
-            eventData: function (eventEl) {
-                return JSON.parse(eventEl.getAttribute('data-event') || '{}');
-            }
+            eventData: (eventEl: HTMLElement) => JSON.parse(eventEl.getAttribute('data-event') || '{}')
         });
     }
+}
+
+watch(showBacklog, async (val) => {
+    if (val) {
+        await nextTick();
+        initDraggable();
+    }
+});
+
+onMounted(async () => {
+    await loadRvUsers();
+    await loadBacklogContents();
+    await loadContentsByMonth(currentYear.value, currentMonth.value);
+    initDraggable();
 });
 
 
@@ -933,21 +963,26 @@ function navigateToRadarDetail() {
 }
 
 :deep(.fc-button) {
-    background-color: #6366f1 !important;
-    border-color: #6366f1 !important;
+    background-color: #b0669f !important;
+    border-color: #b0669f !important;
     text-transform: capitalize;
     font-size: 0.875rem;
     padding: 0.375rem 0.75rem;
+    border-radius: 9999px !important;
+    box-shadow: none !important;
 }
 
 :deep(.fc-button:hover) {
-    background-color: #4f46e5 !important;
-    border-color: #4f46e5 !important;
+    background-color: #e46e8a !important;
+    border-color: #e46e8a !important;
 }
 
-:deep(.fc-button-active) {
-    background-color: #4338ca !important;
-    border-color: #4338ca !important;
+:deep(.fc-button-active),
+:deep(.fc-button:focus) {
+    background-color: #00021f !important;
+    border-color: #00021f !important;
+    box-shadow: none !important;
+    outline: none !important;
 }
 
 :deep(.fc-daygrid-day-number) {
@@ -957,7 +992,7 @@ function navigateToRadarDetail() {
 }
 
 :deep(.fc-day-today) {
-    background-color: #fef3c7 !important;
+    background-color: rgba(228, 110, 138, 0.1) !important;
 }
 
 :deep(.fc-event) {
@@ -977,4 +1012,37 @@ function navigateToRadarDetail() {
 :deep(.fc-daygrid-day-frame) {
     min-height: 100px;
 }
+
+/* Dark mode button overrides (scoped ok — button is within component root) */
+.dark :deep(.fc-button-active),
+.dark :deep(.fc-button:focus) {
+    background-color: #e46e8a !important;
+    border-color: #e46e8a !important;
+}
+
+/* Transición del backlog */
+.backlog-slide-enter-active,
+.backlog-slide-leave-active {
+    transition: transform 0.3s ease;
+}
+.backlog-slide-enter-from,
+.backlog-slide-leave-to {
+    transform: translateX(-100%);
+}
+</style>
+
+<!-- Dark mode overrides for FullCalendar: must be non-scoped because the
+     `dark` class lives on <html>, outside this component's scope boundary. -->
+<style>
+.dark .rv-calendar-wrapper .fc-toolbar-title { color: #ffffff !important; }
+.dark .rv-calendar-wrapper .fc-daygrid-day-number { color: #e5e7eb !important; }
+.dark .rv-calendar-wrapper .fc-col-header-cell-cushion { color: #d1d5db !important; }
+.dark .rv-calendar-wrapper .fc-col-header-cell { background-color: #404157 !important; }
+.dark .rv-calendar-wrapper .fc-day-other .fc-daygrid-day-number { color: #6b7280 !important; }
+.dark .rv-calendar-wrapper .fc-daygrid-day { background-color: #2a2b3d !important; }
+.dark .rv-calendar-wrapper .fc-day-other { background-color: #1e1f2d !important; }
+.dark .rv-calendar-wrapper .fc-scrollgrid { border-color: rgba(255, 255, 255, 0.1) !important; }
+.dark .rv-calendar-wrapper .fc-scrollgrid td,
+.dark .rv-calendar-wrapper .fc-scrollgrid th { border-color: rgba(255, 255, 255, 0.1) !important; }
+.dark .rv-calendar-wrapper .fc-day-today { background-color: rgba(228, 110, 138, 0.2) !important; }
 </style>
