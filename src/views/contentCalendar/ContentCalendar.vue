@@ -985,6 +985,13 @@ function navigateToRadarDetail() {
     outline: none !important;
 }
 
+:deep(.fc-col-header-cell-cushion) {
+    color: #374151;
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-decoration: none;
+}
+
 :deep(.fc-daygrid-day-number) {
     color: #374151;
     font-weight: 600;
