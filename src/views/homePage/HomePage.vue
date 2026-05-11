@@ -584,7 +584,7 @@ export default defineComponent({
           statsRange,
           statsRange
         );
-        discs.value = response.discs.map((disc) => ({
+        discs.value = response.discs.filter((disc) => disc.averageRate != null).map((disc) => ({
           ...disc,
           artist: {
             ...disc.artist,
