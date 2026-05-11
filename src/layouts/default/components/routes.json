@@ -59,14 +59,6 @@
     "icon": "fa-solid fa-bug"
   },
   {
-    "to": "/import",
-    "label": "Añadir discos",
-    "activeClass": "bg-gray-700",
-    "type": "new-discs",
-    "requiredRole": "user",
-    "icon": "fa-solid fa-circle-plus"
-  },
-  {
     "to": "/petitions",
     "label": "Peticiones",
     "activeClass": "bg-gray-700",
@@ -75,8 +67,16 @@
     "icon": "fa-solid fa-inbox"
   },
   {
+    "to": "/import",
+    "label": "Añadir Discos",
+    "activeClass": "bg-gray-700",
+    "type": "new-discs",
+    "requiredRole": "user",
+    "icon": "fa-solid fa-circle-plus"
+  },
+  {
     "to": "/content-calendar",
-    "label": "Calendario de Contenido",
+    "label": "Calendario RV",
     "activeClass": "bg-gray-700",
     "type": "riff-valley",
     "requiredRole": "riffValley",
@@ -98,13 +98,13 @@
     "children": [
       {
         "to": "/discos/radar",
-        "label": "Nuevos Discos",
+        "label": "Radares",
         "activeClass": "bg-gray-700",
         "icon": "fa-solid fa-certificate"
       },
       {
         "to": "/discos/mejores",
-        "label": "Mejores Discos",
+        "label": "Mejores del Mes",
         "activeClass": "bg-gray-700",
         "icon": "fa-solid fa-star"
       }
@@ -158,7 +158,7 @@
     "to": "/import-discs",
     "label": "Importar Discos",
     "activeClass": "bg-gray-700",
-    "type": "riff-valley",
+    "type": "new-discs",
     "requiredRole": "riffValley",
     "icon": "fa-solid fa-upload"
   },
@@ -172,9 +172,9 @@
   },
   {
     "to": "/disc-list-error",
-    "label": "Discos",
+    "label": "Discos en Revisión",
     "activeClass": "bg-gray-700",
-    "type": "management",
+    "type": "new-discs",
     "requiredRole": "riffValley",
     "icon": "fa-solid fa-circle-exclamation"
   },
