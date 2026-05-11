@@ -112,7 +112,7 @@
   },
   {
     "to": "/videos",
-    "label": "Videos",
+    "label": "Vídeos",
     "activeClass": "bg-gray-700",
     "type": "riff-valley",
     "requiredRole": "riffValley",

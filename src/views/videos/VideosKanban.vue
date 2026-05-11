@@ -1,36 +1,36 @@
 <template>
-    <div class="p-6 min-h-[calc(100vh-64px)] flex flex-col">
-        <div class="flex items-center justify-between mb-6">
-            <h1 class="text-2xl font-semibold">Tablero de Videos</h1>
+    <div class="p-4 md:p-6 min-h-[calc(100vh-64px)] flex flex-col dark:bg-rv-darkBg">
+        <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+            <h1 class="text-2xl font-semibold dark:text-white">Vídeos</h1>
             <div class="flex gap-2 items-center">
                 <!-- User Filter -->
                 <div class="relative group">
                     <select v-model="selectedUserId" @change="reload"
-                        class="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-black focus:border-black block w-full p-2.5">
+                        class="bg-white dark:bg-rv-darkCard dark:border-white/20 dark:text-gray-200 border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-black focus:border-black block w-full p-2.5">
                         <option v-for="user in users" :key="user.id" :value="user.id">
                             {{ user.username }}
                         </option>
                     </select>
                 </div>
 
-                <button class="bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800"
+                <button class="bg-black dark:bg-rv-purple text-white px-4 py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-rv-pink transition-colors"
                     @click="openCreate">
-                    Nuevo Video
+                    <span class="hidden sm:inline">Nuevo </span>Vídeo
                 </button>
             </div>
         </div>
 
         <!-- Loading / Error -->
-        <div v-if="loading" class="text-center py-10">Cargando videos...</div>
+        <div v-if="loading" class="text-center py-10 dark:text-gray-400">Cargando vídeos...</div>
         <div v-else-if="error" class="text-red-500 text-center py-10">{{ error }}</div>
 
         <!-- Kanban Board -->
-        <div v-else class="flex gap-4 h-full overflow-x-auto pb-4">
+        <div v-else class="flex flex-col md:flex-row gap-4 pb-4 md:h-full md:overflow-x-auto">
             <div v-for="col in columns" :key="col.id"
-                class="flex-1 min-w-[220px] rounded-xl p-2 flex flex-col max-h-full"
+                class="w-full md:flex-1 md:min-w-[220px] rounded-xl p-2 flex flex-col md:max-h-full"
                 :class="[col.bgClass, col.borderClass]" @dragover.prevent="onDragOver" @drop="onDrop(col.id)">
                 <!-- Column Header -->
-                <h2 class="font-bold mb-4 flex items-center justify-between sticky top-0 pb-2 z-10"
+                <h2 class="font-bold mb-4 flex items-center justify-between md:sticky top-0 pb-2 z-10"
                     :class="[col.textClass, col.bgClass]">
                     {{ col.label }}
                     <span class="text-sm px-2 py-0.5 rounded-full" :class="col.countClass">
@@ -39,9 +39,9 @@
                 </h2>
 
                 <!-- Cards Container -->
-                <div class="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar">
+                <div class="space-y-3 md:flex-1 md:overflow-y-auto pr-2 custom-scrollbar">
                     <div v-for="item in getItems(col.id)" :key="item.id"
-                        class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-move hover:shadow-md transition-shadow group relative"
+                        class="bg-white dark:bg-rv-darkCard p-4 rounded-lg shadow-sm border border-gray-200 dark:border-white/10 cursor-move hover:shadow-md transition-shadow group relative"
                         draggable="true" @dragstart="onDragStart(item)">
                         <!-- Card Content -->
                         <div class="mb-2">
@@ -50,9 +50,9 @@
                                     :class="getTypeColor(item.type)">
                                     {{ item.type }}
                                 </span>
-                                <span class="text-[10px] text-gray-400">{{ fmtDate(item.updateDate || '') }}</span>
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500">{{ fmtDate(item.updateDate || '') }}</span>
                             </div>
-                            <h3 class="font-semibold text-gray-900 leading-tight">
+                            <h3 class="font-semibold text-gray-900 dark:text-white leading-tight">
                                 {{ item.name }}
                             </h3>
                         </div>
@@ -64,29 +64,29 @@
                                 <!-- Visual Display (Click to edit) -->
                                 <div v-if="editingUserItemId !== item.id"
                                     @click="startEditingUser(item.id)"
-                                    class="flex items-center gap-2 p-1.5 rounded-lg border border-transparent bg-gray-50 transition-all hover:bg-gray-100 cursor-pointer">
+                                    class="flex items-center gap-2 p-1.5 rounded-lg border border-transparent bg-gray-50 dark:bg-rv-darkSurface transition-all hover:bg-gray-100 dark:hover:bg-rv-darkBg cursor-pointer">
                                     <template v-if="item.user">
                                         <img v-if="item.user.image" :src="item.user.image"
                                             class="w-5 h-5 rounded-full object-cover bg-gray-200" alt="Avatar" />
                                         <div v-else
-                                            class="w-5 h-5 rounded-full bg-black/10 flex items-center justify-center text-[10px] font-bold text-black/50">
+                                            class="w-5 h-5 rounded-full bg-black/10 dark:bg-white/10 flex items-center justify-center text-[10px] font-bold text-black/50 dark:text-white/70">
                                             {{ (item.user.username || '?').charAt(0).toUpperCase() }}
                                         </div>
-                                        <span class="text-xs font-medium text-gray-700 truncate min-w-0 flex-1">{{
+                                        <span class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate min-w-0 flex-1">{{
                                             item.user.username || 'Usuario desconocido' }}</span>
                                     </template>
                                     <template v-else>
-                                        <div class="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center">
+                                        <div class="w-5 h-5 rounded-full bg-gray-200 dark:bg-rv-darkBg flex items-center justify-center">
                                             <i class="fa-solid fa-user text-gray-400 text-[10px]"></i>
                                         </div>
-                                        <span class="text-xs text-gray-500 flex-1">Sin asignar</span>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400 flex-1">Sin asignar</span>
                                     </template>
                                 </div>
 
                                 <!-- Actual Select (Visible only when editing) -->
                                 <select v-else :value="item.user?.id || ''" @change="onUserChange(item, $event)"
                                     @blur="stopEditingUser" ref="userSelectRef"
-                                    class="w-full text-xs p-1.5 bg-white border border-blue-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200">
+                                    class="w-full text-xs p-1.5 bg-white dark:bg-rv-darkSurface dark:text-gray-200 border border-blue-500 dark:border-blue-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900/40">
                                     <option value="">Sin asignar</option>
                                     <option v-for="user in users" :key="user.id" :value="user.id">
                                         {{ user.username }}
@@ -99,32 +99,32 @@
                                 <!-- Visual Display (Click to edit) -->
                                 <div v-if="editingEditorItemId !== item.id"
                                     @click="startEditingEditor(item.id)"
-                                    class="flex items-center gap-2 p-1.5 rounded-lg border border-transparent bg-purple-50/50 transition-all hover:bg-purple-100/50 cursor-pointer">
+                                    class="flex items-center gap-2 p-1.5 rounded-lg border border-transparent bg-purple-50/50 dark:bg-purple-900/10 transition-all hover:bg-purple-100/50 dark:hover:bg-purple-900/20 cursor-pointer">
                                     <template v-if="item.editor">
                                         <img v-if="item.editor.image" :src="item.editor.image"
                                             class="w-5 h-5 rounded-full object-cover bg-gray-200" alt="Avatar" />
                                         <div v-else
-                                            class="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center text-[10px] font-bold text-purple-500">
+                                            class="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-[10px] font-bold text-purple-500 dark:text-purple-300">
                                             {{ (item.editor.username || '?').charAt(0).toUpperCase() }}
                                         </div>
-                                        <span class="text-xs font-medium text-purple-700 truncate min-w-0 flex-1">
+                                        <span class="text-xs font-medium text-purple-700 dark:text-purple-300 truncate min-w-0 flex-1">
                                             <span class="text-[10px] text-purple-400 mr-1">Editor:</span>
                                             {{ item.editor.username || 'Editor desconocido' }}
                                         </span>
                                     </template>
                                     <template v-else>
                                         <div
-                                            class="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center">
+                                            class="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
                                             <i class="fa-solid fa-pen-nib text-purple-300 text-[10px]"></i>
                                         </div>
-                                        <span class="text-xs text-purple-400 flex-1">Sin editor</span>
+                                        <span class="text-xs text-purple-400 dark:text-purple-400 flex-1">Sin editor</span>
                                     </template>
                                 </div>
 
                                 <!-- Actual Select (Visible only when editing) -->
                                 <select v-else :value="item.editor?.id || ''" @change="onEditorChange(item, $event)"
                                     @blur="stopEditingEditor" ref="editorSelectRef"
-                                    class="w-full text-xs p-1.5 bg-white border border-purple-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200">
+                                    class="w-full text-xs p-1.5 bg-white dark:bg-rv-darkSurface dark:text-gray-200 border border-purple-500 dark:border-purple-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-900/40">
                                     <option value="">Sin editor</option>
                                     <option v-for="user in users" :key="user.id" :value="user.id">
                                         {{ user.username }}
@@ -133,25 +133,25 @@
                             </div>
 
                             <!-- Action Buttons -->
-                            <div class="flex items-center justify-end pt-2 border-t border-gray-100 mt-2">
+                            <div class="flex items-center justify-end pt-2 border-t border-gray-100 dark:border-white/10 mt-2">
                                 <div class="flex items-center gap-2">
                                     <!-- Edit -->
                                     <button @click="openEdit(item)"
-                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
                                         title="Editar">
                                         <i class="fa-solid fa-pen text-xs"></i>
                                     </button>
 
                                     <!-- Delete -->
                                     <button @click="confirmDelete(item)"
-                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
                                         title="Eliminar">
                                         <i class="fa-solid fa-trash text-xs"></i>
                                     </button>
 
                                     <!-- Link -->
                                     <a v-if="item.link" :href="item.link" target="_blank"
-                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
                                         title="Abrir enlace">
                                         <i class="fa-solid fa-link text-xs"></i>
                                     </a>
@@ -159,14 +159,14 @@
                                     <!-- List: Navigate -->
                                     <button v-if="item.listId"
                                         @click="router.push(`/videos/list/${item.listId}?videoType=${item.type}`)"
-                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
                                         title="Ver lista">
                                         <i class="fa-solid fa-list text-xs"></i>
                                     </button>
 
                                     <!-- List: Create -->
                                     <button v-else @click="handleCreateList(item)"
-                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors"
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors"
                                         title="Crear lista">
                                         <i class="fa-solid fa-list text-xs"></i>
                                     </button>
@@ -181,39 +181,44 @@
         <!-- Create/Edit Modal -->
         <div v-if="showModal" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
             @click.self="closeModal">
-            <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-                <h3 class="text-lg font-bold">{{ isEditing ? 'Editar Video' : 'Nuevo Video' }}</h3>
+            <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+                <h3 class="text-lg font-bold dark:text-white">{{ isEditing ? 'Editar Vídeo' : 'Nuevo Vídeo' }}</h3>
 
                 <div>
-                    <label class="block text-sm font-medium mb-1">Título</label>
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Título</label>
                     <input v-model="form.name" type="text"
-                        class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
+                        class="w-full rounded-lg border dark:border-white/20 px-3 py-2 outline-none focus:ring-2 focus:ring-black/40 dark:bg-rv-darkSurface dark:text-gray-200" />
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium mb-1">Tipo</label>
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Tipo</label>
                     <select v-model="form.type"
-                        class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40">
+                        class="w-full rounded-lg border dark:border-white/20 px-3 py-2 outline-none focus:ring-2 focus:ring-black/40 dark:bg-rv-darkSurface dark:text-gray-200">
                         <option v-for="t in types" :key="t" :value="t">{{ t }}</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium mb-1">Enlace (Opcional)</label>
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Enlace (Opcional)</label>
                     <input v-model="form.link" type="url"
-                        class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
+                        class="w-full rounded-lg border dark:border-white/20 px-3 py-2 outline-none focus:ring-2 focus:ring-black/40 dark:bg-rv-darkSurface dark:text-gray-200" />
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium mb-1">Fecha (Opcional)</label>
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Fecha (Opcional)</label>
                     <input v-model="form.updateDate" type="date"
-                        class="w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-black/40" />
+                        class="w-full rounded-lg border dark:border-white/20 px-3 py-2 outline-none focus:ring-2 focus:ring-black/40 dark:bg-rv-darkSurface dark:text-gray-200 [color-scheme:dark]" />
                 </div>
 
                 <div class="flex justify-end gap-2 pt-2">
-                    <button @click="closeModal" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancelar</button>
+                    <button @click="closeModal"
+                        class="px-4 py-2 border dark:border-white/20 rounded-lg hover:bg-gray-50 dark:hover:bg-rv-darkSurface dark:text-gray-300 transition-colors">
+                        Cancelar
+                    </button>
                     <button @click="save"
-                        class="px-4 py-2 bg-black text-white rounded-lg hover:opacity-90">Guardar</button>
+                        class="px-4 py-2 bg-black dark:bg-rv-purple text-white rounded-lg hover:opacity-90 transition-opacity">
+                        Guardar
+                    </button>
                 </div>
             </div>
         </div>
@@ -259,43 +264,43 @@ interface Column {
 const columns: Column[] = [
     {
         id: 'not_started',
-        label: 'Not Started',
-        bgClass: 'bg-red-50',
+        label: 'Sin empezar',
+        bgClass: 'bg-red-50 dark:bg-red-900/20',
         borderClass: 'border-t-4 border-red-500',
-        textClass: 'text-red-900',
-        countClass: 'bg-red-200 text-red-800'
+        textClass: 'text-red-900 dark:text-red-300',
+        countClass: 'bg-red-200 text-red-800 dark:bg-red-900/40 dark:text-red-300'
     },
     {
         id: 'in_progress',
-        label: 'In Progress',
-        bgClass: 'bg-orange-50',
+        label: 'En progreso',
+        bgClass: 'bg-orange-50 dark:bg-orange-900/20',
         borderClass: 'border-t-4 border-orange-500',
-        textClass: 'text-orange-900',
-        countClass: 'bg-orange-200 text-orange-800'
+        textClass: 'text-orange-900 dark:text-orange-300',
+        countClass: 'bg-orange-200 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300'
     },
     {
         id: 'editing',
-        label: 'Reviewing',
-        bgClass: 'bg-yellow-50',
+        label: 'En revisión',
+        bgClass: 'bg-yellow-50 dark:bg-yellow-900/20',
         borderClass: 'border-t-4 border-yellow-500',
-        textClass: 'text-yellow-900',
-        countClass: 'bg-yellow-200 text-yellow-800'
+        textClass: 'text-yellow-900 dark:text-yellow-300',
+        countClass: 'bg-yellow-200 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'
     },
     {
         id: 'ready',
-        label: 'Ready',
-        bgClass: 'bg-blue-50',
+        label: 'Terminado',
+        bgClass: 'bg-blue-50 dark:bg-blue-900/20',
         borderClass: 'border-t-4 border-blue-500',
-        textClass: 'text-blue-900',
-        countClass: 'bg-blue-200 text-blue-800'
+        textClass: 'text-blue-900 dark:text-blue-300',
+        countClass: 'bg-blue-200 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
     },
     {
         id: 'published',
-        label: 'Published',
-        bgClass: 'bg-green-50',
+        label: 'Publicado',
+        bgClass: 'bg-green-50 dark:bg-green-900/20',
         borderClass: 'border-t-4 border-green-500',
-        textClass: 'text-green-900',
-        countClass: 'bg-green-200 text-green-800'
+        textClass: 'text-green-900 dark:text-green-300',
+        countClass: 'bg-green-200 text-green-800 dark:bg-green-900/40 dark:text-green-300'
     },
 ];
 
@@ -341,11 +346,11 @@ function fmtDate(iso: string) {
 function getTypeColor(type: VideoType) {
     switch (type) {
         case 'best':
-            return 'bg-indigo-100 text-indigo-700';
+            return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300';
         case 'custom':
-            return 'bg-teal-100 text-teal-700';
+            return 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300';
         default:
-            return 'bg-gray-100 text-gray-700';
+            return 'bg-gray-100 text-gray-700 dark:bg-rv-darkSurface dark:text-gray-300';
     }
 }
 
@@ -559,7 +564,7 @@ async function save() {
             if (idx !== -1) items.value[idx] = updated;
             closeModal();
             await nextTick();
-            SwalService.success('Video actualizado');
+            SwalService.success('Vídeo actualizado');
         } else {
             const created = await createVideo({
                 name: form.name,
@@ -579,18 +584,18 @@ async function save() {
             items.value.push(created);
             closeModal();
             await nextTick();
-            SwalService.success('Video creado');
+            SwalService.success('Vídeo creado');
         }
     } catch (e) {
         console.error(e);
-        SwalService.error('Error guardando video');
+        SwalService.error('Error guardando vídeo');
     }
 }
 
 // --- Delete Item ---
 async function confirmDelete(item: Video) {
     const result = await SwalService.confirm(
-        '¿Eliminar video?',
+        '¿Eliminar vídeo?',
         `Vas a eliminar "${item.name}". Esta acción no se puede deshacer.`,
         'warning'
     );
@@ -599,10 +604,10 @@ async function confirmDelete(item: Video) {
         try {
             await deleteVideo(item.id);
             items.value = items.value.filter(i => i.id !== item.id);
-            SwalService.success('Video eliminado');
+            SwalService.success('Vídeo eliminado');
         } catch (e) {
             console.error(e);
-            SwalService.error('Error eliminando video');
+            SwalService.error('Error eliminando vídeo');
         }
     }
 }
