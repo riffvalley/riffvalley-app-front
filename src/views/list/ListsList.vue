@@ -1,15 +1,12 @@
 <template>
-  <div class="p-6 bg-gray-50 min-h-screen flex flex-col items-center">
-    <!-- Main Container -->
+  <div class="p-4 md:p-6 bg-gray-50 dark:bg-rv-darkBg min-h-screen flex flex-col items-center">
     <div class="max-w-7xl w-full">
 
       <!-- Header -->
-      <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-        <div>
-          <h1 class="text-3xl font-bold text-gray-900">Listas</h1>
-        </div>
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Listas</h1>
         <button @click="showCreateModal = true"
-          class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all duration-200 flex items-center gap-2 transform hover:scale-105">
+          class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all duration-200 flex items-center gap-2">
           <i class="fa-solid fa-plus"></i>
           Nueva Lista
         </button>
@@ -20,7 +17,9 @@
         <button @click="filterSpecialType = ''"
           :class="[
             'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
-            !filterSpecialType ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+            !filterSpecialType
+              ? 'bg-indigo-600 text-white'
+              : 'bg-white dark:bg-rv-darkCard text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-white/20 hover:bg-gray-100 dark:hover:bg-rv-darkSurface'
           ]">
           Todas
         </button>
@@ -29,7 +28,7 @@
             'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
             filterSpecialType === opt.value
               ? getTypeColors(opt.value).badgeBg + ' ' + getTypeColors(opt.value).badgeText + ' ring-2 ring-offset-1 ring-current'
-              : 'bg-white text-gray-600 border border-gray-300 hover:bg-gray-100'
+              : 'bg-white dark:bg-rv-darkCard text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-white/20 hover:bg-gray-100 dark:hover:bg-rv-darkSurface'
           ]">
           <i :class="[getTypeColors(opt.value).icon, 'mr-1 text-xs']"></i>
           {{ opt.label }}
@@ -39,27 +38,27 @@
       <!-- Loading State -->
       <div v-if="loading" class="text-center py-20">
         <i class="fa-solid fa-spinner fa-spin text-4xl text-indigo-500 mb-4"></i>
-        <p class="text-gray-500 text-lg">Cargando listas...</p>
+        <p class="text-gray-500 dark:text-gray-400 text-lg">Cargando listas...</p>
       </div>
 
       <!-- Empty State -->
       <div v-else-if="lists.length === 0"
-        class="bg-white rounded-2xl shadow-sm p-12 text-center border border-gray-100">
-        <div class="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+        class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-sm p-12 text-center border border-gray-100 dark:border-white/10">
+        <div class="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
           <i class="fa-solid fa-list-check text-2xl text-indigo-400"></i>
         </div>
-        <h3 class="text-xl font-bold text-gray-900 mb-2">No hay listas creadas</h3>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">No hay listas creadas</h3>
         <button @click="showCreateModal = true"
-          class="text-indigo-600 font-semibold hover:text-indigo-800 transition-colors">
+          class="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors">
           Crear lista ahora
         </button>
       </div>
 
-      <!-- Grid Layout Compacto -->
+      <!-- Grid -->
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <div v-for="list in filteredLists" :key="list.id"
           :class="[
-            'bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 overflow-hidden flex flex-col justify-between h-full',
+            'bg-white dark:bg-rv-darkCard rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-white/10 overflow-hidden flex flex-col justify-between h-full',
             list.specialType ? 'border-t-4 ' + getTypeColors(list.specialType).border : ''
           ]">
 
@@ -69,7 +68,7 @@
               <i :class="[getTypeColors(list.specialType).icon, 'text-sm']"></i>
             </div>
             <div class="flex flex-col gap-1 min-w-0">
-              <h3 class="font-bold text-gray-800 text-base leading-tight line-clamp-2 mr-2">{{ list.name }}</h3>
+              <h3 class="font-bold text-gray-800 dark:text-gray-100 text-base leading-tight line-clamp-2 mr-2">{{ list.name }}</h3>
               <span v-if="list.specialType"
                 :class="['inline-block text-xs font-medium px-2 py-0.5 rounded-full w-fit capitalize', getTypeColors(list.specialType).badgeBg, getTypeColors(list.specialType).badgeText]">
                 {{ list.specialType }}
@@ -79,12 +78,12 @@
 
           <div class="px-4 pb-4 flex gap-2 mt-auto">
             <button @click="goToEdit(list.id)"
-              class="flex-1 bg-gray-50 hover:bg-indigo-50 text-gray-600 hover:text-indigo-600 border border-gray-200 hover:border-indigo-200 rounded text-sm font-medium py-1.5 transition-colors flex items-center justify-center gap-2">
+              class="flex-1 bg-gray-50 dark:bg-rv-darkSurface hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 border border-gray-200 dark:border-white/10 hover:border-indigo-200 dark:hover:border-indigo-900/30 rounded text-sm font-medium py-1.5 transition-colors flex items-center justify-center gap-2">
               <i class="fa-solid fa-pen text-xs"></i>
               <span>Editar</span>
             </button>
             <button @click="deleteItem(list.id)"
-              class="w-8 flex items-center justify-center bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 border border-gray-200 hover:border-red-200 rounded transition-colors"
+              class="w-8 flex items-center justify-center bg-gray-50 dark:bg-rv-darkSurface hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 border border-gray-200 dark:border-white/10 hover:border-red-200 dark:hover:border-red-900/30 rounded transition-colors"
               title="Eliminar">
               <i class="fa-solid fa-trash text-xs"></i>
             </button>
@@ -96,39 +95,39 @@
     <!-- Create Modal -->
     <div v-if="showCreateModal"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity">
-      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
-        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-          <h3 class="text-xl font-bold text-gray-900">Nueva Lista Especial</h3>
-          <button @click="closeModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+      <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div class="p-6 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-rv-darkSurface">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">Nueva Lista Especial</h3>
+          <button @click="closeModal" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
             <i class="fa-solid fa-xmark text-xl"></i>
           </button>
         </div>
 
         <div class="p-6 space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Lista</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Nombre de la Lista</label>
             <input v-model="newListName" type="text"
-              class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
               placeholder="Ej: Lo mejor del Indie 2024" @keyup.enter="createList" autofocus />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Lista Especial</label>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Lista Especial</label>
             <select v-model="newListSpecialType"
-              class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
+              class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
               <option disabled value="">Selecciona un tipo</option>
               <option value="web">Web</option>
               <option value="app">App</option>
               <option value="noticias">Noticias</option>
-              <option value="videos">Videos</option>
+              <option value="videos">Vídeos</option>
               <option value="riffValley">Riff Valley</option>
               <option value="otros">Otros</option>
             </select>
           </div>
         </div>
 
-        <div class="p-6 border-t border-gray-100 bg-gray-50 flex gap-3 justify-end">
+        <div class="p-6 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-rv-darkSurface flex gap-3 justify-end">
           <button @click="closeModal"
-            class="px-5 py-2.5 rounded-lg text-gray-700 font-medium hover:bg-gray-200 transition-colors">
+            class="px-5 py-2.5 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-200 dark:hover:bg-rv-darkBg transition-colors">
             Cancelar
           </button>
           <button @click="createList" :disabled="!newListName || !newListSpecialType || creating"
@@ -162,15 +161,15 @@ export default defineComponent({
     const filterSpecialType = ref("");
 
     const specialTypeColors: Record<string, { border: string; iconBg: string; iconText: string; badgeBg: string; badgeText: string; icon: string }> = {
-      web: { border: "border-t-blue-500", iconBg: "bg-blue-50", iconText: "text-blue-500", badgeBg: "bg-blue-100", badgeText: "text-blue-700", icon: "fa-solid fa-globe" },
-      app: { border: "border-t-purple-500", iconBg: "bg-purple-50", iconText: "text-purple-500", badgeBg: "bg-purple-100", badgeText: "text-purple-700", icon: "fa-solid fa-mobile-screen" },
-      noticias: { border: "border-t-amber-500", iconBg: "bg-amber-50", iconText: "text-amber-500", badgeBg: "bg-amber-100", badgeText: "text-amber-700", icon: "fa-solid fa-newspaper" },
-      videos: { border: "border-t-red-500", iconBg: "bg-red-50", iconText: "text-red-500", badgeBg: "bg-red-100", badgeText: "text-red-700", icon: "fa-solid fa-video" },
-      riffValley: { border: "border-t-emerald-500", iconBg: "bg-emerald-50", iconText: "text-emerald-500", badgeBg: "bg-emerald-100", badgeText: "text-emerald-700", icon: "fa-solid fa-music" },
-      otros: { border: "border-t-gray-500", iconBg: "bg-gray-100", iconText: "text-gray-500", badgeBg: "bg-gray-200", badgeText: "text-gray-700", icon: "fa-solid fa-ellipsis" },
+      web:        { border: "border-t-blue-500",    iconBg: "bg-blue-50 dark:bg-blue-900/20",    iconText: "text-blue-500 dark:text-blue-400",    badgeBg: "bg-blue-100 dark:bg-blue-900/30",    badgeText: "text-blue-700 dark:text-blue-300",    icon: "fa-solid fa-globe" },
+      app:        { border: "border-t-purple-500",  iconBg: "bg-purple-50 dark:bg-purple-900/20",iconText: "text-purple-500 dark:text-purple-400",badgeBg: "bg-purple-100 dark:bg-purple-900/30",badgeText: "text-purple-700 dark:text-purple-300",icon: "fa-solid fa-mobile-screen" },
+      noticias:   { border: "border-t-amber-500",   iconBg: "bg-amber-50 dark:bg-amber-900/20",  iconText: "text-amber-500 dark:text-amber-400",  badgeBg: "bg-amber-100 dark:bg-amber-900/30",  badgeText: "text-amber-700 dark:text-amber-300",  icon: "fa-solid fa-newspaper" },
+      videos:     { border: "border-t-red-500",     iconBg: "bg-red-50 dark:bg-red-900/20",      iconText: "text-red-500 dark:text-red-400",      badgeBg: "bg-red-100 dark:bg-red-900/30",      badgeText: "text-red-700 dark:text-red-300",      icon: "fa-solid fa-video" },
+      riffValley: { border: "border-t-emerald-500", iconBg: "bg-emerald-50 dark:bg-emerald-900/20",iconText: "text-emerald-500 dark:text-emerald-400",badgeBg: "bg-emerald-100 dark:bg-emerald-900/30",badgeText: "text-emerald-700 dark:text-emerald-300",icon: "fa-solid fa-music" },
+      otros:      { border: "border-t-gray-500",    iconBg: "bg-gray-100 dark:bg-rv-darkSurface", iconText: "text-gray-500 dark:text-gray-400",    badgeBg: "bg-gray-200 dark:bg-rv-darkBg",      badgeText: "text-gray-700 dark:text-gray-300",    icon: "fa-solid fa-ellipsis" },
     };
 
-    const defaultColors = { border: "", iconBg: "bg-indigo-50", iconText: "text-indigo-500", badgeBg: "bg-indigo-100", badgeText: "text-indigo-700", icon: "fa-solid fa-list-ul" };
+    const defaultColors = { border: "", iconBg: "bg-indigo-50 dark:bg-indigo-900/20", iconText: "text-indigo-500 dark:text-indigo-400", badgeBg: "bg-indigo-100 dark:bg-indigo-900/30", badgeText: "text-indigo-700 dark:text-indigo-300", icon: "fa-solid fa-list-ul" };
 
     const getTypeColors = (specialType: string) => specialTypeColors[specialType] || defaultColors;
 
@@ -179,7 +178,7 @@ export default defineComponent({
       { value: "noticias", label: "Noticias" },
       { value: "otros", label: "Otros" },
       { value: "riffValley", label: "Riff Valley" },
-      { value: "videos", label: "Videos" },
+      { value: "videos", label: "Vídeos" },
       { value: "web", label: "Web" },
     ];
 
@@ -203,8 +202,6 @@ export default defineComponent({
       loading.value = true;
       try {
         const response = await getSpecialLists();
-        // Assuming response is an array based on previous getLists format which returned { data: [] } but getSpecialLists returns response.data directly
-        // Let's safe check based on getLists implementation in service
         lists.value = Array.isArray(response) ? response : (response.data || []);
       } catch (error) {
         console.error("Error fetching special lists:", error);
@@ -223,7 +220,6 @@ export default defineComponent({
         "¿Estás seguro?",
         "Esta acción no se puede deshacer. Se eliminará la lista y sus asignaciones."
       );
-
       if (confirmed.isConfirmed) {
         try {
           await deleteList(id);
@@ -244,7 +240,6 @@ export default defineComponent({
 
     const createList = async () => {
       if (!newListName.value) return;
-
       creating.value = true;
       try {
         await postList({
@@ -268,25 +263,10 @@ export default defineComponent({
     });
 
     return {
-      lists,
-      filteredLists,
-      filterSpecialType,
-      specialTypeOptions,
-      getTypeColors,
-      loading,
-      goToEdit,
-      deleteItem,
-      showCreateModal,
-      newListName,
-      newListSpecialType,
-      creating,
-      closeModal,
-      createList
+      lists, filteredLists, filterSpecialType, specialTypeOptions, getTypeColors,
+      loading, goToEdit, deleteItem, showCreateModal, newListName, newListSpecialType,
+      creating, closeModal, createList
     };
   },
 });
 </script>
-
-<style scoped>
-/* Scoped styles if needed */
-</style>

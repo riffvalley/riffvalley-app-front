@@ -111,6 +111,14 @@
     ]
   },
   {
+    "to": "/articles",
+    "label": "Artículos",
+    "activeClass": "bg-gray-700",
+    "type": "riff-valley",
+    "requiredRole": "riffValley",
+    "icon": "fa-solid fa-newspaper"
+  },
+  {
     "to": "/videos",
     "label": "Vídeos",
     "activeClass": "bg-gray-700",
@@ -145,14 +153,6 @@
         "icon": "fa-solid fa-guitar"
       }
     ]
-  },
-  {
-    "to": "/articles",
-    "label": "Artículos",
-    "activeClass": "bg-gray-700",
-    "type": "riff-valley",
-    "requiredRole": "riffValley",
-    "icon": "fa-solid fa-newspaper"
   },
   {
     "to": "/import-discs",
