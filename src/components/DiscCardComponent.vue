@@ -237,7 +237,7 @@
   <Teleport to="body">
     <div v-if="showCalendarModal"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div class="bg-white rounded-xl shadow-xl w-[95vw] max-w-6xl max-h-[90vh] relative overflow-hidden">
+      <div class="bg-white dark:bg-rv-darkBg rounded-xl shadow-xl w-[95vw] max-w-6xl max-h-[90vh] relative overflow-hidden">
         <!-- botón cerrar -->
         <button type="button" @click.stop="showCalendarModal = false" aria-label="Cerrar" title="Cerrar" class="absolute top-2 right-2 z-50
          text-white bg-rv-navy hover:bg-[#e46e8a]
