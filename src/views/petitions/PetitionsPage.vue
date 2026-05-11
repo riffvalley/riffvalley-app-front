@@ -27,11 +27,13 @@
     <div v-if="loading" class="text-center py-12 text-gray-400 dark:text-gray-300">Cargando...</div>
 
     <!-- Vacío -->
-    <div v-else-if="filteredRequests.length === 0"
-      class="text-center py-12 text-gray-400 dark:text-gray-300 bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv border border-gray-100 dark:border-white/10"
-      <i class="fas fa-inbox text-3xl mb-3 block text-gray-300 dark:text-gray-500"></i>
-      No hay peticiones {{ activeTab !== 'all' ? tabLabel(activeTab) + 's' : '' }}.
-    </div>
+<div
+  v-else-if="filteredRequests.length === 0"
+  class="text-center py-12 text-gray-400 dark:text-gray-300 bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv border border-gray-100 dark:border-white/10"
+>
+  <i class="fas fa-inbox text-3xl mb-3 block text-gray-300 dark:text-gray-500"></i>
+  No hay peticiones {{ activeTab !== 'all' ? tabLabel(activeTab) + 's' : '' }}.
+</div>
 
     <!-- Lista -->
     <ul v-else class="space-y-3">
