@@ -141,7 +141,7 @@
 <!-- Contenedor de cuadrícula para las tarjetas -->
 <div v-else class="cards-grid">
   <DiscCard
-    v-for="disc in discs"
+    v-for="disc in discs.filter(d => d.image)"
     :key="disc.id"
     :id="disc.id"
     :ep="disc.ep"

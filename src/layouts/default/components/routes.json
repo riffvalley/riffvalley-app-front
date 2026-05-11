@@ -171,6 +171,14 @@
     "icon": "fa-solid fa-flag"
   },
   {
+    "to": "/disc-list-error",
+    "label": "Discos",
+    "activeClass": "bg-gray-700",
+    "type": "management",
+    "requiredRole": "riffValley",
+    "icon": "fa-solid fa-circle-exclamation"
+  },
+  {
     "label": "Usuarios",
     "type": "management",
     "requiredRole": "superUser",

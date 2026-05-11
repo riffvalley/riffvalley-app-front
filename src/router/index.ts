@@ -284,6 +284,12 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
+    path: "/disc-list-error",
+    name: "DiscListError",
+    component: () => import("/src/views/discsList/DiscListError.vue"),
+    meta: { requiresAuth: true, requiresRole: "riffValley" },
+  },
+  {
     path: "/maintenance",
     name: "Maintenance",
     component: () => import("/src/views/maintenance/MaintenancePage.vue"),
