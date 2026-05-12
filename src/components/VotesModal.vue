@@ -21,8 +21,8 @@
       </button>
 
       <!-- Título -->
-      <div class="text-center mb-8">
-        <h2 class="mb-4">
+      <div class="text-center mb-6">
+        <h2 class="mb-3">
           <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-md font-bold">
             VOTOS
           </span>
@@ -31,6 +31,19 @@
         <p class="text-lg text-rv-navy dark:text-white mt-2">
           {{ artistName }} – <span class="italic">{{ albumName }}</span>
         </p>
+
+        <!-- Toggle No Spoilers (solo visible si está habilitado en Perfil) -->
+        <div v-if="noSpoilers" class="flex items-center justify-center gap-2 mt-3">
+          <span class="text-xs text-gray-500 dark:text-gray-400 select-none">No spoilers</span>
+          <button type="button" @click="toggleNoSpoilers"
+            class="relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0"
+            :class="!revealed ? 'bg-rv-pink' : 'bg-gray-300 dark:bg-white/20'">
+            <span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
+              :class="!revealed ? 'translate-x-4' : 'translate-x-0'"></span>
+          </button>
+          <span v-if="!revealed && !hasVoted"
+            class="text-[10px] text-rv-pink font-semibold uppercase tracking-wide">activo</span>
+        </div>
       </div>
 
       <div class="flex flex-col md:flex-row gap-4">
@@ -87,12 +100,14 @@ hover:bg-gray-300 dark:hover:bg-rv-purple hover:underline border border-transpar
                   </div>
                 </td>
 
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                  {{ vote.rate }}
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center font-mono"
+                  :class="spoilerMode ? 'text-rv-pink font-bold tracking-widest' : 'text-gray-500 dark:text-gray-300'">
+                  {{ spoilerMode ? '???' : vote.rate }}
                 </td>
 
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                  {{ vote.cover }}
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center font-mono"
+                  :class="spoilerMode ? 'text-rv-pink font-bold tracking-widest' : 'text-gray-500 dark:text-gray-300'">
+                  {{ spoilerMode ? '???' : vote.cover }}
                 </td>
               </tr>
 
@@ -132,7 +147,16 @@ hover:bg-gray-300 dark:hover:bg-rv-purple hover:underline border border-transpar
           </div>
 
           <div class="relative w-full h-56 top-1 flex flex-col items-center justify-center">
-            <canvas ref="doughnut" class="w-full h-full"></canvas>
+            <canvas ref="doughnut" class="w-full h-full" :class="spoilerMode ? 'blur-md' : ''"></canvas>
+            <!-- Overlay spoiler sobre el chart -->
+            <div v-if="spoilerMode"
+              class="absolute inset-0 flex flex-col items-center justify-center gap-2">
+              <i class="fa-solid fa-lock text-2xl text-rv-pink"></i>
+              <button type="button" @click="revealed = true"
+                class="text-xs font-semibold px-3 py-1.5 rounded-full bg-rv-pink text-white hover:bg-rv-pink/80 transition-colors focus:outline-none">
+                Ver votos
+              </button>
+            </div>
 
 <div class="flex flex-wrap justify-center gap-x-1 gap-y-1 mt-4 text-xs text-rv-navy dark:text-gray-200">
               <div
@@ -163,7 +187,7 @@ hover:bg-gray-300 dark:hover:bg-rv-purple hover:underline border border-transpar
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, watch, nextTick } from "vue";
+import { defineComponent, ref, computed, onMounted, watch, nextTick } from "vue";
 import Chart from "chart.js/auto";
 import UserModal from "@/components/UserModal.vue";
 
@@ -201,6 +225,11 @@ export default defineComponent({
       type: String,
       required: true,
     },
+    hasVoted: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
   },
 
   emits: ["close"],
@@ -212,6 +241,22 @@ export default defineComponent({
 
     const isRateSelected = ref(true);
     const customLegend = ref<{ text: string; color: string }[]>([]);
+
+    // --- No Spoilers ---
+    const noSpoilers = ref(localStorage.getItem('rv_no_spoilers') === 'true');
+    const revealed = ref(false);
+
+    const spoilerMode = computed(() => noSpoilers.value && !props.hasVoted && !revealed.value);
+
+    // El toggle del modal solo controla la sesión local (revealed), nunca toca el ajuste de Perfil
+    const toggleNoSpoilers = () => {
+      revealed.value = !revealed.value;
+    };
+
+    // Reset revealed cada vez que se abre el modal
+    watch(() => props.showVotes, (val) => {
+      if (val) revealed.value = false;
+    });
 
     const closeModal = () => {
       emit("close");
@@ -437,6 +482,10 @@ title: {
       selectedUserId,
       selectedUserAvatar,
       openUserModal,
+      noSpoilers,
+      revealed,
+      spoilerMode,
+      toggleNoSpoilers,
     };
   },
 });

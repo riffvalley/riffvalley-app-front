@@ -59,7 +59,8 @@
         </button>
       </section>
 
-      <!-- DERECHA: Cambiar contraseña -->
+      <!-- DERECHA: Cambiar contraseña + No Spoilers -->
+      <div class="flex flex-col gap-6">
       <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
         <div class="text-center mb-5">
           <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
@@ -129,6 +130,46 @@
         </form>
       </section>
 
+      <!-- No Spoilers -->
+      <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
+        <div class="text-center mb-5">
+          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
+            No Spoilers
+          </span>
+        </div>
+
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1">
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+              Habilitar modo No Spoilers
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              Oculta las puntuaciones medias de los discos mientras no hayas votado. Actívalo si quieres escuchar los álbumes sin dejarte influir por las notas de los demás.
+            </p>
+          </div>
+
+          <!-- Switch -->
+          <button type="button"
+            @click="toggleNoSpoilers"
+            :aria-checked="noSpoilers"
+            role="switch"
+            class="relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none border-0"
+            :class="noSpoilers ? 'bg-rv-pink' : 'bg-gray-300 dark:bg-gray-600'">
+            <span
+              class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
+              :class="noSpoilers ? 'translate-x-5' : 'translate-x-0'">
+            </span>
+          </button>
+        </div>
+
+        <p class="mt-3 text-xs text-center"
+          :class="noSpoilers ? 'text-rv-pink font-semibold' : 'text-gray-400 dark:text-gray-500'">
+          {{ noSpoilers ? 'Modo No Spoilers activado' : 'Modo No Spoilers desactivado' }}
+        </p>
+      </section>
+
+      </div><!-- /columna derecha -->
+
     </div>
   </div>
 </template>
@@ -148,6 +189,14 @@ export default {
     const ready = ref(false);
     const password = ref("");
     const confirmPassword = ref("");
+
+    // --- No Spoilers ---
+    const noSpoilers = ref(localStorage.getItem('rv_no_spoilers') === 'true');
+    const toggleNoSpoilers = () => {
+      noSpoilers.value = !noSpoilers.value;
+      localStorage.setItem('rv_no_spoilers', String(noSpoilers.value));
+      window.dispatchEvent(new CustomEvent('rv-spoilers-changed', { detail: noSpoilers.value }));
+    };
     const errorMessage = ref("");
     const showPassword = ref(false);
     const showConfirmPassword = ref(false);
@@ -249,6 +298,7 @@ export default {
       categories, avatarsByCategory, allAvatars,
       openCategory, toggleCategory,
       avatars, selectedAvatar, selectAvatar, saveAvatar,
+      noSpoilers, toggleNoSpoilers,
     };
   },
 };

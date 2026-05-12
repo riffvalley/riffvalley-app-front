@@ -68,8 +68,9 @@
   bg-gray-100 dark:bg-rv-darkSurface
   border border-gray-200 dark:border-white/60
   shadow-sm mb-1">
-            <p class="text-sm font-bold text-blue-600 dark:text-blue-300 mt-1">
-              {{ averageRate ? averageRate.toFixed(2) : "-" }}
+            <p class="text-sm font-bold mt-1"
+              :class="spoilerMode ? 'text-rv-pink tracking-widest' : 'text-blue-600 dark:text-blue-300'">
+              {{ spoilerMode ? '???' : (averageRate ? averageRate.toFixed(2) : "-") }}
             </p>
             <p class="text-xs text-rv-navy dark:text-gray-200">Disco</p>
           </div>
@@ -77,8 +78,9 @@
   bg-gray-100 dark:bg-rv-darkSurface
   border border-gray-200 dark:border-white/60
   shadow-sm mb-1">
-            <p class="text-sm font-bold text-green-600 dark:text-green-300 mt-1">
-              {{ averageCover ? averageCover.toFixed(2) : "-" }}
+            <p class="text-sm font-bold mt-1"
+              :class="spoilerMode ? 'text-rv-pink tracking-widest' : 'text-green-600 dark:text-green-300'">
+              {{ spoilerMode ? '???' : (averageCover ? averageCover.toFixed(2) : "-") }}
             </p>
             <p class="text-xs text-rv-navy dark:text-gray-200">Portada</p>
           </div>
@@ -237,7 +239,7 @@
     <div class="p-6 relative max-w-3xl w-full">
       <!-- Se pasa la información del disco -->
       <VotesModal :albumName="name" :artistName="artistName" :votes="votes" :showVotes="showVotes"
-        @close="showVotes = false" />
+        :hasVoted="hasVoted" @close="showVotes = false" />
     </div>
   </div>
 
@@ -659,6 +661,16 @@ export default defineComponent({
     });
     darkObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     onUnmounted(() => darkObserver.disconnect());
+
+    // --- No Spoilers ---
+    const noSpoilers = ref(localStorage.getItem('rv_no_spoilers') === 'true');
+    const spoilerMode = computed(() => noSpoilers.value && !hasVoted.value);
+
+    const handleSpoilersChanged = (e: Event) => {
+      noSpoilers.value = (e as CustomEvent).detail;
+    };
+    window.addEventListener('rv-spoilers-changed', handleSpoilersChanged);
+    onUnmounted(() => window.removeEventListener('rv-spoilers-changed', handleSpoilersChanged));
 
     // --- Share as image (Canvas) ---
     const isCopying = ref(false);
@@ -1105,6 +1117,7 @@ ctx.textBaseline = "alphabetic";
       embedUrl,
       embedHeight,
       showPlayer,
+      spoilerMode,
     };
   },
 });
