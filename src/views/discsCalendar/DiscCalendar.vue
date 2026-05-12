@@ -95,8 +95,9 @@
   </div>
 
   <!-- Cargar más -->
-  <div ref="loadMore" class="text-center py-6">
-<span v-if="loading" class="text-gray-600 dark:text-gray-300">Cargando discos...</span>
+  <div ref="loadMore" class="flex flex-col items-center justify-center gap-3 py-6">
+    <i v-if="loading" class="fa-solid fa-compact-disc animate-spin text-rv-pink text-3xl"></i>
+    <span v-if="loading" class="text-sm font-medium text-rv-navy dark:text-white">Cargando discos...</span>
   </div>
 </template>
 

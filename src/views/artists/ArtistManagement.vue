@@ -55,7 +55,10 @@ class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm 
     </div>
 
     <!-- Lista -->
-    <div v-if="loading" class="text-center text-gray-400 dark:text-gray-400 py-12">Cargando...</div>
+    <div v-if="loading" class="flex flex-col items-center justify-center gap-3 py-12">
+      <i class="fa-solid fa-compact-disc animate-spin text-rv-pink text-3xl"></i>
+      <span class="text-sm font-medium text-rv-navy dark:text-white">Cargando artistas...</span>
+    </div>
 
     <div v-else-if="artists.length === 0" class="text-center text-gray-400 dark:text-gray-400 py-12">
       No se encontraron artistas.
