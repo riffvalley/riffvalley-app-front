@@ -137,6 +137,17 @@
                 Guardar
               </span>
             </div>
+
+            <div class="relative group cursor-pointer" @click="copyAsImage">
+              <i v-if="isCopying" class="fa-solid fa-spinner animate-spin text-rv-pink mt-1" style="width:20px;height:20px;display:block;"></i>
+              <font-awesome-icon v-else :icon="['fas', 'camera']"
+                class="h-5 w-5 mt-1 transition-all duration-300 ease-in-out text-gray-400 hover:text-rv-pink" />
+              <span class="pointer-events-none hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2
+         px-2 py-1 text-[9px] font-semibold text-white bg-rv-navy rounded
+         opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                Compartir
+              </span>
+            </div>
           </div>
         </div>
 
@@ -228,7 +239,7 @@
     </div>
   </div>
 
-  <Teleport to="body">
+<Teleport to="body">
     <div v-if="showCalendarModal"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div class="bg-white dark:bg-rv-darkBg rounded-xl shadow-xl w-[95vw] max-w-6xl max-h-[90vh] relative overflow-hidden">
@@ -253,7 +264,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, watchEffect, type PropType } from "vue";
+import { defineComponent, ref, computed, watchEffect, nextTick, type PropType } from "vue";
 import defaultImage from "/src/assets/disco.png";
 import DiscDetail from "./DiscDetail.vue";
 import ArtistDetail from "./ArtistDetail.vue";
@@ -595,6 +606,162 @@ export default defineComponent({
       }
     };
 
+    // --- Share as image (Canvas) ---
+    const isCopying = ref(false);
+
+    const flagEmoji = computed(() => {
+      const iso = props.artistCountry?.isoCode;
+      if (!iso) return '';
+      if (iso === 'int') return '🌍';
+      return [...iso.slice(0, 2).toUpperCase()]
+        .map(c => String.fromCodePoint(127397 + c.charCodeAt(0)))
+        .join('');
+    });
+
+    const loadImgAsBlob = async (src: string): Promise<HTMLImageElement | null> => {
+      if (!src) return null;
+      let objectUrl = '';
+      try {
+        const res = await fetch(src, { mode: 'no-cors' });
+        const blob = await res.blob();
+        if (!blob.size) throw new Error('empty blob');
+        objectUrl = URL.createObjectURL(blob);
+        return await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = objectUrl;
+        });
+      } catch {
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        return new Promise(resolve => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = src;
+          setTimeout(() => resolve(null), 3000);
+        });
+      } finally {
+        if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl), 8000);
+      }
+    };
+
+    const rrect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    };
+
+    const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] => {
+      const words = text.split(' ');
+      const lines: string[] = [];
+      let cur = '';
+      for (const w of words) {
+        const test = cur ? cur + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
+        else cur = test;
+      }
+      if (cur) lines.push(cur);
+      return lines;
+    };
+
+    const copyAsImage = async () => {
+      if (isCopying.value) return;
+      isCopying.value = true;
+      try {
+        const SIZE = 480, DPR = 2;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE * DPR; canvas.height = SIZE * DPR;
+        const ctx = canvas.getContext('2d')!;
+        ctx.scale(DPR, DPR);
+
+        // Fondo oscuro
+        ctx.fillStyle = '#00021f';
+        ctx.fillRect(0, 0, SIZE, SIZE);
+
+        // Portada
+        const img = await loadImgAsBlob(props.image || '');
+        if (img) {
+          const r = img.naturalWidth / img.naturalHeight;
+          let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+          if (r > 1) { sx = (img.naturalWidth - img.naturalHeight) / 2; sw = img.naturalHeight; }
+          else if (r < 1) { sy = (img.naturalHeight - img.naturalWidth) / 2; sh = img.naturalWidth; }
+          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, SIZE, SIZE);
+        }
+
+        // Gradiente
+        const grad = ctx.createLinearGradient(0, 0, 0, SIZE);
+        grad.addColorStop(0, 'rgba(0,2,31,0.05)');
+        grad.addColorStop(0.38, 'rgba(0,2,31,0.62)');
+        grad.addColorStop(1, 'rgba(0,2,31,0.97)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, SIZE, SIZE);
+
+        const pad = 26;
+        const font = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        let y = SIZE - pad;
+
+        // Notas
+        if (props.averageRate || props.averageCover) {
+          let sx2 = pad;
+          [{ val: props.averageRate, label: 'DISCO' }, { val: props.averageCover, label: 'PORTADA' }].forEach(({ val, label }) => {
+            if (!val) return;
+            ctx.font = `800 28px ${font}`; ctx.fillStyle = '#fff';
+            ctx.fillText(val.toFixed(2), sx2, y);
+            ctx.font = `600 9px ${font}`; ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.fillText(label, sx2, y + 13);
+            sx2 += 78;
+          });
+          y -= 50;
+        }
+
+        // Artista
+        ctx.font = `600 14px ${font}`; ctx.fillStyle = 'rgba(255,255,255,0.72)';
+        ctx.fillText(props.artistName, pad, y);
+        y -= 30;
+
+        // Título (con salto de línea)
+        ctx.font = `800 20px ${font}`; ctx.fillStyle = '#fff';
+        const lines = wrapText(ctx, props.name, SIZE - pad * 2);
+        for (let i = lines.length - 1; i >= 0; i--) { ctx.fillText(lines[i], pad, y); y -= 27; }
+        y -= 8;
+
+        // Badge género + fecha
+        const genre = props.genreName || 'Sin género';
+        ctx.font = `700 11px ${font}`;
+        const gW = ctx.measureText(genre).width + 20;
+        const bY = y - 14;
+        rrect(ctx, pad, bY, gW, 18, 9);
+        ctx.fillStyle = props.genreColor || '#6b7280'; ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.fillText(genre, pad + 10, bY + 12);
+        ctx.font = `400 11px ${font}`; ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.fillText(formattedDate.value, pad + gW + 8, bY + 12);
+
+        // Copiar al portapapeles
+        await new Promise<void>((resolve, reject) => {
+          canvas.toBlob(async blob => {
+            if (!blob) { reject(new Error('no blob')); return; }
+            try {
+              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+              resolve();
+            } catch (e) { reject(e); }
+          }, 'image/png');
+        });
+
+        Swal.fire({ icon: 'success', title: '¡Imagen copiada!', text: 'Pégala en cualquier chat', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' });
+      } catch (e) {
+        console.error(e);
+        Swal.fire({ icon: 'error', title: 'No se pudo copiar', timer: 2500, showConfirmButton: false, toast: true, position: 'top-end' });
+      } finally {
+        isCopying.value = false;
+      }
+    };
+
     const discData = computed(() => ({
       id: props.id,
       name: props.name,
@@ -644,6 +811,9 @@ export default defineComponent({
       canModerate,
       showCalendarModal,
       openCalendarModal,
+      isCopying,
+      flagEmoji,
+      copyAsImage,
     };
   },
 });
