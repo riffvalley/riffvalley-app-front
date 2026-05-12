@@ -2,7 +2,7 @@
 
 
   <!-- Tarjeta individual -->
-  <div class="card w-full max-w-[20rem] border-2 rounded shadow-lg 
+  <div class="card w-full max-w-[20rem] border-2 rounded-xl shadow-lg
   bg-white dark:bg-rv-darkCard
   border-gray-100 dark:border-white/20
   flex flex-col mx-auto p-2 relative">

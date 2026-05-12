@@ -81,10 +81,10 @@ class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm 
         v-for="artist in artists"
         :key="artist.id"
         :class="[
-          'rounded-2xl border overflow-hidden transition-all flex flex-col sm:flex-row',
+          'rounded-xl border overflow-hidden transition-all flex flex-col sm:flex-row',
           isEmpty(artist) && isManager
             ? 'border-red-400 ring-2 ring-red-300'
-            : 'border-gray-200 dark:border-white/10 bg-white dark:bg-rv-navy dark:border-white/10'
+            : 'border-gray-200 dark:border-white/10 bg-white dark:bg-rv-darkCard'
         ]"
       >
         <!-- Imagen izquierda 320x320 -->
@@ -452,7 +452,7 @@ class="flex items-center gap-2 sm:gap-3 text-sm text-gray-700 dark:text-gray-200
                 v-for="sim in lastFmModalData.similar.artist"
                 :key="sim.name"
                 @click="loadSimilarArtist(sim.name)"
-                class="px-2.5 py-1 bg-gray-100 dark:bg-white/10 hover:bg-rv-pink hover:text-white rounded-full text-xs text-rv-navy font-medium transition-colors"
+                class="px-2.5 py-1 bg-gray-100 dark:bg-white/10 hover:bg-rv-pink hover:text-white rounded-full text-xs text-rv-navy dark:text-white font-medium transition-colors"
               >{{ sim.name }}</button>
             </div>
           </div>

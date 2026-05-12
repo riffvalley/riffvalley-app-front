@@ -14,7 +14,7 @@
 
         <div v-if="currentLists.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <div v-for="list in currentLists" :key="list.id"
-            class="group bg-white dark:bg-rv-darkCard rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-white/10 overflow-hidden cursor-pointer flex flex-col h-full"
+            class="group bg-white dark:bg-rv-darkCard rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-white/10 overflow-hidden cursor-pointer flex flex-col h-full"
             @click="goToListDetail(list.id)">
 
             <div class="p-3 flex-1 flex flex-col">
@@ -70,7 +70,7 @@
           </div>
         </div>
 
-        <div v-else class="bg-white dark:bg-rv-darkCard rounded-lg p-6 text-center border-2 border-dashed border-gray-200 dark:border-white/10">
+        <div v-else class="bg-white dark:bg-rv-darkCard rounded-xl p-6 text-center border-2 border-dashed border-gray-200 dark:border-white/10">
           <div class="w-10 h-10 bg-gray-50 dark:bg-rv-darkSurface rounded-full flex items-center justify-center mx-auto mb-2">
             <i class="fa-solid fa-list text-gray-400 text-lg"></i>
           </div>
@@ -104,7 +104,7 @@
 
         <div v-if="pastLists.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           <div v-for="list in pastLists" :key="list.id"
-            class="group bg-white dark:bg-rv-darkCard rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-white/10 overflow-hidden cursor-pointer flex flex-col h-full opacity-90 hover:opacity-100"
+            class="group bg-white dark:bg-rv-darkCard rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-white/10 overflow-hidden cursor-pointer flex flex-col h-full opacity-90 hover:opacity-100"
             @click="goToListDetail(list.id)">
 
             <div class="p-3 flex-1 flex flex-col">
@@ -157,7 +157,7 @@
           </div>
         </div>
 
-        <div v-else class="bg-white dark:bg-rv-darkCard rounded-lg p-6 text-center border-2 border-dashed border-gray-200 dark:border-white/10">
+        <div v-else class="bg-white dark:bg-rv-darkCard rounded-xl p-6 text-center border-2 border-dashed border-gray-200 dark:border-white/10">
           <div class="w-10 h-10 bg-gray-50 dark:bg-rv-darkSurface rounded-full flex items-center justify-center mx-auto mb-2">
             <i class="fa-regular fa-folder-open text-gray-400 text-lg"></i>
           </div>
