@@ -1,7 +1,7 @@
 <template>
     <div class="p-4 md:p-6 min-h-[calc(100vh-64px)] flex flex-col dark:bg-rv-darkBg">
         <div class="flex items-center justify-between mb-6">
-            <h1 class="text-2xl font-semibold dark:text-white">Géneros</h1>
+            <h1 class="text-2xl md:text-3xl font-semibold dark:text-white"><i class="fa-solid fa-guitar mr-2"></i>Géneros</h1>
             <div class="flex gap-2 items-center">
                 <button class="bg-black dark:bg-rv-purple text-white px-4 py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-rv-pink transition-colors"
                     @click="openCreate">

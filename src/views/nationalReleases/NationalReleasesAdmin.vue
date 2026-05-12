@@ -3,7 +3,7 @@
 
     <!-- Cabecera -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
-      <h1 class="text-3xl font-bold dark:text-white">Lanzamientos Nacionales</h1>
+      <h1 class="text-2xl md:text-3xl font-bold dark:text-white"><i class="fa-solid fa-flag mr-2"></i>Lanzamientos Nacionales</h1>
       <div class="flex items-center gap-2 flex-wrap">
         <span class="text-sm text-gray-400 dark:text-gray-500">{{ releases.length }} registros</span>
         <button

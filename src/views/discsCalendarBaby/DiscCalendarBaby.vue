@@ -1,7 +1,7 @@
 <template>
   <div :class="{ 'menu-open': menuVisible }" class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
-<h1 class="text-4xl font-bold mb-8 text-center text-gray-900 dark:text-white">
-      Calendario
+<h1 class="text-2xl md:text-3xl font-bold mb-8 text-center text-gray-900 dark:text-white">
+      <i class="fa-solid fa-calendar-days mr-3"></i>Calendario
     </h1>
 
     <!-- Fila única: Search + Género + Año -->

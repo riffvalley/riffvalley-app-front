@@ -4,7 +4,7 @@
 
       <!-- Header -->
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Listas</h1>
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-list-check mr-2"></i>Listas</h1>
         <button @click="showCreateModal = true"
           class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition-all duration-200 flex items-center gap-2">
           <i class="fa-solid fa-plus"></i>

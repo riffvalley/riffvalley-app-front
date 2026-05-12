@@ -2,7 +2,7 @@
   <div class="view-container p-4 md:p-8">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-      <h2 class="text-2xl font-bold text-rv-pink">Gestión de Usuarios</h2>
+      <h2 class="text-2xl font-bold text-rv-pink"><i class="fa-solid fa-user-gear mr-2"></i>Gestión de Usuarios</h2>
       <button
         @click="openCreateModal"
         class="flex items-center justify-center gap-2 px-5 py-2.5 bg-rv-pink hover:bg-rv-purple text-white font-medium rounded-lg transition-colors"

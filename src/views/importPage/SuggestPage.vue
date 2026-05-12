@@ -3,7 +3,7 @@
 
     <!-- Cabecera -->
     <div class="mb-8 text-center">
-      <h1 class="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Sugerir un disco</h1>
+      <h1 class="text-2xl md:text-3xl font-bold mb-2 text-gray-900 dark:text-white"><i class="fa-solid fa-lightbulb mr-2"></i>Sugerir un disco</h1>
       <p class="text-gray-400 dark:text-gray-300 text-sm">
         ¿Falta algún disco en la app? Pídelo aquí y lo revisaremos.<br />
         Solo discos de 2025 en adelante, muchas gracias.

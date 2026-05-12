@@ -35,6 +35,7 @@
 
     <!-- Contenido principal -->
     <div class="flex-1 overflow-y-auto p-4 md:p-6">
+      <h1 class="text-2xl md:text-3xl font-bold mb-6 text-gray-900 dark:text-white"><i class="fa-solid fa-comments mr-2"></i>Reuniones</h1>
       <!-- Reuniones Actuales -->
       <div class="mb-8">
         <ReunionTable title="Reuniones Actuales" :reuniones="reunionesPresentes" @edit="openEditModal"

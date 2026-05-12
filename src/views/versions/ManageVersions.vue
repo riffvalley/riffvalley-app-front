@@ -1,6 +1,6 @@
 <template>
   <div class="p-6 space-y-6">
-    <h1 class="text-2xl font-bold">Gestionar versiones</h1>
+    <h1 class="text-2xl md:text-3xl font-bold"><i class="fa-solid fa-code-branch mr-2"></i>Gestionar versiones</h1>
 
     <!-- Barra de acciones -->
     <div class="flex items-center gap-3">

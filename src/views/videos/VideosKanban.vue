@@ -1,7 +1,7 @@
 <template>
     <div class="p-4 md:p-6 min-h-[calc(100vh-64px)] flex flex-col dark:bg-rv-darkBg">
         <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
-            <h1 class="text-2xl font-semibold dark:text-white">Vídeos</h1>
+            <h1 class="text-2xl md:text-3xl font-semibold dark:text-white"><i class="fa-solid fa-video mr-2"></i>Vídeos</h1>
             <div class="flex gap-2 items-center">
                 <!-- User Filter -->
                 <div class="relative group">

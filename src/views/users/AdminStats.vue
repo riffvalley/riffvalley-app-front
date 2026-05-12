@@ -2,7 +2,7 @@
   <div class="view-container p-4 md:p-8">
     <!-- Header -->
     <div class="mb-8">
-      <h2 class="text-2xl font-bold text-rv-pink">Estadísticas de Usuarios</h2>
+      <h2 class="text-2xl font-bold text-rv-pink"><i class="fa-solid fa-chart-bar mr-2"></i>Estadísticas de Usuarios</h2>
       <p class="text-gray-400 text-sm mt-1">Actividad y registros de la plataforma</p>
     </div>
 

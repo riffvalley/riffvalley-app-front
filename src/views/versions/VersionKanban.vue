@@ -1,7 +1,7 @@
 <template>
   <div class="p-4 h-full flex flex-col gap-4">
     <div class="flex items-center justify-between">
-      <h1 class="text-xl font-bold">Tablero (versión en desarrollo)</h1>
+      <h1 class="text-xl font-bold"><i class="fa-solid fa-clipboard-list mr-2"></i>Tablero (versión en desarrollo)</h1>
       <div class="flex gap-2">
         <button @click="goBack" class="px-3 py-1.5 bg-gray-700 text-white rounded hover:bg-gray-800 text-sm">
           ← Volver

@@ -4,7 +4,7 @@
     <!-- Header compacto -->
     <div class="flex items-center justify-between gap-4 mb-4">
       <div class="flex items-center gap-3">
-        <h2 class="text-lg font-bold text-white">Actividad</h2>
+        <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-bolt mr-2"></i>Actividad</h2>
         <span v-if="globalData && !selectedUserId" class="text-xs text-gray-600">
           {{ globalData.totalItems }} votos
         </span>

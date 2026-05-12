@@ -1,6 +1,6 @@
 <template>
   <div class="p-6 max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold mb-2">Añadir discos</h1>
+    <h1 class="text-2xl md:text-3xl font-bold mb-2"><i class="fa-solid fa-circle-plus mr-2"></i>Añadir Discos</h1>
     <p class="text-left font-serif text-gray-500 text-md mb-4">
       Puedes añadir nuevos discos completando los campos de abajo. Recuerda respetar los espacios entre banda, guion y
       título de disco. En el apartado

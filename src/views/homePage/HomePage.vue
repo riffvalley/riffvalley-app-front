@@ -243,7 +243,7 @@ class="group inline-flex items-center
     <!-- Título + subtítulo + botón -->
     <div class="flex flex-col items-center justify-center py-8 gap-2">
 <h2 class="text-2xl md:text-3xl font-bold text-rv-navy dark:text-white text-center">
-        Mejores discos
+        <i class="fa-solid fa-compact-disc mr-2"></i>Mejores discos
       </h2>
 
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3">

@@ -3,7 +3,7 @@
 
     <!-- Cabecera -->
     <div class="flex items-center justify-between mb-6">
-<h1 class="text-3xl font-bold text-gray-900 dark:text-white">Peticiones de discos</h1>
+<h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-inbox mr-2"></i>Peticiones de Discos</h1>
 <span class="text-sm text-gray-400 dark:text-gray-300">{{ filteredRequests.length }} peticiones</span>
     </div>
 

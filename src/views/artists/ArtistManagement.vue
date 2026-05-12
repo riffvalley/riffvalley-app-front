@@ -2,7 +2,7 @@
 <div class="px-3 sm:px-6 py-5 max-w-5xl mx-auto">
     <!-- Cabecera -->
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-      <h1 class="text-2xl font-bold">Artistas</h1>
+      <h1 class="text-2xl md:text-3xl font-bold"><i class="fa-solid fa-microphone mr-2"></i>Artistas</h1>
 <div class="flex flex-wrap items-center gap-3">
         <span class="text-sm text-gray-400 dark:text-gray-400">{{ totalItems }} artistas</span>
         <button

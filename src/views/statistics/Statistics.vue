@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 pb-10">
-    <h1 class="text-4xl font-bold mb-8 text-center text-rv-navy dark:text-white">
-      Estadísticas
+    <h1 class="text-2xl md:text-3xl font-bold mb-8 text-center text-rv-navy dark:text-white">
+      <i class="fa-solid fa-chart-area mr-3"></i>Estadísticas
     </h1>
 
     <!-- Year Filter -->

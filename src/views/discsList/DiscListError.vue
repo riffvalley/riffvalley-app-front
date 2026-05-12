@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-[100rem] mx-auto mt-10 px-4">
-    <h1 class="text-4xl font-bold mb-2 text-center text-rv-navy dark:text-white">
-      Discos sin portada
+    <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-rv-navy dark:text-white">
+      <i class="fa-solid fa-circle-exclamation mr-3"></i>Discos sin portada
     </h1>
     <p class="text-center text-gray-500 dark:text-gray-400 mb-8 text-sm">
       Discos que no tienen imagen asignada (no encontrados en Spotify/Bandcamp)

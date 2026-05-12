@@ -1,7 +1,7 @@
 <template>
   <div class="p-4 min-h-screen bg-gray-50/50 dark:bg-rv-darkBg">
     <div class="max-w-7xl mx-auto">
-      <h1 class="text-2xl font-bold mb-4 text-gray-800 dark:text-white">Mejores del Mes</h1>
+      <h1 class="text-2xl md:text-3xl font-bold mb-4 text-gray-800 dark:text-white"><i class="fa-solid fa-star mr-2"></i>Mejores del Mes</h1>
 
       <!-- Listas Actuales -->
       <section class="mb-6">

@@ -1,6 +1,6 @@
 <template>
   <div class="p-6 max-w-4xl mx-auto">
-    <h1 class="text-3xl font-bold mb-2">Importar Discos</h1>
+    <h1 class="text-2xl md:text-3xl font-bold mb-2"><i class="fa-solid fa-upload mr-2"></i>Importar Discos</h1>
     <p class="text-left font-serif text-gray-500 text-md mb-4">
       Descarga la plantilla Excel para importar discos. Completa la plantilla y sube el archivo para importar los discos.
     </p>
