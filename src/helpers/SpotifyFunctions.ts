@@ -108,6 +108,50 @@ export const obtenerGeneroArtistaSpotify = async (
 };
 
 /**
+ * Devuelve el ID del track más popular de un álbum de Spotify.
+ * Hace dos llamadas: una para obtener los tracks del álbum y otra para sus popularidades.
+ */
+export const obtenerTrackMasPopularAlbum = async (
+  albumId: string
+): Promise<string | undefined> => {
+  try {
+    const token = await obtenerTokenSpotify();
+    if (!token) return undefined;
+
+    // 1. Obtener lista de tracks del álbum (máx 50)
+    const tracksRes = await axios.get(
+      `https://api.spotify.com/v1/albums/${albumId}/tracks`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { limit: 50 },
+      }
+    );
+
+    const tracks: { id: string }[] = tracksRes.data.items;
+    if (!tracks.length) return undefined;
+
+    // 2. Obtener popularidad de cada track en una sola llamada batch
+    const ids = tracks.map((t) => t.id).join(",");
+    const detailsRes = await axios.get(`https://api.spotify.com/v1/tracks`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { ids },
+    });
+
+    const detailed: { id: string; popularity: number }[] =
+      detailsRes.data.tracks;
+
+    const top = detailed.reduce((best, t) =>
+      t.popularity > (best?.popularity ?? -1) ? t : best
+    );
+
+    return top?.id;
+  } catch (error) {
+    console.error("Error al obtener el track más popular:", error);
+    return undefined;
+  }
+};
+
+/**
  * Busca enlaces de Spotify para una lista de discos.
  * @param {any[]} discs - La lista de discos para los que se buscarán enlaces.
  * @returns {Promise<any[] | undefined>} Retorna la lista de discos actualizada con enlaces de Spotify o undefined si hay un error.

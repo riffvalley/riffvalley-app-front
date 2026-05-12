@@ -218,15 +218,25 @@
 
     <!-- Reproductor desplegable -->
     <Transition name="player-slide">
-      <div v-if="showPlayer && link" class="mt-2 w-full overflow-hidden" :class="embedUrl ? 'rounded-xl' : ''">
-        <iframe v-if="embedUrl"
+      <div v-if="showPlayer && link" class="mt-2 w-full overflow-x-hidden rounded-xl">
+        <!-- Cargando track más popular -->
+        <div v-if="isLoadingTrack"
+          class="flex items-center justify-center gap-2 bg-gray-100 dark:bg-rv-darkSurface rounded-xl"
+          style="height:80px">
+          <i class="fa-solid fa-spinner animate-spin text-rv-pink text-sm"></i>
+          <span class="text-xs text-gray-400 dark:text-gray-500">Cargando...</span>
+        </div>
+        <!-- Iframe listo -->
+        <iframe v-else-if="embedUrl"
           :src="embedUrl"
           :height="embedHeight"
           width="100%"
           frameborder="0"
+          scrolling="no"
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           loading="lazy"
-          class="block"
+          class="block rounded-xl"
+          style="max-width:100%; overflow:hidden;"
         ></iframe>
       </div>
     </Transition>
@@ -291,7 +301,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, watchEffect, nextTick, onUnmounted, type PropType } from "vue";
+import { defineComponent, ref, computed, watchEffect, watch, nextTick, onUnmounted, type PropType } from "vue";
+import { obtenerTrackMasPopularAlbum } from "@helpers/SpotifyFunctions";
 import defaultImage from "/src/assets/disco.png";
 import DiscDetail from "./DiscDetail.vue";
 import ArtistDetail from "./ArtistDetail.vue";
@@ -434,8 +445,11 @@ export default defineComponent({
       const url = props.link || '';
       const theme = isDark.value ? 0 : 1;
       const spotifyMatch = url.match(/spotify\.com\/album\/([a-zA-Z0-9]+)/);
-      if (spotifyMatch)
+      if (spotifyMatch) {
+        if (topTrackId.value)
+          return `https://open.spotify.com/embed/track/${topTrackId.value}?utm_source=generator&theme=${theme}`;
         return `https://open.spotify.com/embed/album/${spotifyMatch[1]}?utm_source=generator&theme=${theme}`;
+      }
       const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
       if (ytMatch)
         return `https://www.youtube.com/embed/${ytMatch[1]}?controls=1`;
@@ -445,7 +459,7 @@ export default defineComponent({
     const embedHeight = computed(() => {
       const url = props.link || '';
       if (url.includes('youtube.com') || url.includes('youtu.be')) return 115;
-      return 80;
+      return 80; // track compacto de Spotify
     });
 
     const openImage = () => {
@@ -653,6 +667,18 @@ export default defineComponent({
 
     // --- Reproductor desplegable ---
     const showPlayer = ref(false);
+    const topTrackId = ref<string | null>(null);
+    const isLoadingTrack = ref(false);
+
+    watch(showPlayer, async (val) => {
+      if (!val || topTrackId.value) return; // cerrado o ya cargado
+      const url = props.link || '';
+      const spotifyMatch = url.match(/spotify\.com\/album\/([a-zA-Z0-9]+)/);
+      if (!spotifyMatch) return; // no es Spotify, no hace falta
+      isLoadingTrack.value = true;
+      topTrackId.value = (await obtenerTrackMasPopularAlbum(spotifyMatch[1])) ?? null;
+      isLoadingTrack.value = false;
+    });
 
     // Detectar dark mode (clase 'dark' en <html>)
     const isDark = ref(document.documentElement.classList.contains('dark'));
@@ -1117,6 +1143,8 @@ ctx.textBaseline = "alphabetic";
       embedUrl,
       embedHeight,
       showPlayer,
+      topTrackId,
+      isLoadingTrack,
       spoilerMode,
     };
   },
