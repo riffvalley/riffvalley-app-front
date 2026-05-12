@@ -4,7 +4,7 @@
       @click.self="$emit('close')">
       <transition name="scale">
         <div ref="modal"
-          class="bg-white dark:bg-rv-darkCard rounded-lg shadow-lg relative w-full max-w-2xl sm:max-w-lg md:max-w-xl lg:max-w-2xl flex flex-col max-h-[90vh] sm:max-h-[90vh] h-auto border border-gray-100 dark:border-white/10">
+          class="bg-white dark:bg-rv-darkCard rounded-xl shadow-xl relative w-full max-w-2xl sm:max-w-lg md:max-w-xl lg:max-w-2xl flex flex-col max-h-[90vh] sm:max-h-[90vh] h-auto border border-gray-100 dark:border-white/10">
           <!-- Botón para cerrar el modal -->
           <button @click="$emit('close')" aria-label="Cerrar" title="Cerrar" class="absolute top-2 right-2 text-white bg-rv-navy hover:bg-[#e46e8a]
          rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all
@@ -14,7 +14,7 @@
           </button>
 
           <!-- Cabecera -->
-          <div class="border-b border-gray-200 dark:border-white/10 px-4 py-6 text-center">
+          <div class="border-b border-gray-200 dark:border-white/10 px-4 py-4 text-center">
             <h2 class="mb-4">
               <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-md font-bold">
                 CHAT
@@ -35,16 +35,51 @@
           <UserModal v-if="showUserModal" :username="selectedUserName" :user-id="selectedUserId"
             :avatar-src="selectedUserAvatar" @close="showUserModal = false" />
 
-          <div class="bg-rv-navy dark:bg-rv-darkSurface border-t border-rv-navy dark:border-white/10 rounded-b-lg px-4 py-3">
-            <form @submit.prevent="submitTopComment" class="flex space-x-2">
-              <input v-model="topCommentText" type="text" placeholder="Escribe un comentario..." class="flex-1 rounded-lg px-3 py-2 text-sm sm:text-base
-border border-gray-200 dark:border-white/10 bg-white dark:bg-rv-darkCard
+          <div class="bg-gray-50 dark:bg-rv-darkSurface border-t border-gray-200 dark:border-white/10 rounded-b-lg px-4 py-3">
+
+            <!-- Emoji picker panel -->
+            <Transition name="emoji-slide">
+              <div v-if="showEmojiPicker"
+                class="mb-2 bg-white dark:bg-rv-darkCard rounded-xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden">
+                <!-- Tabs de categoría -->
+                <div class="flex border-b border-gray-100 dark:border-white/10">
+                  <button v-for="cat in emojiCategories" :key="cat.name" type="button"
+                    @click="activeEmojiCategory = cat.name"
+                    class="flex-1 py-1.5 text-base transition-colors bg-transparent border-0 outline-none focus:outline-none"
+                    :class="activeEmojiCategory === cat.name
+                      ? 'bg-gray-100 dark:bg-rv-darkSurface'
+                      : 'hover:bg-gray-50 dark:hover:bg-rv-darkSurface/60'">
+                    {{ cat.label }}
+                  </button>
+                </div>
+                <!-- Grid de emojis -->
+                <div class="grid grid-cols-9 gap-0.5 p-2 max-h-32 overflow-y-auto">
+                  <button v-for="emoji in currentEmojis" :key="emoji" type="button"
+                    @click="insertEmoji(emoji)"
+                    class="text-lg p-1 rounded-lg bg-transparent border-0 outline-none focus:outline-none hover:bg-gray-100 dark:hover:bg-white/10 transition-colors leading-none">
+                    {{ emoji }}
+                  </button>
+                </div>
+              </div>
+            </Transition>
+
+            <form @submit.prevent="submitTopComment" class="flex items-center space-x-2">
+              <!-- Botón emoji -->
+              <button type="button" @click="showEmojiPicker = !showEmojiPicker"
+                class="text-xl flex-shrink-0 transition-all duration-200 select-none"
+                :class="showEmojiPicker ? 'scale-110' : 'opacity-70 hover:opacity-100 hover:scale-110'"
+                title="Emojis">
+                😊
+              </button>
+              <input ref="inputRef" v-model="topCommentText" type="text" placeholder="Escribe un comentario..."
+                class="flex-1 rounded-lg px-3 py-2 text-sm sm:text-base
+border border-gray-300 dark:border-white/10 bg-white dark:bg-rv-darkCard
 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500
 outline-none focus:outline-none focus-visible:outline-none
 ring-0 focus:ring-0 focus-visible:ring-0
 focus:border-rv-navy dark:focus:border-rv-purple" />
               <button type="submit"
-                class="bg-rv-pink text-white font-semibold px-4 py-2 rounded-full hover:bg-rv-pink/90 transition-all">
+                class="bg-rv-pink text-white font-semibold px-4 py-2 rounded-full hover:bg-rv-pink/90 transition-all flex-shrink-0">
                 Enviar
               </button>
             </form>
@@ -56,7 +91,7 @@ focus:border-rv-navy dark:focus:border-rv-purple" />
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, toRefs } from "vue";
+import { defineComponent, ref, computed, onMounted, toRefs, nextTick } from "vue";
 import CommentItem from "./CommentItem.vue";
 import { getDisccomments, postcommentService } from "@services/comments/comments";
 import SwalService from "@services/swal/SwalService";
@@ -127,6 +162,47 @@ export default defineComponent({
   setup(props, { emit }) {
     const comments = ref<any[]>([]);
     const topCommentText = ref("");
+    const inputRef = ref<HTMLInputElement | null>(null);
+
+    // --- Emoji picker ---
+    const showEmojiPicker = ref(false);
+    const activeEmojiCategory = ref('Reacciones');
+
+    const emojiCategories = [
+      {
+        label: '😊', name: 'Reacciones',
+        emojis: ['😂','😍','🔥','💀','👏','🤩','😭','🤔','💯','❤️','🙌','👍','👎','😮','🤣','😤','🥲','😎','🤯','😱','🤘','✌️','👌','🫶','💔','🫡','🙃','😏','🤫','🥳','🎉','🫠','😴','🤧','😬','🤮']
+      },
+      {
+        label: '🎵', name: 'Música',
+        emojis: ['🎵','🎶','🎸','🥁','🎹','🎤','🎧','🎼','🎷','🎺','🎻','🪗','🪘','🪕','🎙️','🔊','📢','🔔','🎬','🎯','🌟','⭐','✨','💥','🚀','🏆','🥇','💎','👑','🎊']
+      },
+      {
+        label: '💬', name: 'Otros',
+        emojis: ['💪','💅','🤌','👀','💬','💭','🌈','🌊','💫','⚡','🌙','☀️','🍺','🍻','🥂','🎁','🧠','👾','🤖','🫣','🙈','🐸','💩','👻','🤡','💃','🕺','🌚','🌝','🫵']
+      },
+    ];
+
+    const currentEmojis = computed(() =>
+      emojiCategories.find(c => c.name === activeEmojiCategory.value)?.emojis ?? []
+    );
+
+    const insertEmoji = (emoji: string) => {
+      const input = inputRef.value;
+      if (!input) {
+        topCommentText.value += emoji;
+        return;
+      }
+      const start = input.selectionStart ?? topCommentText.value.length;
+      const end = input.selectionEnd ?? topCommentText.value.length;
+      topCommentText.value =
+        topCommentText.value.slice(0, start) + emoji + topCommentText.value.slice(end);
+      nextTick(() => {
+        input.selectionStart = start + emoji.length;
+        input.selectionEnd = start + emoji.length;
+        input.focus();
+      });
+    };
 
     const { artistName, albumName, discId } = toRefs(props);
 
@@ -195,6 +271,12 @@ export default defineComponent({
     return {
       comments,
       topCommentText,
+      inputRef,
+      showEmojiPicker,
+      activeEmojiCategory,
+      emojiCategories,
+      currentEmojis,
+      insertEmoji,
       submitTopComment,
       onReplyAdded,
       handleCommentDeleted,
@@ -237,5 +319,17 @@ export default defineComponent({
 .scale-enter-to {
   opacity: 1;
   transform: scale(1) translateY(0);
+}
+
+.emoji-slide-enter-active,
+.emoji-slide-leave-active {
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+  max-height: 200px;
+  overflow: hidden;
+}
+.emoji-slide-enter-from,
+.emoji-slide-leave-to {
+  max-height: 0;
+  opacity: 0;
 }
 </style>
