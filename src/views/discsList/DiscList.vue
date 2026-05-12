@@ -13,7 +13,7 @@
     <div class="filters-wrap flex justify-start space-x-2 mb-6">
       <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-lg font-medium transition-all duration-200"
 :class="viewMode === 'all'
-  ? 'bg-gray-200 text-rv-navy'
+  ? 'bg-rv-navy text-white dark:bg-rv-darkSurface dark:text-white'
   : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
 ">
         <input type="radio" v-model="viewMode" value="all" class="hidden" />
