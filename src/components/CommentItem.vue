@@ -107,8 +107,40 @@ focus:outline-none"
 
     <!-- Formulario para responder, solo si el comentario no está eliminado -->
     <div v-if="showReplyForm && !localComment.isDeleted" class="ml-4 mt-2">
-      <form @submit.prevent="submitReply" class="flex space-x-2">
-<input v-model="replyText" type="text" placeholder="Escribe tu respuesta..." class="flex-1 border rounded-lg px-3 py-2 text-xs
+
+      <!-- Emoji picker -->
+      <Transition name="emoji-slide">
+        <div v-if="showReplyEmojiPicker"
+          class="mb-1 bg-white dark:bg-rv-darkCard rounded-xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden">
+          <div class="flex border-b border-gray-100 dark:border-white/10">
+            <button v-for="cat in emojiCategories" :key="cat.name" type="button"
+              @click="activeReplyEmojiCategory = cat.name"
+              class="flex-1 py-1.5 text-sm bg-transparent border-0 outline-none focus:outline-none transition-colors"
+              :class="activeReplyEmojiCategory === cat.name
+                ? 'bg-gray-100 dark:bg-rv-darkSurface'
+                : 'hover:bg-gray-50 dark:hover:bg-rv-darkSurface/60'">
+              {{ cat.label }}
+            </button>
+          </div>
+          <div class="grid grid-cols-9 gap-0.5 p-2 max-h-28 overflow-y-auto">
+            <button v-for="emoji in currentReplyEmojis" :key="emoji" type="button"
+              @click="insertReplyEmoji(emoji)"
+              class="text-base p-1 rounded-lg bg-transparent border-0 outline-none focus:outline-none hover:bg-gray-100 dark:hover:bg-white/10 transition-colors leading-none">
+              {{ emoji }}
+            </button>
+          </div>
+        </div>
+      </Transition>
+
+      <form @submit.prevent="submitReply" class="flex items-center space-x-2">
+        <button type="button" @click="showReplyEmojiPicker = !showReplyEmojiPicker"
+          class="w-7 h-7 flex items-center justify-center rounded-lg flex-shrink-0 p-0 border-0 outline-none focus:outline-none transition-all duration-200 select-none bg-white dark:bg-rv-darkCard shadow-sm"
+          :class="showReplyEmojiPicker ? 'scale-110' : 'opacity-70 hover:opacity-100 hover:scale-110'"
+          title="Emojis">
+          😊
+        </button>
+        <input ref="replyInputRef" v-model="replyText" type="text" placeholder="Escribe tu respuesta..."
+          class="flex-1 border rounded-lg px-3 py-2 text-xs
 border-gray-300 dark:border-white/10
 bg-white dark:bg-rv-darkCard
 text-gray-800 dark:text-white
@@ -117,7 +149,7 @@ outline-none focus:outline-none focus-visible:outline-none
 ring-0 focus:ring-0 focus-visible:ring-0
 focus:border-rv-navy dark:focus:border-rv-purple" />
         <button type="submit"
-          class="bg-rv-pink text-white px-3 py-1 rounded-full text-xs hover:bg-rv-pink/80 transition-colors">
+          class="bg-rv-pink text-white px-3 py-1 rounded-full text-xs hover:bg-rv-pink/80 transition-colors flex-shrink-0">
           Enviar
         </button>
       </form>
@@ -133,7 +165,7 @@ focus:border-rv-navy dark:focus:border-rv-purple" />
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, watch } from "vue";
+import { computed, defineComponent, ref, watch, nextTick } from "vue";
 
 import {
   postcommentService,
@@ -167,6 +199,34 @@ export default defineComponent({
 
     const showReplyForm = ref(false);
     const replyText = ref("");
+    const replyInputRef = ref<HTMLInputElement | null>(null);
+
+    // --- Emoji picker para respuestas ---
+    const showReplyEmojiPicker = ref(false);
+    const activeReplyEmojiCategory = ref('Reacciones');
+
+    const emojiCategories = [
+      { label: '😊', name: 'Reacciones', emojis: ['😂','😍','🔥','💀','👏','🤩','😭','🤔','💯','❤️','🙌','👍','👎','😮','🤣','😤','🥲','😎','🤯','😱','🤘','✌️','👌','🫶','💔','🫡','🙃','😏','🤫','🥳','🎉','🫠','😴','🤧','😬','🤮'] },
+      { label: '🎵', name: 'Música', emojis: ['🎵','🎶','🎸','🥁','🎹','🎤','🎧','🎼','🎷','🎺','🎻','🪗','🪘','🪕','🎙️','🔊','📢','🔔','🎬','🎯','🌟','⭐','✨','💥','🚀','🏆','🥇','💎','👑','🎊'] },
+      { label: '💬', name: 'Otros', emojis: ['💪','💅','🤌','👀','💬','💭','🌈','🌊','💫','⚡','🌙','☀️','🍺','🍻','🥂','🎁','🧠','👾','🤖','🫣','🙈','🐸','💩','👻','🤡','💃','🕺','🌚','🌝','🫵'] },
+    ];
+
+    const currentReplyEmojis = computed(() =>
+      emojiCategories.find(c => c.name === activeReplyEmojiCategory.value)?.emojis ?? []
+    );
+
+    const insertReplyEmoji = (emoji: string) => {
+      const input = replyInputRef.value;
+      if (!input) { replyText.value += emoji; return; }
+      const start = input.selectionStart ?? replyText.value.length;
+      const end = input.selectionEnd ?? replyText.value.length;
+      replyText.value = replyText.value.slice(0, start) + emoji + replyText.value.slice(end);
+      nextTick(() => {
+        input.selectionStart = start + emoji.length;
+        input.selectionEnd = start + emoji.length;
+        input.focus();
+      });
+    };
     const showEditForm = ref(false);
     const editText = ref(localComment.value.comment);
 
@@ -323,6 +383,12 @@ export default defineComponent({
       localComment,
       showReplyForm,
       replyText,
+      replyInputRef,
+      showReplyEmojiPicker,
+      activeReplyEmojiCategory,
+      emojiCategories,
+      currentReplyEmojis,
+      insertReplyEmoji,
       toggleReplyForm,
       submitReply,
       showEditForm,
@@ -340,3 +406,17 @@ export default defineComponent({
   },
 });
 </script>
+
+<style scoped>
+.emoji-slide-enter-active,
+.emoji-slide-leave-active {
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+  max-height: 200px;
+  overflow: hidden;
+}
+.emoji-slide-enter-from,
+.emoji-slide-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+</style>

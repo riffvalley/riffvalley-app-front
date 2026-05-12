@@ -66,7 +66,7 @@
             <form @submit.prevent="submitTopComment" class="flex items-center space-x-2">
               <!-- Botón emoji -->
               <button type="button" @click="showEmojiPicker = !showEmojiPicker"
-                class="text-xl flex-shrink-0 transition-all duration-200 select-none"
+                class="w-8 h-8 flex items-center justify-center rounded-lg flex-shrink-0 p-0 border-0 outline-none focus:outline-none transition-all duration-200 select-none bg-white dark:bg-rv-darkSurface shadow-sm"
                 :class="showEmojiPicker ? 'scale-110' : 'opacity-70 hover:opacity-100 hover:scale-110'"
                 title="Emojis">
                 😊
