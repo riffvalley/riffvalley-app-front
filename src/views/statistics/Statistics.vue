@@ -1,51 +1,51 @@
 <template>
-  <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
-    <h1 class="text-4xl font-bold mb-8 text-center text-rv-navy">
+  <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 pb-10">
+    <h1 class="text-4xl font-bold mb-8 text-center text-rv-navy dark:text-white">
       Estadísticas
     </h1>
 
     <!-- Year Filter -->
-<div class="flex justify-center mb-6">
-  <SimpleSelect
-    v-model="selectedYear"
-    :options="yearOptions"
-    placeholder="Selecciona un año"
-    class="w-full max-w-[320px] sm:max-w-[380px]"
-  />
-</div>
+    <div class="flex justify-center mb-6">
+      <SimpleSelect
+        v-model="selectedYear"
+        :options="yearOptions"
+        placeholder="Selecciona un año"
+        class="w-full max-w-[320px] sm:max-w-[380px]"
+      />
+    </div>
 
-    <div class="grid grid-cols-1 gap-6 text-white">
-      <!--  -->
-      <div
-        class="bg-rv-navy p-6 rounded-2xl shadow-lg text-center grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border border-white/10">
+    <div class="grid grid-cols-1 gap-6">
+
+      <!-- Resumen de votos -->
+      <div class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10
+                  grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
         <div>
-          <h2 class="text-xl font-semibold mb-2">Total de Votos</h2>
-          <p class="text-4xl font-bold text-rv-pink brightness-125">{{ totalVotes }}</p>
+          <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Total de Votos</h2>
+          <p class="text-4xl font-bold text-rv-pink">{{ totalVotes }}</p>
         </div>
         <div>
-          <h2 class="text-xl font-semibold mb-2">Media</h2>
-          <p class="text-4xl font-bold text-rv-pink brightness-125">{{ mean }}</p>
+          <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Media</h2>
+          <p class="text-4xl font-bold text-rv-pink">{{ mean }}</p>
         </div>
         <div>
-          <h2 class="text-xl font-semibold mb-2">Mediana</h2>
-          <p class="text-4xl font-bold text-rv-pink brightness-125">{{ median }}</p>
+          <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Mediana</h2>
+          <p class="text-4xl font-bold text-rv-pink">{{ median }}</p>
         </div>
         <div>
-          <h2 class="text-xl font-semibold mb-2"> Ranking</h2>
-          <p class="text-4xl font-bold text-rv-pink brightness-125">{{ rank }} de {{ totalUsers }}</p>
+          <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Ranking</h2>
+          <p class="text-4xl font-bold text-rv-pink">{{ rank }} <span class="text-xl font-normal text-gray-400 dark:text-white/50">/ {{ totalUsers }}</span></p>
         </div>
       </div>
 
       <!-- Monthly Chart Card -->
-<div class="bg-rv-navy p-6 rounded-2xl shadow-lg border border-white/10">
-  <h2 class="text-xl font-semibold mb-4">Votos por mes</h2>
-  <MonthlyVotesChart :monthly-votes="votesByMonth" />
-</div>
-
+      <div class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10">
+        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Votos por mes</h2>
+        <MonthlyVotesChart :monthly-votes="votesByMonth" />
+      </div>
 
       <!-- Genre Chart Card -->
-      <div class="bg-rv-navy p-6 rounded-2xl shadow-lg border border-white/10">
-        <h2 class="text-xl font-semibold mb-4">Votos por género</h2>
+      <div class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10">
+        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Votos por género</h2>
         <div class="w-full overflow-x-auto">
           <div class="min-w-[520px] sm:min-w-[600px] w-full">
             <GenreBarChart :genre-distribution="votesByGenre" />
@@ -54,26 +54,23 @@
       </div>
 
       <!-- Score Chart Card -->
-<div class="bg-rv-navy p-6 rounded-2xl shadow-lg border border-white/10">
-  <h2 class="text-xl font-semibold mb-4">Distribución de notas</h2>
-  <div class="w-full">
-    <div class="w-full max-w-[420px] mx-auto">
-      <ScoreDistributionChart :score-distribution="votesByScore" />
-    </div>
-  </div>
-</div>
+      <div class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10">
+        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Distribución de notas</h2>
+        <div class="w-full max-w-[420px] mx-auto">
+          <ScoreDistributionChart :score-distribution="votesByScore" />
+        </div>
+      </div>
 
-
-      <div v-if="loading" class="bg-rv-navy p-6 rounded-2xl border border-white/10 text-white/80">
+      <!-- Loading -->
+      <div v-if="loading"
+        class="bg-white dark:bg-rv-navy p-6 rounded-2xl border border-gray-100 dark:border-white/10 text-gray-500 dark:text-white/80">
         Cargando estadísticas…
       </div>
 
-      <div v-else-if="errorMsg" class="bg-rv-navy p-6 rounded-2xl border border-white/10 text-rv-pink">
+      <!-- Error -->
+      <div v-else-if="errorMsg"
+        class="bg-white dark:bg-rv-navy p-6 rounded-2xl border border-gray-100 dark:border-white/10 text-rv-pink">
         {{ errorMsg }}
-      </div>
-
-      <div v-else class="grid grid-cols-1 gap-6 text-white">
-        ...
       </div>
 
     </div>
@@ -81,7 +78,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, computed, watch } from 'vue';
+import { defineComponent, ref, onMounted, watch } from 'vue';
 import { getRatesStats } from '@services/rates/rates';
 import GenreBarChart from './components/GenreBarChart.vue';
 import ScoreDistributionChart from './components/ScoreDistributionChart.vue';
@@ -110,9 +107,7 @@ export default defineComponent({
     const loading = ref(true);
     const errorMsg = ref("");
 
-    // Year filter
     const selectedYear = ref<number | null>(null);
-
     const yearOptions = getYearOptions();
 
     const fetchData = async () => {
@@ -136,7 +131,6 @@ export default defineComponent({
       }
     };
 
-    // Watch for year changes
     watch(selectedYear, () => {
       fetchData();
     });
@@ -162,4 +156,3 @@ export default defineComponent({
   },
 });
 </script>
-
