@@ -13,8 +13,8 @@
     <div class="filters-wrap flex justify-start space-x-2 mb-6">
       <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-lg font-medium transition-all duration-200"
 :class="viewMode === 'all'
-  ? 'bg-rv-navy text-white dark:bg-rv-darkSurface dark:text-white'
-  : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
+  ? 'bg-rv-navy text-white dark:bg-gray-200 dark:text-rv-navy'
+  : 'bg-gray-200 dark:bg-white/5 text-rv-navy dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-white/10 dark:hover:text-white'
 ">
         <input type="radio" v-model="viewMode" value="all" class="hidden" />
         Todos los discos <span v-if="totalDisc !== ''">({{ totalDisc }})</span>
