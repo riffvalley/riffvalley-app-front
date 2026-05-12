@@ -84,30 +84,30 @@
       </div>
 
       <!-- Contenido al lado derecho -->
-      <div class="ml-2 flex flex-1 flex-col">
+      <div class="ml-2 flex flex-1 flex-col min-w-0">
         <!-- Título y artista -->
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center min-w-0">
           <h2 @click="openDiscDetail"
-            class="text-sm text-rv-navy dark:text-white font-semibold italic cursor-pointer pr-1">
+            class="text-sm text-rv-navy dark:text-white font-semibold italic cursor-pointer pr-1 line-clamp-2 break-words">
             {{ name }}
           </h2>
         </div>
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center min-w-0">
           <!-- El nombre del artista se hace clickable para abrir ArtistDetail -->
           <p @click="openArtistDetail"
-            class="text-xs text-gray-500 dark:text-gray-300 font-semibold cursor-pointer hover:underline">
+            class="text-xs text-gray-500 dark:text-gray-300 font-semibold cursor-pointer hover:underline truncate">
             {{ artistName }}
           </p>
         </div>
 
         <!-- Botón de Escuchar -->
-        <div class="flex items-center space-x-2 mt-1">
-          <a v-if="link" @click="openPlatformLink(link)" class="px-2 py-1 rounded-full cursor-pointer font-medium text-white
-         text-center shadow-sm bg-green-500 hover:bg-green-600
-         transition-all w-1/2
-         text-[10px] overflow-hidden text-ellipsis whitespace-nowrap">
-            Escuchar
-          </a>
+        <div class="flex items-center space-x-2 mt-2 mb-2">
+          <button v-if="link" @click="openPlatformLink(link)"
+            class="w-7 h-7 rounded-full cursor-pointer text-white shadow-sm transition-all flex-shrink-0 flex items-center justify-center focus:outline-none hover:opacity-80 text-base"
+            :class="platformInfo.bg"
+            :title="platformInfo.label">
+            <i :class="platformInfo.icon" class="text-lg"></i>
+          </button>
 
           <!-- Íconos: corazón y bookmark -->
           <div class="flex space-x-2 items-center">
@@ -164,7 +164,7 @@
     <!-- Botones para votos y enviar calificación -->
     <div class="flex mt-2 gap-1 w-full">
       <button @click="toggleVotes"
-        class="w-1/3 bg-rv-navy text-white font-bold py-2 px-1 rounded-lg shadow-md border-2 border-transparent hover:border-rv-navy hover:bg-gradient-to-l from-gray-800 to-rv-navy flex items-center justify-center space-x-1">
+        class="w-1/3 border-2 border-rv-navy bg-rv-navy text-white font-bold py-2 px-1 rounded-lg transition-all focus:outline-none flex items-center justify-center space-x-1 hover:bg-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-white/20">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
           class="size-4">
           <path stroke-linecap="round" stroke-linejoin="round"
@@ -172,30 +172,24 @@
         </svg>
         <span class="flex items-center">
           {{ showVotes ? "Ocultar" : "Votos" }}
-          <span v-if="rateCount > 0" class="ml-1 mt-1 text-[9px] text-[#ffbaca]">({{ rateCount }})</span>
+          <span v-if="rateCount > 0" class="ml-1 mt-1 text-[9px] text-pink-300">({{ rateCount }})</span>
         </span>
       </button>
 
       <button @click="openComentsModal"
-        class="w-1/3 gap-2 bg-rv-navy text-white font-bold py-2 px-2 rounded-lg shadow-md border-2 border-transparent hover:border-rv-navy hover:bg-gradient-to-l from-gray-800 to-rv-navy flex items-center justify-center">
-        <i class="fa-solid fa-comment-dots text-white text-md"></i>
+        class="w-1/3 border-2 border-rv-navy bg-rv-navy text-white font-bold py-2 px-2 rounded-lg transition-all focus:outline-none flex items-center justify-center gap-1 hover:bg-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-white/20">
+        <i class="fa-solid fa-comment-dots text-md"></i>
         <span class="flex items-center">
           Chat
-          <span v-if="commentCount > 0" class="ml-1 mt-1 text-[9px] text-[#ffbaca]">(<span class="inline">{{
-            commentCount
-              }}</span>)</span>
+          <span v-if="commentCount > 0" class="ml-1 mt-1 text-[9px] text-pink-300">({{ commentCount }})</span>
         </span>
       </button>
 
       <button @click="submitRating" :disabled="disableSubmitButton"
-        class="w-1/3 bg-rv-navy text-white font-bold py-2 px-1 rounded-lg shadow-md border-2 border-transparent hover:border-[#e46e8a] hover:bg-gradient-to-r hover:from-[#e46e8a] hover:to-[#ff8da8] flex items-center justify-center space-x-1"
-        :class="{ 'opacity-50 cursor-not-allowed': disableSubmitButton }">
-        <template v-if="hasVoted">
-          <i class="fa-solid fa-arrows-rotate text-white text-md"></i>
-        </template>
-        <template v-else>
-          <i class="fa-solid fa-pen-to-square text-white text-md"></i>
-        </template>
+        class="w-1/3 border-2 border-rv-pink bg-rv-pink text-white font-bold py-2 px-1 rounded-lg transition-all focus:outline-none flex items-center justify-center space-x-1 hover:bg-[#ea849a] hover:border-[#ea849a]"
+        :class="{ 'opacity-40 cursor-not-allowed': disableSubmitButton }">
+        <i v-if="hasVoted" class="fa-solid fa-arrows-rotate text-md"></i>
+        <i v-else class="fa-solid fa-pen-to-square text-md"></i>
         <span>{{ hasVoted ? "Editar" : "Votar" }}</span>
       </button>
     </div>
@@ -386,6 +380,17 @@ export default defineComponent({
     });
 
     const computedImage = computed(() => props.image || defaultImage);
+
+    const platformInfo = computed(() => {
+      const url = props.link || '';
+      if (url.includes('spotify.com'))
+        return { icon: 'fa-brands fa-spotify', bg: 'bg-green-500', label: 'Escuchar en Spotify' };
+      if (url.includes('bandcamp.com'))
+        return { icon: 'fa-brands fa-bandcamp', bg: 'bg-[#1da0c3]', label: 'Escuchar en Bandcamp' };
+      if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('music.youtube.com'))
+        return { icon: 'fa-brands fa-youtube', bg: 'bg-red-500', label: 'Ver en YouTube' };
+      return { icon: 'fa-solid fa-play', bg: 'bg-gray-500', label: 'Escuchar' };
+    });
 
     const openImage = () => {
       const url = computedImage.value;
@@ -605,6 +610,7 @@ export default defineComponent({
       localRating,
       formattedDate,
       computedImage,
+      platformInfo,
       showVotes,
       toggleVotes,
       votes,
