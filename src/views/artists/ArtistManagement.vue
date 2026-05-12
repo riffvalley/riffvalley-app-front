@@ -92,8 +92,9 @@ class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm 
           <img
             v-if="artist.image"
             :src="artist.image"
-            class="absolute inset-0 w-full h-full object-cover"
+            class="absolute inset-0 w-full h-full object-cover cursor-zoom-in"
             style="object-position: center 45%"
+            @click="openArtistImage(artist.image)"
           />
           <div
             v-else
@@ -1004,6 +1005,10 @@ export default defineComponent({
       lastFmModalArtistImage.value = dbArtist?.image ?? await fetchSpotifyArtistImage(name);
     };
 
+    const openArtistImage = (url: string) => {
+      if (url) window.open(url, "_blank", "noopener");
+    };
+
     const cleanBio = (content: string) => {
       return content
         .split('User-contributed')[0]
@@ -1072,6 +1077,7 @@ export default defineComponent({
       loadSimilarArtist,
       cleanBio,
       getLinkStyle,
+      openArtistImage,
       fetchSpotifyImage,
       fetchingSpotifyImage,
       spotifyImageOptions,

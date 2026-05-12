@@ -60,7 +60,7 @@
     <div class="flex items-center mt-3">
       <div class="flex flex-col items-center">
         <img :src="computedImage" :alt="name"
-          class="w-24 h-24 object-cover rounded mb-2 shadow-md cursor-zoom-in hover:opacity-80" @click="openImage" />
+          class="w-24 h-24 object-cover rounded mb-2 shadow-md cursor-zoom-in relative transition-transform duration-200 hover:scale-150 hover:shadow-xl hover:z-50" @click="openImage" />
         <div class="flex space-x-2 mt-1">
           <div class="flex flex-col items-center w-16 h-12 rounded-lg
   bg-gray-100 dark:bg-rv-darkSurface
