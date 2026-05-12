@@ -60,7 +60,8 @@
     <div class="flex items-center mt-3">
       <div class="flex flex-col items-center">
         <img :src="computedImage" :alt="name"
-          class="w-24 h-24 object-cover rounded mb-2 shadow-md cursor-zoom-in relative transition-transform duration-200 hover:scale-150 hover:shadow-xl hover:z-50" @click="openImage" />
+          class="w-24 h-24 object-cover rounded mb-2 shadow-md cursor-zoom-in relative transition-transform duration-200 hover:scale-150 hover:shadow-xl hover:z-50"
+          @click="openImage" />
         <div class="flex space-x-2 mt-1">
           <div class="flex flex-col items-center w-16 h-12 rounded-lg
   bg-gray-100 dark:bg-rv-darkSurface
@@ -103,10 +104,9 @@
         <!-- Botón de Escuchar -->
         <div class="flex items-center space-x-2 mt-2 mb-2">
           <button v-if="link" @click="openPlatformLink(link)"
-            class="w-7 h-7 rounded-full cursor-pointer text-white shadow-sm transition-all flex-shrink-0 flex items-center justify-center focus:outline-none hover:opacity-80 text-base"
-            :class="platformInfo.bg"
-            :title="platformInfo.label">
-            <i :class="platformInfo.icon" class="text-lg"></i>
+            class="w-5 h-5 rounded-full cursor-pointer text-white shadow-sm transition-all flex-shrink-0 flex items-center justify-center focus:outline-none hover:opacity-80"
+            :class="platformInfo.bg" :title="platformInfo.label">
+            <i :class="platformInfo.icon" class="text-[20px] leading-none translate-y-[1px]"></i>
           </button>
 
           <!-- Íconos: corazón y bookmark -->
@@ -139,8 +139,9 @@
             </div>
 
             <div class="relative group cursor-pointer" @click="copyAsImage">
-              <i v-if="isCopying" class="fa-solid fa-spinner animate-spin text-rv-pink mt-1" style="width:20px;height:20px;display:block;"></i>
-              <font-awesome-icon v-else :icon="['fas', 'camera']"
+              <i v-if="isCopying" class="fa-solid fa-spinner animate-spin text-rv-pink mt-1"
+                style="width:20px;height:20px;display:block;"></i>
+              <font-awesome-icon v-else :icon="['fas', 'share-nodes']"
                 class="h-5 w-5 mt-1 transition-all duration-300 ease-in-out text-gray-400 hover:text-rv-pink" />
               <span class="pointer-events-none hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2
          px-2 py-1 text-[9px] font-semibold text-white bg-rv-navy rounded
@@ -239,10 +240,11 @@
     </div>
   </div>
 
-<Teleport to="body">
+  <Teleport to="body">
     <div v-if="showCalendarModal"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div class="bg-white dark:bg-rv-darkBg rounded-xl shadow-xl w-[95vw] max-w-6xl max-h-[90vh] relative overflow-hidden">
+      <div
+        class="bg-white dark:bg-rv-darkBg rounded-xl shadow-xl w-[95vw] max-w-6xl max-h-[90vh] relative overflow-hidden">
         <!-- botón cerrar -->
         <button type="button" @click.stop="showCalendarModal = false" aria-label="Cerrar" title="Cerrar" class="absolute top-2 right-2 z-50
          text-white bg-rv-navy hover:bg-[#e46e8a]
@@ -609,154 +611,387 @@ export default defineComponent({
     // --- Share as image (Canvas) ---
     const isCopying = ref(false);
 
-    const flagEmoji = computed(() => {
+    const riffValleyLogoUrl = "/LOGO-RIFF-VALLEY.svg";
+
+    const flagImageUrl = computed(() => {
       const iso = props.artistCountry?.isoCode;
-      if (!iso) return '';
-      if (iso === 'int') return '🌍';
-      return [...iso.slice(0, 2).toUpperCase()]
-        .map(c => String.fromCodePoint(127397 + c.charCodeAt(0)))
-        .join('');
+      if (!iso) return "";
+
+      if (iso === "int") return "/int.svg";
+
+      return `https://flagcdn.com/w80/${iso.slice(0, 2).toLowerCase()}.png`;
     });
 
-    const loadImgAsBlob = async (src: string): Promise<HTMLImageElement | null> => {
-      if (!src) return null;
-      let objectUrl = '';
-      try {
-        const res = await fetch(src, { mode: 'no-cors' });
-        const blob = await res.blob();
-        if (!blob.size) throw new Error('empty blob');
-        objectUrl = URL.createObjectURL(blob);
-        return await new Promise<HTMLImageElement>((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve(img);
-          img.onerror = reject;
-          img.src = objectUrl;
-        });
-      } catch {
-        if (objectUrl) URL.revokeObjectURL(objectUrl);
-        return new Promise(resolve => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => resolve(img);
-          img.onerror = () => resolve(null);
-          img.src = src;
-          setTimeout(() => resolve(null), 3000);
-        });
-      } finally {
-        if (objectUrl) setTimeout(() => URL.revokeObjectURL(objectUrl), 8000);
-      }
+    const loadImage = (src: string): Promise<HTMLImageElement | null> => {
+      return new Promise(resolve => {
+        if (!src) {
+          resolve(null);
+          return;
+        }
+
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+
+        setTimeout(() => resolve(null), 5000);
+      });
     };
 
-    const rrect = (ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) => {
+    const rrect = (
+      ctx: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      r: number
+    ) => {
       ctx.beginPath();
       ctx.moveTo(x + r, y);
-      ctx.lineTo(x + w - r, y); ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-      ctx.lineTo(x + w, y + h - r); ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-      ctx.lineTo(x + r, y + h); ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-      ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
       ctx.closePath();
     };
 
-    const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] => {
-      const words = text.split(' ');
+    const wrapText = (
+      ctx: CanvasRenderingContext2D,
+      text: string,
+      maxW: number
+    ): string[] => {
+      const words = text.split(" ");
       const lines: string[] = [];
-      let cur = '';
-      for (const w of words) {
-        const test = cur ? cur + ' ' + w : w;
-        if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
-        else cur = test;
+      let cur = "";
+
+      for (const word of words) {
+        const test = cur ? `${cur} ${word}` : word;
+
+        if (ctx.measureText(test).width > maxW && cur) {
+          lines.push(cur);
+          cur = word;
+        } else {
+          cur = test;
+        }
       }
+
       if (cur) lines.push(cur);
       return lines;
+    };
+
+    const drawCoverCrop = (
+      ctx: CanvasRenderingContext2D,
+      img: HTMLImageElement,
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      radius = 0
+    ) => {
+      const ratio = img.naturalWidth / img.naturalHeight;
+
+      let sx = 0;
+      let sy = 0;
+      let sw = img.naturalWidth;
+      let sh = img.naturalHeight;
+
+      if (ratio > 1) {
+        sx = (img.naturalWidth - img.naturalHeight) / 2;
+        sw = img.naturalHeight;
+      } else if (ratio < 1) {
+        sy = (img.naturalHeight - img.naturalWidth) / 2;
+        sh = img.naturalWidth;
+      }
+
+      ctx.save();
+
+      if (radius > 0) {
+        rrect(ctx, x, y, w, h, radius);
+        ctx.clip();
+      }
+
+      ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+      ctx.restore();
     };
 
     const copyAsImage = async () => {
       if (isCopying.value) return;
       isCopying.value = true;
+
       try {
-        const SIZE = 480, DPR = 2;
-        const canvas = document.createElement('canvas');
-        canvas.width = SIZE * DPR; canvas.height = SIZE * DPR;
-        const ctx = canvas.getContext('2d')!;
+        const SIZE = 480;
+        const DPR = 2;
+        const font = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+        const canvas = document.createElement("canvas");
+        canvas.width = SIZE * DPR;
+        canvas.height = SIZE * DPR;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("No canvas context");
+
         ctx.scale(DPR, DPR);
 
-        // Fondo oscuro
-        ctx.fillStyle = '#00021f';
+        const img = await loadImage(computedImage.value);
+
+        ctx.fillStyle = "#00021f";
         ctx.fillRect(0, 0, SIZE, SIZE);
 
-        // Portada
-        const img = await loadImgAsBlob(props.image || '');
         if (img) {
-          const r = img.naturalWidth / img.naturalHeight;
-          let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
-          if (r > 1) { sx = (img.naturalWidth - img.naturalHeight) / 2; sw = img.naturalHeight; }
-          else if (r < 1) { sy = (img.naturalHeight - img.naturalWidth) / 2; sh = img.naturalWidth; }
-          ctx.drawImage(img, sx, sy, sw, sh, 0, 0, SIZE, SIZE);
+          drawCoverCrop(ctx, img, 0, 0, SIZE, SIZE);
+
+          ctx.fillStyle = "rgba(0, 2, 31, 0.76)";
+          ctx.fillRect(0, 0, SIZE, SIZE);
+
+          const vignette = ctx.createRadialGradient(
+            SIZE / 2, SIZE / 2, 90,
+            SIZE / 2, SIZE / 2, SIZE / 1.05
+          );
+          vignette.addColorStop(0, "rgba(0,2,31,0.05)");
+          vignette.addColorStop(1, "rgba(0,2,31,0.9)");
+          ctx.fillStyle = vignette;
+          ctx.fillRect(0, 0, SIZE, SIZE);
         }
 
-        // Gradiente
-        const grad = ctx.createLinearGradient(0, 0, 0, SIZE);
-        grad.addColorStop(0, 'rgba(0,2,31,0.05)');
-        grad.addColorStop(0.38, 'rgba(0,2,31,0.62)');
-        grad.addColorStop(1, 'rgba(0,2,31,0.97)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, SIZE, SIZE);
+        // Portada más arriba y algo más pequeña para ganar aire abajo
+        const coverSize = 176;
+        const coverX = (SIZE - coverSize) / 2;
+        const coverY = 34;
 
-        const pad = 26;
-        const font = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-        let y = SIZE - pad;
+        if (img) {
+          ctx.save();
+          ctx.shadowColor = "rgba(0,0,0,0.65)";
+          ctx.shadowBlur = 22;
+          ctx.shadowOffsetY = 10;
+          drawCoverCrop(ctx, img, coverX, coverY, coverSize, coverSize, 16);
+          ctx.restore();
 
-        // Notas
-        if (props.averageRate || props.averageCover) {
-          let sx2 = pad;
-          [{ val: props.averageRate, label: 'DISCO' }, { val: props.averageCover, label: 'PORTADA' }].forEach(({ val, label }) => {
-            if (!val) return;
-            ctx.font = `800 28px ${font}`; ctx.fillStyle = '#fff';
-            ctx.fillText(val.toFixed(2), sx2, y);
-            ctx.font = `600 9px ${font}`; ctx.fillStyle = 'rgba(255,255,255,0.5)';
-            ctx.fillText(label, sx2, y + 13);
-            sx2 += 78;
-          });
-          y -= 50;
+          rrect(ctx, coverX, coverY, coverSize, coverSize, 16);
+          ctx.strokeStyle = "rgba(255,255,255,0.45)";
+          ctx.lineWidth = 1.4;
+          ctx.stroke();
         }
 
-        // Artista
-        ctx.font = `600 14px ${font}`; ctx.fillStyle = 'rgba(255,255,255,0.72)';
-        ctx.fillText(props.artistName, pad, y);
-        y -= 30;
+        const genre = (props.genreName || "Sin género").toUpperCase();
+        const flagImg = await loadImage(flagImageUrl.value);
 
-        // Título (con salto de línea)
-        ctx.font = `800 20px ${font}`; ctx.fillStyle = '#fff';
-        const lines = wrapText(ctx, props.name, SIZE - pad * 2);
-        for (let i = lines.length - 1; i >= 0; i--) { ctx.fillText(lines[i], pad, y); y -= 27; }
-        y -= 8;
+        // Fila bandera + género
+        const rowY = coverY + coverSize + 16;
+        const badgeH = 22;
 
-        // Badge género + fecha
-        const genre = props.genreName || 'Sin género';
-        ctx.font = `700 11px ${font}`;
-        const gW = ctx.measureText(genre).width + 20;
-        const bY = y - 14;
-        rrect(ctx, pad, bY, gW, 18, 9);
-        ctx.fillStyle = props.genreColor || '#6b7280'; ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.fillText(genre, pad + 10, bY + 12);
-        ctx.font = `400 11px ${font}`; ctx.fillStyle = 'rgba(255,255,255,0.6)';
-        ctx.fillText(formattedDate.value, pad + gW + 8, bY + 12);
+        ctx.font = `800 11px ${font}`;
+        const badgeW = ctx.measureText(genre).width + 26;
 
-        // Copiar al portapapeles
+        const flagW = flagImg ? 30 : 0;
+        const flagH = flagImg ? 22 : 0;
+        const gap = flagImg ? 10 : 0;
+        const rowW = flagW + gap + badgeW;
+
+        let rowX = (SIZE - rowW) / 2;
+
+        // Bandera como imagen real
+        if (flagImg) {
+          ctx.save();
+
+          rrect(ctx, rowX, rowY, flagW, flagH, 8);
+          ctx.clip();
+
+          ctx.drawImage(flagImg, rowX, rowY, flagW, flagH);
+
+          ctx.restore();
+
+          rowX += flagW + gap;
+        }
+
+        // Badge género
+        rrect(ctx, rowX, rowY, badgeW, badgeH, 13);
+        ctx.fillStyle = props.genreColor || "#6b7280";
+        ctx.fill();
+
+        ctx.font = `800 11px ${font}`;
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(genre, rowX + badgeW / 2, rowY + badgeH / 2 + 0.5);
+
+// Bloque central fijo: título + artista + fecha
+ctx.textBaseline = "alphabetic";
+
+const titleBlockTop = rowY + 54;
+const maxTitleWidth = SIZE - 72;
+
+let titleFontSize = 21;
+let titleLines: string[] = [];
+
+ctx.font = `900 ${titleFontSize}px ${font}`;
+titleLines = wrapText(ctx, (props.name || "").toUpperCase(), maxTitleWidth);
+
+if (titleLines.length > 2) {
+  titleLines = titleLines.slice(0, 2);
+
+  while (
+    ctx.measureText(`${titleLines[1]}…`).width > maxTitleWidth &&
+    titleLines[1].length > 4
+  ) {
+    titleLines[1] = titleLines[1].slice(0, -1);
+  }
+
+  titleLines[1] = `${titleLines[1]}…`;
+}
+
+if (titleLines.length === 2) {
+  titleFontSize = 19;
+  ctx.font = `900 ${titleFontSize}px ${font}`;
+}
+
+ctx.fillStyle = "#fff";
+
+let titleY = titleBlockTop;
+const titleLineHeight = titleLines.length === 2 ? 25 : 27;
+
+for (const line of titleLines) {
+  ctx.fillText(line, SIZE / 2, titleY);
+  titleY += titleLineHeight;
+}
+
+// Artista
+ctx.font = `700 15px ${font}`;
+ctx.fillStyle = "rgba(255,255,255,0.82)";
+ctx.fillText(props.artistName || "", SIZE / 2, titleY + 2);
+
+// Fecha
+ctx.font = `600 12px ${font}`;
+ctx.fillStyle = "rgba(255,255,255,0.5)";
+ctx.fillText(formattedDate.value || "", SIZE / 2, titleY + 25);
+
+// Scores
+const scores = [
+  { val: props.averageRate, label: "DISCO" },
+  { val: props.averageCover, label: "PORTADA" },
+].filter(score => typeof score.val === "number");
+
+const scoreY = 408;
+
+// Divisor horizontal encima de las notas
+const dividerY = scoreY - 40;
+ctx.beginPath();
+ctx.moveTo(SIZE * 0.1, dividerY);
+ctx.lineTo(SIZE * 0.9, dividerY);
+ctx.strokeStyle = "rgba(255,255,255,0.18)";
+ctx.lineWidth = 1;
+ctx.stroke();
+
+if (scores.length >= 2) {
+  const leftX = SIZE / 2 - 72;
+  const rightX = SIZE / 2 + 72;
+
+  ctx.font = `900 33px ${font}`;
+  ctx.fillStyle = "#fff";
+  ctx.fillText(scores[0].val!.toFixed(2), leftX, scoreY);
+  ctx.fillText(scores[1].val!.toFixed(2), rightX, scoreY);
+
+  ctx.font = `800 10px ${font}`;
+  ctx.fillStyle = "rgba(255,255,255,0.62)";
+  ctx.fillText(scores[0].label, leftX, scoreY + 22);
+  ctx.fillText(scores[1].label, rightX, scoreY + 22);
+
+  // Divisor vertical entre las dos notas
+  ctx.beginPath();
+  ctx.moveTo(SIZE / 2, scoreY - 26);
+  ctx.lineTo(SIZE / 2, scoreY + 24);
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+if (scores.length === 1) {
+  ctx.font = `900 33px ${font}`;
+  ctx.fillStyle = "#fff";
+  ctx.fillText(scores[0].val!.toFixed(2), SIZE / 2, scoreY);
+
+  ctx.font = `800 10px ${font}`;
+  ctx.fillStyle = "rgba(255,255,255,0.62)";
+  ctx.fillText(scores[0].label, SIZE / 2, scoreY + 22);
+}
+
+// Footer Riff Valley — logo con aspect ratio real + URL, centrados juntos
+const rvLogo = await loadImage(riffValleyLogoUrl);
+
+const footerCenterY = SIZE - 20;
+const logoTargetH = 20;
+
+ctx.font = `500 12px ${font}`;
+const urlText = "app.riffvalley.es";
+const urlW = ctx.measureText(urlText).width;
+
+if (rvLogo && rvLogo.naturalHeight > 0) {
+  const aspect = rvLogo.naturalWidth / rvLogo.naturalHeight;
+  const logoRenderW = Math.round(logoTargetH * aspect);
+  const gap = 5;
+
+  const totalW = logoRenderW + gap + urlW;
+  const startX = (SIZE - totalW) / 2;
+
+  ctx.drawImage(rvLogo, startX, footerCenterY - logoTargetH / 2, logoRenderW, logoTargetH);
+
+  ctx.fillStyle = "rgba(255,255,255,0.58)";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(urlText, startX + logoRenderW + gap, footerCenterY);
+} else {
+  // Fallback sin logo
+  ctx.fillStyle = "rgba(255,255,255,0.58)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(urlText, SIZE / 2, footerCenterY);
+}
+
+ctx.textAlign = "center";
+ctx.textBaseline = "alphabetic";
+
         await new Promise<void>((resolve, reject) => {
           canvas.toBlob(async blob => {
-            if (!blob) { reject(new Error('no blob')); return; }
+            if (!blob) {
+              reject(new Error("No se pudo generar la imagen"));
+              return;
+            }
+
             try {
-              await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+              await navigator.clipboard.write([
+                new ClipboardItem({ "image/png": blob }),
+              ]);
               resolve();
-            } catch (e) { reject(e); }
-          }, 'image/png');
+            } catch (error) {
+              reject(error);
+            }
+          }, "image/png");
         });
 
-        Swal.fire({ icon: 'success', title: '¡Imagen copiada!', text: 'Pégala en cualquier chat', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' });
-      } catch (e) {
-        console.error(e);
-        Swal.fire({ icon: 'error', title: 'No se pudo copiar', timer: 2500, showConfirmButton: false, toast: true, position: 'top-end' });
+        Swal.fire({
+          icon: "success",
+          title: "¡Imagen copiada!",
+          text: "Pégala en cualquier chat",
+          timer: 2000,
+          showConfirmButton: false,
+          toast: true,
+          position: "top-end",
+        });
+      } catch (error) {
+        console.error("Error al copiar imagen:", error);
+
+        Swal.fire({
+          icon: "error",
+          title: "No se pudo copiar",
+          timer: 2500,
+          showConfirmButton: false,
+          toast: true,
+          position: "top-end",
+        });
       } finally {
         isCopying.value = false;
       }
@@ -812,8 +1047,9 @@ export default defineComponent({
       showCalendarModal,
       openCalendarModal,
       isCopying,
-      flagEmoji,
+      flagImageUrl,
       copyAsImage,
+      riffValleyLogoUrl,
     };
   },
 });
