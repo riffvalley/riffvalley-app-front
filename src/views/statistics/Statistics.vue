@@ -39,13 +39,13 @@
 
       <!-- Monthly Chart Card -->
       <div class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10">
-        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Votos por mes</h2>
+        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Mis votos por mes</h2>
         <MonthlyVotesChart :monthly-votes="votesByMonth" />
       </div>
 
       <!-- Genre Chart Card -->
       <div class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10">
-        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Votos por género</h2>
+        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Mis votos por género</h2>
         <div class="w-full overflow-x-auto">
           <div class="min-w-[520px] sm:min-w-[600px] w-full">
             <GenreBarChart :genre-distribution="votesByGenre" />
