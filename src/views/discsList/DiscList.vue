@@ -607,6 +607,7 @@ response = await getCommentsByUser(
   display: grid;
   gap: 1.5rem;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
 }
 
 .filters-wrap {

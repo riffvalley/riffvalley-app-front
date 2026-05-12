@@ -9,8 +9,9 @@
     <!-- Badge Debut -->
     <div v-if="debut" class="absolute -top-3 -left-2 z-10
          px-2 py-1 rounded-full text-[10px] font-bold
-         text-rv-purple shadow-sm
-         bg-white border-rv-purple border-2">
+         text-rv-purple dark:text-purple-300 shadow-sm
+         bg-white dark:bg-rv-darkSurface
+         border-rv-purple dark:border-purple-300 border-2">
       Álbum debut
     </div>
 
@@ -103,11 +104,18 @@
 
         <!-- Botón de Escuchar -->
         <div class="flex items-center space-x-2 mt-2 mb-2">
-          <button v-if="link" @click="openPlatformLink(link)"
-            class="w-5 h-5 rounded-full cursor-pointer text-white shadow-sm transition-all flex-shrink-0 flex items-center justify-center focus:outline-none hover:opacity-80"
-            :class="platformInfo.bg" :title="platformInfo.label">
-            <i :class="platformInfo.icon" class="text-[20px] leading-none translate-y-[1px]"></i>
-          </button>
+          <div class="flex items-center gap-1">
+            <font-awesome-icon v-if="embedUrl" :icon="['fas', 'circle-chevron-down']"
+              class="text-[14px] cursor-pointer transition-all duration-300 text-gray-400 dark:text-gray-400 hover:text-green-500 dark:hover:text-green-500 flex-shrink-0 translate-y-[8px]"
+              :class="{ 'rotate-180': showPlayer }"
+              :title="showPlayer ? 'Ocultar reproductor' : 'Mostrar reproductor'"
+              @click="showPlayer = !showPlayer" />
+            <button v-if="link" @click="openPlatformLink(link)"
+              class="w-5 h-5 rounded-full cursor-pointer text-white shadow-sm transition-all flex-shrink-0 flex items-center justify-center focus:outline-none hover:opacity-80"
+              :class="platformInfo.bg" :title="platformInfo.label">
+              <i :class="platformInfo.icon" class="text-[20px] leading-none translate-y-[1px]"></i>
+            </button>
+          </div>
 
           <!-- Íconos: corazón y bookmark -->
           <div class="flex space-x-2 items-center">
@@ -206,6 +214,21 @@
       </button>
     </div>
 
+    <!-- Reproductor desplegable -->
+    <Transition name="player-slide">
+      <div v-if="showPlayer && link" class="mt-2 w-full overflow-hidden" :class="embedUrl ? 'rounded-xl' : ''">
+        <iframe v-if="embedUrl"
+          :src="embedUrl"
+          :height="embedHeight"
+          width="100%"
+          frameborder="0"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+          class="block"
+        ></iframe>
+      </div>
+    </Transition>
+
     <!-- Lista de votos -->
   </div>
 
@@ -266,7 +289,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, watchEffect, nextTick, type PropType } from "vue";
+import { defineComponent, ref, computed, watchEffect, nextTick, onUnmounted, type PropType } from "vue";
 import defaultImage from "/src/assets/disco.png";
 import DiscDetail from "./DiscDetail.vue";
 import ArtistDetail from "./ArtistDetail.vue";
@@ -403,6 +426,24 @@ export default defineComponent({
       if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('music.youtube.com'))
         return { icon: 'fa-brands fa-youtube', bg: 'bg-red-500', label: 'Ver en YouTube' };
       return { icon: 'fa-solid fa-play', bg: 'bg-gray-500', label: 'Escuchar' };
+    });
+
+    const embedUrl = computed(() => {
+      const url = props.link || '';
+      const theme = isDark.value ? 0 : 1;
+      const spotifyMatch = url.match(/spotify\.com\/album\/([a-zA-Z0-9]+)/);
+      if (spotifyMatch)
+        return `https://open.spotify.com/embed/album/${spotifyMatch[1]}?utm_source=generator&theme=${theme}`;
+      const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+      if (ytMatch)
+        return `https://www.youtube.com/embed/${ytMatch[1]}?controls=1`;
+      return null;
+    });
+
+    const embedHeight = computed(() => {
+      const url = props.link || '';
+      if (url.includes('youtube.com') || url.includes('youtu.be')) return 115;
+      return 80;
     });
 
     const openImage = () => {
@@ -607,6 +648,17 @@ export default defineComponent({
         window.open(webLink, "_blank", "noopener"); // otros
       }
     };
+
+    // --- Reproductor desplegable ---
+    const showPlayer = ref(false);
+
+    // Detectar dark mode (clase 'dark' en <html>)
+    const isDark = ref(document.documentElement.classList.contains('dark'));
+    const darkObserver = new MutationObserver(() => {
+      isDark.value = document.documentElement.classList.contains('dark');
+    });
+    darkObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    onUnmounted(() => darkObserver.disconnect());
 
     // --- Share as image (Canvas) ---
     const isCopying = ref(false);
@@ -1050,6 +1102,9 @@ ctx.textBaseline = "alphabetic";
       flagImageUrl,
       copyAsImage,
       riffValleyLogoUrl,
+      embedUrl,
+      embedHeight,
+      showPlayer,
     };
   },
 });
@@ -1100,5 +1155,17 @@ ctx.textBaseline = "alphabetic";
 
 :global(.dark) input[type="number"] {
   color-scheme: dark;
+}
+
+.player-slide-enter-active,
+.player-slide-leave-active {
+  transition: max-height 0.3s ease, opacity 0.25s ease;
+  max-height: 130px;
+  overflow: hidden;
+}
+.player-slide-enter-from,
+.player-slide-leave-to {
+  max-height: 0;
+  opacity: 0;
 }
 </style>
