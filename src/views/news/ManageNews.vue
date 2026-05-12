@@ -1,8 +1,8 @@
 <template>
-  <div class="view-container p-4 md:p-8">
+  <div class="view-container bg-white dark:bg-rv-darkBg p-4 md:p-8">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-      <h2 class="text-2xl font-bold text-rv-pink"><i class="fa-solid fa-bullhorn mr-2"></i>Gestión de Noticias</h2>
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-bullhorn mr-2"></i>Gestión de Noticias</h2>
       <button
         @click="openCreateModal"
         class="flex items-center justify-center gap-2 px-5 py-2.5 bg-rv-pink hover:bg-rv-purple text-white font-medium rounded-lg transition-colors"
@@ -15,7 +15,7 @@
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-center py-16 text-gray-400">
+    <div v-if="loading" class="text-center py-16 text-gray-500 dark:text-gray-400">
       Cargando noticias...
     </div>
 
@@ -23,7 +23,7 @@
     <div v-else-if="newsList.length > 0" class="overflow-x-auto">
       <table class="w-full">
         <thead>
-          <tr class="border-b border-white/10">
+          <tr class="border-b border-gray-200 dark:border-white/10">
             <th class="text-left text-xs text-rv-pink font-medium pb-3 px-3">Título</th>
             <th class="text-left text-xs text-rv-pink font-medium pb-3 px-3">Tipo</th>
             <th class="text-left text-xs text-rv-pink font-medium pb-3 px-3">Estado</th>
@@ -35,17 +35,17 @@
           <tr
             v-for="item in newsList"
             :key="item.id"
-            class="border-b border-white/5 hover:bg-white/5 transition-colors"
+            class="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
           >
 
             <!-- Título -->
             <td class="py-3 px-3">
-              <span class="text-white text-sm font-medium line-clamp-2">{{ item.title }}</span>
+              <span class="text-gray-900 dark:text-white text-sm font-medium line-clamp-2">{{ item.title }}</span>
             </td>
 
             <!-- Tipo -->
             <td class="py-3 px-3">
-              <span class="text-gray-300 text-sm">{{ getTypeLabel(item.type) }}</span>
+              <span class="text-gray-600 dark:text-gray-300 text-sm">{{ getTypeLabel(item.type) }}</span>
             </td>
 
             <!-- Estado -->
@@ -63,7 +63,7 @@
 
             <!-- Fecha -->
             <td class="py-3 px-3">
-              <span class="text-gray-400 text-sm">
+              <span class="text-gray-500 dark:text-gray-400 text-sm">
                 {{ item.publishDate ? formatDate(item.publishDate) : '—' }}
               </span>
             </td>
@@ -96,17 +96,17 @@
         <button
           :disabled="currentPage <= 1"
           @click="goToPage(currentPage - 1)"
-          class="px-3 py-1.5 rounded-lg text-sm text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          class="px-3 py-1.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           Anterior
         </button>
-        <span class="text-sm text-gray-400">
+        <span class="text-sm text-gray-500 dark:text-gray-400">
           Página {{ currentPage }} de {{ totalPages }}
         </span>
         <button
           :disabled="currentPage >= totalPages"
           @click="goToPage(currentPage + 1)"
-          class="px-3 py-1.5 rounded-lg text-sm text-gray-300 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          class="px-3 py-1.5 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         >
           Siguiente
         </button>
@@ -246,7 +246,6 @@ async function confirmDelete(news: News) {
 
 <style scoped>
 .view-container {
-  background: #00021f;
   min-height: 100vh;
 }
 

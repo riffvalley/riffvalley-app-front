@@ -1,15 +1,15 @@
 <template>
-  <div class="p-6 max-w-4xl mx-auto">
+  <div class="p-6 max-w-4xl mx-auto dark:text-gray-200">
 
     <!-- Cabecera -->
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold"><i class="fa-solid fa-bug mr-2"></i>Gestión de Bugs / Sugerencias</h1>
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-bug mr-2"></i>Gestión de Bugs / Sugerencias</h1>
         <p class="text-gray-400 text-sm mt-0.5">{{ suggestions.length }} en total</p>
       </div>
       <button
         @click="openCreateModal"
-        class="flex items-center gap-2 bg-rv-navy text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
+        class="flex items-center gap-2 bg-rv-navy dark:bg-rv-purple text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
       >
         <i class="fa-solid fa-plus"></i> Nueva
       </button>
@@ -21,7 +21,7 @@
         v-for="t in typeTabs"
         :key="t.value"
         @click="setFilter('type', t.value)"
-        :class="activeType === t.value ? t.activeClass : 'bg-white text-gray-500 hover:text-rv-navy border border-gray-200'"
+        :class="activeType === t.value ? t.activeClass : 'bg-white dark:bg-rv-darkCard text-gray-500 dark:text-gray-400 hover:text-rv-navy dark:hover:text-gray-200 border border-gray-200 dark:border-white/10'"
         class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors shadow-sm"
       >
         <i :class="t.icon" class="mr-1.5"></i>{{ t.label }}
@@ -34,7 +34,7 @@
         v-for="s in statusTabs"
         :key="s.value"
         @click="setFilter('status', s.value)"
-        :class="activeStatus === s.value ? 'bg-rv-navy text-white' : 'bg-white text-gray-500 hover:text-rv-navy border border-gray-200'"
+        :class="activeStatus === s.value ? 'bg-rv-navy dark:bg-rv-purple text-white' : 'bg-white dark:bg-rv-darkCard text-gray-500 dark:text-gray-400 hover:text-rv-navy dark:hover:text-gray-200 border border-gray-200 dark:border-white/10'"
         class="px-3 py-1 rounded-full text-xs font-medium transition-colors shadow-sm"
       >
         {{ s.label }}
@@ -46,18 +46,18 @@
     <div v-if="loading" class="text-center py-12 text-gray-400">Cargando...</div>
 
     <!-- Vacío -->
-    <div v-else-if="suggestions.length === 0" class="text-center py-12 text-gray-400 bg-white rounded-2xl shadow-rv">
-      <i class="fa-solid fa-inbox text-3xl mb-3 block text-gray-300"></i>
+    <div v-else-if="suggestions.length === 0" class="text-center py-12 text-gray-400 bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv dark:shadow-none border border-gray-100 dark:border-white/10">
+      <i class="fa-solid fa-inbox text-3xl mb-3 block text-gray-300 dark:text-gray-600"></i>
       No hay {{ activeType === 'bug' ? 'bugs' : activeType === 'suggestion' ? 'sugerencias' : 'entradas' }} en este estado.
     </div>
 
     <!-- Lista -->
     <ul v-else class="space-y-3">
-      <li v-for="s in suggestions" :key="s.id" class="bg-white rounded-2xl shadow-rv px-5 py-4">
+      <li v-for="s in suggestions" :key="s.id" class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv dark:shadow-none border border-gray-100 dark:border-white/10 px-5 py-4">
         <div class="flex items-start gap-4">
           <img v-if="s.user?.image" :src="s.user.image" class="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5" />
-          <div v-else class="w-9 h-9 rounded-full bg-rv-navy/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <i class="fa-solid fa-user text-rv-navy/50 text-sm"></i>
+          <div v-else class="w-9 h-9 rounded-full bg-rv-navy/10 dark:bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <i class="fa-solid fa-user text-rv-navy/50 dark:text-white/30 text-sm"></i>
           </div>
 
           <div class="flex-1 min-w-0">
@@ -75,31 +75,31 @@
               <span class="text-xs text-gray-400">· {{ formatDate(s.createdAt) }}</span>
             </div>
 
-            <p class="font-semibold text-gray-800">{{ s.title }}</p>
-            <p class="text-sm text-gray-500 mt-1 whitespace-pre-line">{{ s.description }}</p>
+            <p class="font-semibold text-gray-800 dark:text-gray-200">{{ s.title }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 whitespace-pre-line">{{ s.description }}</p>
 
             <p v-if="s.rejectionReason" class="text-xs text-red-400 mt-2 italic">
               <i class="fa-solid fa-circle-xmark mr-1"></i>{{ s.rejectionReason }}
             </p>
-            <p v-if="s.versionItem" class="text-xs text-green-600 mt-2">
+            <p v-if="s.versionItem" class="text-xs text-green-600 dark:text-green-400 mt-2">
               <i class="fa-solid fa-code-branch mr-1"></i>{{ s.versionItem.description }}
             </p>
 
             <div class="flex gap-2 mt-3 flex-wrap">
               <button v-if="s.status === 'in_progress'" @click="openDoneModal(s)"
-                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-100 text-green-700 hover:bg-green-200 transition-colors">
+                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors">
                 <i class="fa-solid fa-check mr-1"></i>Marcar como hecho
               </button>
               <button v-if="s.status === 'in_progress'" @click="openRejectModal(s)"
-                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors">
+                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors">
                 <i class="fa-solid fa-xmark mr-1"></i>Rechazar
               </button>
               <button v-if="s.status === 'rejected'" @click="handleProgress(s)"
-                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors">
+                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors">
                 <i class="fa-solid fa-rotate-left mr-1"></i>Volver a pendiente
               </button>
               <button @click="handleDelete(s)"
-                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-500 transition-colors">
+                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 dark:hover:text-red-400 transition-colors">
                 <i class="fa-solid fa-trash mr-1"></i>Eliminar
               </button>
             </div>
@@ -113,17 +113,17 @@
       <div v-if="createModal.show"
         class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
         @click.self="createModal.show = false">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 relative">
+        <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-xl w-full max-w-lg p-6 relative border border-gray-100 dark:border-white/10">
           <button @click="createModal.show = false"
-            class="absolute top-3 right-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center text-base font-bold">&times;</button>
-          <h3 class="text-lg font-bold mb-4">Nueva sugerencia / bug</h3>
+            class="absolute top-3 right-3 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-300 rounded-full w-8 h-8 flex items-center justify-center text-base font-bold">&times;</button>
+          <h3 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">Nueva sugerencia / bug</h3>
           <form @submit.prevent="handleCreate" class="space-y-4">
 
             <!-- Tipo -->
             <div class="flex gap-2">
               <button type="button" v-for="t in typeOptions" :key="t.value"
                 @click="createModal.form.type = t.value"
-                :class="createModal.form.type === t.value ? t.activeClass : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
+                :class="createModal.form.type === t.value ? t.activeClass : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/20'"
                 class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors">
                 <i :class="t.icon" class="mr-1"></i>{{ t.label }}
               </button>
@@ -133,28 +133,28 @@
             <div class="flex gap-2">
               <button type="button" v-for="p in priorityOptions" :key="p.value"
                 @click="createModal.form.priority = p.value"
-                :class="createModal.form.priority === p.value ? p.activeClass : 'bg-gray-100 text-gray-500 hover:bg-gray-200'"
+                :class="createModal.form.priority === p.value ? p.activeClass : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/20'"
                 class="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors">
                 {{ p.label }}
               </button>
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Título *</label>
+              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Título *</label>
               <input v-model="createModal.form.title" type="text" maxlength="200"
                 :placeholder="createModal.form.type === 'bug' ? 'Describe el problema...' : 'Describe tu sugerencia...'"
-                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+                class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Descripción *</label>
+              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Descripción *</label>
               <textarea v-model="createModal.form.description" rows="4"
                 :placeholder="createModal.form.type === 'bug' ? 'Explica el problema con detalle...' : 'Explica tu idea con detalle...'"
-                class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none"></textarea>
+                class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none"></textarea>
             </div>
 
             <button type="submit" :disabled="createModal.saving || !createModal.form.title.trim() || !createModal.form.description.trim()"
-              class="w-full bg-rv-navy text-white py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-40">
+              class="w-full bg-rv-navy dark:bg-rv-purple text-white py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-40">
               {{ createModal.saving ? 'Guardando...' : 'Crear' }}
             </button>
           </form>
@@ -167,14 +167,14 @@
       <div v-if="rejectModal.show"
         class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
         @click.self="rejectModal.show = false">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
+        <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-xl w-full max-w-md p-6 relative border border-gray-100 dark:border-white/10">
           <button @click="rejectModal.show = false"
-            class="absolute top-3 right-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center text-base font-bold">&times;</button>
-          <h3 class="text-lg font-bold mb-1">Rechazar</h3>
-          <p class="text-sm text-gray-500 mb-4">{{ rejectModal.suggestion?.title }}</p>
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Motivo *</label>
+            class="absolute top-3 right-3 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-300 rounded-full w-8 h-8 flex items-center justify-center text-base font-bold">&times;</button>
+          <h3 class="text-lg font-bold mb-1 text-gray-900 dark:text-white">Rechazar</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ rejectModal.suggestion?.title }}</p>
+          <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Motivo *</label>
           <textarea v-model="rejectModal.reason" rows="3" maxlength="500" placeholder="Explica por qué se rechaza..."
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none mb-4"></textarea>
+            class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none mb-4"></textarea>
           <button @click="handleReject" :disabled="rejectModal.saving || !rejectModal.reason.trim()"
             class="w-full bg-red-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-40">
             {{ rejectModal.saving ? 'Guardando...' : 'Rechazar' }}
@@ -188,15 +188,15 @@
       <div v-if="doneModal.show"
         class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
         @click.self="doneModal.show = false">
-        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 relative">
+        <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-xl w-full max-w-md p-6 relative border border-gray-100 dark:border-white/10">
           <button @click="doneModal.show = false"
-            class="absolute top-3 right-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center text-base font-bold">&times;</button>
-          <h3 class="text-lg font-bold mb-1">Marcar como hecho</h3>
-          <p class="text-sm text-gray-500 mb-4">{{ doneModal.suggestion?.title }}</p>
-          <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Vincular a item de versión *</label>
+            class="absolute top-3 right-3 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-300 rounded-full w-8 h-8 flex items-center justify-center text-base font-bold">&times;</button>
+          <h3 class="text-lg font-bold mb-1 text-gray-900 dark:text-white">Marcar como hecho</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ doneModal.suggestion?.title }}</p>
+          <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Vincular a item de versión *</label>
           <div v-if="doneModal.loadingItems" class="text-sm text-gray-400 py-4 text-center">Cargando items...</div>
           <select v-else v-model="doneModal.versionItemId"
-            class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink mb-4">
+            class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink mb-4">
             <option value="">Selecciona un item</option>
             <option v-for="item in doneModal.versionItems" :key="item.id" :value="item.id">
               [{{ item.type }}] {{ item.description }}
@@ -239,7 +239,7 @@ export default defineComponent({
     const activeStatus = ref('in_progress');
 
     const typeTabs = [
-      { value: 'all', label: 'Todas', icon: 'fa-solid fa-list', activeClass: 'bg-rv-navy text-white' },
+      { value: 'all', label: 'Todas', icon: 'fa-solid fa-list', activeClass: 'bg-rv-navy dark:bg-rv-purple text-white' },
       { value: 'bug', label: 'Bugs', icon: 'fa-solid fa-bug', activeClass: 'bg-red-500 text-white' },
       { value: 'suggestion', label: 'Sugerencias', icon: 'fa-solid fa-lightbulb', activeClass: 'bg-blue-500 text-white' },
     ];
@@ -276,9 +276,9 @@ export default defineComponent({
     const fetchAll = async () => {
       loading.value = true;
       try {
-        const params: { type?: SuggestionType; status?: SuggestionStatus } = {};
+        const params: any = {};
         if (activeType.value !== 'all') params.type = activeType.value;
-        if (activeStatus.value !== 'all') params.status = activeStatus.value as SuggestionStatus;
+        if (activeStatus.value !== 'all') params.status = activeStatus.value;
         suggestions.value = await getSuggestions(params);
       } finally {
         loading.value = false;
@@ -405,15 +405,23 @@ export default defineComponent({
 
     const typeLabel = (t: SuggestionType) => t === 'bug' ? 'Bug' : 'Sugerencia';
     const typeIcon = (t: SuggestionType) => t === 'bug' ? 'fa-solid fa-bug' : 'fa-solid fa-lightbulb';
-    const typeClass = (t: SuggestionType) => t === 'bug' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600';
+    const typeClass = (t: SuggestionType) => t === 'bug'
+      ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400';
 
     const priorityLabel = (p: SuggestionPriority) => ({ low: 'Baja', medium: 'Media', high: 'Alta' }[p]);
-    const priorityClass = (p: SuggestionPriority) =>
-      ({ low: 'bg-green-100 text-green-600', medium: 'bg-amber-100 text-amber-600', high: 'bg-red-100 text-red-600' }[p]);
+    const priorityClass = (p: SuggestionPriority) => ({
+      low: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+      medium: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+      high: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+    }[p]);
 
     const statusLabel = (s: string) => ({ in_progress: 'Pendiente', done: 'Hecho', rejected: 'Rechazado' }[s] ?? s);
-    const statusClass = (s: string) =>
-      ({ in_progress: 'bg-amber-100 text-amber-600', done: 'bg-green-100 text-green-600', rejected: 'bg-red-100 text-red-600' }[s] ?? '');
+    const statusClass = (s: string) => ({
+      in_progress: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+      done: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+      rejected: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+    }[s] ?? '');
 
     onMounted(fetchAll);
 

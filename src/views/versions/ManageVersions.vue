@@ -1,6 +1,6 @@
 <template>
-  <div class="p-6 space-y-6">
-    <h1 class="text-2xl md:text-3xl font-bold"><i class="fa-solid fa-code-branch mr-2"></i>Gestionar versiones</h1>
+  <div class="p-6 space-y-6 min-h-screen bg-white dark:bg-rv-darkBg dark:text-gray-200">
+    <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-code-branch mr-2"></i>Gestionar versiones</h1>
 
     <!-- Barra de acciones -->
     <div class="flex items-center gap-3">
@@ -11,39 +11,39 @@
     </div>
 
     <!-- Tabla responsiva de versiones (SOLO LECTURA) -->
-    <div class="overflow-x-auto w-full">
-      <table class="w-full border border-gray-300">
-        <thead class="bg-gray-200">
+    <div class="overflow-x-auto w-full rounded-lg dark:bg-rv-darkCard">
+      <table class="w-full border border-gray-300 dark:border-white/10">
+        <thead class="bg-gray-200 dark:bg-rv-darkSurface">
           <tr>
-            <th class="p-3 border text-left">Versión</th>
-            <th class="p-3 border text-left">Notas</th>
-            <th class="p-3 border text-left">Release</th>
-            <th class="p-3 border text-left">Estado</th>
-            <th class="p-3 border text-left">Publicada</th>
-            <th class="p-3 border text-left">Items</th>
-            <th class="p-3 border text-left">Acciones</th>
+            <th class="p-3 border dark:border-white/10 text-left dark:text-gray-300">Versión</th>
+            <th class="p-3 border dark:border-white/10 text-left dark:text-gray-300">Notas</th>
+            <th class="p-3 border dark:border-white/10 text-left dark:text-gray-300">Release</th>
+            <th class="p-3 border dark:border-white/10 text-left dark:text-gray-300">Estado</th>
+            <th class="p-3 border dark:border-white/10 text-left dark:text-gray-300">Publicada</th>
+            <th class="p-3 border dark:border-white/10 text-left dark:text-gray-300">Items</th>
+            <th class="p-3 border dark:border-white/10 text-left dark:text-gray-300">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="v in versions" :key="v.id" class="border hover:bg-gray-50">
+          <tr v-for="v in versions" :key="v.id" class="border dark:border-white/10 hover:bg-gray-50 dark:hover:bg-rv-darkSurface/50">
             <!-- Versión -->
-            <td class="p-3 border">
+            <td class="p-3 border dark:border-white/10">
               <div class="font-semibold">{{ v.version }}</div>
-              <div class="text-xs text-gray-500">ID: {{ v.id }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">ID: {{ v.id }}</div>
             </td>
 
             <!-- Notas -->
-            <td class="p-3 border">
+            <td class="p-3 border dark:border-white/10">
               <div class="text-sm">{{ v.notes || '—' }}</div>
             </td>
 
             <!-- Release Date -->
-            <td class="p-3 border">
+            <td class="p-3 border dark:border-white/10">
               <span class="text-sm">{{ v.releaseDate || '—' }}</span>
             </td>
 
             <!-- Estado -->
-            <td class="p-3 border">
+            <td class="p-3 border dark:border-white/10">
               <span class="inline-block px-3 py-1 rounded text-white text-sm font-semibold"
                 :class="v.status === 'en_desarrollo' ? 'bg-blue-500' : 'bg-green-600'">
                 {{ v.status === 'en_desarrollo' ? '🔧 Desarrollo' : '🚀 Producción' }}
@@ -51,14 +51,14 @@
             </td>
 
             <!-- Publicada -->
-            <td class="p-3 border">
-              <span class="text-sm text-gray-600">
+            <td class="p-3 border dark:border-white/10">
+              <span class="text-sm text-gray-600 dark:text-gray-400">
                 {{ v.publishedAt ? new Date(v.publishedAt).toLocaleString() : '—' }}
               </span>
             </td>
 
             <!-- Items -->
-            <td class="p-3 border">
+            <td class="p-3 border dark:border-white/10">
               <button @click="openItemsModal(v)"
                 class="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-800 text-sm">
                 Ver Items ({{ v.items.length }})
@@ -66,7 +66,7 @@
             </td>
 
             <!-- Acciones versión -->
-            <td class="p-3 border">
+            <td class="p-3 border dark:border-white/10">
               <div class="flex gap-2">
                 <!-- Versión en desarrollo -->
                 <template v-if="v.status === 'en_desarrollo'">
@@ -100,10 +100,10 @@
     <!-- Modal crear versión -->
     <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       @click.self="closeCreateModal">
-      <div class="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 transform transition-all">
+      <div class="bg-white dark:bg-rv-darkCard rounded-lg shadow-2xl max-w-md w-full p-6 transform transition-all">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-2xl font-bold text-gray-800">Nueva Versión</h3>
-          <button @click="closeCreateModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <h3 class="text-2xl font-bold text-gray-800 dark:text-white">Nueva Versión</h3>
+          <button @click="closeCreateModal" class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -112,27 +112,27 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Versión <span class="text-red-500">*</span>
             </label>
             <input v-model="createForm.version" placeholder="1.0.0"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+              class="w-full px-4 py-2 border border-gray-300 dark:border-white/20 rounded-lg bg-white dark:bg-rv-darkSurface text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
           </div>
 
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Fecha de Release <span class="text-red-500">*</span>
             </label>
             <input type="date" v-model="createForm.releaseDate"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+              class="w-full px-4 py-2 border border-gray-300 dark:border-white/20 rounded-lg bg-white dark:bg-rv-darkSurface text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
           </div>
 
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Notas <span class="text-gray-400 text-xs">(opcional)</span>
             </label>
             <textarea v-model="createForm.notes" placeholder="Describe los cambios de esta versión..." rows="4"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"></textarea>
+              class="w-full px-4 py-2 border border-gray-300 dark:border-white/20 rounded-lg bg-white dark:bg-rv-darkSurface text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"></textarea>
           </div>
         </div>
 
@@ -142,7 +142,7 @@
             ✓ Crear Versión
           </button>
           <button @click="closeCreateModal"
-            class="px-4 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-all">
+            class="px-4 py-3 bg-gray-200 dark:bg-rv-darkSurface text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-rv-darkSurface/70 transition-all">
             Cancelar
           </button>
         </div>
@@ -152,12 +152,12 @@
     <!-- Modal items -->
     <div v-if="showItemsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       @click.self="closeItemsModal">
-      <div class="bg-white rounded-lg shadow-2xl max-w-4xl w-full p-6 max-h-[90vh] flex flex-col">
+      <div class="bg-white dark:bg-rv-darkCard rounded-lg shadow-2xl max-w-4xl w-full p-6 max-h-[90vh] flex flex-col">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-2xl font-bold text-gray-800">
+          <h3 class="text-2xl font-bold text-gray-800 dark:text-white">
             Items de {{ selectedVersion?.version }}
           </h3>
-          <button @click="closeItemsModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <button @click="closeItemsModal" class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -165,48 +165,48 @@
         </div>
 
         <div class="overflow-auto flex-1">
-          <table class="w-full border border-gray-300">
-            <thead class="bg-gray-100 sticky top-0">
+          <table class="w-full border border-gray-300 dark:border-white/10">
+            <thead class="bg-gray-100 dark:bg-rv-darkSurface sticky top-0">
               <tr>
-                <th class="p-2 border text-left text-sm">Tipo</th>
-                <th class="p-2 border text-left text-sm">Descripción</th>
-                <th class="p-2 border text-left text-sm">Estado</th>
-                <th class="p-2 border text-left text-sm">Branch</th>
-                <th class="p-2 border text-left text-sm">Acciones</th>
+                <th class="p-2 border dark:border-white/10 text-left text-sm dark:text-gray-300">Tipo</th>
+                <th class="p-2 border dark:border-white/10 text-left text-sm dark:text-gray-300">Descripción</th>
+                <th class="p-2 border dark:border-white/10 text-left text-sm dark:text-gray-300">Estado</th>
+                <th class="p-2 border dark:border-white/10 text-left text-sm dark:text-gray-300">Branch</th>
+                <th class="p-2 border dark:border-white/10 text-left text-sm dark:text-gray-300">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="it in sortedItems" :key="it.id" class="hover:bg-gray-50">
+              <tr v-for="it in sortedItems" :key="it.id" class="hover:bg-gray-50 dark:hover:bg-rv-darkSurface/50">
                 <!-- Tipo -->
-                <td class="p-2 border">
+                <td class="p-2 border dark:border-white/10">
                   <select v-if="editingItem === it.id" v-model="editCache.type"
-                    class="w-full p-1 border rounded text-sm">
+                    class="w-full p-1 border dark:border-white/20 rounded text-sm bg-white dark:bg-rv-darkSurface dark:text-gray-200">
                     <option v-for="t in changeTypes" :key="t" :value="t">{{ t }}</option>
                   </select>
                   <span v-else class="text-sm font-mono">{{ it.type }}</span>
                 </td>
 
                 <!-- Descripción -->
-                <td class="p-2 border">
+                <td class="p-2 border dark:border-white/10">
                   <input v-if="editingItem === it.id" v-model="editCache.description"
-                    class="w-full p-1 border rounded text-sm" />
+                    class="w-full p-1 border dark:border-white/20 rounded text-sm bg-white dark:bg-rv-darkSurface dark:text-gray-200" />
                   <span v-else class="text-sm cursor-pointer hover:text-blue-600" @click="startEditItem(it)">
                     {{ it.description }}
                   </span>
                 </td>
 
                 <!-- Estado (solo lectura) -->
-                <td class="p-2 border">
-                  <span class="text-sm text-gray-600">{{ it.state }}</span>
+                <td class="p-2 border dark:border-white/10">
+                  <span class="text-sm text-gray-600 dark:text-gray-400">{{ it.state }}</span>
                 </td>
 
                 <!-- Branch (solo lectura) -->
-                <td class="p-2 border">
-                  <span class="text-sm font-mono text-gray-600">{{ (it as any).branch || '—' }}</span>
+                <td class="p-2 border dark:border-white/10">
+                  <span class="text-sm font-mono text-gray-600 dark:text-gray-400">{{ (it as any).branch || '—' }}</span>
                 </td>
 
                 <!-- Acciones -->
-                <td class="p-2 border">
+                <td class="p-2 border dark:border-white/10">
                   <div class="flex gap-2">
                     <button v-if="editingItem === it.id" @click="saveItemEdit(it)"
                       class="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-xs">
@@ -226,7 +226,7 @@
             </tbody>
           </table>
 
-          <div v-if="!selectedVersion?.items.length" class="text-center py-8 text-gray-500">
+          <div v-if="!selectedVersion?.items.length" class="text-center py-8 text-gray-500 dark:text-gray-400">
             No hay items en esta versión
           </div>
         </div>
@@ -238,8 +238,8 @@
       @click.self="closeEditNameModal">
       <div class="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-2xl font-bold text-gray-800">Editar Nombre de Versión</h3>
-          <button @click="closeEditNameModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <h3 class="text-2xl font-bold text-gray-800 dark:text-white">Editar Nombre de Versión</h3>
+          <button @click="closeEditNameModal" class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -248,11 +248,11 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Nombre de Versión <span class="text-red-500">*</span>
             </label>
             <input v-model="editNameForm.version" placeholder="1.0.0"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+              class="w-full px-4 py-2 border border-gray-300 dark:border-white/20 rounded-lg bg-white dark:bg-rv-darkSurface text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
           </div>
         </div>
 
@@ -262,7 +262,7 @@
             ✓ Guardar
           </button>
           <button @click="closeEditNameModal"
-            class="px-4 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-all">
+            class="px-4 py-3 bg-gray-200 dark:bg-rv-darkSurface text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-rv-darkSurface/70 transition-all">
             Cancelar
           </button>
         </div>
@@ -274,8 +274,8 @@
       @click.self="closeEditLinkModal">
       <div class="bg-white rounded-lg shadow-2xl max-w-md w-full p-6">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-2xl font-bold text-gray-800">Link de Telegram</h3>
-          <button @click="closeEditLinkModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+          <h3 class="text-2xl font-bold text-gray-800 dark:text-white">Link de Telegram</h3>
+          <button @click="closeEditLinkModal" class="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-white transition-colors">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -284,11 +284,11 @@
 
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               URL de Telegram
             </label>
             <input v-model="editLinkForm.link" placeholder="https://t.me/..."
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
+              class="w-full px-4 py-2 border border-gray-300 dark:border-white/20 rounded-lg bg-white dark:bg-rv-darkSurface text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" />
           </div>
         </div>
 
@@ -298,7 +298,7 @@
             ✓ Guardar
           </button>
           <button @click="closeEditLinkModal"
-            class="px-4 py-3 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition-all">
+            class="px-4 py-3 bg-gray-200 dark:bg-rv-darkSurface text-gray-700 dark:text-gray-300 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-rv-darkSurface/70 transition-all">
             Cancelar
           </button>
         </div>

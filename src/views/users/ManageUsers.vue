@@ -1,8 +1,8 @@
 <template>
-  <div class="view-container p-4 md:p-8">
+  <div class="view-container bg-white dark:bg-rv-darkBg p-4 md:p-8">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-      <h2 class="text-2xl font-bold text-rv-pink"><i class="fa-solid fa-user-gear mr-2"></i>Gestión de Usuarios</h2>
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-user-gear mr-2"></i>Gestión de Usuarios</h2>
       <button
         @click="openCreateModal"
         class="flex items-center justify-center gap-2 px-5 py-2.5 bg-rv-pink hover:bg-rv-purple text-white font-medium rounded-lg transition-colors"
@@ -19,7 +19,7 @@
       <div
         v-for="user in users"
         :key="user.id"
-        class="user-card"
+        class="user-card bg-white border border-gray-200 dark:bg-rv-darkCard dark:border-rv-purple/20"
       >
         <div class="flex flex-col lg:flex-row lg:items-center gap-4">
           <!-- Info principal -->
@@ -63,7 +63,7 @@
                     @change="toggleRole(user, role.value)"
                     class="w-4 h-4 rounded border-gray-600 bg-transparent text-rv-pink focus:ring-rv-pink focus:ring-offset-0"
                   />
-                  <span class="text-sm text-gray-300">{{ role.label }}</span>
+                  <span class="text-sm text-gray-700 dark:text-gray-300">{{ role.label }}</span>
                 </label>
               </div>
             </div>
@@ -81,7 +81,7 @@
           </div>
 
           <!-- Acciones -->
-          <div class="flex items-center gap-2 lg:ml-4 pt-3 lg:pt-0 border-t border-white/10 lg:border-0">
+          <div class="flex items-center gap-2 lg:ml-4 pt-3 lg:pt-0 border-t border-gray-200 dark:border-white/10 lg:border-0">
             <!-- Indicador baneado -->
             <span v-if="!user.isActive"
               class="text-xs font-bold px-2 py-1 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 whitespace-nowrap">
@@ -147,7 +147,7 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h3 class="text-xl font-bold text-white mb-6">Crear Nuevo Usuario</h3>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Crear Nuevo Usuario</h3>
           <form @submit.prevent="createUser" class="space-y-5">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -206,13 +206,13 @@
                       :value="role.value"
                       class="w-4 h-4 rounded border-gray-600 bg-transparent text-rv-pink focus:ring-rv-pink focus:ring-offset-0"
                     />
-                    <span class="text-sm text-gray-300">{{ role.label }}</span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ role.label }}</span>
                   </label>
                 </div>
               </div>
             </div>
 
-            <div class="flex justify-end gap-3 pt-4 border-t border-white/10">
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-white/10">
               <button type="button" @click="closeCreateModal" class="modal-btn-cancel">
                 Cancelar
               </button>
@@ -238,8 +238,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h3 class="text-xl font-bold text-white mb-1">Cambiar Contraseña</h3>
-          <p class="text-gray-400 mb-6">Usuario: <span class="text-rv-pink font-medium">{{ selectedUser?.username }}</span></p>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Cambiar Contraseña</h3>
+          <p class="text-gray-500 dark:text-gray-400 mb-6">Usuario: <span class="text-rv-pink font-medium">{{ selectedUser?.username }}</span></p>
 
           <form @submit.prevent="updatePassword">
             <div>
@@ -262,7 +262,7 @@
               </p>
             </div>
 
-            <div class="flex justify-end gap-3 pt-6 mt-6 border-t border-white/10">
+            <div class="flex justify-end gap-3 pt-6 mt-6 border-t border-gray-200 dark:border-white/10">
               <button type="button" @click="closePasswordModal" class="modal-btn-cancel">
                 Cancelar
               </button>
@@ -288,8 +288,8 @@
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h3 class="text-xl font-bold text-white mb-1">Notas</h3>
-          <p class="text-gray-400 mb-6">Usuario: <span class="text-rv-pink font-medium">{{ selectedUser?.username }}</span></p>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Notas</h3>
+          <p class="text-gray-500 dark:text-gray-400 mb-6">Usuario: <span class="text-rv-pink font-medium">{{ selectedUser?.username }}</span></p>
 
           <div>
             <textarea
@@ -300,7 +300,7 @@
             ></textarea>
           </div>
 
-          <div class="flex justify-end gap-3 pt-6 mt-4 border-t border-white/10">
+          <div class="flex justify-end gap-3 pt-6 mt-4 border-t border-gray-200 dark:border-white/10">
             <button type="button" @click="closeNotesModal" class="modal-btn-cancel">
               Cancelar
             </button>
@@ -639,13 +639,10 @@ export default defineComponent({
 
 <style scoped>
 .view-container {
-  background: #00021f;
   min-height: 100vh;
 }
 
 .user-card {
-  background: rgba(0, 2, 31, 0.6);
-  border: 1px solid rgba(176, 102, 159, 0.2);
   border-radius: 12px;
   padding: 1.25rem;
 }
@@ -653,10 +650,10 @@ export default defineComponent({
 .user-input {
   width: 100%;
   padding: 0.5rem 0.75rem;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(176, 102, 159, 0.3);
+  background: #fff;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
-  color: #fff;
+  color: #111827;
   transition: border-color 0.2s;
 }
 
@@ -666,10 +663,24 @@ export default defineComponent({
 }
 
 .user-input::placeholder {
+  color: #9ca3af;
+}
+
+:global(.dark) .user-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(176, 102, 159, 0.3);
+  color: #fff;
+}
+
+:global(.dark) .user-input::placeholder {
   color: #6b7280;
 }
 
 .date-input {
+  color-scheme: light;
+}
+
+:global(.dark) .date-input {
   color-scheme: dark;
 }
 
@@ -749,13 +760,18 @@ export default defineComponent({
 
 .modal-content {
   position: relative;
-  background: #00021f;
-  border: 1px solid rgba(176, 102, 159, 0.3);
+  background: #fff;
+  border: 1px solid #e5e7eb;
   border-radius: 16px;
   padding: 1.5rem;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+:global(.dark) .modal-content {
+  background: #00021f;
+  border: 1px solid rgba(176, 102, 159, 0.3);
 }
 
 .modal-sm {
@@ -785,10 +801,10 @@ export default defineComponent({
 .modal-input {
   width: 100%;
   padding: 0.625rem 1rem;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(176, 102, 159, 0.3);
+  background: #fff;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
-  color: #fff;
+  color: #111827;
   transition: border-color 0.2s;
 }
 
@@ -798,17 +814,31 @@ export default defineComponent({
 }
 
 .modal-input::placeholder {
+  color: #9ca3af;
+}
+
+:global(.dark) .modal-input {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(176, 102, 159, 0.3);
+  color: #fff;
+}
+
+:global(.dark) .modal-input::placeholder {
   color: #6b7280;
 }
 
 .modal-btn-cancel {
   padding: 0.5rem 1rem;
-  color: #e46e8a;
+  color: #374151;
   transition: opacity 0.2s;
 }
 
 .modal-btn-cancel:hover {
   opacity: 0.7;
+}
+
+:global(.dark) .modal-btn-cancel {
+  color: #e46e8a;
 }
 
 .modal-btn-primary {
