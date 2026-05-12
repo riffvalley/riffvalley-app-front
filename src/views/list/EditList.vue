@@ -1,6 +1,15 @@
 <template>
   <div class="p-4 md:p-6 bg-gray-100 dark:bg-rv-darkBg min-h-screen grid grid-cols-1 gap-6 items-start" v-if="!loading">
 
+    <!-- Botón volver -->
+    <div>
+      <button @click="router.push('/list/lists')"
+        class="px-4 py-2 bg-white dark:bg-rv-darkCard text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-rv-darkSurface border border-gray-200 dark:border-white/10 shadow-sm flex items-center gap-2 transition-colors">
+        <i class="fa-solid fa-arrow-left"></i>
+        Volver a Listas
+      </button>
+    </div>
+
     <!-- Formulario de edición -->
     <div class="bg-white dark:bg-rv-darkCard p-4 md:p-6 rounded-2xl shadow-md">
       <h3 class="text-lg font-bold mb-4 dark:text-white">Info de la Lista</h3>
@@ -132,6 +141,7 @@
 
 <script lang="ts">
 import { defineComponent, reactive, ref, onMounted, computed } from "vue";
+import { useRouter } from "vue-router";
 import { getListDetails, updateList } from "@services/list/list";
 import DiscsByDate from "./components/DiscByDate.vue";
 import AsignationList from "./components/AsignationList.vue";
@@ -188,6 +198,7 @@ export default defineComponent({
       link: "",
     });
 
+    const router = useRouter();
     const loading = ref(true);
     const showStatusInfo = ref(false);
     const asignationStore = useAsignationStore();
@@ -300,7 +311,7 @@ export default defineComponent({
     });
 
     return {
-      form, loading, submitForm, ListType, openLink,
+      router, form, loading, submitForm, ListType, openLink,
       nextStatus, prevStatus, canRevertStatus, canAdvanceStatus,
       readableStatus, statusClass, showStatusInfo, statusList, asignations,
     };

@@ -1,14 +1,14 @@
 <template>
-  <div class="p-6 max-w-5xl mx-auto">
+  <div class="p-4 md:p-6 max-w-5xl mx-auto min-h-screen dark:bg-rv-darkBg">
 
     <!-- Cabecera -->
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-3xl font-bold">Lanzamientos nacionales</h1>
-      <div class="flex items-center gap-3">
-        <span class="text-sm text-gray-400">{{ releases.length }} registros</span>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+      <h1 class="text-3xl font-bold dark:text-white">Lanzamientos Nacionales</h1>
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-sm text-gray-400 dark:text-gray-500">{{ releases.length }} registros</span>
         <button
           @click="openBulk"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors bg-white text-gray-600 border border-gray-200 hover:border-rv-pink hover:text-rv-pink"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors bg-white dark:bg-rv-darkCard text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-white/20 hover:border-rv-pink hover:text-rv-pink"
         >
           <i class="fas fa-upload text-xs"></i>
           Carga masiva
@@ -16,7 +16,9 @@
         <button
           v-if="releases.length > 0"
           @click="copyFormatted"
-          :class="copied ? 'bg-green-500 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:border-rv-blue hover:text-rv-blue'"
+          :class="copied
+            ? 'bg-green-500 text-white'
+            : 'bg-white dark:bg-rv-darkCard text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-white/20 hover:border-rv-blue hover:text-rv-blue'"
           class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-medium transition-colors"
         >
           <i :class="copied ? 'fas fa-check' : 'fas fa-copy'" class="text-xs"></i>
@@ -27,12 +29,12 @@
 
     <!-- Meses pendientes -->
     <div v-if="pendingMonths.length > 0" class="flex flex-wrap gap-2 mb-4">
-      <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide self-center">Pendientes:</span>
+      <span class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wide self-center">Pendientes:</span>
       <button
         v-for="m in pendingMonths"
         :key="m"
         @click="openPendingModal(m)"
-        class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors"
+        class="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
       >
         <i class="fas fa-clock text-[10px]"></i>
         {{ MONTHS.find(mo => mo.value === m)?.label }}
@@ -42,22 +44,22 @@
     <!-- Filtros -->
     <div class="flex flex-wrap gap-3 mb-6">
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Mes</label>
+        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Mes</label>
         <select
           v-model="filters.month"
           @change="fetchReleases"
-          class="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-rv-blue"
+          class="border border-gray-200 dark:border-white/20 dark:bg-rv-darkCard dark:text-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-rv-blue"
         >
           <option :value="undefined">Todos</option>
           <option v-for="m in MONTHS" :key="m.value" :value="m.value">{{ m.label }}</option>
         </select>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Año</label>
+        <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Año</label>
         <select
           v-model="filters.year"
           @change="fetchReleases"
-          class="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-rv-blue"
+          class="border border-gray-200 dark:border-white/20 dark:bg-rv-darkCard dark:text-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-rv-blue"
         >
           <option :value="undefined">Todos</option>
           <option v-for="y in YEARS" :key="y" :value="y">{{ y }}</option>
@@ -70,79 +72,79 @@
 
     <!-- Vacío -->
     <div v-else-if="releases.length === 0"
-      class="text-center py-12 text-gray-400 bg-white rounded-2xl shadow-rv">
-      <i class="fas fa-inbox text-3xl mb-3 block text-gray-300"></i>
+      class="text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv dark:shadow-none dark:border dark:border-white/10">
+      <i class="fas fa-inbox text-3xl mb-3 block text-gray-300 dark:text-gray-600"></i>
       No hay lanzamientos para los filtros seleccionados.
     </div>
 
     <!-- Secciones por día -->
     <div v-else class="space-y-5">
       <div v-for="group in byDay" :key="group.day">
-        <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ group.label }}</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">{{ group.label }}</p>
         <ul class="space-y-1.5">
           <li
             v-for="release in group.releases"
             :key="release.id"
-            class="bg-white rounded-xl shadow-rv px-4 py-2.5 flex items-center gap-3"
+            class="bg-white dark:bg-rv-darkCard rounded-xl shadow-rv dark:shadow-none dark:border dark:border-white/10 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"
           >
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
-                  <span class="text-gray-400 font-normal">[{{ release.genre }}]</span>
-                  <span class="truncate">{{ release.artistName }} — {{ release.discName }}</span>
-                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" :class="discTypeClass(release.discType)">
-                    {{ discTypeLabel(release.discType) }}
-                  </span>
-                </p>
-                <div class="flex items-center gap-3 mt-0.5">
-                  <span class="text-xs text-gray-400"><i class="far fa-calendar mr-1"></i>{{ formatDate(release.releaseDay) }}</span>
-                  <span v-if="release.publishAt" class="text-xs text-yellow-600 font-medium">
-                    <i class="fas fa-clock mr-1"></i>Publica el {{ formatDate(release.publishAt) }}
-                  </span>
-                </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2 flex-wrap">
+                <span class="text-gray-400 dark:text-gray-500 font-normal">[{{ release.genre }}]</span>
+                <span class="truncate">{{ release.artistName }} — {{ release.discName }}</span>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" :class="discTypeClass(release.discType)">
+                  {{ discTypeLabel(release.discType) }}
+                </span>
+              </p>
+              <div class="flex items-center gap-3 mt-0.5">
+                <span class="text-xs text-gray-400 dark:text-gray-500"><i class="far fa-calendar mr-1"></i>{{ formatDate(release.releaseDay) }}</span>
+                <span v-if="release.publishAt" class="text-xs text-yellow-600 dark:text-yellow-500 font-medium">
+                  <i class="fas fa-clock mr-1"></i>Publica el {{ formatDate(release.publishAt) }}
+                </span>
               </div>
-              <div class="flex items-center gap-2 flex-shrink-0">
-                <!-- Enlace -->
-                <a v-if="release.link" :href="release.link" target="_blank" :title="release.link"
-                  class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
-                  :class="linkClass(release.link)">
-                  <i :class="linkIcon(release.link)" class="text-sm"></i>
-                </a>
-                <!-- Vincular disco (solo album/ep) -->
-                <button
-                  v-if="release.discType !== 'single'"
-                  @click="openLinkDisc(release)"
-                  :title="release.disc ? 'Disco vinculado — click para cambiar' : (release.suggestedDisc ? 'Hay una sugerencia disponible' : 'Vincular disco')"
-                  :class="release.disc
-                    ? 'bg-green-50 text-green-600 hover:bg-green-100'
-                    : release.suggestedDisc
-                      ? 'bg-amber-50 text-amber-500 hover:bg-amber-100'
-                      : 'bg-gray-50 text-gray-400 hover:bg-gray-100'"
-                  class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
-                >
-                  <i class="fas fa-link text-xs"></i>
-                </button>
-                <!-- Toggle aprobado -->
-                <button
-                  @click="toggleApproved(release)"
-                  :title="release.approved ? 'Aprobado — click para desaprobar' : 'No aprobado — click para aprobar'"
-                  :class="release.approved
-                    ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                    : 'bg-gray-100 text-gray-400 hover:bg-gray-200'"
-                  class="flex items-center gap-1.5 px-2.5 h-7 rounded-full text-xs font-semibold transition-colors"
-                >
-                  <i :class="release.approved ? 'fas fa-check-circle' : 'fas fa-circle'" class="text-xs"></i>
-                  {{ release.approved ? 'Aprobado' : 'Pendiente' }}
-                </button>
-                <button @click="openEdit(release)" title="Editar"
-                  class="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors">
-                  <i class="fas fa-pen text-xs"></i>
-                </button>
-                <button @click="handleDelete(release)" title="Eliminar"
-                  class="w-7 h-7 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
-                  <i class="fas fa-trash text-xs"></i>
-                </button>
-              </div>
-            </li>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap sm:flex-nowrap sm:flex-shrink-0">
+              <!-- Enlace -->
+              <a v-if="release.link" :href="release.link" target="_blank" :title="release.link"
+                class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+                :class="linkClass(release.link)">
+                <i :class="linkIcon(release.link)" class="text-sm"></i>
+              </a>
+              <!-- Vincular disco (solo album/ep) -->
+              <button
+                v-if="release.discType !== 'single'"
+                @click="openLinkDisc(release)"
+                :title="release.disc ? 'Disco vinculado — click para cambiar' : (release.suggestedDisc ? 'Hay una sugerencia disponible' : 'Vincular disco')"
+                :class="release.disc
+                  ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40'
+                  : release.suggestedDisc
+                    ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-500 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40'
+                    : 'bg-gray-50 dark:bg-rv-darkSurface text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-rv-darkBg'"
+                class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
+              >
+                <i class="fas fa-link text-xs"></i>
+              </button>
+              <!-- Toggle aprobado -->
+              <button
+                @click="toggleApproved(release)"
+                :title="release.approved ? 'Aprobado — click para desaprobar' : 'No aprobado — click para aprobar'"
+                :class="release.approved
+                  ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/40'
+                  : 'bg-gray-100 dark:bg-rv-darkSurface text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-rv-darkBg'"
+                class="flex items-center gap-1.5 px-2.5 h-7 rounded-full text-xs font-semibold transition-colors"
+              >
+                <i :class="release.approved ? 'fas fa-check-circle' : 'fas fa-circle'" class="text-xs"></i>
+                {{ release.approved ? 'Aprobado' : 'Pendiente' }}
+              </button>
+              <button @click="openEdit(release)" title="Editar"
+                class="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
+                <i class="fas fa-pen text-xs"></i>
+              </button>
+              <button @click="handleDelete(release)" title="Eliminar"
+                class="w-7 h-7 flex items-center justify-center rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
+                <i class="fas fa-trash text-xs"></i>
+              </button>
+            </div>
+          </li>
         </ul>
       </div>
     </div>
@@ -153,25 +155,25 @@
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="editingRelease = null"
     >
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
-        <h2 class="text-xl font-bold mb-5">Editar lanzamiento</h2>
+      <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-xl w-full max-w-lg p-6">
+        <h2 class="text-xl font-bold mb-5 dark:text-white">Editar lanzamiento</h2>
         <div class="space-y-4">
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Artista</label>
+              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Artista</label>
               <input v-model="editForm.artistName" type="text"
-                class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+                class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Disco</label>
+              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Disco</label>
               <input v-model="editForm.discName" type="text"
-                class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+                class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
             </div>
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tipo</label>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Tipo</label>
             <div class="flex gap-2">
               <button
                 v-for="type in DISC_TYPES"
@@ -180,7 +182,7 @@
                 @click="editForm.discType = type.value"
                 :class="editForm.discType === type.value
                   ? 'bg-rv-navy text-white border-rv-navy'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-rv-navy'"
+                  : 'bg-white dark:bg-rv-darkSurface text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/20 hover:border-rv-navy dark:hover:border-white/40'"
                 class="flex-1 py-2 rounded-xl border text-sm font-medium transition-colors"
               >
                 {{ type.label }}
@@ -189,30 +191,30 @@
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Género</label>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Género</label>
             <input v-model="editForm.genre" type="text"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+              class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Fecha de lanzamiento</label>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Fecha de lanzamiento</label>
             <input v-model="editForm.releaseDay" type="date" min="2026-01-01"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+              class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink dark:[color-scheme:dark]" />
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
               Fecha en la que lo podemos publicar
             </label>
-            <p class="text-xs text-gray-400 mb-2">Dejalo en blanco si es posible publicarlo ya.</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mb-2">Dejalo en blanco si es posible publicarlo ya.</p>
             <input v-model="editForm.publishAt" type="date"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+              class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink dark:[color-scheme:dark]" />
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Enlace</label>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Enlace</label>
             <input v-model="editForm.link" type="url" placeholder="https://..."
-              class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
+              class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink" />
           </div>
 
         </div>
@@ -220,7 +222,7 @@
         <div class="flex justify-end gap-2 mt-6">
           <button
             @click="editingRelease = null"
-            class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 transition-colors"
+            class="px-4 py-2 rounded-xl text-sm font-medium bg-white dark:bg-transparent text-gray-700 dark:text-gray-400 border border-gray-300 dark:border-white/20 hover:bg-gray-50 dark:hover:bg-rv-darkSurface transition-colors"
           >
             Cancelar
           </button>
@@ -242,45 +244,45 @@
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="pendingModal.show = false"
     >
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 flex flex-col max-h-[80vh]">
+      <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-xl w-full max-w-2xl p-6 flex flex-col max-h-[80vh]">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-bold">
+          <h2 class="text-lg font-bold dark:text-white">
             Pendientes — {{ MONTHS.find(m => m.value === pendingModal.month)?.label }}
           </h2>
-          <button @click="pendingModal.show = false" class="text-gray-400 hover:text-gray-600">
+          <button @click="pendingModal.show = false" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
             <i class="fas fa-xmark"></i>
           </button>
         </div>
 
         <div v-if="pendingModal.loading" class="text-center py-8 text-gray-400">Cargando...</div>
-        <div v-else-if="pendingModal.releases.length === 0" class="text-center py-8 text-gray-400">
+        <div v-else-if="pendingModal.releases.length === 0" class="text-center py-8 text-gray-400 dark:text-gray-500">
           No hay lanzamientos pendientes.
         </div>
         <div v-else class="space-y-5 overflow-y-auto flex-1">
           <div v-for="group in pendingByDay" :key="group.day">
-            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{{ group.label }}</p>
+            <p class="text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-2">{{ group.label }}</p>
             <ul class="space-y-1.5">
               <li
                 v-for="release in group.releases"
                 :key="release.id"
-                class="bg-white rounded-xl shadow-rv px-4 py-2.5 flex items-center gap-3"
+                class="bg-white dark:bg-rv-darkSurface rounded-xl shadow-rv dark:shadow-none dark:border dark:border-white/10 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3"
               >
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-semibold text-gray-800 flex items-center gap-2 flex-wrap">
-                    <span class="text-gray-400 font-normal">[{{ release.genre }}]</span>
+                  <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2 flex-wrap">
+                    <span class="text-gray-400 dark:text-gray-500 font-normal">[{{ release.genre }}]</span>
                     <span class="truncate">{{ release.artistName }} — {{ release.discName }}</span>
                     <span class="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0" :class="discTypeClass(release.discType)">
                       {{ discTypeLabel(release.discType) }}
                     </span>
                   </p>
                   <div class="flex items-center gap-3 mt-0.5">
-                    <span class="text-xs text-gray-400"><i class="far fa-calendar mr-1"></i>{{ formatDate(release.releaseDay) }}</span>
-                    <span v-if="release.publishAt" class="text-xs text-yellow-600 font-medium">
+                    <span class="text-xs text-gray-400 dark:text-gray-500"><i class="far fa-calendar mr-1"></i>{{ formatDate(release.releaseDay) }}</span>
+                    <span v-if="release.publishAt" class="text-xs text-yellow-600 dark:text-yellow-500 font-medium">
                       <i class="fas fa-clock mr-1"></i>Publica el {{ formatDate(release.publishAt) }}
                     </span>
                   </div>
                 </div>
-                <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="flex items-center gap-1.5 flex-wrap sm:flex-nowrap sm:flex-shrink-0">
                   <a v-if="release.link" :href="release.link" target="_blank" :title="release.link"
                     class="w-7 h-7 flex items-center justify-center rounded-full transition-colors"
                     :class="linkClass(release.link)">
@@ -289,18 +291,20 @@
                   <button
                     @click="toggleApproved(release)"
                     :title="release.approved ? 'Aprobado — click para desaprobar' : 'No aprobado — click para aprobar'"
-                    :class="release.approved ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'"
+                    :class="release.approved
+                      ? 'bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/40'
+                      : 'bg-gray-100 dark:bg-rv-darkCard text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-rv-darkBg'"
                     class="flex items-center gap-1.5 px-2.5 h-7 rounded-full text-xs font-semibold transition-colors"
                   >
                     <i :class="release.approved ? 'fas fa-check-circle' : 'fas fa-circle'" class="text-xs"></i>
                     {{ release.approved ? 'Aprobado' : 'Pendiente' }}
                   </button>
                   <button @click="openEdit(release)" title="Editar"
-                    class="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors">
+                    class="w-7 h-7 flex items-center justify-center rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors">
                     <i class="fas fa-pen text-xs"></i>
                   </button>
                   <button @click="handleDelete(release)" title="Eliminar"
-                    class="w-7 h-7 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition-colors">
+                    class="w-7 h-7 flex items-center justify-center rounded-full bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors">
                     <i class="fas fa-trash text-xs"></i>
                   </button>
                 </div>
@@ -317,29 +321,29 @@
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="showBulk = false"
     >
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 flex flex-col max-h-[90vh]">
+      <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-xl w-full max-w-2xl p-6 flex flex-col max-h-[90vh]">
         <div class="flex items-center justify-between mb-3">
-          <h2 class="text-lg font-bold">Carga masiva</h2>
-          <button @click="showBulk = false" class="text-gray-400 hover:text-gray-600">
+          <h2 class="text-lg font-bold dark:text-white">Carga masiva</h2>
+          <button @click="showBulk = false" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
             <i class="fas fa-xmark"></i>
           </button>
         </div>
 
-        <p class="text-xs text-gray-400 mb-2 font-mono bg-gray-50 rounded-lg px-3 py-2 leading-relaxed">
+        <p class="text-xs text-gray-400 dark:text-gray-500 mb-2 font-mono bg-gray-50 dark:bg-rv-darkSurface rounded-lg px-3 py-2 leading-relaxed">
           Fecha [género] banda - título (single/ep/disco) enlace<br/>
-          <span class="text-gray-300">Ej: 2026-03-10 [Rock nacional] Babasónicos - Tema A (single) https://...</span>
+          <span class="text-gray-300 dark:text-gray-600">Ej: 2026-03-10 [Rock nacional] Babasónicos - Tema A (single) https://...</span>
         </p>
 
         <textarea
           v-model="bulkText"
           rows="12"
           placeholder="2026-03-10 [Rock nacional] Babasónicos - Tema A (single)&#10;2026-03-15 [Metal] Metallica - Black Album (disco) https://spotify.com/..."
-          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none flex-1"
+          class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none flex-1"
           spellcheck="false"
         ></textarea>
 
         <!-- Preview parseado -->
-        <div v-if="bulkParsed.length > 0" class="mt-2 text-xs text-gray-500 flex items-center gap-1.5">
+        <div v-if="bulkParsed.length > 0" class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
           <i class="fas fa-check-circle text-green-500"></i>
           {{ bulkParsed.length }} línea{{ bulkParsed.length !== 1 ? 's' : '' }} válida{{ bulkParsed.length !== 1 ? 's' : '' }}
           <span v-if="bulkParseErrors.length > 0" class="text-yellow-500 ml-2">
@@ -350,10 +354,10 @@
           <li v-for="e in bulkParseErrors" :key="e" class="text-xs text-red-400 font-mono">{{ e }}</li>
         </ul>
 
-        <div class="mt-3 flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+        <div class="mt-3 flex items-center justify-end gap-2 pt-3 border-t border-gray-100 dark:border-white/10">
           <p v-if="bulkError" class="text-red-500 text-xs flex-1">{{ bulkError }}</p>
           <button @click="showBulk = false"
-            class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 transition-colors">
+            class="px-4 py-2 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-rv-darkSurface transition-colors">
             Cancelar
           </button>
           <button @click="handleBulkSubmit" :disabled="bulkSaving || bulkParsed.length === 0"
@@ -582,9 +586,7 @@ export default defineComponent({
     };
 
     function parseDate(raw: string): string | null {
-      // YYYY-MM-DD
       if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-      // "D de mes" o "DD de mes"
       const m = raw.match(/^(\d{1,2})\s+de\s+(\w+)$/i);
       if (m) {
         const month = MONTH_MAP[m[2].toLowerCase()];
@@ -706,10 +708,10 @@ export default defineComponent({
     };
 
     const linkClass = (url: string) => {
-      if (url.includes('spotify.com')) return 'bg-green-50 text-[#1DB954] hover:bg-green-100';
-      if (url.includes('youtube.com') || url.includes('youtu.be')) return 'bg-red-50 text-red-500 hover:bg-red-100';
-      if (url.includes('bandcamp.com')) return 'bg-sky-50 text-sky-500 hover:bg-sky-100';
-      return 'bg-gray-50 text-gray-500 hover:bg-gray-100';
+      if (url.includes('spotify.com')) return 'bg-green-50 dark:bg-green-900/20 text-[#1DB954] hover:bg-green-100 dark:hover:bg-green-900/40';
+      if (url.includes('youtube.com') || url.includes('youtu.be')) return 'bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40';
+      if (url.includes('bandcamp.com')) return 'bg-sky-50 dark:bg-sky-900/20 text-sky-500 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-900/40';
+      return 'bg-gray-50 dark:bg-rv-darkSurface text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-rv-darkBg';
     };
 
     const discTypeLabel = (type: DiscType) =>
@@ -717,9 +719,9 @@ export default defineComponent({
 
     const discTypeClass = (type: DiscType) =>
       ({
-        single: 'bg-blue-100 text-blue-700',
-        ep: 'bg-purple-100 text-purple-700',
-        album: 'bg-green-100 text-green-700',
+        single: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+        ep: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+        album: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
       })[type];
 
     onMounted(() => {
