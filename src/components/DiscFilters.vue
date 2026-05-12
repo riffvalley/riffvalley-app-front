@@ -119,7 +119,7 @@
 
 
 <script lang="ts">
-import { defineComponent, ref, watch, computed } from "vue";
+import { defineComponent, ref, watch, computed, onMounted, onUnmounted } from "vue";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import SimpleSelect from '@components/SimpleSelect.vue';
 import { MONTHS, getAvailableYears } from '@helpers/dateConstants';
@@ -160,7 +160,16 @@ export default defineComponent({
     const today = new Date();
     // Por defecto: AÑO COMPLETO (weeksMonth = 0)
     const weeksMonth = ref<number>(0);
-    const weeksYear = ref<number>(new Date().getFullYear()); // 2025 ahora
+    const defaultYear = localStorage.getItem('rv_default_year_filter') === 'all' ? 0 : new Date().getFullYear();
+    const weeksYear = ref<number>(defaultYear);
+
+    const handleYearFilterChanged = (e: Event) => {
+      const val = (e as CustomEvent).detail;
+      weeksYear.value = val === 'all' ? 0 : new Date().getFullYear();
+      weeksMonth.value = 0;
+    };
+    onMounted(() => window.addEventListener('rv-year-filter-changed', handleYearFilterChanged));
+    onUnmounted(() => window.removeEventListener('rv-year-filter-changed', handleYearFilterChanged));
 
     const monthNames = MONTHS;
     const availableYears = getAvailableYears();

@@ -168,6 +168,48 @@
         </p>
       </section>
 
+      <!-- Vista por defecto en Discos -->
+      <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
+        <div class="text-center mb-5">
+          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
+            Vista por defecto en Discos
+          </span>
+        </div>
+
+        <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
+          Elige qué discos se muestran al abrir la sección <strong class="text-gray-700 dark:text-gray-200">Discos</strong>.
+          Puedes cambiarlo manualmente en cualquier momento desde el propio filtro de año.
+        </p>
+
+        <!-- Selector pill -->
+        <div class="flex rounded-full bg-gray-200 dark:bg-rv-darkSurface p-1 border border-gray-100 dark:border-white/10 gap-1">
+          <button type="button" @click="setDefaultYearFilter('current')"
+            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            :class="defaultYearFilter === 'current'
+              ? 'bg-rv-navy text-white shadow'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
+            Año actual <span v-if="defaultYearFilter === 'current'" class="text-[10px] text-rv-pink ml-1">✓</span>
+          </button>
+          <button type="button" @click="setDefaultYearFilter('all')"
+            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            :class="defaultYearFilter === 'all'
+              ? 'bg-rv-navy text-white shadow'
+              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
+            Todos los años <span v-if="defaultYearFilter === 'all'" class="text-[10px] text-rv-pink ml-1">✓</span>
+          </button>
+        </div>
+
+        <!-- Descripción dinámica -->
+        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+          <template v-if="defaultYearFilter === 'current'">
+            Al entrar en Discos, el filtro mostrará solo los lanzamientos de <strong>{{ currentYear }}</strong>. Ideal para seguir las novedades sin distracciones.
+          </template>
+          <template v-else>
+            Al entrar en Discos, el filtro estará en "Todos los años" y verás todo el catálogo completo desde el principio.
+          </template>
+        </p>
+      </section>
+
       </div><!-- /columna derecha -->
 
     </div>
@@ -175,7 +217,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import SwalService from "@services/swal/SwalService";
 import { useUserStore } from "@stores/user/users";
 import { useAuthStore } from "@stores/auth/auth";
@@ -189,6 +231,17 @@ export default {
     const ready = ref(false);
     const password = ref("");
     const confirmPassword = ref("");
+
+    // --- Vista por defecto en Discos ---
+    const currentYear = new Date().getFullYear();
+    const defaultYearFilter = ref(
+      localStorage.getItem('rv_default_year_filter') === 'all' ? 'all' : 'current'
+    );
+    const setDefaultYearFilter = (val) => {
+      defaultYearFilter.value = val;
+      localStorage.setItem('rv_default_year_filter', val);
+      window.dispatchEvent(new CustomEvent('rv-year-filter-changed', { detail: val }));
+    };
 
     // --- No Spoilers ---
     const noSpoilers = ref(localStorage.getItem('rv_no_spoilers') === 'true');
@@ -299,6 +352,7 @@ export default {
       openCategory, toggleCategory,
       avatars, selectedAvatar, selectAvatar, saveAvatar,
       noSpoilers, toggleNoSpoilers,
+      defaultYearFilter, currentYear, setDefaultYearFilter,
     };
   },
 };
