@@ -1,6 +1,9 @@
 <template>
   <div>
-    <div v-if="loading" class="text-center text-gray-400 py-6">Cargando novedades...</div>
+    <div v-if="loading" class="flex flex-col items-center justify-center gap-2 py-8 text-gray-400">
+      <i class="fa-solid fa-spinner animate-spin text-2xl text-rv-pink"></i>
+      <span class="text-sm">Cargando noticias...</span>
+    </div>
 
     <div v-else-if="posts.length === 0" class="text-center text-gray-400 py-6">No hay novedades disponibles</div>
 
