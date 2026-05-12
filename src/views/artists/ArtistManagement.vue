@@ -15,6 +15,18 @@
           <i class="fa-solid fa-broom mr-1.5"></i>
           {{ deletingOrphans ? 'Limpiando...' : `Limpiar huérfanos (${orphanCount})` }}
         </button>
+
+        <button
+          v-if="isManager"
+          @click="fillAllImages"
+          :disabled="fillingImages"
+          class="text-xs font-semibold px-3 py-1.5 rounded-xl border border-green-300 text-green-600 bg-white hover:bg-green-50 transition-colors disabled:opacity-40"
+          title="Buscar y rellenar imágenes de artistas sin foto desde Spotify"
+        >
+          <i class="fa-brands fa-spotify mr-1.5"></i>
+          <span v-if="fillingImages">{{ fillProgress }} / {{ fillTotal }}</span>
+          <span v-else>Rellenar imágenes</span>
+        </button>
       </div>
     </div>
 
@@ -363,13 +375,13 @@ class="flex items-center gap-2 sm:gap-3 text-sm text-gray-700 dark:text-gray-200
 
           <!-- Stats -->
           <div v-if="lastFmModalData?.stats" class="flex gap-3">
-            <div class="flex-1 bg-gray-50 rounded-xl p-3 text-center">
+            <div class="flex-1 bg-gray-50 dark:bg-white/10 rounded-xl p-3 text-center">
               <p class="text-lg font-bold text-rv-navy dark:text-white">{{ Number(lastFmModalData.stats.listeners).toLocaleString('es-ES') }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-400 uppercase tracking-wide">Oyentes</p>
+              <p class="text-xs text-gray-400 dark:text-gray-300 uppercase tracking-wide">Oyentes</p>
             </div>
-            <div class="flex-1 bg-gray-50 rounded-xl p-3 text-center">
+            <div class="flex-1 bg-gray-50 dark:bg-white/10 rounded-xl p-3 text-center">
               <p class="text-lg font-bold text-rv-navy dark:text-white">{{ Number(lastFmModalData.stats.playcount).toLocaleString('es-ES') }}</p>
-              <p class="text-xs text-gray-400 dark:text-gray-400 uppercase tracking-wide">Reproducciones</p>
+              <p class="text-xs text-gray-400 dark:text-gray-300 uppercase tracking-wide">Reproducciones</p>
             </div>
           </div>
 
@@ -600,6 +612,9 @@ export default defineComponent({
     const isManager = authStore.hasRole?.('riffValley') || authStore.hasRole?.('superUser')
       || (authStore.roles || '').includes('riffValley') || (authStore.roles || '').includes('superUser');
     const deletingOrphans = ref(false);
+    const fillingImages = ref(false);
+    const fillProgress = ref(0);
+    const fillTotal = ref(0);
     let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
     const editModal = reactive({
@@ -829,6 +844,87 @@ export default defineComponent({
       }
     };
 
+    const fillAllImages = async () => {
+      const confirm = await Swal.fire({
+        title: '¿Rellenar imágenes automáticamente?',
+        text: 'Se buscarán en Spotify imágenes para todos los artistas sin foto. Puede tardar varios minutos.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#22c55e',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sí, rellenar',
+        cancelButtonText: 'Cancelar',
+      });
+      if (!confirm.isConfirmed) return;
+
+      fillingImages.value = true;
+      fillProgress.value = 0;
+      fillTotal.value = 0;
+
+      try {
+        // Recopilar todos los artistas sin imagen paginando
+        const toFill: ArtistManagementItem[] = [];
+        let batchOffset = 0;
+        const batchLimit = 200;
+        let more = true;
+
+        while (more) {
+          const res = await getArtistsManagement({ limit: batchLimit, offset: batchOffset });
+          res.data.forEach((a: ArtistManagementItem) => { if (!a.image) toFill.push(a); });
+          batchOffset += batchLimit;
+          more = batchOffset < res.totalItems;
+        }
+
+        fillTotal.value = toFill.length;
+
+        if (toFill.length === 0) {
+          Swal.fire({ icon: 'info', title: 'Todos los artistas ya tienen imagen', timer: 2500, showConfirmButton: false, toast: true, position: 'top-end' });
+          return;
+        }
+
+        const token = await obtenerTokenSpotify();
+        if (!token) throw new Error('No se pudo obtener el token de Spotify');
+
+        let updated = 0;
+
+        for (const artist of toFill) {
+          try {
+            const res = await axios.get('https://api.spotify.com/v1/search', {
+              headers: { Authorization: `Bearer ${token}` },
+              params: { q: artist.name, type: 'artist', limit: 1 },
+            });
+            const first = res.data.artists?.items?.find((a: any) => a.images?.length > 0);
+            if (first) {
+              const img640 = first.images.find((img: any) => img.width === 640);
+              const imageUrl = (img640 ?? first.images[0]).url;
+              await updateArtist(artist.id, { image: imageUrl });
+              const localArtist = artists.value.find(a => a.id === artist.id);
+              if (localArtist) localArtist.image = imageUrl;
+              updated++;
+            }
+          } catch { /* ignorar errores individuales */ }
+          fillProgress.value++;
+          await new Promise(r => setTimeout(r, 150));
+        }
+
+        Swal.fire({
+          icon: 'success',
+          title: `${updated} imágenes añadidas`,
+          text: `Se procesaron ${toFill.length} artistas sin foto.`,
+          timer: 4000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end',
+        });
+      } catch {
+        Swal.fire({ icon: 'error', title: 'Error al rellenar imágenes', timer: 3000, showConfirmButton: false, toast: true, position: 'top-end' });
+      } finally {
+        fillingImages.value = false;
+        fillProgress.value = 0;
+        fillTotal.value = 0;
+      }
+    };
+
     const formatDate = (date: string) =>
       new Date(date).toLocaleDateString("es-ES", { year: "numeric", month: "short", day: "numeric" });
 
@@ -945,6 +1041,10 @@ export default defineComponent({
       orphanCount,
       deletingOrphans,
       deleteOrphans,
+      fillingImages,
+      fillProgress,
+      fillTotal,
+      fillAllImages,
       editModal,
       onQueryInput,
       goToPage,

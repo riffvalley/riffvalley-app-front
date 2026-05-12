@@ -185,10 +185,22 @@
   </span>
 </div>
   </div>
+
+  <!-- Botón volver arriba -->
+  <Transition name="scroll-top-fade">
+    <button
+      v-if="showScrollTop"
+      @click="scrollToTop"
+      class="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-rv-pink hover:opacity-80 text-white shadow-lg flex items-center justify-center"
+      title="Volver arriba"
+    >
+      <i class="fa-solid fa-chevron-up text-sm"></i>
+    </button>
+  </Transition>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, watch, nextTick, computed } from "vue";
+import { defineComponent, ref, onMounted, onUnmounted, watch, nextTick, computed } from "vue";
 import { getDiscs } from "@services/discs/discs";
 import DiscCard from "@components/DiscCardComponent.vue";
 import Datepicker from "@vuepic/vue-datepicker";
@@ -211,6 +223,7 @@ export default defineComponent({
   },
   setup() {
     const discs = ref<any[]>([]);
+    const showScrollTop = ref(false);
     const limit = ref(20);
     const offset = ref(0);
     const totalItems = ref(0);
@@ -533,9 +546,22 @@ response = await getCommentsByUser(
       resetAndFetch();
     });
 
+    const handleScroll = () => {
+      showScrollTop.value = window.scrollY > 400;
+    };
+
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
     onMounted(() => {
       fetchData();
       setupObserver();
+      window.addEventListener("scroll", handleScroll);
+    });
+
+    onUnmounted(() => {
+      window.removeEventListener("scroll", handleScroll);
     });
 
     const resetAndFetch = () => {
@@ -568,7 +594,9 @@ response = await getCommentsByUser(
       orderOptionsForTab,
       defaultOrderByForTab,
       userComments,
-formatDate,
+      formatDate,
+      showScrollTop,
+      scrollToTop,
     };
   },
 });
@@ -607,5 +635,15 @@ input[type="checkbox"] {
 
 .search__input::placeholder {
   color: #9ca3af;
+}
+
+.scroll-top-fade-enter-active,
+.scroll-top-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.scroll-top-fade-enter-from,
+.scroll-top-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 </style>
