@@ -122,25 +122,33 @@
           <!-- Íconos: corazón y bookmark -->
           <div class="flex space-x-2 items-center">
             <div class="relative group">
-              <font-awesome-icon :icon="['fas', 'heart']"
-                class="h-7 w-5 cursor-pointer transition-all duration-300 ease-in-out" :class="{
-                  'text-red-500 scale-110': favoriteId,
-                  'text-gray-400 hover:text-red-400': !favoriteId,
-                }" @click="toggleHeart" />
+              <!-- Corazón: spinner mientras carga, pop al activar -->
+              <i v-if="isTogglingHeart" class="fa-solid fa-spinner animate-spin text-red-400"
+                style="width:20px;height:20px;display:block;"></i>
+              <font-awesome-icon v-else :icon="['fas', 'heart']"
+                class="h-7 w-5 cursor-pointer"
+                :class="[
+                  favoriteId ? 'text-red-500' : 'text-gray-400 hover:text-red-400',
+                  heartAnimating ? 'anim-heart-pop' : ''
+                ]"
+                @click="toggleHeart" />
               <span class="pointer-events-none hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2
          px-2 py-1 text-[9px] font-semibold text-white bg-rv-navy rounded
          opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 Fav
               </span>
-
             </div>
 
             <div class="relative group cursor-pointer" @click="toggleBookmark">
-              <font-awesome-icon :icon="['fas', 'bookmark']"
-                class="h-5 w-5 mt-1 cursor-pointer transition-all duration-300 ease-in-out" :class="{
-                  'text-yellow-400 scale-110': pendingId,
-                  'text-gray-400 hover:text-yellow-300': !pendingId,
-                }" />
+              <!-- Bookmark: spinner mientras carga, drop al activar -->
+              <i v-if="isTogglingBookmark" class="fa-solid fa-spinner animate-spin text-yellow-400 mt-1"
+                style="width:20px;height:20px;display:block;"></i>
+              <font-awesome-icon v-else :icon="['fas', 'bookmark']"
+                class="h-5 w-5 mt-1 cursor-pointer"
+                :class="[
+                  pendingId ? 'text-yellow-400' : 'text-gray-400 hover:text-yellow-300',
+                  bookmarkAnimating ? 'anim-bookmark-drop' : ''
+                ]" />
               <span class="pointer-events-none hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2
          px-2 py-1 text-[9px] font-semibold text-white bg-rv-navy rounded
          opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -469,12 +477,27 @@ export default defineComponent({
     };
     const favoriteId = ref(props.favoriteId);
     const pendingId = ref(props.pendingId);
+    const heartAnimating = ref(false);
+    const bookmarkAnimating = ref(false);
+    const isTogglingHeart = ref(false);
+    const isTogglingBookmark = ref(false);
 
     watchEffect(() => {
       favoriteId.value = props.favoriteId;
     });
 
+    const triggerHeartAnim = () => {
+      heartAnimating.value = true;
+      setTimeout(() => { heartAnimating.value = false; }, 400);
+    };
+    const triggerBookmarkAnim = () => {
+      bookmarkAnimating.value = true;
+      setTimeout(() => { bookmarkAnimating.value = false; }, 400);
+    };
+
     const toggleHeart = async () => {
+      if (isTogglingHeart.value) return;
+      isTogglingHeart.value = true;
       try {
         if (favoriteId.value) {
           await deleteFavoriteService(favoriteId.value);
@@ -485,6 +508,7 @@ export default defineComponent({
           favoriteId.value = favorite.id;
           SwalService.success("Añadido a Favoritos");
         }
+        triggerHeartAnim();
       } catch (error) {
         console.error("Error al cambiar el estado de favorito:", error);
         Swal.fire({
@@ -497,10 +521,14 @@ export default defineComponent({
           showConfirmButton: false,
           toast: true,
         });
+      } finally {
+        isTogglingHeart.value = false;
       }
     };
 
     const toggleBookmark = async () => {
+      if (isTogglingBookmark.value) return;
+      isTogglingBookmark.value = true;
       try {
         if (pendingId.value) {
           await deletePendingService(pendingId.value);
@@ -511,6 +539,7 @@ export default defineComponent({
           pendingId.value = pending.id;
           SwalService.success("Añadido a Pendientes");
         }
+        triggerBookmarkAnim();
       } catch (error) {
         console.error("Error al cambiar el estado de pendiente:", error);
         Swal.fire({
@@ -523,6 +552,8 @@ export default defineComponent({
           showConfirmButton: false,
           toast: true,
         });
+      } finally {
+        isTogglingBookmark.value = false;
       }
     };
 
@@ -1114,6 +1145,10 @@ ctx.textBaseline = "alphabetic";
       toggleBookmark,
       favoriteId,
       pendingId,
+      heartAnimating,
+      bookmarkAnimating,
+      isTogglingHeart,
+      isTogglingBookmark,
       openDiscDetail,
       closeDiscDetail,
       showDiscDetail,
@@ -1196,6 +1231,29 @@ ctx.textBaseline = "alphabetic";
 
 :global(.dark) input[type="number"] {
   color-scheme: dark;
+}
+
+/* ── Animación corazón ─────────────────── */
+@keyframes heartPop {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.55); }
+  55%  { transform: scale(0.88); }
+  75%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.anim-heart-pop {
+  animation: heartPop 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+}
+
+/* ── Animación bookmark ────────────────── */
+@keyframes bookmarkDrop {
+  0%   { transform: translateY(-5px) scale(1.2); }
+  50%  { transform: translateY(3px) scale(0.92); }
+  75%  { transform: translateY(-2px) scale(1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
+.anim-bookmark-drop {
+  animation: bookmarkDrop 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
 }
 
 .player-slide-enter-active,
