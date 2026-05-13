@@ -70,7 +70,7 @@
   shadow-sm mb-1">
             <p class="text-sm font-bold mt-1"
               :class="spoilerMode ? 'text-rv-pink tracking-widest' : 'text-blue-600 dark:text-blue-300'">
-              {{ spoilerMode ? '???' : (averageRate ? averageRate.toFixed(2) : "-") }}
+              {{ spoilerMode ? '???' : (localAverageRate ? localAverageRate.toFixed(2) : "-") }}
             </p>
             <p class="text-xs text-rv-navy dark:text-gray-200">Disco</p>
           </div>
@@ -80,7 +80,7 @@
   shadow-sm mb-1">
             <p class="text-sm font-bold mt-1"
               :class="spoilerMode ? 'text-rv-pink tracking-widest' : 'text-green-600 dark:text-green-300'">
-              {{ spoilerMode ? '???' : (averageCover ? averageCover.toFixed(2) : "-") }}
+              {{ spoilerMode ? '???' : (localAverageCover ? localAverageCover.toFixed(2) : "-") }}
             </p>
             <p class="text-xs text-rv-navy dark:text-gray-200">Portada</p>
           </div>
@@ -382,6 +382,19 @@ export default defineComponent({
     const userDiscRateId = ref(props.userDiscRate);
     const commentCount = ref(props.commentCount);
     const rateCount = ref(props.rateCount);
+    const localAverageRate = ref<number | null>(props.averageRate ?? null);
+    const localAverageCover = ref<number | null>(props.averageCover ?? null);
+
+    const refreshAverages = async () => {
+      try {
+        const updatedVotes = await getDiscRates(props.id);
+        const rates = updatedVotes.map((v: any) => Number(v.rate)).filter((r: number) => r > 0);
+        const covers = updatedVotes.map((v: any) => Number(v.cover)).filter((c: number) => c > 0);
+        if (rates.length) localAverageRate.value = rates.reduce((a: number, b: number) => a + b, 0) / rates.length;
+        if (covers.length) localAverageCover.value = covers.reduce((a: number, b: number) => a + b, 0) / covers.length;
+        rateCount.value = updatedVotes.length;
+      } catch { /* silently ignore, los valores anteriores se mantienen */ }
+    };
     const formattedDate = computed(() => {
       const date = new Date(props.releaseDate);
       return date.toLocaleDateString("es-ES", {
@@ -617,6 +630,7 @@ export default defineComponent({
         if (payload.rate && payload.rate > 0)
           SwalService.successImage(payload.rate);
         else SwalService.success("Votación enviada con éxito");
+        refreshAverages(); // actualiza medias y contador en tiempo real
       } catch (error) {
         console.error("Error submitting rating:", error);
         Swal.fire({
@@ -1161,6 +1175,8 @@ ctx.textBaseline = "alphabetic";
       closeComentsModal,
       commentCount,
       rateCount,
+      localAverageRate,
+      localAverageCover,
       openSpotify,
       openPlatformLink,
       isSubmittingRating,
