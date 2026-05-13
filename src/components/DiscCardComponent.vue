@@ -88,7 +88,7 @@
       </div>
 
       <!-- Contenido al lado derecho -->
-      <div class="ml-2 flex flex-1 flex-col min-w-0">
+      <div class="ml-1 flex flex-1 flex-col min-w-0">
         <!-- Título y artista -->
         <div class="flex justify-between items-center min-w-0">
           <h2 @click="openDiscDetail"
