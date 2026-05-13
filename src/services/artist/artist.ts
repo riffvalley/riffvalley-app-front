@@ -108,6 +108,7 @@ export async function getArtistsManagement(params: {
   limit?: number;
   offset?: number;
   genreId?: string;
+  countryId?: string;
   needsReview?: boolean;
 }): Promise<ArtistManagementResponse> {
   const response = await api.get<ArtistManagementResponse>("/artists/management", { params });

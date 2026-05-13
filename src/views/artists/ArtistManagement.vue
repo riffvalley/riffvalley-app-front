@@ -1,15 +1,25 @@
 <template>
 <div class="px-3 sm:px-6 py-5 max-w-5xl mx-auto">
     <!-- Cabecera -->
-<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
+    <div :class="isManager
+      ? 'flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6'
+      : 'text-center mb-6'"
+    >
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold m-0"><i class="fa-solid fa-microphone mr-2"></i>Artistas</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Todas las bandas y artistas con disco en la app.</p>
+        <h1 class="text-2xl md:text-3xl font-bold m-0">
+          <i class="fa-solid fa-microphone mr-2"></i>Artistas
+        </h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Todas las bandas y artistas con disco en la app.
+        </p>
+        <p v-if="!isManager" class="text-sm text-gray-400 dark:text-gray-400 mt-1">
+          {{ totalItems }} artistas
+        </p>
       </div>
-<div class="flex flex-wrap items-center gap-3">
+
+      <div v-if="isManager" class="flex flex-wrap items-center gap-3">
         <span class="text-sm text-gray-400 dark:text-gray-400">{{ totalItems }} artistas</span>
         <button
-          v-if="isManager"
           @click="deleteOrphans"
           :disabled="deletingOrphans"
           class="text-xs font-semibold px-3 py-1.5 rounded-xl border border-red-200 text-red-500 bg-white hover:bg-red-50 transition-colors disabled:opacity-40"
@@ -18,9 +28,7 @@
           <i class="fa-solid fa-broom mr-1.5"></i>
           {{ deletingOrphans ? 'Limpiando...' : `Limpiar huérfanos (${orphanCount})` }}
         </button>
-
         <button
-          v-if="isManager"
           @click="fillAllImages"
           :disabled="fillingImages"
           class="text-xs font-semibold px-3 py-1.5 rounded-xl border border-green-300 text-green-600 bg-white hover:bg-green-50 transition-colors disabled:opacity-40"
@@ -67,6 +75,18 @@ class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm 
         :max="150"
         class="w-full sm:w-56 rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 shadow-lg"
       />
+
+      <SearchableSelect
+        v-model="selectedCountryId"
+        :options="countries"
+        title="name"
+        trackby="id"
+        placeholder="Buscar país..."
+        trigger-placeholder="Todos los países"
+        all-label="Todos los países"
+        :max="250"
+        class="w-full sm:w-56 rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 shadow-lg"
+      />
     </div>
 
     <!-- Lista -->
@@ -90,13 +110,13 @@ class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm 
             : 'border-gray-200 dark:border-white/10 bg-white dark:bg-rv-darkCard'
         ]"
       >
-        <!-- Imagen izquierda 320x320 -->
-<div class="relative w-full h-44 sm:w-64 md:w-80 sm:h-80 flex-shrink-0">
+        <!-- Imagen izquierda -->
+        <div class="relative w-full h-36 sm:w-56 md:w-72 sm:h-72 flex-shrink-0">
           <img
             v-if="artist.image"
             :src="artist.image"
             class="absolute inset-0 w-full h-full object-cover cursor-zoom-in"
-            style="object-position: center 45%"
+            style="object-position: center 35%"
             @click="openArtistImage(artist.image)"
           />
           <div
@@ -104,7 +124,7 @@ class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm 
             class="absolute inset-0"
             :style="{ backgroundColor: uniqueGenres(artist)[0]?.color || '#9ca3af', opacity: 0.45 }"
           ></div>
-          <div class="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent"></div>
+          <div class="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none"></div>
         </div>
 
         <!-- Contenido derecho -->
@@ -623,6 +643,7 @@ export default defineComponent({
     const countries = ref<Country[]>([]);
     const genres = ref<Genre[]>([]);
     const selectedGenreId = ref("");
+    const selectedCountryId = ref("");
     const needsReview = ref<boolean | null>(null);
     const authStore = useAuthStore();
     const isManager = authStore.hasRole?.('riffValley') || authStore.hasRole?.('superUser')
@@ -647,7 +668,7 @@ export default defineComponent({
       loading.value = true;
       try {
         const offset = (page - 1) * LIMIT;
-        const res = await getArtistsManagement({ query: query.value || undefined, limit: LIMIT, offset, genreId: selectedGenreId.value || undefined, needsReview: needsReview.value ?? undefined });
+        const res = await getArtistsManagement({ query: query.value || undefined, limit: LIMIT, offset, genreId: selectedGenreId.value || undefined, countryId: selectedCountryId.value || undefined, needsReview: needsReview.value ?? undefined });
         artists.value = res.data;
         totalItems.value = res.totalItems;
         totalPages.value = res.totalPages;
@@ -666,6 +687,7 @@ export default defineComponent({
     };
 
     watch(selectedGenreId, () => fetchArtists(1));
+    watch(selectedCountryId, () => fetchArtists(1));
     watch(needsReview, () => fetchArtists(1));
 
     const goToPage = (page: number) => {
@@ -1064,6 +1086,7 @@ export default defineComponent({
       countries,
       genres,
       selectedGenreId,
+      selectedCountryId,
       needsReview,
       isManager,
       orphanCount,
