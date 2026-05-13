@@ -21,19 +21,19 @@
                   grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
         <div>
           <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Total de Votos</h2>
-          <p class="text-4xl font-bold text-rv-pink">{{ totalVotes }}</p>
+          <p class="text-4xl font-bold text-rv-navy dark:text-white">{{ totalVotes }}</p>
         </div>
         <div>
           <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Media</h2>
-          <p class="text-4xl font-bold text-rv-pink">{{ mean }}</p>
+          <p class="text-4xl font-bold text-rv-navy dark:text-white">{{ mean }}</p>
         </div>
         <div>
           <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Mediana</h2>
-          <p class="text-4xl font-bold text-rv-pink">{{ median }}</p>
+          <p class="text-4xl font-bold text-rv-navy dark:text-white">{{ median }}</p>
         </div>
         <div>
           <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Ranking</h2>
-          <p class="text-4xl font-bold text-rv-pink">{{ rank }} <span class="text-xl font-normal text-gray-400 dark:text-white/50">/ {{ totalUsers }}</span></p>
+          <p class="text-4xl font-bold text-rv-navy dark:text-white">{{ rank }} <span class="text-xl font-normal text-gray-400 dark:text-white/50">/ {{ totalUsers }}</span></p>
         </div>
       </div>
 

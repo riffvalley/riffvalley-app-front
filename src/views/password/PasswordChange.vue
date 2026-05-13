@@ -187,14 +187,14 @@
             class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
             :class="defaultYearFilter === 'current'
               ? 'bg-rv-navy text-white shadow'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
+              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
             Año actual <span v-if="defaultYearFilter === 'current'" class="text-[10px] text-rv-pink ml-1">✓</span>
           </button>
           <button type="button" @click="setDefaultYearFilter('all')"
             class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
             :class="defaultYearFilter === 'all'
               ? 'bg-rv-navy text-white shadow'
-              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
+              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
             Todos los años <span v-if="defaultYearFilter === 'all'" class="text-[10px] text-rv-pink ml-1">✓</span>
           </button>
         </div>
