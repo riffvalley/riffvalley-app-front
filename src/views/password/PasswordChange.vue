@@ -1,5 +1,10 @@
 <template>
   <div v-if="ready" class="mx-auto max-w-5xl px-4 py-8 min-h-screen dark:bg-rv-darkBg">
+    <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-rv-navy dark:text-white">
+      <i class="fa-solid fa-circle-user mr-3"></i>Perfil
+    </h1>
+    <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">Personaliza tu avatar y ajusta tus preferencias.</p>
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
 
       <!-- IZQUIERDA: Avatares por temática -->
@@ -59,8 +64,127 @@
         </button>
       </section>
 
-      <!-- DERECHA: Cambiar contraseña + No Spoilers -->
+      <!-- DERECHA: Preferencias + Cambiar contraseña -->
       <div class="flex flex-col gap-6">
+
+      <!-- Vista por defecto en Discos -->
+      <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
+        <div class="text-center mb-5">
+          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
+            Vista por defecto en Discos
+          </span>
+        </div>
+
+        <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
+          Elige qué discos se muestran al abrir la sección <strong class="text-gray-700 dark:text-gray-200">Discos</strong>.
+          Puedes cambiarlo manualmente en cualquier momento desde el propio filtro de año.
+        </p>
+
+        <div class="flex rounded-full bg-gray-200 dark:bg-rv-darkSurface p-1 border border-gray-100 dark:border-white/10 gap-1">
+          <button type="button" @click="setDefaultYearFilter('current')"
+            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            :class="defaultYearFilter === 'current'
+              ? 'bg-rv-navy text-white shadow'
+              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
+            Año actual <span v-if="defaultYearFilter === 'current'" class="text-[10px] text-rv-pink ml-1">✓</span>
+          </button>
+          <button type="button" @click="setDefaultYearFilter('all')"
+            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            :class="defaultYearFilter === 'all'
+              ? 'bg-rv-navy text-white shadow'
+              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
+            Todos los años <span v-if="defaultYearFilter === 'all'" class="text-[10px] text-rv-pink ml-1">✓</span>
+          </button>
+        </div>
+
+        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+          <template v-if="defaultYearFilter === 'current'">
+            Al entrar en Discos, el filtro mostrará solo los lanzamientos de <strong>{{ currentYear }}</strong>. Ideal para seguir las novedades sin distracciones.
+          </template>
+          <template v-else>
+            Al entrar en Discos, el filtro estará en "Todos los años" y verás todo el catálogo completo desde el principio.
+          </template>
+        </p>
+      </section>
+
+      <!-- No Spoilers -->
+      <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
+        <div class="text-center mb-5">
+          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
+            No Spoilers
+          </span>
+        </div>
+
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex-1">
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
+              Habilitar modo No Spoilers
+            </p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              Oculta las puntuaciones medias de los discos mientras no hayas votado. Actívalo si quieres escuchar los álbumes sin dejarte influir por las notas de los demás.
+            </p>
+          </div>
+
+          <!-- Switch -->
+          <button type="button"
+            @click="toggleNoSpoilers"
+            :aria-checked="noSpoilers"
+            role="switch"
+            class="relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none border-0"
+            :class="noSpoilers ? 'bg-rv-pink' : 'bg-gray-300 dark:bg-gray-600'">
+            <span
+              class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
+              :class="noSpoilers ? 'translate-x-5' : 'translate-x-0'">
+            </span>
+          </button>
+        </div>
+
+        <p class="mt-3 text-xs text-center"
+          :class="noSpoilers ? 'text-rv-pink font-semibold' : 'text-gray-400 dark:text-gray-500'">
+          {{ noSpoilers ? 'Modo No Spoilers activado' : 'Modo No Spoilers desactivado' }}
+        </p>
+      </section>
+
+      <!-- Enlace de Spotify -->
+      <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
+        <div class="text-center mb-5">
+          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
+            Enlace de Spotify
+          </span>
+        </div>
+
+        <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
+          Elige cómo se abre Spotify al pulsar el botón de un disco. En móvil siempre redirige a la app independientemente de esta opción.
+        </p>
+
+        <div class="flex rounded-full bg-gray-200 dark:bg-rv-darkSurface p-1 border border-gray-100 dark:border-white/10 gap-1">
+          <button type="button" @click="setSpotifyMode('app')"
+            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            :class="spotifyMode === 'app'
+              ? 'bg-rv-navy text-white shadow'
+              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
+            Spotify Desktop <span v-if="spotifyMode === 'app'" class="text-[10px] text-rv-pink ml-1">✓</span>
+          </button>
+          <button type="button" @click="setSpotifyMode('web')"
+            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            :class="spotifyMode === 'web'
+              ? 'bg-rv-navy text-white shadow'
+              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
+            Spotify Web <span v-if="spotifyMode === 'web'" class="text-[10px] text-rv-pink ml-1">✓</span>
+          </button>
+        </div>
+
+        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+          <template v-if="spotifyMode === 'web'">
+            Spotify se abrirá en el navegador. Sin diálogos ni permisos — limpio y directo.
+          </template>
+          <template v-else>
+            Intentará abrir la app de Spotify. El navegador pedirá confirmación la primera vez que lo uses.
+          </template>
+        </p>
+      </section>
+
+      <!-- Cambiar contraseña -->
       <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
         <div class="text-center mb-5">
           <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
@@ -128,125 +252,6 @@
             Guardar contraseña
           </button>
         </form>
-      </section>
-
-      <!-- No Spoilers -->
-      <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
-        <div class="text-center mb-5">
-          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
-            No Spoilers
-          </span>
-        </div>
-
-        <div class="flex items-start justify-between gap-4">
-          <div class="flex-1">
-            <p class="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">
-              Habilitar modo No Spoilers
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-              Oculta las puntuaciones medias de los discos mientras no hayas votado. Actívalo si quieres escuchar los álbumes sin dejarte influir por las notas de los demás.
-            </p>
-          </div>
-
-          <!-- Switch -->
-          <button type="button"
-            @click="toggleNoSpoilers"
-            :aria-checked="noSpoilers"
-            role="switch"
-            class="relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none border-0"
-            :class="noSpoilers ? 'bg-rv-pink' : 'bg-gray-300 dark:bg-gray-600'">
-            <span
-              class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200"
-              :class="noSpoilers ? 'translate-x-5' : 'translate-x-0'">
-            </span>
-          </button>
-        </div>
-
-        <p class="mt-3 text-xs text-center"
-          :class="noSpoilers ? 'text-rv-pink font-semibold' : 'text-gray-400 dark:text-gray-500'">
-          {{ noSpoilers ? 'Modo No Spoilers activado' : 'Modo No Spoilers desactivado' }}
-        </p>
-      </section>
-
-      <!-- Vista por defecto en Discos -->
-      <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
-        <div class="text-center mb-5">
-          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
-            Vista por defecto en Discos
-          </span>
-        </div>
-
-        <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-          Elige qué discos se muestran al abrir la sección <strong class="text-gray-700 dark:text-gray-200">Discos</strong>.
-          Puedes cambiarlo manualmente en cualquier momento desde el propio filtro de año.
-        </p>
-
-        <!-- Selector pill -->
-        <div class="flex rounded-full bg-gray-200 dark:bg-rv-darkSurface p-1 border border-gray-100 dark:border-white/10 gap-1">
-          <button type="button" @click="setDefaultYearFilter('current')"
-            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
-            :class="defaultYearFilter === 'current'
-              ? 'bg-rv-navy text-white shadow'
-              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
-            Año actual <span v-if="defaultYearFilter === 'current'" class="text-[10px] text-rv-pink ml-1">✓</span>
-          </button>
-          <button type="button" @click="setDefaultYearFilter('all')"
-            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
-            :class="defaultYearFilter === 'all'
-              ? 'bg-rv-navy text-white shadow'
-              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
-            Todos los años <span v-if="defaultYearFilter === 'all'" class="text-[10px] text-rv-pink ml-1">✓</span>
-          </button>
-        </div>
-
-        <!-- Descripción dinámica -->
-        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-          <template v-if="defaultYearFilter === 'current'">
-            Al entrar en Discos, el filtro mostrará solo los lanzamientos de <strong>{{ currentYear }}</strong>. Ideal para seguir las novedades sin distracciones.
-          </template>
-          <template v-else>
-            Al entrar en Discos, el filtro estará en "Todos los años" y verás todo el catálogo completo desde el principio.
-          </template>
-        </p>
-      </section>
-
-      <!-- Abrir Spotify en -->
-      <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
-        <div class="text-center mb-5">
-          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
-            Enlace de Spotify
-          </span>
-        </div>
-
-        <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-          Elige cómo se abre Spotify al pulsar el botón de un disco. En móvil siempre redirige a la app independientemente de esta opción.
-        </p>
-
-        <div class="flex rounded-full bg-gray-200 dark:bg-rv-darkSurface p-1 border border-gray-100 dark:border-white/10 gap-1">
-          <button type="button" @click="setSpotifyMode('app')"
-            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
-            :class="spotifyMode === 'app'
-              ? 'bg-rv-navy text-white shadow'
-              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
-            Spotify Desktop <span v-if="spotifyMode === 'app'" class="text-[10px] text-rv-pink ml-1">✓</span>
-          </button>
-          <button type="button" @click="setSpotifyMode('web')"
-            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
-            :class="spotifyMode === 'web'
-              ? 'bg-rv-navy text-white shadow'
-              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
-            Spotify Web <span v-if="spotifyMode === 'web'" class="text-[10px] text-rv-pink ml-1">✓</span>
-          </button>
-        </div>
-
-        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
-          <template v-if="spotifyMode === 'web'">
-            Spotify se abrirá en el navegador. Sin diálogos ni permisos — limpio y directo.
-          </template>
-          <template v-else>
-            Intentará abrir la app de Spotify. El navegador pedirá confirmación la primera vez que lo uses.
-          </template>
-        </p>
       </section>
 
       </div><!-- /columna derecha -->

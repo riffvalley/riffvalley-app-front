@@ -1,8 +1,9 @@
 <template>
   <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 pb-10">
-    <h1 class="text-2xl md:text-3xl font-bold mb-8 text-center text-rv-navy dark:text-white">
+    <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-rv-navy dark:text-white">
       <i class="fa-solid fa-chart-area mr-3"></i>Estadísticas
     </h1>
+    <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">Tus votos en cifras: géneros, notas y tendencias.</p>
 
     <!-- Year Filter -->
     <div class="flex justify-center mb-6">

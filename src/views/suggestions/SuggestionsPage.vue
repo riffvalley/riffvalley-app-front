@@ -3,8 +3,8 @@
 
     <!-- Cabecera -->
     <div class="mb-8">
-      <h1 class="text-2xl md:text-3xl font-bold mb-1 text-gray-900 dark:text-white"><i class="fa-solid fa-bug mr-2"></i>Bugs y Sugerencias</h1>
-      <p class="text-gray-400 dark:text-gray-300 text-sm">¿Encontraste un error o tienes una idea? Cuéntanos aquí.</p>
+      <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-gray-900 dark:text-white"><i class="fa-solid fa-bug mr-2"></i>Bugs y Sugerencias</h1>
+      <p class="text-center text-sm text-gray-500 dark:text-gray-400">¿Encontraste un error o tienes una idea? Cuéntanos aquí.</p>
     </div>
 
     <!-- Formulario de creación -->

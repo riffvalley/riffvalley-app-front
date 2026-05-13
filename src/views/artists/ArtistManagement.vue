@@ -1,8 +1,11 @@
 <template>
 <div class="px-3 sm:px-6 py-5 max-w-5xl mx-auto">
     <!-- Cabecera -->
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-      <h1 class="text-2xl md:text-3xl font-bold"><i class="fa-solid fa-microphone mr-2"></i>Artistas</h1>
+<div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold m-0"><i class="fa-solid fa-microphone mr-2"></i>Artistas</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Todas las bandas y artistas con disco en la app.</p>
+      </div>
 <div class="flex flex-wrap items-center gap-3">
         <span class="text-sm text-gray-400 dark:text-gray-400">{{ totalItems }} artistas</span>
         <button
@@ -572,10 +575,22 @@ class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm 
       </div>
     </div>
   </Teleport>
+
+  <!-- Botón scroll-to-top -->
+  <Transition name="scroll-top-fade">
+    <button
+      v-if="showScrollTop"
+      @click="scrollToTop"
+      class="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-rv-pink hover:opacity-80 text-white shadow-lg flex items-center justify-center"
+      title="Volver arriba"
+    >
+      <i class="fa-solid fa-chevron-up text-sm"></i>
+    </button>
+  </Transition>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, watch, onMounted } from "vue";
+import { defineComponent, ref, reactive, watch, onMounted, onUnmounted } from "vue";
 import { getArtistsManagement, deleteArtist, updateArtist, searchArtistsByName, deleteOrphanArtists } from "@services/artist/artist";
 import { getArtistInfo } from "@services/lastfm/lastfm";
 import type { ArtistManagementItem, ArtistManagementDisc } from "@services/artist/artist";
@@ -1023,13 +1038,21 @@ export default defineComponent({
       return { color: "bg-gray-500", icon: "fa-solid fa-link", text: "Enlace" };
     };
 
+    // --- Scroll to top ---
+    const showScrollTop = ref(false);
+    const handleScroll = () => { showScrollTop.value = window.scrollY > 400; };
+    const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
     onMounted(async () => {
       await Promise.all([
         fetchArtists(),
         getCountries(250, 0).then(r => { countries.value = r.data.sort((a, b) => a.name.localeCompare(b.name)); }),
         getGenres(150, 0).then(r => { genres.value = r.data.sort((a, b) => a.name.localeCompare(b.name)); }),
       ]);
+      window.addEventListener("scroll", handleScroll, { passive: true });
     });
+
+    onUnmounted(() => window.removeEventListener("scroll", handleScroll));
 
     return {
       artists,
@@ -1082,7 +1105,21 @@ export default defineComponent({
       fetchingSpotifyImage,
       spotifyImageOptions,
       pickSpotifyImage,
+      showScrollTop,
+      scrollToTop,
     };
   },
 });
 </script>
+
+<style scoped>
+.scroll-top-fade-enter-active,
+.scroll-top-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.scroll-top-fade-enter-from,
+.scroll-top-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+</style>

@@ -1,8 +1,11 @@
 <template>
   <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
-<h1 v-if="!embedded" class="text-2xl md:text-3xl font-bold mb-8 text-center text-gray-900 dark:text-white">
-      <i class="fa-solid fa-calendar-days mr-3"></i>Calendario
-    </h1>
+<template v-if="!embedded">
+  <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-gray-900 dark:text-white">
+    <i class="fa-solid fa-calendar-days mr-3"></i>Calendario
+  </h1>
+  <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">Todos los lanzamientos ordenados por fecha.</p>
+</template>
 
     <!-- FILTROS SUPERIORES -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start mb-6">
@@ -99,6 +102,18 @@
     <i v-if="loading" class="fa-solid fa-compact-disc animate-spin text-rv-pink text-3xl"></i>
     <span v-if="loading" class="text-sm font-medium text-rv-navy dark:text-white">Cargando discos...</span>
   </div>
+
+  <!-- Botón scroll-to-top -->
+  <Transition name="scroll-top-fade">
+    <button
+      v-if="showScrollTop"
+      @click="scrollToTop"
+      class="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-rv-pink hover:opacity-80 text-white shadow-lg flex items-center justify-center"
+      title="Volver arriba"
+    >
+      <i class="fa-solid fa-chevron-up text-sm"></i>
+    </button>
+  </Transition>
 </template>
 
 <script lang="ts">
@@ -106,6 +121,7 @@ import {
   defineComponent,
   ref,
   onMounted,
+  onUnmounted,
   reactive,
   computed,
   nextTick,
@@ -528,13 +544,21 @@ export default defineComponent({
       selectMonth(selectedMonth.value);
     });
 
+    // --- Scroll to top ---
+    const showScrollTop = ref(false);
+    const handleScroll = () => { showScrollTop.value = window.scrollY > 400; };
+    const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
     onMounted(() => {
       if (loadMore.value) observer.observe(loadMore.value);
 
       const d = initial.value;
       selectMonth(d ? d.getMonth() : new Date().getMonth());
 
+      window.addEventListener("scroll", handleScroll, { passive: true });
     });
+
+    onUnmounted(() => window.removeEventListener("scroll", handleScroll));
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
@@ -592,12 +616,23 @@ export default defineComponent({
       handleDateChange,
       isSuperUser,
       buscarImagenesLastFm,
+      showScrollTop,
+      scrollToTop,
     };
   },
 });
 </script>
 
 <style scoped>
+.scroll-top-fade-enter-active,
+.scroll-top-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.scroll-top-fade-enter-from,
+.scroll-top-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
 
 
 img {

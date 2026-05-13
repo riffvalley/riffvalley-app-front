@@ -15,7 +15,10 @@
 <div class="space-y-5 flex flex-col gap-5 justify-start min-w-0">
 <!-- Riff Valley -->
 <div class="text-center min-w-0">
-  <h3 class="text-lg font-bold text-rv-navy dark:text-white mb-3"> Info Riff Valley</h3>
+  <h3 class="text-lg font-bold text-rv-navy dark:text-white mb-3 flex items-center justify-center gap-2">
+    <img src="/LOGO-RIFF-VALLEY.svg" alt="Riff Valley" class="w-6 h-6 brightness-0 dark:brightness-100" />
+    Comunidad
+  </h3>
 
   <div class="inline-flex flex-col gap-2.5 w-full max-w-[26rem] mx-auto min-w-0">
 
@@ -139,7 +142,7 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
 
   <!-- Top Usuarios -->
 <div class="text-center border-t border-gray-100 dark:border-white/10 pt-4 min-w-0">
-    <h3 class="text-lg font-bold text-rv-navy dark:text-white mb-2">Top usuarios</h3>
+    <h3 class="text-lg font-bold text-rv-navy dark:text-white mb-2"><i class="fa-solid fa-user-group mr-2"></i>Top usuarios</h3>
 
     <div class="flex justify-center mb-3">
       <div class="relative inline-flex">
@@ -349,6 +352,18 @@ class="group inline-flex items-center
     </div>
 
 
+    <!-- Botón scroll-to-top (solo móvil) -->
+    <Transition name="scroll-top-fade">
+      <button
+        v-if="showScrollTop"
+        @click="scrollToTop"
+        class="sm:hidden fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-rv-pink hover:opacity-80 text-white shadow-lg flex items-center justify-center"
+        title="Volver arriba"
+      >
+        <i class="fa-solid fa-chevron-up text-sm"></i>
+      </button>
+    </Transition>
+
     <!-- Grid de Discos -->
     <div class="disc-grid gap-6">
       <DiscCard v-for="disc in discs" :key="disc.id" :id="disc.id" :ep="disc.ep" :image="disc.image" :name="disc.name"
@@ -364,7 +379,7 @@ class="group inline-flex items-center
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, computed, watch } from "vue";
+import { defineComponent, ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { getTopRatedOrFeaturedAndStats } from "@services/discs/discs";
 import type { Disc, DiscsStatsResponse } from "@services/discs/disc";
 import DiscCard from "@components/DiscCardComponent.vue";
@@ -646,13 +661,21 @@ export default defineComponent({
       }
     };
 
+    // --- Scroll to top (solo móvil) ---
+    const showScrollTop = ref(false);
+    const handleScroll = () => { showScrollTop.value = window.scrollY > 300; };
+    const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
     onMounted(async () => {
       if (selectedPeriod.value === "week" && weekOptions.value.length) {
         selectedOption.value = weekOptions.value[weekOptions.value.length - 1];
       }
 
+      window.addEventListener("scroll", handleScroll, { passive: true });
       await fetchDiscs();
     });
+
+    onUnmounted(() => window.removeEventListener("scroll", handleScroll));
 
     return {
       discs,
@@ -676,6 +699,8 @@ export default defineComponent({
       selectedCountry,
       genres: computed(() => catalogStore.genres),
       countries: computed(() => catalogStore.countries),
+      showScrollTop,
+      scrollToTop,
     };
   },
 });
@@ -686,6 +711,16 @@ export default defineComponent({
   display: grid;
   gap: 1.5rem;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.scroll-top-fade-enter-active,
+.scroll-top-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.scroll-top-fade-enter-from,
+.scroll-top-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 @media (max-width: 393px) {
