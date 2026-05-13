@@ -213,7 +213,7 @@
   <label class="flex items-center justify-end pr-2 gap-3 text-white/75 cursor-pointer">
     <!-- Sol -->
     <i
-      class="fa-solid fa-sun text-sm transition-colors"
+      class="fa-regular fa-sun text-base transition-colors"
       :class="!isDark ? 'text-rv-pink' : 'text-white/45'"
     ></i>
 
@@ -239,7 +239,7 @@
 
     <!-- Luna -->
     <i
-      class="fa-solid fa-moon text-sm transition-colors"
+      class="fa-solid fa-moon text-base transition-colors"
       :class="isDark ? 'text-rv-pink' : 'text-white/45'"
     ></i>
   </label>
