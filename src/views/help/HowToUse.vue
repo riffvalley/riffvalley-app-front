@@ -1,160 +1,206 @@
 <template>
-    <div class="min-h-screen bg-gray-100 dark:bg-rv-darkBg py-6">
-        <div class="max-w-4xl mx-auto px-4 py-6">
-            <h1
-                class="text-xl font-bold mb-3 text-white bg-gray-700 dark:bg-rv-purple px-4 py-1 rounded-full text-center inline-block mx-auto shadow">
-                Cómo usar la app
-            </h1>
+  <div class="min-h-screen bg-gray-100 dark:bg-rv-darkBg py-8 px-4">
+    <div class="max-w-3xl mx-auto">
 
-            <div class="space-y-4 text-sm text-gray-700 dark:text-gray-300">
-                <div>
-                    <h2 class="text-lg font-semibold mb-1 text-gray-900 dark:text-white">
-                        <i class="fa-solid fa-house text-md mr-2"></i>¿Qué se puede hacer en Home?
-                    </h2>
-                    <p class="text-gray-700 dark:text-gray-300">
-                        En la sección <strong>Home</strong> podrás ver el <strong>top 20</strong> discos mejor valorados por los usuarios
-                        semanal,
-                        mensual, anual e históricamente. Es una
-                        forma rápida de descubrir los lanzamientos más destacados según los votos de la comunidad, ideal si tienes
-                        poco
-                        tiempo libre.
-                    </p>
-                </div>
+      <!-- Cabecera -->
+      <div class="text-center mb-8">
+        <h1 class="text-2xl md:text-3xl font-bold text-rv-navy dark:text-white mb-2">
+          <i class="fa-solid fa-circle-question mr-3"></i>Cómo usar la app
+        </h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Todo lo que necesitas saber para sacarle partido a Riff Valley.</p>
+      </div>
 
-                <div>
-                    <h2 class="text-lg font-semibold mt-4 mb-1 text-gray-900 dark:text-white">
-                        <i class="fa-solid fa-compact-disc text-md mr-2"></i>¿Qué hay en la sección Discos?
-                    </h2>
-                    <p class="text-gray-700 dark:text-gray-300">
-                        En la sección <strong>Discos</strong> encontrarás el listado completo de lanzamientos mediante
-                        tarjetas. Puedes ver sus portadas, puntuarlos, dejar comentarios<i class="fa-solid fa-comment-dots text-sm text-gray-600 dark:text-gray-300 ml-1"></i>,
-                        guardarlos como favoritos<i class="fa-solid fa-heart text-sm text-red-500 ml-1"></i>
-                        o marcarlos como pendientes<i class="fa-solid fa-bookmark text-sm text-yellow-400 ml-1"></i>.
-                        Esta sección es la más importante y la más social.
-                    </p>
-                    <img src="@/assets/DiscosEjemplo.png" alt="Ejemplo sección Discos"
-                        class="rounded-lg shadow-md mx-auto my-4 w-full max-w-md" />
-                </div>
+      <!-- Secciones -->
+      <div class="space-y-4">
 
-                <div>
-                    <h2 class="text-lg font-semibold mt-4 mb-1 text-gray-900 dark:text-white">
-                        <i class="fa-solid fa-calendar-days text-md mr-2"></i>¿Para qué sirve el Calendario?
-                    </h2>
-                    <p class="text-gray-700 dark:text-gray-300">
-                        En el <strong>Calendario</strong> podrás consultar todos los lanzamientos ordenados por días y
-                        meses. Aquí podrás consultar qué se lanzó y qué se lanzará, además de poder hacer click en
-                        artista o
-                        álbum (pero ojo, no siempre es fiel y encontrarás cosas que no son correctas debido a las
-                        fuentes de
-                        donde extraemos a la información).
-                    </p>
-                    <img src="@/assets/CalendarioEjemplo.png" alt="Ejemplo sección Discos"
-                        class="rounded-lg shadow-md mx-auto my-4 w-full max-w-md" />
-                </div>
-
-                <div>
-                    <h2 class="text-lg font-semibold mt-4 mb-1 text-gray-900 dark:text-white">
-                        <i class="fa-solid fa-lightbulb text-md mr-2"></i>¿Cómo puedo sugerir discos nuevos?
-                    </h2>
-                    <p class="text-gray-700 dark:text-gray-300">
-                        También puedes <strong>Sugerir discos</strong> en el apartado correspondiente y rellenando el formulario.
-                    </p>
-                </div>
-
-                <div class="max-w-4xl mx-auto px-4 py-4">
-                    <h1
-                       class="text-xl font-bold mb-3 text-white bg-gray-700 dark:bg-rv-purple px-4 py-1 rounded-full text-center inline-block mx-auto shadow">
-                        ¿Qué es Riff Valley app?
-                    </h1>
-
-                    <div class="space-y-4 text-sm text-gray-700 dark:text-gray-300">
-
-                        <div>
-                            <p class="text-gray-700 dark:text-gray-300">
-                                <strong>Riff Valley app</strong> es un proyecto que hemos creado un grupo de amigos,
-                                paralelo
-                                al medio
-                                digital <a href="https://www.riffvalley.es/" target="_blank"
-                                    class="text-blue-600 dark:text-blue-300 underline hover:text-blue-800 dark:hover:text-blue-200">Riff Valley</a>.
-                                Creamos todo esto inicialmente de manera interna para poder hacer un seguimiento de
-                                todos los
-                                lanzamientos que salen cada semana,
-                                y si encima podemos votarlos y crear un sistema social donde poder ver votos de otra
-                                gente, mejor
-                                que mejor.
-                                <strong>Cada semana vamos añadiendo a la app decenas de discos nuevos</strong> y en el
-                                calendario
-                                podrás consultar futuros lanzamientos.
-                            </p>
-                            <a href="https://www.riffvalley.es/" target="_blank" rel="noopener">
-                                <img src="@/assets/RVEjemplo.webp" alt="Ejemplo sección Discos"
-                                    class="rounded-lg shadow-md mx-auto my-4 w-full max-w-md" />
-                            </a>
-                        </div>
-
-                        <div>
-                            <h2 class="text-xl font-semibold mt-6">
-                                <i class="fa-solid fa-receipt text-md mr-2"></i>¿Te gusta lo que ves?
-                            </h2>
-                            <p class="text-gray-700 dark:text-gray-300">
-                                Creamos esta app por <strong>pura pasión por la música</strong>, pero como muchos
-                                sabréis,
-                                mantenemos nuestros trabajos a tiempo completo. Aun así, mantener activo el
-                                <em>hosting</em> de esta
-                                plataforma nos supone un gasto mensual.
-                                Por ello, podéis sentiros libres para <strong>aportar lo que consideréis al proyecto</strong>
-                                para que podamos seguir desarrollando y mejorando este proyecto. 
-                                Hemos habilitado un <strong>una cuenta de PayPal</strong> donde puedes realizar tu
-                                aportación.
-                                Notifícanos a
-                                <strong>contacto@riffvalley.es</strong> cualquier duda con respecto a esto sin problema.
-                                Aquí tienes
-                                el enlace:
-                            </p>
-                        </div>
-
-                        <div class="mt-4 text-center">
-                            <a href="http://paypal.me/RiffValley" target="_blank"
-                                class="inline-block bg-rv-pink text-white font-semibold px-6 py-2 hover:bg-rv-pink/80 hover:text-white rounded-full shadow transition duration-200">
-                                Ir al PayPal
-                            </a>
-                        </div>
-
-                        <div>
-                            <h2 class="text-xl font-semibold mt-6">
-                                <i class="fa-solid fa-hands-clapping text-md mr-2"></i>¡Muchas gracias!
-                            </h2>
-                            <p class="text-gray-700 dark:text-gray-300">
-                                Creemos mucho en este proyecto y te necesitamos para seguir creciendo. No dudes en
-                                seguir nuestro
-                                <a href="https://t.me/riffvalleyapp" target="_blank"
-                                    class="text-blue-600 dark:text-blue-300 underline hover:text-blue-800 dark:hover:text-blue-200 transition">
-                                    canal de Telegram
-                                </a>
-                                para no perderte ninguna novedad.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- Home -->
+        <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
+          <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
+            <i class="fa-solid fa-house mr-2 text-rv-pink"></i>Home
+          </h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+            La portada de la app. Aquí encontrarás el <strong class="text-gray-800 dark:text-white">top 20 de discos mejor valorados</strong> filtrable por semana, mes, año o histórico. También puedes filtrar por género y país. En la parte superior hay un panel con las novedades de Riff Valley y un ranking de los usuarios más activos votando.
+          </p>
         </div>
+
+        <!-- Discos -->
+        <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
+          <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
+            <i class="fa-solid fa-compact-disc mr-2 text-rv-pink"></i>Discos
+          </h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
+            El núcleo de la app. Un catálogo completo de lanzamientos de metal, rock, hardcore y derivados desde 2025 en adelante, organizado en tarjetas. Desde cada tarjeta puedes:
+          </p>
+          <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1.5 mb-3">
+            <li><i class="fa-solid fa-star text-rv-pink mr-2 w-4 text-center"></i>Votar disco y portada con una nota del 1 al 10.</li>
+            <li><i class="fa-solid fa-heart text-red-500 mr-2 w-4 text-center"></i>Guardarlo como favorito.</li>
+            <li><i class="fa-solid fa-bookmark text-yellow-400 mr-2 w-4 text-center"></i>Marcarlo como pendiente para escuchar después.</li>
+            <li><i class="fa-solid fa-comment-dots text-blue-400 mr-2 w-4 text-center"></i>Dejar un comentario y leer los del resto.</li>
+            <li><i class="fa-solid fa-chart-bar text-rv-purple mr-2 w-4 text-center"></i>Ver todos los votos del disco con sus puntuaciones.</li>
+            <li><i class="fa-brands fa-spotify text-green-500 mr-2 w-4 text-center"></i>Escuchar el disco directamente desde la tarjeta.</li>
+            <li><i class="fa-solid fa-share-nodes text-gray-400 mr-2 w-4 text-center"></i>Compartir una imagen del disco con sus puntuaciones.</li>
+          </ul>
+          <img src="@/assets/DiscosEjemplo.png" alt="Ejemplo sección Discos"
+            class="rounded-lg shadow mx-auto w-full max-w-md" />
+        </div>
+
+        <!-- Calendario -->
+        <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
+          <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
+            <i class="fa-solid fa-calendar-days mr-2 text-rv-pink"></i>Calendario
+          </h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
+            Todos los lanzamientos organizados por día y mes, pensado para tener una visión cronológica de lo que ha salido y lo que está por salir. Puedes filtrar por género, país y año.
+          </p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed italic">
+            Ten en cuenta que algunas fechas pueden no ser exactas, ya que dependemos de fuentes externas para obtener la información.
+          </p>
+          <img src="@/assets/CalendarioEjemplo.png" alt="Ejemplo sección Calendario"
+            class="rounded-lg shadow mx-auto mt-3 w-full max-w-md" />
+        </div>
+
+        <!-- Artistas -->
+        <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
+          <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
+            <i class="fa-solid fa-microphone mr-2 text-rv-pink"></i>Artistas
+          </h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
+            Una base de datos con todas las bandas y artistas que tienen disco en la app. Cada artista tiene su propia ficha con:
+          </p>
+          <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1.5">
+            <li><i class="fa-solid fa-circle-info text-rv-blue mr-2 w-4 text-center"></i>Biografía y descripción extraída de Last.fm.</li>
+            <li><i class="fa-solid fa-globe mr-2 w-4 text-center text-gray-400"></i>País de origen con su bandera.</li>
+            <li><i class="fa-solid fa-music text-rv-purple mr-2 w-4 text-center"></i>Todos sus discos en la app con sus puntuaciones.</li>
+            <li><i class="fa-solid fa-users text-blue-400 mr-2 w-4 text-center"></i>Artistas similares recomendados.</li>
+            <li><i class="fa-brands fa-spotify text-green-500 mr-2 w-4 text-center"></i>Enlace directo a su perfil de Spotify.</li>
+          </ul>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
+          <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
+            <i class="fa-solid fa-chart-area mr-2 text-rv-pink"></i>Estadísticas
+          </h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+            Un resumen visual de tu actividad en la app: cuántos discos has votado, cómo se distribuyen tus notas, qué géneros predominan en tus votaciones y tu evolución a lo largo del tiempo. Puedes filtrar por año para ver períodos concretos.
+          </p>
+        </div>
+
+        <!-- Sugerir discos -->
+        <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
+          <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
+            <i class="fa-solid fa-lightbulb mr-2 text-rv-pink"></i>Sugerir discos
+          </h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
+            ¿Echas en falta algún disco o artista? Puedes sugerirlos desde el apartado correspondiente rellenando el formulario con el nombre del artista, el álbum y si lo tienes, un enlace de Spotify o Bandcamp para facilitarnos la búsqueda.
+          </p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed italic">
+            Todas las sugerencias se revisan manualmente antes de ser añadidas. No todo lo sugerido entra necesariamente en la app — nos centramos en metal, rock, hardcore y géneros relacionados.
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Divisor -->
+      <div class="my-8 border-t border-gray-200 dark:border-white/10"></div>
+
+      <!-- Qué es Riff Valley -->
+      <div class="text-center mb-6">
+        <h2 class="text-xl md:text-2xl font-bold text-rv-navy dark:text-white mb-2">
+          <img src="/LOGO-RIFF-VALLEY.svg" alt="Riff Valley" class="inline w-6 h-6 mr-2 brightness-0 dark:brightness-100 translate-y-[-2px]" />
+          ¿Qué es Riff Valley?
+        </h2>
+      </div>
+
+      <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 space-y-4 text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+        <p>
+          <strong class="text-gray-800 dark:text-white">Riff Valley app</strong> es un proyecto creado por un grupo de amigos, paralelo al medio digital
+          <a href="https://www.riffvalley.es/" target="_blank" rel="noopener"
+            class="text-rv-pink underline hover:text-rv-pink/80 transition">riffvalley.es</a>.
+          Nació como una herramienta interna para hacer seguimiento de todos los lanzamientos semanales de rock y metal, y fue creciendo hasta convertirse en lo que ves hoy: una plataforma social donde votar, descubrir y comentar música.
+          <strong class="text-gray-800 dark:text-white">Cada semana añadimos decenas de discos nuevos</strong>, y el calendario recoge también futuros lanzamientos.
+        </p>
+
+        <a href="https://www.riffvalley.es/" target="_blank" rel="noopener">
+          <img src="@/assets/RVEjemplo.webp" alt="Riff Valley web"
+            class="rounded-lg shadow mx-auto my-2 w-full max-w-md" />
+        </a>
+
+        <div>
+          <h3 class="text-base font-bold text-rv-navy dark:text-white mb-1">
+            <i class="fa-solid fa-receipt mr-2"></i>¿Te gusta lo que ves?
+          </h3>
+          <p>
+            Hacemos esto por <strong class="text-gray-800 dark:text-white">pura pasión por la música</strong>, compaginándolo con nuestros trabajos a tiempo completo. Mantener el hosting activo tiene un coste mensual, así que si quieres apoyar el proyecto puedes contribuir libremente a través de PayPal. Cualquier duda escríbenos a <strong class="text-gray-800 dark:text-white">contacto@riffvalley.es</strong>.
+          </p>
+          <div class="mt-4 text-center">
+            <a href="http://paypal.me/RiffValley" target="_blank"
+              class="inline-block bg-rv-pink text-white font-semibold px-6 py-2 rounded-full shadow hover:bg-rv-pink/80 transition duration-200">
+              Ir al PayPal
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-base font-bold text-rv-navy dark:text-white mb-1">
+            <i class="fa-solid fa-hands-clapping mr-2"></i>¡Muchas gracias!
+          </h3>
+          <p>
+            Creemos mucho en este proyecto y tu participación hace que valga la pena. Síguenos en nuestro
+            <a href="https://t.me/riffvalleyapp" target="_blank" rel="noopener"
+              class="text-rv-pink underline hover:text-rv-pink/80 transition">canal de Telegram</a>
+            para no perderte ninguna novedad.
+          </p>
+        </div>
+      </div>
+
     </div>
+
+    <!-- Botón scroll-to-top -->
+    <Transition name="scroll-top-fade">
+      <button
+        v-if="showScrollTop"
+        @click="scrollToTop"
+        class="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-rv-pink hover:opacity-80 text-white shadow-lg flex items-center justify-center"
+        title="Volver arriba"
+      >
+        <i class="fa-solid fa-chevron-up text-sm"></i>
+      </button>
+    </Transition>
+  </div>
 </template>
 
 <script setup>
-// No necesitas lógica por ahora
+import { ref, onMounted, onUnmounted } from "vue";
+
+const showScrollTop = ref(false);
+const handleScroll = () => { showScrollTop.value = window.scrollY > 400; };
+const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
+onMounted(() => window.addEventListener("scroll", handleScroll, { passive: true }));
+onUnmounted(() => window.removeEventListener("scroll", handleScroll));
 </script>
 
 <style scoped>
+.scroll-top-fade-enter-active,
+.scroll-top-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.scroll-top-fade-enter-from,
+.scroll-top-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
 code {
-    background-color: #f3f4f6;
-    color: #1f2937;
-    padding: 0.1rem 0.3rem;
-    border-radius: 4px;
+  background-color: #f3f4f6;
+  color: #1f2937;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
 }
 
 :global(.dark) code {
-    background-color: #1f2937;
-    color: #e5e7eb;
+  background-color: #1f2937;
+  color: #e5e7eb;
 }
 </style>
