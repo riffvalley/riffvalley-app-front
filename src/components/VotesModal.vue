@@ -1,22 +1,14 @@
 <template>
-  <div
-    v-if="showVotes"
+  <div v-if="showVotes"
     class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black bg-opacity-50 z-50"
-    @click.self="$emit('close')"
-  >
+    @click.self="$emit('close')">
     <div
-      class="bg-white dark:bg-rv-darkCard p-4 sm:p-6 rounded-lg shadow-xl w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-white/10"
-    >
+      class="bg-white dark:bg-rv-darkCard p-4 sm:p-6 rounded-lg shadow-xl w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-white/10">
       <!-- Botón cerrar -->
-      <button
-        @click="$emit('close')"
-        class="absolute top-3 right-3 text-white bg-rv-navy hover:bg-[#e46e8a]
+      <button @click="$emit('close')" class="absolute top-3 right-3 text-white bg-rv-navy hover:bg-[#e46e8a]
           rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all
           border-0 outline-none focus:outline-none focus-visible:outline-none
-          ring-0 focus:ring-0 focus-visible:ring-0"
-        aria-label="Cerrar"
-        title="Cerrar"
-      >
+          ring-0 focus:ring-0 focus-visible:ring-0" aria-label="Cerrar" title="Cerrar">
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
 
@@ -38,7 +30,8 @@
           <button type="button" @click="toggleNoSpoilers"
             class="relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0"
             :class="!revealed ? 'bg-rv-pink' : 'bg-gray-300 dark:bg-white/20'">
-            <span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
+            <span
+              class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
               :class="!revealed ? 'translate-x-4' : 'translate-x-0'"></span>
           </button>
           <span v-if="!revealed && !hasVoted"
@@ -50,62 +43,51 @@
         <!-- Tabla -->
         <div class="w-full md:w-1/2">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-white/10">
-            <thead class="bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white text-xs uppercase tracking-wider">
+            <thead
+              class="bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white text-xs uppercase tracking-wider">
               <tr>
-                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300 dark:border-white/10">Usuario</th>
+                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300 dark:border-white/10">Usuario
+                </th>
                 <th class="px-3 py-2 text-center font-semibold border-b border-gray-300 dark:border-white/10">Disco</th>
-                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300 dark:border-white/10">Portada</th>
+                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300 dark:border-white/10">Portada
+                </th>
               </tr>
             </thead>
 
-<tbody class="bg-white dark:bg-rv-darkCard divide-y divide-gray-200 dark:divide-white/10">
+            <tbody class="bg-white dark:bg-rv-darkCard divide-y divide-gray-200 dark:divide-white/10">
               <tr v-for="vote in votes" :key="vote.id">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-rv-navy dark:text-white">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font- text-rv-navy dark:text-white">
                   <div class="flex items-center gap-2">
-                    <div class="relative overflow-hidden rounded-full bg-gray-200 dark:bg-rv-darkSurface w-10 h-10 shrink-0">
-                      <img
-                        v-if="vote.user.avatarUrl || vote.user.image"
-                        :src="vote.user.avatarUrl || vote.user.image"
-                        alt="Avatar"
-                        class="w-full h-full object-cover"
-                      />
+                    <div
+                      class="relative overflow-hidden rounded-full bg-gray-200 dark:bg-rv-darkSurface w-10 h-10 shrink-0">
+                      <img v-if="vote.user.avatarUrl || vote.user.image" :src="vote.user.avatarUrl || vote.user.image"
+                        alt="Avatar" class="w-full h-full object-cover" />
 
-                      <svg
-                        v-else
-                        class="w-full h-full text-gray-400"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                          clip-rule="evenodd"
-                        />
+                      <svg v-else class="w-full h-full text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
+                          clip-rule="evenodd" />
                       </svg>
                     </div>
 
-                    <button
-class="bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1 rounded transition-colors duration-150
+                    <button class="bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1 rounded transition-colors duration-150
 hover:bg-gray-300 dark:hover:bg-rv-purple hover:underline border border-transparent dark:border-white/10
                         outline-none focus:outline-none focus-visible:outline-none
-                        ring-0 focus:ring-0 focus-visible:ring-0"
-                      @click="openUserModal(
-                        vote.user.username,
-                        vote.user.id,
-                        vote.user.avatarUrl || vote.user.image || ''
-                      )"
-                    >
+                        ring-0 focus:ring-0 focus-visible:ring-0" @click="openUserModal(
+                          vote.user.username,
+                          vote.user.id,
+                          vote.user.avatarUrl || vote.user.image || ''
+                        )">
                       {{ vote.user.username }}
                     </button>
                   </div>
                 </td>
 
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-center font-mono"
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center font-sans"
                   :class="spoilerMode ? 'text-rv-pink font-bold tracking-widest' : 'text-gray-500 dark:text-gray-300'">
                   {{ spoilerMode ? '???' : vote.rate }}
                 </td>
 
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-center font-mono"
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-center font-sans"
                   :class="spoilerMode ? 'text-rv-pink font-bold tracking-widest' : 'text-gray-500 dark:text-gray-300'">
                   {{ spoilerMode ? '???' : vote.cover }}
                 </td>
@@ -122,26 +104,21 @@ hover:bg-gray-300 dark:hover:bg-rv-purple hover:underline border border-transpar
 
         <!-- Gráfica -->
         <div class="w-full md:w-1/2 flex flex-col items-center">
-<div class="mb-4 flex items-center justify-center space-x-2 bg-gray-200 dark:bg-rv-darkSurface rounded-full p-1 border border-gray-100 dark:border-white/10">
-            <button
-              @click="isRateSelected = true"
-              :class="[
-                'text-sm font-semibold px-4 py-1 rounded-full transition-all duration-200',
-                'outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0',
-                isRateSelected ? 'bg-rv-navy dark:bg-rv-purple text-white' : 'bg-gray-200 dark:bg-rv-darkSurface hover:bg-gray-300 dark:hover:bg-rv-purple text-rv-navy dark:text-white'
-              ]"
-            >
+          <div
+            class="mb-4 flex items-center justify-center space-x-2 bg-gray-200 dark:bg-rv-darkSurface rounded-full p-1 border border-gray-100 dark:border-white/10">
+            <button @click="isRateSelected = true" :class="[
+              'text-sm font-semibold px-4 py-1 rounded-full transition-all duration-200',
+              'outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0',
+              isRateSelected ? 'bg-rv-navy dark:bg-rv-purple text-white' : 'bg-gray-200 dark:bg-rv-darkSurface hover:bg-gray-300 dark:hover:bg-rv-purple text-rv-navy dark:text-white'
+            ]">
               Disco
             </button>
 
-            <button
-              @click="isRateSelected = false"
-              :class="[
-                'text-sm font-semibold px-4 py-1 rounded-full transition-all duration-200',
-                'outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0',
-                !isRateSelected ? 'bg-rv-navy dark:bg-rv-purple text-white' : 'bg-gray-200 dark:bg-rv-darkSurface hover:bg-gray-300 dark:hover:bg-rv-purple text-rv-navy dark:text-white'
-              ]"
-            >
+            <button @click="isRateSelected = false" :class="[
+              'text-sm font-semibold px-4 py-1 rounded-full transition-all duration-200',
+              'outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0',
+              !isRateSelected ? 'bg-rv-navy dark:bg-rv-purple text-white' : 'bg-gray-200 dark:bg-rv-darkSurface hover:bg-gray-300 dark:hover:bg-rv-purple text-rv-navy dark:text-white'
+            ]">
               Portada
             </button>
           </div>
@@ -149,8 +126,7 @@ hover:bg-gray-300 dark:hover:bg-rv-purple hover:underline border border-transpar
           <div class="relative w-full h-56 top-1 flex flex-col items-center justify-center">
             <canvas ref="doughnut" class="w-full h-full" :class="spoilerMode ? 'blur-md' : ''"></canvas>
             <!-- Overlay spoiler sobre el chart -->
-            <div v-if="spoilerMode"
-              class="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <div v-if="spoilerMode" class="absolute inset-0 flex flex-col items-center justify-center gap-2">
               <i class="fa-solid fa-lock text-2xl text-rv-pink"></i>
               <button type="button" @click="revealed = true"
                 class="text-xs font-semibold px-3 py-1.5 rounded-full bg-rv-pink text-white hover:bg-rv-pink/80 transition-colors focus:outline-none">
@@ -158,16 +134,9 @@ hover:bg-gray-300 dark:hover:bg-rv-purple hover:underline border border-transpar
               </button>
             </div>
 
-<div class="flex flex-wrap justify-center gap-x-1 gap-y-1 mt-4 text-xs text-rv-navy dark:text-gray-200">
-              <div
-                v-for="(label, i) in customLegend"
-                :key="i"
-                class="flex items-center space-x-1"
-              >
-                <div
-                  :style="{ backgroundColor: label.color }"
-                  class="w-2.5 h-2.5 rounded-full"
-                ></div>
+            <div class="flex flex-wrap justify-center gap-x-1 gap-y-1 mt-4 text-xs text-rv-navy dark:text-gray-200">
+              <div v-for="(label, i) in customLegend" :key="i" class="flex items-center space-x-1">
+                <div :style="{ backgroundColor: label.color }" class="w-2.5 h-2.5 rounded-full"></div>
                 <span>{{ label.text }}</span>
               </div>
             </div>
@@ -176,13 +145,8 @@ hover:bg-gray-300 dark:hover:bg-rv-purple hover:underline border border-transpar
       </div>
     </div>
 
-    <UserModal
-      v-if="showUserModal"
-      :username="selectedUserName"
-      :user-id="selectedUserId"
-      :avatar-src="selectedUserAvatar"
-      @close="showUserModal = false"
-    />
+    <UserModal v-if="showUserModal" :username="selectedUserName" :user-id="selectedUserId"
+      :avatar-src="selectedUserAvatar" @close="showUserModal = false" />
   </div>
 </template>
 
@@ -348,9 +312,9 @@ export default defineComponent({
       const average =
         validValues.length > 0
           ? (
-              validValues.reduce((acc, val) => acc + val, 0) /
-              validValues.length
-            ).toFixed(2)
+            validValues.reduce((acc, val) => acc + val, 0) /
+            validValues.length
+          ).toFixed(2)
           : "0.00";
 
       const centerTextPlugin = {
@@ -368,7 +332,7 @@ export default defineComponent({
           const votesText = `${numVotes} voto${numVotes === 1 ? "" : "s"}`;
 
           const isDark = document.documentElement.classList.contains("dark");
-ctx.fillStyle = isDark ? "#e5e7eb" : "#1f2937";
+          ctx.fillStyle = isDark ? "#e5e7eb" : "#1f2937";
           ctx.font = "bold 22px sans-serif";
           ctx.fillText(average, width / 2, height / 2 + 13);
 
@@ -397,11 +361,11 @@ ctx.fillStyle = isDark ? "#e5e7eb" : "#1f2937";
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-title: {
-  display: true,
-  text: dynamicTitle,
-  color: document.documentElement.classList.contains("dark") ? "#e5e7eb" : "#1f2937",
-},
+            title: {
+              display: true,
+              text: dynamicTitle,
+              color: document.documentElement.classList.contains("dark") ? "#e5e7eb" : "#1f2937",
+            },
             legend: {
               display: false,
             },
