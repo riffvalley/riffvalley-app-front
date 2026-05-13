@@ -674,6 +674,13 @@ export default defineComponent({
     };
 
     const openSpotify = (webLink: string) => {
+      // Modo navegador: abre directamente en web sin diálogos
+      if (spotifyOpenMode.value !== 'app') {
+        window.open(webLink, "_blank", "noopener");
+        return;
+      }
+
+      // Modo app: intenta deep-link a la app de escritorio con fallback a web
       try {
         const kinds = ["album", "track", "artist", "playlist", "episode", "show"];
         for (const kind of kinds) {
@@ -742,6 +749,14 @@ export default defineComponent({
     };
     window.addEventListener('rv-spoilers-changed', handleSpoilersChanged);
     onUnmounted(() => window.removeEventListener('rv-spoilers-changed', handleSpoilersChanged));
+
+    // --- Spotify open mode ---
+    const spotifyOpenMode = ref<string>(localStorage.getItem('rv_spotify_open_mode') === 'web' ? 'web' : 'app');
+    const handleSpotifyModeChanged = (e: Event) => {
+      spotifyOpenMode.value = (e as CustomEvent).detail;
+    };
+    window.addEventListener('rv-spotify-mode-changed', handleSpotifyModeChanged);
+    onUnmounted(() => window.removeEventListener('rv-spotify-mode-changed', handleSpotifyModeChanged));
 
     // --- Share as image (Canvas) ---
     const isCopying = ref(false);

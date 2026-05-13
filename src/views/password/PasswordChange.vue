@@ -210,6 +210,45 @@
         </p>
       </section>
 
+      <!-- Abrir Spotify en -->
+      <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
+        <div class="text-center mb-5">
+          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
+            Enlace de Spotify
+          </span>
+        </div>
+
+        <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
+          Elige cómo se abre Spotify al pulsar el botón de un disco. En móvil siempre redirige a la app independientemente de esta opción.
+        </p>
+
+        <div class="flex rounded-full bg-gray-200 dark:bg-rv-darkSurface p-1 border border-gray-100 dark:border-white/10 gap-1">
+          <button type="button" @click="setSpotifyMode('app')"
+            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            :class="spotifyMode === 'app'
+              ? 'bg-rv-navy text-white shadow'
+              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
+            Spotify Desktop <span v-if="spotifyMode === 'app'" class="text-[10px] text-rv-pink ml-1">✓</span>
+          </button>
+          <button type="button" @click="setSpotifyMode('web')"
+            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            :class="spotifyMode === 'web'
+              ? 'bg-rv-navy text-white shadow'
+              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
+            Spotify Web <span v-if="spotifyMode === 'web'" class="text-[10px] text-rv-pink ml-1">✓</span>
+          </button>
+        </div>
+
+        <p class="mt-3 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+          <template v-if="spotifyMode === 'web'">
+            Spotify se abrirá en el navegador. Sin diálogos ni permisos — limpio y directo.
+          </template>
+          <template v-else>
+            Intentará abrir la app de Spotify. El navegador pedirá confirmación la primera vez que lo uses.
+          </template>
+        </p>
+      </section>
+
       </div><!-- /columna derecha -->
 
     </div>
@@ -241,6 +280,14 @@ export default {
       defaultYearFilter.value = val;
       localStorage.setItem('rv_default_year_filter', val);
       window.dispatchEvent(new CustomEvent('rv-year-filter-changed', { detail: val }));
+    };
+
+    // --- Enlace de Spotify ---
+    const spotifyMode = ref(localStorage.getItem('rv_spotify_open_mode') === 'web' ? 'web' : 'app');
+    const setSpotifyMode = (val) => {
+      spotifyMode.value = val;
+      localStorage.setItem('rv_spotify_open_mode', val);
+      window.dispatchEvent(new CustomEvent('rv-spotify-mode-changed', { detail: val }));
     };
 
     // --- No Spoilers ---
@@ -353,6 +400,7 @@ export default {
       avatars, selectedAvatar, selectAvatar, saveAvatar,
       noSpoilers, toggleNoSpoilers,
       defaultYearFilter, currentYear, setDefaultYearFilter,
+      spotifyMode, setSpotifyMode,
     };
   },
 };
