@@ -81,7 +81,7 @@ export const useUserStore = defineStore("user", {
     async updateUserSuperAdminStore(userId: string, updatedUser: any) {
       await updateUserSuperAdminService(userId, updatedUser);
 
-      const index = this.users.findIndex((user) => user.id === updatedUser.id);
+      const index = this.users.findIndex((user) => user.id === userId);
       if (index !== -1) {
         this.users[index] = {
           ...this.users[index],

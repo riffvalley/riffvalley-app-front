@@ -630,7 +630,11 @@ export default defineComponent({
         if (payload.rate && payload.rate > 0)
           SwalService.successImage(payload.rate);
         else SwalService.success("Votación enviada con éxito");
-        refreshAverages(); // actualiza medias y contador en tiempo real
+        try {
+          await refreshAverages(); // actualiza medias y contador en tiempo real
+        } catch {
+          // el voto ya se guardó; el refresco de medias es no crítico
+        }
       } catch (error) {
         console.error("Error submitting rating:", error);
         Swal.fire({
