@@ -14,7 +14,7 @@
       @resetAndFetch="resetAndFetch" />
 
     <div class="filters-wrap flex justify-start space-x-2 mb-6">
-      <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-lg font-medium transition-all duration-200"
+      <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-lg font-medium transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0"
 :class="viewMode === 'all'
   ? 'bg-rv-navy text-white dark:bg-gray-200 dark:text-rv-navy'
   : 'bg-gray-200 dark:bg-white/5 text-rv-navy dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-white/10 dark:hover:text-white'
@@ -23,7 +23,7 @@
         Todos los discos <span v-if="totalDisc !== ''">({{ totalDisc }})</span>
       </label>
 
-      <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
+      <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0"
         :class="viewMode === 'rates'
           ? 'bg-blue-500 text-white'
           : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
@@ -32,7 +32,7 @@
         Mis votos <span v-if="totalRates !== ''">({{ totalRates }})</span>
       </label>
 
-      <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
+      <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0"
         :class="viewMode === 'covers'
           ? 'bg-green-500 text-white'
           : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
@@ -42,7 +42,7 @@
       </label>
 
       <label
-  class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
+  class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0"
   :class="viewMode === 'comments'
     ? 'bg-rv-purple text-white'
     : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
@@ -53,7 +53,7 @@
   <span v-if="totalComments !== ''">({{ totalComments }})</span>
 </label>
 
-      <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
+      <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0"
         :class="viewMode === 'favorites'
           ? 'bg-red-500 text-white'
           : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
@@ -63,7 +63,7 @@
         <span v-if="totalFavorites !== ''">({{ totalFavorites }})</span>
       </label>
 
-      <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200"
+      <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0"
         :class="viewMode === 'pendientes'
           ? 'bg-yellow-500 text-white'
           : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
@@ -498,14 +498,16 @@ response = await getCommentsByUser(
     };
 
     const ORDER = {
-      NEWS_DESC: { label: "Más recientes", value: "disc.releaseDate:DESC,artist.name:ASC" },
-      DATE_ASC: { label: "Más antiguos", value: "disc.releaseDate:ASC,artist.name:ASC" },
-      RATE_DESC: { label: "Nota", value: "rate.rate:DESC,disc.releaseDate:DESC", icon: "up" },
-      RATE_ASC: { label: "Nota", value: "rate.rate:ASC,disc.releaseDate:DESC", icon: "down" },
-      COVER_DESC: { label: "Portada", value: "rate.cover:DESC,artist.name:ASC", icon: "up" },
-      COVER_ASC: { label: "Portada", value: "rate.cover:ASC,artist.name:ASC", icon: "down" },
-      UNVOTED_RATE: { label: "Discos sin votar", value: "UNVOTED:rate" },
-      UNVOTED_COVER: { label: "Portadas sin votar", value: "UNVOTED:cover" },
+      NEWS_DESC:    { label: "Más recientes",       value: "disc.releaseDate:DESC,artist.name:ASC" },
+      DATE_ASC:     { label: "Más antiguos",         value: "disc.releaseDate:ASC,artist.name:ASC" },
+      RATE_DESC:    { label: "Nota",                 value: "rate.rate:DESC,disc.releaseDate:DESC",        icon: "up" },
+      RATE_ASC:     { label: "Nota",                 value: "rate.rate:ASC,disc.releaseDate:DESC",         icon: "down" },
+      AVG_RATE_DESC:{ label: "Nota",                 value: "disc.averageRate:DESC,disc.releaseDate:DESC", icon: "up" },
+      AVG_RATE_ASC: { label: "Nota",                 value: "disc.averageRate:ASC,disc.releaseDate:DESC",  icon: "down" },
+      COVER_DESC:   { label: "Portada",              value: "rate.cover:DESC,artist.name:ASC",             icon: "up" },
+      COVER_ASC:    { label: "Portada",              value: "rate.cover:ASC,artist.name:ASC",              icon: "down" },
+      UNVOTED_RATE: { label: "Discos sin votar",     value: "UNVOTED:rate" },
+      UNVOTED_COVER:{ label: "Portadas sin votar",   value: "UNVOTED:cover" },
     };
 
     const defaultOrderByForTab = computed(() => {
@@ -526,7 +528,7 @@ response = await getCommentsByUser(
         case "favorites":
           return [ORDER.NEWS_DESC, ORDER.DATE_ASC, ORDER.RATE_DESC, ORDER.RATE_ASC, ORDER.COVER_DESC, ORDER.COVER_ASC];
         default:
-          return [ORDER.NEWS_DESC, ORDER.DATE_ASC, ORDER.UNVOTED_RATE, ORDER.UNVOTED_COVER];
+          return [ORDER.NEWS_DESC, ORDER.DATE_ASC, ORDER.AVG_RATE_DESC, ORDER.AVG_RATE_ASC, ORDER.UNVOTED_RATE, ORDER.UNVOTED_COVER];
       }
     });
 
