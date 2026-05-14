@@ -1,160 +1,177 @@
 <template>
-  <!-- Contenedor principal con scroll si el contenido excede el 80% del alto de la pantalla -->
-<div 
-  class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-  @click.self="$emit('close')"
->
-  <!-- MODAL -->
-  <div 
-class="spotify-artist-details relative w-full max-w-2xl mx-auto my-3 sm:my-3 p-4 sm:p-4 
-bg-gradient-to-b from-gray-50 to-gray-100 dark:from-rv-darkCard dark:to-rv-darkSurface
-rounded-lg shadow-md max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-white/10"
-  >
-<button
-  @click="$emit('close')"
-  aria-label="Cerrar"
-  title="Cerrar"
-  class="absolute top-2 right-2 text-white bg-rv-navy hover:bg-[#e46e8a]
-         rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all
-         border-0 outline-none focus:outline-none focus-visible:outline-none
-         ring-0 focus:ring-0 focus-visible:ring-0"
->
-  <i class="fas fa-times"></i>
-</button>
-    <!-- Estado de carga -->
-<div v-if="loading" class="text-center py-4 text-gray-600 dark:text-gray-300">
-      Cargando detalles del artista...
-    </div>
+  <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4"
+       @click.self="$emit('close')">
 
-    <!-- Errores -->
-    <div v-else-if="error" class="text-center py-4">
-<h2 class="text-2xl font-bold mb-2 text-rv-navy dark:text-white">
-        {{ artistNameProp }}
-      </h2>
-<p class="text-red-600 dark:text-red-400">{{ error }}</p>
-    </div>
+    <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-2xl
+                w-full max-w-2xl relative max-h-[88vh] overflow-y-auto
+                border border-gray-100 dark:border-white/10">
 
-    <!-- Información del artista -->
-    <div>
-      <!-- Datos obtenidos de Spotify -->
-      <div
-        v-if="artist"
-        class="artist-info flex flex-col sm:flex-row gap-6 p-4 bg-gradient-to-b from-gray-50 to-gray-100 dark:from-rv-darkSurface dark:to-rv-darkCard rounded-lg shadow-md justify-center items-center text-center border border-gray-100 dark:border-white/10">
-        <!-- Imagen del artista -->
-        <img
-          v-if="artist.images && artist.images.length"
-          :src="artist.images[0].url"
-          alt="Foto del artista"
-          class="artist-photo w-40 h-40 object-cover rounded-full shadow-lg cursor-zoom-in transition-transform hover:scale-110"
-        />
+      <!-- Botón cerrar siempre visible -->
+      <button @click="$emit('close')"
+        class="absolute top-4 right-4 z-20 text-white bg-rv-navy hover:bg-rv-pink
+               rounded-full w-9 h-9 flex items-center justify-center shadow-md transition-all
+               border-0 outline-none focus:outline-none ring-0 focus:ring-0">
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
 
-        <!-- Metadatos del artista -->
-        <div class="artist-meta">
-          <h2 class="text-2xl font-bold mb-2 text-rv-navy dark:text-white">
-            {{ artist.name }}
-          </h2>
-          <p class="mb-1 text-rv-navy dark:text-gray-300">
-            <strong>Seguidores:</strong>
-            {{ artist.followers.total.toLocaleString() }}
-          </p>
-          <p class="mb-1 text-rv-navy dark:text-gray-300">
-            <strong>Popularidad:</strong> {{ artist.popularity }}
-          </p>
-          <p class="mb-1 text-rv-navy dark:text-gray-300">
-            <strong>Géneros:</strong>
-            {{
-              artist.genres && artist.genres.length
-                ? artist.genres.join(", ")
-                : "Sin géneros"
-            }}
-          </p>
-          <!-- Botón para ver el perfil en Spotify -->
-          <div class="mt-3" v-if="artist">
-            <a
-              v-if="artist.external_urls && artist.external_urls.spotify"
-              :href="artist.external_urls.spotify"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center px-3 py-1 text-xsm justify-center shadow-md text-white bg-green-500 hover:bg-green-600 hover:text-white rounded-full mt-2 mb-1 transition-all">
-              <i class="fab fa-spotify mr-2"></i>
-              Ver en Spotify
-            </a>
+      <!-- ── Loading ─────────────────────────────────── -->
+      <div v-if="loading" class="py-20 text-center">
+        <i class="fa-solid fa-spinner animate-spin text-2xl text-rv-pink mb-3 block"></i>
+        <span class="text-sm text-gray-400 dark:text-gray-500">Buscando en Spotify...</span>
+      </div>
+
+      <!-- ── Error ──────────────────────────────────── -->
+      <div v-else-if="error" class="py-16 text-center px-6">
+        <i class="fa-brands fa-spotify text-4xl text-gray-300 dark:text-white/20 mb-3 block"></i>
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ error }}</p>
+      </div>
+
+      <!-- ── Contenido ──────────────────────────────── -->
+      <div v-else-if="artist">
+
+        <!-- Header con foto + blur de fondo -->
+        <div class="relative rounded-t-2xl overflow-hidden">
+
+          <!-- Fondo blur extraído de la foto del artista -->
+          <div class="absolute inset-0">
+            <img v-if="artist.images?.length" :src="artist.images[0].url"
+                 class="w-full h-full object-cover scale-110 blur-2xl opacity-40 dark:opacity-25" />
+            <div class="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-rv-darkCard/30 dark:to-rv-darkCard"></div>
           </div>
-        </div>
-      </div>
 
-      <div v-if="lastFmData" class="lastfm-info mt-6">
-        <h3 class="text-xl font-semibold mb-3 text-rv-navy dark:text-rv-white">Biografía</h3>
-        <!-- La biografía de Last.fm suele venir en HTML, por eso usamos v-html -->
-        <div
-class="text-sm text-rv-navy dark:text-gray-300"
-          v-html="lastFmData.bio.summary"
-        ></div>
+          <!-- Fila foto + meta -->
+          <div class="relative z-10 flex items-center gap-5 px-6 pt-10 pb-6 pr-14">
 
-        <div v-if="lastFmData.tags && lastFmData.tags.tag" class="mt-4">
-<h4 class="text-md font-semibold mb-2 text-rv-navy dark:text-white flex items-center justify-center gap-2">
-<i class="fab fa-lastfm text-rv-navy dark:text-white relative top-[1px]"></i>
-  Etiquetas de Last.fm
-</h4>
-<div class="flex flex-wrap justify-center gap-2">
-  <span
-    v-for="tag in lastFmData.tags.tag"
-    :key="tag.name"
-    class="px-2 py-1 bg-[#e46e8a] rounded-full text-white text-xs font-semibold"
-  >
-    {{ tag.name }}
-  </span>
-</div>
+            <!-- Foto circular -->
+            <a v-if="artist.images?.length"
+               :href="artist.images[0].url" target="_blank" rel="noopener noreferrer"
+               class="shrink-0 block group">
+              <img :src="artist.images[0].url" alt="Foto del artista"
+                   class="w-36 h-36 sm:w-44 sm:h-44 object-cover rounded-full shadow-2xl
+                          transition-transform duration-300 group-hover:scale-105" />
+            </a>
 
-        </div>
-                </div>
-      </div>
+            <!-- Meta -->
+            <div class="flex-1 min-w-0 pb-1 flex flex-col items-center text-center">
+              <span class="bg-rv-navy dark:bg-rv-purple text-white px-3 py-0.5 rounded-full
+                           text-[11px] font-bold tracking-wide uppercase inline-block mb-2">
+                Artista
+              </span>
+              <h2 class="text-xl sm:text-2xl font-bold text-rv-navy dark:text-white leading-tight mb-1">
+                {{ artist.name }}
+              </h2>
 
-      <!-- Galería de Top Tracks -->
-      <div class="top-tracks mt-6" v-if="artist">
-        <h3 class="text-xl font-semibold mb-3 text-rv-navy dark:text-white">Top canciones</h3>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <div
-            v-for="track in topTracks"
-            :key="track.id"
-            class="track-card bg-gray-100 dark:bg-rv-darkSurface rounded-lg overflow-hidden shadow hover:shadow-md transition-shadow duration-300 border border-gray-100 dark:border-white/10"
-          >
-            <img
-              v-if="
-                track.album && track.album.images && track.album.images.length
-              "
-              :src="track.album.images[0].url"
-              alt="Cover del álbum"
-              class="w-full h-32 object-cover"
-            />
-            <div class="p-2">
-              <h4
-                class="text-sm font-bold text-gray-800 dark:text-white truncate"
-                :title="track.name"
-              >
-                {{ track.name }}
-              </h4>
-              <p
-                class="text-xs text-gray-600 dark:text-gray-300 truncate"
-                :title="track.album.name"
-              >
-                {{ track.album.name }}
+              <!-- Géneros -->
+              <p v-if="artist.genres?.length" class="text-sm font-semibold text-rv-pink mb-3">
+                {{ artist.genres.slice(0, 3).join(' · ') }}
               </p>
-              <a
-                v-if="track.external_urls && track.external_urls.spotify"
-                :href="track.external_urls.spotify"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="mt-1 inline-block text-xs px-2 py-1 text-white shadow-md text-white bg-green-500 hover:bg-green-600 hover:text-white rounded-full mt-2 mb-1 transition-all"
-              >
-                <i class="fab fa-spotify mr-1"></i>Escuchar
+
+              <div class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-300 mb-4">
+                <span>
+                  <i class="fa-solid fa-users mr-1 text-gray-600 dark:text-white"></i>
+                  {{ artist.followers.total.toLocaleString() }} seguidores
+                </span>
+                <span>
+                  <i class="fa-solid fa-fire mr-1 text-gray-600 dark:text-white"></i>
+                  Popularidad {{ artist.popularity }}/100
+                </span>
+              </div>
+
+              <a v-if="artist.external_urls?.spotify"
+                 :href="artist.external_urls.spotify" target="_blank" rel="noopener noreferrer"
+                 class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold
+                        bg-[#1DB954] text-white hover:bg-[#1aa34a] hover:text-white
+                        transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97]
+                        shadow-md">
+                <i class="fa-brands fa-spotify"></i>
+                Ver en Spotify
               </a>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Información adicional de Last.fm -->
+        <!-- ── Biografía Last.fm ───────────────────── -->
+        <div v-if="lastFmData?.bio?.summary" class="px-6 pt-5 pb-4">
+          <div class="flex items-center gap-2 mb-3">
+            <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400">
+              Biografía
+            </p>
+            <i class="fa-brands fa-lastfm text-xs text-gray-400 dark:text-gray-400"></i>
+          </div>
+          <div class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed biography-content"
+               v-html="lastFmData.bio.summary"></div>
+        </div>
+
+        <!-- ── Tags Last.fm ───────────────────────── -->
+        <div v-if="lastFmData?.tags?.tag?.length" class="px-6 pb-4">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400 mb-2">
+            Etiquetas
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            <span v-for="tag in lastFmData.tags.tag" :key="tag.name"
+                  class="px-2.5 py-0.5 bg-rv-pink/10 dark:bg-rv-pink/20 text-rv-pink
+                         text-[11px] font-semibold rounded-full border border-rv-pink/20">
+              {{ tag.name }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="border-t border-gray-100 dark:border-white/10 mx-0"></div>
+
+        <!-- ── Top Tracks ─────────────────────────── -->
+        <div class="px-5 py-4">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400 mb-2 px-2">
+            Top canciones
+          </p>
+          <ul>
+            <li v-for="(track, index) in topTracks" :key="track.id"
+                class="flex items-center gap-3 py-2 px-2 rounded-lg
+                       hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/track">
+
+              <!-- Número -->
+              <span class="w-6 text-center text-xs text-gray-400 dark:text-gray-400 shrink-0 font-mono tabular-nums">
+                {{ index + 1 }}
+              </span>
+
+              <!-- Miniatura álbum -->
+              <img v-if="track.album?.images?.length"
+                   :src="track.album.images[track.album.images.length - 1].url"
+                   class="w-8 h-8 rounded object-cover shrink-0 shadow-sm" />
+              <div v-else class="w-8 h-8 rounded bg-gray-100 dark:bg-white/10 shrink-0"></div>
+
+              <!-- Nombre + álbum -->
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-800 dark:text-gray-100 truncate leading-tight">
+                  {{ track.name }}
+                </p>
+                <p class="text-xs text-gray-400 dark:text-gray-500 truncate leading-tight">
+                  {{ track.album?.name }}
+                </p>
+              </div>
+
+              <!-- Preview (aparece en hover) -->
+              <audio v-if="track.preview_url" :src="track.preview_url" controls
+                     class="h-7 w-28 shrink-0 opacity-0 group-hover/track:opacity-100 transition-opacity duration-200"></audio>
+
+              <!-- Botón Spotify (aparece en hover) -->
+              <a v-if="track.external_urls?.spotify" :href="track.external_urls.spotify"
+                 target="_blank" rel="noopener noreferrer"
+                 class="shrink-0 opacity-0 group-hover/track:opacity-100 transition-opacity duration-200
+                        inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold
+                        bg-[#1DB954] text-white hover:bg-[#1aa34a] shadow-sm">
+                <i class="fa-brands fa-spotify text-xs"></i>
+              </a>
+
+              <!-- Duración -->
+              <span class="text-xs text-gray-400 dark:text-gray-300 shrink-0 font-mono tabular-nums w-9 text-right">
+                {{ formatDuration(track.duration_ms) }}
+              </span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
     </div>
   </div>
 </template>
@@ -274,6 +291,12 @@ export default defineComponent({
       }
     };
 
+    const formatDuration = (durationMs: number) => {
+      const minutes = Math.floor(durationMs / 60000);
+      const seconds = Math.floor((durationMs % 60000) / 1000);
+      return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
+    };
+
     onMounted(() => {
       searchByAlbumAndArtist();
       fetchLastFmData(props.artistName);
@@ -286,16 +309,20 @@ export default defineComponent({
       loading,
       error,
       artistNameProp,
+      formatDuration,
     };
   },
 });
 </script>
 
 <style scoped>
-.track-card img {
-  transition: transform 0.3s;
+/* Limpia los enlaces que inyecta Last.fm en el v-html de la bio */
+.biography-content :deep(a) {
+  color: #e46e8a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
-.track-card img:hover {
-  transform: scale(1.05);
+.biography-content :deep(a:hover) {
+  opacity: 0.8;
 }
 </style>

@@ -38,8 +38,8 @@
           rel="noopener noreferrer"
 class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
        bg-[#229ED9] text-white hover:bg-[#1a8bc2] hover:text-white
-       transition-colors shadow-sm
-       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
+       transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
+       shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
         >
           <i class="fa-brands fa-telegram"></i>
           Canal
@@ -51,8 +51,8 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
           rel="noopener noreferrer"
 class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
        bg-rv-pink text-white hover:bg-rv-pink/80 hover:text-white
-       transition-colors shadow-sm
-       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
+       transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
+       shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
         >
           <i class="fa-solid fa-comments"></i>
           Grupo
@@ -76,9 +76,8 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
           rel="noopener noreferrer"
 class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
        bg-rv-navy text-white hover:bg-rv-navy/70 hover:text-white
-       transition-colors shadow-sm
-       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
-
+       transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
+       shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
         >
           <i class="fa-solid fa-globe"></i>
           Web
@@ -90,8 +89,8 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
           rel="noopener noreferrer"
 class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
        bg-rv-purple text-white hover:bg-rv-purple/80 hover:text-white
-       transition-colors shadow-sm
-       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
+       transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
+       shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
         >
           <i class="fa-solid fa-calendar-days"></i>
           Conciertos
@@ -115,8 +114,8 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
           rel="noopener noreferrer"
 class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
        bg-[#229ED9] text-white hover:bg-[#1a8bc2] hover:text-white
-       transition-colors shadow-sm
-       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
+       transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
+       shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
         >
           <i class="fa-brands fa-telegram"></i>
           Canal
@@ -128,8 +127,8 @@ class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs
           rel="noopener noreferrer"
 class="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
        bg-rv-pink text-white hover:bg-rv-pink/80 hover:text-white
-       transition-colors shadow-sm
-       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
+       transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
+       shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy/30"
         >
           <i class="fa-solid fa-comments"></i>
           Grupo
@@ -219,9 +218,9 @@ class="group inline-flex items-center
        font-semibold text-rv-navy dark:text-white
        bg-gray-100 dark:bg-rv-navy
        transition-all duration-200
-       hover:bg-rv-navy hover:text-white
+       hover:bg-rv-navy hover:text-white hover:-translate-y-0.5 hover:shadow-lg
        dark:hover:bg-rv-pink
-       active:bg-rv-navy active:text-white
+       active:scale-[0.97] active:translate-y-0
        border border-gray-200 dark:border-white/10
        outline-none focus:outline-none focus-visible:outline-none
        ring-0 focus:ring-0 focus-visible:ring-0"
@@ -255,8 +254,10 @@ class="group inline-flex items-center
         </p>
 
         <router-link :to="{ name: 'DiscList' }" class="group inline-flex items-center gap-2
-             px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
-            bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple
+             px-4 py-1.5 rounded-full shadow-md text-sm font-medium transition-all duration-200
+             bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white
+             hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple hover:-translate-y-0.5 hover:shadow-lg
+             active:scale-[0.97] active:translate-y-0
              border-0 outline-none focus:outline-none focus-visible:outline-none
              ring-0 focus:ring-0 focus-visible:ring-0">
           <i class="fa-solid fa-arrow-up rotate-45
@@ -281,44 +282,57 @@ class="group inline-flex items-center
     <!-- Columna 2: Botones de periodo + selector de rango como pill -->
     <div class="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-5 mt-6 mb-8">
 
-      <button @click="selectedPeriod = 'week'" :class="selectedPeriod === 'week'
-        ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold'
-        : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
-       border-0 outline-none focus:outline-none focus-visible:outline-none
-       ring-0 focus:ring-0 focus-visible:ring-0">
+      <button @click="selectedPeriod = 'week'"
+        :class="selectedPeriod === 'week'
+          ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold hover:opacity-80 hover:shadow-lg'
+          : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple hover:shadow-lg'"
+        class="px-4 py-1.5 rounded-full shadow-md text-sm font-medium
+               transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0
+               border-0 outline-none focus:outline-none focus-visible:outline-none
+               ring-0 focus:ring-0 focus-visible:ring-0">
         Semana
       </button>
 
-      <button @click="selectedPeriod = 'month'" :class="selectedPeriod === 'month'
-        ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold'
-        : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
-       border-0 outline-none focus:outline-none focus-visible:outline-none
-       ring-0 focus:ring-0 focus-visible:ring-0">
+      <button @click="selectedPeriod = 'month'"
+        :class="selectedPeriod === 'month'
+          ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold hover:opacity-80 hover:shadow-lg'
+          : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple hover:shadow-lg'"
+        class="px-4 py-1.5 rounded-full shadow-md text-sm font-medium
+               transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0
+               border-0 outline-none focus:outline-none focus-visible:outline-none
+               ring-0 focus:ring-0 focus-visible:ring-0">
         Mes
       </button>
 
-      <button @click="selectedPeriod = 'year'" :class="selectedPeriod === 'year'
-        ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold'
-        : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
-       border-0 outline-none focus:outline-none focus-visible:outline-none
-       ring-0 focus:ring-0 focus-visible:ring-0">
+      <button @click="selectedPeriod = 'year'"
+        :class="selectedPeriod === 'year'
+          ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold hover:opacity-80 hover:shadow-lg'
+          : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple hover:shadow-lg'"
+        class="px-4 py-1.5 rounded-full shadow-md text-sm font-medium
+               transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0
+               border-0 outline-none focus:outline-none focus-visible:outline-none
+               ring-0 focus:ring-0 focus-visible:ring-0">
         Año
       </button>
 
-      <button @click="{ selectedPeriod = 'all'; fetchDiscs(); }" :class="selectedPeriod === 'all'
-        ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold'
-        : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple'" class="px-4 py-1.5 rounded-full shadow-md text-md transition-all duration-200
-       border-0 outline-none focus:outline-none focus-visible:outline-none
-       ring-0 focus:ring-0 focus-visible:ring-0">
+      <button @click="{ selectedPeriod = 'all'; fetchDiscs(); }"
+        :class="selectedPeriod === 'all'
+          ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold hover:opacity-80 hover:shadow-lg'
+          : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple hover:shadow-lg'"
+        class="px-4 py-1.5 rounded-full shadow-md text-sm font-medium
+               transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0
+               border-0 outline-none focus:outline-none focus-visible:outline-none
+               ring-0 focus:ring-0 focus-visible:ring-0">
         Todos
       </button>
 
 
       <div v-if="selectedPeriod !== 'all'" class="relative flex gap-4">
         <div class="relative">
-          <select v-model="selectedOption" @change="fetchDiscs" class="min-w-[12rem] px-4 pr-9 py-1.5 rounded-full shadow-md text-md font-semibold
+          <select v-model="selectedOption" @change="fetchDiscs" class="min-w-[12rem] px-4 pr-9 py-1.5 rounded-full shadow-md text-sm font-semibold
          bg-rv-navy dark:bg-rv-purple text-white appearance-none cursor-pointer
          border border-transparent dark:border-white/10
+         transition-all duration-200 hover:-translate-y-0.5 hover:opacity-80 hover:shadow-lg
          focus:outline-none">
             <option v-for="option in optionsForSelect" :key="option.label" :value="option">
               {{ option.label }}
@@ -334,9 +348,10 @@ class="group inline-flex items-center
 
         <!-- Selector de Año (solo visible si es Semana o Mes) -->
         <div v-if="selectedPeriod === 'week' || selectedPeriod === 'month'" class="relative">
-          <select v-model="selectedYear" class="min-w-[6rem] px-4 pr-9 py-1.5 rounded-full shadow-md text-md font-semibold
+          <select v-model="selectedYear" class="min-w-[6rem] px-4 pr-9 py-1.5 rounded-full shadow-md text-sm font-semibold
          bg-rv-navy dark:bg-rv-purple text-white appearance-none cursor-pointer
          border border-transparent dark:border-white/10
+         transition-all duration-200 hover:-translate-y-0.5 hover:opacity-80 hover:shadow-lg
          focus:outline-none">
             <option v-for="year in availableYears" :key="year" :value="year">
               {{ year }}
