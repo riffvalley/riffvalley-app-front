@@ -309,7 +309,7 @@ function sourceBadgeClass(source: string) {
 function sourceBadgeIcon(source: string) {
   if (source === 'telegram')      return 'fa-brands fa-telegram';
   if (source === 'riffvalley.es') return 'fa-solid fa-globe';
-  return 'fa-solid fa-bell';
+  return 'fa-solid fa-users';
 }
 
 function sourceLabel(post: NewsPost) {
