@@ -13,7 +13,7 @@
       @update:selectedCountry="selectedCountry = $event" selectClass="w-full" wrapperClass=""
       @resetAndFetch="resetAndFetch" />
 
-    <div class="filters-wrap flex justify-start space-x-2 mb-6">
+    <div class="filters-wrap mb-6">
       <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-lg font-medium transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0"
 :class="viewMode === 'all'
   ? 'bg-rv-navy text-white dark:bg-gray-200 dark:text-rv-navy'
@@ -84,27 +84,27 @@
 
     <!-- Contenedor de cuadrícula para las tarjetas -->
 <!-- Listado de comentarios -->
-<div v-if="viewMode === 'comments'" class="space-y-4">
+<div v-if="viewMode === 'comments'" class="space-y-4 overflow-x-hidden">
   <div
     v-for="comment in userComments"
     :key="comment.id"
-    class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-md border border-gray-100 dark:border-white/20 p-4 flex gap-4"
+    class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-md border border-gray-100 dark:border-white/20 p-4 flex flex-col sm:flex-row gap-4"
   >
     <img
       :src="comment.disc?.image"
       :alt="comment.disc?.name"
-      class="w-20 h-20 rounded-xl object-cover shrink-0 bg-gray-100 dark:bg-rv-darkSurface"
+      class="w-full h-44 sm:w-20 sm:h-20 rounded-xl object-cover shrink-0 bg-gray-100 dark:bg-rv-darkSurface"
     />
 
     <div class="flex-1 min-w-0">
       <div class="flex flex-wrap items-center gap-2 mb-1">
-        <span class="font-bold text-rv-navy dark:text-white">
+        <span class="font-bold text-rv-navy dark:text-white break-words min-w-0">
           {{ comment.disc?.artist?.name || 'Desconocido' }}
         </span>
 
         <span class="text-gray-400">–</span>
 
-        <span class="italic text-gray-800 dark:text-gray-200">
+        <span class="italic text-gray-800 dark:text-gray-200 break-words min-w-0">
           {{ comment.disc?.name }}
         </span>
       </div>
@@ -123,7 +123,7 @@
         </span>
       </div>
 
-      <p class="text-sm text-gray-700 dark:text-gray-100 bg-gray-50 dark:bg-rv-darkSurface rounded-xl px-3 py-2">
+      <p class=”text-sm text-gray-700 dark:text-gray-100 bg-gray-50 dark:bg-rv-darkSurface rounded-xl px-3 py-2 break-all line-clamp-4 sm:line-clamp-none”>
         “{{ comment.comment }}”
       </p>
 
@@ -608,6 +608,11 @@ response = await getCommentsByUser(
 </script>
 
 <style scoped>
+/* Evita el salto de layout al aparecer/desaparecer la scrollbar */
+:global(html) {
+  scrollbar-gutter: stable;
+}
+
 .cards-grid {
   display: grid;
   gap: 1.5rem;
@@ -616,15 +621,23 @@ response = await getCommentsByUser(
 }
 
 .filters-wrap {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.filters-wrap label {
+  text-align: center;
+  justify-content: center;
 }
 
 @media (min-width: 640px) {
   .filters-wrap {
+    display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 1rem;
+    gap: 0.5rem;
   }
 }
 
