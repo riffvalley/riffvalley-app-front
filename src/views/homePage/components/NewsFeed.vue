@@ -148,40 +148,60 @@
     <Teleport to="body">
       <div
         v-if="selectedNews"
-        class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/50 z-50"
+        class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/60 z-50 px-4"
         @click.self="selectedNews = null"
       >
         <div
-          class="bg-white dark:bg-rv-darkCard p-4 sm:p-6 rounded-2xl shadow-xl
-                 w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto
+          class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-2xl
+                 w-full sm:max-w-2xl relative max-h-[88vh] overflow-y-auto
                  border border-gray-100 dark:border-white/10"
           role="dialog"
           aria-modal="true"
         >
-          <button
-            @click="selectedNews = null"
-            class="absolute top-3 right-3 text-white bg-rv-navy hover:bg-rv-pink
-                   rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all
-                   border-0 outline-none focus:outline-none ring-0 focus:ring-0"
-            aria-label="Cerrar"
-          >
-            <i class="fa-solid fa-xmark text-lg"></i>
-          </button>
+          <!-- Cabecera con imagen -->
+          <div class="relative h-40 sm:h-52 flex-shrink-0 overflow-hidden rounded-t-2xl">
+            <img
+              :src="selectedNews.image"
+              :alt="selectedNews.title"
+              class="w-full h-full object-cover brightness-75"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
 
-          <div class="flex items-center gap-2 mb-3">
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rv-blue/15 text-rv-blue">
-              {{ typeLabel(selectedNews.type) }}
-            </span>
-            <span class="text-gray-500 dark:text-gray-300 text-xs">{{ selectedNews.date }}</span>
+            <!-- Botón cerrar -->
+            <button
+              @click="selectedNews = null"
+              class="absolute top-3 right-3 z-10
+                     w-9 h-9 rounded-full bg-black/40 hover:bg-rv-pink backdrop-blur-sm
+                     text-white flex items-center justify-center
+                     shadow-md transition-all duration-150
+                     border-0 outline-none focus:outline-none ring-0 focus:ring-0"
+              aria-label="Cerrar"
+            >
+              <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+
+            <!-- Badge + fecha sobre la imagen -->
+            <div class="absolute bottom-3 left-4 flex items-center gap-2">
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold shadow-md"
+                    :class="typeBadgeClass(selectedNews.type)">
+                <i :class="typeBadgeIcon(selectedNews.type)" class="text-[9px]"></i>
+                {{ typeLabel(selectedNews.type) }}
+              </span>
+              <span class="text-white/70 text-[10px]">{{ selectedNews.date }}</span>
+            </div>
           </div>
 
-          <h3 class="text-xl font-bold text-rv-navy dark:text-white mb-4">{{ selectedNews.title }}</h3>
-
-          <div
-            class="news-prose text-gray-700 dark:text-gray-200"
-            v-html="selectedNews.body"
-            @click="handleBodyClick"
-          />
+          <!-- Cuerpo -->
+          <div class="p-5 sm:p-6">
+            <h3 class="text-lg sm:text-xl font-bold text-rv-navy dark:text-white mb-4 leading-snug">
+              {{ selectedNews.title }}
+            </h3>
+            <div
+              class="news-prose text-gray-700 dark:text-gray-300 text-sm leading-relaxed"
+              v-html="selectedNews.body"
+              @click="handleBodyClick"
+            />
+          </div>
         </div>
       </div>
     </Teleport>
@@ -254,7 +274,7 @@ const filteredPosts = ref<NewsPost[]>([]);
 const visiblePosts  = ref<NewsPost[]>([]);
 const loading       = ref(true);
 const activeFilter  = ref<FilterDef | null>(null);
-const selectedNews  = ref<{ title: string; type: NewsType; body: string; date: string } | null>(null);
+const selectedNews  = ref<{ title: string; type: NewsType; body: string; date: string; image: string } | null>(null);
 
 // ── Lógica de filtros ────────────────────────────────────────
 
@@ -335,7 +355,20 @@ function openAppPost(post: NewsPost) {
     type:  post.newsType!,
     body:  post.appBody!,
     date:  post.date,
+    image: post.image ?? appTypeImages[post.newsType!] ?? '/news/default.jpg',
   };
+}
+
+function typeBadgeClass(type: NewsType) {
+  if (type === 'version')     return 'bg-rv-purple/90 text-white';
+  if (type === 'new_feature') return 'bg-rv-pink/90 text-white';
+  return 'bg-rv-blue/90 text-white';
+}
+
+function typeBadgeIcon(type: NewsType) {
+  if (type === 'version')     return 'fa-solid fa-code-branch';
+  if (type === 'new_feature') return 'fa-solid fa-star';
+  return 'fa-solid fa-users';
 }
 
 function handleBodyClick(e: MouseEvent) {
