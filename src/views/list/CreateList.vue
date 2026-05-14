@@ -113,13 +113,13 @@ export default defineComponent({
           status: "new",
         });
 
-        SwalService.success("List created successfully!");
+        SwalService.success("Lista creada correctamente");
         router.push({ name: "ListDefault" });
       } catch (error) {
         // Maneja errores de la solicitud
         console.error("Error creating list:", error);
         SwalService.error(
-          "An error occurred while creating the list. Please try again."
+          "No se pudo crear la lista. Por favor, inténtalo de nuevo."
         );
       }
     };

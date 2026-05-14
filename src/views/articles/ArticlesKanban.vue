@@ -630,7 +630,7 @@ async function confirmDelete(item: Article) {
     const result = await SwalService.confirm(
         '¿Eliminar artículo?',
         `Vas a eliminar "${item.name}". Esta acción no se puede deshacer.`,
-        'warning'
+        'Sí, eliminar', 'Cancelar'
     );
 
     if (result.isConfirmed) {

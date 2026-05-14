@@ -373,7 +373,7 @@ export default defineComponent({
     };
 
     const handleDelete = async (s: Suggestion) => {
-      const result = await SwalService.confirm('¿Eliminar esta entrada?', 'Sí, eliminar', 'Cancelar');
+      const result = await SwalService.confirm('¿Eliminar esta entrada?', 'Esta acción no se puede deshacer.', 'Sí, eliminar', 'Cancelar');
       if (!result.isConfirmed) return;
       try {
         await deleteSuggestion(s.id);

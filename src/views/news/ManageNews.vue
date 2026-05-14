@@ -229,7 +229,7 @@ async function confirmDelete(news: News) {
   const result = await SwalService.confirm(
     '¿Eliminar noticia?',
     `Se eliminará permanentemente "${news.title}"`,
-    'warning'
+    'Sí, eliminar', 'Cancelar'
   );
   if (result.isConfirmed) {
     try {

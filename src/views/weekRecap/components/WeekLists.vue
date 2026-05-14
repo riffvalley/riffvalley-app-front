@@ -132,7 +132,7 @@ export default defineComponent({
 
       try {
         await asignationStore.updateAsignationStore(updatedAsignation);
-        SwalService.success("Asignation updated");
+        SwalService.success("Asignación actualizada");
       } catch (error) {
         console.error("Error actualizando la asignación:", error);
       }

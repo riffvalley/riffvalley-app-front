@@ -302,7 +302,7 @@ async function save() {
 }
 
 async function confirmDelete(item: Spotify) {
-    const result = await SwalService.confirm('¿Eliminar festival?', `Vas a eliminar "${item.name}". Esta acción no se puede deshacer.`, 'warning');
+    const result = await SwalService.confirm('¿Eliminar festival?', `Vas a eliminar "${item.name}". Esta acción no se puede deshacer.`, 'Sí, eliminar', 'Cancelar');
     if (result.isConfirmed) {
         try {
             await removeSpotify(item.id);

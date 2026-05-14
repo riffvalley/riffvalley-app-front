@@ -560,7 +560,7 @@ export default defineComponent({
         ? `${user.username} no podrá iniciar sesión. Puedes reactivarlo en cualquier momento.`
         : `${user.username} podrá volver a iniciar sesión.`;
 
-      const result = await SwalService.confirm(title, text, 'warning');
+      const result = await SwalService.confirm(title, text, 'Confirmar', 'Cancelar');
       if (!result.isConfirmed) return;
 
       try {
@@ -583,7 +583,7 @@ export default defineComponent({
       SwalService.confirm(
         "¿Eliminar usuario permanentemente?",
         `Se borrarán todos los datos de ${user.username} y no se podrá recuperar.`,
-        "warning"
+        'Sí, eliminar', 'Cancelar'
       ).then(async (result) => {
         if (result.isConfirmed) {
           await deleteUser(user);

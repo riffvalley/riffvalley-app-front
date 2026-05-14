@@ -391,7 +391,7 @@ async function confirmDelete(item: Spotify) {
     const result = await SwalService.confirm(
         '¿Eliminar género?',
         `Vas a eliminar "${item.name}". Esta acción no se puede deshacer.`,
-        'warning'
+        'Sí, eliminar', 'Cancelar'
     );
 
     if (result.isConfirmed) {

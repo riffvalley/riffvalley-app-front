@@ -681,6 +681,7 @@ export default defineComponent({
     const handleDelete = async (release: NationalRelease) => {
       const result = await SwalService.confirm(
         `¿Eliminar "${release.artistName} — ${release.discName}"?`,
+        'Esta acción no se puede deshacer.',
         'Sí, eliminar',
         'Cancelar'
       );

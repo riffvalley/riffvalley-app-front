@@ -343,7 +343,7 @@ async function saveEdit(it: VersionItem, dto: { description: string; type: any; 
 
 async function removeItem(it: VersionItem) {
   if (!version.value) return;
-  const ok = await SwalService.confirm('¿Eliminar item?', 'Esta acción no se puede deshacer', 'warning')
+  const ok = await SwalService.confirm('¿Eliminar item?', 'Esta acción no se puede deshacer', 'Sí, eliminar', 'Cancelar')
     .then(r => r.isConfirmed).catch(() => false);
   if (!ok) return;
   try {
@@ -378,7 +378,7 @@ async function handleMoveToProduction() {
   const ok = await SwalService.confirm(
     '¿Mover a producción?',
     'Esta acción cambiará el estado de la versión de desarrollo a producción. ¿Continuar?',
-    'question'
+    'Sí, mover', 'Cancelar'
   ).then(r => r.isConfirmed).catch(() => false);
 
   if (!ok) return;

@@ -705,7 +705,7 @@ async function handleDeleteFromBacklog(content: Content) {
     const result = await SwalService.confirm(
         '¿Eliminar evento?',
         `Vas a eliminar "${content.name}". Esta acción no se puede deshacer.`,
-        'warning'
+        'Sí, eliminar', 'Cancelar'
     );
     if (!result.isConfirmed) return;
 
@@ -740,7 +740,7 @@ async function deleteRadarList() {
     const result = await SwalService.confirm(
         '¿Eliminar Lista?',
         'Estás a punto de eliminar la lista asociada a este radar. Esta acción no se puede deshacer.',
-        'warning'
+        'Sí, eliminar', 'Cancelar'
     );
 
     if (result.isConfirmed) {

@@ -597,7 +597,7 @@ async function confirmDelete(item: Video) {
     const result = await SwalService.confirm(
         '¿Eliminar vídeo?',
         `Vas a eliminar "${item.name}". Esta acción no se puede deshacer.`,
-        'warning'
+        'Sí, eliminar', 'Cancelar'
     );
 
     if (result.isConfirmed) {

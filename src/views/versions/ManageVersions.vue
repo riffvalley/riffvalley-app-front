@@ -580,7 +580,7 @@ async function removeItem(it: VersionItem) {
   const ok = await SwalService.confirm(
     '¿Eliminar item?',
     'Esta acción no se puede deshacer',
-    'warning'
+    'Sí, eliminar', 'Cancelar'
   )
     .then((r) => r.isConfirmed)
     .catch(() => false);
@@ -607,7 +607,7 @@ async function confirmDeleteVersion(v: Version) {
   const ok = await SwalService.confirm(
     '¿Eliminar versión?',
     'Se eliminarán también sus items',
-    'warning'
+    'Sí, eliminar', 'Cancelar'
   )
     .then((r) => r.isConfirmed)
     .catch(() => false);

@@ -318,6 +318,7 @@ export default {
       defaultYearFilter.value = val;
       localStorage.setItem('rv_default_year_filter', val);
       window.dispatchEvent(new CustomEvent('rv-year-filter-changed', { detail: val }));
+      SwalService.success(val === 'current' ? 'Filtro por defecto: año actual' : 'Filtro por defecto: todos los años');
     };
 
     // --- Enlace de Spotify ---
@@ -326,6 +327,7 @@ export default {
       spotifyMode.value = val;
       localStorage.setItem('rv_spotify_open_mode', val);
       window.dispatchEvent(new CustomEvent('rv-spotify-mode-changed', { detail: val }));
+      SwalService.success(val === 'web' ? 'Spotify se abrirá en el navegador' : 'Spotify se abrirá en la app de escritorio');
     };
 
     // --- No Spoilers ---
@@ -334,6 +336,7 @@ export default {
       noSpoilers.value = !noSpoilers.value;
       localStorage.setItem('rv_no_spoilers', String(noSpoilers.value));
       window.dispatchEvent(new CustomEvent('rv-spoilers-changed', { detail: noSpoilers.value }));
+      SwalService.success(noSpoilers.value ? 'Modo No Spoilers activado' : 'Modo No Spoilers desactivado');
     };
     const errorMessage = ref("");
     const showPassword = ref(false);
@@ -415,10 +418,12 @@ export default {
       try {
         await userStore.updateUserStore({ image: selectedAvatar.value });
         authStore.setImage(selectedAvatar.value);
-        SwalService.success("Avatar actualizado");
+        SwalService.success("Avatar actualizado correctamente");
         errorMessage.value = "";
       } catch (error) {
-        errorMessage.value = error?.response?.data?.message || "Ocurrió un error inesperado";
+        const msg = error?.response?.data?.message || "No se pudo guardar el avatar";
+        errorMessage.value = "";
+        SwalService.error(msg);
       }
     };
 
@@ -426,12 +431,14 @@ export default {
       if (passwordMismatch.value || passwordError.value) return;
       try {
         await userStore.updateUserStore({ password: password.value });
-        SwalService.success("Contraseña cambiada");
+        SwalService.success("Contraseña cambiada correctamente");
         password.value = "";
         confirmPassword.value = "";
         errorMessage.value = "";
       } catch (error) {
-        errorMessage.value = error?.response?.data?.message || "Ocurrió un error inesperado";
+        const msg = error?.response?.data?.message || "No se pudo cambiar la contraseña";
+        errorMessage.value = "";
+        SwalService.error(msg);
       }
     };
 

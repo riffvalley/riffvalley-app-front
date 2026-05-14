@@ -369,7 +369,7 @@ async function handleSaveEdit(it: VersionItem) {
 }
 
 async function handleRemoveItem(it: VersionItem) {
-  const ok = await SwalService.confirm('¿Eliminar item?', 'Esta acción no se puede deshacer', 'warning')
+  const ok = await SwalService.confirm('¿Eliminar item?', 'Esta acción no se puede deshacer', 'Sí, eliminar', 'Cancelar')
     .then(r => r.isConfirmed).catch(() => false);
   if (!ok) return;
   try {
