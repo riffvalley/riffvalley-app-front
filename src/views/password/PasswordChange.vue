@@ -10,6 +10,21 @@
       <!-- IZQUIERDA: Avatares por temática -->
       <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
         <div class="text-center mb-5">
+          <!-- Avatar actual -->
+          <div class="relative inline-block mb-3">
+            <img
+              :src="selectedAvatar"
+              alt="Tu avatar actual"
+              class="w-20 h-20 rounded-full object-cover border-4 border-rv-pink shadow-lg
+                shadow-[0_0_0_3px_rgba(236,72,153,0.25),0_4px_20px_rgba(236,72,153,0.30)]"
+            />
+            <span class="absolute bottom-0 right-0 w-5 h-5 rounded-full
+              bg-rv-pink border-2 border-white dark:border-rv-darkCard
+              flex items-center justify-center shadow-md">
+              <i class="fa-solid fa-check text-white text-[9px]"></i>
+            </span>
+          </div>
+          <br />
           <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
             Avatar
           </span>
@@ -40,13 +55,31 @@
                 class="grid grid-cols-3 sm:grid-cols-4 gap-3 place-items-center">
                 <button v-for="avatar in avatarsByCategory[cat.key]" :key="avatar" type="button"
                   @click="selectAvatar(avatar)"
-                  class="grid place-items-center w-16 h-16 sm:w-18 sm:h-18 p-0 leading-none rounded-full overflow-hidden border-4
-                    transition-transform duration-200 hover:scale-105
+                  class="relative flex-shrink-0 w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] p-0 leading-none rounded-full
+                    transition-all duration-200
                     focus:outline-none focus-visible:ring-4 focus-visible:ring-rv-pink/40 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-rv-darkCard"
-                  :class="avatar === selectedAvatar
-                    ? 'border-rv-pink shadow-[0_0_0_3px_rgba(236,72,153,0.35),0_0_18px_rgba(236,72,153,0.55)]'
-                    : 'border-gray-100 dark:border-white/20'">
-                  <img :src="avatar" alt="Avatar" class="block w-full h-full object-cover" loading="eager" decoding="async" />
+                  :class="avatar === selectedAvatar ? 'scale-110 z-10' : 'hover:scale-105'">
+
+                  <!-- Anillo exterior (solo en seleccionado) -->
+                  <span v-if="avatar === selectedAvatar"
+                    class="absolute inset-0 rounded-full ring-[3px] ring-rv-pink ring-offset-2 ring-offset-white dark:ring-offset-rv-darkCard z-10 pointer-events-none">
+                  </span>
+
+                  <!-- Imagen -->
+                  <img :src="avatar" alt="Avatar"
+                    class="block w-full h-full object-cover rounded-full border-2 aspect-square"
+                    :class="avatar === selectedAvatar
+                      ? 'border-rv-pink'
+                      : 'border-gray-100 dark:border-white/20 opacity-80 hover:opacity-100'"
+                    loading="eager" decoding="async" />
+
+                  <!-- Badge ✓ -->
+                  <span v-if="avatar === selectedAvatar"
+                    class="absolute bottom-0 right-0 z-20 w-5 h-5 rounded-full
+                      bg-rv-pink border-2 border-white dark:border-rv-darkCard
+                      flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-check text-white text-[9px]"></i>
+                  </span>
                 </button>
               </div>
               <p v-else class="text-sm text-gray-400 dark:text-gray-500 italic">
@@ -360,6 +393,12 @@ export default {
       avatars.value = allAvatars.value;
       const saved = authStore.avatarUrl || localStorage.getItem("image");
       selectedAvatar.value = (saved && saved.length) ? saved : (avatars.value[0] || "");
+
+      // Abrir la pestaña que contiene el avatar actual
+      const currentCat = categories.value.find(cat =>
+        (avatarsByCategory.value[cat.key] || []).includes(selectedAvatar.value)
+      );
+      openCategory.value = currentCat ? currentCat.key : categories.value[0]?.key ?? "music";
     };
 
     onMounted(() => {
