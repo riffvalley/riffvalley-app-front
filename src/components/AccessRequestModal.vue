@@ -99,3 +99,33 @@
     </div>
   </Teleport>
 </template>
+
+<script setup lang="ts">
+import { ref } from 'vue';
+import { sendAccessRequest } from '@services/accessRequest/accessRequest';
+
+defineEmits<{ close: [] }>();
+
+const email   = ref('');
+const alias   = ref('');
+const loading = ref(false);
+const success = ref(false);
+const error   = ref('');
+
+async function submitRequest() {
+  error.value   = '';
+  success.value = false;
+  loading.value = true;
+
+  try {
+    await sendAccessRequest({ email: email.value, alias: alias.value });
+    success.value = true;
+    email.value   = '';
+    alias.value   = '';
+  } catch (e: any) {
+    error.value = e?.response?.data?.message || 'No se pudo enviar la solicitud. Inténtalo de nuevo.';
+  } finally {
+    loading.value = false;
+  }
+}
+</script>
