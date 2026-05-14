@@ -1,7 +1,7 @@
 <template>
   <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
 <template v-if="!embedded">
-  <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-gray-900 dark:text-white">
+  <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-rv-navy dark:text-white">
     <i class="fa-solid fa-calendar-days mr-3"></i>Calendario
   </h1>
   <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">Todos los lanzamientos ordenados por fecha.</p>
@@ -20,35 +20,46 @@
 
 
     <div>
-      <div class="flex flex-wrap justify-center gap-2 mb-6 mt-6 overflow-x-auto">
-        <button v-for="(month, index) in months" :key="index" @click="selectMonth(index)" class="px-4 py-2 rounded-full transition-all duration-200 whitespace-nowrap shadow-sm mb-1 font-semibold
-         border-rv-navy/15
-         focus:outline-none focus:ring-0 focus:ring-offset-0" :class="selectedMonth === index
-          ? 'bg-gradient-to-tr from-rv-blue to-rv-blueDark dark:from-rv-purple dark:to-rv-pink text-white shadow-md border-transparent'
-          : 'bg-white dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:border-rv-blue dark:hover:border-rv-purple border-2 border-gray-100 dark:border-white/10 hover:shadow-md'">
+      <div class="flex flex-wrap justify-center gap-2 mb-6 mt-6 py-1">
+        <button v-for="(month, index) in months" :key="index" @click="selectMonth(index)"
+          class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap shadow-md
+                 transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0
+                 focus:outline-none focus:ring-0 focus:ring-offset-0"
+          :class="selectedMonth === index
+            ? 'bg-rv-navy dark:bg-rv-purple text-white hover:opacity-80 hover:shadow-lg'
+            : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple hover:shadow-lg'">
           {{ month }}
         </button>
       </div>
 
       <!-- Lista de discos agrupados (resto del template) -->
       <div v-for="(group, index) in filteredGroupedDiscs" :key="group.releaseDate" class="mb-8">
-        <div class="group flex justify-between items-center px-5 py-3 rounded-full cursor-pointer transition-all duration-200 shadow-sm
-         border border-rv-navy/10" :class="(groupState[index] || closing[index])
-          ? 'bg-gradient-to-r from-rv-navy to-rv-navy/80 dark:from-rv-purple dark:to-rv-pink shadow-md'
-          : 'bg-white dark:bg-rv-darkSurface hover:bg-gradient-to-r from-rv-navy to-rv-navy/80 dark:hover:from-rv-purple dark:hover:to-rv-pink hover:text-white hover:shadow-md'"
-          @click="toggleGroup(index)">
-          <h3 class="text-xl sm:text-2xl font-semibold transition-colors duration-200" :class="(groupState[index] || closing[index])
-            ? 'text-white'
-            : 'text-rv-navy dark:text-white group-hover:text-white'">
-            {{ formatDate(group.releaseDate) }}
-          </h3>
+        <div class="group flex justify-between items-center px-5 py-3 rounded-2xl cursor-pointer
+                    transition-all duration-200 shadow-sm border border-gray-100 dark:border-white/10
+                    hover:-translate-y-0.5 hover:shadow-md"
+             :class="(groupState[index] || closing[index])
+               ? 'bg-rv-navy dark:bg-rv-purple shadow-md -translate-y-0.5'
+               : 'bg-white dark:bg-rv-darkSurface hover:bg-rv-navy dark:hover:bg-rv-purple'"
+             @click="toggleGroup(index)">
 
-          <button class="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200
-           focus:outline-none focus:ring-0 focus:ring-offset-0" :class="(groupState[index] || closing[index])
-            ? 'bg-rv-pink text-white text-xl'
-            : 'bg-rv-pink text-white hover:bg-rv-pink text-xl hover:text-white'">
-            <i class="fas fa-chevron-down transition-transform duration-200"
-              :class="(groupState[index] || closing[index]) ? 'rotate-180' : ''"></i>
+          <!-- Fecha + conteo -->
+          <div class="flex items-center gap-3 min-w-0">
+            <h3 class="text-base sm:text-lg font-bold transition-colors duration-200 truncate"
+                :class="(groupState[index] || closing[index]) ? 'text-white' : 'text-rv-navy dark:text-white group-hover:text-white'">
+              {{ formatDate(group.releaseDate) }}
+            </h3>
+            <span class="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full transition-colors"
+                  :class="(groupState[index] || closing[index])
+                    ? 'bg-white/20 text-white'
+                    : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 group-hover:bg-white/20 group-hover:text-white'">
+              {{ group.discs.length }} disco{{ group.discs.length !== 1 ? 's' : '' }}
+            </span>
+          </div>
+
+          <button class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center
+                         bg-rv-pink text-white transition-all focus:outline-none focus:ring-0">
+            <i class="fas fa-chevron-down text-xs transition-transform duration-200"
+               :class="(groupState[index] || closing[index]) ? 'rotate-180' : ''"></i>
           </button>
         </div>
 
@@ -60,28 +71,31 @@
             <!-- Contenedor de botones centrado -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-2 mt-4 w-full">
               <button v-if="isSuperUser" @click="buscarImagenesLastFm(group.releaseDate)"
-                class="bg-red-600 text-white px-4 py-2 rounded-full hover:bg-red-700 transition-all duration-200 hover:shadow-md transform hover:scale-105 w-full max-w-[300px] sm:max-w-none sm:w-auto text-center self-center">
-                Last.fm búsqueda
+                class="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-full text-sm font-semibold
+                       hover:bg-red-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
+                       w-full max-w-[300px] sm:max-w-none sm:w-auto justify-center self-center shadow-md">
+                <i class="fa-brands fa-lastfm"></i> Last.fm búsqueda
               </button>
 
               <button v-if="new Date(group.releaseDate) < new Date()" @click="buscarEnlacesSpotify(group.discs)"
-                class="bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600 transition-all duration-200 hover:shadow-md transform hover:scale-105 w-full max-w-[300px] sm:max-w-none sm:w-auto text-center self-center">
-                Buscar enlaces en Spotify
+                class="inline-flex items-center gap-2 bg-[#1DB954] text-white px-4 py-2 rounded-full text-sm font-semibold
+                       hover:bg-[#1aa34a] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
+                       w-full max-w-[300px] sm:max-w-none sm:w-auto justify-center self-center shadow-md">
+                <i class="fa-brands fa-spotify"></i> Buscar en Spotify
               </button>
 
-              <span class="hidden sm:inline-block w-4"></span>
-
               <button @click="exportarHtml(group)"
-                class="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition-all duration-200 hover:shadow-md transform hover:scale-105 w-full max-w-[300px] sm:max-w-none sm:w-auto text-center self-center">
-                Exportar HTML de esta semana
+                class="inline-flex items-center gap-2 bg-rv-navy dark:bg-rv-purple text-white px-4 py-2 rounded-full text-sm font-semibold
+                       hover:opacity-80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
+                       w-full max-w-[300px] sm:max-w-none sm:w-auto justify-center self-center shadow-md">
+                <i class="fa-solid fa-code"></i> Exportar HTML
               </button>
             </div>
 
             <div v-if="optionsReady">
-              <ul class="w-full mt-4">
-<li v-for="disc in group.discs" :key="disc.id"
-  class="flex flex-col md:flex-row md:justify-between p-4 border-b border-gray-200 dark:border-white/10 w-full">
-                  <div :id="`disc-${disc.id}`" class="w-full">
+              <ul class="w-full mt-3 flex flex-col gap-3">
+                <li v-for="disc in group.discs" :key="disc.id">
+                  <div :id="`disc-${disc.id}`">
                     <DiscComponent :disc="disc" :genres="genres" :countries="countries" :focusDiscId="focusDiscId"
                       @disc-deleted="removeDisc" @date-changed="handleDateChange" />
                   </div>
@@ -199,13 +213,16 @@ export default defineComponent({
 
     const closing = reactive<Record<number, boolean>>({});
 
-    const fetchAllPagesForMonth = async () => {
+    let fetchGen = 0; // generación activa — se incrementa en cada selectMonth
+
+    const fetchAllPagesForMonth = async (gen: number) => {
       try {
         if (loadMore.value) observer.unobserve(loadMore.value);
       } catch { }
 
       while (hasMore.value) {
-        await fetchDiscs();
+        if (gen !== fetchGen) return; // generación obsoleta: abortar
+        await fetchDiscs(gen);
         await nextTick();
       }
 
@@ -225,6 +242,8 @@ export default defineComponent({
     }
 
     const selectMonth = async (monthIndex: number) => {
+      const gen = ++fetchGen; // nueva generación: invalida cualquier fetch anterior
+
       selectedMonth.value = monthIndex;
       const year = selectedYear.value;
       const startDate = new Date(Date.UTC(year, monthIndex, 1)).toISOString();
@@ -240,16 +259,20 @@ export default defineComponent({
 
       offset.value = 0;
       groupedDiscs.value = [];
+      hasMore.value = true;
+      loading.value = false;
 
-      await fetchDiscsByDateRange(startDate, endDate);
-      await fetchAllPagesForMonth();
+      await fetchDiscsByDateRange(startDate, endDate, gen);
+      if (gen !== fetchGen) return;
+      await fetchAllPagesForMonth(gen);
+      if (gen !== fetchGen) return;
       await focusAndScrollToDisc();
-
     };
 
     const fetchDiscsByDateRange = async (
       startDate: string,
-      endDate: string
+      endDate: string,
+      gen: number
     ) => {
       loading.value = true;
       try {
@@ -257,6 +280,8 @@ export default defineComponent({
           startDate,
           endDate,
         ], selectedCountry.value || undefined);
+
+        if (gen !== fetchGen) return; // resultado obsoleto: descartar
 
         response.data.forEach((group, index) => {
           groupState[index] = false;
@@ -357,7 +382,7 @@ export default defineComponent({
     );
 
 
-    const fetchDiscs = async () => {
+    const fetchDiscs = async (gen?: number) => {
       if (loading.value || !hasMore.value) return;
 
       loading.value = true;
@@ -382,6 +407,8 @@ export default defineComponent({
           endDate,
         ], selectedCountry.value || undefined);
 
+        if (gen !== undefined && gen !== fetchGen) return; // resultado obsoleto: descartar
+
         response.data.forEach((newGroup: any) => {
           newGroup.discs.forEach((disc: any) => {
             disc.genreId = disc.genre?.id || "";
@@ -403,9 +430,11 @@ export default defineComponent({
       } catch (error) {
         console.error("Error fetching discs:", error);
       } finally {
-        loading.value = false;
-        await nextTick();
-        checkIfNeedsMore();
+        if (gen === undefined || gen === fetchGen) {
+          loading.value = false;
+          await nextTick();
+          checkIfNeedsMore();
+        }
       }
     };
 

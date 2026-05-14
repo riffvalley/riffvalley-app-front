@@ -1,128 +1,117 @@
 <template>
-  <div
-    class="p-3 border border-gray-200 dark:border-white/10 rounded-2xl flex flex-col sm:flex-row items-center justify-between w-full sm:w-1/2 bg-white dark:bg-rv-darkCard shadow-md"
-    :style="{ backgroundColor: getGenreColor(disc.genreId) }"
-    :class="{ 'text-white': getGenreColor(disc.genreId) !== 'transparent' }">
-    <!-- Columna izquierda: Imagen del disco -->
-    <div class="flex items-center w-full sm:w-1/3 p-4 min-w-0">
-      <button v-if="!disc.image" @click="openImageModal"
-        class="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded-full shadow-md ml-2 border border-white/20">
-        <i class="fa-solid fa-image"></i>
-      </button>
-      <img v-if="disc.image" :src="disc.image" alt="Disc cover" class="w-28 h-28 rounded-md object-cover" />
-      <div class="ml-6 flex flex-col text-center sm:text-left w-full min-w-0 overflow-hidden">
-        <!-- Nombre de la banda -->
-        <div class="flex items-center space-x-2">
-          <h3 class="font-bold text-lg truncate min-w-0 overflow-hidden"
-            :style="{ maxWidth: 'clamp(12ch, 65vw, 30ch)' }">
-            <!-- Se añade @click para abrir ArtistDetail -->
-            <a @click="openArtistDetail" class="block truncate w-full cursor-pointer hover:underline">
-              {{ disc.artist.name }}
-            </a>
-          </h3>
+  <div class="flex flex-col rounded-2xl shadow-sm border overflow-hidden transition-all duration-200 h-full"
+       :class="hasColor ? 'border-white/20 text-white' : 'bg-white dark:bg-rv-darkCard text-rv-navy dark:text-white border-gray-100 dark:border-white/10'"
+       :style="hasColor ? { backgroundColor: genreColor } : {}">
+
+    <!-- Zona principal -->
+    <div class="flex flex-col gap-2 p-4 flex-1">
+
+      <!-- Fila: portada + títulos -->
+      <div class="flex items-start gap-3">
+        <!-- Portada -->
+        <div class="shrink-0">
+          <img v-if="disc.image" :src="disc.image" alt="Portada"
+               class="w-16 h-16 rounded-xl object-cover shadow-md cursor-pointer"
+               @click="openDiscDetail" />
+          <div v-else
+               class="w-16 h-16 rounded-xl flex items-center justify-center border-2 border-dashed cursor-pointer"
+               :class="hasColor ? 'border-white/40' : 'border-gray-200 dark:border-white/20'"
+               @click="openDiscDetail">
+            <i class="fa-solid fa-compact-disc text-xl"
+               :class="hasColor ? 'text-white/50' : 'text-gray-300 dark:text-white/30'"></i>
+          </div>
         </div>
-        <!-- Nombre del disco -->
-        <div class="flex items-center space-x-2">
-          <!-- Se añade @click para abrir DiscDetail -->
-          <a @click="openDiscDetail" class="text-sm truncate min-w-0 cursor-pointer hover:underline"
-            :style="{ maxWidth: 'clamp(12ch, 65vw, 30ch)' }">
-            <span class="block truncate">
-              {{ disc.name }}
-            </span>
+
+        <!-- Artista + título -->
+        <div class="flex-1 min-w-0 flex flex-col gap-0.5 pt-0.5">
+          <a @click="openArtistDetail"
+             class="font-bold text-base leading-snug cursor-pointer hover:opacity-75 transition-opacity line-clamp-2">
+            {{ disc.artist.name }}
+          </a>
+          <a @click="openDiscDetail"
+             class="text-sm leading-snug cursor-pointer hover:opacity-60 transition-opacity line-clamp-2"
+             :class="hasColor ? 'opacity-80' : 'text-gray-500 dark:text-gray-300'">
+            {{ disc.name }}
           </a>
         </div>
-        <p class="text-sm mt-2 w-full flex items-center space-x-2">
-          <a v-if="linkButtonData.visible" :href="disc.link" target="_blank" :class="[
-            linkButtonData.color,
-            linkButtonData.hover,
-            'text-white px-2 py-1 rounded-full shadow-md inline-flex items-center space-x-1 text-sm',
-          ]">
-            <i :class="[linkButtonData.icon, 'text-base']"></i>
-            <span>{{ linkButtonData.text }}</span>
-          </a>
-          <span v-else-if="!disc.link" class="text-gray-400 dark:text-gray-300">
-            <SpotifyArtistButton :artistName="disc.artist.name" />
-          </span>
-        </p>
-        <p class="mt-2 text-left sm:text-left">
+      </div>
+
+      <!-- Fila: fecha + botón plataforma (siempre debajo de los títulos) -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-[11px] whitespace-nowrap"
+              :class="hasColor ? 'opacity-70' : 'text-gray-400 dark:text-gray-400'">
           {{ formattedDate }}
-        </p>
+        </span>
+        <a v-if="linkButtonData.visible" :href="disc.link" target="_blank"
+           :class="[linkButtonData.color, linkButtonData.hover]"
+           class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full
+                  text-white text-[11px] font-semibold shadow-sm
+                  transition-all hover:-translate-y-0.5 active:scale-[0.97]">
+          <i :class="[linkButtonData.icon, 'text-[11px]']"></i>
+          <span>{{ linkButtonData.text }}</span>
+        </a>
+        <span v-else-if="!disc.link">
+          <SpotifyArtistButton :artistName="disc.artist.name" />
+        </span>
       </div>
     </div>
 
-    <div class="w-full sm:w-2/3 p-2 flex flex-col items-start gap-y-3 sm:gap-y-4">
-      <div class="flex items-center gap-2">
-        <p class="px-2 py-1 rounded-full text-xs font-medium text-white text-center shadow-sm border-white border"
-          :style="{ backgroundColor: disc.genre?.color || 'grey' }">
-          {{ disc.genre?.name || "Sin género" }}
-        </p>
+    <!-- Footer: badges a la izquierda, pendiente a la derecha -->
+    <div class="flex items-center justify-between gap-2 px-4 py-2.5 border-t"
+         :class="hasColor ? 'border-white/15 bg-black/10' : 'border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-white/5'">
 
-        <p v-if="disc.ep"
-          class="px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500 text-center shadow-sm">
+      <!-- Badges izquierda -->
+      <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-medium leading-tight"
+              :class="hasColor ? 'bg-white/20 text-white' : 'text-white'"
+              :style="hasColor ? {} : { backgroundColor: disc.genre?.color || '#888' }">
+          {{ disc.genre?.name || 'Sin género' }}
+        </span>
+        <span v-if="disc.ep"
+              class="px-2 py-0.5 rounded-full text-[10px] font-medium leading-tight"
+              :class="hasColor ? 'bg-white/20 text-white' : 'bg-rv-purple text-white'">
           EP
-        </p>
+        </span>
+        <span v-if="disc.debut"
+              class="px-2 py-0.5 rounded-full text-[10px] font-medium leading-tight"
+              :class="hasColor ? 'bg-white/20 text-white' : 'bg-rv-purple text-white'">
+          Debut
+        </span>
 
-                <p v-if="disc.debut"
-          class="px-2 py-1 rounded-full text-xs font-medium text-white bg-rv-purple text-center shadow-sm">
-          Álbum debut
-        </p>
-
-<div v-if="artistCountry?.isoCode" class="relative group">
-  <template v-if="artistCountry.isoCode === 'int'">
-    <img
-      src="/int.svg"
-      alt="Internacional"
-      class="h-7 w-7 rounded-full cursor-help object-cover"
-      aria-hidden="true"
-    />
-  </template>
-
-  <template v-else-if="artistCountry.isoCode.length >= 2">
-    <CircleFlags
-      :country="artistCountry.isoCode.slice(0, 2).toLowerCase()"
-      :show-flag-name="false"
-      class="h-5 w-5 cursor-help"
-      aria-hidden="true"
-    />
-  </template>
+        <!-- Bandera -->
+        <div v-if="artistCountry?.isoCode" class="relative group shrink-0">
+          <template v-if="artistCountry.isoCode === 'int'">
+            <img src="/int.svg" alt="Internacional"
+                 class="h-4 w-4 rounded-full cursor-help object-cover" aria-hidden="true" />
+          </template>
+          <template v-else-if="artistCountry.isoCode.length >= 2">
+            <CircleFlags :country="artistCountry.isoCode.slice(0, 2).toLowerCase()"
+                         :show-flag-name="false" class="h-4 w-4 cursor-help" aria-hidden="true" />
+          </template>
           <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-[9px] font-semibold
-               text-white bg-gray-700 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300
-               max-w-[160px] whitespace-normal text-center z-20"
-            style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
-            {{ countryAbbr[artistCountry?.name] || artistCountry?.name ||
-              artistCountry?.isoCode?.slice(0, 2).toUpperCase() }}
+                       text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity
+                       whitespace-nowrap z-20 pointer-events-none shadow-lg">
+            {{ countryAbbr[artistCountry?.name] || artistCountry?.name || artistCountry?.isoCode?.slice(0, 2).toUpperCase() }}
           </span>
         </div>
       </div>
 
-      <button @click="toggleBookmark()" :class="{ 'bg-yellow-500': pendingId, 'bg-gray-400': !pendingId }"
-        class="text-white font-medium px-3 py-1 rounded-full shadow-md self-start">
-        {{ pendingId ? "Guardado" : "Añadir a pendientes" }}
+      <!-- Pendiente derecha -->
+      <button @click="toggleBookmark()"
+              class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold
+                     shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]"
+              :class="pendingId
+                ? (hasColor ? 'bg-white/30 text-white hover:bg-white/40' : 'bg-yellow-500 text-white hover:bg-yellow-400')
+                : (hasColor ? 'bg-white/15 text-white hover:bg-white/30' : 'bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-white hover:bg-yellow-500 hover:text-white')">
+        <i class="fa-solid fa-bookmark text-[10px]"></i>
+        {{ pendingId ? 'Guardado' : 'Pendiente' }}
       </button>
     </div>
   </div>
 
-  <div v-if="showDiscDetail" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div class="bg-white dark:bg-rv-darkCard rounded-lg p-4 relative max-w-3xl w-full border border-gray-100 dark:border-white/10">
-      <button class="absolute top-2 right-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white text-2xl" @click="closeDiscDetail">
-        &times;
-      </button>
-      <!-- Se pasa la información del disco -->
-      <DiscDetail v-if="showDiscDetail" :disc="disc" @close="showDiscDetail = false" />
-    </div>
-  </div>
-
-  <!-- Modal para mostrar ArtistDetail -->
-  <div v-if="showArtistDetail" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div class="bg-white rounded-lg p-4 relative max-w-3xl w-full">
-      <button class="absolute top-2 right-2 text-gray-600 hover:text-gray-800 text-2xl" @click="closeArtistDetail">
-        &times;
-      </button>
-      <!-- Se pasa el nombre del artista al componente ArtistDetail -->
-      <ArtistDetail v-if="showArtistDetail" :disc-name="disc.name" :artistName="disc.artist.name"
-        @close="showArtistDetail = false" />
-    </div>
-  </div>
+  <!-- Modales -->
+  <DiscDetail   v-if="showDiscDetail"   :disc="disc"           @close="showDiscDetail = false" />
+  <ArtistDetail v-if="showArtistDetail" :disc-name="disc.name" :artistName="disc.artist.name" @close="showArtistDetail = false" />
 </template>
 
 <script lang="ts">
@@ -132,17 +121,12 @@ import Swal from "sweetalert2";
 
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import { postPendingService, deletePendingService } from "@services/pendings/pendings";
-
 import DiscDetail from "@components/DiscDetail.vue";
 import ArtistDetail from "@components/ArtistDetail.vue";
 
 export default defineComponent({
   name: "DiscBaby",
-  components: {
-    SpotifyArtistButton,
-    DiscDetail,
-    ArtistDetail,
-  },
+  components: { SpotifyArtistButton, DiscDetail, ArtistDetail },
   props: {
     disc: {
       type: Object as PropType<{
@@ -154,6 +138,7 @@ export default defineComponent({
         link: string | null;
         image: string | null;
         ep: boolean;
+        debut: boolean;
         releaseDate: Date;
         pendingId: string | null;
       }>,
@@ -173,28 +158,30 @@ export default defineComponent({
     const formattedDate = computed(() =>
       new Date(props.disc.releaseDate).toLocaleDateString("es-ES", {
         year: "numeric",
-        month: "long",
+        month: "short",
         day: "numeric",
       })
     );
 
-    const linkButtonData = computed(() => {
-      const link = props.disc.link || "";
-      if (link.includes("spotify.com")) return { visible: true, color: "bg-green-500", hover: "hover:bg-green-600", icon: "fa-brands fa-spotify", text: "Spotify" };
-      if (link.includes("youtube.com") || link.includes("youtu.be")) return { visible: true, color: "bg-red-500", hover: "hover:bg-red-600", icon: "fa-brands fa-youtube", text: "YouTube" };
-      if (link.includes("bandcamp.com")) return { visible: true, color: "bg-blue-500", hover: "hover:bg-blue-600", icon: "fa-brands fa-bandcamp", text: "Bandcamp" };
-      return { visible: false, color: "", hover: "", icon: "", text: "" };
-    });
-
-    const getGenreColor = (genreId: string) => {
-      // 1) si el disco ya trae el color, úselo
+    const genreColor = computed(() => {
       const direct = props.disc.genre?.color;
       if (direct && direct !== "transparent") return direct;
-
-      // 2) si no, busque por id en la lista de géneros
-      const genre = props.genres.find((g) => String(g.id) === String(genreId));
+      const genre = props.genres.find((g) => String(g.id) === String(props.disc.genreId));
       return genre?.color || "transparent";
-    };
+    });
+
+    const hasColor = computed(() => genreColor.value !== "transparent");
+
+    const linkButtonData = computed(() => {
+      const link = props.disc.link || "";
+      if (link.includes("spotify.com"))
+        return { visible: true, color: "bg-green-500", hover: "hover:bg-green-600", icon: "fa-brands fa-spotify", text: "Spotify" };
+      if (link.includes("youtube.com") || link.includes("youtu.be"))
+        return { visible: true, color: "bg-red-500", hover: "hover:bg-red-600", icon: "fa-brands fa-youtube", text: "YouTube" };
+      if (link.includes("bandcamp.com"))
+        return { visible: true, color: "bg-blue-500", hover: "hover:bg-blue-600", icon: "fa-brands fa-bandcamp", text: "Bandcamp" };
+      return { visible: false, color: "", hover: "", icon: "", text: "" };
+    });
 
     const pendingId = ref<string | null>(props.disc.pendingId ?? null);
 
@@ -203,36 +190,23 @@ export default defineComponent({
         if (pendingId.value) {
           await deletePendingService(pendingId.value);
           pendingId.value = null;
-          Swal.fire("Pendiente eliminado");
+          Swal.fire({ title: "Pendiente eliminado", icon: "success", timer: 2000, toast: true, position: "top-end", showConfirmButton: false });
         } else {
           const pending = await postPendingService({ discId: props.disc.id });
           pendingId.value = pending.id;
-          Swal.fire("Pendiente añadido");
+          Swal.fire({ title: "Pendiente añadido", icon: "success", timer: 2000, toast: true, position: "top-end", showConfirmButton: false });
         }
       } catch (error) {
         console.error("Error al cambiar el estado de pendiente:", error);
-        Swal.fire({
-          title: "Error",
-          text: "No se pudo actualizar el estado de pendiente.",
-          icon: "error",
-          position: "top-end",
-          timer: 3000,
-          timerProgressBar: true,
-          showConfirmButton: false,
-          toast: true,
-        });
+        Swal.fire({ title: "Error", text: "No se pudo actualizar el estado de pendiente.", icon: "error", position: "top-end", timer: 3000, toast: true, showConfirmButton: false });
       }
     };
 
-    // Modales detalle
-    const showDiscDetail = ref(false);
+    const showDiscDetail   = ref(false);
     const showArtistDetail = ref(false);
-    const openDiscDetail = () => (showDiscDetail.value = true);
+    const openDiscDetail   = () => (showDiscDetail.value = true);
     const openArtistDetail = () => (showArtistDetail.value = true);
-    const closeDiscDetail = () => (showDiscDetail.value = false);
-    const closeArtistDetail = () => (showArtistDetail.value = false);
 
-    // Abreviaturas (las que ya tenía)
     const countryAbbr: Record<string, string> = {
       "United States of America": "USA",
       "United Kingdom of Great Britain and Northern Ireland": "United Kingdom",
@@ -240,150 +214,17 @@ export default defineComponent({
 
     return {
       formattedDate,
+      genreColor,
+      hasColor,
       linkButtonData,
-      getGenreColor,
       pendingId,
       toggleBookmark,
       showDiscDetail,
       showArtistDetail,
       openDiscDetail,
       openArtistDetail,
-      closeDiscDetail,
-      closeArtistDetail,
       countryAbbr,
     };
   },
 });
 </script>
-
-
-<style scoped>
-.p-4 {
-  padding: 1rem;
-}
-
-.rounded-md {
-  border-radius: 0.375rem;
-}
-
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.w-full {
-  width: 100%;
-}
-
-.grid-cols-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-@media (max-width: 1024px) {
-  .grid-cols-2 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 820px) {
-  .p-4 {
-    padding: 0.5rem;
-  }
-
-  .grid-cols-2 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-
-  .w-full {
-    width: 100%;
-  }
-
-  img {
-    width: 80px;
-    height: 80px;
-  }
-
-  h3 {
-    font-size: 1rem;
-  }
-
-  .sm\:flex-row {
-    flex-direction: column;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 430px) {
-  .p-4 {
-    padding: 0.25rem;
-  }
-
-  img {
-    width: 70px;
-    height: 70px;
-  }
-
-  h3 {
-    font-size: 0.9rem;
-  }
-
-  .sm\:flex-row {
-    flex-direction: column;
-  }
-}
-
-@media (max-width: 300px) {
-  img {
-    width: 60px;
-    height: 60px;
-  }
-
-  h3 {
-    font-size: 0.8rem;
-  }
-}
-
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 9999 !important;
-  /* ✅ Mayor que el searchable select */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-content {
-  position: relative;
-  z-index: 10000 !important;
-  /* ✅ Asegura que esté aún más arriba */
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  z-index: 1100 !important;
-  /* ✅ Mayor que el searchable select */
-  max-width: 90%;
-  width: 400px;
-}
-
-.searchable__select {
-  position: absolute;
-  width: 100%;
-  background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 0.25rem;
-  z-index: 500 !important;
-  /* Reducimos el valor para que esté debajo del modal */
-  margin-top: 0.25rem;
-}
-
-body {
-  position: relative;
-  overflow: visible !important;
-}
-</style>
