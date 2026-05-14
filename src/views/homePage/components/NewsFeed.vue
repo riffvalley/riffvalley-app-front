@@ -1,16 +1,38 @@
 <template>
   <div>
+
+    <!-- ── Barra de filtros ──────────────────────────────────── -->
+    <div class="flex flex-wrap gap-1.5 mb-3">
+      <button
+        v-for="f in FILTERS"
+        :key="f.key"
+        type="button"
+        @click="toggleFilter(f)"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
+               transition-all duration-200 border
+               focus:outline-none focus-visible:outline-none ring-0 focus:ring-0"
+        :class="activeFilter?.key === f.key ? f.activeClass : f.inactiveClass"
+      >
+        <i :class="f.icon" class="text-[9px]"></i>
+        {{ f.label }}
+      </button>
+    </div>
+
+    <!-- ── Estados ──────────────────────────────────────────── -->
     <div v-if="loading" class="flex flex-col items-center justify-center gap-2 py-8 text-gray-400">
       <i class="fa-solid fa-spinner animate-spin text-2xl text-rv-pink"></i>
       <span class="text-sm">Cargando noticias...</span>
     </div>
 
-    <div v-else-if="posts.length === 0" class="text-center text-gray-400 py-6">No hay novedades disponibles</div>
+    <div v-else-if="visiblePosts.length === 0" class="text-center text-gray-400 py-6 text-sm">
+      No hay novedades disponibles
+    </div>
 
+    <!-- ── Grid ─────────────────────────────────────────────── -->
     <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-2">
       <component
         :is="post.source === 'app' ? 'button' : 'a'"
-        v-for="post in posts"
+        v-for="post in visiblePosts"
         :key="post.id"
         v-bind="post.source === 'app' ? {} : { href: post.link, target: '_blank', rel: 'noopener noreferrer' }"
         @click="post.source === 'app' ? openAppPost(post) : undefined"
@@ -37,7 +59,6 @@
               loading="lazy"
             />
           </div>
-
           <div class="flex-1 min-w-0">
             <h4 class="text-rv-navy dark:text-white font-bold text-xs leading-snug line-clamp-2" v-html="post.title"></h4>
             <div class="flex items-center gap-2 mt-1">
@@ -49,7 +70,6 @@
               </span>
             </div>
           </div>
-
           <i
             class="fa-solid text-gray-300 dark:text-white/20 text-xs flex-shrink-0"
             :class="post.source === 'app' ? 'fa-book-open' : 'fa-arrow-up-right-from-square'"
@@ -59,14 +79,14 @@
         <!-- ── Desktop: tarjeta cuadrada ───────────────────── -->
         <div class="hidden sm:block h-full relative">
 
-          <!-- Barra de color superior por fuente (solo visible en hover) -->
+          <!-- Barra de color superior (solo en hover) -->
           <div class="absolute top-0 left-0 right-0 h-[6px] z-20
                       opacity-0 group-hover:opacity-100
                       transition-opacity duration-300"
                :class="sourceAccentBar(post.source)"
                :style="{ boxShadow: sourceAccentGlow(post.source) }"></div>
 
-          <!-- Imagen de fondo -->
+          <!-- Imagen -->
           <img
             :src="post.image ?? '/news/default.jpg'"
             :alt="post.title"
@@ -77,11 +97,11 @@
             loading="lazy"
           />
 
-          <!-- Degradado permanente -->
+          <!-- Degradado -->
           <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent
                       transition-opacity duration-300 group-hover:opacity-80"></div>
 
-          <!-- Badge fuente — top left -->
+          <!-- Badge fuente -->
           <div class="absolute top-3 left-3 z-10">
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold
                          shadow-md backdrop-blur-sm"
@@ -91,27 +111,23 @@
             </span>
           </div>
 
-          <!-- Icono de destino — top right, aparece en hover -->
+          <!-- Icono destino (hover) -->
           <div class="absolute top-3 right-3 z-10
                       opacity-0 group-hover:opacity-100
-                      translate-y-[-4px] group-hover:translate-y-0
+                      -translate-y-1 group-hover:translate-y-0
                       transition-all duration-200">
-            <span class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm
-                         flex items-center justify-center">
+            <span class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
               <i class="fa-solid text-white text-[9px]"
                  :class="post.source === 'app' ? 'fa-book-open' : 'fa-arrow-up-right-from-square'"></i>
             </span>
           </div>
 
-          <!-- Contenido inferior — slide-up en hover -->
+          <!-- Contenido inferior -->
           <div class="absolute bottom-0 left-0 right-0 p-3 z-10
                       translate-y-1 group-hover:translate-y-0
                       transition-transform duration-300 ease-out">
-            <h4
-              class="text-white font-bold text-[12px] sm:text-[13px] leading-snug line-clamp-3
-                     drop-shadow-md"
-              v-html="post.title"
-            ></h4>
+            <h4 class="text-white font-bold text-[12px] sm:text-[13px] leading-snug line-clamp-3 drop-shadow-md"
+                v-html="post.title"></h4>
             <div class="flex items-center justify-between mt-1.5
                         opacity-0 group-hover:opacity-100
                         translate-y-1 group-hover:translate-y-0
@@ -146,8 +162,7 @@
             @click="selectedNews = null"
             class="absolute top-3 right-3 text-white bg-rv-navy hover:bg-rv-pink
                    rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all
-                   border-0 outline-none focus:outline-none focus-visible:outline-none
-                   ring-0 focus:ring-0 focus-visible:ring-0"
+                   border-0 outline-none focus:outline-none ring-0 focus:ring-0"
             aria-label="Cerrar"
           >
             <i class="fa-solid fa-xmark text-lg"></i>
@@ -177,9 +192,11 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getNewsFeed } from '@services/news/news';
-import type { FeedPost, NewsType } from '@services/news/news';
+import type { FeedPost, NewsType, FeedParams } from '@services/news/news';
 
 const router = useRouter();
+
+// ── Tipos ────────────────────────────────────────────────────
 
 interface NewsPost {
   id: string;
@@ -192,14 +209,81 @@ interface NewsPost {
   appBody?: string | null;
 }
 
-const posts = ref<NewsPost[]>([]);
-const loading = ref(true);
-const selectedNews = ref<{ title: string; type: NewsType; body: string; date: string } | null>(null);
+interface FilterDef {
+  key: string;
+  label: string;
+  icon: string;
+  params: FeedParams;
+  activeClass: string;
+  inactiveClass: string;
+}
 
-// ── Helpers de estilo por fuente ─────────────────────────────
+// ── Filtros disponibles ──────────────────────────────────────
+
+const FILTERS: FilterDef[] = [
+  {
+    key: 'telegram',
+    label: 'Canal conciertos',
+    icon: 'fa-brands fa-telegram',
+    params: { source: 'telegram', limit: 6 },
+    activeClass:   'bg-yellow-400 text-rv-navy border-yellow-400 shadow-sm',
+    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-400',
+  },
+  {
+    key: 'riffvalley',
+    label: 'riffvalley.es',
+    icon: 'fa-solid fa-globe',
+    params: { source: 'riffvalley.es', limit: 6 },
+    activeClass:   'bg-rv-pink text-white border-rv-pink shadow-sm',
+    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-pink hover:text-rv-pink',
+  },
+  {
+    key: 'app',
+    label: 'Equipo',
+    icon: 'fa-solid fa-users',
+    params: { source: 'app', limit: 6 },
+    activeClass:   'bg-rv-blue text-white border-rv-blue shadow-sm',
+    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-blue hover:text-rv-blue',
+  },
+];
+
+// ── Estado ───────────────────────────────────────────────────
+
+const defaultPosts  = ref<NewsPost[]>([]);
+const filteredPosts = ref<NewsPost[]>([]);
+const visiblePosts  = ref<NewsPost[]>([]);
+const loading       = ref(true);
+const activeFilter  = ref<FilterDef | null>(null);
+const selectedNews  = ref<{ title: string; type: NewsType; body: string; date: string } | null>(null);
+
+// ── Lógica de filtros ────────────────────────────────────────
+
+async function toggleFilter(f: FilterDef) {
+  // Mismo tag → desactivar y volver al feed por defecto
+  if (activeFilter.value?.key === f.key) {
+    activeFilter.value = null;
+    visiblePosts.value = defaultPosts.value;
+    return;
+  }
+
+  activeFilter.value = f;
+  loading.value = true;
+  try {
+    const { posts: feedPosts } = await getNewsFeed(f.params);
+    filteredPosts.value = feedPosts.map(mapFeedPost);
+    visiblePosts.value  = filteredPosts.value;
+  } catch (e) {
+    console.error('Error filtrando feed:', e);
+    visiblePosts.value = defaultPosts.value;
+  } finally {
+    loading.value = false;
+  }
+}
+
+// ── Helpers de estilo ────────────────────────────────────────
 
 function sourceBorderColor(source: string) {
-  if (source === 'telegram')     return 'border-l-yellow-400';
+  if (source === 'telegram')      return 'border-l-yellow-400';
   if (source === 'riffvalley.es') return 'border-l-rv-pink';
   return 'border-l-rv-blue';
 }
@@ -217,42 +301,40 @@ function sourceAccentGlow(source: string) {
 }
 
 function sourceBadgeClass(source: string) {
-  if (source === 'telegram')
-    return 'bg-yellow-400/90 text-rv-navy';
-  if (source === 'riffvalley.es')
-    return 'bg-rv-pink/90 text-white';
+  if (source === 'telegram')      return 'bg-yellow-400/90 text-rv-navy';
+  if (source === 'riffvalley.es') return 'bg-rv-pink/90 text-white';
   return 'bg-rv-blue/90 text-white';
 }
 
 function sourceBadgeIcon(source: string) {
-  if (source === 'telegram')     return 'fa-brands fa-telegram';
+  if (source === 'telegram')      return 'fa-brands fa-telegram';
   if (source === 'riffvalley.es') return 'fa-solid fa-globe';
   return 'fa-solid fa-bell';
 }
 
 function sourceLabel(post: NewsPost) {
-  if (post.source === 'app')          return typeLabel(post.newsType!);
+  if (post.source === 'app')           return typeLabel(post.newsType!);
   if (post.source === 'riffvalley.es') return 'riffvalley.es';
   return 'Canal conciertos';
 }
 
-// ── Tipos y lógica ───────────────────────────────────────────
-
 function typeLabel(type: NewsType): string {
   const labels: Record<NewsType, string> = {
-    version:      'Versión',
-    new_feature:  'Novedad',
-    team_notes:   'Equipo',
+    version:     'Versión',
+    new_feature: 'Novedad',
+    team_notes:  'Equipo',
   };
   return labels[type] ?? type;
 }
 
+// ── Modal ────────────────────────────────────────────────────
+
 function openAppPost(post: NewsPost) {
   selectedNews.value = {
     title: post.title,
-    type: post.newsType!,
-    body: post.appBody!,
-    date: post.date,
+    type:  post.newsType!,
+    body:  post.appBody!,
+    date:  post.date,
   };
 }
 
@@ -268,6 +350,8 @@ function handleBodyClick(e: MouseEvent) {
   }
 }
 
+// ── Fetch inicial ────────────────────────────────────────────
+
 const appTypeImages: Record<string, string> = {
   version:     '/news/version.jpg',
   new_feature: '/news/funcionalidad.jpg',
@@ -280,21 +364,22 @@ function mapFeedPost(fp: FeedPost): NewsPost {
     ? appTypeImages[fp.type] ?? fp.image
     : fp.image;
   return {
-    id: fp.id,
-    title: fp.title,
-    link: fp.link,
+    id:       fp.id,
+    title:    fp.title,
+    link:     fp.link,
     image,
-    date: postDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }),
-    source: fp.source,
+    date:     postDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }),
+    source:   fp.source,
     newsType: fp.type ?? undefined,
-    appBody: fp.body,
+    appBody:  fp.body,
   };
 }
 
 async function fetchPosts() {
   try {
     const { posts: feedPosts } = await getNewsFeed();
-    posts.value = feedPosts.map(mapFeedPost);
+    defaultPosts.value = feedPosts.map(mapFeedPost);
+    visiblePosts.value = defaultPosts.value;
   } catch (error) {
     console.error('Error fetching news feed:', error);
   } finally {
@@ -311,10 +396,6 @@ onMounted(fetchPosts);
   text-decoration: underline;
   font-weight: 600;
 }
-:deep(.news-prose a:hover) {
-  opacity: 0.85;
-}
-:deep(.dark .news-prose a) {
-  color: #93c5fd;
-}
+:deep(.news-prose a:hover) { opacity: 0.85; }
+:deep(.dark .news-prose a) { color: #93c5fd; }
 </style>

@@ -96,8 +96,14 @@ export interface FeedResponse {
     posts: FeedPost[];
 }
 
-export async function getNewsFeed(): Promise<FeedResponse> {
-    const { data } = await api.get<FeedResponse>('/news/feed');
+export interface FeedParams {
+    source?: 'app' | 'riffvalley.es' | 'telegram';
+    type?: NewsType;
+    limit?: number;
+}
+
+export async function getNewsFeed(params?: FeedParams): Promise<FeedResponse> {
+    const { data } = await api.get<FeedResponse>('/news/feed', { params });
     return data;
 }
 
