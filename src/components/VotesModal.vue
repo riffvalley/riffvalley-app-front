@@ -1,147 +1,171 @@
 <template>
   <div v-if="showVotes"
-    class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black bg-opacity-50 z-50"
+    class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/60 z-50 px-4"
     @click.self="$emit('close')">
-    <div
-      class="bg-white dark:bg-rv-darkCard p-4 sm:p-6 rounded-lg shadow-xl w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-white/10">
-      <!-- Botón cerrar -->
-      <button @click="$emit('close')" class="absolute top-3 right-3 text-white bg-rv-navy hover:bg-[#e46e8a]
-          rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all
-          border-0 outline-none focus:outline-none focus-visible:outline-none
-          ring-0 focus:ring-0 focus-visible:ring-0" aria-label="Cerrar" title="Cerrar">
-        <i class="fa-solid fa-xmark text-lg"></i>
-      </button>
 
-      <!-- Título -->
-      <div class="text-center mb-6">
-        <h2 class="mb-3">
-          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-md font-bold">
-            VOTOS
-          </span>
-        </h2>
+    <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-2xl
+                w-full sm:max-w-3xl relative max-h-[88vh] overflow-y-auto
+                border border-gray-100 dark:border-white/10">
 
-        <p class="text-lg text-rv-navy dark:text-white mt-2">
-          {{ artistName }} – <span class="italic">{{ albumName }}</span>
-        </p>
+      <!-- ── Cabecera ───────────────────────────────────────── -->
+      <div class="sticky top-0 z-10 bg-white dark:bg-rv-darkCard
+                  border-b border-gray-100 dark:border-white/10
+                  px-5 pt-5 pb-4">
 
-        <!-- Toggle No Spoilers (solo visible si está habilitado en Perfil) -->
-        <div v-if="noSpoilers" class="flex items-center justify-center gap-2 mt-3">
+        <!-- Botón cerrar -->
+        <button @click="$emit('close')"
+          class="absolute top-4 right-4 text-white bg-rv-navy hover:bg-rv-pink
+                 rounded-full w-9 h-9 flex items-center justify-center shadow-md transition-all
+                 border-0 outline-none focus:outline-none ring-0 focus:ring-0"
+          aria-label="Cerrar">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+
+        <div class="pr-10">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="bg-rv-navy dark:bg-rv-purple text-white px-3 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase">
+              Votos
+            </span>
+            <span class="text-xs text-gray-400 dark:text-gray-300">{{ votes.length }} participante{{ votes.length !== 1 ? 's' : '' }}</span>
+          </div>
+          <p class="text-base font-bold text-rv-navy dark:text-white leading-snug">
+            {{ artistName }}
+            <span class="font-normal text-gray-400 dark:text-gray-500 mx-1">—</span>
+            <span class="italic font-semibold">{{ albumName }}</span>
+          </p>
+        </div>
+
+        <!-- Toggle No Spoilers -->
+        <div v-if="noSpoilers" class="flex items-center gap-2 mt-3">
           <span class="text-xs text-gray-500 dark:text-gray-400 select-none">No spoilers</span>
           <button type="button" @click="toggleNoSpoilers"
-            class="relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0"
+            class="relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0 border-0"
             :class="!revealed ? 'bg-rv-pink' : 'bg-gray-300 dark:bg-white/20'">
-            <span
-              class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
-              :class="!revealed ? 'translate-x-4' : 'translate-x-0'"></span>
+            <span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
+                  :class="!revealed ? 'translate-x-4' : 'translate-x-0'"></span>
           </button>
-          <span v-if="!revealed && !hasVoted"
-            class="text-[10px] text-rv-pink font-semibold uppercase tracking-wide">activo</span>
+          <span v-if="!revealed && !hasVoted" class="text-[10px] text-rv-pink font-semibold uppercase tracking-wide">activo</span>
         </div>
       </div>
 
-      <div class="flex flex-col md:flex-row gap-4">
-        <!-- Tabla -->
-        <div class="w-full md:w-1/2">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-white/10">
-            <thead
-              class="bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white text-xs uppercase tracking-wider">
-              <tr>
-                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300 dark:border-white/10">Usuario
-                </th>
-                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300 dark:border-white/10">Disco</th>
-                <th class="px-3 py-2 text-center font-semibold border-b border-gray-300 dark:border-white/10">Portada
-                </th>
-              </tr>
-            </thead>
+      <!-- ── Cuerpo ─────────────────────────────────────────── -->
+      <div class="flex flex-col md:flex-row gap-0 md:gap-0 divide-y md:divide-y-0 md:divide-x divide-gray-100 dark:divide-white/10">
 
-            <tbody class="bg-white dark:bg-rv-darkCard divide-y divide-gray-200 dark:divide-white/10">
-              <tr v-for="vote in votes" :key="vote.id">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font- text-rv-navy dark:text-white">
-                  <div class="flex items-center gap-2">
-                    <div
-                      class="relative overflow-hidden rounded-full bg-gray-200 dark:bg-rv-darkSurface w-10 h-10 shrink-0">
-                      <img v-if="vote.user.avatarUrl || vote.user.image" :src="vote.user.avatarUrl || vote.user.image"
-                        alt="Avatar" class="w-full h-full object-cover" />
+        <!-- Lista de votos -->
+        <div class="w-full md:w-1/2 p-4">
 
-                      <svg v-else class="w-full h-full text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                          clip-rule="evenodd" />
-                      </svg>
-                    </div>
+          <!-- Cabecera columnas -->
+          <div class="flex items-center px-2 mb-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-300">
+            <span class="flex-1">Usuario</span>
+            <span class="w-10 text-center">
+              <i class="fa-solid fa-compact-disc text-rv-pink/70 mr-0.5"></i>Disco
+            </span>
+            <span class="w-10 text-center">
+              <i class="fa-solid fa-image text-rv-purple/70 mr-0.5"></i>Port.
+            </span>
+          </div>
 
-                    <button class="bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1 rounded transition-colors duration-150
-hover:bg-gray-300 dark:hover:bg-rv-purple hover:underline border border-transparent dark:border-white/10
-                        outline-none focus:outline-none focus-visible:outline-none
-                        ring-0 focus:ring-0 focus-visible:ring-0" @click="openUserModal(
-                          vote.user.username,
-                          vote.user.id,
-                          vote.user.avatarUrl || vote.user.image || ''
-                        )">
-                      {{ vote.user.username }}
-                    </button>
-                  </div>
-                </td>
+          <!-- Filas -->
+          <ul class="divide-y divide-gray-50 dark:divide-white/5">
+            <li v-for="vote in votes" :key="vote.id"
+                class="flex items-center gap-2 py-2 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
 
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-center font-sans"
-                  :class="spoilerMode ? 'text-rv-pink font-bold tracking-widest' : 'text-gray-500 dark:text-gray-300'">
-                  {{ spoilerMode ? '???' : vote.rate }}
-                </td>
+              <!-- Avatar -->
+              <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-200 dark:bg-rv-darkSurface shrink-0">
+                <img v-if="vote.user.avatarUrl || vote.user.image"
+                     :src="vote.user.avatarUrl || vote.user.image"
+                     alt="Avatar" class="w-full h-full object-cover" />
+                <svg v-else class="w-full h-full text-gray-400 dark:text-gray-600" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                </svg>
+              </div>
 
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-center font-sans"
-                  :class="spoilerMode ? 'text-rv-pink font-bold tracking-widest' : 'text-gray-500 dark:text-gray-300'">
-                  {{ spoilerMode ? '???' : vote.cover }}
-                </td>
-              </tr>
+              <!-- Nombre -->
+              <button
+                class="flex-1 text-left text-sm font-medium text-rv-navy dark:text-white
+                       hover:text-rv-pink dark:hover:text-rv-pink transition-colors truncate
+                       border-0 outline-none focus:outline-none ring-0 focus:ring-0 bg-transparent p-0"
+                @click="openUserModal(vote.user.username, vote.user.id, vote.user.avatarUrl || vote.user.image || '')"
+              >
+                {{ vote.user.username }}
+              </button>
 
-              <tr v-if="votes.length === 0">
-                <td colspan="3" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
-                  No hay votos disponibles.
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              <!-- Scores -->
+              <div class="flex items-center gap-3 shrink-0">
+                <!-- Disco -->
+                <span v-if="spoilerMode"
+                      class="w-7 text-center text-[11px] font-bold text-rv-pink tracking-widest">???</span>
+                <span v-else-if="!vote.rate || vote.rate <= 0"
+                      class="w-7 text-center text-sm font-medium text-gray-300 dark:text-white/25">—</span>
+                <span v-else
+                      class="w-7 text-center text-[13px] font-bold"
+                      :style="{ color: getScoreColor(vote.rate) }">{{ vote.rate }}</span>
+
+                <!-- Portada -->
+                <span v-if="spoilerMode"
+                      class="w-7 text-center text-[11px] font-bold text-rv-pink tracking-widest">???</span>
+                <span v-else-if="!vote.cover || vote.cover <= 0"
+                      class="w-7 text-center text-sm font-medium text-gray-300 dark:text-white/25">—</span>
+                <span v-else
+                      class="w-7 text-center text-[13px] font-bold"
+                      :style="{ color: getScoreColor(vote.cover) }">{{ vote.cover }}</span>
+              </div>
+            </li>
+
+            <li v-if="votes.length === 0" class="py-6 text-center text-sm text-gray-400 dark:text-gray-500">
+              No hay votos disponibles.
+            </li>
+          </ul>
         </div>
 
         <!-- Gráfica -->
-        <div class="w-full md:w-1/2 flex flex-col items-center">
-          <div
-            class="mb-4 flex items-center justify-center space-x-2 bg-gray-200 dark:bg-rv-darkSurface rounded-full p-1 border border-gray-100 dark:border-white/10">
-            <button @click="isRateSelected = true" :class="[
-              'text-sm font-semibold px-4 py-1 rounded-full transition-all duration-200',
-              'outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0',
-              isRateSelected ? 'bg-rv-navy dark:bg-rv-purple text-white' : 'bg-gray-200 dark:bg-rv-darkSurface hover:bg-gray-300 dark:hover:bg-rv-purple text-rv-navy dark:text-white'
-            ]">
-              Disco
-            </button>
+        <div class="w-full md:w-1/2 p-4 flex flex-col items-center">
 
-            <button @click="isRateSelected = false" :class="[
-              'text-sm font-semibold px-4 py-1 rounded-full transition-all duration-200',
-              'outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0',
-              !isRateSelected ? 'bg-rv-navy dark:bg-rv-purple text-white' : 'bg-gray-200 dark:bg-rv-darkSurface hover:bg-gray-300 dark:hover:bg-rv-purple text-rv-navy dark:text-white'
-            ]">
-              Portada
+          <!-- Toggle Disco / Portada -->
+          <div class="flex items-center bg-gray-100 dark:bg-rv-darkSurface rounded-full p-1
+                      border border-gray-200 dark:border-white/10 mb-4 self-center">
+            <button @click="isRateSelected = true"
+              class="text-sm font-semibold px-5 py-1 rounded-full transition-all duration-200
+                     outline-none focus:outline-none ring-0 focus:ring-0"
+              :class="isRateSelected
+                ? 'bg-rv-navy dark:bg-rv-purple text-white shadow-sm'
+                : 'bg-gray-200 text-gray-800 dark:bg-transparent dark:text-gray-300 hover:bg-gray-300 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white'">
+              <i class="fa-solid fa-compact-disc mr-1.5 text-xs"></i>Disco
+            </button>
+            <button @click="isRateSelected = false"
+              class="text-sm font-semibold px-5 py-1 rounded-full transition-all duration-200
+                     outline-none focus:outline-none ring-0 focus:ring-0"
+              :class="!isRateSelected
+                ? 'bg-rv-navy dark:bg-rv-purple text-white shadow-sm'
+                : 'bg-gray-200 text-gray-800 dark:bg-transparent dark:text-gray-300 hover:bg-gray-300 hover:text-gray-900 dark:hover:bg-white/10 dark:hover:text-white'">
+              <i class="fa-solid fa-image mr-1.5 text-xs"></i>Portada
             </button>
           </div>
 
-          <div class="relative w-full h-56 top-1 flex flex-col items-center justify-center">
+          <!-- Chart -->
+          <div class="relative w-full h-52 flex flex-col items-center justify-center">
             <canvas ref="doughnut" class="w-full h-full" :class="spoilerMode ? 'blur-md' : ''"></canvas>
-            <!-- Overlay spoiler sobre el chart -->
+
+            <!-- Overlay No Spoilers -->
             <div v-if="spoilerMode" class="absolute inset-0 flex flex-col items-center justify-center gap-2">
-              <i class="fa-solid fa-lock text-2xl text-rv-pink"></i>
+              <i class="fa-solid fa-lock text-3xl text-rv-pink drop-shadow"></i>
               <button type="button" @click="revealed = true"
-                class="text-xs font-semibold px-3 py-1.5 rounded-full bg-rv-pink text-white hover:bg-rv-pink/80 transition-colors focus:outline-none">
+                class="text-xs font-semibold px-4 py-1.5 rounded-full bg-rv-pink text-white
+                       hover:bg-rv-pink/80 transition-colors focus:outline-none shadow-md">
                 Ver votos
               </button>
             </div>
+          </div>
 
-            <div class="flex flex-wrap justify-center gap-x-1 gap-y-1 mt-4 text-xs text-rv-navy dark:text-gray-200">
-              <div v-for="(label, i) in customLegend" :key="i" class="flex items-center space-x-1">
-                <div :style="{ backgroundColor: label.color }" class="w-2.5 h-2.5 rounded-full"></div>
-                <span>{{ label.text }}</span>
-              </div>
+          <!-- Leyenda -->
+          <div class="flex flex-wrap justify-center gap-x-2 gap-y-1 mt-3 text-xs text-rv-navy dark:text-gray-300">
+            <div v-for="(label, i) in customLegend" :key="i" class="flex items-center gap-1">
+              <div :style="{ backgroundColor: label.color }" class="w-2.5 h-2.5 rounded-full flex-shrink-0"></div>
+              <span>{{ label.text }}</span>
             </div>
           </div>
         </div>
+
       </div>
     </div>
 
@@ -201,7 +225,17 @@ export default defineComponent({
   setup(props, { emit }) {
     const doughnut = ref<HTMLCanvasElement | null>(null);
     const chartInstance = ref<Chart | null>(null);
-    let createChartTimeout: ReturnType<typeof setTimeout> | null = null;
+    let chartTimer: ReturnType<typeof setTimeout> | null = null;
+
+    // Centraliza todos los disparos de createChart en un único debounce,
+    // evitando la race condition entre los watchers de votes, showVotes y onMounted.
+    const scheduleChart = (delay = 50) => {
+      if (chartTimer) clearTimeout(chartTimer);
+      chartTimer = setTimeout(() => {
+        chartTimer = null;
+        nextTick(() => createChart());
+      }, delay);
+    };
 
     const isRateSelected = ref(true);
     const customLegend = ref<{ text: string; color: string }[]>([]);
@@ -295,7 +329,8 @@ export default defineComponent({
       );
 
       if (chartInstance.value) {
-        chartInstance.value.destroy();
+        try { chartInstance.value.destroy(); } catch (_) {}
+        chartInstance.value = null;
       }
 
       const selectedData = isRateSelected.value ? rateData : coverData;
@@ -381,18 +416,12 @@ export default defineComponent({
     };
 
     onMounted(() => {
-      nextTick(() => {
-        createChart();
-      });
+      scheduleChart();
     });
 
     watch(
       () => props.votes,
-      () => {
-        nextTick(() => {
-          createChart();
-        });
-      },
+      () => { scheduleChart(); },
       { deep: true }
     );
 
@@ -400,24 +429,19 @@ export default defineComponent({
       () => props.showVotes,
       (newVal) => {
         if (newVal) {
-          nextTick(() => {
-            createChart();
-          });
-        } else if (chartInstance.value) {
-          chartInstance.value.destroy();
-          chartInstance.value = null;
+          scheduleChart();
+        } else {
+          if (chartTimer) clearTimeout(chartTimer);
+          if (chartInstance.value) {
+            try { chartInstance.value.destroy(); } catch (_) {}
+            chartInstance.value = null;
+          }
         }
       }
     );
 
     watch(isRateSelected, () => {
-      if (createChartTimeout) clearTimeout(createChartTimeout);
-
-      createChartTimeout = setTimeout(() => {
-        nextTick(() => {
-          createChart();
-        });
-      }, 200);
+      scheduleChart(200);
     });
 
     const showUserModal = ref(false);
@@ -450,6 +474,31 @@ export default defineComponent({
       revealed,
       spoilerMode,
       toggleNoSpoilers,
+      getColor,
+      getScoreColor: (value: number): string => {
+        const v = Math.max(0, Math.min(10, value));
+        const isDark = document.documentElement.classList.contains('dark');
+        const stops = isDark
+          ? [
+              { rating: 0,  color: [255, 90,  90 ] },  // rojo claro
+              { rating: 5,  color: [255, 200, 60 ] },  // ámbar claro
+              { rating: 10, color: [80,  210, 80 ] },  // verde claro
+            ]
+          : [
+              { rating: 0,  color: [180, 0,   0  ] },  // rojo oscuro
+              { rating: 5,  color: [170, 110, 0  ] },  // ámbar oscuro
+              { rating: 10, color: [0,   130, 0  ] },  // verde oscuro
+            ];
+        let lo = stops[0], hi = stops[stops.length - 1];
+        for (let i = 0; i < stops.length - 1; i++) {
+          if (v >= stops[i].rating && v <= stops[i + 1].rating) { lo = stops[i]; hi = stops[i + 1]; break; }
+        }
+        const r = (hi.rating - lo.rating) === 0 ? 0 : (v - lo.rating) / (hi.rating - lo.rating);
+        const red   = Math.round(lo.color[0] + r * (hi.color[0] - lo.color[0]));
+        const green = Math.round(lo.color[1] + r * (hi.color[1] - lo.color[1]));
+        const blue  = Math.round(lo.color[2] + r * (hi.color[2] - lo.color[2]));
+        return `rgb(${red},${green},${blue})`;
+      },
     };
   },
 });
