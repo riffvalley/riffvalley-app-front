@@ -7,7 +7,7 @@
 
     <div v-else-if="posts.length === 0" class="text-center text-gray-400 py-6">No hay novedades disponibles</div>
 
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-1.5">
+    <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-2">
       <component
         :is="post.source === 'app' ? 'button' : 'a'"
         v-for="post in posts"
@@ -15,136 +15,161 @@
         v-bind="post.source === 'app' ? {} : { href: post.link, target: '_blank', rel: 'noopener noreferrer' }"
         @click="post.source === 'app' ? openAppPost(post) : undefined"
         class="group text-left
-       bg-transparent border-0 p-0 appearance-none
-       outline-none focus:outline-none focus-visible:outline-none
-       ring-0 focus:ring-0 focus-visible:ring-0
-       sm:relative sm:block sm:rounded-md sm:overflow-hidden sm:aspect-square"
+               bg-transparent border-0 p-0 appearance-none
+               outline-none focus:outline-none focus-visible:outline-none
+               ring-0 focus:ring-0 focus-visible:ring-0
+               sm:relative sm:block sm:rounded-xl sm:overflow-hidden sm:aspect-square"
       >
-<!-- Mobile: layout horizontal -->
-<div class="sm:hidden flex items-center gap-3 p-3 bg-white dark:bg-rv-darkSurface rounded-md border border-gray-100 dark:border-white/10">
-  <div class="w-16 h-16 flex-shrink-0 rounded-md overflow-hidden">
-    <img
-      v-if="post.image"
-      :src="post.image"
-      :alt="post.title"
-      class="w-full h-full object-cover brightness-[0.85]"
-      loading="lazy"
-    />
-    <img v-else src="/news/default.jpg" :alt="post.title" class="w-full h-full object-cover brightness-[0.85]" loading="lazy" />
-  </div>
+        <!-- ── Mobile: layout horizontal ───────────────────── -->
+        <div
+          class="sm:hidden flex items-center gap-3 p-3
+                 bg-white dark:bg-rv-darkSurface rounded-xl
+                 border border-gray-100 dark:border-white/10
+                 border-l-4 transition-all duration-200
+                 active:scale-[0.98]"
+          :class="sourceBorderColor(post.source)"
+        >
+          <div class="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden">
+            <img
+              :src="post.image ?? '/news/default.jpg'"
+              :alt="post.title"
+              class="w-full h-full object-cover"
+              loading="lazy"
+            />
+          </div>
 
-  <div class="flex-1 min-w-0">
-    <h4
-class="text-rv-navy dark:text-white font-bold text-xs leading-snug line-clamp-2"
-      v-html="post.title"
-    ></h4>
+          <div class="flex-1 min-w-0">
+            <h4 class="text-rv-navy dark:text-white font-bold text-xs leading-snug line-clamp-2" v-html="post.title"></h4>
+            <div class="flex items-center gap-2 mt-1">
+              <span class="text-gray-400 text-[9px] shrink-0">{{ post.date }}</span>
+              <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold shrink-0"
+                    :class="sourceBadgeClass(post.source)">
+                <i :class="sourceBadgeIcon(post.source)" class="text-[7px]"></i>
+                {{ sourceLabel(post) }}
+              </span>
+            </div>
+          </div>
 
-    <div class="flex items-center gap-2 mt-1">
-      <span class="text-gray-400 text-[9px] shrink-0">{{ post.date }}</span>
+          <i
+            class="fa-solid text-gray-300 dark:text-white/20 text-xs flex-shrink-0"
+            :class="post.source === 'app' ? 'fa-book-open' : 'fa-arrow-up-right-from-square'"
+          ></i>
+        </div>
 
-      <span
-        v-if="post.source === 'app'"
-        class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-rv-blue/90 text-white"
-      >
-        {{ typeLabel(post.newsType!) }}
-      </span>
+        <!-- ── Desktop: tarjeta cuadrada ───────────────────── -->
+        <div class="hidden sm:block h-full relative">
 
-      <span
-        v-else-if="post.source === 'riffvalley.es'"
-        class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-rv-pink/90 text-white"
-      >
-        riffvalley.es
-      </span>
+          <!-- Barra de color superior por fuente (solo visible en hover) -->
+          <div class="absolute top-0 left-0 right-0 h-[6px] z-20
+                      opacity-0 group-hover:opacity-100
+                      transition-opacity duration-300"
+               :class="sourceAccentBar(post.source)"
+               :style="{ boxShadow: sourceAccentGlow(post.source) }"></div>
 
-      <span
-        v-else
-        class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-yellow-400/90 text-rv-navy"
-      >
-        <i class="fa-brands fa-telegram mr-0.5"></i>Canal
-      </span>
-    </div>
-  </div>
-</div>
+          <!-- Imagen de fondo -->
+          <img
+            :src="post.image ?? '/news/default.jpg'"
+            :alt="post.title"
+            class="absolute inset-0 w-full h-full object-cover
+                   transition-all duration-500 ease-out
+                   brightness-[0.80] group-hover:brightness-[0.45]
+                   scale-100 group-hover:scale-105"
+            loading="lazy"
+          />
 
-        <!-- Desktop/Tablet: layout tarjeta -->
-        <div class="hidden sm:block h-full">
-          <img v-if="post.image" :src="post.image" :alt="post.title"
-            class="absolute inset-0 w-full h-full object-cover transition-all duration-300 brightness-[0.85] group-hover:brightness-[0.55]"
-            loading="lazy" />
-          <img v-else src="/news/default.jpg" :alt="post.title" class="absolute inset-0 w-full h-full object-cover brightness-[0.85]" loading="lazy" />
-<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent"></div>
-          <div class="absolute top-1.5 left-1.5">
-            <span v-if="post.source === 'app'"
-              class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-rv-blue/90 text-white">
-              {{ typeLabel(post.newsType!) }}
-            </span>
-            <span v-else-if="post.source === 'riffvalley.es'" class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-rv-pink/90 text-white">
-              riffvalley.es
-            </span>
-            <span v-else class="inline-flex items-center justify-center min-w-[4.5rem] px-1.5 py-0.5 rounded text-[8px] font-bold bg-yellow-400/90 text-rv-navy">
-              <i class="fa-brands fa-telegram mr-0.5"></i>
-              Canal conciertos
+          <!-- Degradado permanente -->
+          <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent
+                      transition-opacity duration-300 group-hover:opacity-80"></div>
+
+          <!-- Badge fuente — top left -->
+          <div class="absolute top-3 left-3 z-10">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold
+                         shadow-md backdrop-blur-sm"
+                  :class="sourceBadgeClass(post.source)">
+              <i :class="sourceBadgeIcon(post.source)" class="text-[8px]"></i>
+              {{ sourceLabel(post) }}
             </span>
           </div>
-          <div class="relative h-full flex flex-col justify-end p-2">
-            <h4 class="text-white font-bold text-[11px] sm:text-xs leading-snug line-clamp-3" v-html="post.title"></h4>
-            <span class="text-white/50 text-[8px] sm:text-[9px] mt-0.5">{{ post.date }}</span>
+
+          <!-- Icono de destino — top right, aparece en hover -->
+          <div class="absolute top-3 right-3 z-10
+                      opacity-0 group-hover:opacity-100
+                      translate-y-[-4px] group-hover:translate-y-0
+                      transition-all duration-200">
+            <span class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm
+                         flex items-center justify-center">
+              <i class="fa-solid text-white text-[9px]"
+                 :class="post.source === 'app' ? 'fa-book-open' : 'fa-arrow-up-right-from-square'"></i>
+            </span>
+          </div>
+
+          <!-- Contenido inferior — slide-up en hover -->
+          <div class="absolute bottom-0 left-0 right-0 p-3 z-10
+                      translate-y-1 group-hover:translate-y-0
+                      transition-transform duration-300 ease-out">
+            <h4
+              class="text-white font-bold text-[12px] sm:text-[13px] leading-snug line-clamp-3
+                     drop-shadow-md"
+              v-html="post.title"
+            ></h4>
+            <div class="flex items-center justify-between mt-1.5
+                        opacity-0 group-hover:opacity-100
+                        translate-y-1 group-hover:translate-y-0
+                        transition-all duration-300 delay-75">
+              <span class="text-white/60 text-[9px]">{{ post.date }}</span>
+              <span class="text-white/50 text-[9px]">
+                {{ post.source === 'app' ? 'Leer más' : 'Abrir' }}
+                <i class="fa-solid fa-chevron-right text-[7px] ml-0.5"></i>
+              </span>
+            </div>
           </div>
         </div>
+
       </component>
     </div>
 
-    <!-- Modal de noticia de la app -->
-<Teleport to="body">
-  <div
-    v-if="selectedNews"
-    class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/50 z-50"
-    @click.self="selectedNews = null"
-  >
-    <div
-  class="bg-white dark:bg-rv-darkCard p-4 sm:p-6 rounded-lg shadow-xl w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-white/10"
-      role="dialog"
-      aria-modal="true"
-    >
-      <!-- Close button (mismo estilo que ya usáis) -->
-      <button
-        @click="selectedNews = null"
-        class="absolute top-3 right-3 text-white bg-rv-navy hover:bg-[#e46e8a]
-               rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all
-               border-0 outline-none focus:outline-none focus-visible:outline-none
-               ring-0 focus:ring-0 focus-visible:ring-0"
-        aria-label="Cerrar"
-        title="Cerrar"
+    <!-- ── Modal noticia interna ─────────────────────────────── -->
+    <Teleport to="body">
+      <div
+        v-if="selectedNews"
+        class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/50 z-50"
+        @click.self="selectedNews = null"
       >
-        <i class="fa-solid fa-xmark text-lg"></i>
-      </button>
+        <div
+          class="bg-white dark:bg-rv-darkCard p-4 sm:p-6 rounded-2xl shadow-xl
+                 w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto
+                 border border-gray-100 dark:border-white/10"
+          role="dialog"
+          aria-modal="true"
+        >
+          <button
+            @click="selectedNews = null"
+            class="absolute top-3 right-3 text-white bg-rv-navy hover:bg-rv-pink
+                   rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all
+                   border-0 outline-none focus:outline-none focus-visible:outline-none
+                   ring-0 focus:ring-0 focus-visible:ring-0"
+            aria-label="Cerrar"
+          >
+            <i class="fa-solid fa-xmark text-lg"></i>
+          </button>
 
-      <!-- Header -->
-      <div class="flex items-center gap-2 mb-3">
-        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rv-blue/15 text-rv-blue">
-          {{ typeLabel(selectedNews.type) }}
-        </span>
+          <div class="flex items-center gap-2 mb-3">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rv-blue/15 text-rv-blue">
+              {{ typeLabel(selectedNews.type) }}
+            </span>
+            <span class="text-gray-500 dark:text-gray-300 text-xs">{{ selectedNews.date }}</span>
+          </div>
 
-<span class="text-gray-500 dark:text-gray-300 text-xs">
-          {{ selectedNews.date }}
-        </span>
+          <h3 class="text-xl font-bold text-rv-navy dark:text-white mb-4">{{ selectedNews.title }}</h3>
+
+          <div
+            class="news-prose text-gray-700 dark:text-gray-200"
+            v-html="selectedNews.body"
+            @click="handleBodyClick"
+          />
+        </div>
       </div>
-
-      <!-- Title -->
-<h3 class="text-xl font-bold text-rv-navy dark:text-white mb-4">
-        {{ selectedNews.title }}
-      </h3>
-
-      <!-- Body -->
-<div
-  class="news-prose text-gray-700 dark:text-gray-200"
-  v-html="selectedNews.body"
-  @click="handleBodyClick"
-/>
-
-    </div>
-  </div>
-</Teleport>
+    </Teleport>
   </div>
 </template>
 
@@ -171,11 +196,53 @@ const posts = ref<NewsPost[]>([]);
 const loading = ref(true);
 const selectedNews = ref<{ title: string; type: NewsType; body: string; date: string } | null>(null);
 
+// ── Helpers de estilo por fuente ─────────────────────────────
+
+function sourceBorderColor(source: string) {
+  if (source === 'telegram')     return 'border-l-yellow-400';
+  if (source === 'riffvalley.es') return 'border-l-rv-pink';
+  return 'border-l-rv-blue';
+}
+
+function sourceAccentBar(source: string) {
+  if (source === 'telegram')      return 'bg-yellow-400';
+  if (source === 'riffvalley.es') return 'bg-rv-pink';
+  return 'bg-rv-blue';
+}
+
+function sourceAccentGlow(source: string) {
+  if (source === 'telegram')      return '0 2px 10px 2px rgba(250,204,21,0.6)';
+  if (source === 'riffvalley.es') return '0 2px 10px 2px rgba(228,110,138,0.6)';
+  return '0 2px 10px 2px rgba(0,100,214,0.6)';
+}
+
+function sourceBadgeClass(source: string) {
+  if (source === 'telegram')
+    return 'bg-yellow-400/90 text-rv-navy';
+  if (source === 'riffvalley.es')
+    return 'bg-rv-pink/90 text-white';
+  return 'bg-rv-blue/90 text-white';
+}
+
+function sourceBadgeIcon(source: string) {
+  if (source === 'telegram')     return 'fa-brands fa-telegram';
+  if (source === 'riffvalley.es') return 'fa-solid fa-globe';
+  return 'fa-solid fa-bell';
+}
+
+function sourceLabel(post: NewsPost) {
+  if (post.source === 'app')          return typeLabel(post.newsType!);
+  if (post.source === 'riffvalley.es') return 'riffvalley.es';
+  return 'Canal conciertos';
+}
+
+// ── Tipos y lógica ───────────────────────────────────────────
+
 function typeLabel(type: NewsType): string {
   const labels: Record<NewsType, string> = {
-    version: 'Versión',
-    new_feature: 'Novedad',
-    team_notes: 'Equipo',
+    version:      'Versión',
+    new_feature:  'Novedad',
+    team_notes:   'Equipo',
   };
   return labels[type] ?? type;
 }
@@ -190,13 +257,10 @@ function openAppPost(post: NewsPost) {
 }
 
 function handleBodyClick(e: MouseEvent) {
-  const target = e.target as HTMLElement;
-  const anchor = target.closest('a');
+  const anchor = (e.target as HTMLElement).closest('a');
   if (!anchor) return;
-
   const href = anchor.getAttribute('href');
   if (!href) return;
-
   if (href.startsWith('/')) {
     e.preventDefault();
     selectedNews.value = null;
@@ -205,9 +269,9 @@ function handleBodyClick(e: MouseEvent) {
 }
 
 const appTypeImages: Record<string, string> = {
-  version: '/news/version.jpg',
+  version:     '/news/version.jpg',
   new_feature: '/news/funcionalidad.jpg',
-  team_notes: '/news/equipo.jpg',
+  team_notes:  '/news/equipo.jpg',
 };
 
 function mapFeedPost(fp: FeedPost): NewsPost {
@@ -242,28 +306,14 @@ onMounted(fetchPosts);
 </script>
 
 <style scoped>
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.line-clamp-3 {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
 :deep(.news-prose a) {
-  color: #0c6ddc; /* su rv-blue */
+  color: #0c6ddc;
   text-decoration: underline;
   font-weight: 600;
 }
 :deep(.news-prose a:hover) {
   opacity: 0.85;
 }
-
 :deep(.dark .news-prose a) {
   color: #93c5fd;
 }
