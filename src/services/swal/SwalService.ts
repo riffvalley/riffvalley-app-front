@@ -117,21 +117,26 @@ export default {
     // Obtener título y mensaje aleatorio desde el JSON
     const { title, message } = this.getRandomMessage(roundedCategory);
 
+    const isDark = document.documentElement.classList.contains("dark");
+    const titleColor = isDark ? "#f1f5f9" : "#16112a";
+    const textColor  = isDark ? "#94a3b8" : "#64748b";
+
     return Swal.fire({
       html: `
-              <div class="flex items-center">
-                <img src="${imagePath}" alt="Imagen" class="w-24 h-24 mr-4">
-                <div>
-                  <h2 class="text-lg font-bold text-gray-800">${title}</h2>
-                  <p class="text-base text-gray-600">${message}</p>
-                </div>
-              </div>
-      `,
+        <div style="display:flex;align-items:center;gap:12px;">
+          <img src="${imagePath}" alt=""
+            style="width:72px;height:72px;object-fit:cover;border-radius:10px;flex-shrink:0;">
+          <div style="text-align:left;">
+            <p style="margin:0 0 3px;font-size:13px;font-weight:700;color:${titleColor};line-height:1.3;">${title}</p>
+            <p style="margin:0;font-size:12px;color:${textColor};line-height:1.4;">${message}</p>
+          </div>
+        </div>`,
       position: "top-end",
       timer: 5000,
       timerProgressBar: true,
       showConfirmButton: false,
       toast: true,
+      customClass: { popup: "rv-toast" },
     });
   },
 
