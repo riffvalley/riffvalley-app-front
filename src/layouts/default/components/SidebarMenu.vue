@@ -45,6 +45,12 @@
               <div class="flex items-center justify-start">
                 <i class="fa-solid fa-circle-plus text-base w-5 text-center mr-3"></i>
                 Nuevos Discos
+                <span
+                  v-if="petitionsStore.pendingCount > 0"
+                  class="ml-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+                >
+                  {{ petitionsStore.pendingCount > 99 ? '99+' : petitionsStore.pendingCount }}
+                </span>
               </div>
               <i
                 class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200 group-open:rotate-180"></i>
@@ -57,6 +63,12 @@
                   @click="closeMenu">
                   <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
                   {{ route.label }}
+                  <span
+                    v-if="route.to === '/petitions' && petitionsStore.pendingCount > 0"
+                    class="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+                  >
+                    {{ petitionsStore.pendingCount > 99 ? '99+' : petitionsStore.pendingCount }}
+                  </span>
                 </router-link>
               </li>
             </ul>
@@ -134,6 +146,12 @@
               <div class="flex items-center justify-start">
                 <i class="fa-solid fa-gears text-base w-5 text-center mr-3"></i>
                 Gestión
+                <span
+                  v-if="supportStore.unreadCount > 0"
+                  class="ml-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+                >
+                  {{ supportStore.unreadCount > 99 ? '99+' : supportStore.unreadCount }}
+                </span>
               </div>
 
               <i class="fa-solid fa-chevron-down text-[10px]
@@ -184,6 +202,12 @@
                   :active-class="'bg-gradient-to-r from-[#b0669f] to-[#8a5bb4] text-white'" @click="closeMenu">
                   <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
                   {{ route.label }}
+                  <span
+                    v-if="route.to === '/suggestions/management' && supportStore.unreadCount > 0"
+                    class="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+                  >
+                    {{ supportStore.unreadCount > 99 ? '99+' : supportStore.unreadCount }}
+                  </span>
                 </router-link>
 
               </li>
@@ -274,6 +298,10 @@
 import { defineComponent, computed, ref, onMounted } from 'vue';
 import { useAuthStore } from '@stores/auth/auth.ts';
 import { getLatestPublicVersion } from '@services/versions/versions';
+import { getAllRequests } from '@services/requests/requests';
+import { getSuggestions } from '@services/suggestions/suggestions';
+import { useSupportStore } from '@stores/support/support';
+import { usePetitionsStore } from '@stores/petitions/petitions';
 import routesData from './routes.json';
 
 // Tipo actualizado con 'new-discs'
@@ -296,6 +324,8 @@ props: {
 emits: ['close-menu', 'toggle-theme'],
   setup(_, { emit }) {
     const authStore = useAuthStore();
+    const supportStore = useSupportStore();
+    const petitionsStore = usePetitionsStore();
     const allRoutes = routesData as AppRoute[];
     const latestVersion = ref<string | null>(null);
 
@@ -342,15 +372,27 @@ emits: ['close-menu', 'toggle-theme'],
       filterByRole(allRoutes.filter((r) => r.type === 'bottom'))
     );
 
-    // Fetch latest public version
+    // Fetch latest public version + badge counts
     onMounted(async () => {
       try {
         const data = await getLatestPublicVersion();
-        if (data) {
-          latestVersion.value = data.version;
-        }
-      } catch (e) {
-        console.error(e);
+        if (data) latestVersion.value = data.version;
+      } catch {}
+
+      if (authStore.hasRole('user')) {
+        try {
+          const result = await getAllRequests();
+          const reqs: any[] = Array.isArray(result) ? result : ((result as any).data ?? []);
+          petitionsStore.setPendingCount(reqs.filter((r: any) => r.status === 'pending').length);
+        } catch {}
+      }
+
+      if (authStore.hasRole('superUser')) {
+        try {
+          const result = await getSuggestions({ status: 'in_progress' });
+          const items: any[] = Array.isArray(result) ? result : ((result as any).data ?? []);
+          supportStore.setPendingIds(items.map((s: any) => s.id));
+        } catch {}
       }
     });
 
@@ -362,6 +404,8 @@ emits: ['close-menu', 'toggle-theme'],
     return {
       handleLogout,
       closeMenu,
+      supportStore,
+      petitionsStore,
       logoutLabel: 'Cerrar sesión',
       filteredDiscAppRoutes,
       filteredNewDiscsRoutes,

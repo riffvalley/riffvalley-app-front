@@ -1,91 +1,131 @@
 <template>
-  <div class="p-6 max-w-4xl mx-auto dark:text-gray-200">
+  <div class="p-6 max-w-4xl mx-auto">
 
     <!-- Cabecera -->
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-bug mr-2"></i>Gestión de Bugs / Sugerencias</h1>
-        <p class="text-gray-400 text-sm mt-0.5">{{ suggestions.length }} en total</p>
+        <h1 class="text-2xl md:text-3xl font-bold dark:text-white">
+          <i class="fa-solid fa-bug mr-2"></i>Soporte
+        </h1>
+        <p class="text-gray-400 dark:text-gray-500 text-sm mt-0.5">
+          {{ suggestions.length }} entrada{{ suggestions.length !== 1 ? 's' : '' }} · bugs y sugerencias de los usuarios
+        </p>
       </div>
       <button
         @click="openCreateModal"
-        class="flex items-center gap-2 bg-rv-navy dark:bg-rv-purple text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
+        class="flex items-center gap-2 bg-gradient-to-r from-rv-pink to-rv-purple text-white px-4 py-2 rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity shadow-sm"
       >
-        <i class="fa-solid fa-plus"></i> Nueva
+        <i class="fa-solid fa-plus"></i>Nueva entrada
       </button>
     </div>
 
-    <!-- Tabs tipo -->
-    <div class="flex gap-2 mb-4 flex-wrap">
-      <button
-        v-for="t in typeTabs"
-        :key="t.value"
-        @click="setFilter('type', t.value)"
-        :class="activeType === t.value ? t.activeClass : 'bg-white dark:bg-rv-darkCard text-gray-500 dark:text-gray-400 hover:text-rv-navy dark:hover:text-gray-200 border border-gray-200 dark:border-white/10'"
-        class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors shadow-sm"
-      >
-        <i :class="t.icon" class="mr-1.5"></i>{{ t.label }}
-      </button>
-    </div>
-
-    <!-- Tabs estado -->
-    <div class="flex gap-2 mb-6 flex-wrap">
-      <button
-        v-for="s in statusTabs"
-        :key="s.value"
-        @click="setFilter('status', s.value)"
-        :class="activeStatus === s.value ? 'bg-rv-navy dark:bg-rv-purple text-white' : 'bg-white dark:bg-rv-darkCard text-gray-500 dark:text-gray-400 hover:text-rv-navy dark:hover:text-gray-200 border border-gray-200 dark:border-white/10'"
-        class="px-3 py-1 rounded-full text-xs font-medium transition-colors shadow-sm"
-      >
-        {{ s.label }}
-        <span class="ml-1 opacity-70">({{ countByStatus(s.value) }})</span>
-      </button>
+    <!-- Filtros -->
+    <div class="bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm p-4 mb-6 space-y-3">
+      <!-- Tipo -->
+      <div class="flex gap-2 flex-wrap">
+        <button
+          v-for="t in typeTabs"
+          :key="t.value"
+          @click="setFilter('type', t.value)"
+          :class="activeType === t.value ? t.activeClass : 'bg-gray-100 dark:bg-rv-darkSurface text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
+          class="px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
+        >
+          <i :class="t.icon" class="mr-1.5"></i>{{ t.label }}
+        </button>
+      </div>
+      <!-- Estado -->
+      <div class="flex gap-2 flex-wrap">
+        <button
+          v-for="st in statusTabs"
+          :key="st.value"
+          @click="setFilter('status', st.value)"
+          :class="activeStatus === st.value ? 'bg-rv-pink text-white' : 'bg-gray-100 dark:bg-rv-darkSurface text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
+          class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
+        >
+          {{ st.label }}
+          <span class="ml-1 opacity-70">({{ countByStatus(st.value) }})</span>
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-center py-12 text-gray-400">Cargando...</div>
+    <div v-if="loading" class="flex items-center justify-center gap-2 py-16 text-gray-400 dark:text-gray-500 text-sm">
+      <i class="fa-solid fa-spinner fa-spin"></i>Cargando...
+    </div>
 
     <!-- Vacío -->
-    <div v-else-if="suggestions.length === 0" class="text-center py-12 text-gray-400 bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv dark:shadow-none border border-gray-100 dark:border-white/10">
+    <div v-else-if="suggestions.length === 0"
+      class="text-center py-14 bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
       <i class="fa-solid fa-inbox text-3xl mb-3 block text-gray-300 dark:text-gray-600"></i>
-      No hay {{ activeType === 'bug' ? 'bugs' : activeType === 'suggestion' ? 'sugerencias' : 'entradas' }} en este estado.
+      <p class="text-sm text-gray-400 dark:text-gray-500">
+        No hay {{ activeType === 'bug' ? 'bugs' : activeType === 'suggestion' ? 'sugerencias' : 'entradas' }} en este estado.
+      </p>
     </div>
 
     <!-- Lista -->
     <ul v-else class="space-y-3">
-      <li v-for="s in suggestions" :key="s.id" class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv dark:shadow-none border border-gray-100 dark:border-white/10 px-5 py-4">
-        <div class="flex items-start gap-4">
-          <img v-if="s.user?.image" :src="s.user.image" class="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5" />
-          <div v-else class="w-9 h-9 rounded-full bg-rv-navy/10 dark:bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <i class="fa-solid fa-user text-rv-navy/50 dark:text-white/30 text-sm"></i>
+      <li v-for="s in suggestions" :key="s.id"
+        class="bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
+
+        <!-- Franja de color según tipo -->
+        <div :class="s.type === 'bug' ? 'bg-red-500' : 'bg-blue-500'" class="h-1 w-full"></div>
+
+        <div class="px-5 py-4 flex items-start gap-4">
+          <!-- Avatar -->
+          <img v-if="s.user?.image" :src="s.user.image"
+            class="w-9 h-9 rounded-full object-cover flex-shrink-0 mt-0.5 ring-2 ring-gray-100 dark:ring-white/10" />
+          <div v-else
+            class="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <i class="fa-solid fa-user text-gray-400 dark:text-white/30 text-sm"></i>
           </div>
 
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 flex-wrap mb-1.5">
+            <!-- Fila de meta: usuario + fecha -->
+            <div class="flex items-center gap-1.5 mb-2">
+              <span class="text-xs font-semibold text-gray-700 dark:text-gray-200">{{ s.user?.username }}</span>
+              <span class="text-gray-300 dark:text-white/20 text-xs">·</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">{{ formatDate(s.createdAt) }}</span>
+            </div>
+
+            <!-- Título -->
+            <p class="font-semibold text-gray-800 dark:text-white mb-1.5">{{ s.title }}</p>
+
+            <!-- Descripción -->
+            <p class="text-sm text-gray-500 dark:text-gray-400 whitespace-pre-line leading-relaxed">{{ s.description }}</p>
+
+            <!-- Chips de estado -->
+            <div class="flex items-center gap-2 flex-wrap mt-3">
               <span :class="typeClass(s.type)" class="text-xs font-semibold px-2 py-0.5 rounded-full">
                 <i :class="typeIcon(s.type)" class="mr-1"></i>{{ typeLabel(s.type) }}
               </span>
-              <span :class="priorityClass(s.priority)" class="text-xs font-semibold px-2 py-0.5 rounded-full">
-                {{ priorityLabel(s.priority) }}
-              </span>
+              <button
+                type="button"
+                @click="cyclePriority(s)"
+                :class="priorityClass(s.priority)"
+                class="text-xs font-semibold px-2 py-0.5 rounded-full hover:opacity-75 transition-opacity"
+                title="Click para cambiar prioridad"
+              >
+                <i class="fa-solid fa-arrow-up-wide-short mr-1"></i>{{ priorityLabel(s.priority) }}
+              </button>
               <span :class="statusClass(s.status)" class="text-xs font-semibold px-2 py-0.5 rounded-full">
                 {{ statusLabel(s.status) }}
               </span>
-              <span class="text-xs text-gray-400">{{ s.user?.username }}</span>
-              <span class="text-xs text-gray-400">· {{ formatDate(s.createdAt) }}</span>
             </div>
 
-            <p class="font-semibold text-gray-800 dark:text-gray-200">{{ s.title }}</p>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 whitespace-pre-line">{{ s.description }}</p>
+            <!-- Motivo de rechazo -->
+            <div v-if="s.rejectionReason"
+              class="mt-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 rounded-xl px-3 py-2 text-xs text-red-600 dark:text-red-400">
+              <i class="fa-solid fa-circle-xmark mr-1.5"></i>{{ s.rejectionReason }}
+            </div>
 
-            <p v-if="s.rejectionReason" class="text-xs text-red-400 mt-2 italic">
-              <i class="fa-solid fa-circle-xmark mr-1"></i>{{ s.rejectionReason }}
-            </p>
-            <p v-if="s.versionItem" class="text-xs text-green-600 dark:text-green-400 mt-2">
-              <i class="fa-solid fa-code-branch mr-1"></i>{{ s.versionItem.description }}
-            </p>
+            <!-- Vinculado a versión -->
+            <div v-if="s.versionItem"
+              class="mt-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-xl px-3 py-2 text-xs text-green-700 dark:text-green-400">
+              <i class="fa-solid fa-code-branch mr-1.5"></i>{{ s.versionItem.description }}
+            </div>
 
-            <div class="flex gap-2 mt-3 flex-wrap">
+            <!-- Acciones -->
+            <div class="flex gap-2 mt-4 flex-wrap">
               <button v-if="s.status === 'in_progress'" @click="openDoneModal(s)"
                 class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors">
                 <i class="fa-solid fa-check mr-1"></i>Marcar como hecho
@@ -98,8 +138,14 @@
                 class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors">
                 <i class="fa-solid fa-rotate-left mr-1"></i>Volver a pendiente
               </button>
+              <button
+                v-if="s.status === 'in_progress' && !supportStore.isRead(s.id)"
+                @click="handleMarkAsRead(s)"
+                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+                <i class="fa-solid fa-eye mr-1"></i>Marcar como leído
+              </button>
               <button @click="handleDelete(s)"
-                class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                class="ml-auto text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-400 dark:text-gray-500 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500 dark:hover:text-red-400 transition-colors">
                 <i class="fa-solid fa-trash mr-1"></i>Eliminar
               </button>
             </div>
@@ -218,6 +264,7 @@ import { defineComponent, ref, onMounted } from 'vue';
 import {
   getSuggestions,
   createSuggestion,
+  updateSuggestion,
   progressSuggestion,
   rejectSuggestion,
   doneSuggestion,
@@ -229,17 +276,19 @@ import {
 } from '@services/suggestions/suggestions';
 import type { VersionItem } from '@services/versions/versions';
 import SwalService from '@services/swal/SwalService';
+import { useSupportStore } from '@stores/support/support';
 
 export default defineComponent({
   name: 'SuggestionsManagement',
   setup() {
+    const supportStore = useSupportStore();
     const suggestions = ref<Suggestion[]>([]);
     const loading = ref(false);
     const activeType = ref<SuggestionType | 'all'>('all');
     const activeStatus = ref('in_progress');
 
     const typeTabs = [
-      { value: 'all', label: 'Todas', icon: 'fa-solid fa-list', activeClass: 'bg-rv-navy dark:bg-rv-purple text-white' },
+      { value: 'all', label: 'Todas', icon: 'fa-solid fa-list', activeClass: 'bg-rv-pink text-white' },
       { value: 'bug', label: 'Bugs', icon: 'fa-solid fa-bug', activeClass: 'bg-red-500 text-white' },
       { value: 'suggestion', label: 'Sugerencias', icon: 'fa-solid fa-lightbulb', activeClass: 'bg-blue-500 text-white' },
     ];
@@ -279,7 +328,13 @@ export default defineComponent({
         const params: any = {};
         if (activeType.value !== 'all') params.type = activeType.value;
         if (activeStatus.value !== 'all') params.status = activeStatus.value;
-        suggestions.value = await getSuggestions(params);
+        const result = await getSuggestions(params);
+        suggestions.value = Array.isArray(result) ? result : ((result as any).data ?? []);
+        // Actualizar el store con los IDs pendientes para el badge del sidebar
+        const pendingIds = suggestions.value
+          .filter(s => s.status === 'in_progress')
+          .map(s => s.id);
+        supportStore.setPendingIds(pendingIds);
       } finally {
         loading.value = false;
       }
@@ -301,10 +356,10 @@ export default defineComponent({
       if (!form.title.trim() || !form.description.trim()) return;
       createModal.value.saving = true;
       try {
-        const created = await createSuggestion(form);
-        suggestions.value.unshift(created);
+        await createSuggestion(form);
         createModal.value.show = false;
         SwalService.success('Creado correctamente');
+        await fetchAll();
       } catch {
         SwalService.error('Error al crear');
       } finally {
@@ -359,6 +414,23 @@ export default defineComponent({
         SwalService.error('Error al marcar como hecha');
       } finally {
         doneModal.value.saving = false;
+      }
+    };
+
+    const handleMarkAsRead = (s: Suggestion) => {
+      supportStore.markAsRead(s.id);
+    };
+
+    const cyclePriority = async (s: Suggestion) => {
+      const order: SuggestionPriority[] = ['low', 'medium', 'high'];
+      const next = order[(order.indexOf(s.priority) + 1) % order.length];
+      const prev = s.priority;
+      s.priority = next;
+      try {
+        await updateSuggestion(s.id, { priority: next });
+      } catch {
+        s.priority = prev;
+        SwalService.error('Error al cambiar la prioridad');
       }
     };
 
@@ -434,7 +506,8 @@ export default defineComponent({
       openCreateModal, handleCreate,
       openRejectModal, handleReject,
       openDoneModal, handleDone,
-      handleProgress, handleDelete,
+      handleProgress, handleDelete, cyclePriority, handleMarkAsRead,
+      supportStore,
       formatDate,
       typeLabel, typeIcon, typeClass,
       priorityLabel, priorityClass,

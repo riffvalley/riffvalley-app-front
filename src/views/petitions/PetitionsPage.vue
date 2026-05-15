@@ -258,6 +258,7 @@ import {
   type DiscRequest,
 } from '@services/requests/requests';
 import { useCatalogStore } from '@stores/catalog/catalog';
+import { usePetitionsStore } from '@stores/petitions/petitions';
 import SwalService from '@services/swal/SwalService';
 import SearchableSelect from '@components/SearchableSelect.vue';
 import { REJECT_REASONS } from '@helpers/rejectReasons';
@@ -269,7 +270,12 @@ export default defineComponent({
   components: { SearchableSelect },
   setup() {
     const catalogStore = useCatalogStore();
+    const petitionsStore = usePetitionsStore();
     const requests = ref<DiscRequest[]>([]);
+
+    const syncPendingCount = () => {
+      petitionsStore.setPendingCount(requests.value.filter(r => r.status === 'pending').length);
+    };
     const loading = ref(false);
     const activeTab = ref<StatusFilter>('pending');
 
@@ -349,6 +355,7 @@ export default defineComponent({
         await approveRequest(req.id);
         const idx = requests.value.findIndex(r => r.id === req.id);
         if (idx !== -1) requests.value[idx] = { ...requests.value[idx], status: 'approved' };
+        syncPendingCount();
         SwalService.success('Petición aprobada y disco creado');
       } catch (error: any) {
         SwalService.error(error.response?.data?.message || 'Error al aprobar');
@@ -361,6 +368,7 @@ export default defineComponent({
         const updated = await reopenRequest(req.id);
         const idx = requests.value.findIndex(r => r.id === req.id);
         if (idx !== -1) requests.value[idx] = updated;
+        syncPendingCount();
         SwalService.success('Petición reabierta');
       } catch (error: any) {
         SwalService.error(error.response?.data?.message || 'Error al reabrir');
@@ -395,6 +403,7 @@ export default defineComponent({
         const idx = requests.value.findIndex(r => r.id === updated.id);
         if (idx !== -1) requests.value[idx] = updated;
         rejectingRequest.value = null;
+        syncPendingCount();
         SwalService.success('Petición rechazada');
       } catch (error: any) {
         SwalService.error(error.response?.data?.message || 'Error al rechazar');
@@ -426,9 +435,7 @@ export default defineComponent({
       loading.value = true;
       try {
         requests.value = await getAllRequests();
-console.log('PETICIONES:', requests.value);
-console.log('PRIMERA PETICIÓN:', requests.value[0]);
-console.log('USUARIO:', requests.value[0]?.user);
+        syncPendingCount();
       } catch {
         SwalService.error('No se pudieron cargar las peticiones');
       } finally {

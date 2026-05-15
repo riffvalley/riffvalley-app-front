@@ -88,15 +88,22 @@
 
       <!-- Mis envíos -->
       <div class="bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center gap-2">
+        <div class="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center gap-2 flex-wrap">
           <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
             <i class="fa-solid fa-clock-rotate-left text-amber-500 dark:text-amber-400 text-xs"></i>
           </div>
           <h2 class="text-sm font-bold text-gray-900 dark:text-white">Mis envíos</h2>
-          <span v-if="suggestions.length > 0"
-            class="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400">
-            {{ suggestions.length }}
-          </span>
+          <div v-if="suggestions.length > 0" class="ml-auto flex items-center gap-1.5">
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
+              {{ counts.in_progress }} pendiente{{ counts.in_progress !== 1 ? 's' : '' }}
+            </span>
+            <span v-if="counts.done" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+              {{ counts.done }} hecho{{ counts.done !== 1 ? 's' : '' }}
+            </span>
+            <span v-if="counts.rejected" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+              {{ counts.rejected }} rechazado{{ counts.rejected !== 1 ? 's' : '' }}
+            </span>
+          </div>
         </div>
 
         <!-- Loading -->
@@ -160,6 +167,7 @@ export default defineComponent({
   name: 'SuggestionsPage',
   setup() {
     const suggestions = ref<Suggestion[]>([]);
+    const counts = ref({ in_progress: 0, done: 0, rejected: 0 });
     const loading = ref(false);
     const submitting = ref(false);
 
@@ -177,7 +185,9 @@ export default defineComponent({
     const fetchMine = async () => {
       loading.value = true;
       try {
-        suggestions.value = await getMySuggestions();
+        const result = await getMySuggestions();
+        suggestions.value = result.data;
+        counts.value = result.counts;
       } catch {
         // silencioso
       } finally {
@@ -189,10 +199,10 @@ export default defineComponent({
       if (!form.value.title.trim() || !form.value.description.trim()) return;
       submitting.value = true;
       try {
-        const created = await createSuggestion(form.value);
-        suggestions.value.unshift(created);
+        await createSuggestion(form.value);
         form.value = { title: '', description: '', type: 'suggestion' };
         SwalService.success('Enviado correctamente');
+        await fetchMine();
       } catch (error: any) {
         SwalService.error(error.response?.data?.message || 'Error al enviar la solicitud');
       } finally {
@@ -221,7 +231,7 @@ export default defineComponent({
     onMounted(fetchMine);
 
     return {
-      suggestions, loading, submitting, form,
+      suggestions, counts, loading, submitting, form,
       typeOptions,
       handleSubmit, formatDate,
       typeLabel, typeIcon, typeClass,
