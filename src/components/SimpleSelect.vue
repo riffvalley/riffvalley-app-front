@@ -165,9 +165,13 @@ onUnmounted(() => {
 .ss-icon {
   margin-left: .5rem;
   margin-right: .25rem;
-  color: var(--rv-navy, #11274a);
+  color: #9ca3af;
   font-size: .975rem;
   flex: 0 0 auto;
+}
+
+.ss-trigger:hover {
+  border-color: #e46e8a;
 }
 
 /* Dropdown */
@@ -175,7 +179,8 @@ onUnmounted(() => {
   z-index: 100000;
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: .5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.06);
   overflow: hidden;
 }
 
@@ -209,7 +214,7 @@ onUnmounted(() => {
 }
 
 .ss-item.active {
-  background-color: var(--rv-navy, #11274a) !important;
+  background-color: #e46e8a !important;
   color: #ffffff !important;
   font-weight: 700;
 }
@@ -295,20 +300,20 @@ html.dark .ss-inline-icon,
 
 html.dark .ss-menu,
 :global(html.dark) .ss-menu {
-  background: #00021f !important;
-  border-color: rgba(255, 255, 255, 0.25) !important;
+  background: #2a2b3d !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 html.dark .ss-group,
 :global(html.dark) .ss-group {
   background: #404157 !important;
   color: #ffffff !important;
-  border-bottom-color: rgba(255, 255, 255, 0.2) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 html.dark .ss-item,
 :global(html.dark) .ss-item {
-  background: #00021f !important;
+  background: #2a2b3d !important;
   color: #ffffff !important;
 }
 
@@ -319,7 +324,7 @@ html.dark .ss-item:hover,
 
 html.dark .ss-item.active,
 :global(html.dark) .ss-item.active {
-  background: #00021f !important;
+  background: #e46e8a !important;
   color: #ffffff !important;
 }
 </style>

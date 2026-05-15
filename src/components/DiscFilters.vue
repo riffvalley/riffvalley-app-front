@@ -346,8 +346,8 @@ export default defineComponent({
   --pill-shadow: 0 1px 3px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .06);
 --pill-bg: #fff;
 --pill-text: #00021f;
---pill-ring: 2px solid rgba(209, 213, 219, .8);
-  /* ring-gray-300 */
+--pill-ring: 2px solid rgba(228, 110, 138, .4);
+  /* rv-pink focus ring */
 }
 
 .pill-control {
@@ -401,7 +401,7 @@ html.dark .pill-control,
 :global(html.dark) .pill-control {
   background: #404157 !important;
   color: #ffffff !important;
-  border-color: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 html.dark .pill-control::placeholder,

@@ -395,29 +395,29 @@ export default {
 }
 
 .search_input_trigger:hover {
-  border-color: var(--rv-navy, #11274a);
+  border-color: #e46e8a;
 }
 
 .search_input_trigger:focus,
 .search_input_trigger:focus-visible {
   outline: none;
-  border-color: var(--rv-navy, #11274a);
+  border-color: #e46e8a;
   box-shadow:
-    0 0 0 2px rgba(17, 39, 74, .35),
+    0 0 0 2px rgba(228, 110, 138, .25),
     0 1px 3px rgba(0, 0, 0, .08);
 }
 
 .search_input_trigger i {
-  color: var(--rv-navy, #11274a);
+  color: #9ca3af;
   font-size: .9rem;
 }
 
 .searchable__select {
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: .5rem;
-  box-shadow: 0 10px 15px rgba(0,0,0,.1),
-              0 4px 6px rgba(0,0,0,.08);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08),
+              0 2px 4px rgba(0,0,0,.06);
 
   overflow: hidden;
 }
@@ -456,7 +456,7 @@ export default {
 }
 
 .search__results li.active {
-  background-color: var(--rv-navy, #11274a) !important;
+  background-color: #e46e8a !important;
   color: #ffffff !important;
   font-weight: 700;
 }
@@ -470,7 +470,7 @@ export default {
 html.dark .search_input_trigger,
 :global(html.dark) .search_input_trigger {
   background: #404157 !important;
-  border-color: rgba(255, 255, 255, 0.25) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
   color: #ffffff !important;
 }
 
@@ -483,13 +483,13 @@ html.dark .search_input_trigger i,
 
 html.dark .searchable__select,
 :global(html.dark) .searchable__select {
-  background: #00021f !important;
-  border-color: rgba(255, 255, 255, 0.25) !important;
+  background: #2a2b3d !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 html.dark .search__input,
 :global(html.dark) .search__input {
-  background: #00021f !important;
+  background: #2a2b3d !important;
   color: #ffffff !important;
 }
 
@@ -500,12 +500,12 @@ html.dark .search__input::placeholder,
 
 html.dark .search__results,
 :global(html.dark) .search__results {
-  background: #00021f !important;
+  background: #2a2b3d !important;
 }
 
 html.dark .search__results li,
 :global(html.dark) .search__results li {
-  background: #00021f !important;
+  background: #2a2b3d !important;
   color: #ffffff !important;
 }
 

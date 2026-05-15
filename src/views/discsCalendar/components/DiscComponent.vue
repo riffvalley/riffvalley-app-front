@@ -1,7 +1,7 @@
 ```
 <template>
   <!-- Tarjeta principal -->
-  <div class="flex flex-col sm:flex-row w-full rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden transition-all duration-200 bg-white dark:bg-rv-darkCard"
+  <div class="flex flex-col sm:flex-row w-full rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden transition-all duration-200 bg-white dark:bg-rv-darkCard"
        :class="isFocused ? 'ring-2 ring-rv-pink/60 shadow-lg' : ''">
 
     <!-- ── Columna izquierda: fondo de género (solo imagen + info básica) ── -->
