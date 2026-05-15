@@ -1,7 +1,7 @@
 <template>
-    <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    <div v-if="show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
         @click.self="$emit('close')">
-        <div class="bg-white dark:bg-rv-darkCard rounded-2xl p-8 w-full max-w-2xl shadow-2xl relative overflow-hidden">
+        <div class="bg-white dark:bg-rv-darkCard rounded-t-2xl sm:rounded-2xl p-5 sm:p-8 w-full sm:max-w-2xl shadow-2xl relative overflow-hidden max-h-[92vh] overflow-y-auto">
             <div class="absolute top-0 right-0 w-64 h-64 bg-violet-50 dark:bg-violet-900/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
             <div class="relative z-10">
@@ -25,7 +25,7 @@
                 <div class="space-y-6">
                     <div>
                         <input v-model="formData.name" type="text"
-                            class="w-full text-3xl font-bold text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 border-none focus:ring-0 p-0 bg-transparent"
+                            class="w-full text-xl sm:text-3xl font-bold text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 border-none focus:ring-0 p-0 bg-transparent"
                             placeholder="Título del video..." />
                         <button @click="$emit('navigate-kanban')"
                             class="mt-2 text-xs text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors flex items-center gap-1">
@@ -125,7 +125,7 @@
                     </div>
                 </div>
 
-                <div class="flex justify-between items-center mt-8 pt-6 border-t border-gray-100 dark:border-white/10">
+                <div class="flex flex-wrap justify-between items-center gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-100 dark:border-white/10">
                     <button @click="$emit('delete')"
                         class="group flex items-center gap-2 text-gray-400 hover:text-red-600 transition-colors px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                         title="Eliminar permanentemente">
@@ -133,13 +133,13 @@
                         <span class="text-sm font-medium">Eliminar</span>
                     </button>
 
-                    <div class="flex gap-3">
+                    <div class="flex gap-2 sm:gap-3">
                         <button @click="$emit('close')"
-                            class="px-6 py-2.5 bg-gray-100 dark:bg-rv-darkSurface text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-rv-darkBg font-medium rounded-xl transition-colors">
+                            class="px-4 py-2 sm:px-6 sm:py-2.5 bg-gray-100 dark:bg-rv-darkSurface text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-rv-darkBg font-medium rounded-xl transition-colors">
                             Cancelar
                         </button>
                         <button @click="handleUpdate"
-                            class="px-6 py-2.5 bg-rv-purple text-white font-medium rounded-xl hover:bg-rv-pink shadow-lg transition-all transform hover:-translate-y-0.5">
+                            class="px-4 py-2 sm:px-6 sm:py-2.5 bg-rv-purple text-white font-medium rounded-xl hover:bg-rv-pink shadow-lg transition-all transform hover:-translate-y-0.5">
                             Guardar Cambios
                         </button>
                     </div>

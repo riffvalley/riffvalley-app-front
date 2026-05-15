@@ -3,10 +3,7 @@
     <h1 class="text-2xl md:text-3xl font-bold mb-2"><i class="fa-solid fa-circle-plus mr-2"></i>Añadir Discos</h1>
     <p class="text-left font-serif text-gray-500 text-md mb-4">
       Puedes añadir nuevos discos completando los campos de abajo. Recuerda respetar los espacios entre banda, guion y
-      título de disco. En el apartado
-      <router-link to="/calendar" class="text-blue-500 hover:underline">
-        Calendario
-      </router-link> podrás modificar el género de tu disco.
+      título de disco. Todos los campos son obligatorios.
     </p>
 
 
@@ -17,6 +14,42 @@
       </label>
       <input id="date" type="date" v-model="selectedDate"
         class="block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50" />
+    </div>
+
+    <!-- Género y País -->
+    <div class="mb-4 md:mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Género
+        </label>
+        <SearchableSelect
+          v-model="selectedGenreId"
+          :options="genres"
+          placeholder="Buscar género..."
+          triggerPlaceholder="Selecciona un género"
+          allLabel="Sin género"
+          title="name"
+          trackby="id"
+          :max="150"
+          class="select-pill w-full"
+        />
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          País
+        </label>
+        <SearchableSelect
+          v-model="selectedCountryId"
+          :options="countries"
+          placeholder="Buscar país..."
+          triggerPlaceholder="Selecciona un país"
+          allLabel="Sin país"
+          title="name"
+          trackby="id"
+          :max="150"
+          class="select-pill w-full"
+        />
+      </div>
     </div>
 
     <!-- Textarea para los discos -->
@@ -31,7 +64,7 @@ Decrepid – Suffered Existence" rows="6"
 
     <!-- Botón para enviar -->
     <div class="mb-6 md:mb-8 flex justify-center">
-      <button @click="processData" :disabled="!selectedDate || !albumText.trim()"
+      <button @click="processData" :disabled="!selectedDate || !albumText.trim() || !selectedGenreId || !selectedCountryId"
         class="px-5 py-2 md:px-6 md:py-3 bg-gradient-to-r from-rv-pink to-rv-pink/90 text-white font-bold py-2 rounded-full
          hover:from-rv-pink/90 hover:to-rv-pink/80 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto">
         Enviar
@@ -96,16 +129,29 @@ Decrepid – Suffered Existence" rows="6"
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue';
+import { defineComponent, ref, computed, onMounted } from 'vue';
 import { fetchManualData } from '@services/imports/imports';
+import { useCatalogStore } from '@stores/catalog/catalog';
+import SearchableSelect from '@components/SearchableSelect.vue';
 
 export default defineComponent({
   name: 'DataFetcherWithTextarea',
+  components: { SearchableSelect },
   setup() {
     const selectedDate = ref('');
     const albumText = ref('');
+    const selectedGenreId = ref('');
+    const selectedCountryId = ref('');
     const responseData = ref<any>(null);
     const error = ref('');
+
+    const catalogStore = useCatalogStore();
+    const genres = computed(() => catalogStore.genres);
+    const countries = computed(() => catalogStore.countries);
+
+    onMounted(() => {
+      catalogStore.fetchCatalog();
+    });
 
     // Fecha en formato español (dd/mm/yyyy)
     const displayDate = computed(() => {
@@ -158,7 +204,12 @@ export default defineComponent({
           .split('\n')
           .map(line => line.trim())
           .filter(Boolean);
-        const response = await fetchManualData(formattedDate, albums);
+        const response = await fetchManualData(
+          formattedDate,
+          albums,
+          selectedGenreId.value,
+          selectedCountryId.value
+        );
         responseData.value = response;
       } catch (err) {
         error.value =
@@ -169,6 +220,10 @@ export default defineComponent({
     return {
       selectedDate,
       albumText,
+      selectedGenreId,
+      selectedCountryId,
+      genres,
+      countries,
       processData,
       responseData,
       error,

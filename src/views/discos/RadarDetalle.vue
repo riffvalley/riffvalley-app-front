@@ -1,112 +1,120 @@
 <template>
-  <div class="p-4 md:p-6 min-h-screen bg-gray-50/50 dark:bg-rv-darkBg">
+  <div class="p-4 md:p-6 min-h-screen bg-gray-50 dark:bg-rv-darkBg">
     <div class="max-w-7xl mx-auto">
-      <!-- Header Navegación -->
+
+      <!-- Volver -->
       <button @click="goBack"
-        class="mb-6 px-4 py-2 bg-white dark:bg-rv-darkCard text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-rv-darkSurface border border-gray-200 dark:border-white/10 shadow-sm flex items-center gap-2 transition-colors">
-        <i class="fa-solid fa-arrow-left"></i>
-        <span>Volver a Radares</span>
+        class="mb-5 flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-rv-purple dark:hover:text-rv-pink transition-colors">
+        <i class="fa-solid fa-arrow-left text-xs"></i>
+        Volver a Radares
       </button>
 
-      <div v-if="loading" class="text-center py-12">
-        <i class="fa-solid fa-spinner fa-spin text-4xl text-indigo-500 mb-4"></i>
-        <p class="text-gray-500 dark:text-gray-400">Cargando detalles de la semana...</p>
+      <!-- Loading -->
+      <div v-if="loading" class="flex flex-col items-center justify-center py-24 gap-3">
+        <i class="fa-solid fa-spinner fa-spin text-3xl text-rv-purple"></i>
+        <p class="text-sm text-gray-400 dark:text-gray-500">Cargando radar...</p>
       </div>
 
-      <div v-else-if="list" class="space-y-8">
-        <!-- Header Estilo "Blue Bar" -->
-        <div class="bg-indigo-800 rounded-2xl shadow-lg p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6 overflow-hidden relative">
-          <!-- Background Decoration -->
-          <div class="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+      <div v-else-if="list" class="space-y-6">
 
-          <!-- Left: Title & Description -->
-          <div class="flex-1 w-full z-10 min-w-0">
-            <input
-              v-model="list.name"
-              @change="updateField('name', list.name)"
-              class="text-2xl md:text-3xl font-bold text-white bg-transparent border-none placeholder-indigo-300 focus:ring-0 w-full p-0 leading-tight mb-1"
-              placeholder="Nombre de la lista"
-            />
-            <input
-              v-model="list.description"
-              @change="updateField('description', list.description)"
-              class="text-indigo-200 text-sm font-medium bg-transparent border-none placeholder-indigo-400 focus:ring-0 w-full p-0"
-              placeholder="Añade una descripción..."
-            />
-          </div>
+        <!-- ─── Header ─── -->
+        <div class="relative bg-gradient-to-br from-rv-navy via-[#1a0a2e] to-[#2d0a3e] rounded-2xl shadow-lg overflow-hidden">
+          <!-- Decoración -->
+          <div class="absolute top-0 right-0 w-72 h-72 bg-rv-purple/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+          <div class="absolute bottom-0 left-0 w-48 h-48 bg-rv-pink/10 rounded-full blur-3xl -ml-12 -mb-12 pointer-events-none"></div>
 
-          <!-- Right: Controls Compact Group -->
-          <div class="flex flex-wrap items-center gap-2 md:gap-3 z-10 w-full md:w-auto">
-             <!-- WordPress Button -->
-             <button @click="publishToWordPress" :disabled="publishingWp"
-               class="bg-orange-500 text-white text-sm px-3 md:px-4 py-2 rounded-lg hover:bg-orange-600 disabled:opacity-50 focus:ring-2 focus:ring-orange-400 flex items-center gap-2 shadow-sm transition-colors">
-               <i class="fab fa-wordpress"></i>
-               <span class="hidden sm:inline">{{ publishingWp ? 'Publicando...' : 'Publicar en WordPress' }}</span>
-               <span class="sm:hidden">{{ publishingWp ? '...' : 'WP' }}</span>
-             </button>
+          <div class="relative z-10 p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
+            <!-- Título + descripción -->
+            <div class="flex-1 min-w-0">
+              <input
+                v-model="list.name"
+                @change="updateField('name', list.name)"
+                class="text-2xl md:text-3xl font-bold text-white bg-transparent border-none placeholder-white/40 focus:ring-0 w-full p-0 leading-tight mb-1"
+                placeholder="Nombre de la lista"
+              />
+              <input
+                v-model="list.description"
+                @change="updateField('description', list.description)"
+                class="text-white/60 text-sm bg-transparent border-none placeholder-white/30 focus:ring-0 w-full p-0"
+                placeholder="Añade una descripción..."
+              />
+            </div>
 
-             <!-- Status Badge -->
-             <div class="relative">
+            <!-- Controles -->
+            <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              <!-- WordPress -->
+              <button @click="publishToWordPress" :disabled="publishingWp"
+                class="flex items-center gap-2 px-3 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors">
+                <i class="fab fa-wordpress"></i>
+                <span class="hidden sm:inline">{{ publishingWp ? 'Publicando...' : 'Publicar en WP' }}</span>
+                <span class="sm:hidden">{{ publishingWp ? '...' : 'WP' }}</span>
+              </button>
+
+              <!-- Status -->
+              <div class="relative">
                 <select
                   v-model="list.status"
                   @change="updateField('status', list.status)"
                   :class="getStatusClass(list.status)"
-                  class="appearance-none pl-4 pr-8 py-2 border rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors focus:ring-1 focus:ring-white/20 shadow-sm"
+                  class="appearance-none pl-3 pr-8 py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer border-0 focus:ring-1 focus:ring-white/20 shadow-sm transition-colors"
                 >
-                    <option value="new" class="text-gray-900">Nueva</option>
-                    <option value="assigned" class="text-gray-900">Asignada</option>
-                    <option value="published" class="text-gray-900">Publicada</option>
+                  <option value="new" class="text-gray-900">Nueva</option>
+                  <option value="assigned" class="text-gray-900">Asignada</option>
+                  <option value="published" class="text-gray-900">Publicada</option>
                 </select>
-                <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-indigo-300 pointer-events-none"></i>
-             </div>
+                <i class="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-white/60 pointer-events-none"></i>
+              </div>
 
-             <!-- Date Badges Group -->
-             <div class="flex items-center gap-2 bg-indigo-900/30 p-1 rounded-lg border border-indigo-500/20">
-                <!-- List Date -->
-                <div class="flex items-center gap-2 px-3 py-1.5 bg-indigo-900/80 rounded-md text-white border border-indigo-500/30 shadow-sm" title="Fecha Lista">
-                  <i class="fa-regular fa-calendar text-indigo-300 text-xs"></i>
-                  <input
-                    type="date"
-                    :value="formatDateForInput(list.listDate)"
-                    :min="minListDate"
-                    :max="maxListDate"
-                    @change="(e) => updateField('listDate', (e.target as HTMLInputElement).value)"
-                    class="bg-transparent border-none p-0 text-white text-xs font-bold focus:ring-0 cursor-pointer w-[80px]"
-                  />
-                </div>
-                <!-- Close Date -->
-                <div class="flex items-center gap-2 px-3 py-1.5 bg-indigo-900/80 rounded-md text-white border border-indigo-500/30 shadow-sm" title="Fecha Cierre">
-                   <i class="fa-regular fa-clock text-indigo-300 text-xs"></i>
-                   <input
-                    type="date"
-                    :value="formatDateForInput(list.closeDate)"
-                    :min="minCloseDate"
-                    :max="maxCloseDate"
-                    @change="(e) => updateField('closeDate', (e.target as HTMLInputElement).value)"
-                    class="bg-transparent border-none p-0 text-white text-xs font-bold focus:ring-0 cursor-pointer w-[80px]"
-                  />
-                </div>
-             </div>
+              <!-- Fechas -->
+              <div class="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2">
+                <i class="fa-regular fa-calendar text-white/50 text-xs"></i>
+                <input
+                  type="date"
+                  :value="formatDateForInput(list.listDate)"
+                  :min="minListDate"
+                  :max="maxListDate"
+                  @change="(e) => updateField('listDate', (e.target as HTMLInputElement).value)"
+                  class="bg-transparent border-none p-0 text-white text-xs font-bold focus:ring-0 cursor-pointer w-[82px]"
+                  title="Fecha de lista"
+                />
+                <span class="text-white/30 text-xs">→</span>
+                <i class="fa-regular fa-clock text-white/50 text-xs"></i>
+                <input
+                  type="date"
+                  :value="formatDateForInput(list.closeDate)"
+                  :min="minCloseDate"
+                  :max="maxCloseDate"
+                  @change="(e) => updateField('closeDate', (e.target as HTMLInputElement).value)"
+                  class="bg-transparent border-none p-0 text-white text-xs font-bold focus:ring-0 cursor-pointer w-[82px]"
+                  title="Fecha de cierre"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- Componentes de Gestión -->
-        <div class="space-y-8">
-          <!-- Lista de Asignaciones (Radares) -->
-          <div>
-            <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-              <i class="fa-solid fa-users-viewfinder text-indigo-500"></i>
-              Asignaciones
-            </h2>
+        <!-- ─── Asignaciones ─── -->
+        <div class="bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-rv-purple/10 dark:bg-rv-purple/20 flex items-center justify-center">
+              <i class="fa-solid fa-users-viewfinder text-rv-purple text-xs"></i>
+            </div>
+            <h2 class="text-base font-bold text-gray-900 dark:text-white">Asignaciones</h2>
+          </div>
+          <div class="p-4 md:p-5">
             <AsignationList :type="list.type" />
           </div>
+        </div>
 
-          <!-- Buscador de Discos -->
-          <div class="bg-white dark:bg-rv-darkCard p-4 md:p-6 rounded-2xl shadow-md border border-gray-200 dark:border-white/10">
-            <h2 class="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-              <i class="fa-solid fa-compact-disc text-indigo-500"></i>
-              Listado de Discos por Fecha
-            </h2>
+        <!-- ─── Listado de Discos ─── -->
+        <div class="bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+              <i class="fa-solid fa-compact-disc text-amber-500 dark:text-amber-400 text-xs"></i>
+            </div>
+            <h2 class="text-base font-bold text-gray-900 dark:text-white">Listado de Discos por Fecha</h2>
+          </div>
+          <div class="p-4 md:p-5">
             <DiscsByDate
               v-if="list.listDate"
               :date="list.listDate"
@@ -115,6 +123,7 @@
             />
           </div>
         </div>
+
       </div>
     </div>
   </div>
@@ -182,12 +191,12 @@ const minCloseDate = computed(() => {
 });
 
 function getStatusClass(status: string) {
-  const classes = {
-    'new': 'bg-red-500 hover:bg-red-600 border-red-400 text-white',
-    'assigned': 'bg-orange-500 hover:bg-orange-600 border-orange-400 text-white',
-    'published': 'bg-green-500 hover:bg-green-600 border-green-400 text-white'
+  const classes: Record<string, string> = {
+    'new':       'bg-blue-500 hover:bg-blue-600 text-white',
+    'assigned':  'bg-amber-500 hover:bg-amber-600 text-white',
+    'published': 'bg-green-500 hover:bg-green-600 text-white',
   };
-  return classes[status as keyof typeof classes] || 'bg-indigo-900/50 hover:bg-indigo-900 border-indigo-500/30 text-white';
+  return classes[status] || 'bg-white/20 hover:bg-white/30 text-white';
 }
 
 function goBack() {
@@ -204,7 +213,7 @@ async function loadData() {
       asignationStore.loadAsignations(id),
       userStore.loadRvUsers()
     ]);
-  } catch (error) {
+  } catch {
     SwalService.error('No se pudieron cargar los detalles de la lista');
   } finally {
     loading.value = false;
@@ -214,7 +223,7 @@ async function loadData() {
 async function updateField(field: string, value: any) {
   try {
     await updateList(list.value.id, { [field]: value });
-  } catch (error) {
+  } catch {
     SwalService.error('No se pudo guardar el cambio');
   }
 }

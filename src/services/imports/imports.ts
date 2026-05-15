@@ -4,12 +4,21 @@ import api from "@services/api/api.ts";
  * Envia datos manuales para ser procesados en el backend.
  * @param date Fecha en formato MM-DD-YYYY.
  * @param albums Lista de álbumes.
+ * @param genreId ID del género (opcional).
+ * @param countryId ID del país (opcional).
  */
-export async function fetchManualData(date: string, albums: string[]) {
+export async function fetchManualData(
+  date: string,
+  albums: string[],
+  genreId?: string,
+  countryId?: string
+) {
   try {
     const response = await api.post(`/scraping/process-manual-data`, {
       date,
       albums,
+      ...(genreId ? { genreId } : {}),
+      ...(countryId ? { countryId } : {}),
     });
     return response.data;
   } catch (error: any) {

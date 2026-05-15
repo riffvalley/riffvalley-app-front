@@ -15,31 +15,32 @@
 
         <!-- Calendar Panel -->
         <div class="flex-1 flex flex-col overflow-hidden min-w-0">
-            <div class="p-4 bg-white dark:bg-rv-darkCard border-b border-gray-200 dark:border-white/10 flex justify-between items-center">
-                <h1 class="text-xl font-bold text-gray-900 dark:text-white">Calendario RV</h1>
-                <div class="flex gap-2">
+            <div class="px-5 py-3 bg-white dark:bg-rv-darkCard border-b border-gray-100 dark:border-white/10 flex justify-between items-center gap-3">
+                <h1 class="text-lg font-extrabold tracking-tight text-rv-navy dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-days text-rv-purple text-base"></i>
+                    Calendario RV
+                </h1>
+                <div class="flex items-center gap-2">
                     <!-- Botón de filtro de usuario -->
                     <button v-if="authStore.userId" @click="toggleMyEventsFilter"
                         class="relative transition-all duration-300"
-                        :class="showOnlyMyEvents ? '' : 'opacity-60 grayscale'"
+                        :class="showOnlyMyEvents ? '' : 'opacity-50 grayscale'"
                         :title="showOnlyMyEvents ? 'Mostrar todos los eventos' : 'Mostrar solo mis eventos'">
-                        <div class="relative">
-                            <img v-if="authStore.image" :src="authStore.image" :alt="authStore.username || 'Usuario'"
-                                class="w-10 h-10 rounded-full object-cover transition-all"
-                                :class="showOnlyMyEvents ? 'ring-4 ring-rv-pink ring-offset-2' : ''" />
-                            <div v-else
-                                class="w-10 h-10 rounded-full bg-rv-purple flex items-center justify-center text-white font-bold text-lg"
-                                :class="showOnlyMyEvents ? 'ring-4 ring-rv-pink ring-offset-2' : ''">
-                                {{ authStore.username?.charAt(0).toUpperCase() }}
-                            </div>
+                        <img v-if="authStore.image" :src="authStore.image" :alt="authStore.username || 'Usuario'"
+                            class="w-9 h-9 rounded-full object-cover transition-all"
+                            :class="showOnlyMyEvents ? 'ring-2 ring-rv-pink ring-offset-2' : ''" />
+                        <div v-else
+                            class="w-9 h-9 rounded-full bg-rv-purple flex items-center justify-center text-white font-bold text-base"
+                            :class="showOnlyMyEvents ? 'ring-2 ring-rv-pink ring-offset-2' : ''">
+                            {{ authStore.username?.charAt(0).toUpperCase() }}
                         </div>
                     </button>
 
                     <!-- Botón de leyenda -->
                     <button @click="showLegendModal = true"
-                        class="w-10 h-10 rounded-full bg-rv-navy/10 dark:bg-rv-darkSurface hover:bg-rv-navy dark:hover:bg-rv-purple text-rv-navy dark:text-white hover:text-white font-bold text-lg transition-all flex items-center justify-center"
+                        class="w-9 h-9 rounded-full border border-gray-200 dark:border-white/15 bg-transparent hover:bg-rv-purple dark:hover:bg-rv-purple text-rv-navy dark:text-white hover:text-white hover:border-rv-purple font-bold text-sm transition-all flex items-center justify-center"
                         title="Ver leyenda de colores">
-                        ?
+                        <i class="fa-solid fa-circle-info text-sm"></i>
                     </button>
                 </div>
             </div>
@@ -48,13 +49,13 @@
                 <!-- Tab para abrir el backlog cuando está cerrado -->
                 <div v-if="!showBacklog"
                      @click="showBacklog = true"
-                     class="shrink-0 w-8 flex items-center justify-center bg-rv-darkSurface hover:bg-rv-purple cursor-pointer transition-all"
+                     class="shrink-0 w-8 flex items-center justify-center bg-rv-pink/10 hover:bg-rv-pink dark:bg-rv-pink/10 dark:hover:bg-rv-pink cursor-pointer transition-all group"
                      title="Mostrar backlog">
-                    <i class="fa-solid fa-chevron-right text-white/60 hover:text-white text-xs transition-colors"></i>
+                    <i class="fa-solid fa-chevron-right text-rv-pink group-hover:text-white text-xs transition-colors"></i>
                 </div>
 
-                <div class="rv-calendar-wrapper flex-1 overflow-auto p-4">
-                    <div class="bg-white dark:bg-rv-darkCard rounded-lg shadow-lg p-4">
+                <div class="rv-calendar-wrapper flex-1 overflow-auto p-3 sm:p-5">
+                    <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
                         <FullCalendar :options="calendarOptions" ref="calendarRef" />
                     </div>
                 </div>
@@ -108,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
@@ -260,7 +261,7 @@ const calendarOptions = ref({
     headerToolbar: {
         left: 'prev,next today',
         center: 'title',
-        right: 'dayGridMonth'
+        right: ''
     },
     dayHeaderFormat: { weekday: 'short' as const }, // Mostrar días de la semana (Lun, Mar, Mié, etc.)
     editable: true,
@@ -930,11 +931,27 @@ watch(showBacklog, async (val) => {
     }
 });
 
+const isMobile = ref(window.innerWidth < 640);
+const onResize = () => {
+    const mobile = window.innerWidth < 640;
+    if (mobile !== isMobile.value) {
+        isMobile.value = mobile;
+        calendarOptions.value.dayHeaderFormat = { weekday: mobile ? 'narrow' : 'short' };
+    }
+};
+
 onMounted(async () => {
     await loadRvUsers();
     await loadBacklogContents();
     await loadContentsByMonth(currentYear.value, currentMonth.value);
     initDraggable();
+    window.addEventListener('resize', onResize);
+    // Aplica el formato correcto al montar
+    calendarOptions.value.dayHeaderFormat = { weekday: isMobile.value ? 'narrow' : 'short' };
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', onResize);
 });
 
 
@@ -952,79 +969,181 @@ function navigateToRadarDetail() {
 </script>
 
 <style scoped>
+/* ─── Base ─── */
 :deep(.fc) {
     font-family: inherit;
 }
 
-:deep(.fc-toolbar-title) {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #1f2937;
+/* ─── Toolbar ─── */
+:deep(.fc-toolbar) {
+    padding: 1rem 1.25rem 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
 }
 
-:deep(.fc-button) {
-    background-color: #b0669f !important;
-    border-color: #b0669f !important;
-    text-transform: capitalize;
-    font-size: 0.875rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 9999px !important;
+:deep(.fc-toolbar-title) {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #00021f;
+    letter-spacing: -0.02em;
+}
+
+/* Prev / Next — círculo rosa */
+:deep(.fc-prev-button),
+:deep(.fc-next-button) {
+    background-color: rgba(228, 110, 138, 0.1) !important;
+    border: none !important;
+    color: #e46e8a !important;
+    border-radius: 50% !important;
+    width: 2rem !important;
+    height: 2rem !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     box-shadow: none !important;
 }
 
-:deep(.fc-button:hover) {
+:deep(.fc-prev-button:hover),
+:deep(.fc-next-button:hover) {
     background-color: #e46e8a !important;
-    border-color: #e46e8a !important;
+    border-color: transparent !important;
+    color: #ffffff !important;
 }
 
-:deep(.fc-button-active),
+/* Hoy — gradiente pink→purple */
+:deep(.fc-today-button) {
+    background: linear-gradient(to right, #e46e8a, #b0669f) !important;
+    border: none !important;
+    border-radius: 9999px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    padding: 0.3rem 0.9rem !important;
+    letter-spacing: 0.01em;
+    box-shadow: none !important;
+    text-transform: capitalize;
+}
+
+:deep(.fc-today-button:hover) {
+    background: linear-gradient(to right, #b0669f, #e46e8a) !important;
+    opacity: 1 !important;
+}
+
+:deep(.fc-today-button:disabled) {
+    opacity: 0.4 !important;
+}
+
 :deep(.fc-button:focus) {
-    background-color: #00021f !important;
-    border-color: #00021f !important;
     box-shadow: none !important;
     outline: none !important;
 }
 
+/* ─── Cabeceras de columna ─── */
+:deep(.fc-col-header) {
+    background-color: #f8fafc;
+}
+
+:deep(.fc-col-header-cell) {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f4f8 !important;
+}
+
 :deep(.fc-col-header-cell-cushion) {
-    color: #374151;
-    font-weight: 600;
-    font-size: 0.8125rem;
+    color: #6b7280;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
     text-decoration: none;
 }
 
+/* ─── Celdas de día ─── */
+:deep(.fc-daygrid-day-frame) {
+    min-height: 110px;
+    padding: 4px 6px;
+}
+
 :deep(.fc-daygrid-day-number) {
+    font-weight: 700;
+    font-size: 0.8125rem;
     color: #374151;
-    font-weight: 600;
-    font-size: 0.875rem;
+    text-decoration: none;
+    padding: 4px 6px;
+    border-radius: 50%;
+    min-width: 1.75rem;
+    text-align: center;
+    line-height: 1.4;
+    transition: background-color 0.15s;
 }
 
+/* Días de otros meses */
+:deep(.fc-day-other .fc-daygrid-day-number) {
+    color: #d1d5db;
+    font-weight: 400;
+}
+
+/* Hoy: círculo sobre el número */
 :deep(.fc-day-today) {
-    background-color: rgba(228, 110, 138, 0.1) !important;
+    background-color: rgba(228, 110, 138, 0.07) !important;
 }
 
+:deep(.fc-day-today .fc-daygrid-day-number) {
+    background-color: #e46e8a;
+    color: #ffffff !important;
+}
+
+/* ─── Eventos ─── */
 :deep(.fc-event) {
     cursor: pointer;
-    border-radius: 4px;
-    padding: 4px;
-    font-size: 0.75rem;
-    min-height: 40px;
+    border-radius: 6px !important;
+    border: none !important;
+    padding: 2px 6px !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 2px !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 :deep(.fc-event:hover) {
-    opacity: 0.85;
-    transform: scale(1.02);
-    transition: all 0.2s;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18) !important;
+    opacity: 0.95;
 }
 
-:deep(.fc-daygrid-day-frame) {
-    min-height: 100px;
+:deep(.fc-event-title) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-/* Dark mode button overrides (scoped ok — button is within component root) */
-.dark :deep(.fc-button-active),
-.dark :deep(.fc-button:focus) {
+/* ─── Grid ─── */
+:deep(.fc-scrollgrid) {
+    border: none !important;
+}
+
+:deep(.fc-scrollgrid td),
+:deep(.fc-scrollgrid th) {
+    border-color: #f1f5f9 !important;
+}
+
+/* Elimina el hueco blanco del scrollbar reservado por FullCalendar */
+:deep(.fc-scroller),
+:deep(.fc-scroller-liquid),
+:deep(.fc-scroller-liquid-absolute) {
+    overflow: hidden !important;
+}
+
+/* Dark mode button overrides — prev/next igual que en claro */
+.dark :deep(.fc-prev-button),
+.dark :deep(.fc-next-button) {
+    background-color: rgba(228, 110, 138, 0.15) !important;
+    color: #e46e8a !important;
+}
+
+.dark :deep(.fc-prev-button:hover),
+.dark :deep(.fc-next-button:hover) {
     background-color: #e46e8a !important;
-    border-color: #e46e8a !important;
+    color: #ffffff !important;
 }
 
 /* Transición del backlog */
@@ -1036,20 +1155,76 @@ function navigateToRadarDetail() {
 .backlog-slide-leave-to {
     transform: translateX(-100%);
 }
+
+/* ─── Mobile ─── */
+@media (max-width: 639px) {
+    /* Toolbar compacto */
+    :deep(.fc-toolbar) {
+        padding: 0.6rem 0.75rem 0.5rem;
+        gap: 0.25rem;
+    }
+
+    :deep(.fc-toolbar-title) {
+        font-size: 0.95rem;
+    }
+
+    :deep(.fc-prev-button),
+    :deep(.fc-next-button) {
+        width: 1.65rem !important;
+        height: 1.65rem !important;
+    }
+
+    :deep(.fc-today-button) {
+        font-size: 0.68rem !important;
+        padding: 0.2rem 0.6rem !important;
+    }
+
+    /* Cabeceras — una sola letra */
+    :deep(.fc-col-header-cell-cushion) {
+        font-size: 0.62rem;
+        letter-spacing: 0.04em;
+    }
+
+    /* Celdas de día más compactas */
+    :deep(.fc-daygrid-day-frame) {
+        min-height: 64px;
+        padding: 2px 3px;
+    }
+
+    :deep(.fc-daygrid-day-number) {
+        font-size: 0.68rem;
+        padding: 2px 4px;
+        min-width: 1.4rem;
+    }
+
+    /* Eventos más pequeños */
+    :deep(.fc-event) {
+        font-size: 0.6rem !important;
+        padding: 1px 3px !important;
+        border-radius: 4px !important;
+    }
+
+    /* Menos padding exterior en móvil */
+    .rv-calendar-wrapper {
+        padding: 0.5rem !important;
+    }
+}
 </style>
 
 <!-- Dark mode overrides for FullCalendar: must be non-scoped because the
      `dark` class lives on <html>, outside this component's scope boundary. -->
 <style>
-.dark .rv-calendar-wrapper .fc-toolbar-title { color: #ffffff !important; }
+.dark .rv-calendar-wrapper .fc-toolbar-title { color: #ffffff !important; letter-spacing: -0.02em; }
+.dark .rv-calendar-wrapper .fc-col-header { background-color: #32334a !important; }
+.dark .rv-calendar-wrapper .fc-col-header-cell { border-bottom-color: rgba(255,255,255,0.08) !important; }
+.dark .rv-calendar-wrapper .fc-col-header-cell-cushion { color: #9ca3af !important; }
 .dark .rv-calendar-wrapper .fc-daygrid-day-number { color: #e5e7eb !important; }
-.dark .rv-calendar-wrapper .fc-col-header-cell-cushion { color: #d1d5db !important; }
-.dark .rv-calendar-wrapper .fc-col-header-cell { background-color: #404157 !important; }
-.dark .rv-calendar-wrapper .fc-day-other .fc-daygrid-day-number { color: #6b7280 !important; }
+.dark .rv-calendar-wrapper .fc-day-other .fc-daygrid-day-number { color: #4b5563 !important; }
 .dark .rv-calendar-wrapper .fc-daygrid-day { background-color: #2a2b3d !important; }
 .dark .rv-calendar-wrapper .fc-day-other { background-color: #1e1f2d !important; }
-.dark .rv-calendar-wrapper .fc-scrollgrid { border-color: rgba(255, 255, 255, 0.1) !important; }
+.dark .rv-calendar-wrapper .fc-scrollgrid { border-color: rgba(255,255,255,0.08) !important; }
 .dark .rv-calendar-wrapper .fc-scrollgrid td,
-.dark .rv-calendar-wrapper .fc-scrollgrid th { border-color: rgba(255, 255, 255, 0.1) !important; }
-.dark .rv-calendar-wrapper .fc-day-today { background-color: rgba(228, 110, 138, 0.2) !important; }
+.dark .rv-calendar-wrapper .fc-scrollgrid th { border-color: rgba(255,255,255,0.08) !important; }
+.dark .rv-calendar-wrapper .fc-day-today { background-color: rgba(228, 110, 138, 0.15) !important; }
+.dark .rv-calendar-wrapper .fc-day-today .fc-daygrid-day-number { background-color: #e46e8a; color: #ffffff !important; }
 </style>

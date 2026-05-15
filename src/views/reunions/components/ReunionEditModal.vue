@@ -9,6 +9,12 @@
                     <p class="text-sm text-gray-600 dark:text-gray-400">{{ formatDate(reunion.date) }}</p>
                 </div>
                 <div class="flex gap-2 shrink-0">
+                    <button @click="confirmDeleteReunion"
+                        class="px-3 py-2 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-400 hover:bg-red-500 hover:text-white rounded-lg flex items-center gap-1 sm:gap-2 transition-all text-sm font-semibold"
+                        title="Eliminar reunión">
+                        <i class="fa-regular fa-trash-can"></i>
+                        <span class="hidden sm:inline">Borrar</span>
+                    </button>
                     <button @click="reloadReunion"
                         class="px-3 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 flex items-center gap-1 sm:gap-2 transition-colors text-sm"
                         title="Recargar datos">
@@ -199,7 +205,7 @@
 <script>
 import { defineComponent, ref, watch } from "vue";
 import SwalService from "@services/swal/SwalService";
-import { getReunionDetails, updateReunion } from "@services/reunions/reunions";
+import { getReunionDetails, updateReunion, deleteReunion } from "@services/reunions/reunions";
 import { deletePoint, updatePoint, postPoint } from "@services/points/point";
 
 export default defineComponent({
@@ -208,7 +214,7 @@ export default defineComponent({
         show: { type: Boolean, required: true },
         reunionId: { type: String, default: null },
     },
-    emits: ['close', 'updated'],
+    emits: ['close', 'updated', 'deleted'],
     setup(props, { emit }) {
         const reunion = ref({ title: "", date: "" });
         const showEditReunionForm = ref(false);
@@ -327,6 +333,24 @@ export default defineComponent({
             pointToDelete.value = null;
         };
 
+        const confirmDeleteReunion = async () => {
+            const result = await SwalService.confirm(
+                '¿Eliminar reunión?',
+                `Vas a eliminar "${reunion.value.title}" y todos sus puntos. Esta acción no se puede deshacer.`,
+                'Sí, eliminar', 'Cancelar'
+            );
+            if (result.isConfirmed) {
+                try {
+                    await deleteReunion(props.reunionId);
+                    SwalService.success('Reunión eliminada');
+                    emit('deleted', props.reunionId);
+                    emit('close');
+                } catch (error) {
+                    SwalService.error('No se pudo eliminar la reunión');
+                }
+            }
+        };
+
         const togglePointDone = async (id, done) => {
             try {
                 await updatePoint(id, { done });
@@ -346,7 +370,7 @@ export default defineComponent({
             showNewPointForm, editingIndex, editPointData, addPoint, toggleEditReunionForm,
             updateReunionFunction, toggleNewPointForm, toggleEditPointForm, toggleContentVisibility,
             updatePointReunion, cancelEdit, deletePointConfirm, confirmDelete, cancelDelete,
-            showDeleteConfirm, pointToDelete, togglePointDone, reloadReunion,
+            showDeleteConfirm, pointToDelete, togglePointDone, reloadReunion, confirmDeleteReunion,
         };
     },
 });

@@ -4,7 +4,7 @@
             <div class="flex items-center justify-between mb-3">
                 <h2 class="text-lg font-bold text-gray-900 dark:text-white">Backlog</h2>
                 <button @click="$emit('close')"
-                    class="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-rv-darkSurface hover:text-rv-navy dark:hover:text-white transition-all"
+                    class="w-7 h-7 flex items-center justify-center rounded-full bg-rv-pink/10 text-rv-pink hover:bg-rv-pink hover:text-white transition-all"
                     title="Cerrar backlog">
                     <i class="fa-solid fa-chevron-left text-sm"></i>
                 </button>
