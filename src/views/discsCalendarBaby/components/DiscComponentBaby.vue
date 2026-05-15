@@ -99,12 +99,15 @@
       <!-- Pendiente derecha -->
       <button @click="toggleBookmark()"
               class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold
-                     shadow-sm transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]"
-              :class="pendingId
-                ? (hasColor ? 'bg-white/30 text-white hover:bg-white/40' : 'bg-yellow-500 text-white hover:bg-yellow-400')
-                : (hasColor ? 'bg-white/15 text-white hover:bg-white/30' : 'bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-white hover:bg-yellow-500 hover:text-white')">
-        <i class="fa-solid fa-bookmark text-[10px]"></i>
-        {{ pendingId ? 'Guardado' : 'Pendiente' }}
+                     shadow-sm transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.97]"
+              :class="justAdded
+                ? (hasColor ? 'bg-white/50 text-white scale-105' : 'bg-yellow-400 text-white scale-105')
+                : pendingId
+                  ? 'bg-yellow-500 text-white hover:bg-yellow-400'
+                  : (hasColor ? 'bg-white/15 text-white hover:bg-white/30' : 'bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-white hover:bg-yellow-500 hover:text-white')">
+        <i class="fa-solid fa-bookmark text-[10px]" :class="justAdded ? 'animate-bounce' : ''"></i>
+        <span v-if="justAdded">¡Añadido!</span>
+        <span v-else>{{ pendingId ? 'Guardado' : 'Pendiente' }}</span>
       </button>
     </div>
   </div>
@@ -118,6 +121,7 @@
 import { computed, defineComponent, ref } from "vue";
 import type { PropType } from "vue";
 import Swal from "sweetalert2";
+import SwalService from "@services/swal/SwalService";
 
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import { postPendingService, deletePendingService } from "@services/pendings/pendings";
@@ -184,21 +188,23 @@ export default defineComponent({
     });
 
     const pendingId = ref<string | null>(props.disc.pendingId ?? null);
+    const justAdded = ref(false);
 
     const toggleBookmark = async () => {
       try {
         if (pendingId.value) {
           await deletePendingService(pendingId.value);
           pendingId.value = null;
-          Swal.fire({ title: "Pendiente eliminado", icon: "success", timer: 2000, toast: true, position: "top-end", showConfirmButton: false });
+          SwalService.success('Eliminado de pendientes');
         } else {
           const pending = await postPendingService({ discId: props.disc.id });
           pendingId.value = pending.id;
-          Swal.fire({ title: "Pendiente añadido", icon: "success", timer: 2000, toast: true, position: "top-end", showConfirmButton: false });
+          justAdded.value = true;
+          setTimeout(() => { justAdded.value = false; }, 1500);
         }
       } catch (error) {
         console.error("Error al cambiar el estado de pendiente:", error);
-        Swal.fire({ title: "Error", text: "No se pudo actualizar el estado de pendiente.", icon: "error", position: "top-end", timer: 3000, toast: true, showConfirmButton: false });
+        SwalService.error('No se pudo actualizar el estado de pendiente');
       }
     };
 
@@ -218,6 +224,7 @@ export default defineComponent({
       hasColor,
       linkButtonData,
       pendingId,
+      justAdded,
       toggleBookmark,
       showDiscDetail,
       showArtistDetail,

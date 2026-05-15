@@ -8,13 +8,16 @@
 
         <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <div v-for="asignation in asignations" :key="asignation.id"
-                class="bg-white dark:bg-rv-darkCard rounded-xl p-5 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 dark:border-white/10 group flex flex-col h-full">
+                class="bg-white dark:bg-rv-darkCard rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/40 group flex flex-col h-full relative overflow-hidden">
+
+                <!-- Barra de acento izquierda -->
+                <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-400 to-violet-500"></div>
 
                 <!-- Main Content -->
-                <div class="flex items-start gap-4 mb-2 flex-grow">
+                <div class="flex items-start gap-4 mb-2 flex-grow pl-4 pr-4 pt-4">
                     <!-- Cover & Flag Column -->
                     <div class="flex flex-col items-center gap-2 flex-shrink-0">
-                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-rv-darkBg dark:to-rv-darkSurface flex items-center justify-center text-gray-400 font-bold overflow-hidden shadow-inner">
+                        <div class="w-14 h-14 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-rv-darkBg dark:to-rv-darkSurface flex items-center justify-center text-gray-400 font-bold overflow-hidden shadow-sm border border-gray-200 dark:border-white/10">
                             <img v-if="asignation.disc.image" :src="asignation.disc.image" class="w-full h-full object-cover" />
                             <span v-else>{{ asignation.disc.artist.name.charAt(0) }}</span>
                         </div>
@@ -44,24 +47,24 @@
                         </div>
 
                         <!-- Actions Row -->
-                        <div class="flex items-center gap-2">
-                            <div class="w-8 h-8 flex items-center justify-center bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/40 transition-colors cursor-pointer shadow-sm border border-green-200 dark:border-green-900/30"
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-8 h-8 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-green-600 dark:text-green-400 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer border border-gray-200 dark:border-white/10"
                                 title="Spotify">
                                 <SpotifyArtistButton :artistName="asignation.disc.artist.name"
                                     class="!text-xs !bg-transparent !text-inherit !p-0 !w-full !h-full flex items-center justify-center !shadow-none" />
                             </div>
                             <button @click="copyArtistAndDisc(asignation.disc.artist.name, asignation.disc.name)"
-                                class="w-8 h-8 flex items-center justify-center bg-purple-100 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/40 transition-colors shadow-sm border border-purple-200 dark:border-purple-900/30"
+                                class="w-8 h-8 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-rv-purple dark:text-purple-400 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors border border-gray-200 dark:border-white/10"
                                 title="Copiar Info">
                                 <i class="fa-solid fa-clipboard text-xs"></i>
                             </button>
                             <button @click="copyToClipboard(asignation.disc.image)"
-                                class="w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/40 transition-colors shadow-sm border border-blue-200 dark:border-blue-900/30"
+                                class="w-8 h-8 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-blue-500 dark:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors border border-gray-200 dark:border-white/10"
                                 title="Copiar Imagen">
                                 <i class="fa-solid fa-image text-xs"></i>
                             </button>
                             <button @click="remove(asignation.id)"
-                                class="w-8 h-8 flex items-center justify-center bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/40 transition-colors shadow-sm border border-red-200 dark:border-red-900/30"
+                                class="w-8 h-8 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-red-500 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border border-gray-200 dark:border-white/10"
                                 title="Eliminar">
                                 <i class="fa-solid fa-trash text-xs"></i>
                             </button>
@@ -70,7 +73,7 @@
                 </div>
 
                 <!-- Footer: User & Check -->
-                <div class="mt-auto pt-4 border-t border-gray-100 dark:border-white/10 flex items-center gap-3">
+                <div class="mt-auto mx-4 mb-4 pt-3 border-t border-gray-100 dark:border-white/10 flex items-center gap-3">
 
                     <!-- Checkbox -->
                     <label class="relative flex items-center justify-center cursor-pointer group/check w-8 flex-shrink-0">
@@ -158,7 +161,7 @@ export default defineComponent({
                     }
                     SwalService.success('Usuario actualizado');
                 } catch (error) {
-                    console.error("Failed", error);
+                    SwalService.error('Error al cambiar el usuario');
                 }
             }
             editingUserAsignationId.value = null;

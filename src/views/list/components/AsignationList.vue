@@ -40,108 +40,111 @@
           <div class="flex flex-col gap-2 min-h-[50px]">
             <div v-for="asignation in groupedWeekAsignations[group]" :key="asignation.id" draggable="true"
               @dragstart="onDragStart(asignation, $event)"
-              class="bg-white dark:bg-rv-darkSurface rounded-lg p-2.5 shadow-sm border border-gray-100 dark:border-white/10 group flex flex-col cursor-grab active:cursor-grabbing relative overflow-hidden hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-colors">
+              class="bg-white dark:bg-rv-darkSurface rounded-xl p-0 shadow-sm border border-gray-200 dark:border-white/10 group flex flex-col cursor-grab active:cursor-grabbing relative overflow-hidden hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-all duration-200">
 
-              <!-- Top Accent -->
-              <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-300 to-purple-300"></div>
+              <!-- Left Accent Bar -->
+              <div class="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-rv-purple to-rv-pink"></div>
 
-              <!-- Main Content Compact -->
-              <div class="flex items-start gap-2.5 pl-2">
+              <!-- Main Content -->
+              <div class="flex items-start gap-2.5 pl-3 pr-2.5 pt-2.5">
                 <!-- Cover -->
-                <div class="flex flex-col items-center gap-1 flex-shrink-0">
-                  <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-rv-darkBg flex items-center justify-center text-gray-400 font-bold overflow-hidden border border-gray-100 dark:border-white/10">
+                <div class="flex-shrink-0">
+                  <div class="w-11 h-11 rounded-lg bg-gray-100 dark:bg-rv-darkBg flex items-center justify-center text-gray-400 font-bold overflow-hidden border border-gray-200 dark:border-white/10 shadow-sm">
                     <img v-if="asignation.disc.image" :src="asignation.disc.image" class="w-full h-full object-cover" />
-                    <span v-else class="text-xs">{{ asignation.disc.artist.name.charAt(0) }}</span>
+                    <span v-else class="text-sm">{{ asignation.disc.artist.name.charAt(0) }}</span>
                   </div>
                 </div>
 
                 <div class="min-w-0 flex-1">
-                  <!-- Header: Title & Remove -->
-                  <div class="flex justify-between items-start gap-1">
-                    <h5 class="font-bold text-gray-800 dark:text-white text-xs leading-tight truncate flex-1"
+                  <!-- Title & Remove -->
+                  <div class="flex justify-between items-start gap-1 mb-0.5">
+                    <h5 class="font-bold text-gray-900 dark:text-white text-xs leading-tight truncate flex-1"
                       :title="asignation.disc.name">
                       {{ asignation.disc.name }}
                     </h5>
                     <button @click.stop="moveTo(asignation, 0)"
-                      class="w-4 h-4 rounded flex items-center justify-center text-[8px] text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                      title="Quitar">
+                      class="w-4 h-4 rounded flex items-center justify-center text-[9px] text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex-shrink-0"
+                      title="Quitar de radar">
                       <i class="fa-solid fa-xmark"></i>
                     </button>
                   </div>
 
-                  <!-- Artist -->
-                  <div class="flex items-center gap-1.5 min-w-0 mb-1">
+                  <!-- Artist + meta -->
+                  <div class="flex items-center gap-1.5 min-w-0">
                     <p class="text-[10px] text-gray-500 dark:text-gray-400 font-medium truncate" :title="asignation.disc.artist.name">
                       {{ asignation.disc.artist.name }}
                     </p>
                     <span v-if="asignation.disc.genre"
-                      class="px-1.5 py-0.5 rounded-full text-[8px] font-bold text-white shadow-sm truncate max-w-[80px] flex-shrink-0"
+                      class="px-1.5 py-0.5 rounded-full text-[8px] font-bold text-white shadow-sm truncate max-w-[70px] flex-shrink-0"
                       :style="{ backgroundColor: asignation.disc.genre.color || '#9ca3af' }">
                       {{ asignation.disc.genre.name }}
                     </span>
-                    <div v-if="getDiscCountry(asignation.disc)?.isoCode" class="relative group flex-shrink-0">
+                    <div v-if="getDiscCountry(asignation.disc)?.isoCode" class="flex-shrink-0">
                       <template v-if="getDiscCountry(asignation.disc).isoCode === 'int'">
-                        <img src="/int.svg" alt="Internacional" class="h-4 w-4 rounded-full cursor-help object-cover" />
+                        <img src="/int.svg" alt="Internacional" class="h-3.5 w-3.5 rounded-full object-cover" />
                       </template>
                       <template v-else-if="getDiscCountry(asignation.disc).isoCode.length >= 2">
-                        <CircleFlags :country="getDiscCountry(asignation.disc).isoCode.slice(0, 2).toLowerCase()" :show-flag-name="false" class="h-4 w-4 cursor-help" />
+                        <CircleFlags :country="getDiscCountry(asignation.disc).isoCode.slice(0, 2).toLowerCase()" :show-flag-name="false" class="h-3.5 w-3.5" />
                       </template>
                     </div>
-                  </div>
-
-                  <!-- Actions Row Compact -->
-                  <div class="flex items-center gap-1 mt-1">
-                    <div class="w-5 h-5 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-green-600 rounded hover:bg-green-100 dark:hover:bg-green-900/20 cursor-pointer" title="Spotify">
-                      <SpotifyArtistButton :artistName="asignation.disc.artist.name" class="!text-[8px] !bg-transparent !text-inherit !p-0 !w-full !h-full flex items-center justify-center !shadow-none" />
-                    </div>
-                    <button @click="copyArtistAndDisc(asignation.disc.artist.name, asignation.disc.name)" class="w-5 h-5 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-purple-600 rounded hover:bg-purple-100 dark:hover:bg-purple-900/20" title="Copiar Info">
-                      <i class="fa-solid fa-clipboard text-[8px]"></i>
-                    </button>
-                    <button @click="copyToClipboard(asignation.disc.image)" class="w-5 h-5 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-blue-600 rounded hover:bg-blue-100 dark:hover:bg-blue-900/20" title="Copiar Imagen">
-                      <i class="fa-solid fa-image text-[8px]"></i>
-                    </button>
-                    <button @click="remove(asignation.id)" class="w-5 h-5 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-red-600 rounded hover:bg-red-100 dark:hover:bg-red-900/20" title="Eliminar">
-                      <i class="fa-solid fa-trash text-[8px]"></i>
-                    </button>
                   </div>
                 </div>
               </div>
 
-              <!-- Footer: User & Status (Inline) -->
-              <div class="mt-2 pt-2 border-t border-gray-50 dark:border-white/10 flex items-center justify-between pl-2">
-                <!-- User -->
-                <div class="flex items-center min-w-0 flex-1 mr-2">
+              <!-- Footer: Actions + User + Checkbox -->
+              <div class="mt-2 mx-3 mb-2.5 pt-2 border-t border-gray-100 dark:border-white/10 flex items-center justify-between gap-2">
+                <!-- Action buttons -->
+                <div class="flex items-center gap-1">
+                  <div class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer" title="Spotify">
+                    <SpotifyArtistButton :artistName="asignation.disc.artist.name" class="!text-[9px] !bg-transparent !text-inherit !p-0 !w-full !h-full flex items-center justify-center !shadow-none" />
+                  </div>
+                  <button @click="copyArtistAndDisc(asignation.disc.artist.name, asignation.disc.name)"
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-rv-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Copiar info">
+                    <i class="fa-solid fa-clipboard text-[9px]"></i>
+                  </button>
+                  <button @click="copyToClipboard(asignation.disc.image)"
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Copiar imagen">
+                    <i class="fa-solid fa-image text-[9px]"></i>
+                  </button>
+                  <button @click="remove(asignation.id)"
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
+                    <i class="fa-solid fa-trash text-[9px]"></i>
+                  </button>
+                </div>
+
+                <!-- User + Done -->
+                <div class="flex items-center gap-1.5 flex-shrink-0">
                   <div v-if="editingUserAsignationId !== asignation.id" @click="startEditingUser(asignation)"
-                    class="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-rv-darkBg p-1 rounded transition-colors group/user w-full min-w-0">
-                    <div class="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-indigo-700 dark:text-indigo-300 ring-1 ring-white dark:ring-rv-darkCard overflow-hidden">
+                    class="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-rv-darkBg px-1 py-0.5 rounded transition-colors group/user">
+                    <div class="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-indigo-700 dark:text-indigo-300 ring-1 ring-white dark:ring-rv-darkSurface overflow-hidden">
                       <img v-if="asignation.user?.image" :src="asignation.user.image" class="w-full h-full object-cover" />
                       <span v-else>{{ asignation.user?.username?.charAt(0) || '?' }}</span>
                     </div>
-                    <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 truncate group-hover/user:text-indigo-600 dark:group-hover/user:text-indigo-400">
-                      {{ asignation.user?.username || 'Sin asignar' }}
+                    <span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 group-hover/user:text-indigo-600 dark:group-hover/user:text-indigo-400 max-w-[48px] truncate">
+                      {{ asignation.user?.username || '–' }}
                     </span>
                   </div>
                   <select v-else @change="changeUser(asignation, $event)" @blur="editingUserAsignationId = null"
-                    class="text-[10px] p-0.5 border rounded border-indigo-200 dark:border-indigo-500/30 focus:ring-0 w-full bg-white dark:bg-rv-darkSurface dark:text-gray-200 h-5">
+                    class="text-[10px] p-0.5 border rounded border-indigo-200 dark:border-indigo-500/30 focus:ring-0 bg-white dark:bg-rv-darkSurface dark:text-gray-200 h-5 max-w-[80px]">
                     <option v-for="user in users" :key="user.id" :value="user.id" :selected="user.id === asignation.user?.id">
                       {{ user.username }}
                     </option>
                   </select>
-                </div>
 
-                <!-- Checkbox -->
-                <label class="relative flex items-center justify-center cursor-pointer flex-shrink-0">
-                  <input type="checkbox" :checked="asignation.done" @change="toggleDone(asignation)" class="peer sr-only" />
-                  <div class="w-4 h-4 border border-gray-300 dark:border-white/20 rounded peer-checked:bg-green-500 peer-checked:border-green-500 transition-colors"></div>
-                  <i class="fa-solid fa-check text-[8px] text-white absolute opacity-0 peer-checked:opacity-100 pointer-events-none"></i>
-                </label>
+                  <label class="relative flex items-center justify-center cursor-pointer flex-shrink-0" title="Marcar como hecho">
+                    <input type="checkbox" :checked="asignation.done" @change="toggleDone(asignation)" class="peer sr-only" />
+                    <div class="w-4 h-4 border-2 border-gray-300 dark:border-white/20 rounded peer-checked:bg-green-500 peer-checked:border-green-500 transition-colors"></div>
+                    <i class="fa-solid fa-check text-[8px] text-white absolute opacity-0 peer-checked:opacity-100 pointer-events-none"></i>
+                  </label>
+                </div>
               </div>
             </div>
 
             <!-- Empty State -->
             <div v-if="!groupedWeekAsignations[group] || groupedWeekAsignations[group].length === 0"
-              class="py-8 text-center text-gray-300 dark:text-gray-600 border border-dashed border-gray-100 dark:border-white/5 rounded-lg bg-gray-50/20 dark:bg-rv-darkBg/20 text-xs">
-              <p>Arrastra aquí</p>
+              class="py-8 flex flex-col items-center justify-center gap-1.5 text-gray-300 dark:text-gray-600 border-2 border-dashed border-gray-200 dark:border-white/5 rounded-xl bg-gray-50/50 dark:bg-rv-darkBg/20">
+              <i class="fa-solid fa-arrow-down text-sm opacity-50"></i>
+              <p class="text-xs">Arrastra aquí</p>
             </div>
           </div>
         </div>
@@ -168,105 +171,108 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 min-h-[50px]">
           <div v-for="asignation in unassignedWeekAsignations" :key="asignation.id" draggable="true"
             @dragstart="onDragStart(asignation, $event)"
-            class="bg-white dark:bg-rv-darkCard rounded-lg p-2.5 shadow-sm border border-gray-100 dark:border-white/10 group flex flex-col cursor-grab active:cursor-grabbing hover:shadow-md transition-all">
+            class="bg-white dark:bg-rv-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-white/10 group flex flex-col cursor-grab active:cursor-grabbing hover:shadow-md hover:border-gray-300 dark:hover:border-white/20 transition-all duration-200 overflow-hidden">
 
-            <!-- Main Content Compact -->
-            <div class="flex items-start gap-2.5">
+            <!-- Main Content -->
+            <div class="flex items-start gap-2.5 px-3 pt-3">
               <!-- Cover -->
-              <div class="flex flex-col items-center gap-1 flex-shrink-0">
-                <div class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-rv-darkBg flex items-center justify-center text-gray-400 font-bold overflow-hidden border border-gray-100 dark:border-white/10">
+              <div class="flex-shrink-0">
+                <div class="w-11 h-11 rounded-lg bg-gray-100 dark:bg-rv-darkBg flex items-center justify-center text-gray-400 font-bold overflow-hidden border border-gray-200 dark:border-white/10 shadow-sm">
                   <img v-if="asignation.disc.image" :src="asignation.disc.image" class="w-full h-full object-cover" />
-                  <span v-else class="text-xs">{{ asignation.disc.artist.name.charAt(0) }}</span>
+                  <span v-else class="text-sm">{{ asignation.disc.artist.name.charAt(0) }}</span>
                 </div>
               </div>
 
               <div class="min-w-0 flex-1">
-                <!-- Header: Title & Quick Move -->
-                <div class="flex justify-between items-start gap-1">
-                  <h5 class="font-bold text-gray-800 dark:text-white text-xs leading-tight truncate flex-1"
+                <!-- Title & Quick Move buttons -->
+                <div class="flex justify-between items-start gap-1 mb-0.5">
+                  <h5 class="font-bold text-gray-900 dark:text-white text-xs leading-tight truncate flex-1"
                     :title="asignation.disc.name">
                     {{ asignation.disc.name }}
                   </h5>
                   <div class="flex items-center gap-0.5 flex-shrink-0">
                     <button v-for="pos in availablePositions" :key="pos" @click.stop="moveTo(asignation, pos)"
-                      class="w-4 h-4 rounded-md flex items-center justify-center text-[8px] font-bold border transition-colors bg-white dark:bg-rv-darkSurface text-gray-400 dark:text-gray-500 border-gray-200 dark:border-white/10 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                      class="w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold border transition-colors bg-gray-50 dark:bg-rv-darkSurface text-gray-400 dark:text-gray-500 border-gray-200 dark:border-white/10 hover:border-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
                       :title="'Mover a Radar ' + pos">
                       {{ pos }}
                     </button>
                   </div>
                 </div>
 
-                <!-- Artist & Genre -->
-                <div class="flex items-center gap-2 min-w-0 mb-1">
+                <!-- Artist & meta -->
+                <div class="flex items-center gap-1.5 min-w-0">
                   <p class="text-[10px] text-gray-500 dark:text-gray-400 font-medium truncate" :title="asignation.disc.artist.name">
                     {{ asignation.disc.artist.name }}
                   </p>
                   <span v-if="asignation.disc.genre"
-                    class="px-1.5 py-0.5 rounded-full text-[8px] font-bold text-white shadow-sm truncate max-w-[80px] flex-shrink-0"
+                    class="px-1.5 py-0.5 rounded-full text-[8px] font-bold text-white shadow-sm truncate max-w-[70px] flex-shrink-0"
                     :style="{ backgroundColor: asignation.disc.genre.color || '#9ca3af' }">
                     {{ asignation.disc.genre.name }}
                   </span>
-                  <div v-if="getDiscCountry(asignation.disc)?.isoCode" class="relative group flex-shrink-0">
+                  <div v-if="getDiscCountry(asignation.disc)?.isoCode" class="flex-shrink-0">
                     <template v-if="getDiscCountry(asignation.disc).isoCode === 'int'">
-                      <img src="/int.svg" alt="Internacional" class="h-4 w-4 rounded-full cursor-help object-cover" />
+                      <img src="/int.svg" alt="Internacional" class="h-3.5 w-3.5 rounded-full object-cover" />
                     </template>
                     <template v-else-if="getDiscCountry(asignation.disc).isoCode.length >= 2">
-                      <CircleFlags :country="getDiscCountry(asignation.disc).isoCode.slice(0, 2).toLowerCase()" :show-flag-name="false" class="h-4 w-4 cursor-help" />
+                      <CircleFlags :country="getDiscCountry(asignation.disc).isoCode.slice(0, 2).toLowerCase()" :show-flag-name="false" class="h-3.5 w-3.5" />
                     </template>
                   </div>
-                </div>
-
-                <!-- Actions Row Compact -->
-                <div class="flex items-center gap-1 mt-1">
-                  <div class="w-5 h-5 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-green-600 rounded hover:bg-green-100 dark:hover:bg-green-900/20 cursor-pointer" title="Spotify">
-                    <SpotifyArtistButton :artistName="asignation.disc.artist.name" class="!text-[8px] !bg-transparent !text-inherit !p-0 !w-full !h-full flex items-center justify-center !shadow-none" />
-                  </div>
-                  <button @click="copyArtistAndDisc(asignation.disc.artist.name, asignation.disc.name)" class="w-5 h-5 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-purple-600 rounded hover:bg-purple-100 dark:hover:bg-purple-900/20" title="Copiar Info">
-                    <i class="fa-solid fa-clipboard text-[8px]"></i>
-                  </button>
-                  <button @click="copyToClipboard(asignation.disc.image)" class="w-5 h-5 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-blue-600 rounded hover:bg-blue-100 dark:hover:bg-blue-900/20" title="Copiar Imagen">
-                    <i class="fa-solid fa-image text-[8px]"></i>
-                  </button>
-                  <button @click="remove(asignation.id)" class="w-5 h-5 flex items-center justify-center bg-gray-50 dark:bg-rv-darkBg text-red-600 rounded hover:bg-red-100 dark:hover:bg-red-900/20" title="Eliminar">
-                    <i class="fa-solid fa-trash text-[8px]"></i>
-                  </button>
                 </div>
               </div>
             </div>
 
-            <!-- Footer: User & Status -->
-            <div class="mt-2 pt-2 border-t border-gray-50 dark:border-white/10 flex items-center justify-between">
-              <!-- User -->
-              <div class="flex items-center min-w-0 flex-1 mr-2">
+            <!-- Footer: Actions + User + Checkbox -->
+            <div class="mt-2 mx-3 mb-3 pt-2 border-t border-gray-100 dark:border-white/10 flex items-center justify-between gap-2">
+              <!-- Action buttons -->
+              <div class="flex items-center gap-1">
+                <div class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer" title="Spotify">
+                  <SpotifyArtistButton :artistName="asignation.disc.artist.name" class="!text-[9px] !bg-transparent !text-inherit !p-0 !w-full !h-full flex items-center justify-center !shadow-none" />
+                </div>
+                <button @click="copyArtistAndDisc(asignation.disc.artist.name, asignation.disc.name)"
+                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-rv-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Copiar info">
+                  <i class="fa-solid fa-clipboard text-[9px]"></i>
+                </button>
+                <button @click="copyToClipboard(asignation.disc.image)"
+                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Copiar imagen">
+                  <i class="fa-solid fa-image text-[9px]"></i>
+                </button>
+                <button @click="remove(asignation.id)"
+                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
+                  <i class="fa-solid fa-trash text-[9px]"></i>
+                </button>
+              </div>
+
+              <!-- User + Done -->
+              <div class="flex items-center gap-1.5 flex-shrink-0">
                 <div v-if="editingUserAsignationId !== asignation.id" @click="startEditingUser(asignation)"
-                  class="flex items-center gap-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-rv-darkBg p-1 rounded transition-colors group/user w-full min-w-0">
+                  class="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-rv-darkBg px-1 py-0.5 rounded transition-colors group/user">
                   <div class="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-indigo-700 dark:text-indigo-300 ring-1 ring-white dark:ring-rv-darkCard overflow-hidden">
                     <img v-if="asignation.user?.image" :src="asignation.user.image" class="w-full h-full object-cover" />
                     <span v-else>{{ asignation.user?.username?.charAt(0) || '?' }}</span>
                   </div>
-                  <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400 truncate group-hover/user:text-indigo-600 dark:group-hover/user:text-indigo-400">
-                    {{ asignation.user?.username || 'Sin asignar' }}
+                  <span class="text-[10px] font-medium text-gray-400 dark:text-gray-500 group-hover/user:text-indigo-600 dark:group-hover/user:text-indigo-400 max-w-[48px] truncate">
+                    {{ asignation.user?.username || '–' }}
                   </span>
                 </div>
                 <select v-else @change="changeUser(asignation, $event)" @blur="editingUserAsignationId = null"
-                  class="text-[10px] p-0.5 border rounded border-indigo-200 dark:border-indigo-500/30 focus:ring-0 w-full bg-white dark:bg-rv-darkSurface dark:text-gray-200 h-5">
+                  class="text-[10px] p-0.5 border rounded border-indigo-200 dark:border-indigo-500/30 focus:ring-0 bg-white dark:bg-rv-darkSurface dark:text-gray-200 h-5 max-w-[80px]">
                   <option v-for="user in users" :key="user.id" :value="user.id" :selected="user.id === asignation.user?.id">
                     {{ user.username }}
                   </option>
                 </select>
-              </div>
 
-              <!-- Checkbox -->
-              <label class="relative flex items-center justify-center cursor-pointer flex-shrink-0">
-                <input type="checkbox" :checked="asignation.done" @change="toggleDone(asignation)" class="peer sr-only" />
-                <div class="w-4 h-4 border border-gray-300 dark:border-white/20 rounded peer-checked:bg-green-500 peer-checked:border-green-500 transition-colors"></div>
-                <i class="fa-solid fa-check text-[8px] text-white absolute opacity-0 peer-checked:opacity-100 pointer-events-none"></i>
-              </label>
+                <label class="relative flex items-center justify-center cursor-pointer flex-shrink-0" title="Marcar como hecho">
+                  <input type="checkbox" :checked="asignation.done" @change="toggleDone(asignation)" class="peer sr-only" />
+                  <div class="w-4 h-4 border-2 border-gray-300 dark:border-white/20 rounded peer-checked:bg-green-500 peer-checked:border-green-500 transition-colors"></div>
+                  <i class="fa-solid fa-check text-[8px] text-white absolute opacity-0 peer-checked:opacity-100 pointer-events-none"></i>
+                </label>
+              </div>
             </div>
           </div>
 
           <!-- Empty State for Inbox -->
-          <div v-if="unassignedWeekAsignations.length === 0" class="col-span-full py-8 text-center text-gray-300 dark:text-gray-600 text-xs">
+          <div v-if="unassignedWeekAsignations.length === 0" class="col-span-full py-10 flex flex-col items-center justify-center gap-1.5 text-gray-300 dark:text-gray-600 text-xs">
+            <i class="fa-solid fa-inbox text-2xl opacity-40"></i>
             <p>Bandeja de entrada vacía</p>
           </div>
         </div>

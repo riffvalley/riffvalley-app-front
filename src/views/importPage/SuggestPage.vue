@@ -1,187 +1,197 @@
 <template>
-  <div class="p-6 max-w-2xl mx-auto">
+  <div class="p-4 md:p-6">
+    <div class="max-w-2xl mx-auto space-y-6">
 
-    <!-- Cabecera -->
-    <div class="mb-8 text-center">
-      <h1 class="text-2xl md:text-3xl font-bold mb-2 text-gray-900 dark:text-white"><i class="fa-solid fa-lightbulb mr-2"></i>Sugerir un disco</h1>
-      <p class="text-gray-400 dark:text-gray-300 text-sm">
-        ¿Falta algún disco en la app? Pídelo aquí y lo revisaremos.<br />
-        Solo discos de 2025 en adelante, muchas gracias.
-      </p>
-    </div>
-
-    <!-- Formulario -->
-    <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv p-6 mb-8 border border-gray-100 dark:border-white/10">
-      <form @submit.prevent="submitRequest" class="space-y-5">
-
-        <!-- Artista, disco y fecha -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1.5">
-              Artista <span class="text-rv-pink">*</span>
-            </label>
-            <input
-              v-model="form.artistName"
-              type="text"
-              placeholder="Ej: Metallica"
-              class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800
-                     focus:outline-none focus:ring-2 focus:ring-rv-pink focus:border-transparent"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1.5">
-              Disco <span class="text-rv-pink">*</span>
-            </label>
-            <input
-              v-model="form.discName"
-              type="text"
-              placeholder="Ej: Master of Puppets"
-              class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800
-                     focus:outline-none focus:ring-2 focus:ring-rv-pink focus:border-transparent"
-            />
-          </div>
-        </div>
-
-        <!-- Fecha -->
-        <div>
-          <label class="block text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wide mb-1.5">
-            Fecha de lanzamiento <span class="text-rv-pink">*</span>
-          </label>
-          <input
-            v-model="form.releaseDate"
-            type="date"
-            min="2025-01-01"
-            class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm
-       bg-white dark:bg-rv-darkSurface text-gray-800 dark:text-white
-       placeholder:text-gray-400 dark:placeholder:text-gray-500
-       focus:outline-none focus:ring-2 focus:ring-rv-pink focus:border-transparent"
-          />
-        </div>
-
-        <!-- Género y País -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              Género
-            </label>
-            <SearchableSelect
-              v-model="form.genreId"
-              :options="catalogStore.genres"
-              title="name"
-              trackby="id"
-              triggerPlaceholder="Selecciona un género"
-              allLabel="Sin género"
-              placeholder="Buscar género..."
-              :max="4000"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
-              País
-            </label>
-            <SearchableSelect
-              v-model="form.countryId"
-              :options="catalogStore.countries"
-              title="name"
-              trackby="id"
-              triggerPlaceholder="Selecciona un país"
-              allLabel="Sin país"
-              placeholder="Buscar país..."
-              :max="4000"
-            />
-          </div>
-        </div>
-
-        <!-- EP y Debut -->
-        <div class="flex gap-3">
-          <button
-            type="button"
-            @click="form.ep = !form.ep"
-           :class="form.ep
-  ? 'bg-rv-pink text-white border-rv-pink'
-  : 'bg-white dark:bg-rv-darkSurface text-gray-500 dark:text-gray-300 border-gray-200 dark:border-white/10 hover:border-rv-pink hover:text-rv-pink dark:hover:text-white'"
-            class="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors"
-          >
-            <i class="fas fa-compact-disc text-xs"></i>
-            EP
-          </button>
-          <button
-            type="button"
-            @click="form.debut = !form.debut"
-          :class="form.debut
-  ? 'bg-rv-pink text-white border-rv-pink'
-  : 'bg-white dark:bg-rv-darkSurface text-gray-500 dark:text-gray-300 border-gray-200 dark:border-white/10 hover:border-rv-pink hover:text-rv-pink dark:hover:text-white'"
-            class="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors"
-          >
-            <i class="fas fa-star text-xs"></i>
-            Debut
-          </button>
-        </div>
-
-        <!-- Error -->
-        <p v-if="validationError" class="text-rv-pink text-sm font-medium">
-          {{ validationError }}
+      <!-- Cabecera -->
+      <div class="text-center">
+        <h1 class="text-2xl md:text-3xl font-bold mb-2 text-gray-900 dark:text-white">
+          <i class="fa-solid fa-lightbulb mr-2"></i>Solicitud de discos
+        </h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          ¿Falta algún disco en la app? Pídelo aquí y lo revisaremos. Solo discos de 2025 en adelante.
         </p>
-
-        <!-- Enviar -->
-        <button
-          type="submit"
-          :disabled="submitting"
-          class="w-full py-3 bg-gradient-to-r from-rv-pink to-rv-purple text-white font-bold rounded-xl
-                 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity text-sm"
-        >
-          <span v-if="submitting">Enviando...</span>
-          <span v-else>Enviar petición</span>
-        </button>
-
-      </form>
-    </div>
-
-    <!-- Mis peticiones -->
-    <div>
-      <h2 class="text-lg font-bold mb-4 text-gray-900 dark:text-white">Mis peticiones</h2>
-
-      <div v-if="loadingRequests" class="text-gray-400 dark:text-gray-300 text-sm text-center py-6">
-        Cargando...
       </div>
 
-      <div v-else-if="myRequests.length === 0"
-        class="text-center py-8 text-gray-400 text-sm bg-white rounded-2xl shadow-rv">
-        <i class="fas fa-inbox text-2xl mb-2 block text-gray-300 dark:text-gray-500"></i>
-        Aún no has enviado ninguna petición.
-      </div>
-
-      <ul v-else class="space-y-3">
-        <li
-          v-for="req in myRequests"
-          :key="req.id"
-          class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv px-5 py-4 flex items-start justify-between gap-4 border border-gray-100 dark:border-white/10"
-        >
-          <div class="min-w-0">
-            <p class="font-semibold text-gray-800 dark:text-white truncate">
-              {{ req.artistName }} — {{ req.discName }}
-            </p>
-            <p class="text-xs text-gray-400 dark:text-gray-300 mt-1 flex flex-wrap gap-x-2">
-              <span v-if="req.genre">{{ req.genre.name }}</span>
-              <span v-if="req.country">{{ req.country.name }}</span>
-              <span v-if="req.releaseDate">{{ formatDate(req.releaseDate) }}</span>
-              <span v-if="req.ep" class="text-rv-pink font-medium">EP</span>
-              <span v-if="req.debut" class="text-rv-purple font-medium">Debut</span>
-            </p>
-            <p v-if="req.adminNotes" class="text-xs text-gray-500 dark:text-gray-300 mt-1 italic">
-              "{{ req.adminNotes }}"
-            </p>
+      <!-- Formulario -->
+      <div class="bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-rv-pink/10 dark:bg-rv-pink/20 flex items-center justify-center">
+            <i class="fa-solid fa-pen text-rv-pink text-xs"></i>
           </div>
-          <span
-            :class="statusClass(req.status)"
-            class="text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap flex-shrink-0"
-          >
-            {{ statusLabel(req.status) }}
-          </span>
-        </li>
-      </ul>
-    </div>
+          <h2 class="text-sm font-bold text-gray-900 dark:text-white">Nueva solicitud</h2>
+        </div>
 
+        <form @submit.prevent="submitRequest" class="p-5 space-y-4">
+
+          <!-- Artista y Disco -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                Artista <span class="text-rv-pink">*</span>
+              </label>
+              <input
+                v-model="form.artistName"
+                type="text"
+                placeholder="Ej: Metallica"
+                class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm
+                       text-gray-800 dark:text-white bg-white dark:bg-rv-darkSurface
+                       placeholder:text-gray-400 dark:placeholder:text-gray-500
+                       focus:outline-none focus:ring-2 focus:ring-rv-pink/40 focus:border-rv-pink/40 transition-colors"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                Disco <span class="text-rv-pink">*</span>
+              </label>
+              <input
+                v-model="form.discName"
+                type="text"
+                placeholder="Ej: Master of Puppets"
+                class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm
+                       text-gray-800 dark:text-white bg-white dark:bg-rv-darkSurface
+                       placeholder:text-gray-400 dark:placeholder:text-gray-500
+                       focus:outline-none focus:ring-2 focus:ring-rv-pink/40 focus:border-rv-pink/40 transition-colors"
+              />
+            </div>
+          </div>
+
+          <!-- Fecha -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+              Fecha de lanzamiento <span class="text-rv-pink">*</span>
+            </label>
+            <input
+              v-model="form.releaseDate"
+              type="date"
+              min="2025-01-01"
+              class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm
+                     text-gray-800 dark:text-white bg-white dark:bg-rv-darkSurface
+                     focus:outline-none focus:ring-2 focus:ring-rv-pink/40 focus:border-rv-pink/40 transition-colors"
+            />
+          </div>
+
+          <!-- Género y País -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                Género
+              </label>
+              <SearchableSelect
+                v-model="form.genreId"
+                :options="catalogStore.genres"
+                title="name" trackby="id"
+                triggerPlaceholder="Selecciona un género"
+                allLabel="Sin género" placeholder="Buscar género..." :max="4000"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                País
+              </label>
+              <SearchableSelect
+                v-model="form.countryId"
+                :options="catalogStore.countries"
+                title="name" trackby="id"
+                triggerPlaceholder="Selecciona un país"
+                allLabel="Sin país" placeholder="Buscar país..." :max="4000"
+              />
+            </div>
+          </div>
+
+          <!-- EP y Debut -->
+          <div class="flex gap-2.5">
+            <button type="button" @click="form.ep = !form.ep"
+              class="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-all duration-200"
+              :class="form.ep
+                ? 'bg-rv-pink text-white border-rv-pink shadow-sm'
+                : 'bg-white dark:bg-rv-darkSurface text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10 hover:border-rv-pink/50 hover:text-rv-pink'">
+              <i class="fas fa-compact-disc text-xs"></i>
+              EP
+            </button>
+            <button type="button" @click="form.debut = !form.debut"
+              class="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition-all duration-200"
+              :class="form.debut
+                ? 'bg-rv-pink text-white border-rv-pink shadow-sm'
+                : 'bg-white dark:bg-rv-darkSurface text-gray-500 dark:text-gray-400 border-gray-200 dark:border-white/10 hover:border-rv-pink/50 hover:text-rv-pink'">
+              <i class="fas fa-star text-xs"></i>
+              Debut
+            </button>
+          </div>
+
+          <!-- Error -->
+          <p v-if="validationError" class="flex items-center gap-2 text-sm font-medium text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-xl px-4 py-2.5">
+            <i class="fa-solid fa-circle-exclamation text-xs"></i>
+            {{ validationError }}
+          </p>
+
+          <!-- Enviar -->
+          <button
+            type="submit" :disabled="submitting"
+            class="w-full py-3 bg-gradient-to-r from-rv-pink to-rv-purple text-white font-bold rounded-xl
+                   hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity text-sm shadow-sm">
+            <i v-if="submitting" class="fa-solid fa-spinner fa-spin mr-2"></i>
+            <span>{{ submitting ? 'Enviando...' : 'Enviar solicitud' }}</span>
+          </button>
+
+        </form>
+      </div>
+
+      <!-- Mis peticiones -->
+      <div class="bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+            <i class="fa-solid fa-clock-rotate-left text-amber-500 dark:text-amber-400 text-xs"></i>
+          </div>
+          <h2 class="text-sm font-bold text-gray-900 dark:text-white">Mis peticiones</h2>
+          <span v-if="myRequests.length > 0"
+            class="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400">
+            {{ myRequests.length }}
+          </span>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="loadingRequests" class="flex items-center justify-center gap-2 py-10 text-gray-400 dark:text-gray-500 text-sm">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          Cargando...
+        </div>
+
+        <!-- Empty -->
+        <div v-else-if="myRequests.length === 0" class="py-12 text-center">
+          <div class="w-12 h-12 bg-gray-50 dark:bg-rv-darkSurface rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <i class="fas fa-inbox text-gray-300 dark:text-gray-600 text-xl"></i>
+          </div>
+          <p class="font-semibold text-gray-900 dark:text-white mb-1 text-sm">Sin solicitudes todavía</p>
+          <p class="text-xs text-gray-400 dark:text-gray-500">Tus peticiones aparecerán aquí una vez enviadas.</p>
+        </div>
+
+        <!-- Lista -->
+        <ul v-else class="divide-y divide-gray-100 dark:divide-white/5">
+          <li v-for="req in myRequests" :key="req.id"
+            class="px-5 py-4 flex items-start justify-between gap-4">
+            <div class="min-w-0">
+              <p class="font-semibold text-gray-800 dark:text-white text-sm truncate">
+                {{ req.artistName }} — {{ req.discName }}
+              </p>
+              <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+                <span v-if="req.genre">{{ req.genre.name }}</span>
+                <span v-if="req.country">{{ req.country.name }}</span>
+                <span v-if="req.releaseDate">{{ formatDate(req.releaseDate) }}</span>
+                <span v-if="req.ep" class="text-rv-pink font-semibold">EP</span>
+                <span v-if="req.debut" class="text-rv-purple font-semibold">Debut</span>
+              </p>
+              <p v-if="req.adminNotes" class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 italic bg-gray-50 dark:bg-rv-darkSurface rounded-lg px-2.5 py-1.5">
+                "{{ req.adminNotes }}"
+              </p>
+            </div>
+            <span :class="statusClass(req.status)"
+              class="text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap flex-shrink-0">
+              {{ statusLabel(req.status) }}
+            </span>
+          </li>
+        </ul>
+      </div>
+
+    </div>
   </div>
 </template>
 
@@ -282,9 +292,9 @@ export default defineComponent({
 
     const statusClass = (status: DiscRequest['status']) =>
       ({
-        pending: 'bg-yellow-100 text-yellow-700',
-        approved: 'bg-green-100 text-green-700',
-        rejected: 'bg-red-100 text-red-700',
+        pending:  'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
+        approved: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+        rejected: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
       })[status];
 
     onMounted(() => {

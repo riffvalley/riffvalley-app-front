@@ -45,7 +45,7 @@
   },
   {
     "to": "/suggest",
-    "label": "Sugerir discos",
+    "label": "Solicitud de discos",
     "activeClass": "bg-gray-700",
     "type": "disc-app",
     "requiredRole": "babyUser",

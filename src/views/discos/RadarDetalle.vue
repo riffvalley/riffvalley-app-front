@@ -4,7 +4,7 @@
 
       <!-- Volver -->
       <button @click="goBack"
-        class="mb-5 flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-rv-purple dark:hover:text-rv-pink transition-colors">
+        class="mb-5 inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-lg bg-white dark:bg-rv-darkCard border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:text-rv-purple dark:hover:text-rv-pink hover:border-rv-purple/30 dark:hover:border-rv-pink/30 shadow-sm transition-all">
         <i class="fa-solid fa-arrow-left text-xs"></i>
         Volver a Radares
       </button>
@@ -18,10 +18,14 @@
       <div v-else-if="list" class="space-y-6">
 
         <!-- ─── Header ─── -->
-        <div class="relative bg-gradient-to-br from-rv-navy via-[#1a0a2e] to-[#2d0a3e] rounded-2xl shadow-lg overflow-hidden">
-          <!-- Decoración -->
-          <div class="absolute top-0 right-0 w-72 h-72 bg-rv-purple/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
-          <div class="absolute bottom-0 left-0 w-48 h-48 bg-rv-pink/10 rounded-full blur-3xl -ml-12 -mb-12 pointer-events-none"></div>
+        <div class="relative bg-gradient-to-br from-violet-50 via-purple-50 to-indigo-50 dark:from-indigo-900 dark:to-indigo-700 rounded-2xl shadow-lg overflow-hidden border border-purple-100 dark:border-transparent">
+          <!-- Icono decorativo (modo oscuro) -->
+          <div class="absolute top-0 right-0 p-8 opacity-5 transform rotate-12 pointer-events-none hidden dark:block">
+            <i class="fa-solid fa-compact-disc text-8xl text-white"></i>
+          </div>
+          <!-- Decoración claro -->
+          <div class="absolute top-0 right-0 w-72 h-72 bg-rv-purple/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none dark:hidden"></div>
+          <div class="absolute bottom-0 left-0 w-48 h-48 bg-rv-pink/5 rounded-full blur-3xl -ml-12 -mb-12 pointer-events-none dark:hidden"></div>
 
           <div class="relative z-10 p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
             <!-- Título + descripción -->
@@ -29,13 +33,13 @@
               <input
                 v-model="list.name"
                 @change="updateField('name', list.name)"
-                class="text-2xl md:text-3xl font-bold text-white bg-transparent border-none placeholder-white/40 focus:ring-0 w-full p-0 leading-tight mb-1"
+                class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white bg-transparent border-none placeholder-gray-400 dark:placeholder-white/40 focus:ring-0 w-full p-0 leading-tight mb-1"
                 placeholder="Nombre de la lista"
               />
               <input
                 v-model="list.description"
                 @change="updateField('description', list.description)"
-                class="text-white/60 text-sm bg-transparent border-none placeholder-white/30 focus:ring-0 w-full p-0"
+                class="text-gray-500 dark:text-white/60 text-sm bg-transparent border-none placeholder-gray-400 dark:placeholder-white/30 focus:ring-0 w-full p-0"
                 placeholder="Añade una descripción..."
               />
             </div>
@@ -62,30 +66,30 @@
                   <option value="assigned" class="text-gray-900">Asignada</option>
                   <option value="published" class="text-gray-900">Publicada</option>
                 </select>
-                <i class="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-white/60 pointer-events-none"></i>
+                <i class="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-gray-500 dark:text-white/60 pointer-events-none"></i>
               </div>
 
               <!-- Fechas -->
-              <div class="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-3 py-2">
-                <i class="fa-regular fa-calendar text-white/50 text-xs"></i>
+              <div class="flex items-center gap-1.5 bg-white/70 dark:bg-white/10 backdrop-blur-sm border border-purple-200 dark:border-white/20 rounded-xl px-3 py-2">
+                <i class="fa-regular fa-calendar text-gray-400 dark:text-white/50 text-xs"></i>
                 <input
                   type="date"
                   :value="formatDateForInput(list.listDate)"
                   :min="minListDate"
                   :max="maxListDate"
                   @change="(e) => updateField('listDate', (e.target as HTMLInputElement).value)"
-                  class="bg-transparent border-none p-0 text-white text-xs font-bold focus:ring-0 cursor-pointer w-[82px]"
+                  class="bg-transparent border-none p-0 text-gray-700 dark:text-white text-xs font-bold focus:ring-0 cursor-pointer w-[82px]"
                   title="Fecha de lista"
                 />
-                <span class="text-white/30 text-xs">→</span>
-                <i class="fa-regular fa-clock text-white/50 text-xs"></i>
+                <span class="text-gray-300 dark:text-white/30 text-xs">→</span>
+                <i class="fa-regular fa-clock text-gray-400 dark:text-white/50 text-xs"></i>
                 <input
                   type="date"
                   :value="formatDateForInput(list.closeDate)"
                   :min="minCloseDate"
                   :max="maxCloseDate"
                   @change="(e) => updateField('closeDate', (e.target as HTMLInputElement).value)"
-                  class="bg-transparent border-none p-0 text-white text-xs font-bold focus:ring-0 cursor-pointer w-[82px]"
+                  class="bg-transparent border-none p-0 text-gray-700 dark:text-white text-xs font-bold focus:ring-0 cursor-pointer w-[82px]"
                   title="Fecha de cierre"
                 />
               </div>

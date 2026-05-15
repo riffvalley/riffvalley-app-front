@@ -102,7 +102,7 @@
           <!-- Sugerir discos -->
           <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
             <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
-              <i class="fa-solid fa-lightbulb mr-2 text-rv-pink"></i>Sugerir discos
+              <i class="fa-solid fa-lightbulb mr-2 text-rv-pink"></i>Solicitud de discos
             </h2>
             <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
               ¿Echas en falta algún disco o artista? Puedes sugerirlos desde el apartado correspondiente rellenando el formulario con el nombre del artista, el álbum y si lo tienes, un enlace de Spotify o Bandcamp para facilitarnos la búsqueda.

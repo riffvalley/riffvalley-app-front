@@ -2,9 +2,9 @@
 
 
   <!-- Tarjeta individual -->
-  <div class="card w-full max-w-[20rem] border-2 rounded-xl shadow-lg
+  <div class="card w-full max-w-[20rem] border rounded-xl shadow-sm
   bg-white dark:bg-rv-darkCard
-  border-gray-100 dark:border-white/20
+  border-gray-200 dark:border-white/10
   flex flex-col mx-auto p-2 relative">
     <!-- Badge Debut -->
     <div v-if="debut" class="absolute -top-3 -left-2 z-10

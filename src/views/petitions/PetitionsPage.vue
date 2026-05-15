@@ -27,25 +27,25 @@
     <div v-if="loading" class="text-center py-12 text-gray-400 dark:text-gray-300">Cargando...</div>
 
     <!-- Vacío -->
-<div
-  v-else-if="filteredRequests.length === 0"
-  class="text-center py-12 text-gray-400 dark:text-gray-300 bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv border border-gray-100 dark:border-white/10"
->
-  <i class="fas fa-inbox text-3xl mb-3 block text-gray-300 dark:text-gray-500"></i>
-  No hay peticiones {{ activeTab !== 'all' ? tabLabel(activeTab) + 's' : '' }}.
-</div>
+    <div
+      v-else-if="filteredRequests.length === 0"
+      class="text-center py-12 text-gray-400 dark:text-gray-500 bg-white dark:bg-rv-darkCard rounded-2xl shadow-sm border border-gray-200 dark:border-white/10"
+    >
+      <i class="fas fa-inbox text-3xl mb-3 block text-gray-300 dark:text-gray-600"></i>
+      No hay peticiones {{ activeTab !== 'all' ? tabLabel(activeTab) + 's' : '' }}.
+    </div>
 
     <!-- Lista -->
     <ul v-else class="space-y-3">
       <li
         v-for="req in filteredRequests"
         :key="req.id"
-        class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-rv px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4 border border-gray-100 dark:border-white/10"
+        class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-sm px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-4 border border-gray-200 dark:border-white/10"
       >
         <!-- Info -->
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 flex-wrap">
-            <p class="font-semibold text-gray-800">
+            <p class="font-semibold text-gray-800 dark:text-white">
               {{ req.artistName }} — {{ req.discName }}
             </p>
             <span v-if="req.ep" class="text-xs bg-rv-pink/10 text-rv-pink font-semibold px-2 py-0.5 rounded-full">EP</span>
@@ -101,7 +101,7 @@
     <div v-if="editingRequest"
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="editingRequest = null">
-      <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
+      <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-xl w-full max-w-lg p-6 border border-gray-200 dark:border-white/10">
         <h2 class="text-xl font-bold mb-5 text-gray-900 dark:text-white">Editar petición</h2>
         <div class="space-y-4">
 
@@ -202,7 +202,7 @@ focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none" />
     <div v-if="rejectingRequest"
       class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       @click.self="rejectingRequest = null">
-      <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-xl w-full max-w-md p-6 border border-gray-100 dark:border-white/10">
+      <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-xl w-full max-w-md p-6 border border-gray-200 dark:border-white/10">
 <h2 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">Rechazar petición</h2>
 <p class="text-sm text-gray-500 dark:text-gray-300 mb-4">
   <span class="font-medium text-gray-700 dark:text-white">{{ rejectingRequest.artistName }} — {{ rejectingRequest.discName }}</span>
@@ -414,9 +414,9 @@ export default defineComponent({
 
     const statusClass = (status: DiscRequest['status']) =>
       ({
-        pending: 'bg-yellow-100 text-yellow-700',
-        approved: 'bg-green-100 text-green-700',
-        rejected: 'bg-red-100 text-red-700',
+        pending:  'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
+        approved: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+        rejected: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
       })[status];
 
     const tabLabel = (status: StatusFilter) =>

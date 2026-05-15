@@ -1,6 +1,6 @@
 <template>
   <div class="max-w-[100rem] mx-auto mt-10 px-4">
-   <div class="home-panel bg-white dark:bg-rv-darkCard shadow-lg rounded-lg p-4 sm:p-6 mb-4 max-w-[90vw] md:max-w-[100rem] mx-auto relative border border-gray-100 dark:border-white/10">
+   <div class="home-panel bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl p-4 sm:p-6 mb-4 max-w-[90vw] md:max-w-[100rem] mx-auto relative border border-gray-200 dark:border-white/10">
 <h3 class="text-2xl md:text-3xl font-bold text-rv-navy dark:text-white mb-4 text-center">
         Novedades Riff Valley
       </h3>

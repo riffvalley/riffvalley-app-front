@@ -95,19 +95,36 @@
         @update:modelValue="saveCountry" />
 
       <!-- Todos los botones de acción en una sola fila con wrap -->
-      <div class="flex flex-wrap gap-2">
-        <button @click="toggleEp()"
-                class="px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm whitespace-nowrap
-                       transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]"
-                :class="disc.ep ? 'bg-rv-purple hover:bg-rv-purple/80' : 'bg-gray-300 dark:bg-white/20 hover:bg-rv-purple'">
-          {{ disc.ep ? 'EP' : 'Álbum' }}
-        </button>
-        <button @click="toggleDebut()"
-                class="px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm whitespace-nowrap
-                       transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]"
-                :class="disc.debut ? 'bg-rv-purple hover:bg-rv-purple/80' : 'bg-gray-300 dark:bg-white/20 hover:bg-rv-purple'">
-          {{ disc.debut ? 'Debut ✓' : 'No debut' }}
-        </button>
+      <div class="flex flex-wrap gap-2 items-center">
+        <!-- Switch EP -->
+        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+          <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Álbum</span>
+          <div class="relative" @click="toggleEp()">
+            <div class="w-8 h-4 rounded-full transition-colors duration-200"
+                 :class="disc.ep ? 'bg-rv-purple' : 'bg-gray-300 dark:bg-white/20'"></div>
+            <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200"
+                 :class="disc.ep ? 'translate-x-4' : 'translate-x-0'"></div>
+          </div>
+          <span class="text-xs font-semibold" :class="disc.ep ? 'text-rv-purple' : 'text-gray-400 dark:text-gray-500'">EP</span>
+        </label>
+
+        <!-- Separador -->
+        <span class="w-px h-4 bg-gray-200 dark:bg-white/10"></span>
+
+        <!-- Switch Debut -->
+        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+          <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">No debut</span>
+          <div class="relative" @click="toggleDebut()">
+            <div class="w-8 h-4 rounded-full transition-colors duration-200"
+                 :class="disc.debut ? 'bg-rv-purple' : 'bg-gray-300 dark:bg-white/20'"></div>
+            <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200"
+                 :class="disc.debut ? 'translate-x-4' : 'translate-x-0'"></div>
+          </div>
+          <span class="text-xs font-semibold" :class="disc.debut ? 'text-rv-purple' : 'text-gray-400 dark:text-gray-500'">Debut</span>
+        </label>
+
+        <!-- Separador -->
+        <span class="w-px h-4 bg-gray-200 dark:bg-white/10"></span>
         <button @click="toggleVerified()"
                 class="px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm whitespace-nowrap
                        transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]"
@@ -117,10 +134,15 @@
         <button @click="toggleBookmark()"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap
                        text-xs font-semibold text-white shadow-sm
-                       transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]"
-                :class="pendingId ? 'bg-yellow-500 hover:bg-yellow-400' : 'bg-gray-300 dark:bg-white/20 hover:bg-yellow-500'">
-          <i class="fa-solid fa-bookmark"></i>
-          {{ pendingId ? 'Guardado' : 'Pendiente' }}
+                       transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.97]"
+                :class="justAdded
+                  ? 'bg-yellow-400 scale-105'
+                  : pendingId
+                    ? 'bg-yellow-500 hover:bg-yellow-400'
+                    : 'bg-gray-300 dark:bg-white/20 hover:bg-yellow-500'">
+          <i class="fa-solid fa-bookmark" :class="justAdded ? 'animate-bounce' : ''"></i>
+          <span v-if="justAdded">¡Añadido!</span>
+          <span v-else>{{ pendingId ? 'Guardado' : 'Pendiente' }}</span>
         </button>
         <button @click="confirmDelete(disc.id)"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap
@@ -208,6 +230,7 @@ import { createNationalReleaseFromDisc } from "@services/national-releases/natio
 import { updateArtist, postArtist } from "@services/artist/artist";
 import { postPendingService, deletePendingService } from "@services/pendings/pendings";
 import Swal from "sweetalert2";
+import SwalService from "@services/swal/SwalService";
 import axios from "axios";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
@@ -341,8 +364,9 @@ export default defineComponent({
       try {
         await updateArtist(props.disc.artist.id, { countryId: editedArtist.countryId });
         props.disc.artist.countryId = editedArtist.countryId as any;
+        SwalService.success('País actualizado correctamente');
       } catch (e) {
-        console.error("No se pudo actualizar el país:", e);
+        SwalService.error('No se pudo actualizar el país');
       }
     };
 
@@ -362,26 +386,10 @@ export default defineComponent({
           (props.disc as any)[field] = (editedData as any)[field];
         }
 
-        Swal.fire({
-          title: "¡Éxito!",
-          text: `El ${field} del disco se ha actualizado correctamente.`,
-          icon: "success",
-          timer: 3000,
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-        });
+        SwalService.success('Género actualizado correctamente');
       } catch (error) {
         console.error(`Error al actualizar ${field}:`, error);
-        Swal.fire({
-          title: "Error",
-          text: `No se pudo actualizar el ${field}.`,
-          icon: "error",
-          timer: 3000,
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-        });
+        SwalService.error('No se pudo actualizar el género');
       } finally {
         await nextTick();
         isSaving.value = false;
@@ -416,17 +424,19 @@ export default defineComponent({
     };
 
     const pendingId = ref(props.disc.pendingId);
+    const justAdded = ref(false);
 
     const toggleBookmark = async () => {
       try {
         if (pendingId.value) {
           await deletePendingService(pendingId.value);
           pendingId.value = null;
-          Swal.fire("Pendiente eliminado");
+          SwalService.success('Eliminado de pendientes');
         } else {
           const pending = await postPendingService({ discId: props.disc.id });
           pendingId.value = pending.id;
-          Swal.fire("Pendiente añadido");
+          justAdded.value = true;
+          setTimeout(() => { justAdded.value = false; }, 1500);
         }
       } catch (error) {
         console.error("Error al cambiar el estado de pendiente:", error);
@@ -821,6 +831,7 @@ export default defineComponent({
       buscarGeneroSpotify,
       toggleBookmark,
       pendingId,
+      justAdded,
       handleListenClick,
       openArtistModal,
       handleArtistUpdate,

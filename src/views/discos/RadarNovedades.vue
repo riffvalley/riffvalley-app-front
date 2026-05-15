@@ -25,7 +25,7 @@
 
         <div v-if="currentLists.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
           <div v-for="list in currentLists" :key="list.id"
-            class="group bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col overflow-hidden"
+            class="group bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col overflow-hidden"
             @click="goToListDetail(list.id)">
 
             <div class="p-4 flex-1 flex flex-col">
@@ -45,7 +45,7 @@
 
               <div class="mt-auto space-y-2">
                 <!-- Fechas -->
-                <div class="space-y-1 pt-2 border-t border-gray-50 dark:border-white/5">
+                <div class="space-y-1 pt-2 border-t border-gray-100 dark:border-white/5">
                   <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                     <i class="fa-regular fa-calendar text-[10px] text-gray-400"></i>
                     <span>{{ formatDate(list.releaseDate || list.listDate) }}</span>
@@ -112,7 +112,7 @@
 
         <div v-if="pastLists.length > 0" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
           <div v-for="list in pastLists" :key="list.id"
-            class="group bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col overflow-hidden"
+            class="group bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col overflow-hidden"
             @click="goToListDetail(list.id)">
 
             <div class="p-4 flex-1 flex flex-col">
@@ -132,7 +132,7 @@
 
               <div class="mt-auto space-y-2">
                 <!-- Fechas -->
-                <div class="space-y-1 pt-2 border-t border-gray-50 dark:border-white/5">
+                <div class="space-y-1 pt-2 border-t border-gray-100 dark:border-white/5">
                   <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                     <i class="fa-regular fa-calendar text-[10px] text-gray-400"></i>
                     <span>{{ formatDate(list.releaseDate || list.listDate) }}</span>

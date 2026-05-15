@@ -152,6 +152,7 @@ import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
 import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
 import { useAuthStore } from "@stores/auth/auth";
+import SwalService from "@services/swal/SwalService";
 
 export default defineComponent({
   components: { DiscComponent, DiscFilters, SimpleSelect },
@@ -320,7 +321,7 @@ export default defineComponent({
         }
 
       } catch (error) {
-        console.error("Error fetching discs by date range:", error);
+        SwalService.error('Error al cargar los discos');
       } finally {
         loading.value = false;
       }
@@ -428,7 +429,7 @@ export default defineComponent({
         offset.value += limit.value;
         hasMore.value = offset.value < totalItems.value;
       } catch (error) {
-        console.error("Error fetching discs:", error);
+        SwalService.error('Error al cargar los discos');
       } finally {
         if (gen === undefined || gen === fetchGen) {
           loading.value = false;
