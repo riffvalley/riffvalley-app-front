@@ -1,11 +1,11 @@
 <template>
-  <div class="view-container bg-white dark:bg-rv-darkBg p-4 md:p-8">
+  <div class="view-container bg-white dark:bg-transparent p-4 md:p-8">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-user-gear mr-2"></i>Gestión de Usuarios</h2>
       <button
         @click="openCreateModal"
-        class="flex items-center justify-center gap-2 px-5 py-2.5 bg-rv-pink hover:bg-rv-purple text-white font-medium rounded-lg transition-colors"
+        class="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rv-pink to-rv-purple text-white font-medium rounded-full shadow-sm hover:opacity-90 transition-opacity"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -14,12 +14,26 @@
       </button>
     </div>
 
+    <!-- Search bar -->
+    <div class="relative mb-6">
+      <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+      <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="Buscar por usuario o email..."
+        class="w-full pl-11 pr-32 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-rv-darkSurface text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-rv-pink focus:ring-2 focus:ring-rv-pink/25 transition-all"
+      />
+      <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 tabular-nums whitespace-nowrap">
+        {{ filteredUsers.length }}<span v-if="searchQuery"> / {{ users.length }}</span> usuarios
+      </span>
+    </div>
+
     <!-- Lista de usuarios -->
     <div class="space-y-3">
       <div
-        v-for="user in users"
+        v-for="user in filteredUsers"
         :key="user.id"
-        class="user-card bg-white border border-gray-200 dark:bg-rv-darkCard dark:border-rv-purple/20"
+        class="user-card bg-white border border-gray-200 dark:bg-rv-darkCard dark:border-white/10"
       >
         <div class="flex flex-col lg:flex-row lg:items-center gap-4">
           <!-- Info principal -->
@@ -133,8 +147,9 @@
       </div>
 
       <!-- Empty state -->
-      <div v-if="users.length === 0" class="text-center py-16 text-gray-500">
-        No hay usuarios registrados
+      <div v-if="filteredUsers.length === 0" class="text-center py-16 text-gray-500 dark:text-gray-400">
+        <i class="fa-solid fa-user-slash text-3xl mb-3 block opacity-40"></i>
+        {{ searchQuery ? 'No se encontraron usuarios con esa búsqueda' : 'No hay usuarios registrados' }}
       </div>
     </div>
 
@@ -315,7 +330,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from "vue";
+import { defineComponent, ref, computed, onMounted } from "vue";
 import { useUserStore } from "@stores/user/users";
 import SwalService from "@services/swal/SwalService";
 import { deactivateUserService, activateUserService } from "@services/users/users";
@@ -335,6 +350,16 @@ export default defineComponent({
   setup() {
     const userStore = useUserStore();
     const users = ref<User[]>([]);
+    const searchQuery = ref("");
+
+    const filteredUsers = computed(() => {
+      const q = searchQuery.value.trim().toLowerCase();
+      if (!q) return users.value;
+      return users.value.filter(
+        u => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+      );
+    });
+
     const selectedUser = ref<User | null>(null);
     const newPassword = ref("");
     const userNotes = ref("");
@@ -605,6 +630,8 @@ export default defineComponent({
 
     return {
       users,
+      searchQuery,
+      filteredUsers,
       newUser,
       selectedUser,
       newPassword,
@@ -667,8 +694,8 @@ export default defineComponent({
 }
 
 :global(.dark) .user-input {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(176, 102, 159, 0.3);
+  background: #2a2b3d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
 }
 
@@ -770,8 +797,8 @@ export default defineComponent({
 }
 
 :global(.dark) .modal-content {
-  background: #00021f;
-  border: 1px solid rgba(176, 102, 159, 0.3);
+  background: #404157;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal-sm {
@@ -818,8 +845,8 @@ export default defineComponent({
 }
 
 :global(.dark) .modal-input {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(176, 102, 159, 0.3);
+  background: #2a2b3d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
 }
 
