@@ -1225,8 +1225,6 @@ ctx.textBaseline = "alphabetic";
 .card {
   display: flex;
   flex-direction: column;
-  background-color: white;
-  border: 2px solid #e5e7eb;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 0.5rem;
@@ -1264,10 +1262,6 @@ ctx.textBaseline = "alphabetic";
   font-size: 0.75rem;
 }
 
-:global(.dark) input[type="number"] {
-  color-scheme: dark;
-}
-
 /* ── Animación corazón ─────────────────── */
 @keyframes heartPop {
   0%   { transform: scale(1); }
@@ -1301,5 +1295,23 @@ ctx.textBaseline = "alphabetic";
 .player-slide-leave-to {
   max-height: 0;
   opacity: 0;
+}
+</style>
+
+<style>
+html.dark .card {
+  background-color: #404157;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+html.dark .card input[type="number"] {
+  background-color: #2a2b3d;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: white;
+  color-scheme: dark;
+}
+
+html.dark .card .bg-gray-100 {
+  background-color: #2a2b3d;
 }
 </style>
