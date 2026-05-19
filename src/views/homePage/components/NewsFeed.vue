@@ -1,5 +1,22 @@
 <template>
   <div>
+    <!-- ── Filtros ──────────────────────────────────────────── -->
+    <div class="flex flex-wrap gap-1.5 mb-3">
+      <button
+        v-for="f in FILTERS"
+        :key="f.key"
+        type="button"
+        @click="toggleFilter(f)"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
+               transition-all duration-200 border
+               focus:outline-none focus-visible:outline-none ring-0 focus:ring-0"
+        :class="activeFilter?.key === f.key ? f.activeClass : f.inactiveClass"
+      >
+        <i :class="f.icon" class="text-[9px]"></i>
+        {{ f.label }}
+      </button>
+    </div>
+
     <div v-if="loading" class="text-center text-gray-400 py-6">Cargando novedades...</div>
 
     <div v-else-if="posts.length === 0" class="text-center text-gray-400 py-6">No hay novedades disponibles</div>
@@ -149,7 +166,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getNewsFeed } from '@services/news/news';
-import type { FeedPost, NewsType } from '@services/news/news';
+import type { FeedPost, FeedParams, NewsType } from '@services/news/news';
 
 const router = useRouter();
 
@@ -164,8 +181,46 @@ interface NewsPost {
   appBody?: string | null;
 }
 
-const posts = ref<NewsPost[]>([]);
-const loading = ref(true);
+interface FilterDef {
+  key: string;
+  label: string;
+  icon: string;
+  params: FeedParams;
+  activeClass: string;
+  inactiveClass: string;
+}
+
+const FILTERS: FilterDef[] = [
+  {
+    key: 'telegram',
+    label: 'Canal conciertos',
+    icon: 'fa-brands fa-telegram',
+    params: { source: 'telegram', limit: 6 },
+    activeClass:   'bg-yellow-400 text-rv-navy border-yellow-400 shadow-sm',
+    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-yellow-400 hover:text-yellow-500 dark:hover:border-yellow-400 dark:hover:text-yellow-400',
+  },
+  {
+    key: 'riffvalley',
+    label: 'riffvalley.es',
+    icon: 'fa-solid fa-globe',
+    params: { source: 'riffvalley.es' },
+    activeClass:   'bg-rv-pink text-white border-rv-pink shadow-sm',
+    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-pink hover:text-rv-pink dark:hover:border-pink-300 dark:hover:text-pink-300',
+  },
+  {
+    key: 'equipo',
+    label: 'Equipo',
+    icon: 'fa-solid fa-users',
+    params: { source: 'app', type: 'team_notes' },
+    activeClass:   'bg-rv-blue text-white border-rv-blue shadow-sm',
+    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-blue hover:text-rv-blue dark:hover:border-blue-300 dark:hover:text-blue-300',
+  },
+];
+
+const posts        = ref<NewsPost[]>([]);
+const defaultPosts = ref<NewsPost[]>([]);
+const loading      = ref(true);
+const activeFilter = ref<FilterDef | null>(null);
 const selectedNews = ref<{ title: string; type: NewsType; body: string; date: string } | null>(null);
 
 function typeLabel(type: NewsType): string {
@@ -224,10 +279,30 @@ function mapFeedPost(fp: FeedPost): NewsPost {
   };
 }
 
+async function toggleFilter(f: FilterDef) {
+  if (activeFilter.value?.key === f.key) {
+    activeFilter.value = null;
+    posts.value = defaultPosts.value;
+    return;
+  }
+  activeFilter.value = f;
+  loading.value = true;
+  try {
+    const { posts: feedPosts } = await getNewsFeed(f.params);
+    posts.value = feedPosts.map(mapFeedPost);
+  } catch (e) {
+    console.error('Error filtrando feed:', e);
+    posts.value = defaultPosts.value;
+  } finally {
+    loading.value = false;
+  }
+}
+
 async function fetchPosts() {
   try {
     const { posts: feedPosts } = await getNewsFeed();
-    posts.value = feedPosts.map(mapFeedPost);
+    defaultPosts.value = feedPosts.map(mapFeedPost);
+    posts.value = defaultPosts.value;
   } catch (error) {
     console.error('Error fetching news feed:', error);
   } finally {
