@@ -3,6 +3,20 @@
     <!-- ── Filtros ──────────────────────────────────────────── -->
     <div class="flex flex-wrap gap-1.5 mb-3">
       <button
+        type="button"
+        @click="resetFilter"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
+               transition-all duration-200 border
+               focus:outline-none focus-visible:outline-none ring-0 focus:ring-0"
+        :class="activeFilter === null
+          ? 'bg-rv-purple text-white border-rv-purple shadow-sm'
+          : 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-purple hover:text-rv-purple dark:hover:border-purple-300 dark:hover:text-purple-300'"
+      >
+        <i class="fa-solid fa-rss text-[9px]"></i>
+        Feed
+      </button>
+
+      <button
         v-for="f in FILTERS"
         :key="f.key"
         type="button"
@@ -277,6 +291,11 @@ function mapFeedPost(fp: FeedPost): NewsPost {
     newsType: fp.type ?? undefined,
     appBody: fp.body,
   };
+}
+
+function resetFilter() {
+  activeFilter.value = null;
+  posts.value = defaultPosts.value;
 }
 
 async function toggleFilter(f: FilterDef) {
