@@ -179,7 +179,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getNewsFeed } from '@services/news/news';
+import { getNewsFeed, getSourceFeed } from '@services/news/news';
 import type { FeedPost, FeedParams, NewsType } from '@services/news/news';
 
 const router = useRouter();
@@ -307,7 +307,7 @@ async function toggleFilter(f: FilterDef) {
   activeFilter.value = f;
   loading.value = true;
   try {
-    const { posts: feedPosts } = await getNewsFeed(f.params);
+    const { posts: feedPosts } = await getSourceFeed(f.params);
     posts.value = feedPosts.map(mapFeedPost);
   } catch (e) {
     console.error('Error filtrando feed:', e);
