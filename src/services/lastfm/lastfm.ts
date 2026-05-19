@@ -23,7 +23,7 @@ export async function getArtistInfo(artistName: string): Promise<LastFmArtist> {
   const response = await api.get("/lastfm/artist", {
     params: { artist: artistName },
   });
-  return response.data.artist;
+  return response.data.artist ?? response.data;
 }
 
 export async function fillImages(month: number, year: number, week: number): Promise<FillImagesResponse> {

@@ -86,7 +86,6 @@ export async function postRateService(payload: any): Promise<void> {
 
 export async function updateRateService(ratingId: string, updateRateDto: any) {
   // PATCH /rates/:id
-  console.log("update rate", updateRateDto);
   return api.patch(`/rates/${ratingId}`, updateRateDto);
 }
 

@@ -27,15 +27,11 @@ export const useAsignationStore = defineStore("asignation", {
 
     async updateAsignationStore(updatedAsignation: any) {
       try {
-        console.log("Calling updateAsignation with:", updatedAsignation);
-    
         const data = {
           done: updatedAsignation.done,
           position: updatedAsignation.position,
           userId: updatedAsignation.userId,
         };
-    
-        console.log("Data to be sent to service:", data);
     
         await updateAsignationService(updatedAsignation.id, data);
     
@@ -48,7 +44,6 @@ export const useAsignationStore = defineStore("asignation", {
             ...updatedAsignation,
           };
         }
-        console.log("Asignation updated successfully:", this.asignations[index]);
       } catch (error) {
         console.error("Error updating asignation:", error);
         throw error;

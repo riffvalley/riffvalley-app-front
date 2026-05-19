@@ -1,39 +1,39 @@
 <template>
-  <div class="view-container p-4 md:p-8">
+  <div class="view-container bg-white dark:bg-rv-darkBg p-4 md:p-8">
     <!-- Header -->
     <div class="mb-8">
-      <h2 class="text-2xl font-bold text-rv-pink">Estadísticas de Usuarios</h2>
-      <p class="text-gray-400 text-sm mt-1">Actividad y registros de la plataforma</p>
+      <h2 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-chart-bar mr-2"></i>Estadísticas de Usuarios</h2>
+      <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">Actividad y registros de la plataforma</p>
     </div>
 
     <!-- Summary cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-      <div class="stat-card">
+      <div class="stat-card bg-white border border-gray-200 dark:bg-rv-darkCard dark:border-rv-purple/20">
         <p class="stat-label">Total usuarios</p>
-        <p class="stat-value">{{ totalItems }}</p>
+        <p class="stat-value dark:text-white">{{ totalItems }}</p>
       </div>
-      <div class="stat-card">
+      <div class="stat-card bg-white border border-gray-200 dark:bg-rv-darkCard dark:border-rv-purple/20">
         <p class="stat-label">Nunca accedieron</p>
-        <p class="stat-value">{{ neverAccessed }}</p>
+        <p class="stat-value dark:text-white">{{ neverAccessed }}</p>
       </div>
-      <div class="stat-card">
+      <div class="stat-card bg-white border border-gray-200 dark:bg-rv-darkCard dark:border-rv-purple/20">
         <p class="stat-label">Registros hoy</p>
-        <p class="stat-value">{{ registrosHoy }}</p>
+        <p class="stat-value dark:text-white">{{ registrosHoy }}</p>
       </div>
     </div>
 
     <!-- Charts row 1 -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <!-- Registrations chart -->
-      <div class="card">
-        <h3 class="text-base font-semibold text-white mb-4">Usuarios registrados por fecha</h3>
+      <div class="card bg-white border border-gray-200 dark:bg-rv-darkCard dark:border-rv-purple/20">
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Usuarios registrados por fecha</h3>
         <UsersPerDayChart :users-per-day="usersPerDay" />
       </div>
 
       <!-- Last login chart -->
-      <div class="card">
+      <div class="card bg-white border border-gray-200 dark:bg-rv-darkCard dark:border-rv-purple/20">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h3 class="text-base font-semibold text-white">Accesos únicos por día</h3>
+          <h3 class="text-base font-semibold text-gray-900 dark:text-white">Accesos únicos por día</h3>
           <div class="flex gap-1">
             <button
               v-for="opt in accessDaysOptions"
@@ -53,15 +53,15 @@
     <!-- Charts row 2 -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       <!-- Last vote distribution -->
-      <div class="card">
-        <h3 class="text-base font-semibold text-white mb-4">Distribución de último voto por mes</h3>
+      <div class="card bg-white border border-gray-200 dark:bg-rv-darkCard dark:border-rv-purple/20">
+        <h3 class="text-base font-semibold text-gray-900 dark:text-white mb-4">Distribución de último voto por mes</h3>
         <LastVotePerDayChart :last-vote-per-day="lastVotePerDay" />
       </div>
 
       <!-- Inactive voters evolution -->
-      <div class="card">
+      <div class="card bg-white border border-gray-200 dark:bg-rv-darkCard dark:border-rv-purple/20">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h3 class="text-base font-semibold text-white">Evolución de inactividad votante</h3>
+          <h3 class="text-base font-semibold text-gray-900 dark:text-white">Evolución de inactividad votante</h3>
           <div class="flex gap-1">
             <button
               v-for="opt in inactiveDaysOptions"
@@ -98,9 +98,9 @@
         </div>
       </div>
 
-      <div v-if="loading" class="text-center py-10 text-gray-500">Cargando…</div>
+      <div v-if="loading" class="text-center py-10 text-gray-400 dark:text-gray-500">Cargando…</div>
 
-      <div v-else-if="users.length === 0" class="text-center py-10 text-gray-500">
+      <div v-else-if="users.length === 0" class="text-center py-10 text-gray-400 dark:text-gray-500">
         No hay usuarios
       </div>
 
@@ -122,8 +122,8 @@
           <!-- Info -->
           <div class="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-1">
             <div class="min-w-0">
-              <p class="text-sm font-medium text-white truncate">{{ user.username }}</p>
-              <p class="text-xs text-gray-400 truncate">{{ user.email }}</p>
+              <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ user.username }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
             </div>
             <div>
               <p class="stat-field-label">Registrado</p>
@@ -146,7 +146,7 @@
       </div>
 
       <!-- Pagination -->
-      <div v-if="totalPages > 1" class="flex items-center justify-between mt-6 pt-4 border-t border-white/10">
+      <div v-if="totalPages > 1" class="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-white/10">
         <button
           :disabled="currentPage <= 1"
           @click="goToPage(currentPage - 1)"
@@ -157,9 +157,9 @@
           Anterior
         </button>
 
-        <span class="text-sm text-gray-400">
-          Página <span class="text-white font-medium">{{ currentPage }}</span> de
-          <span class="text-white font-medium">{{ totalPages }}</span>
+        <span class="text-sm text-gray-500 dark:text-gray-400">
+          Página <span class="text-gray-900 dark:text-white font-medium">{{ currentPage }}</span> de
+          <span class="text-gray-900 dark:text-white font-medium">{{ totalPages }}</span>
         </span>
 
         <button
@@ -321,20 +321,15 @@ export default defineComponent({
 
 <style scoped>
 .view-container {
-  background: #00021f;
   min-height: 100vh;
 }
 
 .card {
-  background: rgba(0, 2, 31, 0.6);
-  border: 1px solid rgba(176, 102, 159, 0.2);
   border-radius: 12px;
   padding: 1.25rem;
 }
 
 .stat-card {
-  background: rgba(0, 2, 31, 0.6);
-  border: 1px solid rgba(176, 102, 159, 0.2);
   border-radius: 12px;
   padding: 1.25rem;
   text-align: center;
@@ -352,15 +347,15 @@ export default defineComponent({
 .stat-value {
   font-size: 2rem;
   font-weight: 700;
-  color: #ffffff;
   line-height: 1;
 }
 
+
 .filter-btn {
   padding: 0.25rem 0.625rem;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
   border-radius: 6px;
   font-size: 0.72rem;
   font-weight: 500;
@@ -369,27 +364,43 @@ export default defineComponent({
 }
 
 .filter-btn:hover {
-  background: rgba(228, 110, 138, 0.15);
+  background: rgba(228, 110, 138, 0.1);
   color: #e46e8a;
   border-color: rgba(228, 110, 138, 0.3);
 }
 
 .filter-btn--active {
-  background: rgba(228, 110, 138, 0.2);
+  background: rgba(228, 110, 138, 0.15);
   color: #e46e8a;
-  border-color: rgba(228, 110, 138, 0.5);
+  border-color: rgba(228, 110, 138, 0.4);
 }
 
 .filter-btn--active-purple {
-  background: rgba(176, 102, 159, 0.2);
+  background: rgba(176, 102, 159, 0.15);
+  color: #b0669f;
+  border-color: rgba(176, 102, 159, 0.4);
+}
+
+.filter-btn--active-purple:hover {
+  background: rgba(176, 102, 159, 0.25);
   color: #b0669f;
   border-color: rgba(176, 102, 159, 0.5);
 }
 
-.filter-btn--active-purple:hover {
-  background: rgba(176, 102, 159, 0.3);
-  color: #b0669f;
-  border-color: rgba(176, 102, 159, 0.6);
+:global(.dark) .filter-btn {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+:global(.dark) .filter-btn--active {
+  background: rgba(228, 110, 138, 0.2);
+  border-color: rgba(228, 110, 138, 0.5);
+}
+
+:global(.dark) .filter-btn--active-purple {
+  background: rgba(176, 102, 159, 0.2);
+  border-color: rgba(176, 102, 159, 0.5);
 }
 
 .user-row {
@@ -397,9 +408,14 @@ export default defineComponent({
   align-items: center;
   gap: 1rem;
   padding: 0.875rem 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+:global(.dark) .user-row {
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 10px;
 }
 
 .avatar-placeholder {
@@ -426,6 +442,10 @@ export default defineComponent({
 
 .stat-field-value {
   font-size: 0.8rem;
+  color: #374151;
+}
+
+:global(.dark) .stat-field-value {
   color: #d1d5db;
 }
 

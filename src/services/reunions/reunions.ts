@@ -35,19 +35,16 @@ export async function postReunion(payload: CreateReunionDto): Promise<Reunion> {
 }
 
 export async function getReunionDetails(reunionId: string): Promise<Reunion> {
-  console.log("reunionId", reunionId);
   const response = await api.get<any>(`/reunions/${reunionId}`);
   return mapReunionFromBackend(response.data);
 }
 
 export async function updateReunion(id: string, data: any): Promise<void> {
-  console.log("entra", id);
   const backendData = {
     ...data,
-    titulo: data.title, // Map title to titulo
-    fecha: data.date    // Map date to fecha
+    titulo: data.title,
+    fecha: data.date
   };
-  console.log("Datos enviados al backend:", backendData);
 
   await api.patch(`/reunions/${id}`, backendData);
 }

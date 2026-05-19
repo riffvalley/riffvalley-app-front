@@ -1,93 +1,126 @@
 <template>
-  <!-- Contenedor principal con diseño optimizado -->
-<div 
-  class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50"
-  @click.self="$emit('close')"
->
-  <!-- MODAL -->
-  <div 
-    class="spotify-album-details relative w-full max-w-2xl mx-auto my-3 sm:my-3 p-4 sm:p-4 
-    bg-gradient-to-b from-gray-50 to-gray-100 rounded-lg shadow-md max-h-[80vh] overflow-y-auto"
-  >
-    <!-- Botón de cierre en la esquina superior derecha -->
-<button
-  @click="$emit('close')"
-  class="absolute top-2 right-2 text-white bg-rv-navy hover:bg-[#e46e8a]
-         rounded-full w-10 h-10 flex items-center justify-center shadow-md transition-all
-         border-0 outline-none focus:outline-none focus-visible:outline-none
-         ring-0 focus:ring-0 focus-visible:ring-0"
-  aria-label="Cerrar"
-  title="Cerrar"
->
-  <i class="fas fa-times"></i>
-</button>
+  <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4"
+       @click.self="$emit('close')">
 
-    <div v-if="loading" class="text-center py-4 text-gray-600">
-      Cargando detalles del disco...
-    </div>
+    <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-2xl
+                w-full max-w-2xl relative max-h-[88vh] overflow-y-auto
+                border border-gray-100 dark:border-white/10">
 
-    <div v-else-if="error" class="text-center text-red-600 py-4">
-      {{ error }}
-    </div>
+      <!-- Botón cerrar siempre visible -->
+      <button @click="$emit('close')"
+        class="absolute top-4 right-4 z-20 text-white bg-rv-navy hover:bg-rv-pink
+               rounded-full w-9 h-9 flex items-center justify-center shadow-md transition-all
+               border-0 outline-none focus:outline-none ring-0 focus:ring-0">
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
 
-    <div v-else-if="album">
-      <!-- Información del álbum -->
-      <div class="album-info flex flex-col sm:flex-row gap-6 p-4 bg-gradient-to-b from-gray-50 to-gray-100 rounded-md shadow-md justify-center items-center text-center">
-        <a 
-    v-if="album.images?.length"
-    :href="album.images[0].url" 
-    target="_blank" 
-    rel="noopener noreferrer"
-    class="block"
-  >
-    <img
-      :src="album.images[0].url"
-      alt="Portada del álbum"
-      class="album-cover w-32 h-32 sm:w-40 sm:h-40 object-cover rounded-lg shadow-md cursor-zoom-in transition-transform hover:scale-110 mt-1"
-    />
-  </a>
-        <div class="album-meta flex flex-col justify-center ml-4">
-          <h2 class="text-xl sm:text-2xl font-bold mb-1 text-gray-800">
-            {{ album.name }}
-          </h2>
-          <p class="text-gray-700"><strong>Artista(s):</strong> {{album.artists.map(a => a.name).join(", ")}}</p>
-          <p class="text-gray-700"><strong>Fecha:</strong> {{ album.release_date }}</p>
-          <p class="text-gray-700"><strong>Canciones:</strong> {{ album.total_tracks }}</p>
-          <p class="text-gray-700"><strong>Duración:</strong> {{ totalDurationFormatted }}</p>
+      <!-- ── Loading ─────────────────────────────────── -->
+      <div v-if="loading" class="py-20 text-center">
+        <i class="fa-solid fa-spinner animate-spin text-2xl text-rv-pink mb-3 block"></i>
+        <span class="text-sm text-gray-400 dark:text-gray-500">Buscando en Spotify...</span>
+      </div>
 
-          <!-- Botón para abrir el álbum en Spotify -->
-          <div class="flex flex-col items-center">
-            <a v-if="album.external_urls?.spotify" :href="album.external_urls.spotify" target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center px-2 py-1 text-xsm justify-center shadow-md text-white bg-green-500 hover:bg-green-600 hover:text-white rounded-full mt-2 transition-all">
-              <i class="fab fa-spotify text-xs mr-1"></i>
-              Escuchar
+      <!-- ── Error ──────────────────────────────────── -->
+      <div v-else-if="error" class="py-16 text-center px-6">
+        <i class="fa-brands fa-spotify text-4xl text-gray-300 dark:text-white/20 mb-3 block"></i>
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ error }}</p>
+      </div>
+
+      <!-- ── Contenido ──────────────────────────────── -->
+      <div v-else-if="album">
+
+        <!-- Header con portada + blur de fondo -->
+        <div class="relative rounded-t-2xl overflow-hidden">
+
+          <!-- Fondo blur extraído de la portada -->
+          <div class="absolute inset-0">
+            <img v-if="album.images?.length" :src="album.images[0].url"
+                 class="w-full h-full object-cover scale-110 blur-2xl opacity-40 dark:opacity-25" />
+            <div class="absolute inset-0 bg-gradient-to-b from-white/30 to-white dark:from-rv-darkCard/30 dark:to-rv-darkCard"></div>
+          </div>
+
+          <!-- Fila portada + meta -->
+          <div class="relative z-10 flex items-center gap-5 px-6 pt-10 pb-6 pr-14">
+
+            <!-- Portada -->
+            <a v-if="album.images?.length"
+               :href="album.images[0].url" target="_blank" rel="noopener noreferrer"
+               class="shrink-0 block group">
+              <img :src="album.images[0].url" alt="Portada"
+                   class="w-36 h-36 sm:w-44 sm:h-44 object-cover rounded-xl shadow-2xl
+                          transition-transform duration-300 group-hover:scale-105" />
             </a>
+
+            <!-- Meta -->
+            <div class="flex-1 min-w-0 pb-1 flex flex-col items-center text-center">
+              <span class="bg-rv-navy dark:bg-rv-purple text-white px-3 py-0.5 rounded-full
+                           text-[11px] font-bold tracking-wide uppercase inline-block mb-2">
+                Álbum
+              </span>
+              <h2 class="text-xl sm:text-2xl font-bold text-rv-navy dark:text-white leading-tight mb-1">
+                {{ album.name }}
+              </h2>
+              <p class="text-sm font-semibold text-rv-pink mb-3">
+                {{ album.artists.map((a: any) => a.name).join(', ') }}
+              </p>
+
+              <div class="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-300 mb-4">
+                <span><i class="fa-solid fa-calendar-days mr-1 text-gray-600 dark:text-white"></i>{{ album.release_date }}</span>
+                <span><i class="fa-solid fa-music mr-1 text-gray-600 dark:text-white"></i>{{ album.total_tracks }} canciones</span>
+                <span><i class="fa-solid fa-clock mr-1 text-gray-600 dark:text-white"></i>{{ totalDurationFormatted }}</span>
+              </div>
+
+              <a v-if="album.external_urls?.spotify"
+                 :href="album.external_urls.spotify" target="_blank" rel="noopener noreferrer"
+                 class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold
+                        bg-[#1DB954] text-white hover:bg-[#1aa34a] hover:text-white
+                        transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97]
+                        shadow-md">
+                <i class="fa-brands fa-spotify"></i>
+                Escuchar en Spotify
+              </a>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Lista de canciones -->
-      <div class="track-list mt-3 sm:mt-4 text-center">
-        <h3 class="text-lg sm:text-xl font-bold mb-2 text-gray-900">Lista de canciones</h3>
-        <ul class="flex flex-col items-center">
-          <li v-for="track in tracks" :key="track.id"
-            class="track-item py-1 px-2 flex flex-col sm:flex-row sm:items-center justify-center gap-1 sm:gap-2 w-full max-w-md">
-            <div>
-              <p class="font-semibold text-gray-900">
-                {{ track.track_number }}. {{ track.name }}
-              </p>
-              <p class="text-xs sm:text-sm text-gray-700">Duración: {{ formatDuration(track.duration_ms) }}</p>
-            </div>
-            <div v-if="track.preview_url" class="mt-1 sm:mt-0">
-              <audio :src="track.preview_url" controls class="w-28 sm:w-36"></audio>
-            </div>
-          </li>
-        </ul>
+        <!-- Divider -->
+        <div class="border-t border-gray-100 dark:border-white/10"></div>
+
+        <!-- ── Tracklist ───────────────────────────── -->
+        <div class="px-5 py-4">
+          <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-400 mb-2 px-2">
+            Canciones
+          </p>
+          <ul>
+            <li v-for="track in tracks" :key="track.id"
+                class="flex items-center gap-3 py-2 px-2 rounded-lg
+                       hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group/track">
+
+              <!-- Número -->
+              <span class="w-6 text-center text-xs text-gray-400 dark:text-gray-400 shrink-0 font-mono tabular-nums">
+                {{ track.track_number }}
+              </span>
+
+              <!-- Nombre -->
+              <span class="flex-1 min-w-0 text-sm font-medium text-gray-800 dark:text-gray-100 truncate">
+                {{ track.name }}
+              </span>
+
+              <!-- Preview (aparece en hover) -->
+              <audio v-if="track.preview_url" :src="track.preview_url" controls
+                     class="h-7 w-28 shrink-0 opacity-0 group-hover/track:opacity-100 transition-opacity duration-200"></audio>
+
+              <!-- Duración -->
+              <span class="text-xs text-gray-400 dark:text-gray-300 shrink-0 font-mono tabular-nums w-9 text-right">
+                {{ formatDuration(track.duration_ms) }}
+              </span>
+            </li>
+          </ul>
+        </div>
+
       </div>
     </div>
-  </div> <!-- modal -->
-</div>   <!-- overlay -->
+  </div>
 </template>
 
 <script lang="ts">

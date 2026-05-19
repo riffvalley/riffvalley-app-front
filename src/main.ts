@@ -16,17 +16,13 @@ import CircleFlags from "vue-circle-flags";
 import "vue-circle-flags/dist/vue-circle-flags.css";
 
 
-// Importar SidebarMenu
-import SidebarMenu from "./layouts/default/components/SidebarMenu.vue";
-console.log(SidebarMenu);
-
 // FontAwesome
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
-import { faBookmark, faHeart, faPen, faTrash, faCloudArrowUp } from '@fortawesome/free-solid-svg-icons';
+import { faBookmark, faHeart, faPen, faTrash, faCloudArrowUp, faShareNodes, faCircleChevronDown } from '@fortawesome/free-solid-svg-icons';
 
 // Agregar iconos a la librería de FontAwesome
-library.add(faBookmark, faHeart, faPen, faTrash, faCloudArrowUp);
+library.add(faBookmark, faHeart, faPen, faTrash, faCloudArrowUp, faShareNodes, faCircleChevronDown);
 
 import './index.css';      // Tailwind
 import './style.css';      // su CSS global

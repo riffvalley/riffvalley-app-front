@@ -6,15 +6,11 @@ export async function postList(payload: any): Promise<void> {
 }
 
 export async function getListDetails(listId: string): Promise<any> {
-  console.log("listId", listId);
   const response = await api.get<any>(`/lists/${listId}`); // Usamos la ruta correcta para obtener un detalle específico
   return response.data;
 }
 
 export async function updateList(id: string, data: any): Promise<any> {
-  console.log("entra", id);
-  console.log("Datos enviados al backend:", data); // Asegúrate de que 'image' esté presente aquí
-
   const response = await api.patch(`/lists/${id}`, data);
   return response.data;
 }

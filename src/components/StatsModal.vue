@@ -4,11 +4,11 @@
       class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/50 z-50"
       @click.self="$emit('close')"
     >
-      <div
-        class="bg-white p-4 sm:p-6 rounded-lg shadow-xl w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto"
-        role="dialog"
-        aria-modal="true"
-      >
+<div
+  class="bg-white dark:bg-rv-darkCard p-4 sm:p-6 rounded-lg shadow-xl w-[93%] sm:w-full sm:max-w-3xl relative max-h-[80vh] overflow-y-auto border border-gray-100 dark:border-white/10"
+  role="dialog"
+  aria-modal="true"
+>
         <!-- Close button -->
         <button
           @click="$emit('close')"
@@ -23,24 +23,24 @@
         </button>
 
         <!-- Title -->
-        <h2 class="text-xl font-bold text-rv-navy mb-4">
+<h2 class="text-xl font-bold text-rv-navy dark:text-white mb-4">
           Estadísticas detalladas
         </h2>
 
         <!-- Estadísticas -->
         <div class="text-center">
-          <h3 class="text-lg sm:text-xl font-bold text-rv-navy mb-3">
+<h3 class="text-lg sm:text-xl font-bold text-rv-navy dark:text-white mb-3">
             Estadísticas de discos
           </h3>
 
-          <p class="text-sm sm:text-base text-gray-700">
+<p class="text-sm sm:text-base text-gray-700 dark:text-gray-300">
             Total de discos:
-            <span class="font-semibold text-rv-navy">{{ stats.totalDiscs }}</span>
+<span class="font-semibold text-rv-navy dark:text-white">{{ stats.totalDiscs }}</span>
           </p>
 
-          <p class="text-sm sm:text-base text-gray-700 mt-1.5">
+<p class="text-sm sm:text-base text-gray-700 dark:text-gray-300 mt-1.5">
             Total de votos:
-            <span class="font-semibold text-rv-navy">{{ stats.totalVotes }}</span>
+<span class="font-semibold text-rv-navy dark:text-white">{{ stats.totalVotes }}</span>
           </p>
 
           <div class="mt-5 w-full max-w-[380px] mx-auto overflow-hidden">

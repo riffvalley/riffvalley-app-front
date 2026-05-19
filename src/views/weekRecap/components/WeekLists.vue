@@ -122,8 +122,6 @@ export default defineComponent({
 
     // Maneja el checkbox
     const handleCheck = (userId: string, assignment: any) => {
-      console.log("Usuario ID:", userId);
-      console.log("Assignment:", assignment);
     };
 
     const toggleDone = async (asignation: any) => {
@@ -134,7 +132,7 @@ export default defineComponent({
 
       try {
         await asignationStore.updateAsignationStore(updatedAsignation);
-        SwalService.success("Asignation updated");
+        SwalService.success("Asignación actualizada");
       } catch (error) {
         console.error("Error actualizando la asignación:", error);
       }

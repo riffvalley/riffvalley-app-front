@@ -68,7 +68,6 @@ export const useUserStore = defineStore("user", {
 
     async updateUserStore(updatedUser: any) {
       try {
-        console.log("Calling updatedUser with:", updatedUser);
         const data: any = {};
         if (updatedUser?.password) data.password = updatedUser.password;
         if (updatedUser?.image) data.image = updatedUser.image;
@@ -80,10 +79,9 @@ export const useUserStore = defineStore("user", {
     },
 
     async updateUserSuperAdminStore(userId: string, updatedUser: any) {
-      console.log("updatedUser:", updatedUser);
       await updateUserSuperAdminService(userId, updatedUser);
 
-      const index = this.users.findIndex((user) => user.id === updatedUser.id);
+      const index = this.users.findIndex((user) => user.id === userId);
       if (index !== -1) {
         this.users[index] = {
           ...this.users[index],

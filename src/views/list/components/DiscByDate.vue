@@ -16,7 +16,7 @@
       <!-- Lista de discos agrupados -->
       <div v-for="(group, index) in filteredDiscs" :key="group.start || group.releaseDate" class="mb-8">
         <!-- Encabezado del grupo -->
-        <div class="flex justify-between items-center bg-gray-200 px-4 py-2 rounded cursor-pointer"
+        <div class="flex justify-between items-center bg-gray-200 dark:bg-rv-navy px-4 py-2 rounded cursor-pointer"
           @click="toggleGroup(index)">
           <h3 class="text-xl font-bold">
             {{ type === "week" ? `${group.start}` : group.releaseDate }}

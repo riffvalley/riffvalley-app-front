@@ -1,12 +1,15 @@
 <template>
   <div class="w-full h-96 flex justify-center min-w-0">
-    <Pie v-if="loaded" :data="chartData" :options="chartOptions" />
-    <p v-else class="text-center text-gray-500">Cargando gráfico...</p>
+    <Pie v-if="loaded"
+      :key="`score-${isDark}`"
+      :data="chartData"
+      :options="chartOptions" />
+    <p v-else class="text-center text-gray-400">Cargando gráfico...</p>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch } from "vue";
+import { defineComponent, ref, computed, watch, onMounted, onUnmounted } from "vue";
 import type { PropType } from "vue";
 import { Pie } from "vue-chartjs";
 import {
@@ -18,12 +21,7 @@ import {
   type ChartOptions,
 } from "chart.js";
 
-ChartJS.register(
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
+ChartJS.register(Title, Tooltip, Legend, ArcElement);
 
 export default defineComponent({
   name: "ScoreDistributionChart",
@@ -36,94 +34,68 @@ export default defineComponent({
   },
   setup(props) {
     const loaded = ref(false);
+    const isDark = ref(document.documentElement.classList.contains("dark"));
 
-    // Palette for scores 0-10 (11 colors) - Distinct & Contrasting
     const palette = [
-      "#e6194b", // 0 - Red
-      "#3cb44b", // 1 - Green
-      "#ffe119", // 2 - Yellow
-      "#4363d8", // 3 - Blue
-      "#f58231", // 4 - Orange
-      "#911eb4", // 5 - Purple
-      "#46f0f0", // 6 - Cyan
-      "#f032e6", // 7 - Magenta
-      "#bcf60c", // 8 - Lime
-      "#fabebe", // 9 - Pink
-      "#008080", // 10 - Teal
+      "#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231",
+      "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#fabebe", "#008080",
     ];
 
-    const chartData = ref({
-      labels: [] as string[],
-      datasets: [
-        {
-          label: 'Votos',
-          backgroundColor: [] as string[],
-          data: [] as number[],
-          borderColor: '#1f2937', // Match bg-gray-800
-          borderWidth: 2,
-        },
-      ],
-    });
+    const legendColor = computed(() => isDark.value ? "white" : "#374151");
+    const isMobileNow = () => window.matchMedia("(max-width: 640px)").matches;
 
-    const isMobile = () => window.matchMedia("(max-width: 640px)").matches;
-
-    const buildOptions = (): ChartOptions<"pie"> => ({
+    const chartOptions = computed<ChartOptions<"pie">>(() => ({
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: {
           display: true,
-          position: isMobile() ? "bottom" : "right",
+          position: isMobileNow() ? "bottom" : "right",
           labels: {
-            color: "white",
+            color: legendColor.value,
             boxWidth: 10,
             boxHeight: 10,
             padding: 10,
-            font: { size: isMobile() ? 10 : 12 },
+            font: { size: isMobileNow() ? 10 : 12 },
           },
         },
       },
+    }));
+
+    const chartData = ref({
+      labels: [] as string[],
+      datasets: [{
+        label: "Votos",
+        backgroundColor: [] as string[],
+        data: [] as number[],
+        borderWidth: 0,
+      }],
     });
 
-    const chartOptions = ref<ChartOptions<"pie">>(buildOptions());
+    const buildChart = (newData: { score: number; count: number }[]) => {
+      if (!newData.length) return;
+      const sorted = [...newData].sort((a, b) => a.score - b.score);
+      chartData.value = {
+        labels: sorted.map(item => item.score.toString()),
+        datasets: [{
+          label: "Votos",
+          backgroundColor: sorted.map(item => palette[item.score] || "#cccccc"),
+          data: sorted.map(item => item.count),
+          borderWidth: 0,
+        }],
+      };
+      loaded.value = true;
+    };
 
-    window.addEventListener("resize", () => {
-      chartOptions.value = buildOptions();
+    watch(() => props.scoreDistribution, buildChart, { immediate: true, deep: true });
+
+    const observer = new MutationObserver(() => {
+      isDark.value = document.documentElement.classList.contains("dark");
     });
+    onMounted(() => observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] }));
+    onUnmounted(() => observer.disconnect());
 
-
-    watch(
-      () => props.scoreDistribution,
-      (newData) => {
-        if (newData.length > 0) {
-          // Ensure scores are sorted 0-10
-          const sortedData = [...newData].sort((a, b) => a.score - b.score);
-
-          const labels = sortedData.map((item) => item.score.toString());
-          const data = sortedData.map((item) => item.count);
-          // Map colors based on score value
-          const backgroundColor = sortedData.map((item) => palette[item.score] || "#cccccc");
-
-          chartData.value = {
-            labels,
-            datasets: [
-              {
-                label: 'Votos',
-                backgroundColor,
-                data,
-                borderColor: '#1f2937', // Match bg-gray-800
-                borderWidth: 2,
-              },
-            ],
-          };
-
-          loaded.value = true;
-        }
-      },
-      { immediate: true, deep: true }
-    );
-
-    return { chartData, chartOptions, loaded };
+    return { chartData, chartOptions, isDark, loaded };
   },
 });
 </script>

@@ -1,28 +1,26 @@
 <template>
-  <div class="min-h-screen p-4 md:p-6 text-white" style="background:#00021f">
+  <div class="min-h-screen p-4 md:p-6 bg-white dark:bg-rv-darkBg text-gray-900 dark:text-white">
 
     <!-- Header compacto -->
     <div class="flex items-center justify-between gap-4 mb-4">
       <div class="flex items-center gap-3">
-        <h2 class="text-lg font-bold text-white">Actividad</h2>
+        <h2 class="text-2xl md:text-3xl font-bold"><i class="fa-solid fa-bolt mr-2"></i>Actividad</h2>
         <span v-if="globalData && !selectedUserId" class="text-xs text-gray-600">
           {{ globalData.totalItems }} votos
         </span>
-        <span v-if="selectedUserId" class="text-xs px-2 py-0.5 rounded-full"
-          style="background:rgba(228,110,138,0.15); color:#e46e8a">
+        <span v-if="selectedUserId" class="text-xs px-2 py-0.5 rounded-full bg-rv-pink/15 text-rv-pink">
           {{ selectedUserName }}
         </span>
       </div>
       <div class="flex items-center gap-1.5">
         <select v-model="selectedUserId" @change="onUserChange"
-          class="text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-rv-pink cursor-pointer"
-          style="background:rgba(255,255,255,0.05); border:1px solid rgba(176,102,159,0.3); color:#fff; min-width:150px">
-          <option value="" style="background:#111">Todos los usuarios</option>
-          <option v-for="u in users" :key="u.id" :value="u.id" style="background:#111">{{ u.username }}</option>
+          class="text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-rv-pink cursor-pointer bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-rv-purple/30 text-gray-900 dark:text-white"
+          style="min-width:150px">
+          <option value="">Todos los usuarios</option>
+          <option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }}</option>
         </select>
         <button v-if="selectedUserId" @click="clearUser"
-          class="w-6 h-6 flex items-center justify-center rounded text-gray-500 hover:text-white transition-colors"
-          style="background:rgba(255,255,255,0.05)">
+          class="w-6 h-6 flex items-center justify-center rounded text-gray-500 hover:text-gray-800 dark:hover:text-white bg-gray-100 dark:bg-white/5 transition-colors">
           <i class="fa-solid fa-xmark text-xs"></i>
         </button>
       </div>
@@ -35,10 +33,9 @@
       </div>
 
       <template v-else>
-        <div class="rounded-xl overflow-hidden" style="border:1px solid rgba(176,102,159,0.15)">
+        <div class="rounded-xl overflow-hidden border border-gray-200 dark:border-rv-purple/15">
           <div v-for="(vote, i) in globalVotes" :key="vote.id"
-            class="flex items-center gap-3 px-3 py-2 hover:bg-white/[0.03] transition-colors cursor-default"
-            :style="i < globalVotes.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.04)' : ''">
+            class="flex items-center gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors cursor-default border-b border-gray-100 dark:border-white/[0.04] last:border-0">
 
             <!-- Usuario -->
             <button @click="selectUser(vote.user.id)"
@@ -50,19 +47,19 @@
                 style="background:rgba(228,110,138,0.2); color:#e46e8a">
                 {{ vote.user.username.charAt(0).toUpperCase() }}
               </div>
-              <span class="text-sm font-semibold truncate transition-colors" style="color:#e46e8a">
+              <span class="text-sm font-semibold truncate transition-colors text-rv-pink">
                 {{ vote.user.username }}
               </span>
             </button>
 
             <!-- Disco -->
-            <span class="w-28 text-xs truncate flex-shrink-0" style="color:#4ade80">{{ vote.disc.name }}</span>
+            <span class="w-28 text-xs truncate flex-shrink-0 text-green-600 dark:text-green-400">{{ vote.disc.name }}</span>
 
             <!-- Scores + fecha -->
             <div class="flex items-center gap-2 flex-1 justify-end">
               <span v-if="vote.rate !== null" class="score-pill score-pink">{{ vote.rate }}</span>
               <span v-if="vote.cover !== null" class="score-pill score-blue">{{ vote.cover }}</span>
-              <span class="text-[11px] text-gray-600 whitespace-nowrap">{{ fmtDate(vote.createdAt) }}</span>
+              <span class="text-[11px] text-gray-500 dark:text-gray-600 whitespace-nowrap">{{ fmtDate(vote.createdAt) }}</span>
               <i v-if="vote.editedAt" class="fa-solid fa-pen text-[9px] text-gray-700" title="Editado"></i>
             </div>
           </div>
@@ -70,7 +67,7 @@
 
         <!-- Paginación -->
         <div v-if="globalData" class="flex items-center justify-between mt-3">
-          <span class="text-[11px] text-gray-600">
+          <span class="text-[11px] text-gray-500 dark:text-gray-600">
             Página {{ currentPage }} / {{ globalData.totalPages }}
           </span>
           <div class="flex gap-1">
@@ -99,24 +96,22 @@
           <!-- Votos -->
           <div class="xl:col-span-2">
             <div class="flex items-center gap-2 mb-2">
-              <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Votos</span>
+              <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Votos</span>
               <span class="text-[10px] px-1.5 py-0.5 rounded font-bold"
                 style="background:rgba(228,110,138,0.15); color:#e46e8a">{{ userData.votes.length }}</span>
             </div>
-            <div class="rounded-xl overflow-hidden max-h-[75vh] overflow-y-auto custom-scrollbar"
-              style="border:1px solid rgba(176,102,159,0.15)">
+            <div class="rounded-xl overflow-hidden max-h-[75vh] overflow-y-auto custom-scrollbar border border-gray-200 dark:border-rv-purple/15">
               <div v-for="(vote, i) in userData.votes" :key="vote.id"
-                class="flex items-center gap-3 px-3 py-2"
-                :style="i < userData.votes.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.04)' : ''">
-                <span class="text-xs text-gray-500 truncate flex-shrink-0 w-36">{{ vote.disc?.name || '—' }}</span>
-                <span class="text-[11px] text-gray-600 flex-1 whitespace-nowrap">{{ fmtDate(vote.createdAt) }}</span>
+                class="flex items-center gap-3 px-3 py-2 border-b border-gray-100 dark:border-white/[0.04] last:border-0">
+                <span class="text-xs text-gray-500 dark:text-gray-500 truncate flex-shrink-0 w-36">{{ vote.disc?.name || '—' }}</span>
+                <span class="text-[11px] text-gray-500 dark:text-gray-600 flex-1 whitespace-nowrap">{{ fmtDate(vote.createdAt) }}</span>
                 <div class="flex items-center gap-1.5 flex-shrink-0">
                   <span v-if="vote.rate !== null" class="score-pill score-pink">{{ vote.rate }}</span>
                   <span v-if="vote.cover !== null" class="score-pill score-blue">{{ vote.cover }}</span>
                   <i v-if="vote.editedAt" class="fa-solid fa-pen text-[9px] text-gray-700"></i>
                 </div>
               </div>
-              <div v-if="userData.votes.length === 0" class="text-center py-8 text-xs text-gray-600">
+              <div v-if="userData.votes.length === 0" class="text-center py-8 text-xs text-gray-400 dark:text-gray-600">
                 Sin votos registrados
               </div>
             </div>
@@ -125,19 +120,17 @@
           <!-- Logins -->
           <div>
             <div class="flex items-center gap-2 mb-2">
-              <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Conexiones</span>
+              <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Conexiones</span>
               <span class="text-[10px] px-1.5 py-0.5 rounded font-bold"
                 style="background:rgba(34,197,94,0.15); color:#4ade80">{{ userData.logins.length }}</span>
             </div>
-            <div class="rounded-xl overflow-hidden max-h-[75vh] overflow-y-auto custom-scrollbar"
-              style="border:1px solid rgba(34,197,94,0.12)">
+            <div class="rounded-xl overflow-hidden max-h-[75vh] overflow-y-auto custom-scrollbar border border-green-200 dark:border-green-500/12">
               <div v-for="(login, i) in userData.logins" :key="login.date"
-                class="flex items-center gap-2 px-3 py-1.5"
-                :style="i < userData.logins.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.04)' : ''">
-                <div class="w-1.5 h-1.5 rounded-full flex-shrink-0" style="background:#4ade80; opacity:0.6"></div>
-                <span class="text-xs text-gray-400">{{ fmtDay(login.date) }}</span>
+                class="flex items-center gap-2 px-3 py-1.5 border-b border-gray-100 dark:border-white/[0.04] last:border-0">
+                <div class="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-green-500 dark:bg-green-400 opacity-60"></div>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ fmtDay(login.date) }}</span>
               </div>
-              <div v-if="userData.logins.length === 0" class="text-center py-8 text-xs text-gray-600">
+              <div v-if="userData.logins.length === 0" class="text-center py-8 text-xs text-gray-400 dark:text-gray-600">
                 Sin conexiones
               </div>
             </div>
@@ -252,14 +245,17 @@ function fmtDay(dateStr: string) {
   border-radius: 4px;
 }
 .score-pink {
-  background: rgba(228, 110, 138, 0.15);
+  background: rgba(228, 110, 138, 0.12);
   color: #e46e8a;
-  border: 1px solid rgba(228, 110, 138, 0.2);
+  border: 1px solid rgba(228, 110, 138, 0.25);
 }
 .score-blue {
-  background: rgba(0, 100, 214, 0.15);
-  color: #60a5fa;
+  background: rgba(0, 100, 214, 0.1);
+  color: #0064d6;
   border: 1px solid rgba(0, 100, 214, 0.2);
+}
+:global(.dark) .score-blue {
+  color: #60a5fa;
 }
 .page-btn {
   width: 1.75rem;

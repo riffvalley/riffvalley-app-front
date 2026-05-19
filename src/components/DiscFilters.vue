@@ -119,9 +119,10 @@
 
 
 <script lang="ts">
-import { defineComponent, ref, watch, computed } from "vue";
+import { defineComponent, ref, watch, computed, onMounted, onUnmounted } from "vue";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import SimpleSelect from '@components/SimpleSelect.vue';
+import { MONTHS, getAvailableYears } from '@helpers/dateConstants';
 
 type RangeTuple = [string, string];
 type Option = { key: string; label: string; start: string; end: string };
@@ -159,22 +160,19 @@ export default defineComponent({
     const today = new Date();
     // Por defecto: AÑO COMPLETO (weeksMonth = 0)
     const weeksMonth = ref<number>(0);
-    const weeksYear = ref<number>(new Date().getFullYear()); // 2025 ahora
+    const defaultYear = localStorage.getItem('rv_default_year_filter') === 'all' ? 0 : new Date().getFullYear();
+    const weeksYear = ref<number>(defaultYear);
 
-    const monthNames = [
-      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
-    ];
+    const handleYearFilterChanged = (e: Event) => {
+      const val = (e as CustomEvent).detail;
+      weeksYear.value = val === 'all' ? 0 : new Date().getFullYear();
+      weeksMonth.value = 0;
+    };
+    onMounted(() => window.addEventListener('rv-year-filter-changed', handleYearFilterChanged));
+    onUnmounted(() => window.removeEventListener('rv-year-filter-changed', handleYearFilterChanged));
 
-    const availableYears = computed(() => {
-      const base = 2025;
-      const current = new Date().getFullYear();
-      const currentMonth = new Date().getMonth();
-      const endYear = (currentMonth === 11 ? current + 1 : current);
-      const arr: number[] = [];
-      for (let y = base; y <= endYear; y++) arr.push(y);
-      return arr;
-    });
+    const monthNames = MONTHS;
+    const availableYears = getAvailableYears();
 
     // Utils UTC
     const isoStartUTC = (d: Date) => {
@@ -206,7 +204,7 @@ export default defineComponent({
 
     const yearsOptions = computed(() => [
       { value: 0, label: "Todos los años" },
-      ...availableYears.value.map(y => ({ value: y, label: String(y) })),
+      ...availableYears.map(y => ({ value: y, label: String(y) })),
     ]);
 
     const periodOptions = computed(() => {
@@ -343,15 +341,15 @@ export default defineComponent({
   --pill-pr: 1.0rem;
   /* padding-right (sube si la flecha pisa el texto) */
   --pill-radius: 9999px;
-  --pill-border: 1px solid rgb(229 231 235);
+--pill-border: 1px solid rgb(229 231 235);
   /* border-gray-200 */
   --pill-shadow: 0 1px 3px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .06);
-  --pill-bg: #fff;
-  --pill-ring: 2px solid rgba(209, 213, 219, .8);
-  /* ring-gray-300 */
+--pill-bg: #fff;
+--pill-text: #00021f;
+--pill-ring: 2px solid rgba(228, 110, 138, .4);
+  /* rv-pink focus ring */
 }
 
-/* Base común para input + select nativo */
 .pill-control {
   width: 100%;
   height: var(--pill-h);
@@ -360,9 +358,9 @@ export default defineComponent({
   padding-right: var(--pill-pr);
   border-radius: var(--pill-radius);
   border: var(--pill-border);
-  background: var(--pill-bg);
+  background: var(--pill-bg) !important;
   box-shadow: var(--pill-shadow);
-
+  color: var(--pill-text) !important;
   outline: none;
 }
 
@@ -371,31 +369,43 @@ export default defineComponent({
   outline: var(--pill-ring);
 }
 
-/* SearchableSelect: aplicamos exactamente lo mismo al trigger */
 :deep(.select-pill .search_input_trigger) {
   width: 100%;
   height: var(--pill-h);
   line-height: var(--pill-lh);
   padding-left: calc(var(--pill-pl) + 0.5rem);
-  /* un poco más si el icono va dentro */
   padding-right: var(--pill-pr);
   border-radius: var(--pill-radius);
-  border: var(--pill-border);
-  background: var(--pill-bg);
+  border: var(--pill-border) !important;
+  background: var(--pill-bg) !important;
   box-shadow: var(--pill-shadow);
   position: relative;
+  color: var(--pill-text) !important;
+}
+
+:deep(.select-pill .search__input) {
+  padding-left: 0;
+  color: var(--pill-text);
 }
 
 :deep(.select-pill .search_input_trigger:focus) {
   outline: var(--pill-ring);
 }
 
-:deep(.select-pill .search__input) {
-  padding-left: 0;
-}
-
 /* ya damos PL en el trigger */
 :deep(.select-pill .search_input_trigger svg) {
   right: .75rem;
+}
+
+html.dark .pill-control,
+:global(html.dark) .pill-control {
+  background: #404157 !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+html.dark .pill-control::placeholder,
+:global(html.dark) .pill-control::placeholder {
+  color: #cbd5e1 !important;
 }
 </style>

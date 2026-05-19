@@ -1,120 +1,145 @@
 <!-- ReunionManager.vue -->
 <template>
-  <div class="min-h-screen flex flex-col bg-gray-50">
-    <!-- Formulario de creación (modal) -->
-    <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+  <div class="min-h-screen flex flex-col bg-gray-50 dark:bg-rv-darkBg">
+    <!-- Modal de creación -->
+    <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
       @click.self="toggleForm">
-      <div class="bg-white rounded-lg p-6 w-full max-w-md">
-        <h2 class="text-lg font-semibold mb-4">Crear Reunión</h2>
-        <form @submit.prevent="createReunion" class="space-y-4">
-          <div>
-            <label for="title" class="block font-medium">Título</label>
-            <input v-model="formData.title" type="text" id="title" class="w-full p-2 border border-gray-300 rounded-lg"
-              required />
-          </div>
-          <div>
-            <label for="date" class="block font-medium">Fecha</label>
-            <input v-model="formData.date" type="datetime-local" id="date"
-              class="w-full p-2 border border-gray-300 rounded-lg" required />
-          </div>
-          <div class="flex justify-end space-x-4">
-            <button type="button" @click="toggleForm"
-              class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600">
-              Cancelar
-            </button>
-            <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600">
-              Crear Reunión
-            </button>
-          </div>
-        </form>
-      </div>
+      <div class="bg-white dark:bg-rv-darkCard rounded-2xl w-full max-w-md shadow-2xl max-h-[92vh] overflow-y-auto">
+  <!-- Header -->
+  <div class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 dark:border-white/10">
+    <div class="flex items-center gap-2">
+      <span class="px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">
+        Reunión
+      </span>
+      <h2 class="text-base font-bold text-gray-900 dark:text-white">Nueva reunión</h2>
+    </div>
+    <button type="button" @click="toggleForm"
+      class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rv-darkSurface transition-all">
+      <i class="fa-solid fa-xmark text-base"></i>
+    </button>
+  </div>
+  <!-- Form body -->
+  <form @submit.prevent="createReunion" class="px-5 py-4 space-y-4">
+    <div>
+      <label for="title" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Título</label>
+      <input v-model="formData.title" type="text" id="title"
+        class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30"
+        required placeholder="Nombre de la reunión..." />
+    </div>
+    <div>
+      <label for="date" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Fecha</label>
+      <input v-model="formData.date" type="datetime-local" id="date"
+        class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30"
+        required />
+    </div>
+    <div class="flex justify-end gap-2 pt-1">
+      <button type="button" @click="toggleForm"
+        class="px-4 py-2 bg-gray-100 dark:bg-rv-darkSurface text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-rv-darkBg rounded-xl font-medium text-sm transition-colors">
+        Cancelar
+      </button>
+      <button type="submit"
+        class="px-4 py-2 bg-rv-purple hover:bg-rv-pink text-white rounded-xl font-semibold text-sm shadow-sm transition-all hover:-translate-y-0.5 transform">
+        Crear reunión
+      </button>
+    </div>
+  </form>
+</div>
     </div>
 
-    <!-- Contenido principal: Scroll vertical -->
-    <div class="flex-1 overflow-y-auto p-6">
+    <!-- Contenido principal -->
+    <div class="flex-1 overflow-y-auto p-4 md:p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+          <i class="fa-solid fa-comments mr-2"></i>Reuniones
+        </h1>
+        <button @click="toggleForm"
+          class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rv-purple to-rv-pink text-white rounded-xl font-semibold text-sm shadow-sm hover:opacity-90 transition-all hover:-translate-y-0.5 transform">
+          <i class="fa-solid fa-plus text-xs"></i>
+          <span>Nueva reunión</span>
+        </button>
+      </div>
       <!-- Reuniones Actuales -->
       <div class="mb-8">
         <ReunionTable title="Reuniones Actuales" :reuniones="reunionesPresentes" @edit="openEditModal"
-          @update="handleReunionUpdate" />
+          @update="handleReunionUpdate" @delete="handleReunionDelete" />
       </div>
 
       <!-- Reuniones Pasadas -->
       <div>
-        <div
-          class="flex items-center justify-between mb-4 cursor-pointer hover:bg-gray-100 p-2 rounded-lg transition-colors"
-          @click="showPastReunions = !showPastReunions">
-          <div class="flex items-center gap-2">
-            <h2 class="text-xl font-bold">Reuniones Pasadas</h2>
-            <i class="fa-solid fa-chevron-down transition-transform duration-300"
-              :class="{ 'rotate-180': showPastReunions }"></i>
-          </div>
-          <span class="text-sm text-gray-500">{{ reunionesPasadas.length }} reuniones</span>
-        </div>
+        <div class="flex items-center justify-between mb-4 cursor-pointer select-none px-4 py-3 rounded-2xl bg-white dark:bg-rv-darkCard border border-gray-100 dark:border-white/10 hover:shadow-sm transition-all"
+  @click="showPastReunions = !showPastReunions">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 rounded-xl bg-gray-100 dark:bg-rv-darkSurface flex items-center justify-center">
+      <i class="fa-solid fa-clock-rotate-left text-gray-500 dark:text-gray-400 text-sm"></i>
+    </div>
+    <h2 class="text-lg font-bold text-gray-900 dark:text-white">Reuniones Pasadas</h2>
+    <i class="fa-solid fa-chevron-down text-gray-400 text-xs transition-transform duration-300"
+      :class="{ 'rotate-180': showPastReunions }"></i>
+  </div>
+  <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-gray-100 dark:bg-rv-darkSurface text-gray-500 dark:text-gray-400">{{ reunionesPasadas.length }}</span>
+</div>
 
-        <!-- Navegación por selects -->
         <div v-show="showPastReunions">
           <div v-if="reunionesPasadas.length > 0">
             <!-- Selects de Año y Mes -->
-            <div class="flex gap-3 mb-4">
-              <div class="flex-1">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Año</label>
-                <select v-model="selectedYear" class="select select-bordered w-full">
-                  <option :value="null">Selecciona un año</option>
-                  <option v-for="ano in anosDisponibles" :key="ano" :value="ano">
-                    {{ ano }}
-                  </option>
-                </select>
-              </div>
-
-              <div class="flex-1" v-if="selectedYear">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Mes</label>
-                <select v-model="selectedMonth" class="select select-bordered w-full">
-                  <option :value="null">Selecciona un mes</option>
-                  <option v-for="mes in mesesDisponibles" :key="mes" :value="mes">
-                    {{ getNombreMes(mes) }}
-                  </option>
-                </select>
-              </div>
-            </div>
+            <div class="flex flex-col sm:flex-row gap-3 mb-4">
+  <div class="flex-1">
+    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Año</label>
+    <select v-model="selectedYear"
+      class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30">
+      <option :value="null">Selecciona un año</option>
+      <option v-for="ano in anosDisponibles" :key="ano" :value="ano">{{ ano }}</option>
+    </select>
+  </div>
+  <div class="flex-1" v-if="selectedYear">
+    <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Mes</label>
+    <select v-model="selectedMonth"
+      class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30">
+      <option :value="null">Selecciona un mes</option>
+      <option v-for="mes in mesesDisponibles" :key="mes" :value="mes">{{ getNombreMes(mes) }}</option>
+    </select>
+  </div>
+</div>
 
             <!-- Reuniones del mes seleccionado -->
-            <div v-if="selectedMonth !== null" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-if="selectedMonth !== null" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div v-for="reunion in reunionesFiltradas" :key="reunion.id"
-                class="border border-gray-300 rounded-lg p-4 bg-white hover:shadow-lg cursor-pointer transition-all"
-                @click="openEditModal(reunion.id)">
-                <h4 class="font-bold text-gray-900">{{ reunion.title }}</h4>
-                <p class="text-sm text-gray-600 mt-1">{{ formatDate(reunion.date) }}</p>
-                <div v-if="reunion.points && reunion.points.length > 0" class="mt-2 pt-2 border-t border-gray-200">
-                  <p class="text-xs text-gray-500 mb-1">{{ reunion.points.length }} puntos</p>
-                  <div class="flex gap-1">
-                    <span v-for="point in reunion.points.slice(0, 5)" :key="point.id">
-                      <i class="fa-solid fa-check text-green-600 text-xs" v-if="point.done"></i>
-                      <i class="fa-regular fa-circle text-gray-400 text-xs" v-else></i>
-                    </span>
-                    <span v-if="reunion.points.length > 5" class="text-xs text-gray-500">+{{ reunion.points.length - 5
-                    }}</span>
-                  </div>
-                </div>
-                <button
-                  class="w-full mt-3 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm flex items-center justify-center gap-2">
-                  <i class="fa-solid fa-eye"></i>
-                  <span>Ver Detalle</span>
-                </button>
-              </div>
+  class="bg-white dark:bg-rv-darkCard border border-gray-100 dark:border-white/10 rounded-2xl p-4 hover:shadow-md cursor-pointer transition-all hover:-translate-y-0.5 group"
+  @click="openEditModal(reunion.id)">
+  <div class="flex items-start justify-between gap-2 mb-2">
+    <h4 class="font-bold text-gray-900 dark:text-white text-sm leading-snug">{{ reunion.title }}</h4>
+    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-gray-300 dark:text-gray-600 group-hover:text-rv-purple transition-colors shrink-0 mt-0.5"></i>
+  </div>
+  <p class="text-xs text-gray-400 dark:text-gray-500 mb-3 flex items-center gap-1.5">
+    <i class="fa-regular fa-calendar text-[10px]"></i>
+    {{ formatDate(reunion.date) }}
+  </p>
+  <div v-if="reunion.points && reunion.points.length > 0" class="flex items-center justify-between pt-2 border-t border-gray-50 dark:border-white/5">
+    <span class="text-xs text-gray-400">{{ reunion.points.filter(p => p.done).length }}/{{ reunion.points.length }} completados</span>
+    <div class="flex gap-0.5">
+      <span v-for="point in reunion.points.slice(0, 6)" :key="point.id"
+        class="w-2 h-2 rounded-full"
+        :class="point.done ? 'bg-green-400' : 'bg-gray-200 dark:bg-white/15'"></span>
+      <span v-if="reunion.points.length > 6" class="text-[9px] text-gray-400 ml-1">+{{ reunion.points.length - 6 }}</span>
+    </div>
+  </div>
+  <div v-else class="pt-2 border-t border-gray-50 dark:border-white/5">
+    <span class="text-xs text-gray-300 dark:text-gray-600">Sin puntos</span>
+  </div>
+</div>
             </div>
 
-            <div v-else-if="selectedYear" class="text-center py-8 text-gray-400">
+            <div v-else-if="selectedYear" class="text-center py-8 text-gray-400 dark:text-gray-500">
               <i class="fa-solid fa-calendar-xmark text-4xl mb-2"></i>
               <p>Selecciona un mes para ver las reuniones</p>
             </div>
-
-            <div v-else class="text-center py-8 text-gray-400">
+            <div v-else class="text-center py-8 text-gray-400 dark:text-gray-500">
               <i class="fa-solid fa-calendar text-4xl mb-2"></i>
               <p>Selecciona un año para comenzar</p>
             </div>
           </div>
 
-          <div v-else class="text-center py-12 text-gray-400">
+          <div v-else class="text-center py-12 text-gray-400 dark:text-gray-500">
             <i class="fa-solid fa-inbox text-4xl mb-2"></i>
             <p>No hay reuniones pasadas</p>
           </div>
@@ -124,7 +149,7 @@
 
     <!-- Modal de edición -->
     <ReunionEditModal :show="showEditModal" :reunionId="selectedReunionId" @close="closeEditModal"
-      @updated="handleReunionUpdated" />
+      @updated="handleReunionUpdated" @deleted="handleReunionDeletedFromModal" />
   </div>
 </template>
 
@@ -152,49 +177,37 @@ export default {
     reunionesPresentes() {
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
-
       return this.reuniones.filter((r) => {
         const fechaReunion = new Date(r.date);
         fechaReunion.setHours(0, 0, 0, 0);
         return fechaReunion >= hoy;
       }).sort((a, b) => new Date(a.date) - new Date(b.date));
     },
-
     reunionesPasadas() {
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
-
       return this.reuniones.filter((r) => {
         const fechaReunion = new Date(r.date);
         fechaReunion.setHours(0, 0, 0, 0);
         return fechaReunion < hoy;
       }).sort((a, b) => new Date(b.date) - new Date(a.date));
     },
-
     anosDisponibles() {
       const anos = new Set();
-      this.reunionesPasadas.forEach(r => {
-        anos.add(new Date(r.date).getFullYear());
-      });
+      this.reunionesPasadas.forEach(r => anos.add(new Date(r.date).getFullYear()));
       return Array.from(anos).sort((a, b) => b - a);
     },
-
     mesesDisponibles() {
       if (!this.selectedYear) return [];
-
       const meses = new Set();
       this.reunionesPasadas.forEach(r => {
         const fecha = new Date(r.date);
-        if (fecha.getFullYear() === this.selectedYear) {
-          meses.add(fecha.getMonth());
-        }
+        if (fecha.getFullYear() === this.selectedYear) meses.add(fecha.getMonth());
       });
       return Array.from(meses).sort((a, b) => b - a);
     },
-
     reunionesFiltradas() {
       if (this.selectedYear === null || this.selectedMonth === null) return [];
-
       return this.reunionesPasadas.filter(r => {
         const fecha = new Date(r.date);
         return fecha.getFullYear() === this.selectedYear && fecha.getMonth() === this.selectedMonth;
@@ -204,18 +217,11 @@ export default {
   methods: {
     formatDate(dateString) {
       return new Date(dateString).toLocaleString('es-ES', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
       });
     },
     getNombreMes(mesIndex) {
-      const meses = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-      ];
+      const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
       return meses[mesIndex];
     },
     openEditModal(id) {
@@ -226,28 +232,23 @@ export default {
       this.showEditModal = false;
       this.selectedReunionId = null;
     },
-    handleReunionUpdated() {
-      this.fetchReuniones();
+    handleReunionUpdated() { this.fetchReuniones(); },
+    handleReunionDeletedFromModal(reunionId) {
+      this.reuniones = this.reuniones.filter(r => r.id !== reunionId);
+      this.closeEditModal();
     },
     handleReunionUpdate(updatedReunion) {
       const index = this.reuniones.findIndex(r => r.id === updatedReunion.id);
-      if (index !== -1) {
-        // Usamos splice para asegurar la reactividad en Vue 2/3
-        this.reuniones.splice(index, 1, updatedReunion);
-      }
+      if (index !== -1) this.reuniones.splice(index, 1, updatedReunion);
     },
-    toggleForm() {
-      this.showForm = !this.showForm;
+    handleReunionDelete(reunionId) {
+      this.reuniones = this.reuniones.filter(r => r.id !== reunionId);
     },
+    toggleForm() { this.showForm = !this.showForm; },
     async createReunion() {
       try {
-        const response = await postReunion({
-          title: this.formData.title,
-          date: this.formData.date,
-        });
-        await this.reuniones.push(response);
-        this.formData.title = "";
-        this.formData.date = "";
+        await postReunion({ title: this.formData.title, date: this.formData.date });
+        this.formData = { title: "", date: "" };
         this.toggleForm();
         SwalService.success("Reunión creada con éxito.");
         this.fetchReuniones();
@@ -257,35 +258,21 @@ export default {
     },
     async fetchReuniones() {
       try {
-        const response = await getReunions();
-        this.reuniones = response;
-
-        // Auto-seleccionar el año más reciente si hay reuniones pasadas
+        this.reuniones = await getReunions();
         if (this.anosDisponibles.length > 0 && !this.selectedYear) {
           this.selectedYear = this.anosDisponibles[0];
         }
       } catch (error) {
-        console.error("Error al cargar reuniones:", error);
         SwalService.error("No se pudieron obtener las reuniones.");
       }
     },
   },
   watch: {
-    selectedYear(newYear) {
-      // Reset mes cuando cambia el año
+    selectedYear() {
       this.selectedMonth = null;
-      // Auto-seleccionar el mes más reciente
-      if (this.mesesDisponibles.length > 0) {
-        this.selectedMonth = this.mesesDisponibles[0];
-      }
+      if (this.mesesDisponibles.length > 0) this.selectedMonth = this.mesesDisponibles[0];
     }
   },
-  mounted() {
-    this.fetchReuniones();
-  }
+  mounted() { this.fetchReuniones(); }
 };
 </script>
-
-<style scoped>
-/* Estilos personalizados si son necesarios */
-</style>
