@@ -102,8 +102,13 @@ export interface FeedParams {
     limit?: number;
 }
 
-export async function getNewsFeed(params?: FeedParams): Promise<FeedResponse> {
-    const { data } = await api.get<FeedResponse>('/news/feed', { params });
+export async function getNewsFeed(): Promise<FeedResponse> {
+    const { data } = await api.get<FeedResponse>('/news/feed');
+    return data;
+}
+
+export async function getSourceFeed(params: FeedParams): Promise<FeedResponse> {
+    const { data } = await api.get<FeedResponse>('/news/source-feed', { params });
     return data;
 }
 

@@ -4,6 +4,20 @@
     <!-- ── Barra de filtros ──────────────────────────────────── -->
     <div class="flex flex-wrap gap-1.5 mb-3">
       <button
+        type="button"
+        @click="resetFilter"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
+               transition-all duration-200 border
+               focus:outline-none focus-visible:outline-none ring-0 focus:ring-0"
+        :class="activeFilter === null
+          ? 'bg-rv-purple text-white border-rv-purple shadow-sm'
+          : 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-purple hover:text-rv-purple dark:hover:border-purple-300 dark:hover:text-purple-300'"
+      >
+        <i class="fa-solid fa-rss text-[9px]"></i>
+        Feed
+      </button>
+
+      <button
         v-for="f in FILTERS"
         :key="f.key"
         type="button"
@@ -211,8 +225,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { getNewsFeed } from '@services/news/news';
-import type { FeedPost, NewsType, FeedParams } from '@services/news/news';
+import { getNewsFeed, getSourceFeed } from '@services/news/news';
+import type { FeedPost, FeedParams, NewsType } from '@services/news/news';
 
 const router = useRouter();
 
@@ -253,15 +267,15 @@ const FILTERS: FilterDef[] = [
     key: 'riffvalley',
     label: 'riffvalley.es',
     icon: 'fa-solid fa-globe',
-    params: { source: 'riffvalley.es', limit: 6 },
+    params: { source: 'riffvalley.es' },
     activeClass:   'bg-rv-pink text-white border-rv-pink shadow-sm',
     inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-pink hover:text-rv-pink dark:hover:border-pink-300 dark:hover:text-pink-300',
   },
   {
-    key: 'app',
+    key: 'equipo',
     label: 'Equipo',
     icon: 'fa-solid fa-users',
-    params: { source: 'app', limit: 6 },
+    params: { source: 'app', type: 'team_notes' },
     activeClass:   'bg-rv-blue text-white border-rv-blue shadow-sm',
     inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-blue hover:text-rv-blue dark:hover:border-blue-300 dark:hover:text-blue-300',
   },
@@ -278,8 +292,12 @@ const selectedNews  = ref<{ title: string; type: NewsType; body: string; date: s
 
 // ── Lógica de filtros ────────────────────────────────────────
 
+function resetFilter() {
+  activeFilter.value = null;
+  visiblePosts.value = defaultPosts.value;
+}
+
 async function toggleFilter(f: FilterDef) {
-  // Mismo tag → desactivar y volver al feed por defecto
   if (activeFilter.value?.key === f.key) {
     activeFilter.value = null;
     visiblePosts.value = defaultPosts.value;
@@ -289,7 +307,7 @@ async function toggleFilter(f: FilterDef) {
   activeFilter.value = f;
   loading.value = true;
   try {
-    const { posts: feedPosts } = await getNewsFeed(f.params);
+    const { posts: feedPosts } = await getSourceFeed(f.params);
     filteredPosts.value = feedPosts.map(mapFeedPost);
     visiblePosts.value  = filteredPosts.value;
   } catch (e) {
@@ -349,6 +367,12 @@ function typeLabel(type: NewsType): string {
 
 // ── Modal ────────────────────────────────────────────────────
 
+const appTypeImages: Record<string, string> = {
+  version:     '/news/version.jpg',
+  new_feature: '/news/funcionalidad.jpg',
+  team_notes:  '/news/equipo.jpg',
+};
+
 function openAppPost(post: NewsPost) {
   selectedNews.value = {
     title: post.title,
@@ -384,12 +408,6 @@ function handleBodyClick(e: MouseEvent) {
 }
 
 // ── Fetch inicial ────────────────────────────────────────────
-
-const appTypeImages: Record<string, string> = {
-  version:     '/news/version.jpg',
-  new_feature: '/news/funcionalidad.jpg',
-  team_notes:  '/news/equipo.jpg',
-};
 
 function mapFeedPost(fp: FeedPost): NewsPost {
   const postDate = new Date(fp.date);
