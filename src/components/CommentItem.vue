@@ -44,7 +44,7 @@
 
       <!-- Columna de contenido -->
       <div class="flex flex-col gap-1 min-w-0 items-start"
-           :style="{ maxWidth: depth > 0 ? '88%' : '78%' }"
+           :style="{ maxWidth: depth > 0 ? '88%' : '78%' }">
 
         <!-- Nombre + fecha -->
         <div v-if="!localComment.isDeleted"
