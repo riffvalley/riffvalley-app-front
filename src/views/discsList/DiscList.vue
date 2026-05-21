@@ -110,6 +110,23 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-300 mb-3">
+        <!-- Bandera del país del artista -->
+        <div v-if="comment.disc?.artist?.country?.isoCode" class="relative group">
+          <template v-if="comment.disc.artist.country.isoCode === 'int'">
+            <img src="/int.svg" alt="Internacional" class="rounded-full cursor-help object-cover"
+              style="width: 20px; height: 20px;" />
+          </template>
+          <template v-else-if="comment.disc.artist.country.isoCode.length >= 2">
+            <CircleFlags :country="comment.disc.artist.country.isoCode.slice(0, 2).toLowerCase()"
+              :show-flag-name="false" class="cursor-help" style="width: 20px; height: 20px;" />
+          </template>
+          <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-[9px] font-semibold
+            text-white bg-rv-navy rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300
+            whitespace-nowrap z-10">
+            {{ comment.disc.artist.country.name }}
+          </span>
+        </div>
+
         <span
           v-if="comment.disc?.genre?.name"
           class="px-2 py-0.5 rounded-full text-white"
