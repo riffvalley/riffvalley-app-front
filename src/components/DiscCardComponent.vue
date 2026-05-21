@@ -69,8 +69,8 @@
   border border-gray-200 dark:border-white/60
   shadow-sm mb-1">
             <p class="text-sm font-bold mt-1"
-              :class="spoilerMode ? 'text-rv-pink tracking-widest' : 'text-blue-600 dark:text-blue-300'">
-              {{ spoilerMode ? '???' : (localAverageRate ? localAverageRate.toFixed(2) : "-") }}
+              :class="spoilerDisc ? 'text-rv-pink tracking-widest' : 'text-blue-600 dark:text-blue-300'">
+              {{ spoilerDisc ? '???' : (localAverageRate ? localAverageRate.toFixed(2) : "-") }}
             </p>
             <p class="text-xs text-rv-navy dark:text-gray-200">Disco</p>
           </div>
@@ -79,8 +79,8 @@
   border border-gray-200 dark:border-white/60
   shadow-sm mb-1">
             <p class="text-sm font-bold mt-1"
-              :class="spoilerMode ? 'text-rv-pink tracking-widest' : 'text-green-600 dark:text-green-300'">
-              {{ spoilerMode ? '???' : (localAverageCover ? localAverageCover.toFixed(2) : "-") }}
+              :class="spoilerCover ? 'text-rv-pink tracking-widest' : 'text-green-600 dark:text-green-300'">
+              {{ spoilerCover ? '???' : (localAverageCover ? localAverageCover.toFixed(2) : "-") }}
             </p>
             <p class="text-xs text-rv-navy dark:text-gray-200">Portada</p>
           </div>
@@ -257,7 +257,7 @@
     <div class="p-6 relative max-w-3xl w-full">
       <!-- Se pasa la información del disco -->
       <VotesModal :albumName="name" :artistName="artistName" :votes="votes" :showVotes="showVotes"
-        :hasVoted="hasVoted" @close="showVotes = false" />
+        :hasVoted="hasVoted" :hasVotedDisc="hasVotedDisc" :hasVotedCover="hasVotedCover" @close="showVotes = false" />
     </div>
   </div>
 
@@ -379,6 +379,8 @@ export default defineComponent({
     const votes = ref<Vote[]>([]);
     const isEP = computed(() => props.ep);
     const hasVoted = ref(!!props.userDiscRate);
+    const hasVotedDisc = ref(props.rate !== null && (props.rate as number) > 0);
+    const hasVotedCover = ref(props.cover !== null && (props.cover as number) > 0);
     const userDiscRateId = ref(props.userDiscRate);
     const commentCount = ref(props.commentCount);
     const rateCount = ref(props.rateCount);
@@ -627,6 +629,8 @@ export default defineComponent({
         } else {
           await updateRateService(userDiscRateId.value, payload);
         }
+        hasVotedDisc.value = payload.rate !== null && payload.rate > 0;
+        hasVotedCover.value = payload.cover !== null && payload.cover > 0;
         if (payload.rate && payload.rate > 0)
           SwalService.successImage(payload.rate);
         else SwalService.success("Votación enviada con éxito");
@@ -746,7 +750,8 @@ export default defineComponent({
 
     // --- No Spoilers ---
     const noSpoilers = ref(localStorage.getItem('rv_no_spoilers') === 'true');
-    const spoilerMode = computed(() => noSpoilers.value && !hasVoted.value);
+    const spoilerDisc = computed(() => noSpoilers.value && !hasVotedDisc.value);
+    const spoilerCover = computed(() => noSpoilers.value && !hasVotedCover.value);
 
     const handleSpoilersChanged = (e: Event) => {
       noSpoilers.value = (e as CustomEvent).detail;
@@ -1215,7 +1220,10 @@ ctx.textBaseline = "alphabetic";
       showPlayer,
       topTrackId,
       isLoadingTrack,
-      spoilerMode,
+      spoilerDisc,
+      spoilerCover,
+      hasVotedDisc,
+      hasVotedCover,
     };
   },
 });
