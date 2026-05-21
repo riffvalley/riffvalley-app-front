@@ -1,12 +1,12 @@
 <template>
-  <div class="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-200">
+  <div class="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-900/40">
     <img v-if="disc.image" :src="disc.image" class="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
-    <div class="flex-none w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center" v-else>
-      <i class="fas fa-compact-disc text-gray-300 text-xl"></i>
+    <div class="flex-none w-12 h-12 rounded-lg bg-gray-100 dark:bg-rv-darkSurface flex items-center justify-center" v-else>
+      <i class="fas fa-compact-disc text-gray-300 dark:text-gray-500 text-xl"></i>
     </div>
     <div class="flex-1 min-w-0">
-      <p class="text-sm font-semibold text-gray-800 truncate">{{ disc.name }}</p>
-      <p class="text-xs text-gray-500">{{ disc.artist.name }}</p>
+      <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ disc.name }}</p>
+      <p class="text-xs text-gray-500 dark:text-gray-400">{{ disc.artist.name }}</p>
       <p class="text-xs font-medium" :style="{ color: disc.genre.color }">{{ disc.genre.name }}</p>
     </div>
     <button

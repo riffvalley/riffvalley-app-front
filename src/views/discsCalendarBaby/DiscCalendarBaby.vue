@@ -1,8 +1,9 @@
 <template>
   <div :class="{ 'menu-open': menuVisible }" class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
-    <h1 class="text-4xl font-bold mb-8 text-center text-gray-900">
-      Calendario
-    </h1>
+<h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-rv-navy dark:text-white">
+  <i class="fa-solid fa-calendar-days mr-3"></i>Calendario
+</h1>
+<p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">Todos los lanzamientos ordenados por fecha.</p>
 
     <!-- Fila única: Search + Género + Año -->
     <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
@@ -16,12 +17,14 @@
         selectClass="w-full" />
     </div>
 
-    <div class="flex flex-wrap justify-center gap-2 mb-6 mt-6 overflow-x-auto">
-      <button v-for="(month, index) in months" :key="index" @click="selectMonth(index)" class="px-4 py-2 rounded-full transition-all duration-200 whitespace-nowrap shadow-sm mb-1 font-semibold
-           border-rv-navy/15
-           focus:outline-none focus:ring-0 focus:ring-offset-0" :class="selectedMonth === index
-            ? 'bg-gradient-to-tr from-rv-blue to-rv-blueDark text-white shadow-md border-transparent'
-            : 'bg-white text-rv-navy hover:border-rv-blue border-2 hover:shadow-md'">
+    <div class="flex flex-wrap justify-center gap-2 mb-6 mt-6 py-1">
+      <button v-for="(month, index) in months" :key="index" @click="selectMonth(index)"
+        class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap shadow-md
+               transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0
+               focus:outline-none focus:ring-0 focus:ring-offset-0"
+        :class="selectedMonth === index
+          ? 'bg-rv-navy dark:bg-rv-purple text-white hover:opacity-80 hover:shadow-lg'
+          : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple hover:shadow-lg'">
         {{ month }}
       </button>
     </div>
@@ -29,33 +32,40 @@
     <!-- Lista de discos agrupados (resto del template) -->
     <div v-for="(group, index) in filteredGroupedDiscs" :key="group.releaseDate" class="mb-8">
       <!-- ... (resto del contenido del v-for, incluyendo el encabezado del grupo, el botón de toggle, etc.) ... -->
-      <div class="group flex justify-between items-center px-5 py-3 rounded-full cursor-pointer transition-all duration-200 shadow-sm
-         border border-rv-navy/10" :class="groupState[index]
-          ? 'bg-gradient-to-r from-rv-navy to-rv-navy/80 shadow-md'
-          : 'bg-white hover:bg-gradient-to-r from-rv-navy to-rv-navy/80 hover:text-white hover:shadow-md'"
-        @click="toggleGroup(index)">
-        <h3 class="text-xl sm:text-2xl font-semibold transition-colors duration-200"
-          :class="groupState[index] ? 'text-white' : 'text-rv-navy group-hover:text-white'">
-          {{ formatDate(group.releaseDate) }}
-        </h3>
+      <div class="group flex justify-between items-center px-5 py-3 rounded-2xl cursor-pointer
+                  transition-all duration-200 shadow-sm border border-gray-100 dark:border-white/10
+                  hover:-translate-y-0.5 hover:shadow-md"
+           :class="groupState[index]
+             ? 'bg-rv-navy dark:bg-rv-purple shadow-md -translate-y-0.5'
+             : 'bg-white dark:bg-rv-darkSurface hover:bg-rv-navy dark:hover:bg-rv-purple'"
+           @click="toggleGroup(index)">
 
-        <button class="w-9 h-9 rounded-full flex items-center justify-center transition-all duration-200
-           focus:outline-none focus:ring-0 focus:ring-offset-0" :class="groupState[index]
-            ? 'bg-rv-pink text-white text-xl'
-            : 'bg-rv-pink text-white hover:bg-rv-pink text-xl hover:text-white'">
-          <i class="fas fa-chevron-down transition-transform duration-200"
-            :class="groupState[index] ? 'rotate-180' : ''"></i>
+        <!-- Fecha + conteo -->
+        <div class="flex items-center gap-3 min-w-0">
+          <h3 class="text-base sm:text-lg font-bold transition-colors duration-200 truncate"
+              :class="groupState[index] ? 'text-white' : 'text-rv-navy dark:text-white group-hover:text-white'">
+            {{ formatDate(group.releaseDate) }}
+          </h3>
+          <span class="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full transition-colors"
+                :class="groupState[index]
+                  ? 'bg-white/20 text-white'
+                  : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 group-hover:bg-white/20 group-hover:text-white'">
+            {{ group.discs.length }} disco{{ group.discs.length !== 1 ? 's' : '' }}
+          </span>
+        </div>
+
+        <button class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center
+                       bg-rv-pink text-white transition-all focus:outline-none focus:ring-0">
+          <i class="fas fa-chevron-down text-xs transition-transform duration-200"
+             :class="groupState[index] ? 'rotate-180' : ''"></i>
         </button>
       </div>
 
       <!-- Contenido del grupo desplegable -->
       <transition name="fade-slide" mode="out-in">
-        <div v-if="groupState[index]" class="mt-4 overflow-x-auto">
-
-          <!-- Lista de discos -->
-          <ul class="w-full">
-            <li v-for="disc in group.discs" :key="disc.id"
-              class="flex flex-col md:flex-row md:justify-between p-4 border-b w-full">
+        <div v-if="groupState[index]" class="mt-4">
+          <ul class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <li v-for="disc in group.discs" :key="disc.id">
               <DiscComponent :disc="disc" :genres="genres" :artistCountry="disc.artist?.country"
                 @disc-deleted="removeDisc" @date-changed="handleDateChange" />
             </li>
@@ -66,22 +76,35 @@
   </div>
 
   <!-- Cargar más -->
-  <div ref="loadMore" class="text-center py-6">
-    <span v-if="loading" class="text-gray-600">Cargando discos...</span>
+  <div ref="loadMore" class="flex flex-col items-center justify-center gap-3 py-6">
+    <i v-if="loading" class="fa-solid fa-compact-disc animate-spin text-rv-pink text-3xl"></i>
+    <span v-if="loading" class="text-sm font-medium text-rv-navy dark:text-white">Cargando discos...</span>
   </div>
 
+  <!-- Botón scroll-to-top -->
+  <Transition name="scroll-top-fade">
+    <button
+      v-if="showScrollTop"
+      @click="scrollToTop"
+      class="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-rv-pink hover:opacity-80 text-white shadow-lg flex items-center justify-center"
+      title="Volver arriba"
+    >
+      <i class="fa-solid fa-chevron-up text-sm"></i>
+    </button>
+  </Transition>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, reactive, computed, nextTick, watch } from "vue";
+import { defineComponent, ref, onMounted, onUnmounted, reactive, computed, nextTick, watch } from "vue";
 import axios from "axios";
 import { updateDisc, deleteDisc, getDiscsDated } from "@services/discs/discs";
-import { getGenres } from "@services/genres/genres";
-import { getCountries } from "@services/countries/countries";
 import DiscComponentBaby from "./components/DiscComponentBaby.vue";
+import { useCatalogStore } from "@stores/catalog/catalog";
+import { MONTHS, getYearOptions } from "@helpers/dateConstants";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
 import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
+import SwalService from "@services/swal/SwalService";
 
 export default defineComponent({
   components: { DiscComponent: DiscComponentBaby, DiscFilters, SimpleSelect },
@@ -90,35 +113,11 @@ export default defineComponent({
     const groupedDiscs = ref<any[]>([]);
     const groupState = reactive({});
 
-    const months = [
-      "Enero",
-      "Febrero",
-      "Marzo",
-      "Abril",
-      "Mayo",
-      "Junio",
-      "Julio",
-      "Agosto",
-      "Septiembre",
-      "Octubre",
-      "Noviembre",
-      "Diciembre",
-    ];
+    const months = MONTHS;
+    const yearOptions = getYearOptions();
 
     const selectedMonth = ref(new Date().getMonth());
     const selectedYear = ref(new Date().getFullYear());
-
-    const yearOptions = computed(() => {
-      const currentYear = new Date().getFullYear();
-      const currentMonth = new Date().getMonth();
-      const startYear = 2025;
-      const endYear = (currentMonth === 11 ? currentYear + 1 : currentYear);
-      const years = [];
-      for (let i = startYear; i <= endYear; i++) {
-        years.push({ value: i, label: String(i) });
-      }
-      return years;
-    });
 
     // --- Filtros ---
     const searchQuery = ref("");
@@ -162,12 +161,14 @@ export default defineComponent({
         .filter((group) => group.discs.length > 0);
     });
 
-    const fetchAllPagesForMonth = async () => {
+    let fetchGen = 0;
 
+    const fetchAllPagesForMonth = async (gen: number) => {
       try { if (loadMore.value) observer.unobserve(loadMore.value); } catch { }
 
       while (hasMore.value) {
-        await fetchDiscs();
+        if (gen !== fetchGen) return;
+        await fetchDiscs(gen);
         await nextTick();
       }
 
@@ -175,6 +176,8 @@ export default defineComponent({
     };
 
     const selectMonth = async (monthIndex: number) => {
+      const gen = ++fetchGen;
+
       selectedMonth.value = monthIndex;
       const year = selectedYear.value;
       const startDate = new Date(Date.UTC(year, monthIndex, 1)).toISOString();
@@ -182,14 +185,18 @@ export default defineComponent({
 
       offset.value = 0;
       groupedDiscs.value = [];
+      hasMore.value = true;
+      loading.value = false;
 
-      await fetchDiscsByDateRange(startDate, endDate);
-      await fetchAllPagesForMonth();
+      await fetchDiscsByDateRange(startDate, endDate, gen);
+      if (gen !== fetchGen) return;
+      await fetchAllPagesForMonth(gen);
     };
 
     const fetchDiscsByDateRange = async (
       startDate: string,
-      endDate: string
+      endDate: string,
+      gen: number
     ) => {
       loading.value = true;
 
@@ -198,6 +205,8 @@ export default defineComponent({
           startDate,
           endDate,
         ]);
+
+        if (gen !== fetchGen) return;
 
         response.data.forEach((group, index) => {
           groupState[index] = false;
@@ -208,9 +217,9 @@ export default defineComponent({
         offset.value = limit.value;
         hasMore.value = offset.value < totalItems.value;
       } catch (error) {
-        console.error("Error fetching discs by date range:", error);
+        SwalService.error('Error al cargar los discos');
       } finally {
-        loading.value = false;
+        if (gen === fetchGen) loading.value = false;
       }
     };
 
@@ -229,12 +238,9 @@ export default defineComponent({
 
     const loadMore = ref<HTMLDivElement | null>(null);
 
-    const genres = ref<any[]>([]);
-    const countries = ref<any[]>([]);
-    const genres2 = ref<any[]>([]);
-    genres2.value = ["list", "of", "options"];
+    const catalogStore = useCatalogStore();
 
-    const fetchDiscs = async () => {
+    const fetchDiscs = async (gen?: number) => {
       if (loading.value || !hasMore.value) return;
 
       loading.value = true;
@@ -261,6 +267,8 @@ export default defineComponent({
           endDate,
         ]);
 
+        if (gen !== undefined && gen !== fetchGen) return;
+
         response.data.forEach((newGroup: any) => {
           newGroup.discs.forEach((disc: any) => {
             disc.genreId = disc.genre?.id || "";
@@ -280,11 +288,13 @@ export default defineComponent({
         offset.value += limit.value;
         hasMore.value = offset.value < totalItems.value;
       } catch (error) {
-        console.error("Error fetching discs:", error);
+        SwalService.error('Error al cargar los discos');
       } finally {
-        loading.value = false;
-        await nextTick();
-        checkIfNeedsMore();
+        if (gen === undefined || gen === fetchGen) {
+          loading.value = false;
+          await nextTick();
+          checkIfNeedsMore();
+        }
       }
     };
 
@@ -314,27 +324,6 @@ export default defineComponent({
       return `${formattedDate}, ${formattedWeekday}`;
     };
 
-    const fetchGenres = async () => {
-      try {
-        const genresResponse = await getGenres(150, 0);
-        genres.value = genresResponse.data.sort((a, b) =>
-          a.name.localeCompare(b.name)
-        );
-      } catch (error) {
-        console.error("Error fetching genres:", error);
-      }
-    };
-
-    const fetchCountries = async () => {
-      try {
-        const countriesResponse = await getCountries(250, 0);
-        countries.value = countriesResponse.data.sort((a, b) =>
-          a.name.localeCompare(b.name)
-        );
-      } catch (error) {
-        console.error("Error fetching countries:", error);
-      }
-    };
 
     const buscarEnlacesSpotify = async (discs: any[]) => {
       const token = await obtenerTokenSpotify();
@@ -361,13 +350,6 @@ export default defineComponent({
             const album = response.data.albums.items[0];
             disc.link = album.external_urls.spotify;
             disc.image = album.images?.[0]?.url || null;
-            console.log("disc.image", disc.image);
-
-            console.log("Datos enviados al backend:", {
-              link: disc.link,
-              image: disc.image,
-            });
-
             await updateDisc(disc.id, {
               link: disc.link,
               image: disc.image,
@@ -391,7 +373,7 @@ export default defineComponent({
 
       group.discs.forEach((disc: any) => {
         const genreName =
-          genres.value.find((genre) => genre.id === disc.genreId)?.name ||
+          catalogStore.genres.find((genre) => genre.id === disc.genreId)?.name ||
           "Sin género";
         if (disc.link) {
           html += `
@@ -431,15 +413,21 @@ export default defineComponent({
       selectMonth(0); // Cargar enero al cambiar el año
     });
 
+    // --- Scroll to top ---
+    const showScrollTop = ref(false);
+    const handleScroll = () => { showScrollTop.value = window.scrollY > 400; };
+    const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
     onMounted(() => {
       if (loadMore.value) {
         observer.observe(loadMore.value);
       }
 
       selectMonth(new Date().getMonth());
-      fetchGenres();
-      fetchCountries();
+      window.addEventListener("scroll", handleScroll, { passive: true });
     });
+
+    onUnmounted(() => window.removeEventListener("scroll", handleScroll));
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
@@ -450,7 +438,7 @@ export default defineComponent({
     return {
       groupedDiscs,
       groupState,
-      genres,
+      genres: computed(() => catalogStore.genres),
       loadMore,
       loading,
       hasMore,
@@ -469,15 +457,23 @@ export default defineComponent({
       filteredGroupedDiscs,
       yearOptions,
       selectedYear,
-      countries,
+      countries: computed(() => catalogStore.countries),
+      showScrollTop,
+      scrollToTop,
     };
   },
 });
 </script>
 
 <style scoped>
-li {
-  border-bottom: 1px solid #e2e8f0;
+.scroll-top-fade-enter-active,
+.scroll-top-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.scroll-top-fade-enter-from,
+.scroll-top-fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 img {

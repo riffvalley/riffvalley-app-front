@@ -1,216 +1,216 @@
 ```
 <template>
-  <div
-    class="p-3 border rounded-2xl flex flex-col sm:flex-row items-center justify-between w-full bg-white shadow-md transition"
-    :class="[
-      { 'text-white': getGenreColor(disc.genreId) !== 'transparent' },
-      isFocused ? 'ring-4 ring-rv-pink/70 shadow-xl scale-[1.01]' : ''
-    ]" :style="{ backgroundColor: getGenreColor(disc.genreId) }">
-    <!-- Columna izquierda: Imagen del disco -->
-    <div class="flex items-center w-full sm:w-1/3 p-4 min-w-0">
-      <button v-if="!disc.image" @click="openImageModal"
-        class="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2 py-1 rounded shadow-md ml-2">
-        <i class="fa-solid fa-image"></i>
-      </button>
-      <img v-if="disc.image" :src="disc.image" alt="Disc cover" class="w-24 h-24 rounded-md cursor-pointer object-cover"
-        @click="openImageModal" />
-      <div class="ml-6 flex flex-col text-center sm:text-left w-full min-w-0 overflow-hidden">
-        <!-- Nombre de la banda con acciones -->
-        <div class="flex items-center space-x-2">
-          <h3 class="font-bold text-base truncate min-w-0 overflow-hidden"
-            :style="{ maxWidth: 'clamp(12ch, 65vw, 30ch)' }">
-            <a @click="openArtistDetail" class="block truncate w-full cursor-pointer hover:underline">
-              {{ disc.artist.name }}
-            </a>
-          </h3>
+  <!-- Tarjeta principal -->
+  <div class="flex flex-col sm:flex-row w-full rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden transition-all duration-200 bg-white dark:bg-rv-darkCard"
+       :class="isFocused ? 'ring-2 ring-rv-pink/60 shadow-lg' : ''">
 
-          <!-- Botón editar artista -->
-          <button @click="openArtistModal" class="bg-white p-1 text-sm text-rv-navy hover:bg-gray-200 rounded-full"
-            title="Editar artista">
-            <i class="fa-solid fa-edit text-xs"></i>
-          </button>
+    <!-- ── Columna izquierda: fondo de género (solo imagen + info básica) ── -->
+    <div class="flex items-start gap-4 p-5 sm:w-[44%] shrink-0 min-w-0 genre-col"
+         :class="getGenreColor(disc.genreId) !== 'transparent' ? 'text-white' : 'bg-white dark:bg-rv-darkCard text-rv-navy dark:text-white'"
+         :style="getGenreColor(disc.genreId) !== 'transparent'
+           ? { backgroundColor: getGenreColor(disc.genreId) }
+           : {}">
 
-        </div>
+      <!-- Portada -->
+      <div class="shrink-0">
+        <img v-if="disc.image" :src="disc.image" @click="openImageModal" alt="Portada"
+             class="w-24 h-24 rounded-xl object-cover cursor-pointer shadow-lg
+                    hover:scale-105 transition-transform duration-200" />
+        <button v-else @click="openImageModal"
+                class="w-24 h-24 rounded-xl flex items-center justify-center border-2 border-dashed
+                       border-white/40 hover:border-white/80 transition-colors outline-none focus:outline-none">
+          <i class="fa-solid fa-image text-white/60 text-2xl"></i>
+        </button>
+      </div>
 
-        <!-- Nombre del disco -->
-        <div class="flex items-center space-x-2">
-          <a @click="openDiscDetail" class="text-sm truncate min-w-0 cursor-pointer hover:underline"
-            :style="{ maxWidth: 'clamp(12ch, 65vw, 30ch)' }">
-            <span class="block truncate">
-              {{ disc.name }}
-            </span>
+      <!-- Info textual -->
+      <div class="flex-1 min-w-0 flex flex-col gap-1">
+
+        <!-- Artista -->
+        <div class="flex items-start gap-1 min-w-0">
+          <a @click="openArtistDetail"
+             class="font-bold text-base leading-snug cursor-pointer hover:opacity-75 transition-opacity line-clamp-2">
+            {{ disc.artist.name }}
           </a>
-          <button @click="showNameModal = true" class="bg-white p-1 text-sm text-rv-navy hover:bg-gray-200 rounded-full"
-            title="Editar nombre">
-            <i class="fa-solid fa-edit text-xs"></i>
+          <button @click="openArtistModal" title="Editar artista"
+                  class="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center rounded-full
+                         bg-white/20 hover:bg-white/40 transition-all outline-none focus:outline-none border-0">
+            <i class="fa-solid fa-pen text-[10px]"></i>
           </button>
         </div>
 
-        <p class="text-sm mt-2 w-full flex items-center space-x-2">
-          <a v-if="linkButtonData.visible" :href="disc.link" target="_blank" rel="noopener" :class="[
-            linkButtonData.color,
-            linkButtonData.hover,
-            'text-white px-2 py-1 rounded-full shadow-md inline-flex items-center space-x-1 text-sm',
-          ]" @click.prevent="handleListenClick">
-            <i :class="[linkButtonData.icon, 'text-base']"></i>
+        <!-- Disco -->
+        <div class="flex items-start gap-1 min-w-0">
+          <a @click="openDiscDetail"
+             class="text-sm italic leading-snug cursor-pointer opacity-85 hover:opacity-60 transition-opacity line-clamp-2">
+            {{ disc.name }}
+          </a>
+          <button @click="showNameModal = true" title="Editar nombre"
+                  class="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center rounded-full
+                         bg-white/20 hover:bg-white/40 transition-all outline-none focus:outline-none border-0">
+            <i class="fa-solid fa-pen text-[10px]"></i>
+          </button>
+        </div>
+
+        <!-- Fecha + link en la misma línea -->
+        <div class="flex items-center gap-2 flex-wrap mt-1.5">
+          <a class="text-xs opacity-70 cursor-pointer hover:opacity-100 transition-opacity whitespace-nowrap"
+             @click="showDateModal = true">
+            {{ formattedDate }}
+          </a>
+          <a v-if="linkButtonData.visible" @click.prevent="handleListenClick" :href="disc.link"
+             :class="[linkButtonData.color, linkButtonData.hover]"
+             class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full
+                    text-white text-xs font-semibold shadow-sm cursor-pointer transition-all">
+            <i :class="[linkButtonData.icon, 'text-xs']"></i>
             <span>{{ linkButtonData.text }}</span>
           </a>
-
-          <span v-else-if="!disc.link" class="text-gray-400">
+          <span v-else-if="!disc.link">
             <SpotifyArtistButton :artistName="disc.artist.name" />
           </span>
-
-          <button @click="showLinkModal = true"
-            class="bg-white p-1 text-sm text-rv-navy hover:bg-gray-200 rounded-full">
-            <i class="fa-solid fa-link"></i>
+          <button @click="showLinkModal = true" title="Editar link"
+                  class="w-6 h-6 flex items-center justify-center rounded-full
+                         bg-white/20 hover:bg-white/40 transition-all outline-none focus:outline-none border-0">
+            <i class="fa-solid fa-link text-xs"></i>
           </button>
-        </p>
-
-        <a class="cursor-pointer mt-2" @click="showDateModal = true">
-          {{ formattedDate }}
-        </a>
-      </div>
-    </div>
-
-    <!-- Columna derecha: Botones de acción reorganizados -->
-    <div class="flex flex-col gap-2 w-full sm:w-2/3 p-2">
-      <!-- Fila 1: Selects de género y país -->
-      <div class="grid gap-2" :class="{ 'grid-cols-2': !isNarrow, 'grid-cols-1': isNarrow }">
-        <!-- Select de género -->
-        <SearchableSelect :key="`genres-${genres.length}`" v-model="editedData.genreId" :options="genres" title="name"
-          trackby="id" placeholder="Buscar género..." trigger-placeholder="Selecciona un género"
-          all-label="Todos los géneros" :max="200"
-          class="rounded-full text-rv-navy text-sm border-rv-navy/20 shadow-lg ring-0 focus:ring-0 focus:outline-none"
-          @update:modelValue="() => saveChanges('genreId')" />
-
-        <!-- País del artista -->
-        <SearchableSelect :key="`countries-${countries.length}`" v-model="editedArtist.countryId" :options="countries"
-          title="name" trackby="id" placeholder="Buscar país..." trigger-placeholder="Selecciona un país"
-          all-label="Todos los países" :max="300"
-          class="rounded-full text-rv-navy text-sm border-rv-navy/20 shadow-lg ring-0 focus:ring-0 focus:outline-none"
-          @update:modelValue="saveCountry" />
-      </div>
-
-      <!-- Fila 2: Álbum, Debut y Verificado -->
-      <div class="grid grid-cols-3 gap-2">
-        <button @click="toggleEp()" :class="{
-          'bg-gradient-to-r from-gray-400 to-gray-400 shadow-lg hover:from-gray-500 hover:to-gray-500': disc.ep,
-          'bg-gradient-to-r from-rv-purple to-rv-purple shadow-lg hover:from-rv-purple/80 hover:to-rv-purple/80': !disc.ep
-        }"
-          class="text-white font-bold px-3 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-md transform hover:scale-105 text-sm">
-          {{ disc.ep ? "EP" : "Álbum" }}
-        </button>
-
-        <button @click="toggleDebut()" :class="{
-          'bg-gradient-to-r from-rv-purple to-rv-purple shadow-lg hover:from-rv-purple/80 hover:to-rv-purple/80': disc.debut,
-          'bg-gradient-to-r from-gray-400 to-gray-400 shadow-lg hover:from-gray-500 hover:to-gray-500': !disc.debut
-        }"
-          class="text-white font-bold px-3 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-md transform hover:scale-105 text-sm">
-          {{ disc.debut ? "Debut" : "No Debut" }}
-        </button>
-
-        <button @click="toggleVerified()" :class="{
-          'bg-gradient-to-r from-green-500 to-green-500 shadow-lg hover:from-green-600 hover:to-green-600': disc.verified,
-          'bg-gradient-to-r from-gray-400 to-gray-400 shadow-lg hover:from-gray-500 hover:to-gray-500': !disc.verified
-        }"
-          class="text-white font-semibold px-3 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-md transform hover:scale-105 text-sm">
-          {{ disc.verified ? "✓ Verificado" : "✗ Verificado" }}
-        </button>
-      </div>
-
-      <!-- Fila 3: Pendiente y Borrar -->
-      <div class="grid grid-cols-2 gap-2">
-        <button @click="toggleBookmark()" :class="{
-          'bg-gradient-to-r from-yellow-500 to-yellow-500 shadow-lg hover:from-yellow-600 hover:to-yellow-600': pendingId,
-          'bg-gradient-to-r from-gray-400 to-gray-400 shadow-lg hover:from-gray-500 hover:to-gray-500': !pendingId
-        }"
-          class="text-white font-semibold px-3 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-md transform hover:scale-105 text-sm">
-          {{ pendingId ? "Guardado" : "Añadir a pendientes" }}
-        </button>
-
-        <button @click="confirmDelete(disc.id)"
-          class="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold px-3 py-2 rounded-lg shadow-md transition-all duration-200 hover:shadow-xl transform hover:scale-105 text-sm">
-          Borrar
-        </button>
-      </div>
-
-      <!-- Fila 4: Novedad nacional (solo si el artista es español) -->
-      <div v-if="isSpanish">
-        <button
-          v-if="disc.nationalReleaseId"
-          disabled
-          class="w-full bg-gray-200 text-gray-500 font-semibold px-3 py-2 rounded-lg text-sm cursor-not-allowed"
-        >
-          ✓ Ya en novedades nacionales
-        </button>
-        <button
-          v-else
-          @click="addNationalRelease"
-          :disabled="addingNational"
-          class="w-full bg-gradient-to-r from-rv-pink to-rv-purple hover:opacity-90 disabled:opacity-50 text-white font-semibold px-3 py-2 rounded-lg shadow-md transition-all duration-200 text-sm"
-        >
-          {{ addingNational ? "Añadiendo..." : "🇪🇸 Añadir a novedades nacionales" }}
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Teleport para todos los modales -->
-  <Teleport to="body">
-    <!-- Modal para actualizar/crear artista -->
-    <div v-if="showArtistModal"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 bg-gray-900 bg-opacity-50">
-      <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-        <h2 class="text-lg font-semibold mb-4">Actualizar o crear Artista</h2>
-        <label class="flex items-center mb-4">
-          <input type="checkbox" v-model="creatingNewArtist" class="mr-2" />
-          Crear nuevo artista
-        </label>
-        <input v-model="newArtistName" type="text" placeholder="Introduce el nombre del artista"
-          class="border p-2 w-full rounded-md" />
-        <div class="flex justify-end mt-4 space-x-2">
-          <button @click="closeArtistModal"
-            class="bg-gray-400 text-white px-4 py-2 rounded-full transition-all duration-200 hover:shadow-md transform hover:scale-105">Cancelar</button>
-          <button @click="handleArtistUpdate"
-            class="bg-rv-pink text-white px-4 py-2 rounded-full transition-all duration-200 hover:shadow-md transform hover:scale-105">Guardar</button>
         </div>
       </div>
     </div>
 
-    <!-- Modales de edición -->
-    <EditModal v-model:show="showNameModal" v-model="editedName" title="Editar título del álbum"
-      placeholder="Introduce el nombre del disco" @save="updateDiscName" />
+    <!-- ── Columna derecha: controles admin (fondo neutro siempre) ── -->
+    <div class="flex-1 p-4 flex flex-col gap-2.5 bg-white dark:bg-rv-darkCard min-w-0">
 
-    <EditModal v-model:show="showLinkModal" v-model="editedLink" title="Editar link del álbum"
-      placeholder="Introduce el link del disco" @save="updateDiscLink" />
+      <!-- Género (full width) -->
+      <SearchableSelect :key="`genres-${genres.length}`" v-model="editedData.genreId" :options="genres"
+        title="name" trackby="id" placeholder="Buscar género..." trigger-placeholder="Selecciona un género"
+        all-label="Todos los géneros" :max="200"
+        class="w-full rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 dark:border-white/10 shadow-sm ring-0 focus:ring-0 focus:outline-none"
+        @update:modelValue="() => saveChanges('genreId')" />
 
-    <EditModal v-model:show="showImageModal" v-model="newImageUrl" title="Cambiar portada del álbum"
-      placeholder="Introduce la URL de la imagen" @save="updateImageUrl" />
+      <!-- País (full width) -->
+      <SearchableSelect :key="`countries-${countries.length}`" v-model="editedArtist.countryId" :options="countries"
+        title="name" trackby="id" placeholder="Buscar país..." trigger-placeholder="Selecciona un país"
+        all-label="Todos los países" :max="300"
+        class="w-full rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 dark:border-white/10 shadow-sm ring-0 focus:ring-0 focus:outline-none"
+        @update:modelValue="saveCountry" />
 
-    <EditModal v-model:show="showDateModal" v-model="editedReleaseDate" title="Cambiar fecha del álbum"
-      placeholder="Selecciona la fecha" inputType="date" @save="updateDiscReleaseDate" />
+      <!-- Todos los botones de acción en una sola fila con wrap -->
+      <div class="flex flex-wrap gap-2 items-center">
+        <!-- Switch EP -->
+        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+          <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Álbum</span>
+          <div class="relative" @click="toggleEp()">
+            <div class="w-8 h-4 rounded-full transition-colors duration-200"
+                 :class="disc.ep ? 'bg-rv-purple' : 'bg-gray-300 dark:bg-white/20'"></div>
+            <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200"
+                 :class="disc.ep ? 'translate-x-4' : 'translate-x-0'"></div>
+          </div>
+          <span class="text-xs font-semibold" :class="disc.ep ? 'text-rv-purple' : 'text-gray-400 dark:text-gray-500'">EP</span>
+        </label>
+
+        <!-- Separador -->
+        <span class="w-px h-4 bg-gray-200 dark:bg-white/10"></span>
+
+        <!-- Switch Debut -->
+        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+          <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">No debut</span>
+          <div class="relative" @click="toggleDebut()">
+            <div class="w-8 h-4 rounded-full transition-colors duration-200"
+                 :class="disc.debut ? 'bg-rv-purple' : 'bg-gray-300 dark:bg-white/20'"></div>
+            <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200"
+                 :class="disc.debut ? 'translate-x-4' : 'translate-x-0'"></div>
+          </div>
+          <span class="text-xs font-semibold" :class="disc.debut ? 'text-rv-purple' : 'text-gray-400 dark:text-gray-500'">Debut</span>
+        </label>
+
+        <!-- Separador -->
+        <span class="w-px h-4 bg-gray-200 dark:bg-white/10"></span>
+        <button @click="toggleVerified()"
+                class="px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm whitespace-nowrap
+                       transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]"
+                :class="disc.verified ? 'bg-green-500 hover:bg-green-400' : 'bg-gray-300 dark:bg-white/20 hover:bg-green-500'">
+          {{ disc.verified ? '✓ Verificado' : '✗ Sin verificar' }}
+        </button>
+        <button @click="toggleBookmark()"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap
+                       text-xs font-semibold text-white shadow-sm
+                       transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.97]"
+                :class="justAdded
+                  ? 'bg-yellow-400 scale-105'
+                  : pendingId
+                    ? 'bg-yellow-500 hover:bg-yellow-400'
+                    : 'bg-gray-300 dark:bg-white/20 hover:bg-yellow-500'">
+          <i class="fa-solid fa-bookmark" :class="justAdded ? 'animate-bounce' : ''"></i>
+          <span v-if="justAdded">¡Añadido!</span>
+          <span v-else>{{ pendingId ? 'Guardado' : 'Pendiente' }}</span>
+        </button>
+        <button @click="confirmDelete(disc.id)"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap
+                       text-xs font-semibold text-white bg-red-500 hover:bg-red-600 shadow-sm
+                       transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]">
+          <i class="fa-solid fa-trash"></i> Borrar
+        </button>
+      </div>
+
+      <!-- Novedad nacional (solo artistas españoles) -->
+      <div v-if="isSpanish">
+        <button v-if="disc.nationalReleaseId" disabled
+                class="px-3 py-1.5 rounded-full text-xs font-semibold cursor-not-allowed
+                       bg-gray-100 dark:bg-white/10 text-gray-400 dark:text-gray-500 whitespace-nowrap">
+          ✓ Ya en novedades nacionales
+        </button>
+        <button v-else @click="addNationalRelease" :disabled="addingNational"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
+                       text-white whitespace-nowrap shadow-sm
+                       bg-gradient-to-r from-rv-pink to-rv-purple hover:opacity-90 disabled:opacity-50
+                       transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]">
+          {{ addingNational ? 'Añadiendo...' : '🇪🇸 Novedades nacionales' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Teleport modales -->
+  <Teleport to="body">
+    <!-- Modal artista -->
+    <div v-if="showArtistModal"
+         class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+      <div class="bg-white dark:bg-rv-darkCard p-6 rounded-2xl shadow-2xl w-full max-w-sm
+                  border border-gray-100 dark:border-white/10">
+        <h2 class="text-base font-bold mb-4 text-rv-navy dark:text-white">Actualizar o crear artista</h2>
+        <label class="flex items-center gap-2 mb-4 text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+          <input type="checkbox" v-model="creatingNewArtist" class="rounded" />
+          Crear nuevo artista
+        </label>
+        <input v-model="newArtistName" type="text" placeholder="Nombre del artista"
+               class="border border-gray-200 dark:border-white/10 px-3 py-2 w-full rounded-xl text-sm
+                      bg-white dark:bg-rv-darkSurface text-gray-800 dark:text-white
+                      placeholder:text-gray-400 outline-none focus:border-rv-navy dark:focus:border-rv-purple" />
+        <div class="flex justify-end gap-2 mt-4">
+          <button @click="closeArtistModal"
+                  class="px-4 py-2 rounded-full text-sm font-semibold
+                         bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white
+                         hover:bg-gray-300 dark:hover:bg-white/20 transition-all">
+            Cancelar
+          </button>
+          <button @click="handleArtistUpdate"
+                  class="px-4 py-2 rounded-full text-sm font-semibold bg-rv-pink text-white
+                         hover:bg-rv-pink/90 transition-all">
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <EditModal v-model:show="showNameModal"  v-model="editedName"         title="Editar título del álbum"  placeholder="Introduce el nombre del disco"    @save="updateDiscName" />
+    <EditModal v-model:show="showLinkModal"  v-model="editedLink"         title="Editar link del álbum"    placeholder="Introduce el link del disco"      @save="updateDiscLink" />
+    <EditModal v-model:show="showImageModal" v-model="newImageUrl"        title="Cambiar portada del álbum" placeholder="Introduce la URL de la imagen"   @save="updateImageUrl" />
+    <EditModal v-model:show="showDateModal"  v-model="editedReleaseDate"  title="Cambiar fecha del álbum"  placeholder="Selecciona la fecha" inputType="date" @save="updateDiscReleaseDate" />
   </Teleport>
 
-  <!-- Modal DiscDetail -->
-  <div v-if="showDiscDetail" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div class="bg-white rounded-lg p-4 relative max-w-3xl w-full">
-      <button class="absolute top-2 right-2 text-gray-600 hover:text-gray-800 text-2xl" @click="closeDiscDetail">
-        &times;
-      </button>
-      <DiscDetail v-if="showDiscDetail" :disc="disc" @close="showDiscDetail = false" />
-    </div>
-  </div>
-
-  <!-- Modal ArtistDetail -->
-  <div v-if="showArtistDetail" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-    <div class="bg-white rounded-lg p-4 relative max-w-3xl w-full">
-      <button class="absolute top-2 right-2 text-gray-600 hover:text-gray-800 text-2xl" @click="closeArtistDetail">
-        &times;
-      </button>
-      <ArtistDetail v-if="showArtistDetail" :disc-name="disc.name" :artistName="disc.artist.name"
-        @close="showArtistDetail = false" />
-    </div>
-  </div>
+  <!-- DiscDetail y ArtistDetail (gestionan su propio overlay) -->
+  <DiscDetail   v-if="showDiscDetail"   :disc="disc"               @close="showDiscDetail = false" />
+  <ArtistDetail v-if="showArtistDetail" :disc-name="disc.name"     :artistName="disc.artist.name" @close="showArtistDetail = false" />
 </template>
 
 <script lang="ts">
@@ -230,6 +230,7 @@ import { createNationalReleaseFromDisc } from "@services/national-releases/natio
 import { updateArtist, postArtist } from "@services/artist/artist";
 import { postPendingService, deletePendingService } from "@services/pendings/pendings";
 import Swal from "sweetalert2";
+import SwalService from "@services/swal/SwalService";
 import axios from "axios";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
@@ -309,7 +310,7 @@ export default defineComponent({
     const formattedDate = computed(() =>
       new Date(props.disc.releaseDate).toLocaleDateString("es-ES", {
         year: "numeric",
-        month: "long",
+        month: "short",
         day: "numeric",
       })
     );
@@ -363,8 +364,9 @@ export default defineComponent({
       try {
         await updateArtist(props.disc.artist.id, { countryId: editedArtist.countryId });
         props.disc.artist.countryId = editedArtist.countryId as any;
+        SwalService.success('País actualizado correctamente');
       } catch (e) {
-        console.error("No se pudo actualizar el país:", e);
+        SwalService.error('No se pudo actualizar el país');
       }
     };
 
@@ -384,26 +386,10 @@ export default defineComponent({
           (props.disc as any)[field] = (editedData as any)[field];
         }
 
-        Swal.fire({
-          title: "¡Éxito!",
-          text: `El ${field} del disco se ha actualizado correctamente.`,
-          icon: "success",
-          timer: 3000,
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-        });
+        SwalService.success('Género actualizado correctamente');
       } catch (error) {
         console.error(`Error al actualizar ${field}:`, error);
-        Swal.fire({
-          title: "Error",
-          text: `No se pudo actualizar el ${field}.`,
-          icon: "error",
-          timer: 3000,
-          toast: true,
-          position: "top-end",
-          showConfirmButton: false,
-        });
+        SwalService.error('No se pudo actualizar el género');
       } finally {
         await nextTick();
         isSaving.value = false;
@@ -438,17 +424,19 @@ export default defineComponent({
     };
 
     const pendingId = ref(props.disc.pendingId);
+    const justAdded = ref(false);
 
     const toggleBookmark = async () => {
       try {
         if (pendingId.value) {
           await deletePendingService(pendingId.value);
           pendingId.value = null;
-          Swal.fire("Pendiente eliminado");
+          SwalService.success('Eliminado de pendientes');
         } else {
           const pending = await postPendingService({ discId: props.disc.id });
           pendingId.value = pending.id;
-          Swal.fire("Pendiente añadido");
+          justAdded.value = true;
+          setTimeout(() => { justAdded.value = false; }, 1500);
         }
       } catch (error) {
         console.error("Error al cambiar el estado de pendiente:", error);
@@ -843,6 +831,7 @@ export default defineComponent({
       buscarGeneroSpotify,
       toggleBookmark,
       pendingId,
+      justAdded,
       handleListenClick,
       openArtistModal,
       handleArtistUpdate,
@@ -880,136 +869,16 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.p-4 {
-  padding: 1rem;
-}
-
-.border {
-  border: 1px solid #e5e7eb;
-}
-
-.rounded-md {
-  border-radius: 0.375rem;
-}
-
-.text-white {
-  color: #ffffff;
-}
-
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.w-full {
-  width: 100%;
-}
-
-.grid-cols-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-@media (max-width: 1024px) {
-  .grid-cols-2 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
+/* Diagonal solo en sm+ (≥640px). En móvil corte recto */
+@media (min-width: 640px) {
+  .genre-col {
+    clip-path: polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
   }
 }
 
-@media (max-width: 820px) {
-  .p-4 {
-    padding: 0.5rem;
-  }
-
-  .grid-cols-2 {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-
-  .w-full {
-    width: 100%;
-  }
-
-  img {
-    width: 80px;
-    height: 80px;
-  }
-
-  h3 {
-    font-size: 1rem;
-  }
-
-  .sm\:flex-row {
-    flex-direction: column;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 430px) {
-  .p-4 {
-    padding: 0.25rem;
-  }
-
-  img {
-    width: 70px;
-    height: 70px;
-  }
-
-  h3 {
-    font-size: 0.9rem;
-  }
-
-  .sm\:flex-row {
-    flex-direction: column;
-  }
-}
-
-@media (max-width: 300px) {
-  img {
-    width: 60px;
-    height: 60px;
-  }
-
-  h3 {
-    font-size: 0.8rem;
-  }
-}
-
-.modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 9999 !important;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-content {
-  position: relative;
-  z-index: 10000 !important;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  z-index: 1100 !important;
-  max-width: 90%;
-  width: 400px;
-}
-
+/* Asegura que el dropdown del SearchableSelect no quede cortado */
 .searchable__select {
   position: absolute;
-  width: 100%;
-  background-color: white;
-  border: 1px solid #ccc;
-  border-radius: 0.25rem;
   z-index: 500 !important;
-  margin-top: 0.25rem;
-}
-
-body {
-  position: relative;
-  overflow: visible !important;
 }
 </style>

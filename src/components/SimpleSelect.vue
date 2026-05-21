@@ -140,7 +140,7 @@ onUnmounted(() => {
   line-height: 2.5rem;
   border-radius: 9999px;
   border: 1px solid rgb(229 231 235);
-  background: #fff;
+  background: #ffffff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .08), 0 1px 2px rgba(0, 0, 0, .06);
   padding: 0 1.5rem;
   padding-right: .75rem;
@@ -165,17 +165,22 @@ onUnmounted(() => {
 .ss-icon {
   margin-left: .5rem;
   margin-right: .25rem;
-  color: var(--rv-navy, #11274a);
+  color: #9ca3af;
   font-size: .975rem;
   flex: 0 0 auto;
+}
+
+.ss-trigger:hover {
+  border-color: #e46e8a;
 }
 
 /* Dropdown */
 .ss-menu {
   z-index: 100000;
-  background: #fff;
+  background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: .5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.06);
   overflow: hidden;
 }
 
@@ -184,7 +189,7 @@ onUnmounted(() => {
   font-size: .875rem;
   color: #6b7280;
   border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
+  background: #f3f4f6;
   font-weight: 700;
   letter-spacing: .04em;
   text-transform: uppercase;
@@ -209,7 +214,7 @@ onUnmounted(() => {
 }
 
 .ss-item.active {
-  background-color: var(--rv-navy, #11274a) !important;
+  background-color: #e46e8a !important;
   color: #ffffff !important;
   font-weight: 700;
 }
@@ -275,5 +280,51 @@ onUnmounted(() => {
 
 .ss-label {
   white-space: nowrap;
+}
+
+html.dark .ss-trigger,
+:global(html.dark) .ss-trigger {
+  background: #404157 !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+
+html.dark .ss-text,
+html.dark .ss-icon,
+html.dark .ss-inline-icon,
+:global(html.dark) .ss-text,
+:global(html.dark) .ss-icon,
+:global(html.dark) .ss-inline-icon {
+  color: #ffffff !important;
+}
+
+html.dark .ss-menu,
+:global(html.dark) .ss-menu {
+  background: #2a2b3d !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+html.dark .ss-group,
+:global(html.dark) .ss-group {
+  background: #404157 !important;
+  color: #ffffff !important;
+  border-bottom-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+html.dark .ss-item,
+:global(html.dark) .ss-item {
+  background: #2a2b3d !important;
+  color: #ffffff !important;
+}
+
+html.dark .ss-item:hover,
+:global(html.dark) .ss-item:hover {
+  background: #404157 !important;
+}
+
+html.dark .ss-item.active,
+:global(html.dark) .ss-item.active {
+  background: #e46e8a !important;
+  color: #ffffff !important;
 }
 </style>

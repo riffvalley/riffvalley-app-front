@@ -2,23 +2,27 @@
 
 
   <!-- Tarjeta individual -->
-  <div class="card w-full max-w-[20rem] border rounded shadow-lg bg-white flex flex-col mx-auto p-2 relative">
+  <div class="card w-full max-w-[20rem] border-2 rounded-xl shadow-lg
+  bg-white dark:bg-rv-darkCard
+  border-gray-100 dark:border-white/20
+  flex flex-col mx-auto p-2 relative">
     <!-- Badge Debut -->
-    <div v-if="debut" class="absolute -top-3 -left-2 z-20
+    <div v-if="debut" class="absolute -top-3 -left-2 z-10
          px-2 py-1 rounded-full text-[10px] font-bold
-         text-rv-purple shadow-sm
-         bg-white border-rv-purple border-2">
+         text-rv-purple dark:text-purple-300 shadow-sm
+         bg-white dark:bg-rv-darkSurface
+         border-rv-purple dark:border-purple-300 border-2">
       Álbum debut
     </div>
 
     <!-- Botón editar (solo Riff Valley) -->
-    <button v-if="canModerate" type="button" class="absolute bottom-30 translate-y-28 left-2 z-30 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200
+    <button v-if="canModerate" type="button" class="absolute bottom-30 translate-y-28 left-2 z-10 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200
          flex items-center justify-center hover:bg-gray-50" title="Editar en calendario" @click="openCalendarModal">
       <i class="fa-solid fa-wrench text-rv-navy text-sm"></i>
     </button>
 
     <div class="flex items-center justify-between px-2 p-1">
-      <p class="text-xs text-gray-500">{{ formattedDate }}</p>
+      <p class="text-xs text-gray-500 dark:text-gray-300">{{ formattedDate }}</p>
       <div class="flex items-center space-x-2">
         <p v-if="isEP" class="px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500 text-center shadow-sm">
           EP
@@ -57,77 +61,110 @@
     <div class="flex items-center mt-3">
       <div class="flex flex-col items-center">
         <img :src="computedImage" :alt="name"
-          class="w-24 h-24 object-cover rounded mb-2 shadow-md cursor-zoom-in hover:opacity-80" @click="openImage" />
+          class="w-24 h-24 object-cover rounded mb-2 shadow-md cursor-zoom-in relative transition-transform duration-200 hover:scale-125 hover:shadow-xl hover:z-50"
+          @click="openImage" />
         <div class="flex space-x-2 mt-1">
-          <div class="flex flex-col items-center w-16 h-12 border rounded-lg shadow-md bg-gray-100 mb-1">
-            <p class="text-sm font-bold text-blue-600 mt-1">
-              {{ averageRate ? averageRate.toFixed(2) : "-" }}
+          <div class="flex flex-col items-center w-16 h-12 rounded-lg
+  bg-gray-100 dark:bg-rv-darkSurface
+  border border-gray-200 dark:border-white/60
+  shadow-sm mb-1">
+            <p class="text-sm font-bold mt-1"
+              :class="spoilerMode ? 'text-rv-pink tracking-widest' : 'text-blue-600 dark:text-blue-300'">
+              {{ spoilerMode ? '???' : (localAverageRate ? localAverageRate.toFixed(2) : "-") }}
             </p>
-            <p class="text-xs text-rv-navy">Disco</p>
+            <p class="text-xs text-rv-navy dark:text-gray-200">Disco</p>
           </div>
-          <div class="flex flex-col items-center w-16 h-12 border rounded-lg shadow-md bg-gray-100 mb-1">
-            <p class="text-sm font-bold text-green-600 mt-1">
-              {{ averageCover ? averageCover.toFixed(2) : "-" }}
+          <div class="flex flex-col items-center w-16 h-12 rounded-lg
+  bg-gray-100 dark:bg-rv-darkSurface
+  border border-gray-200 dark:border-white/60
+  shadow-sm mb-1">
+            <p class="text-sm font-bold mt-1"
+              :class="spoilerMode ? 'text-rv-pink tracking-widest' : 'text-green-600 dark:text-green-300'">
+              {{ spoilerMode ? '???' : (localAverageCover ? localAverageCover.toFixed(2) : "-") }}
             </p>
-            <p class="text-xs text-rv-navy">Portada</p>
+            <p class="text-xs text-rv-navy dark:text-gray-200">Portada</p>
           </div>
         </div>
       </div>
 
       <!-- Contenido al lado derecho -->
-      <div class="ml-2 flex flex-1 flex-col">
+      <div class="ml-1 flex flex-1 flex-col min-w-0">
         <!-- Título y artista -->
-        <div class="flex justify-between items-center">
-          <h2 @click="openDiscDetail" class="text-sm text-rv-navy font-semibold italic truncate cursor-pointer">
+        <div class="flex justify-between items-center min-w-0">
+          <h2 @click="openDiscDetail"
+            class="text-sm text-rv-navy dark:text-white font-semibold italic cursor-pointer pr-1 line-clamp-2 break-words">
             {{ name }}
           </h2>
         </div>
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center min-w-0">
           <!-- El nombre del artista se hace clickable para abrir ArtistDetail -->
-          <p @click="openArtistDetail" class="text-xs text-gray-500 font-semibold cursor-pointer hover:underline">
+          <p @click="openArtistDetail"
+            class="text-xs text-gray-500 dark:text-gray-300 font-semibold cursor-pointer hover:underline truncate">
             {{ artistName }}
           </p>
         </div>
 
         <!-- Botón de Escuchar -->
-        <div class="flex items-center space-x-2 mt-1">
-<a
-  v-if="link"
-  @click="openPlatformLink(link)"
-  class="px-2 py-1 rounded-full cursor-pointer font-medium text-white
-         text-center shadow-sm bg-green-500 hover:bg-green-600
-         transition-all w-1/2
-         text-[10px] overflow-hidden text-ellipsis whitespace-nowrap"
->
-  Escuchar
-</a>
+        <div class="flex items-center space-x-2 mt-2 mb-2">
+          <div class="flex items-center gap-1">
+            <font-awesome-icon v-if="embedUrl" :icon="['fas', 'circle-chevron-down']"
+              class="text-[14px] cursor-pointer transition-all duration-300 text-gray-400 dark:text-gray-400 hover:text-green-500 dark:hover:text-green-500 flex-shrink-0 translate-y-[8px]"
+              :class="{ 'rotate-180': showPlayer }"
+              :title="showPlayer ? 'Ocultar reproductor' : 'Mostrar reproductor'"
+              @click="showPlayer = !showPlayer" />
+            <button v-if="link" @click="openPlatformLink(link)"
+              class="w-5 h-5 rounded-full cursor-pointer text-white shadow-sm transition-all flex-shrink-0 flex items-center justify-center focus:outline-none hover:opacity-80"
+              :class="platformInfo.bg" :title="platformInfo.label">
+              <i :class="platformInfo.icon" class="text-[20px] leading-none translate-y-[1px]"></i>
+            </button>
+          </div>
 
           <!-- Íconos: corazón y bookmark -->
           <div class="flex space-x-2 items-center">
             <div class="relative group">
-              <font-awesome-icon :icon="['fas', 'heart']"
-                class="h-7 w-5 cursor-pointer transition-all duration-300 ease-in-out" :class="{
-                  'text-red-500 scale-110': favoriteId,
-                  'text-gray-500 hover:text-red-400': !favoriteId,
-                }" @click="toggleHeart" />
+              <!-- Corazón: spinner mientras carga, pop al activar -->
+              <i v-if="isTogglingHeart" class="fa-solid fa-spinner animate-spin text-red-400"
+                style="width:20px;height:20px;display:block;"></i>
+              <font-awesome-icon v-else :icon="['fas', 'heart']"
+                class="h-7 w-5 cursor-pointer"
+                :class="[
+                  favoriteId ? 'text-red-500' : 'text-gray-400 hover:text-red-400',
+                  heartAnimating ? 'anim-heart-pop' : ''
+                ]"
+                @click="toggleHeart" />
               <span class="pointer-events-none hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2
          px-2 py-1 text-[9px] font-semibold text-white bg-rv-navy rounded
          opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                Favs
+                Fav
               </span>
-
             </div>
 
             <div class="relative group cursor-pointer" @click="toggleBookmark">
-              <font-awesome-icon :icon="['fas', 'bookmark']"
-                class="h-5 w-5 mt-1 cursor-pointer transition-all duration-300 ease-in-out" :class="{
-                  'text-yellow-400 scale-110': pendingId,
-                  'text-gray-500 hover:text-yellow-300': !pendingId,
-                }" />
+              <!-- Bookmark: spinner mientras carga, drop al activar -->
+              <i v-if="isTogglingBookmark" class="fa-solid fa-spinner animate-spin text-yellow-400 mt-1"
+                style="width:20px;height:20px;display:block;"></i>
+              <font-awesome-icon v-else :icon="['fas', 'bookmark']"
+                class="h-5 w-5 mt-1 cursor-pointer"
+                :class="[
+                  pendingId ? 'text-yellow-400' : 'text-gray-400 hover:text-yellow-300',
+                  bookmarkAnimating ? 'anim-bookmark-drop' : ''
+                ]" />
               <span class="pointer-events-none hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2
          px-2 py-1 text-[9px] font-semibold text-white bg-rv-navy rounded
          opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 Guardar
+              </span>
+            </div>
+
+            <div class="relative group cursor-pointer" @click="copyAsImage">
+              <i v-if="isCopying" class="fa-solid fa-spinner animate-spin text-rv-pink mt-1"
+                style="width:20px;height:20px;display:block;"></i>
+              <font-awesome-icon v-else :icon="['fas', 'share-nodes']"
+                class="h-5 w-5 mt-1 transition-all duration-300 ease-in-out text-gray-400 hover:text-rv-pink" />
+              <span class="pointer-events-none hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2
+         px-2 py-1 text-[9px] font-semibold text-white bg-rv-navy rounded
+         opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
+                Compartir
               </span>
             </div>
           </div>
@@ -135,24 +172,29 @@
 
         <!-- Formulario de votación -->
         <div class="flex flex-col space-y-1">
-          <label class="text-xs text-gray-500 translate-x-1.5">
+          <label class="text-xs text-gray-500 dark:text-gray-300 translate-x-1.5">
             Disco:
-            <input type="number" step="0.01" v-model="localRating.rate" min="1" max="10"
-              class="px-0 py-1 border w-16 rounded text-xs font-bold text-center text-gray-500 mt-3 mb-1 ml-0.5" />
+            <input type="number" step="0.01" v-model="localRating.rate" min="1" max="10" class="px-0 py-1 border rounded w-16 text-xs font-bold text-center
+        bg-white dark:bg-rv-darkSurface
+        text-gray-500 dark:text-white
+        border-gray-300 dark:border-gray-200/40" />
           </label>
-          <label class="text-xs text-gray-500">
+
+          <label class="text-xs text-gray-500 dark:text-gray-300">
             Portada:
-            <input type="number" step="0.01" v-model="localRating.cover" min="1" max="10"
-              class="px-0 py-1 w-16 border font-bold rounded text-center text-xs mb-1 ml-0.5" />
+            <input type="number" step="0.01" v-model="localRating.cover" min="1" max="10" class="px-0 py-1 border rounded w-16 text-xs font-bold text-center
+        bg-white dark:bg-rv-darkSurface
+        text-gray-500 dark:text-white
+        border-gray-300 dark:border-gray-200/40" />
           </label>
         </div>
       </div>
     </div>
 
     <!-- Botones para votos y enviar calificación -->
-    <div class="flex mt-2 space-x-2 w-full">
+    <div class="flex mt-2 gap-1 w-full">
       <button @click="toggleVotes"
-        class="w-1/3 bg-rv-navy text-white font-bold py-2 px-1 rounded-lg shadow-md border-4 border-transparent hover:border-rv-navy hover:bg-gradient-to-l from-gray-800 to-rv-navy flex items-center justify-center space-x-1">
+        class="w-1/3 border-2 border-rv-navy bg-rv-navy text-white font-bold py-2 px-1 rounded-lg transition-all focus:outline-none flex items-center justify-center space-x-1 hover:bg-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-white/20">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
           class="size-4">
           <path stroke-linecap="round" stroke-linejoin="round"
@@ -160,33 +202,52 @@
         </svg>
         <span class="flex items-center">
           {{ showVotes ? "Ocultar" : "Votos" }}
-          <span v-if="rateCount > 0" class="ml-1 mt-1 text-[9px] text-[#ffbaca]">({{ rateCount }})</span>
+          <span v-if="rateCount > 0" class="ml-1 mt-1 text-[9px] text-pink-300">({{ rateCount }})</span>
         </span>
       </button>
 
       <button @click="openComentsModal"
-        class="w-1/3 gap-2 bg-rv-navy text-white font-bold py-2 px-2 rounded-lg shadow-md border-4 border-transparent hover:border-rv-navy hover:bg-gradient-to-l from-gray-800 to-rv-navy flex items-center justify-center">
-        <i class="fa-solid fa-comment-dots text-white text-md"></i>
+        class="w-1/3 border-2 border-rv-navy bg-rv-navy text-white font-bold py-2 px-2 rounded-lg transition-all focus:outline-none flex items-center justify-center gap-1 hover:bg-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-white/20">
+        <i class="fa-solid fa-comment-dots text-md"></i>
         <span class="flex items-center">
           Chat
-          <span v-if="commentCount > 0" class="ml-1 mt-1 text-[9px] text-[#ffbaca]">(<span class="inline">{{
-            commentCount
-          }}</span>)</span>
+          <span v-if="commentCount > 0" class="ml-1 mt-1 text-[9px] text-pink-300">({{ commentCount }})</span>
         </span>
       </button>
 
       <button @click="submitRating" :disabled="disableSubmitButton"
-        class="w-1/3 bg-rv-navy text-white font-bold py-2 px-1 rounded-lg shadow-md border-4 border-transparent hover:border-[#e46e8a] hover:bg-gradient-to-r hover:from-[#e46e8a] hover:to-[#ff8da8] flex items-center justify-center space-x-1"
-        :class="{ 'opacity-50 cursor-not-allowed': disableSubmitButton }">
-        <template v-if="hasVoted">
-          <i class="fa-solid fa-arrows-rotate text-white text-md"></i>
-        </template>
-        <template v-else>
-          <i class="fa-solid fa-pen-to-square text-white text-md"></i>
-        </template>
-        <span>{{ hasVoted ? "Modificar" : "Votar" }}</span>
+        class="w-1/3 border-2 border-rv-pink bg-rv-pink text-white font-bold py-2 px-1 rounded-lg transition-all focus:outline-none flex items-center justify-center space-x-1 hover:bg-[#ea849a] hover:border-[#ea849a]"
+        :class="{ 'opacity-40 cursor-not-allowed': disableSubmitButton }">
+        <i v-if="hasVoted" class="fa-solid fa-arrows-rotate text-md"></i>
+        <i v-else class="fa-solid fa-pen-to-square text-md"></i>
+        <span>{{ hasVoted ? "Editar" : "Votar" }}</span>
       </button>
     </div>
+
+    <!-- Reproductor desplegable -->
+    <Transition name="player-slide">
+      <div v-if="showPlayer && link" class="mt-2 w-full overflow-x-hidden rounded-xl">
+        <!-- Cargando track más popular -->
+        <div v-if="isLoadingTrack"
+          class="flex items-center justify-center gap-2 bg-gray-100 dark:bg-rv-darkSurface rounded-xl"
+          style="height:80px">
+          <i class="fa-solid fa-spinner animate-spin text-rv-pink text-sm"></i>
+          <span class="text-xs text-gray-400 dark:text-gray-500">Cargando...</span>
+        </div>
+        <!-- Iframe listo -->
+        <iframe v-else-if="embedUrl"
+          :src="embedUrl"
+          :height="embedHeight"
+          width="100%"
+          frameborder="0"
+          scrolling="no"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+          class="block rounded-xl"
+          style="max-width:100%; overflow:hidden;"
+        ></iframe>
+      </div>
+    </Transition>
 
     <!-- Lista de votos -->
   </div>
@@ -196,7 +257,7 @@
     <div class="p-6 relative max-w-3xl w-full">
       <!-- Se pasa la información del disco -->
       <VotesModal :albumName="name" :artistName="artistName" :votes="votes" :showVotes="showVotes"
-        @close="showVotes = false" />
+        :hasVoted="hasVoted" @close="showVotes = false" />
     </div>
   </div>
 
@@ -225,7 +286,8 @@
   <Teleport to="body">
     <div v-if="showCalendarModal"
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div class="bg-white rounded-xl shadow-xl w-[95vw] max-w-6xl max-h-[90vh] relative overflow-hidden">
+      <div
+        class="bg-white dark:bg-rv-darkBg rounded-xl shadow-xl w-[95vw] max-w-6xl max-h-[90vh] relative overflow-hidden">
         <!-- botón cerrar -->
         <button type="button" @click.stop="showCalendarModal = false" aria-label="Cerrar" title="Cerrar" class="absolute top-2 right-2 z-50
          text-white bg-rv-navy hover:bg-[#e46e8a]
@@ -247,7 +309,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, watchEffect, type PropType } from "vue";
+import { defineComponent, ref, computed, watchEffect, watch, nextTick, onUnmounted, type PropType } from "vue";
+import { obtenerTrackMasPopularAlbum } from "@helpers/SpotifyFunctions";
 import defaultImage from "/src/assets/disco.png";
 import DiscDetail from "./DiscDetail.vue";
 import ArtistDetail from "./ArtistDetail.vue";
@@ -319,6 +382,19 @@ export default defineComponent({
     const userDiscRateId = ref(props.userDiscRate);
     const commentCount = ref(props.commentCount);
     const rateCount = ref(props.rateCount);
+    const localAverageRate = ref<number | null>(props.averageRate ?? null);
+    const localAverageCover = ref<number | null>(props.averageCover ?? null);
+
+    const refreshAverages = async () => {
+      try {
+        const updatedVotes = await getDiscRates(props.id);
+        const rates = updatedVotes.map((v: any) => Number(v.rate)).filter((r: number) => r > 0);
+        const covers = updatedVotes.map((v: any) => Number(v.cover)).filter((c: number) => c > 0);
+        if (rates.length) localAverageRate.value = rates.reduce((a: number, b: number) => a + b, 0) / rates.length;
+        if (covers.length) localAverageCover.value = covers.reduce((a: number, b: number) => a + b, 0) / covers.length;
+        rateCount.value = updatedVotes.length;
+      } catch { /* silently ignore, los valores anteriores se mantienen */ }
+    };
     const formattedDate = computed(() => {
       const date = new Date(props.releaseDate);
       return date.toLocaleDateString("es-ES", {
@@ -375,6 +451,38 @@ export default defineComponent({
 
     const computedImage = computed(() => props.image || defaultImage);
 
+    const platformInfo = computed(() => {
+      const url = props.link || '';
+      if (url.includes('spotify.com'))
+        return { icon: 'fa-brands fa-spotify', bg: 'bg-green-500', label: 'Escuchar en Spotify' };
+      if (url.includes('bandcamp.com'))
+        return { icon: 'fa-brands fa-bandcamp', bg: 'bg-[#1da0c3]', label: 'Escuchar en Bandcamp' };
+      if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('music.youtube.com'))
+        return { icon: 'fa-brands fa-youtube', bg: 'bg-red-500', label: 'Ver en YouTube' };
+      return { icon: 'fa-solid fa-play', bg: 'bg-gray-500', label: 'Escuchar' };
+    });
+
+    const embedUrl = computed(() => {
+      const url = props.link || '';
+      const theme = isDark.value ? 0 : 1;
+      const spotifyMatch = url.match(/spotify\.com\/album\/([a-zA-Z0-9]+)/);
+      if (spotifyMatch) {
+        if (topTrackId.value)
+          return `https://open.spotify.com/embed/track/${topTrackId.value}?utm_source=generator&theme=${theme}`;
+        return `https://open.spotify.com/embed/album/${spotifyMatch[1]}?utm_source=generator&theme=${theme}`;
+      }
+      const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+)/);
+      if (ytMatch)
+        return `https://www.youtube.com/embed/${ytMatch[1]}?controls=1`;
+      return null;
+    });
+
+    const embedHeight = computed(() => {
+      const url = props.link || '';
+      if (url.includes('youtube.com') || url.includes('youtu.be')) return 115;
+      return 80; // track compacto de Spotify
+    });
+
     const openImage = () => {
       const url = computedImage.value;
       if (!url) return;
@@ -382,12 +490,27 @@ export default defineComponent({
     };
     const favoriteId = ref(props.favoriteId);
     const pendingId = ref(props.pendingId);
+    const heartAnimating = ref(false);
+    const bookmarkAnimating = ref(false);
+    const isTogglingHeart = ref(false);
+    const isTogglingBookmark = ref(false);
 
     watchEffect(() => {
       favoriteId.value = props.favoriteId;
     });
 
+    const triggerHeartAnim = () => {
+      heartAnimating.value = true;
+      setTimeout(() => { heartAnimating.value = false; }, 400);
+    };
+    const triggerBookmarkAnim = () => {
+      bookmarkAnimating.value = true;
+      setTimeout(() => { bookmarkAnimating.value = false; }, 400);
+    };
+
     const toggleHeart = async () => {
+      if (isTogglingHeart.value) return;
+      isTogglingHeart.value = true;
       try {
         if (favoriteId.value) {
           await deleteFavoriteService(favoriteId.value);
@@ -398,6 +521,7 @@ export default defineComponent({
           favoriteId.value = favorite.id;
           SwalService.success("Añadido a Favoritos");
         }
+        triggerHeartAnim();
       } catch (error) {
         console.error("Error al cambiar el estado de favorito:", error);
         Swal.fire({
@@ -410,10 +534,14 @@ export default defineComponent({
           showConfirmButton: false,
           toast: true,
         });
+      } finally {
+        isTogglingHeart.value = false;
       }
     };
 
     const toggleBookmark = async () => {
+      if (isTogglingBookmark.value) return;
+      isTogglingBookmark.value = true;
       try {
         if (pendingId.value) {
           await deletePendingService(pendingId.value);
@@ -424,6 +552,7 @@ export default defineComponent({
           pendingId.value = pending.id;
           SwalService.success("Añadido a Pendientes");
         }
+        triggerBookmarkAnim();
       } catch (error) {
         console.error("Error al cambiar el estado de pendiente:", error);
         Swal.fire({
@@ -436,13 +565,13 @@ export default defineComponent({
           showConfirmButton: false,
           toast: true,
         });
+      } finally {
+        isTogglingBookmark.value = false;
       }
     };
 
     const toggleVotes = async () => {
-      console.log("Before toggle:", showVotes.value); // ADD THIS
       showVotes.value = !showVotes.value;
-      console.log("After toggle:", showVotes.value); // ADD THIS
       try {
         if (!showVotes.value) return; // si se está cerrando, no pida nada
         votes.value = await getDiscRates(props.id);
@@ -501,6 +630,11 @@ export default defineComponent({
         if (payload.rate && payload.rate > 0)
           SwalService.successImage(payload.rate);
         else SwalService.success("Votación enviada con éxito");
+        try {
+          await refreshAverages(); // actualiza medias y contador en tiempo real
+        } catch {
+          // el voto ya se guardó; el refresco de medias es no crítico
+        }
       } catch (error) {
         console.error("Error submitting rating:", error);
         Swal.fire({
@@ -544,6 +678,13 @@ export default defineComponent({
     };
 
     const openSpotify = (webLink: string) => {
+      // Modo navegador: abre directamente en web sin diálogos
+      if (spotifyOpenMode.value !== 'app') {
+        window.open(webLink, "_blank", "noopener");
+        return;
+      }
+
+      // Modo app: intenta deep-link a la app de escritorio con fallback a web
       try {
         const kinds = ["album", "track", "artist", "playlist", "episode", "show"];
         for (const kind of kinds) {
@@ -580,6 +721,436 @@ export default defineComponent({
       }
     };
 
+    // --- Reproductor desplegable ---
+    const showPlayer = ref(false);
+    const topTrackId = ref<string | null>(null);
+    const isLoadingTrack = ref(false);
+
+    watch(showPlayer, async (val) => {
+      if (!val || topTrackId.value) return; // cerrado o ya cargado
+      const url = props.link || '';
+      const spotifyMatch = url.match(/spotify\.com\/album\/([a-zA-Z0-9]+)/);
+      if (!spotifyMatch) return; // no es Spotify, no hace falta
+      isLoadingTrack.value = true;
+      topTrackId.value = (await obtenerTrackMasPopularAlbum(spotifyMatch[1])) ?? null;
+      isLoadingTrack.value = false;
+    });
+
+    // Detectar dark mode (clase 'dark' en <html>)
+    const isDark = ref(document.documentElement.classList.contains('dark'));
+    const darkObserver = new MutationObserver(() => {
+      isDark.value = document.documentElement.classList.contains('dark');
+    });
+    darkObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    onUnmounted(() => darkObserver.disconnect());
+
+    // --- No Spoilers ---
+    const noSpoilers = ref(localStorage.getItem('rv_no_spoilers') === 'true');
+    const spoilerMode = computed(() => noSpoilers.value && !hasVoted.value);
+
+    const handleSpoilersChanged = (e: Event) => {
+      noSpoilers.value = (e as CustomEvent).detail;
+    };
+    window.addEventListener('rv-spoilers-changed', handleSpoilersChanged);
+    onUnmounted(() => window.removeEventListener('rv-spoilers-changed', handleSpoilersChanged));
+
+    // --- Spotify open mode ---
+    const spotifyOpenMode = ref<string>(localStorage.getItem('rv_spotify_open_mode') === 'web' ? 'web' : 'app');
+    const handleSpotifyModeChanged = (e: Event) => {
+      spotifyOpenMode.value = (e as CustomEvent).detail;
+    };
+    window.addEventListener('rv-spotify-mode-changed', handleSpotifyModeChanged);
+    onUnmounted(() => window.removeEventListener('rv-spotify-mode-changed', handleSpotifyModeChanged));
+
+    // --- Share as image (Canvas) ---
+    const isCopying = ref(false);
+
+    const riffValleyLogoUrl = "/LOGO-RIFF-VALLEY.svg";
+
+    const flagImageUrl = computed(() => {
+      const iso = props.artistCountry?.isoCode;
+      if (!iso) return "";
+
+      if (iso === "int") return "/int.svg";
+
+      return `https://flagcdn.com/w80/${iso.slice(0, 2).toLowerCase()}.png`;
+    });
+
+    const loadImage = (src: string): Promise<HTMLImageElement | null> => {
+      return new Promise(resolve => {
+        if (!src) {
+          resolve(null);
+          return;
+        }
+
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = src;
+
+        setTimeout(() => resolve(null), 5000);
+      });
+    };
+
+    const rrect = (
+      ctx: CanvasRenderingContext2D,
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      r: number
+    ) => {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    };
+
+    const wrapText = (
+      ctx: CanvasRenderingContext2D,
+      text: string,
+      maxW: number
+    ): string[] => {
+      const words = text.split(" ");
+      const lines: string[] = [];
+      let cur = "";
+
+      for (const word of words) {
+        const test = cur ? `${cur} ${word}` : word;
+
+        if (ctx.measureText(test).width > maxW && cur) {
+          lines.push(cur);
+          cur = word;
+        } else {
+          cur = test;
+        }
+      }
+
+      if (cur) lines.push(cur);
+      return lines;
+    };
+
+    const drawCoverCrop = (
+      ctx: CanvasRenderingContext2D,
+      img: HTMLImageElement,
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      radius = 0
+    ) => {
+      const ratio = img.naturalWidth / img.naturalHeight;
+
+      let sx = 0;
+      let sy = 0;
+      let sw = img.naturalWidth;
+      let sh = img.naturalHeight;
+
+      if (ratio > 1) {
+        sx = (img.naturalWidth - img.naturalHeight) / 2;
+        sw = img.naturalHeight;
+      } else if (ratio < 1) {
+        sy = (img.naturalHeight - img.naturalWidth) / 2;
+        sh = img.naturalWidth;
+      }
+
+      ctx.save();
+
+      if (radius > 0) {
+        rrect(ctx, x, y, w, h, radius);
+        ctx.clip();
+      }
+
+      ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+      ctx.restore();
+    };
+
+    const copyAsImage = async () => {
+      if (isCopying.value) return;
+      isCopying.value = true;
+
+      try {
+        const SIZE = 480;
+        const DPR = 2;
+        const font = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+        const canvas = document.createElement("canvas");
+        canvas.width = SIZE * DPR;
+        canvas.height = SIZE * DPR;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("No canvas context");
+
+        ctx.scale(DPR, DPR);
+
+        const img = await loadImage(computedImage.value);
+
+        ctx.fillStyle = "#00021f";
+        ctx.fillRect(0, 0, SIZE, SIZE);
+
+        if (img) {
+          drawCoverCrop(ctx, img, 0, 0, SIZE, SIZE);
+
+          ctx.fillStyle = "rgba(0, 2, 31, 0.76)";
+          ctx.fillRect(0, 0, SIZE, SIZE);
+
+          const vignette = ctx.createRadialGradient(
+            SIZE / 2, SIZE / 2, 90,
+            SIZE / 2, SIZE / 2, SIZE / 1.05
+          );
+          vignette.addColorStop(0, "rgba(0,2,31,0.05)");
+          vignette.addColorStop(1, "rgba(0,2,31,0.9)");
+          ctx.fillStyle = vignette;
+          ctx.fillRect(0, 0, SIZE, SIZE);
+        }
+
+        // Portada más arriba y algo más pequeña para ganar aire abajo
+        const coverSize = 176;
+        const coverX = (SIZE - coverSize) / 2;
+        const coverY = 34;
+
+        if (img) {
+          ctx.save();
+          ctx.shadowColor = "rgba(0,0,0,0.65)";
+          ctx.shadowBlur = 22;
+          ctx.shadowOffsetY = 10;
+          drawCoverCrop(ctx, img, coverX, coverY, coverSize, coverSize, 16);
+          ctx.restore();
+
+          rrect(ctx, coverX, coverY, coverSize, coverSize, 16);
+          ctx.strokeStyle = "rgba(255,255,255,0.45)";
+          ctx.lineWidth = 1.4;
+          ctx.stroke();
+        }
+
+        const genre = (props.genreName || "Sin género").toUpperCase();
+        const flagImg = await loadImage(flagImageUrl.value);
+
+        // Fila bandera + género
+        const rowY = coverY + coverSize + 16;
+        const badgeH = 22;
+
+        ctx.font = `800 11px ${font}`;
+        const badgeW = ctx.measureText(genre).width + 26;
+
+        const flagW = flagImg ? 30 : 0;
+        const flagH = flagImg ? 22 : 0;
+        const gap = flagImg ? 10 : 0;
+        const rowW = flagW + gap + badgeW;
+
+        let rowX = (SIZE - rowW) / 2;
+
+        // Bandera como imagen real
+        if (flagImg) {
+          ctx.save();
+
+          rrect(ctx, rowX, rowY, flagW, flagH, 8);
+          ctx.clip();
+
+          ctx.drawImage(flagImg, rowX, rowY, flagW, flagH);
+
+          ctx.restore();
+
+          rowX += flagW + gap;
+        }
+
+        // Badge género
+        rrect(ctx, rowX, rowY, badgeW, badgeH, 13);
+        ctx.fillStyle = props.genreColor || "#6b7280";
+        ctx.fill();
+
+        ctx.font = `800 11px ${font}`;
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(genre, rowX + badgeW / 2, rowY + badgeH / 2 + 0.5);
+
+// Bloque central fijo: título + artista + fecha
+ctx.textBaseline = "alphabetic";
+
+const titleBlockTop = rowY + 54;
+const maxTitleWidth = SIZE - 72;
+
+let titleFontSize = 21;
+let titleLines: string[] = [];
+
+ctx.font = `900 ${titleFontSize}px ${font}`;
+titleLines = wrapText(ctx, (props.name || "").toUpperCase(), maxTitleWidth);
+
+if (titleLines.length > 2) {
+  titleLines = titleLines.slice(0, 2);
+
+  while (
+    ctx.measureText(`${titleLines[1]}…`).width > maxTitleWidth &&
+    titleLines[1].length > 4
+  ) {
+    titleLines[1] = titleLines[1].slice(0, -1);
+  }
+
+  titleLines[1] = `${titleLines[1]}…`;
+}
+
+if (titleLines.length === 2) {
+  titleFontSize = 19;
+  ctx.font = `900 ${titleFontSize}px ${font}`;
+}
+
+ctx.fillStyle = "#fff";
+
+let titleY = titleBlockTop;
+const titleLineHeight = titleLines.length === 2 ? 25 : 27;
+
+for (const line of titleLines) {
+  ctx.fillText(line, SIZE / 2, titleY);
+  titleY += titleLineHeight;
+}
+
+// Artista
+ctx.font = `700 15px ${font}`;
+ctx.fillStyle = "rgba(255,255,255,0.82)";
+ctx.fillText(props.artistName || "", SIZE / 2, titleY + 2);
+
+// Fecha
+ctx.font = `600 12px ${font}`;
+ctx.fillStyle = "rgba(255,255,255,0.5)";
+ctx.fillText(formattedDate.value || "", SIZE / 2, titleY + 25);
+
+// Scores
+const scores = [
+  { val: props.averageRate, label: "DISCO" },
+  { val: props.averageCover, label: "PORTADA" },
+].filter(score => typeof score.val === "number");
+
+const scoreY = 408;
+
+// Divisor horizontal encima de las notas
+const dividerY = scoreY - 40;
+ctx.beginPath();
+ctx.moveTo(SIZE * 0.1, dividerY);
+ctx.lineTo(SIZE * 0.9, dividerY);
+ctx.strokeStyle = "rgba(255,255,255,0.18)";
+ctx.lineWidth = 1;
+ctx.stroke();
+
+if (scores.length >= 2) {
+  const leftX = SIZE / 2 - 72;
+  const rightX = SIZE / 2 + 72;
+
+  ctx.font = `900 33px ${font}`;
+  ctx.fillStyle = "#fff";
+  ctx.fillText(scores[0].val!.toFixed(2), leftX, scoreY);
+  ctx.fillText(scores[1].val!.toFixed(2), rightX, scoreY);
+
+  ctx.font = `800 10px ${font}`;
+  ctx.fillStyle = "rgba(255,255,255,0.62)";
+  ctx.fillText(scores[0].label, leftX, scoreY + 22);
+  ctx.fillText(scores[1].label, rightX, scoreY + 22);
+
+  // Divisor vertical entre las dos notas
+  ctx.beginPath();
+  ctx.moveTo(SIZE / 2, scoreY - 26);
+  ctx.lineTo(SIZE / 2, scoreY + 24);
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+if (scores.length === 1) {
+  ctx.font = `900 33px ${font}`;
+  ctx.fillStyle = "#fff";
+  ctx.fillText(scores[0].val!.toFixed(2), SIZE / 2, scoreY);
+
+  ctx.font = `800 10px ${font}`;
+  ctx.fillStyle = "rgba(255,255,255,0.62)";
+  ctx.fillText(scores[0].label, SIZE / 2, scoreY + 22);
+}
+
+// Footer Riff Valley — logo con aspect ratio real + URL, centrados juntos
+const rvLogo = await loadImage(riffValleyLogoUrl);
+
+const footerCenterY = SIZE - 20;
+const logoTargetH = 20;
+
+ctx.font = `500 12px ${font}`;
+const urlText = "app.riffvalley.es";
+const urlW = ctx.measureText(urlText).width;
+
+if (rvLogo && rvLogo.naturalHeight > 0) {
+  const aspect = rvLogo.naturalWidth / rvLogo.naturalHeight;
+  const logoRenderW = Math.round(logoTargetH * aspect);
+  const gap = 5;
+
+  const totalW = logoRenderW + gap + urlW;
+  const startX = (SIZE - totalW) / 2;
+
+  ctx.drawImage(rvLogo, startX, footerCenterY - logoTargetH / 2, logoRenderW, logoTargetH);
+
+  ctx.fillStyle = "rgba(255,255,255,0.58)";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(urlText, startX + logoRenderW + gap, footerCenterY);
+} else {
+  // Fallback sin logo
+  ctx.fillStyle = "rgba(255,255,255,0.58)";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(urlText, SIZE / 2, footerCenterY);
+}
+
+ctx.textAlign = "center";
+ctx.textBaseline = "alphabetic";
+
+        await new Promise<void>((resolve, reject) => {
+          canvas.toBlob(async blob => {
+            if (!blob) {
+              reject(new Error("No se pudo generar la imagen"));
+              return;
+            }
+
+            try {
+              await navigator.clipboard.write([
+                new ClipboardItem({ "image/png": blob }),
+              ]);
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          }, "image/png");
+        });
+
+        Swal.fire({
+          icon: "success",
+          title: "¡Imagen copiada!",
+          text: "Pégala en cualquier chat",
+          timer: 2000,
+          showConfirmButton: false,
+          toast: true,
+          position: "top-end",
+        });
+      } catch (error) {
+        console.error("Error al copiar imagen:", error);
+
+        Swal.fire({
+          icon: "error",
+          title: "No se pudo copiar",
+          timer: 2500,
+          showConfirmButton: false,
+          toast: true,
+          position: "top-end",
+        });
+      } finally {
+        isCopying.value = false;
+      }
+    };
+
     const discData = computed(() => ({
       id: props.id,
       name: props.name,
@@ -595,6 +1166,7 @@ export default defineComponent({
       localRating,
       formattedDate,
       computedImage,
+      platformInfo,
       showVotes,
       toggleVotes,
       votes,
@@ -606,6 +1178,10 @@ export default defineComponent({
       toggleBookmark,
       favoriteId,
       pendingId,
+      heartAnimating,
+      bookmarkAnimating,
+      isTogglingHeart,
+      isTogglingBookmark,
       openDiscDetail,
       closeDiscDetail,
       showDiscDetail,
@@ -618,6 +1194,8 @@ export default defineComponent({
       closeComentsModal,
       commentCount,
       rateCount,
+      localAverageRate,
+      localAverageCover,
       openSpotify,
       openPlatformLink,
       isSubmittingRating,
@@ -628,6 +1206,16 @@ export default defineComponent({
       canModerate,
       showCalendarModal,
       openCalendarModal,
+      isCopying,
+      flagImageUrl,
+      copyAsImage,
+      riffValleyLogoUrl,
+      embedUrl,
+      embedHeight,
+      showPlayer,
+      topTrackId,
+      isLoadingTrack,
+      spoilerMode,
     };
   },
 });
@@ -638,7 +1226,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   background-color: white;
-  border: 1px solid #e5e7eb;
+  border: 2px solid #e5e7eb;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 0.5rem;
@@ -674,5 +1262,44 @@ export default defineComponent({
 .card button {
   height: 2rem;
   font-size: 0.75rem;
+}
+
+:global(.dark) input[type="number"] {
+  color-scheme: dark;
+}
+
+/* ── Animación corazón ─────────────────── */
+@keyframes heartPop {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.55); }
+  55%  { transform: scale(0.88); }
+  75%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.anim-heart-pop {
+  animation: heartPop 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+}
+
+/* ── Animación bookmark ────────────────── */
+@keyframes bookmarkDrop {
+  0%   { transform: translateY(-5px) scale(1.2); }
+  50%  { transform: translateY(3px) scale(0.92); }
+  75%  { transform: translateY(-2px) scale(1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
+.anim-bookmark-drop {
+  animation: bookmarkDrop 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+}
+
+.player-slide-enter-active,
+.player-slide-leave-active {
+  transition: max-height 0.3s ease, opacity 0.25s ease;
+  max-height: 130px;
+  overflow: hidden;
+}
+.player-slide-enter-from,
+.player-slide-leave-to {
+  max-height: 0;
+  opacity: 0;
 }
 </style>

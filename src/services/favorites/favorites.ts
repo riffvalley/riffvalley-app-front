@@ -7,7 +7,6 @@ export async function postFavoriteService(payload: any): Promise<void> {
 
 
 export async function deleteFavoriteService(id: string): Promise<void> {
-  console.log(`Deleting disc with id: ${id}`);
   await api.delete(`/favorites/${id}`);
 }
 

@@ -91,3 +91,87 @@ div.circle-flags {
   height: 25px;
   width: 25px;
 }
+
+/* ── RV Toast ───────────────────────────────────────────────── */
+.rv-toast.swal2-popup {
+  border-radius: 14px !important;
+  padding: 13px 16px !important;
+  border-left: 4px solid #e46e8a !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06) !important;
+  background: #ffffff !important;
+  min-width: 270px !important;
+  max-width: 360px !important;
+}
+.dark .rv-toast.swal2-popup {
+  background: #16112a !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.25) !important;
+}
+.rv-toast-error.swal2-popup {
+  border-left-color: #ef4444 !important;
+}
+.rv-toast .swal2-timer-progress-bar {
+  background: #e46e8a !important;
+  opacity: 0.7;
+}
+.rv-toast-error .swal2-timer-progress-bar {
+  background: #ef4444 !important;
+  opacity: 0.7;
+}
+.rv-toast .swal2-html-container {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ── RV Confirm dialog ──────────────────────────────────────── */
+.rv-confirm.swal2-popup {
+  border-radius: 18px !important;
+  padding: 32px 28px 24px !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.10) !important;
+  min-width: 320px !important;
+  max-width: 420px !important;
+}
+.rv-confirm-icon.swal2-icon {
+  border: none !important;
+  margin: 0 auto 16px !important;
+  width: auto !important;
+  height: auto !important;
+}
+.rv-confirm-icon.swal2-icon .swal2-icon-content {
+  font-size: unset !important;
+}
+.rv-confirm-title.swal2-title {
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  padding: 0 0 6px !important;
+  margin: 0 !important;
+}
+.rv-confirm-text.swal2-html-container {
+  font-size: 0.875rem !important;
+  opacity: 0.75;
+  margin: 0 0 20px !important;
+  padding: 0 !important;
+}
+.rv-confirm-btn-confirm {
+  background: linear-gradient(135deg, #e46e8a, #b0669f) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 999px !important;
+  padding: 9px 24px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: opacity 0.2s !important;
+}
+.rv-confirm-btn-confirm:hover { opacity: 0.88 !important; }
+.rv-confirm-btn-cancel {
+  background: transparent !important;
+  color: inherit !important;
+  border: 1.5px solid rgba(128,128,128,0.35) !important;
+  border-radius: 999px !important;
+  padding: 9px 24px !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: border-color 0.2s, opacity 0.2s !important;
+}
+.rv-confirm-btn-cancel:hover { border-color: rgba(128,128,128,0.6) !important; }

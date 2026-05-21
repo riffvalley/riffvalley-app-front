@@ -15,117 +15,127 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/disc-list",
     name: "DiscList",
-    component: () => import("/src/views/discsList/DiscList.vue"),
+    component: () => import("@views/discsList/DiscList.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/statistics",
     name: "Statistics",
-    component: () => import("/src/views/statistics/Statistics.vue"),
+    component: () => import("@views/statistics/Statistics.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/calendar",
     name: "Calendar",
-    component: () => import("/src/views/discsCalendar/DiscCalendar.vue"),
-    meta: { requiresAuth: true, requiresRole: "user" }, // o sin "requiredRole" si quieres que otros lo vean también
+    component: () => import("@views/discsCalendar/DiscCalendar.vue"),
+    meta: { requiresAuth: true, requiresRole: "user" },
   },
   {
     path: "/calendar-baby",
     name: "CalendarBaby",
-    component: () =>
-      import("/src/views/discsCalendarBaby/DiscCalendarBaby.vue"),
+    component: () => import("@views/discsCalendarBaby/DiscCalendarBaby.vue"),
     meta: { requiresAuth: true, requiresRole: "babyUser" },
   },
   {
     path: "/import",
     name: "Import",
-    component: () => import("/src/views/importPage/ImportPage.vue"),
+    component: () => import("@views/importPage/ImportPage.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/suggest",
     name: "Suggest",
-    component: () => import("/src/views/importPage/SuggestPage.vue"),
+    component: () => import("@views/importPage/SuggestPage.vue"),
     meta: { requiresAuth: true, requiresRole: "babyUser" },
   },
   {
     path: "/petitions",
     name: "Petitions",
-    component: () => import("@/views/petitions/PetitionsPage.vue"),
-    meta: { requiresAuth: true, requiresRole: "user" },
+    component: () => import("@views/petitions/PetitionsPage.vue"),
+    meta: { requiresAuth: true, requiresRole: "riffValley" },
+  },
+  {
+    path: "/suggestions",
+    name: "Suggestions",
+    component: () => import("@views/suggestions/SuggestionsPage.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/suggestions/management",
+    name: "SuggestionsManagement",
+    component: () => import("@views/suggestions/SuggestionsManagement.vue"),
+    meta: { requiresAuth: true, requiresRole: "superUser" },
   },
   {
     path: "/recap",
     name: "Recap",
-    component: () => import("/src/views/weekRecap/WeekRecap.vue"),
+    component: () => import("@views/weekRecap/WeekRecap.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/content-calendar",
     name: "ContentCalendar",
-    component: () => import("/src/views/contentCalendar/ContentCalendar.vue"),
+    component: () => import("@views/contentCalendar/ContentCalendar.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/articles",
     name: "Articles",
-    component: () => import("/src/views/articles/ArticlesKanban.vue"),
+    component: () => import("@views/articles/ArticlesKanban.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/import-discs",
     name: "ImportDiscs",
-    component: () => import("/src/views/importPage/ImportDiscs.vue"),
+    component: () => import("@views/importPage/ImportDiscs.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/password",
     name: "Password",
-    component: () => import("/src/views/password/PasswordChange.vue"),
+    component: () => import("@views/password/PasswordChange.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/users",
     name: "Users",
-    component: () => import("/src/views/users/ManageUsers.vue"),
+    component: () => import("@views/users/ManageUsers.vue"),
     meta: { requiresAuth: true, requiresRole: "superUser" },
   },
   {
     path: "/users/stats",
     name: "UserStats",
-    component: () => import("/src/views/users/AdminStats.vue"),
+    component: () => import("@views/users/AdminStats.vue"),
     meta: { requiresAuth: true, requiresRole: "superUser" },
   },
   {
     path: "/users/activity",
     name: "UserActivity",
-    component: () => import("/src/views/users/UserActivity.vue"),
+    component: () => import("@views/users/UserActivity.vue"),
     meta: { requiresAuth: true, requiresRole: "superUser" },
   },
   {
     path: "/news",
     name: "News",
-    component: () => import("/src/views/news/ManageNews.vue"),
+    component: () => import("@views/news/ManageNews.vue"),
     meta: { requiresAuth: true, requiresRole: "superUser" },
   },
   {
     path: "/versions",
-    name: "versions-admin",   // 👈 cambia aquí
-    component: () => import("/src/views/versions/ManageVersions.vue"),
+    name: "versions-admin",
+    component: () => import("@views/versions/ManageVersions.vue"),
     meta: { requiresAuth: true, requiresRole: "superUser" },
   },
   {
-    path: '/versions/kanban',
-    name: 'versions-kanban',
-    component: () => import("/src/views/versions/VersionKanban.vue"),
+    path: "/versions/kanban",
+    name: "versions-kanban",
+    component: () => import("@views/versions/VersionKanban.vue"),
     meta: { requiresAuth: true, requiresRole: "superUser" },
   },
-
   {
     path: "/list",
     name: "List",
-    component: () => import("/src/layouts/list/ListLayout.vue"),
+    component: () => import("@/layouts/list/ListLayout.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
     children: [
       {
@@ -136,21 +146,21 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: "lists",
         name: "ListsList",
-        component: () => import("/src/views/list/ListsList.vue"),
+        component: () => import("@views/list/ListsList.vue"),
         meta: { requiresAuth: true, requiresRole: "riffValley" },
         props: true,
       },
       {
         path: "edit/:id",
         name: "EditList",
-        component: () => import("/src/views/list/EditList.vue"),
+        component: () => import("@views/list/EditList.vue"),
         meta: { requiresAuth: true, requiresRole: "riffValley" },
         props: true,
       },
       {
         path: "create",
         name: "CreateList",
-        component: () => import("/src/views/list/CreateList.vue"),
+        component: () => import("@views/list/CreateList.vue"),
         meta: { requiresAuth: true, requiresRole: "riffValley" },
       },
     ],
@@ -158,7 +168,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/reunions",
     name: "Reunions",
-    component: () => import("/src/layouts/reunions/ReunionLayout.vue"),
+    component: () => import("@/layouts/reunions/ReunionLayout.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
     children: [
       {
@@ -169,14 +179,14 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: "list",
         name: "ReunionsList",
-        component: () => import("/src/views/reunions/ListReunion.vue"),
+        component: () => import("@views/reunions/ListReunion.vue"),
         meta: { requiresAuth: true, requiresRole: "riffValley" },
         props: true,
       },
       {
         path: ":id",
         name: "EditReunion",
-        component: () => import("/src/views/reunions/EditReunion.vue"),
+        component: () => import("@views/reunions/EditReunion.vue"),
         meta: { requiresAuth: true, requiresRole: "riffValley" },
         props: true,
       },
@@ -190,7 +200,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/how-to-use",
     name: "HowToUse",
-    component: () => import("/src/views/help/HowToUse.vue"),
+    component: () => import("@views/help/HowToUse.vue"),
     meta: { requiresAuth: true },
   },
   {
@@ -201,78 +211,88 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/spotify/festivales",
     name: "SpotifyFestivales",
-    component: () => import("/src/views/spotify/SpotifyFestivalsKanban.vue"),
+    component: () => import("@views/spotify/SpotifyFestivalsKanban.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/spotify/generos",
     name: "SpotifyGeneros",
-    component: () => import("/src/views/spotify/SpotifyGenresKanban.vue"),
+    component: () => import("@views/spotify/SpotifyGenresKanban.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/patch-notes",
     name: "PatchNotes",
-    component: () => import("/src/views/patch-notes/PatchNotes.vue"),
+    component: () => import("@views/patch-notes/PatchNotes.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/discos/radar",
     name: "RadarNovedades",
-    component: () => import("/src/views/discos/RadarNovedades.vue"),
+    component: () => import("@views/discos/RadarNovedades.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/discos/radar/:id",
     name: "RadarDetalle",
-    component: () => import("/src/views/discos/RadarDetalle.vue"),
+    component: () => import("@views/discos/RadarDetalle.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/discos/mejores",
     name: "MejoresDiscos",
-    component: () => import("/src/views/discos/MejoresDiscos.vue"),
+    component: () => import("@views/discos/MejoresDiscos.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/discos/mejores/:id",
     name: "MejoresDetalle",
-    component: () => import("/src/views/discos/MejoresDetalle.vue"),
+    component: () => import("@views/discos/MejoresDetalle.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/videos",
     name: "Videos",
-    component: () => import("/src/views/videos/VideosKanban.vue"),
+    component: () => import("@views/videos/VideosKanban.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/videos/list/:id",
     name: "VideoListDetalle",
-    component: () => import("/src/views/videos/VideoListDetalle.vue"),
+    component: () => import("@views/videos/VideoListDetalle.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
     props: true,
   },
   {
+    path: "/artists",
+    name: "ArtistManagement",
+    component: () => import("@views/artists/ArtistManagement.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/national-releases/form",
     name: "NationalReleasePublic",
-    component: () => import("/src/views/nationalReleases/NationalReleaseForm.vue"),
+    component: () => import("@views/nationalReleases/NationalReleaseForm.vue"),
     meta: { requiresAuth: false },
   },
   {
     path: "/national-releases",
     name: "NationalReleasesAdmin",
-    component: () => import("/src/views/nationalReleases/NationalReleasesAdmin.vue"),
+    component: () => import("@views/nationalReleases/NationalReleasesAdmin.vue"),
+    meta: { requiresAuth: true, requiresRole: "riffValley" },
+  },
+  {
+    path: "/disc-list-error",
+    name: "DiscListError",
+    component: () => import("@views/discsList/DiscListError.vue"),
     meta: { requiresAuth: true, requiresRole: "riffValley" },
   },
   {
     path: "/maintenance",
     name: "Maintenance",
-    component: () => import("/src/views/maintenance/MaintenancePage.vue"),
+    component: () => import("@views/maintenance/MaintenancePage.vue"),
     meta: { requiresAuth: false },
   },
-
-
 ];
 
 const router = createRouter({
@@ -283,20 +303,13 @@ const router = createRouter({
 router.beforeEach((to) => {
   const authStore = useAuthStore();
 
-  // 1. Lógica de Mantenimiento
-  // Puedes activar esto con la variable de entorno VITE_MAINTENANCE_MODE=true
-  // O descomentar la verificación por hostname si prefieres esa lógica específica
-  // const isProdUrl = window.location.hostname === 'spammusic.netlify.app';
-  console.log('MAINTENANCE_MODE:', import.meta.env.VITE_MAINTENANCE_MODE);
-  const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true'; // || isProdUrl;
+  const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
 
   if (isMaintenance) {
-    // Si estamos en mantenimiento, permitir solo acceso a la página de mantenimiento
     if (to.name !== 'Maintenance') {
       return { name: "Maintenance" };
     }
   } else {
-    // Si NO estamos en mantenimiento, redirigir fuera de la página de mantenimiento si intentan acceder
     if (to.name === 'Maintenance') {
       return { name: "Home" };
     }

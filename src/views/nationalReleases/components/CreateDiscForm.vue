@@ -3,33 +3,33 @@
 
     <!-- Nombre del disco -->
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+      <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
         Nombre del disco <span class="text-rv-pink">*</span>
       </label>
       <input
         v-model="form.discName"
         type="text"
         required
-        class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
+        class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
       />
     </div>
 
     <!-- Artista -->
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+      <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
         Artista <span class="text-rv-pink">*</span>
       </label>
       <input
         v-model="form.artistName"
         type="text"
         required
-        class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
+        class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
       />
     </div>
 
     <!-- Género -->
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+      <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
         Género <span class="text-rv-pink">*</span>
       </label>
       <SearchableSelect
@@ -42,27 +42,27 @@
         :max="150"
         :menuZIndex="200000"
       />
-      <p class="text-xs text-gray-400 mt-1">
-        <i class="fas fa-tag mr-1"></i>Género del lanzamiento: <span class="font-medium text-gray-500">{{ release.genre }}</span>
+      <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+        <i class="fas fa-tag mr-1"></i>Género del lanzamiento: <span class="font-medium text-gray-500 dark:text-gray-400">{{ release.genre }}</span>
       </p>
     </div>
 
     <!-- Fecha de lanzamiento -->
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+      <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
         Fecha de lanzamiento <span class="text-rv-pink">*</span>
       </label>
       <input
         v-model="form.releaseDate"
         type="date"
         required
-        class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
+        class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink [color-scheme:dark]"
       />
     </div>
 
     <!-- Enlace -->
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+      <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
         Enlace <span class="text-rv-pink">*</span>
       </label>
       <input
@@ -70,23 +70,23 @@
         type="url"
         required
         placeholder="https://..."
-        class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
+        class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
       />
     </div>
 
     <!-- Imagen -->
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+      <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
         Imagen (URL)
       </label>
       <input
         v-model="form.image"
         type="url"
         placeholder="https://..."
-        class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
+        class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink"
       />
       <div v-if="form.image" class="mt-2">
-        <img :src="form.image" class="w-16 h-16 rounded-lg object-cover border border-gray-200" @error="form.image = ''" />
+        <img :src="form.image" class="w-16 h-16 rounded-lg object-cover border border-gray-200 dark:border-white/10" @error="form.image = ''" />
       </div>
     </div>
 
@@ -94,11 +94,11 @@
     <div class="flex gap-6">
       <label class="flex items-center gap-2 cursor-pointer select-none">
         <input v-model="form.ep" type="checkbox" class="w-4 h-4 rounded border-gray-300 text-rv-pink focus:ring-rv-pink" />
-        <span class="text-sm font-medium text-gray-700">EP</span>
+        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">EP</span>
       </label>
       <label class="flex items-center gap-2 cursor-pointer select-none">
         <input v-model="form.debut" type="checkbox" class="w-4 h-4 rounded border-gray-300 text-rv-pink focus:ring-rv-pink" />
-        <span class="text-sm font-medium text-gray-700">Debut</span>
+        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Debut</span>
       </label>
     </div>
 
@@ -110,7 +110,7 @@
       <button
         type="button"
         @click="$emit('cancel')"
-        class="px-4 py-2 rounded-xl text-sm text-gray-500 hover:bg-gray-100 transition-colors"
+        class="px-4 py-2 rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-rv-darkSurface transition-colors"
       >
         {{ cancelLabel }}
       </button>

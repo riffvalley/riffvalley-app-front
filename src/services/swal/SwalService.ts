@@ -16,15 +16,24 @@ export default {
   success(
     message: string = "Operación realizada con éxito"
   ): Promise<SweetAlertResult<any>> {
+    const isDark = document.documentElement.classList.contains("dark");
+    const textColor = isDark ? "#e2e8f0" : "#16112a";
     return Swal.fire({
-      title: "¡Éxito!",
-      text: message,
-      icon: "success",
+      html: `
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="flex-shrink:0;width:34px;height:34px;border-radius:50%;
+            background:linear-gradient(135deg,#e46e8a,#b0669f);
+            display:flex;align-items:center;justify-content:center;">
+            <i class="fa-solid fa-check" style="color:white;font-size:13px;"></i>
+          </div>
+          <span style="font-size:13px;font-weight:500;color:${textColor};line-height:1.4;">${message}</span>
+        </div>`,
       position: "top-end",
       timer: 3000,
       timerProgressBar: true,
       showConfirmButton: false,
       toast: true,
+      customClass: { popup: "rv-toast" },
     });
   },
 
@@ -35,36 +44,63 @@ export default {
   error(
     message: string = "Ha ocurrido un error"
   ): Promise<SweetAlertResult<any>> {
+    const isDark = document.documentElement.classList.contains("dark");
+    const textColor = isDark ? "#e2e8f0" : "#16112a";
     return Swal.fire({
-      title: "Error",
-      text: message,
-      icon: "error",
+      html: `
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="flex-shrink:0;width:34px;height:34px;border-radius:50%;
+            background:linear-gradient(135deg,#ef4444,#dc2626);
+            display:flex;align-items:center;justify-content:center;">
+            <i class="fa-solid fa-xmark" style="color:white;font-size:13px;"></i>
+          </div>
+          <span style="font-size:13px;font-weight:500;color:${textColor};line-height:1.4;">${message}</span>
+        </div>`,
       position: "top-end",
       timer: 4000,
       timerProgressBar: true,
       showConfirmButton: false,
       toast: true,
+      customClass: { popup: "rv-toast rv-toast-error" },
     });
   },
 
   /**
-   * Muestra un diálogo de confirmación.
+   * Muestra un diálogo de confirmación con estilo de marca RV.
    * @param title Título del diálogo.
-   * @param text Texto del diálogo.
-   * @param icon Icono a mostrar.
+   * @param text Texto del diálogo (opcional).
+   * @param confirmButtonText Texto del botón de confirmar.
+   * @param cancelButtonText Texto del botón de cancelar.
    */
   confirm(
     title: string = "¿Estás seguro?",
     text: string = "",
-    icon: "warning" | "info" | "question" = "warning"
+    confirmButtonText: string = "Confirmar",
+    cancelButtonText: string = "Cancelar"
   ): Promise<SweetAlertResult<any>> {
+    const isDark = document.documentElement.classList.contains("dark");
     return Swal.fire({
       title,
-      text,
-      icon,
+      text: text || undefined,
+      iconHtml: `<div style="width:52px;height:52px;border-radius:50%;
+        background:linear-gradient(135deg,#e46e8a,#b0669f);
+        display:flex;align-items:center;justify-content:center;margin:0 auto;">
+        <i class="fa-solid fa-triangle-exclamation" style="color:white;font-size:22px;"></i>
+      </div>`,
+      customClass: {
+        popup: "rv-confirm",
+        icon: "rv-confirm-icon",
+        title: "rv-confirm-title",
+        htmlContainer: "rv-confirm-text",
+        confirmButton: "rv-confirm-btn-confirm",
+        cancelButton: "rv-confirm-btn-cancel",
+      },
       showCancelButton: true,
-      confirmButtonText: "Sí",
-      cancelButtonText: "Cancelar",
+      confirmButtonText,
+      cancelButtonText,
+      buttonsStyling: false,
+      background: isDark ? "#16112a" : "#ffffff",
+      color: isDark ? "#e2e8f0" : "#16112a",
     });
   },
 
@@ -78,25 +114,29 @@ export default {
 
     // Obtener una imagen aleatoria de la carpeta correspondiente
     const imagePath = await this.getRandomImagePath(roundedCategory);
-    console.log("imagePath", imagePath)
     // Obtener título y mensaje aleatorio desde el JSON
     const { title, message } = this.getRandomMessage(roundedCategory);
 
+    const isDark = document.documentElement.classList.contains("dark");
+    const titleColor = isDark ? "#f1f5f9" : "#16112a";
+    const textColor  = isDark ? "#94a3b8" : "#64748b";
+
     return Swal.fire({
       html: `
-              <div class="flex items-center">
-                <img src="${imagePath}" alt="Imagen" class="w-24 h-24 mr-4">
-                <div>
-                  <h2 class="text-lg font-bold text-gray-800">${title}</h2>
-                  <p class="text-base text-gray-600">${message}</p>
-                </div>
-              </div>
-      `,
+        <div style="display:flex;align-items:center;gap:12px;">
+          <img src="${imagePath}" alt=""
+            style="width:72px;height:72px;object-fit:cover;border-radius:10px;flex-shrink:0;">
+          <div style="text-align:left;">
+            <p style="margin:0 0 3px;font-size:13px;font-weight:700;color:${titleColor};line-height:1.3;">${title}</p>
+            <p style="margin:0;font-size:12px;color:${textColor};line-height:1.4;">${message}</p>
+          </div>
+        </div>`,
       position: "top-end",
       timer: 5000,
       timerProgressBar: true,
       showConfirmButton: false,
       toast: true,
+      customClass: { popup: "rv-toast" },
     });
   },
 
@@ -107,7 +147,6 @@ export default {
    */
   async getRandomImagePath(category: number): Promise<string> {
     const basePath = `/votaciones/${category}/`; // Funciona en Vite y Netlify
-    console.log(import.meta.env.BASE_URL)
     const images = {
       1: ["brrrr.gif"],
       2: ["furiouskirby.gif"],

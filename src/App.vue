@@ -16,11 +16,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, watch } from "vue";
+import { defineComponent, ref, computed, watch, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import DefaultLayout from "./layouts/default/DefaultLayout.vue";
 import LoginLayout from "./layouts/auth/LoginLayout.vue";
 import SidebarMenu from "@/layouts/default/components/SidebarMenu.vue";
+import { useCatalogStore } from "@stores/catalog/catalog";
 
 export default defineComponent({
   name: "App",
@@ -30,17 +31,20 @@ export default defineComponent({
   setup() {
     const menuVisible = ref(false);
     const route = useRoute();
+    const catalogStore = useCatalogStore();
+
+    onMounted(() => {
+      catalogStore.fetchCatalog();
+    });
 
     const closeMenuHandler = () => {
-      console.log("✅ `closeMenuHandler()` ejecutado en App.vue");
       menuVisible.value = false;
     };
 
     // Detectar si estamos en la página de login o mantenimiento (para ocultar sidebar)
-    const isLoginPage = computed(() => ["Login", "Maintenance"].includes(route.name as string));
+    const isLoginPage = computed(() => ["Login", "Maintenance", "NationalReleasePublic"].includes(route.name as string));
 
     watch(route, () => {
-      console.log("🔄 Cambio de ruta detectado, cerrando menú...");
       menuVisible.value = false;
     });
 
@@ -73,7 +77,7 @@ export default defineComponent({
       closeMenuHandler,
       isLoginPage, // ✅ Nueva variable reactiva para detectar login
       layoutComponent: computed(() => {
-        return ["Login", "Maintenance"].includes(route.name as string) ? LoginLayout : DefaultLayout;
+        return ["Login", "Maintenance", "NationalReleasePublic"].includes(route.name as string) ? LoginLayout : DefaultLayout;
       }),
     };
   },

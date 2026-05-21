@@ -13,11 +13,14 @@
     /* Alias */
     "baseUrl": ".",
     "paths": {
+      "@/*": ["src/*"],
       "@stores/*": ["src/stores/*"],
       "@views/*": ["src/views/*"],
       "@components/*": ["src/components/*"],
       "@services/*": ["src/services/*"],
-      "@interfaces/*": ["src/interfaces/*"]
+      "@interfaces/*": ["src/interfaces/*"],
+      "@helpers/*": ["src/helpers/*"],
+      "@assets/*": ["src/helpers/*"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]

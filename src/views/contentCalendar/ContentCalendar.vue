@@ -1,44 +1,63 @@
 <template>
-    <div class="flex h-screen overflow-hidden bg-gray-50">
-        <!-- Backlog Panel Component -->
-        <BacklogPanel :backlog-items="backlogItems" :show-only-my-events="showOnlyMyEvents" :user-id="authStore.userId"
-            @create-new="showCreateModal = true" @edit-content="openEditModal" @delete-content="handleDeleteFromBacklog"
-            ref="backlogPanelRef" />
+    <div class="relative flex h-screen overflow-hidden bg-gray-50 dark:bg-rv-darkBg">
+        <!-- Overlay móvil al abrir el backlog -->
+        <div v-if="showBacklog" class="fixed inset-0 bg-black/50 z-20 lg:hidden" @click="showBacklog = false" />
+
+        <!-- Backlog Panel -->
+        <transition name="backlog-slide" @after-enter="updateCalendarSize" @after-leave="updateCalendarSize">
+            <div v-if="showBacklog" class="fixed lg:relative inset-y-0 left-0 z-30 lg:z-auto shrink-0">
+                <BacklogPanel :backlog-items="backlogItems" :show-only-my-events="showOnlyMyEvents" :user-id="authStore.userId"
+                    @create-new="showCreateModal = true" @edit-content="openEditModal" @delete-content="handleDeleteFromBacklog"
+                    @close="showBacklog = false"
+                    ref="backlogPanelRef" />
+            </div>
+        </transition>
 
         <!-- Calendar Panel -->
-        <div class="flex-1 flex flex-col overflow-hidden">
-            <div class="p-4 bg-white border-b border-gray-200 flex justify-between items-center">
-                <h1 class="text-xl font-bold text-gray-900">Calendario de Eventos</h1>
-                <div class="flex gap-2">
+        <div class="flex-1 flex flex-col overflow-hidden min-w-0">
+            <div class="px-5 py-3 bg-white dark:bg-rv-darkCard border-b border-gray-100 dark:border-white/10 flex justify-between items-center gap-3">
+                <h1 class="text-lg font-extrabold tracking-tight text-rv-navy dark:text-white flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-days text-rv-purple text-base"></i>
+                    Calendario RV
+                </h1>
+                <div class="flex items-center gap-2">
                     <!-- Botón de filtro de usuario -->
                     <button v-if="authStore.userId" @click="toggleMyEventsFilter"
                         class="relative transition-all duration-300"
-                        :class="showOnlyMyEvents ? '' : 'opacity-60 grayscale'"
+                        :class="showOnlyMyEvents ? '' : 'opacity-50 grayscale'"
                         :title="showOnlyMyEvents ? 'Mostrar todos los eventos' : 'Mostrar solo mis eventos'">
-                        <div class="relative">
-                            <img v-if="authStore.image" :src="authStore.image" :alt="authStore.username || 'Usuario'"
-                                class="w-10 h-10 rounded-full object-cover transition-all"
-                                :class="showOnlyMyEvents ? 'ring-4 ring-indigo-600 ring-offset-2' : ''" />
-                            <div v-else
-                                class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg"
-                                :class="showOnlyMyEvents ? 'ring-4 ring-indigo-600 ring-offset-2' : ''">
-                                {{ authStore.username?.charAt(0).toUpperCase() }}
-                            </div>
+                        <img v-if="authStore.image" :src="authStore.image" :alt="authStore.username || 'Usuario'"
+                            class="w-9 h-9 rounded-full object-cover transition-all"
+                            :class="showOnlyMyEvents ? 'ring-2 ring-rv-pink ring-offset-2' : ''" />
+                        <div v-else
+                            class="w-9 h-9 rounded-full bg-rv-purple flex items-center justify-center text-white font-bold text-base"
+                            :class="showOnlyMyEvents ? 'ring-2 ring-rv-pink ring-offset-2' : ''">
+                            {{ authStore.username?.charAt(0).toUpperCase() }}
                         </div>
                     </button>
 
                     <!-- Botón de leyenda -->
                     <button @click="showLegendModal = true"
-                        class="w-10 h-10 rounded-full bg-indigo-100 hover:bg-indigo-200 text-indigo-600 font-bold text-lg transition-colors flex items-center justify-center"
+                        class="w-9 h-9 rounded-full border border-gray-200 dark:border-white/15 bg-transparent hover:bg-rv-purple dark:hover:bg-rv-purple text-rv-navy dark:text-white hover:text-white hover:border-rv-purple font-bold text-sm transition-all flex items-center justify-center"
                         title="Ver leyenda de colores">
-                        ?
+                        <i class="fa-solid fa-circle-info text-sm"></i>
                     </button>
                 </div>
             </div>
 
-            <div class="flex-1 overflow-auto p-4">
-                <div class="bg-white rounded-lg shadow-lg p-4">
-                    <FullCalendar :options="calendarOptions" ref="calendarRef" />
+            <div class="flex flex-1 overflow-hidden">
+                <!-- Tab para abrir el backlog cuando está cerrado -->
+                <div v-if="!showBacklog"
+                     @click="showBacklog = true"
+                     class="shrink-0 w-8 flex items-center justify-center bg-rv-pink/10 hover:bg-rv-pink dark:bg-rv-pink/10 dark:hover:bg-rv-pink cursor-pointer transition-all group"
+                     title="Mostrar backlog">
+                    <i class="fa-solid fa-chevron-right text-rv-pink group-hover:text-white text-xs transition-colors"></i>
+                </div>
+
+                <div class="rv-calendar-wrapper flex-1 overflow-auto p-3 sm:p-5">
+                    <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
+                        <FullCalendar :options="calendarOptions" ref="calendarRef" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -90,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
@@ -121,6 +140,7 @@ import DeleteConfirmModal from './components/DeleteConfirmModal.vue';
 
 const authStore = useAuthStore();
 const showOnlyMyEvents = ref(false);
+const showBacklog = ref(window.innerWidth >= 1024);
 
 const router = useRouter();
 const calendarRef = ref<InstanceType<typeof FullCalendar>>();
@@ -235,12 +255,13 @@ const calendarOptions = ref({
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
     locale: 'es',
-    firstDay: 1, // Empezar en lunes
+    buttonText: { today: 'Hoy', month: 'Mes', week: 'Semana', day: 'Día' },
+    firstDay: 1,
     height: 'auto',
     headerToolbar: {
         left: 'prev,next today',
         center: 'title',
-        right: 'dayGridMonth'
+        right: ''
     },
     dayHeaderFormat: { weekday: 'short' as const }, // Mostrar días de la semana (Lun, Mar, Mié, etc.)
     editable: true,
@@ -472,7 +493,7 @@ function getContentTypeLabel(type: ContentType): string {
         photos: 'Fotos',
         spotify: 'Spotify',
         radar: 'Radar',
-        best: 'Mejores Discos',
+        best: 'Mejores del Mes',
         video: 'Video',
         reunion: 'Reunión'
     };
@@ -685,7 +706,7 @@ async function handleDeleteFromBacklog(content: Content) {
     const result = await SwalService.confirm(
         '¿Eliminar evento?',
         `Vas a eliminar "${content.name}". Esta acción no se puede deshacer.`,
-        'warning'
+        'Sí, eliminar', 'Cancelar'
     );
     if (!result.isConfirmed) return;
 
@@ -720,7 +741,7 @@ async function deleteRadarList() {
     const result = await SwalService.confirm(
         '¿Eliminar Lista?',
         'Estás a punto de eliminar la lista asociada a este radar. Esta acción no se puede deshacer.',
-        'warning'
+        'Sí, eliminar', 'Cancelar'
     );
 
     if (result.isConfirmed) {
@@ -889,22 +910,48 @@ async function loadBacklogContents() {
     }
 }
 
-onMounted(async () => {
-    await loadRvUsers();
-    // Load backlog first
-    await loadBacklogContents();
-    // Then load current month's scheduled content
-    await loadContentsByMonth(currentYear.value, currentMonth.value);
+function updateCalendarSize() {
+    calendarRef.value?.getApi().updateSize();
+}
 
-    // Initialize Draggable
-    if (backlogPanelRef.value?.$el.querySelector('.flex-1')) {
-        new Draggable(backlogPanelRef.value?.$el.querySelector('.flex-1'), {
+function initDraggable() {
+    const container = backlogPanelRef.value?.$el.querySelector('.flex-1');
+    if (container) {
+        new Draggable(container, {
             itemSelector: '.fc-event',
-            eventData: function (eventEl) {
-                return JSON.parse(eventEl.getAttribute('data-event') || '{}');
-            }
+            eventData: (eventEl: HTMLElement) => JSON.parse(eventEl.getAttribute('data-event') || '{}')
         });
     }
+}
+
+watch(showBacklog, async (val) => {
+    if (val) {
+        await nextTick();
+        initDraggable();
+    }
+});
+
+const isMobile = ref(window.innerWidth < 640);
+const onResize = () => {
+    const mobile = window.innerWidth < 640;
+    if (mobile !== isMobile.value) {
+        isMobile.value = mobile;
+        calendarOptions.value.dayHeaderFormat = { weekday: mobile ? 'narrow' : 'short' };
+    }
+};
+
+onMounted(async () => {
+    await loadRvUsers();
+    await loadBacklogContents();
+    await loadContentsByMonth(currentYear.value, currentMonth.value);
+    initDraggable();
+    window.addEventListener('resize', onResize);
+    // Aplica el formato correcto al montar
+    calendarOptions.value.dayHeaderFormat = { weekday: isMobile.value ? 'narrow' : 'short' };
+});
+
+onUnmounted(() => {
+    window.removeEventListener('resize', onResize);
 });
 
 
@@ -922,59 +969,262 @@ function navigateToRadarDetail() {
 </script>
 
 <style scoped>
+/* ─── Base ─── */
 :deep(.fc) {
     font-family: inherit;
 }
 
+/* ─── Toolbar ─── */
+:deep(.fc-toolbar) {
+    padding: 1rem 1.25rem 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 :deep(.fc-toolbar-title) {
     font-size: 1.25rem;
-    font-weight: 700;
-    color: #1f2937;
+    font-weight: 800;
+    color: #00021f;
+    letter-spacing: -0.02em;
 }
 
-:deep(.fc-button) {
-    background-color: #6366f1 !important;
-    border-color: #6366f1 !important;
+/* Prev / Next — círculo rosa */
+:deep(.fc-prev-button),
+:deep(.fc-next-button) {
+    background-color: rgba(228, 110, 138, 0.1) !important;
+    border: none !important;
+    color: #e46e8a !important;
+    border-radius: 50% !important;
+    width: 2rem !important;
+    height: 2rem !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: none !important;
+}
+
+:deep(.fc-prev-button:hover),
+:deep(.fc-next-button:hover) {
+    background-color: #e46e8a !important;
+    border-color: transparent !important;
+    color: #ffffff !important;
+}
+
+/* Hoy — gradiente pink→purple */
+:deep(.fc-today-button) {
+    background: linear-gradient(to right, #e46e8a, #b0669f) !important;
+    border: none !important;
+    border-radius: 9999px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    padding: 0.3rem 0.9rem !important;
+    letter-spacing: 0.01em;
+    box-shadow: none !important;
     text-transform: capitalize;
-    font-size: 0.875rem;
-    padding: 0.375rem 0.75rem;
 }
 
-:deep(.fc-button:hover) {
-    background-color: #4f46e5 !important;
-    border-color: #4f46e5 !important;
+:deep(.fc-today-button:hover) {
+    background: linear-gradient(to right, #b0669f, #e46e8a) !important;
+    opacity: 1 !important;
 }
 
-:deep(.fc-button-active) {
-    background-color: #4338ca !important;
-    border-color: #4338ca !important;
+:deep(.fc-today-button:disabled) {
+    opacity: 0.4 !important;
+}
+
+:deep(.fc-button:focus) {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* ─── Cabeceras de columna ─── */
+:deep(.fc-col-header) {
+    background-color: #f8fafc;
+}
+
+:deep(.fc-col-header-cell) {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f0f4f8 !important;
+}
+
+:deep(.fc-col-header-cell-cushion) {
+    color: #6b7280;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-decoration: none;
+}
+
+/* ─── Celdas de día ─── */
+:deep(.fc-daygrid-day-frame) {
+    min-height: 110px;
+    padding: 4px 6px;
 }
 
 :deep(.fc-daygrid-day-number) {
+    font-weight: 700;
+    font-size: 0.8125rem;
     color: #374151;
-    font-weight: 600;
-    font-size: 0.875rem;
+    text-decoration: none;
+    padding: 4px 6px;
+    border-radius: 50%;
+    min-width: 1.75rem;
+    text-align: center;
+    line-height: 1.4;
+    transition: background-color 0.15s;
 }
 
+/* Días de otros meses */
+:deep(.fc-day-other .fc-daygrid-day-number) {
+    color: #d1d5db;
+    font-weight: 400;
+}
+
+/* Hoy: círculo sobre el número */
 :deep(.fc-day-today) {
-    background-color: #fef3c7 !important;
+    background-color: rgba(228, 110, 138, 0.07) !important;
 }
 
+:deep(.fc-day-today .fc-daygrid-day-number) {
+    background-color: #e46e8a;
+    color: #ffffff !important;
+}
+
+/* ─── Eventos ─── */
 :deep(.fc-event) {
     cursor: pointer;
-    border-radius: 4px;
-    padding: 4px;
-    font-size: 0.75rem;
-    min-height: 40px;
+    border-radius: 6px !important;
+    border: none !important;
+    padding: 2px 6px !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 2px !important;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 :deep(.fc-event:hover) {
-    opacity: 0.85;
-    transform: scale(1.02);
-    transition: all 0.2s;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18) !important;
+    opacity: 0.95;
 }
 
-:deep(.fc-daygrid-day-frame) {
-    min-height: 100px;
+:deep(.fc-event-title) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
+
+/* ─── Grid ─── */
+:deep(.fc-scrollgrid) {
+    border: none !important;
+}
+
+:deep(.fc-scrollgrid td),
+:deep(.fc-scrollgrid th) {
+    border-color: #f1f5f9 !important;
+}
+
+/* Elimina el hueco blanco del scrollbar reservado por FullCalendar */
+:deep(.fc-scroller),
+:deep(.fc-scroller-liquid),
+:deep(.fc-scroller-liquid-absolute) {
+    overflow: hidden !important;
+}
+
+/* Dark mode button overrides — prev/next igual que en claro */
+.dark :deep(.fc-prev-button),
+.dark :deep(.fc-next-button) {
+    background-color: rgba(228, 110, 138, 0.15) !important;
+    color: #e46e8a !important;
+}
+
+.dark :deep(.fc-prev-button:hover),
+.dark :deep(.fc-next-button:hover) {
+    background-color: #e46e8a !important;
+    color: #ffffff !important;
+}
+
+/* Transición del backlog */
+.backlog-slide-enter-active,
+.backlog-slide-leave-active {
+    transition: transform 0.3s ease;
+}
+.backlog-slide-enter-from,
+.backlog-slide-leave-to {
+    transform: translateX(-100%);
+}
+
+/* ─── Mobile ─── */
+@media (max-width: 639px) {
+    /* Toolbar compacto */
+    :deep(.fc-toolbar) {
+        padding: 0.6rem 0.75rem 0.5rem;
+        gap: 0.25rem;
+    }
+
+    :deep(.fc-toolbar-title) {
+        font-size: 0.95rem;
+    }
+
+    :deep(.fc-prev-button),
+    :deep(.fc-next-button) {
+        width: 1.65rem !important;
+        height: 1.65rem !important;
+    }
+
+    :deep(.fc-today-button) {
+        font-size: 0.68rem !important;
+        padding: 0.2rem 0.6rem !important;
+    }
+
+    /* Cabeceras — una sola letra */
+    :deep(.fc-col-header-cell-cushion) {
+        font-size: 0.62rem;
+        letter-spacing: 0.04em;
+    }
+
+    /* Celdas de día más compactas */
+    :deep(.fc-daygrid-day-frame) {
+        min-height: 64px;
+        padding: 2px 3px;
+    }
+
+    :deep(.fc-daygrid-day-number) {
+        font-size: 0.68rem;
+        padding: 2px 4px;
+        min-width: 1.4rem;
+    }
+
+    /* Eventos más pequeños */
+    :deep(.fc-event) {
+        font-size: 0.6rem !important;
+        padding: 1px 3px !important;
+        border-radius: 4px !important;
+    }
+
+    /* Menos padding exterior en móvil */
+    .rv-calendar-wrapper {
+        padding: 0.5rem !important;
+    }
+}
+</style>
+
+<!-- Dark mode overrides for FullCalendar: must be non-scoped because the
+     `dark` class lives on <html>, outside this component's scope boundary. -->
+<style>
+.dark .rv-calendar-wrapper .fc-toolbar-title { color: #ffffff !important; letter-spacing: -0.02em; }
+.dark .rv-calendar-wrapper .fc-col-header { background-color: #32334a !important; }
+.dark .rv-calendar-wrapper .fc-col-header-cell { border-bottom-color: rgba(255,255,255,0.08) !important; }
+.dark .rv-calendar-wrapper .fc-col-header-cell-cushion { color: #9ca3af !important; }
+.dark .rv-calendar-wrapper .fc-daygrid-day-number { color: #e5e7eb !important; }
+.dark .rv-calendar-wrapper .fc-day-other .fc-daygrid-day-number { color: #4b5563 !important; }
+.dark .rv-calendar-wrapper .fc-daygrid-day { background-color: #2a2b3d !important; }
+.dark .rv-calendar-wrapper .fc-day-other { background-color: #1e1f2d !important; }
+.dark .rv-calendar-wrapper .fc-scrollgrid { border-color: rgba(255,255,255,0.08) !important; }
+.dark .rv-calendar-wrapper .fc-scrollgrid td,
+.dark .rv-calendar-wrapper .fc-scrollgrid th { border-color: rgba(255,255,255,0.08) !important; }
+.dark .rv-calendar-wrapper .fc-day-today { background-color: rgba(228, 110, 138, 0.15) !important; }
+.dark .rv-calendar-wrapper .fc-day-today .fc-daygrid-day-number { background-color: #e46e8a; color: #ffffff !important; }
 </style>

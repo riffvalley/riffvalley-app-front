@@ -1,7 +1,7 @@
 <template>
-  <div class="p-4 h-full flex flex-col gap-4">
+  <div class="p-4 h-full flex flex-col gap-4 dark:bg-rv-darkBg dark:text-gray-200">
     <div class="flex items-center justify-between">
-      <h1 class="text-xl font-bold">Tablero (versión en desarrollo)</h1>
+      <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-clipboard-list mr-2"></i>Tablero (versión en desarrollo)</h1>
       <div class="flex gap-2">
         <button @click="goBack" class="px-3 py-1.5 bg-gray-700 text-white rounded hover:bg-gray-800 text-sm">
           ← Volver
@@ -21,7 +21,7 @@
 
       <!-- KANBAN PANEL o mensaje si no hay versión -->
       <div v-if="!version" class="flex-1 flex items-center justify-center">
-        <div class="p-6 border rounded bg-yellow-50 text-yellow-800 text-center max-w-md">
+        <div class="p-6 border rounded bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 dark:border-yellow-500/30 text-center max-w-md">
           <p class="text-lg font-semibold mb-2">No hay versión en desarrollo</p>
           <p class="text-sm">Crea una versión nueva desde
             <router-link class="underline font-semibold" :to="{ name: 'versions-admin' }">Gestión de
@@ -38,7 +38,7 @@
     </div>
 
     <!-- Loading / error -->
-    <p v-if="loading" class="text-sm text-gray-500">Cargando…</p>
+    <p v-if="loading" class="text-sm text-gray-500 dark:text-gray-400">Cargando…</p>
     <p v-if="error" class="text-sm text-red-600">{{ error }}</p>
   </div>
 </template>
@@ -304,8 +304,6 @@ async function saveEdit(it: VersionItem, dto: { description: string; type: any; 
   try {
     const updated = await updateVersionItem(version.value.id, it.id, dto as any);
 
-    console.log('Updated item from backend:', updated);
-
     // El backend devuelve backUser/frontUser con solo el id, necesitamos enriquecerlos
     const updatedWithIds = updated as any;
 
@@ -335,8 +333,6 @@ async function saveEdit(it: VersionItem, dto: { description: string; type: any; 
       }
     }
 
-    console.log('Final enriched item:', updatedWithIds);
-
     Object.assign(it, updated);
     kanbanRef.value!.editing[it.id] = false;
   } catch (e) {
@@ -347,7 +343,7 @@ async function saveEdit(it: VersionItem, dto: { description: string; type: any; 
 
 async function removeItem(it: VersionItem) {
   if (!version.value) return;
-  const ok = await SwalService.confirm('¿Eliminar item?', 'Esta acción no se puede deshacer', 'warning')
+  const ok = await SwalService.confirm('¿Eliminar item?', 'Esta acción no se puede deshacer', 'Sí, eliminar', 'Cancelar')
     .then(r => r.isConfirmed).catch(() => false);
   if (!ok) return;
   try {
@@ -382,7 +378,7 @@ async function handleMoveToProduction() {
   const ok = await SwalService.confirm(
     '¿Mover a producción?',
     'Esta acción cambiará el estado de la versión de desarrollo a producción. ¿Continuar?',
-    'question'
+    'Sí, mover', 'Cancelar'
   ).then(r => r.isConfirmed).catch(() => false);
 
   if (!ok) return;
