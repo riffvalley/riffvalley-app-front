@@ -1,3 +1,11 @@
+## 1.17.0 (2026-06-03)
+
+* feat(reunions): crear reunión vía evento de calendario (#139) ([3fac233](https://github.com/riffvalley/riffvalley-app-front/commit/3fac233)), closes [#139](https://github.com/riffvalley/riffvalley-app-front/issues/139)
+* fix background button Todos los discos dark mode ([8a69977](https://github.com/riffvalley/riffvalley-app-front/commit/8a69977))
+* fix login format ([92facfa](https://github.com/riffvalley/riffvalley-app-front/commit/92facfa))
+* fix spoiler votes cover art ([eff7398](https://github.com/riffvalley/riffvalley-app-front/commit/eff7398))
+* fix UI patch notes ([6d0efe4](https://github.com/riffvalley/riffvalley-app-front/commit/6d0efe4))
+
 ## 1.16.0 (2026-05-21)
 
 * add dark mode calendar and calendarbaby + suggest and petitions ([52f2c87](https://github.com/riffvalley/riffvalley-app-front/commit/52f2c87))
