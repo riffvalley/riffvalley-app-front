@@ -14,32 +14,32 @@
     <div class="relative z-10 w-full max-w-sm shadow-lg rounded-3xl overflow-hidden bg-white dark:bg-rv-darkCard border border-gray-100 dark:border-white/10">
 
       <!-- HEADER -->
-      <div class="relative px-6 pt-6 pb-5 text-center
+      <div class="relative px-5 pt-4 pb-4 sm:px-6 sm:pt-6 sm:pb-5 text-center
          bg-gradient-to-b from-[#fe7b4a] via-[#a569aa] to-[#1464d0]">
         <img src="/bg-mountains.jpg" alt="" class="absolute bottom-0 left-0 w-full h-full
          scale-[1.05] origin-bottom
          pointer-events-none select-none" />
 
         <div class="relative z-10">
-          <img src="/LOGO-RIFF-VALLEY.svg" alt="Riff Valley Logo" class="w-16 h-16 mx-auto mb-3 drop-shadow" />
+          <img src="/LOGO-RIFF-VALLEY.svg" alt="Riff Valley Logo" class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 drop-shadow" />
           <div class="flex items-baseline justify-center gap-[2px]">
-            <span class="font-brand text-4xl tracking-wide text-white drop-shadow-sm">RIFF VALLEY</span>
+            <span class="font-brand text-3xl sm:text-4xl tracking-wide text-white drop-shadow-sm">RIFF VALLEY</span>
             <span class="text-sm font-medium tracking-widest lowercase text-white/80 relative top-[2px]">app</span>
           </div>
         </div>
       </div>
 
       <!-- FORM -->
-      <div class="p-5">
-        <form @submit.prevent="handleLogin" class="space-y-3 w-full">
-          <input type="text" v-model="username" placeholder="Usuario" class="w-full px-4 py-2 border border-gray-200 dark:border-white/10 rounded-full
+      <div class="p-4 sm:p-5">
+        <form @submit.prevent="handleLogin" class="space-y-2.5 sm:space-y-3 w-full">
+          <input type="text" v-model="username" placeholder="Usuario" class="w-full px-4 py-1.5 sm:py-2 border border-gray-200 dark:border-white/10 rounded-full
        bg-white dark:bg-rv-darkSurface
        text-gray-800 dark:text-white
        placeholder:text-gray-400 dark:placeholder:text-gray-500
        focus:outline-none focus:ring-2 focus:ring-rv-pink/40" />
 
           <div class="relative">
-            <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="Contraseña" class="w-full px-4 py-2 border border-gray-200 dark:border-white/10 rounded-full
+            <input :type="showPassword ? 'text' : 'password'" v-model="password" placeholder="Contraseña" class="w-full px-4 py-1.5 sm:py-2 border border-gray-200 dark:border-white/10 rounded-full
        bg-white dark:bg-rv-darkSurface
        text-gray-800 dark:text-white
        placeholder:text-gray-400 dark:placeholder:text-gray-500
@@ -54,7 +54,7 @@
           </div>
 
           <button type="submit" class="w-full bg-gradient-to-r from-[#0c6ddc] to-[#0a56b3]
-         text-white font-bold py-2 rounded-full
+         text-white font-bold py-1.5 sm:py-2 rounded-full
          shadow-md shadow-blue-900/25
          hover:from-[#0a5fc2] hover:to-[#084a9a]
          hover:shadow-md hover:shadow-blue-900/40 hover:-translate-y-[1px]
@@ -70,7 +70,7 @@
     </div>
 
     <!-- Botones inferiores -->
-    <div class="mt-4 sm:mt-5 flex items-center justify-center gap-3">
+    <div class="mt-3 sm:mt-5 flex items-center justify-center gap-3">
       <button @click="showHowToUse = true"
         class="inline-flex items-center text-[#211d1d] dark:text-white font-semibold px-4 py-2 rounded-full shadow-md
                bg-gray-100 dark:bg-rv-darkCard hover:bg-gray-200 dark:hover:bg-rv-darkSurface
@@ -91,7 +91,7 @@
     </div>
 
     <!-- Solicitud de acceso -->
-    <div class="mt-2 sm:mt-3 w-full max-w-sm px-4">
+    <div class="mt-1.5 sm:mt-3 w-full max-w-sm px-4">
       <button @click="showAccessRequest = true"
         class="w-full rounded-2xl bg-white dark:bg-rv-darkCard shadow-md
                border border-gray-100 dark:border-white/10
@@ -112,9 +112,9 @@
     </div>
 
     <!-- Redes sociales -->
-    <div class="mt-3 sm:mt-5 flex items-center justify-center gap-3">
+    <div class="mt-2 sm:mt-5 flex items-center justify-center gap-2 sm:gap-3">
       <a v-for="social in socials" :key="social.href" :href="social.href" target="_blank"
-         class="relative group w-10 h-10 flex items-center justify-center rounded-full
+         class="relative group w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full
                 bg-gray-100 dark:bg-rv-darkCard text-[#211d1d] dark:text-white border border-gray-100 dark:border-white/10
                 shadow-md hover:-translate-y-[1px] hover:text-white dark:hover:text-white
                 transition-all duration-150"
@@ -129,7 +129,7 @@
     </div>
 
     <!-- Switch modo oscuro -->
-    <div class="mt-3 sm:mt-4 flex items-center justify-center">
+    <div class="mt-2 sm:mt-4 flex items-center justify-center">
       <label class="flex items-center justify-center gap-3 text-[#211d1d] dark:text-white/75 cursor-pointer">
         <i class="fa-regular fa-sun text-base transition-colors"
            :class="!isDarkMode ? 'text-rv-pink' : 'text-gray-400 dark:text-white/45'"></i>
@@ -151,7 +151,7 @@
     </div>
 
     <!-- FAB - Cambiar fondo animado -->
-    <div class="mt-3 sm:mt-4 flex justify-center" @click.stop>
+    <div class="mt-2 sm:mt-4 flex justify-center" @click.stop>
       <div class="relative flex items-center justify-center w-10 h-10">
 
         <!-- Sub-buttons (arc, abre hacia arriba) -->

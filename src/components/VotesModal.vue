@@ -44,7 +44,7 @@
             <span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
                   :class="!revealed ? 'translate-x-4' : 'translate-x-0'"></span>
           </button>
-          <span v-if="!revealed && !hasVoted" class="text-[10px] text-rv-pink font-semibold uppercase tracking-wide">activo</span>
+          <span v-if="!revealed && (spoilerDisc || spoilerCover)" class="text-[10px] text-rv-pink font-semibold uppercase tracking-wide">activo</span>
         </div>
       </div>
 
@@ -93,7 +93,7 @@
               <!-- Scores -->
               <div class="flex items-center gap-3 shrink-0">
                 <!-- Disco -->
-                <span v-if="spoilerMode"
+                <span v-if="spoilerDisc"
                       class="w-7 text-center text-[11px] font-bold text-rv-pink tracking-widest">???</span>
                 <span v-else-if="!vote.rate || vote.rate <= 0"
                       class="w-7 text-center text-sm font-medium text-gray-300 dark:text-white/25">—</span>
@@ -102,7 +102,7 @@
                       :style="{ color: getScoreColor(vote.rate) }">{{ vote.rate }}</span>
 
                 <!-- Portada -->
-                <span v-if="spoilerMode"
+                <span v-if="spoilerCover"
                       class="w-7 text-center text-[11px] font-bold text-rv-pink tracking-widest">???</span>
                 <span v-else-if="!vote.cover || vote.cover <= 0"
                       class="w-7 text-center text-sm font-medium text-gray-300 dark:text-white/25">—</span>
@@ -144,10 +144,10 @@
 
           <!-- Chart -->
           <div class="relative w-full h-52 flex flex-col items-center justify-center">
-            <canvas ref="doughnut" class="w-full h-full" :class="spoilerMode ? 'blur-md' : ''"></canvas>
+            <canvas ref="doughnut" class="w-full h-full" :class="spoilerChart ? 'blur-md' : ''"></canvas>
 
             <!-- Overlay No Spoilers -->
-            <div v-if="spoilerMode" class="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <div v-if="spoilerChart" class="absolute inset-0 flex flex-col items-center justify-center gap-2">
               <i class="fa-solid fa-lock text-3xl text-rv-pink drop-shadow"></i>
               <button type="button" @click="revealed = true"
                 class="text-xs font-semibold px-4 py-1.5 rounded-full bg-rv-pink text-white
@@ -218,6 +218,16 @@ export default defineComponent({
       required: false,
       default: false,
     },
+    hasVotedDisc: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    hasVotedCover: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
   },
 
   emits: ["close"],
@@ -244,7 +254,10 @@ export default defineComponent({
     const noSpoilers = ref(localStorage.getItem('rv_no_spoilers') === 'true');
     const revealed = ref(false);
 
-    const spoilerMode = computed(() => noSpoilers.value && !props.hasVoted && !revealed.value);
+    const spoilerDisc  = computed(() => noSpoilers.value && !props.hasVotedDisc  && !revealed.value);
+    const spoilerCover = computed(() => noSpoilers.value && !props.hasVotedCover && !revealed.value);
+    // Para el gráfico: usa el spoiler del tab activo
+    const spoilerChart = computed(() => isRateSelected.value ? spoilerDisc.value : spoilerCover.value);
 
     // El toggle del modal solo controla la sesión local (revealed), nunca toca el ajuste de Perfil
     const toggleNoSpoilers = () => {
@@ -472,7 +485,9 @@ export default defineComponent({
       openUserModal,
       noSpoilers,
       revealed,
-      spoilerMode,
+      spoilerDisc,
+      spoilerCover,
+      spoilerChart,
       toggleNoSpoilers,
       getColor,
       getScoreColor: (value: number): string => {

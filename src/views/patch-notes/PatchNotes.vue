@@ -1,155 +1,206 @@
 <template>
-  <div class="patch-notes-container">
-    <div class="mb-8">
-      <h1 class="text-4xl font-bold text-gray-800 mb-2">Notas de Parche</h1>
-      <p class="text-gray-600">Historial de versiones publicadas</p>
+  <div class="min-h-screen px-4 py-8 max-w-3xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-10">
+      <h1 class="text-3xl font-bold text-rv-navy dark:text-white mb-1">Notas de Parche</h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400">Historial de versiones publicadas</p>
     </div>
 
     <!-- Loading inicial -->
     <div v-if="loading && versions.length === 0" class="flex justify-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-rv-pink"></div>
     </div>
 
     <!-- Timeline vertical -->
-    <div v-else class="relative py-8 flex justify-center">
-      <div class="timeline-container">
-        <div v-for="(version, index) in versions" :key="version.id" class="timeline-row">
-          <!-- Botón con línea vertical -->
-          <div class="timeline-button-wrapper">
-            <button @click="openModal(version)" class="timeline-icon-button"
-              :title="`Ver detalles de v${version.version}`">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-                <path fill-rule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM8.94 6.94a.75.75 0 11-1.061-1.061 3 3 0 112.871 5.026v.345a.75.75 0 01-1.5 0v-.5c0-.72.57-1.172 1.081-1.287A1.5 1.5 0 108.94 6.94zM10 15a1 1 0 100-2 1 1 0 000 2z"
-                  clip-rule="evenodd" />
-              </svg>
-            </button>
-            <div v-if="index < versions.length - 1" class="timeline-connector"></div>
-          </div>
+    <div v-else class="relative">
+      <div v-for="(version, index) in versions" :key="version.id" class="flex items-start gap-4 group">
 
-          <!-- Tarjeta con título a la izquierda y fecha a la derecha -->
-          <div class="timeline-card" @click="openModal(version)">
-            <div class="timeline-card-content">
-              <div class="timeline-card-left">
-                <div class="text-lg font-bold text-primary">v{{ version.version }}</div>
-                <p v-if="version.notes" class="text-xs text-gray-500 mt-1 line-clamp-1">
+        <!-- Columna izquierda: nodo + conector -->
+        <div class="flex flex-col items-center flex-shrink-0">
+          <button
+            @click="openModal(version)"
+            :title="`Ver detalles de v${version.version}`"
+            class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0
+                   bg-rv-navy dark:bg-rv-darkCard
+                   border-2 border-rv-pink/50 dark:border-rv-pink/40
+                   shadow-md
+                   hover:scale-110 hover:border-rv-pink hover:shadow-rv
+                   group-hover:border-rv-pink
+                   transition-all duration-200
+                   focus:outline-none">
+            <i class="fa-solid fa-tag text-rv-pink text-sm"></i>
+          </button>
+          <!-- Conector vertical -->
+          <div v-if="index < versions.length - 1"
+            class="w-0.5 flex-grow min-h-[52px] mt-1 timeline-connector-gradient opacity-40">
+          </div>
+        </div>
+
+        <!-- Tarjeta -->
+        <div class="flex-1 pb-6 cursor-pointer" @click="openModal(version)">
+          <div class="bg-white dark:bg-rv-darkCard
+                      border border-gray-200 dark:border-white/10
+                      rounded-xl p-4 shadow-sm
+                      hover:shadow-md hover:border-rv-pink/50 dark:hover:border-rv-pink/30
+                      transition-all duration-200">
+            <div class="flex justify-between items-start gap-3">
+              <!-- Versión y notas preview -->
+              <div class="min-w-0 flex-1">
+                <div class="text-lg font-bold text-rv-pink text-left">v{{ version.version }}</div>
+                <p v-if="version.notes"
+                  class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1 text-left">
                   {{ version.notes }}
                 </p>
               </div>
-              <div class="timeline-card-right">
-                <div class="flex flex-col items-end gap-2">
-                  <time class="font-mono text-xs text-gray-600 whitespace-nowrap">
-                    {{ formatDateTime(version.publishedAt || version.createdAt) }}
-                  </time>
-                  <!-- Telegram link icon - más grande y clickeable -->
-                  <a v-if="version.link" :href="version.link" target="_blank" rel="noopener noreferrer" @click.stop
-                    class="inline-flex items-center justify-center p-2 text-blue-500 hover:text-white hover:bg-blue-500 rounded-lg transition-all border border-blue-500"
-                    title="Ver en Telegram">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                      <path
-                        d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z" />
-                    </svg>
-                  </a>
-                </div>
+              <!-- Fecha + Telegram -->
+              <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                <time class="font-mono text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">
+                  {{ formatDateTime(version.publishedAt || version.createdAt) }}
+                </time>
+                <a v-if="version.link" :href="version.link" target="_blank" rel="noopener noreferrer"
+                  @click.stop
+                  class="flex items-center justify-center w-8 h-8 rounded-lg
+                         border border-blue-400/60 dark:border-blue-500/40
+                         text-blue-400 dark:text-blue-400
+                         hover:bg-blue-500 hover:text-white hover:border-blue-500
+                         transition-all duration-200"
+                  title="Ver en Telegram">
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z" />
+                  </svg>
+                </a>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Loading más versiones -->
-      <div v-if="hasMore" ref="loadMoreTrigger" class="flex justify-center py-8">
-        <div v-if="loading" class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
-        <button v-else @click="loadMore" class="btn btn-primary">
+      <!-- Cargar más -->
+      <div v-if="hasMore" ref="loadMoreTrigger" class="flex justify-center py-6">
+        <div v-if="loading"
+          class="animate-spin rounded-full h-8 w-8 border-b-2 border-rv-pink">
+        </div>
+        <button v-else @click="loadMore"
+          class="px-6 py-2 rounded-full border border-rv-pink text-rv-pink text-sm font-semibold
+                 hover:bg-rv-pink hover:text-white transition-all duration-200
+                 focus:outline-none">
           Cargar más versiones
         </button>
       </div>
-
     </div>
 
     <!-- Sin versiones -->
-    <div v-if="!loading && versions.length === 0" class="text-center py-12">
-      <p class="text-gray-500 text-lg">No hay versiones publicadas aún</p>
+    <div v-if="!loading && versions.length === 0" class="text-center py-16">
+      <div class="text-5xl mb-4 opacity-30">📦</div>
+      <p class="text-gray-500 dark:text-gray-400 text-sm">No hay versiones publicadas aún</p>
     </div>
 
-    <!-- Modal con backdrop blur -->
-    <!-- Modal Custom Overlay -->
+    <!-- ── Modal ─────────────────────────────────────────────── -->
     <div v-if="selectedVersion"
       class="fixed inset-0 z-50 flex items-center justify-center md:left-72 transition-opacity duration-300">
       <!-- Backdrop -->
-      <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" @click="closeModal"></div>
+      <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeModal"></div>
 
-      <!-- Modal Content -->
-      <div
-        class="relative bg-white rounded-box max-w-4xl w-full max-h-[85vh] overflow-y-auto shadow-2xl p-8 m-4 animate-fade-in-up">
+      <!-- Contenido -->
+      <div class="relative bg-white dark:bg-rv-darkCard rounded-2xl
+                  max-w-2xl w-full max-h-[85vh] overflow-y-auto
+                  shadow-2xl m-4
+                  border border-gray-200 dark:border-white/10
+                  animate-fade-in-up">
+
         <!-- Botón cerrar -->
-        <button @click="closeModal" class="btn btn-sm btn-circle btn-ghost absolute right-4 top-4 z-10">
-          ✕
+        <button @click="closeModal"
+          class="absolute right-4 top-4 z-10 w-9 h-9 rounded-full
+                 flex items-center justify-center
+                 bg-rv-navy dark:bg-rv-darkSurface text-white
+                 hover:bg-rv-pink transition-all duration-200
+                 border-0 outline-none focus:outline-none">
+          <i class="fa-solid fa-xmark text-base leading-none"></i>
         </button>
 
-        <!-- Header del modal -->
-        <div class="border-b pb-4 mb-6">
-          <div class="flex items-center gap-4 mb-3">
-            <h2 class="text-4xl font-bold text-gray-800">
-              v{{ selectedVersion.version }}
-            </h2>
+        <!-- Header -->
+        <div class="px-6 pt-6 pb-4 border-b border-gray-100 dark:border-white/10">
+          <div class="flex items-center gap-3 mb-3 pr-10">
+            <h2 class="text-4xl font-black text-rv-pink leading-none">v{{ selectedVersion.version }}</h2>
             <a v-if="selectedVersion.link" :href="selectedVersion.link" target="_blank" rel="noopener noreferrer"
-              class="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors text-base font-semibold shadow-md hover:shadow-lg"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5
+                     bg-blue-500 hover:bg-blue-600 text-white
+                     rounded-lg transition-colors text-sm font-semibold shadow-sm"
               title="Ver en Telegram">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path
-                  d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z" />
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.295-.6.295-.002 0-.003 0-.005 0l.213-3.054 5.56-5.022c.24-.213-.054-.334-.373-.121l-6.869 4.326-2.96-.924c-.64-.203-.658-.64.135-.954l11.566-4.458c.538-.196 1.006.128.832.941z" />
               </svg>
               Telegram
             </a>
           </div>
-          <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-            <span v-if="selectedVersion.publishedAt" class="flex items-center gap-1">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {{ formatDateTime(selectedVersion.publishedAt) }}
-            </span>
+
+          <div v-if="selectedVersion.publishedAt"
+            class="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span>{{ formatDateTime(selectedVersion.publishedAt) }}</span>
           </div>
-          <p v-if="selectedVersion.notes" class="mt-4 text-gray-700 bg-gray-200 p-4 rounded-lg text-left">
+
+          <p v-if="selectedVersion.notes"
+            class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed
+                   bg-gray-50 dark:bg-rv-darkSurface
+                   border border-gray-200 dark:border-white/10
+                   rounded-xl px-4 py-3">
             {{ selectedVersion.notes }}
           </p>
         </div>
 
         <!-- Items agrupados por tipo -->
-        <div v-if="selectedVersion.items && selectedVersion.items.length > 0" class="space-y-6">
-          <div v-for="(items, type) in groupItemsByType(selectedVersion.items)" :key="type as string">
-            <div class="bg-base-200 rounded-lg p-4">
-              <h3 class="text-lg font-bold mb-3 flex items-center gap-2 text-left">
-                <span :class="getTypeColor(type as ChangeType)" class="text-2xl">
-                  {{ getTypeIcon(type as ChangeType) }}
-                </span>
+        <div class="px-6 py-5 space-y-3">
+          <div v-if="selectedVersion.items && selectedVersion.items.length > 0">
+            <div v-for="(items, type) in groupItemsByType(selectedVersion.items)" :key="type as string"
+              class="bg-gray-50 dark:bg-rv-darkSurface
+                     border border-gray-100 dark:border-white/5
+                     rounded-xl p-4">
+              <!-- Cabecera del grupo -->
+              <h3 class="text-sm font-bold mb-3 flex items-center gap-2
+                         text-rv-navy dark:text-white">
+                <span class="text-lg leading-none">{{ getTypeIcon(type as ChangeType) }}</span>
                 <span>{{ getTypeLabel(type as ChangeType) }}</span>
-                <span class="badge badge-neutral badge-sm">{{ items.length }}</span>
+                <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full
+                             bg-white dark:bg-rv-darkCard
+                             border border-gray-200 dark:border-white/10
+                             text-gray-400 dark:text-gray-500 tabular-nums">
+                  {{ items.length }}
+                </span>
               </h3>
+              <!-- Lista de cambios -->
               <ul class="space-y-2">
-                <li v-for="item in items" :key="item.id" class="flex items-start gap-3 text-gray-700">
-                  <span class="text-primary mt-0.5 text-lg">▪</span>
-                  <span class="flex-1 text-left">{{ item.description }}</span>
+                <li v-for="item in items" :key="item.id"
+                  class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
+                  <span :class="getTypeColor(type as ChangeType)"
+                    class="mt-[3px] text-[9px] flex-shrink-0 leading-none">▶</span>
+                  <span class="flex-1 leading-relaxed text-left">{{ item.description }}</span>
                 </li>
               </ul>
             </div>
           </div>
-        </div>
 
-        <!-- Sin items -->
-        <div v-else class="alert alert-info">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-            class="stroke-current shrink-0 w-6 h-6">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <span>No hay cambios registrados para esta versión</span>
+          <!-- Sin items -->
+          <div v-else
+            class="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400
+                   bg-gray-50 dark:bg-rv-darkSurface
+                   border border-gray-100 dark:border-white/5
+                   rounded-xl px-4 py-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-400 flex-shrink-0" fill="none"
+              viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>No hay cambios registrados para esta versión</span>
+          </div>
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -166,30 +217,22 @@ export default defineComponent({
     const currentPage = ref(1);
     const totalPages = ref(1);
     const loadMoreTrigger = ref<HTMLElement | null>(null);
-    // const modalRef = ref<HTMLDialogElement | null>(null); // Removed
     const selectedVersion = ref<Version | null>(null);
-
     const hasMore = ref(false);
 
     const loadVersions = async (page: number) => {
       if (loading.value) return;
-
       loading.value = true;
       try {
         const response = await getProductionVersionsPaginated(page);
-
         if (page === 1) {
           versions.value = response.data;
-          // Abrir modal de la última versión automáticamente
           if (response.data.length > 0) {
-            setTimeout(() => {
-              openModal(response.data[0]);
-            }, 300);
+            setTimeout(() => openModal(response.data[0]), 300);
           }
         } else {
           versions.value.push(...response.data);
         }
-
         currentPage.value = response.page;
         totalPages.value = response.totalPages;
         hasMore.value = response.page < response.totalPages;
@@ -205,45 +248,24 @@ export default defineComponent({
     const checkIfNeedsMore = () => {
       if (!hasMore.value || loading.value || !loadMoreTrigger.value) return;
       const rect = loadMoreTrigger.value.getBoundingClientRect();
-      if (rect.top < window.innerHeight + 200) {
-        loadMore();
-      }
+      if (rect.top < window.innerHeight + 200) loadMore();
     };
 
     const loadMore = () => {
-      if (hasMore.value && !loading.value) {
-        loadVersions(currentPage.value + 1);
-      }
+      if (hasMore.value && !loading.value) loadVersions(currentPage.value + 1);
     };
 
-    // Modal functions
-    const openModal = (version: Version) => {
-      selectedVersion.value = version;
-    };
+    const openModal  = (version: Version) => { selectedVersion.value = version; };
+    const closeModal = () => { selectedVersion.value = null; };
 
-    const closeModal = () => {
-      selectedVersion.value = null;
-    };
-
-    // Intersection Observer para scroll infinito
     let observer: IntersectionObserver | null = null;
 
     const setupIntersectionObserver = () => {
       observer = new IntersectionObserver(
-        (entries) => {
-          const [entry] = entries;
-          if (entry.isIntersecting && hasMore.value && !loading.value) {
-            loadMore();
-          }
-        },
-        {
-          rootMargin: '200px',
-        }
+        ([entry]) => { if (entry.isIntersecting && hasMore.value && !loading.value) loadMore(); },
+        { rootMargin: '200px' }
       );
-
-      if (loadMoreTrigger.value) {
-        observer.observe(loadMoreTrigger.value);
-      }
+      if (loadMoreTrigger.value) observer.observe(loadMoreTrigger.value);
     };
 
     onMounted(() => {
@@ -251,99 +273,70 @@ export default defineComponent({
       setTimeout(setupIntersectionObserver, 100);
     });
 
-    onUnmounted(() => {
-      if (observer) {
-        observer.disconnect();
-      }
-    });
+    onUnmounted(() => { observer?.disconnect(); });
 
-    // Agrupar items por tipo
+    // ── Helpers ──────────────────────────────────────────────
     const groupItemsByType = (items: VersionItem[]) => {
       const grouped: Record<string, VersionItem[]> = {};
-      items.forEach((item) => {
-        if (!grouped[item.type]) {
-          grouped[item.type] = [];
-        }
+      items.forEach(item => {
+        if (!grouped[item.type]) grouped[item.type] = [];
         grouped[item.type].push(item);
       });
       return grouped;
     };
 
-    // Obtener etiqueta del tipo
-    const getTypeLabel = (type: ChangeType): string => {
-      const labels: Record<ChangeType, string> = {
-        feat: 'Nuevas Funcionalidades',
-        fix: 'Correcciones',
-        docs: 'Documentación',
-        style: 'Estilos',
-        refactor: 'Refactorización',
-        perf: 'Mejoras de Rendimiento',
-        test: 'Tests',
-        build: 'Build',
-        ci: 'CI/CD',
-        chore: 'Tareas',
-        revert: 'Reversiones',
-      };
-      return labels[type] || type;
-    };
+    const getTypeLabel = (type: ChangeType): string => ({
+      feat:     'Nuevas Funcionalidades',
+      fix:      'Correcciones',
+      docs:     'Documentación',
+      style:    'Estilos',
+      refactor: 'Refactorización',
+      perf:     'Mejoras de Rendimiento',
+      test:     'Tests',
+      build:    'Build',
+      ci:       'CI/CD',
+      chore:    'Tareas',
+      revert:   'Reversiones',
+    }[type] ?? type);
 
-    // Obtener icono del tipo
-    const getTypeIcon = (type: ChangeType): string => {
-      const icons: Record<ChangeType, string> = {
-        feat: '✨',
-        fix: '🐛',
-        docs: '📚',
-        style: '🎨',
-        refactor: '♻️',
-        perf: '⚡',
-        test: '✅',
-        build: '🔨',
-        ci: '👷',
-        chore: '🔧',
-        revert: '⏪',
-      };
-      return icons[type] || '📝';
-    };
+    const getTypeIcon = (type: ChangeType): string => ({
+      feat:     '✨',
+      fix:      '🐛',
+      docs:     '📚',
+      style:    '🎨',
+      refactor: '♻️',
+      perf:     '⚡',
+      test:     '✅',
+      build:    '🔨',
+      ci:       '👷',
+      chore:    '🔧',
+      revert:   '⏪',
+    }[type] ?? '📝');
 
-    // Obtener color del tipo
-    const getTypeColor = (type: ChangeType): string => {
-      const colors: Record<ChangeType, string> = {
-        feat: 'text-green-600',
-        fix: 'text-red-600',
-        docs: 'text-blue-600',
-        style: 'text-purple-600',
-        refactor: 'text-yellow-600',
-        perf: 'text-orange-600',
-        test: 'text-teal-600',
-        build: 'text-gray-600',
-        ci: 'text-indigo-600',
-        chore: 'text-gray-500',
-        revert: 'text-pink-600',
-      };
-      return colors[type] || 'text-gray-600';
-    };
+    const getTypeColor = (type: ChangeType): string => ({
+      feat:     'text-green-500',
+      fix:      'text-red-500',
+      docs:     'text-blue-500',
+      style:    'text-purple-500',
+      refactor: 'text-yellow-500',
+      perf:     'text-orange-500',
+      test:     'text-teal-500',
+      build:    'text-gray-500',
+      ci:       'text-indigo-500',
+      chore:    'text-gray-400',
+      revert:   'text-rv-pink',
+    }[type] ?? 'text-gray-400');
 
-    // Formatear fecha
-    const formatDate = (dateStr: string): string => {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
+    const formatDateTime = (dateStr: string): string =>
+      new Date(dateStr).toLocaleDateString('es-ES', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit',
       });
-    };
 
-    // Formatear fecha y hora
-    const formatDateTime = (dateStr: string): string => {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+    const formatDate = (dateStr: string): string =>
+      new Date(dateStr).toLocaleDateString('es-ES', {
+        year: 'numeric', month: 'long', day: 'numeric',
       });
-    };
 
     return {
       versions,
@@ -366,155 +359,29 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Container principal */
-.patch-notes-container {
-  min-height: 100vh;
-  padding: 2rem 1.5rem;
-  max-width: 1280px;
-  margin: 0 auto;
+/* Gradiente del conector de la timeline */
+.timeline-connector-gradient {
+  background: linear-gradient(to bottom, #e46e8a, #b0669f, #0064d6);
 }
 
-/* Remove focus outline from modal */
-dialog:focus {
-  outline: none;
-}
-
-dialog::backdrop {
-  background: transparent;
-}
-
-/* Remove focus outline from buttons */
-button:focus {
-  outline: none;
-}
-
-button:focus-visible {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-/* Timeline custom layout */
-.timeline-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  max-width: 800px;
-}
-
-.timeline-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.5rem;
-}
-
-.timeline-button-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.timeline-connector {
-  width: 3px;
-  flex-grow: 1;
-  min-height: 60px;
-  background: linear-gradient(to bottom, #3b82f6, #60a5fa);
-  opacity: 0.6;
-}
-
-.timeline-icon-button {
-  background: linear-gradient(135deg, #3b82f6, #60a5fa);
-  border-radius: 50%;
-  width: 3rem;
-  height: 3rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.2);
-  border: 4px solid white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  flex-shrink: 0;
-}
-
-.timeline-icon-button:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 12px -1px rgba(59, 130, 246, 0.4), 0 4px 8px -1px rgba(59, 130, 246, 0.3);
-  background: linear-gradient(135deg, #2563eb, #3b82f6);
-}
-
-.timeline-icon-button:active {
-  transform: scale(0.95);
-}
-
-.timeline-card {
-  flex: 1;
-  cursor: pointer;
-  margin-bottom: 1.5rem;
-}
-
-.timeline-card-content {
-  background: white;
-  padding: 1rem 1.25rem;
-  border-radius: 0.75rem;
-  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
-  border: 2px solid #e5e7eb;
-  transition: all 0.3s ease;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.timeline-card-content:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  border-color: #3b82f6;
-}
-
-.timeline-card-left {
-  flex: 1;
-  min-width: 0;
-}
-
-.timeline-card-right {
-  flex-shrink: 0;
-  display: flex;
-  align-items: flex-start;
-  padding-top: 0.125rem;
-}
-
-/* Animaciones */
+/* Animación de entrada del modal */
 .animate-fade-in-up {
-  animation: fadeInUp 0.5s ease-out;
+  animation: fadeInUp 0.28s ease-out;
 }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Line clamp para notas */
+/* Line clamp */
 .line-clamp-1 {
   display: -webkit-box;
   -webkit-line-clamp: 1;
-  line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+button:focus { outline: none; }
+button:focus-visible { outline: 2px solid #e46e8a; outline-offset: 2px; }
 </style>

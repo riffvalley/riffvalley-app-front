@@ -17,7 +17,7 @@
       <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-lg font-medium transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0"
 :class="viewMode === 'all'
   ? 'bg-rv-navy text-white dark:bg-gray-200 dark:text-rv-navy'
-  : 'bg-gray-200 dark:bg-white/5 text-rv-navy dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-white/10 dark:hover:text-white'
+  : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
 ">
         <input type="radio" v-model="viewMode" value="all" class="hidden" />
         Todos los discos <span v-if="totalDisc !== ''">({{ totalDisc }})</span>
