@@ -21,16 +21,39 @@
   <!-- Form body -->
   <form @submit.prevent="createReunion" class="px-5 py-4 space-y-4">
     <div>
-      <label for="title" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Título</label>
-      <input v-model="formData.title" type="text" id="title"
+      <label for="name" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Nombre</label>
+      <input v-model="formData.name" type="text" id="name"
         class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30"
         required placeholder="Nombre de la reunión..." />
     </div>
     <div>
-      <label for="date" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Fecha</label>
-      <input v-model="formData.date" type="datetime-local" id="date"
+      <label for="notes" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Notas</label>
+      <textarea v-model="formData.notes" id="notes" rows="3"
+        class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30 resize-none"
+        placeholder="Descripción o notas..."></textarea>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Fecha <span class="text-red-500">*</span></label>
+      <div class="flex gap-2">
+        <input v-model="formData.date" type="date" id="date"
+          class="flex-1 bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30"
+          required />
+        <select v-model="formData.time"
+          class="w-32 bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30"
+          required>
+          <option value="" disabled>Hora</option>
+          <option v-for="slot in timeSlots" :key="slot" :value="slot">{{ slot }}</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <label for="author" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Autor</label>
+      <select v-model="formData.authorId" id="author"
         class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30"
-        required />
+        required>
+        <option value="" disabled>Seleccionar autor...</option>
+        <option v-for="user in rvUsers" :key="user.id" :value="user.id">{{ user.username }}</option>
+      </select>
     </div>
     <div class="flex justify-end gap-2 pt-1">
       <button type="button" @click="toggleForm"
@@ -156,7 +179,9 @@
 <script>
 import ReunionTable from "./components/ReunionTable.vue";
 import ReunionEditModal from "./components/ReunionEditModal.vue";
-import { postReunion, getReunions } from "@services/reunions/reunions";
+import { getReunions } from "@services/reunions/reunions";
+import { createContent } from "@services/contents/contents";
+import { getRvUsers } from "@services/users/users";
 import SwalService from "@services/swal/SwalService";
 
 export default {
@@ -166,8 +191,17 @@ export default {
       showForm: false,
       showEditModal: false,
       selectedReunionId: null,
-      formData: { title: "", date: "" },
+      formData: { name: "", notes: "", date: "", time: "", authorId: "" },
       reuniones: [],
+      rvUsers: [],
+      timeSlots: (() => {
+        const slots = [];
+        for (let h = 0; h < 24; h++) {
+          slots.push(`${String(h).padStart(2, "0")}:00`);
+          slots.push(`${String(h).padStart(2, "0")}:30`);
+        }
+        return slots;
+      })(),
       selectedYear: null,
       selectedMonth: null,
       showPastReunions: false,
@@ -247,8 +281,15 @@ export default {
     toggleForm() { this.showForm = !this.showForm; },
     async createReunion() {
       try {
-        await postReunion({ title: this.formData.title, date: this.formData.date });
-        this.formData = { title: "", date: "" };
+        const publicationDate = new Date(`${this.formData.date}T${this.formData.time}`).toISOString();
+        await createContent({
+          type: "reunion",
+          name: this.formData.name,
+          notes: this.formData.notes || undefined,
+          publicationDate,
+          authorId: this.formData.authorId,
+        });
+        this.formData = { name: "", notes: "", date: "", time: "", authorId: this.formData.authorId };
         this.toggleForm();
         SwalService.success("Reunión creada con éxito.");
         this.fetchReuniones();
@@ -273,6 +314,17 @@ export default {
       if (this.mesesDisponibles.length > 0) this.selectedMonth = this.mesesDisponibles[0];
     }
   },
-  mounted() { this.fetchReuniones(); }
+  async mounted() {
+    this.fetchReuniones();
+    try {
+      this.rvUsers = await getRvUsers();
+      const riffValleyUser = this.rvUsers.find(
+        (u) => u.username.toLowerCase().replace(/\s+/g, "") === "riffvalley"
+      );
+      if (riffValleyUser) this.formData.authorId = riffValleyUser.id;
+    } catch (error) {
+      SwalService.error("No se pudieron cargar los usuarios.");
+    }
+  }
 };
 </script>
