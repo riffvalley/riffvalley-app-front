@@ -614,7 +614,7 @@ export default defineComponent({
           statsRange,
           statsRange
         );
-        discs.value = response.discs.filter((disc) => disc.averageRate != null).map((disc) => ({
+        discs.value = response.discs.filter((disc) => disc.averageRate != null && disc.averageRate > 0 && disc.image).map((disc) => ({
           ...disc,
           artist: {
             ...disc.artist,
