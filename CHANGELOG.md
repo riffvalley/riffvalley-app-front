@@ -1,3 +1,8 @@
+## <small>1.17.2 (2026-06-05)</small>
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([1cfb9f6](https://github.com/riffvalley/riffvalley-app-front/commit/1cfb9f6))
+* fix(chat): delete "(editado)" in all comments ([9d17c71](https://github.com/riffvalley/riffvalley-app-front/commit/9d17c71))
+
 ## <small>1.17.1 (2026-06-05)</small>
 
 * fix(homepage): delete discs no cover and no votes ([d33a4a7](https://github.com/riffvalley/riffvalley-app-front/commit/d33a4a7))
