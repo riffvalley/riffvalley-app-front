@@ -1,3 +1,7 @@
+## <small>1.17.1 (2026-06-05)</small>
+
+* fix(homepage): delete discs no cover and no votes ([d33a4a7](https://github.com/riffvalley/riffvalley-app-front/commit/d33a4a7))
+
 ## 1.17.0 (2026-06-03)
 
 * feat(reunions): crear reunión vía evento de calendario (#139) ([3fac233](https://github.com/riffvalley/riffvalley-app-front/commit/3fac233)), closes [#139](https://github.com/riffvalley/riffvalley-app-front/issues/139)
