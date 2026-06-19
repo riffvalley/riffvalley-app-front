@@ -1,3 +1,7 @@
+## 1.19.0 (2026-06-19)
+
+* feat(discs): destacar discos en home y botón pinned en calendario (#141) ([d16d2cb](https://github.com/riffvalley/riffvalley-app-front/commit/d16d2cb)), closes [#141](https://github.com/riffvalley/riffvalley-app-front/issues/141)
+
 ## 1.18.0 (2026-06-19)
 
 * feat(reunions): crear reunión vía evento de calendario (#140) ([5743885](https://github.com/riffvalley/riffvalley-app-front/commit/5743885)), closes [#140](https://github.com/riffvalley/riffvalley-app-front/issues/140)
