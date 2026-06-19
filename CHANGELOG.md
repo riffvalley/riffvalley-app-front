@@ -1,3 +1,7 @@
+## 1.18.0 (2026-06-19)
+
+* feat(reunions): crear reunión vía evento de calendario (#140) ([5743885](https://github.com/riffvalley/riffvalley-app-front/commit/5743885)), closes [#140](https://github.com/riffvalley/riffvalley-app-front/issues/140)
+
 ## <small>1.17.2 (2026-06-05)</small>
 
 * Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([1cfb9f6](https://github.com/riffvalley/riffvalley-app-front/commit/1cfb9f6))
