@@ -101,6 +101,7 @@ export async function updateDisc(
     ep?: boolean;
     debut?: boolean;
     artistId?: string;
+    pinned?: boolean;
   }
 ): Promise<void> {
   await api.patch(`/discs/${id}`, data);

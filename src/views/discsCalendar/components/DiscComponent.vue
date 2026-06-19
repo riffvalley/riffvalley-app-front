@@ -131,6 +131,12 @@
                 :class="disc.verified ? 'bg-green-500 hover:bg-green-400' : 'bg-gray-300 dark:bg-white/20 hover:bg-green-500'">
           {{ disc.verified ? '✓ Verificado' : '✗ Sin verificar' }}
         </button>
+        <button @click="togglePinned()"
+                class="px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm whitespace-nowrap
+                       transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]"
+                :class="disc.pinned ? 'bg-rv-pink hover:bg-rv-pink/80' : 'bg-gray-300 dark:bg-white/20 hover:bg-rv-pink'">
+          {{ disc.pinned ? '★ Destacado' : '☆ Destacar' }}
+        </button>
         <button @click="toggleBookmark()"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap
                        text-xs font-semibold text-white shadow-sm
@@ -262,6 +268,7 @@ export default defineComponent({
         ep: boolean;
         debut: boolean;
         verified: boolean;
+        pinned: boolean;
         releaseDate: Date;
         pendingId: string | null;
         nationalReleaseId: string | null;
@@ -420,6 +427,15 @@ export default defineComponent({
         props.disc.verified = !props.disc.verified;
       } catch (error) {
         console.error("Error al actualizar verificación:", error);
+      }
+    };
+
+    const togglePinned = async () => {
+      try {
+        await updateDisc(props.disc.id, { pinned: !props.disc.pinned });
+        props.disc.pinned = !props.disc.pinned;
+      } catch (error) {
+        SwalService.error('No se pudo actualizar el estado destacado');
       }
     };
 
@@ -820,6 +836,7 @@ export default defineComponent({
       saveChanges,
       toggleEp,
       toggleVerified,
+      togglePinned,
       confirmDelete,
       getGenreColor,
       linkButtonData,
