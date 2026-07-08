@@ -106,12 +106,12 @@ import {
   nextTick,
 } from "vue";
 import { getDiscsDated } from "@services/discs/discs";
-import { getRvUsers } from "@services/users/users";
-import { getGenres } from "@services/genres/genres"; // Importa getGenres
 import SwalService from "@services/swal/SwalService";
 import { obtenerEnlaceArtistaSpotify } from "@helpers/SpotifyFunctions";
 import { postAsignationService } from "@services/asignation/asignation";
 import { useAsignationStore } from "@stores/asignation/asignation";
+import { useUserStore } from "@stores/user/users";
+import { useCatalogStore } from "@stores/catalog/catalog";
 import { updateAsignationService } from "@services/asignation/asignation";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import DiscFilters from "@components/DiscFilters.vue"; // Importa DiscFilters
@@ -139,7 +139,6 @@ export default defineComponent({
   },
   setup(props) {
     const discs = ref<any[]>([]);
-    const users = ref<any[]>([]);
     const groupState = reactive({});
     const loading = ref(false);
     const hasMore = ref(true);
@@ -148,7 +147,14 @@ export default defineComponent({
     const formattedDate = ref("");
     const scrollObserver = ref<HTMLDivElement | null>(null);
     const asignationStore = useAsignationStore();
-    const genres = ref<any[]>([]); // Para los géneros
+    const userStore = useUserStore();
+    const catalogStore = useCatalogStore();
+    const users = computed(() =>
+      [...userStore.usersRv].sort((a: any, b: any) =>
+        a.username.localeCompare(b.username)
+      )
+    );
+    const genres = computed(() => catalogStore.genres); // Para los géneros
 
     // Filtros
     const searchQuery = ref("");
@@ -278,21 +284,15 @@ export default defineComponent({
     };
 
     const fetchUsers = async () => {
-      // ... (resto del código de fetchUsers, sin cambios) ...
       try {
-        const usersResponse = await getRvUsers();
-        users.value = usersResponse.sort((a, b) =>
-          a.username.localeCompare(b.username)
-        );
+        await userStore.loadRvUsers();
       } catch (error) {
         console.error("Error fetching users:", error);
       }
-
     };
     const fetchGenres = async () => {
       try {
-        const genresResponse = await getGenres(150, 0); // Obtiene todos los géneros
-        genres.value = genresResponse.data;
+        await catalogStore.fetchCatalog();
       } catch (error) {
         console.error("Error fetching genres:", error);
       }

@@ -227,7 +227,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, nextTick } from 'vue';
+import { ref, computed, onMounted, reactive, nextTick } from 'vue';
 import {
     getVideos,
     createVideo,
@@ -240,12 +240,13 @@ import {
     VIDEO_TYPES,
     toISO
 } from '@services/videos/videos';
-import { getUsersRv, type Superuser } from '@services/auth/auth';
 import { useAuthStore } from '@stores/auth/auth';
+import { useUserStore } from '@stores/user/users';
 import { useRouter } from 'vue-router';
 import SwalService from '@services/swal/SwalService';
 
 const authStore = useAuthStore();
+const userStore = useUserStore();
 const router = useRouter();
 
 // --- Types ---
@@ -308,7 +309,7 @@ const types = VIDEO_TYPES;
 
 // --- State ---
 const items = ref<Video[]>([]);
-const users = ref<Superuser[]>([]);
+const users = computed(() => userStore.usersRv);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const draggedItem = ref<Video | null>(null);
@@ -359,9 +360,7 @@ async function reload() {
     loading.value = true;
     error.value = null;
     try {
-        if (users.value.length === 0) {
-            users.value = await getUsersRv();
-        }
+        await userStore.loadRvUsers();
 
         if (!selectedUserId.value && authStore.userId) {
             const isRv = users.value.some(u => u.id === authStore.userId);

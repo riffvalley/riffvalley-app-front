@@ -128,8 +128,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, onMounted, type PropType } from 'vue';
-import { getGenres, type Genre } from '@services/genres/genres';
+import { defineComponent, computed, onMounted, reactive, type PropType } from 'vue';
+import { useCatalogStore } from '@stores/catalog/catalog';
 import type { NationalRelease } from '@services/national-releases/nationalReleases';
 import SearchableSelect from '@components/SearchableSelect.vue';
 
@@ -152,12 +152,12 @@ export default defineComponent({
   },
   emits: ['submit', 'cancel'],
   setup(props, { emit }) {
-    const genres = ref<Genre[]>([]);
+    const catalogStore = useCatalogStore();
+    const genres = computed(() => catalogStore.genres);
 
     onMounted(async () => {
       try {
-        const response = await getGenres(200, 0);
-        genres.value = response.data;
+        await catalogStore.fetchCatalog();
       } catch {
         // El select quedará vacío pero el formulario es usable
       }

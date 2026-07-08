@@ -239,7 +239,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, nextTick } from 'vue';
+import { ref, computed, onMounted, reactive, nextTick } from 'vue';
 import {
     getArticles,
     createArticle,
@@ -251,11 +251,12 @@ import {
     ARTICLE_TYPES,
     toISO
 } from '@services/articles/articles';
-import { getUsersRv, type Superuser } from '@services/auth/auth';
 import { useAuthStore } from '@stores/auth/auth';
+import { useUserStore } from '@stores/user/users';
 import SwalService from '@services/swal/SwalService';
 
 const authStore = useAuthStore();
+const userStore = useUserStore();
 
 // --- Types ---
 type ColumnId = ArticleState;
@@ -317,7 +318,7 @@ const types = ARTICLE_TYPES;
 
 // --- State ---
 const items = ref<Article[]>([]);
-const users = ref<Superuser[]>([]);
+const users = computed(() => userStore.usersRv);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const draggedItem = ref<Article | null>(null);
@@ -377,9 +378,7 @@ async function reload() {
     loading.value = true;
     error.value = null;
     try {
-        if (users.value.length === 0) {
-            users.value = await getUsersRv();
-        }
+        await userStore.loadRvUsers();
 
         if (!selectedUserId.value && authStore.userId) {
             const isRv = users.value.some(u => u.id === authStore.userId);

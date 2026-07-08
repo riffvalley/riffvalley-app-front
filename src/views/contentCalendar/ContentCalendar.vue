@@ -116,7 +116,7 @@ import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
 import type { ContentType, Content } from '@services/contents/contents';
 import { getContents, createContent as createContentAPI, updateContent, deleteContent, getContentsByMonth } from '@services/contents/contents';
 import { useAuthStore } from '@stores/auth/auth';
-import { getRvUsers } from '@services/users/users';
+import { useUserStore } from '@stores/user/users';
 import SwalService from '@services/swal/SwalService';
 import { updateAsignationService } from '@services/asignation/asignation';
 import { deleteList, getListDetails, updateList } from '@services/list/list';
@@ -153,7 +153,8 @@ const selectedContent = ref<Content | null>(null);
 const contentToDelete = ref<Content | null>(null);
 const allContents = ref<Content[]>([]);
 const editingContentId = ref<string | null>(null);
-const rvUsers = ref<any[]>([]);
+const userStore = useUserStore();
+const rvUsers = computed(() => userStore.usersRv);
 const currentYear = ref(new Date().getFullYear());
 const currentMonth = ref(new Date().getMonth() + 1); // 1-12
 const backlogPanelRef = ref<InstanceType<typeof BacklogPanel> | null>(null);
@@ -875,7 +876,7 @@ async function handleUpdateContentAuthor(authorId: string) {
 
 async function loadRvUsers() {
     try {
-        rvUsers.value = await getRvUsers();
+        await userStore.loadRvUsers();
         // Set default author to current user if available
         if (authStore.userId && !newContent.value.authorId) {
             newContent.value.authorId = authStore.userId;

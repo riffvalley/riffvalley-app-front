@@ -123,8 +123,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, watch, reactive } from "vue";
-import { getRvUsers } from "@services/users/users";
+import { defineComponent, ref, computed, onMounted, watch, reactive } from "vue";
+import { useUserStore } from "@stores/user/users";
 import SwalService from "@services/swal/SwalService";
 import {
   postAsignationService,
@@ -145,7 +145,8 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const users = ref<any[]>([]);
+    const userStore = useUserStore();
+    const users = computed(() => userStore.usersRv);
     const asignations = ref<any[]>([]);
     const editingId = ref<string | null>(null);
     const showModal = ref(false);
@@ -178,8 +179,7 @@ export default defineComponent({
 
     const fetchUsers = async () => {
       try {
-        const response = await getRvUsers();
-        users.value = response;
+        await userStore.loadRvUsers();
       } catch (error) {
         console.error("Error fetching users:", error);
       }

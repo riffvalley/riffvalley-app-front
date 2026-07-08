@@ -138,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, nextTick } from 'vue';
+import { ref, computed, onMounted, reactive, nextTick } from 'vue';
 import {
     getSpotifyFestivals,
     createSpotify,
@@ -148,11 +148,12 @@ import {
     type SpotifyStatus,
     toISO
 } from '@services/spotify/spotify';
-import { getUsersRv, type Superuser } from '@services/auth/auth';
 import { useAuthStore } from '@stores/auth/auth';
+import { useUserStore } from '@stores/user/users';
 import SwalService from '@services/swal/SwalService';
 
 const authStore = useAuthStore();
+const userStore = useUserStore();
 
 type ColumnId = SpotifyStatus;
 
@@ -174,7 +175,7 @@ const columns: Column[] = [
 ];
 
 const items = ref<Spotify[]>([]);
-const users = ref<Superuser[]>([]);
+const users = computed(() => userStore.usersRv);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const draggedItem = ref<Spotify | null>(null);
@@ -198,7 +199,7 @@ async function reload() {
     loading.value = true;
     error.value = null;
     try {
-        if (users.value.length === 0) users.value = await getUsersRv();
+        await userStore.loadRvUsers();
         items.value = await getSpotifyFestivals();
     } catch (e: any) {
         error.value = e?.response?.data?.message || 'Error cargando datos';

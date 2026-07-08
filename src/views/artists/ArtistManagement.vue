@@ -610,18 +610,15 @@ class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm 
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, watch, onMounted, onUnmounted } from "vue";
+import { defineComponent, ref, computed, reactive, watch, onMounted, onUnmounted } from "vue";
 import { getArtistsManagement, deleteArtist, updateArtist, searchArtistsByName, deleteOrphanArtists } from "@services/artist/artist";
 import { getArtistInfo } from "@services/lastfm/lastfm";
 import type { ArtistManagementItem, ArtistManagementDisc } from "@services/artist/artist";
-import { getCountries } from "@services/countries/countries";
-import type { Country } from "@services/countries/countries";
-import { getGenres } from "@services/genres/genres";
-import type { Genre } from "@services/genres/genres";
 import { getDiscRates } from "@services/rates/rates";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
 import axios from "axios";
 import { useAuthStore } from "@stores/auth/auth";
+import { useCatalogStore } from "@stores/catalog/catalog";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import DiscDetail from "@components/DiscDetail.vue";
 import DiscCardComponent from "@components/DiscCardComponent.vue";
@@ -640,8 +637,9 @@ export default defineComponent({
     const orphanCount = ref(0);
     const loading = ref(false);
     const query = ref("");
-    const countries = ref<Country[]>([]);
-    const genres = ref<Genre[]>([]);
+    const catalogStore = useCatalogStore();
+    const countries = computed(() => catalogStore.countries);
+    const genres = computed(() => catalogStore.genres);
     const selectedGenreId = ref("");
     const selectedCountryId = ref("");
     const needsReview = ref<boolean | null>(null);
@@ -1068,8 +1066,7 @@ export default defineComponent({
     onMounted(async () => {
       await Promise.all([
         fetchArtists(),
-        getCountries(250, 0).then(r => { countries.value = r.data.sort((a, b) => a.name.localeCompare(b.name)); }),
-        getGenres(150, 0).then(r => { genres.value = r.data.sort((a, b) => a.name.localeCompare(b.name)); }),
+        catalogStore.fetchCatalog(),
       ]);
       window.addEventListener("scroll", handleScroll, { passive: true });
     });

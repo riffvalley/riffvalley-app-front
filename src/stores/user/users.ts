@@ -5,13 +5,14 @@ import {
   updateUserService,
   updateUserSuperAdminService,
   deleteUserService,
-  getRvUsers,
 } from "@services/users/users";
+import { getUsersRv, type Superuser } from "@services/auth/auth";
 
 export const useUserStore = defineStore("user", {
   state: () => ({
     users: [] as any[], // Lista de usuarios
-    usersRv: [] as any[], // Lista de usuarios RV
+    usersRv: [] as Superuser[], // Lista de usuarios RV
+    usersRvLoaded: false,
     user: null as any | null, // 👈 usuario actual (lo pide el componente)
   }),
 
@@ -37,9 +38,10 @@ export const useUserStore = defineStore("user", {
     },
 
     async loadRvUsers() {
+      if (this.usersRvLoaded) return;
       try {
-        const response = await getRvUsers();
-        this.usersRv = response;
+        this.usersRv = await getUsersRv();
+        this.usersRvLoaded = true;
       } catch (error) {
         console.error("Error loading usersRv:", error);
         throw error; // Opcional: lanzar el error para manejarlo en el componente
