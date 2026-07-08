@@ -55,7 +55,7 @@ yarn preview
 - **`src/stores/`** - Pinia state management stores (auth, asignation, user)
 - **`src/router/`** - Vue Router configuration with route guards
 - **`src/layouts/`** - Layout wrappers (default, auth, list, reunions)
-- **`src/interfaces/`** - TypeScript type definitions
+- **`src/types/`** - Ambient TypeScript declarations only (e.g. `.d.ts` files for untyped third-party packages). Domain/DTO types are NOT defined here — see Service Layer Pattern below.
 - **`src/helpers/`** - Utility functions (Spotify API integration, Swal helpers)
 - **`src/assets/`** - Fonts and CSS files
 - **`public/`** - Static assets served at root (logos, icons, avatars, backgrounds)
@@ -70,7 +70,6 @@ The following path aliases are configured (both in vite.config.ts and tsconfig.j
 @views/      → src/views/
 @components/ → src/components/
 @services/   → src/services/
-@interfaces/ → src/interfaces/
 @helpers/    → src/helpers/
 @assets/     → src/assets/
 ```

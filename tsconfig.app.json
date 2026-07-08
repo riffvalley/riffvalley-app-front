@@ -18,7 +18,6 @@
       "@views/*": ["src/views/*"],
       "@components/*": ["src/components/*"],
       "@services/*": ["src/services/*"],
-      "@interfaces/*": ["src/interfaces/*"],
       "@helpers/*": ["src/helpers/*"],
       "@assets/*": ["src/helpers/*"]
     }

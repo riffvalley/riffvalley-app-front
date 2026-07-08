@@ -1,16 +1,8 @@
 import api from "@services/api/api.ts";
+import type { Genre } from "@services/genres/genres.ts";
+import type { Country } from "@services/countries/countries.ts";
 
-export interface Genre {
-  id: string;
-  name: string;
-  color: string;
-}
-
-export interface Country {
-  id: string;
-  name: string;
-  isoCode: string;
-}
+export type { Genre, Country };
 
 export interface CatalogResponse {
   genres: Genre[];
