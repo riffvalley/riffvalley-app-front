@@ -8,7 +8,8 @@
 </p>
 
     <DiscFilters :searchQuery="searchQuery" :selectedGenre="selectedGenre" :selectedWeek="selectedWeek" :genres="genres"
-      :selectedCountry="selectedCountry" :countries="countries" @update:searchQuery="searchQuery = $event"
+      :selectedCountry="selectedCountry" :countries="countries" :yearOnly="viewMode === 'random'"
+      @update:searchQuery="searchQuery = $event"
       @update:selectedGenre="selectedGenre = $event" @update:selectedWeek="selectedWeek = $event"
       @update:selectedCountry="selectedCountry = $event" selectClass="w-full" wrapperClass=""
       @resetAndFetch="resetAndFetch" />
@@ -71,6 +72,15 @@
         <input type="radio" v-model="viewMode" value="pendientes" class="hidden" />
         Pendientes
         <span v-if="totalPendings !== ''">({{ totalPendings }})</span>
+      </label>
+
+      <label class="px-4 py-2 rounded-full cursor-pointer text-sm shadow-md font-medium transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0"
+        :class="viewMode === 'random'
+          ? 'bg-teal-500 text-white'
+          : 'bg-gray-200 dark:bg-rv-darkCard text-rv-navy dark:text-white hover:bg-gray-300 dark:hover:bg-rv-darkSurface'
+          ">
+        <input type="radio" v-model="viewMode" value="random" class="hidden" />
+        <i class="fa-solid fa-shuffle mr-1"></i>Aleatorios
       </label>
     </div>
     <!-- donde hoy tienes el select de orden -->
@@ -221,7 +231,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, watch, nextTick, computed } from "vue";
-import { getDiscs } from "@services/discs/discs";
+import { getDiscs, getRandomDiscs } from "@services/discs/discs";
 import DiscCard from "@components/DiscCardComponent.vue";
 import Datepicker from "@vuepic/vue-datepicker";
 import { getRatesByUser } from "@services/rates/rates";
@@ -430,6 +440,26 @@ response = await getCommentsByUser(
               voteCount: favorite.disc.voteCount,
             }))
           );
+        } else if (viewMode.value === "random") {
+          const randomDiscs = await getRandomDiscs({
+            genre: selectedGenre.value || undefined,
+            countryId: selectedCountry.value || undefined,
+            year: selectedWeek.value ? new Date(selectedWeek.value[0]).getFullYear() : undefined,
+            limit: 5,
+          });
+          discs.value.push(
+            ...randomDiscs.map((disc) => ({
+              ...disc,
+              userRate: disc.userRate
+                ? {
+                  id: disc.userRate.id,
+                  rate: disc.userRate.rate != null ? parseFloat(disc.userRate.rate) : null,
+                  cover: disc.userRate.cover != null ? parseFloat(disc.userRate.cover) : null,
+                }
+                : null,
+            }))
+          );
+          hasMore.value = false;
         } else if (viewMode.value === "pendientes") {
           response = await getPendingsByUser(
             limit.value,
@@ -494,9 +524,11 @@ response = await getCommentsByUser(
           })));
         }
 
-        totalItems.value = response.totalItems;
-        offset.value += limit.value;
-        hasMore.value = offset.value < totalItems.value;
+        if (viewMode.value !== "random") {
+          totalItems.value = response.totalItems;
+          offset.value += limit.value;
+          hasMore.value = offset.value < totalItems.value;
+        }
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {

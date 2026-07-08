@@ -128,6 +128,50 @@ export async function deleteDisc(id: string): Promise<void> {
   await api.delete(`/discs/${id}`);
 }
 
+export interface RandomDiscsFilters {
+  genre?: string;
+  country?: string;
+  countryId?: string;
+  year?: number;
+  limit?: number;
+}
+
+export interface RandomDisc {
+  id: string;
+  name: string;
+  description: string | null;
+  image: string | null;
+  verified: boolean;
+  ep: boolean;
+  debut: boolean;
+  link: string | null;
+  releaseDate: string;
+  featured: boolean;
+  pinned: boolean;
+  artist: {
+    id: string;
+    name: string;
+    country: { id: string; name: string | null; isoCode?: string | null } | null;
+  };
+  genre: { id: string; name: string; color?: string } | null;
+  userRate: { id: string; rate: string | null; cover: string | null } | null;
+  averageRate: number | null;
+  averageCover: number | null;
+  commentCount: number;
+  voteCount: number;
+  favoriteId: string | null;
+  pendingId: string | null;
+}
+
+export async function getRandomDiscs(
+  filters: RandomDiscsFilters = {}
+): Promise<RandomDisc[]> {
+  const response = await api.get<RandomDisc[]>("/discs/random", {
+    params: filters,
+  });
+  return response.data;
+}
+
 export async function getTopRatedOrFeaturedAndStats(
   dateRange?: [string, string],
   genreId?: string,

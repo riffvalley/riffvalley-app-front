@@ -95,7 +95,7 @@
 
         <!-- MES -->
         <SimpleSelect
-          v-if="weeksYear !== 0"
+          v-if="!yearOnly && weeksYear !== 0"
           class="select-pill w-full"
           :options="monthsOptions"
           v-model="weeksMonth"
@@ -104,7 +104,7 @@
 
         <!-- SEMANAS -->
         <SimpleSelect
-          v-if="weeksYear !== 0 && weeksMonth"
+          v-if="!yearOnly && weeksYear !== 0 && weeksMonth"
           class="select-pill w-full"
           :options="periodOptions"
           v-model="selectedPeriodKey"
@@ -145,6 +145,7 @@ export default defineComponent({
     showSearchQuery: { type: Boolean, default: true },
     showCountryFilter: { type: Boolean, default: true },
     externalRow1: { type: Boolean, default: false },
+    yearOnly: { type: Boolean, default: false },
 
   },
   emits: ["update:searchQuery", "update:selectedGenre", "update:selectedCountry", "update:selectedWeek", "resetAndFetch"],
