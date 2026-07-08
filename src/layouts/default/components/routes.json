@@ -75,6 +75,21 @@
     "icon": "fa-solid fa-circle-plus"
   },
   {
+    "to": "/events/rooms",
+    "label": "Salas",
+    "activeClass": "bg-gray-700",
+    "type": "events",
+    "icon": "fa-solid fa-building"
+  },
+  {
+    "to": "/events/rooms/manage",
+    "label": "Gestión de Salas",
+    "activeClass": "bg-gray-700",
+    "type": "event-management",
+    "requiredRole": "riffValley",
+    "icon": "fa-solid fa-door-closed"
+  },
+  {
     "to": "/content-calendar",
     "label": "Calendario RV",
     "activeClass": "bg-gray-700",

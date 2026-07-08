@@ -75,6 +75,56 @@
           </details>
         </li>
 
+        <li v-if="filteredEventsRoutes.length > 0" class="pt-2">
+          <details class="group">
+            <summary class="font-bold uppercase text-xs tracking-wider flex justify-between items-center py-2 px-4
+         text-white group-open:text-gray-400
+         hover:text-white cursor-pointer">
+              <div class="flex items-center justify-start">
+                <i class="fa-solid fa-landmark-dome text-base w-5 text-center mr-3"></i>
+                Conciertos y festivales
+              </div>
+              <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200 group-open:rotate-180"></i>
+            </summary>
+            <ul>
+              <li v-for="route in filteredEventsRoutes" :key="route.to" class="mt-1">
+                <router-link :to="route.to" class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
+         transition-all duration-300
+         hover:bg-gray-700 hover:text-white" :active-class="'bg-gradient-to-r from-[#e46e8a] to-[#b0669f] text-white'"
+                  @click="closeMenu">
+                  <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
+                  {{ route.label }}
+                </router-link>
+              </li>
+            </ul>
+          </details>
+        </li>
+
+        <li v-if="filteredEventManagementRoutes.length > 0" class="pt-2">
+          <details class="group">
+            <summary class="font-bold uppercase text-xs tracking-wider flex justify-between items-center py-2 px-4
+         text-white group-open:text-gray-400
+         hover:text-white cursor-pointer">
+              <div class="flex items-center justify-start">
+                <i class="fa-solid fa-clipboard-list text-base w-5 text-center mr-3"></i>
+                Gestión de Eventos
+              </div>
+              <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200 group-open:rotate-180"></i>
+            </summary>
+            <ul>
+              <li v-for="route in filteredEventManagementRoutes" :key="route.to" class="mt-1">
+                <router-link :to="route.to" class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
+         transition-all duration-300
+         hover:bg-gray-700 hover:text-white" :active-class="'bg-gradient-to-r from-[#e46e8a] to-[#b0669f] text-white'"
+                  @click="closeMenu">
+                  <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
+                  {{ route.label }}
+                </router-link>
+              </li>
+            </ul>
+          </details>
+        </li>
+
         <li v-if="filteredRiffValleyRoutes.length > 0" class="pt-2">
           <details class="group">
             <summary class="font-bold uppercase text-xs tracking-wider flex justify-between items-center py-2 px-4
@@ -308,7 +358,7 @@ import routesData from './routes.json';
 type AppRoute = {
   to: string;
   label: string;
-  type: 'disc-app' | 'new-discs' | 'riff-valley' | 'management' | 'bottom';
+  type: 'disc-app' | 'new-discs' | 'events' | 'event-management' | 'riff-valley' | 'management' | 'bottom';
   activeClass?: string;
   requiredRole?: string;
   icon?: string;
@@ -357,17 +407,27 @@ emits: ['close-menu', 'toggle-theme'],
       filterByRole(allRoutes.filter((r) => r.type === 'new-discs'))
     );
 
-    // 3. Riff Valley
+    // 3. Eventos (NUEVA CATEGORÍA)
+    const filteredEventsRoutes = computed(() =>
+      filterByRole(allRoutes.filter((r) => r.type === 'events'))
+    );
+
+    // 4. Gestión de Eventos (NUEVA CATEGORÍA)
+    const filteredEventManagementRoutes = computed(() =>
+      filterByRole(allRoutes.filter((r) => r.type === 'event-management'))
+    );
+
+    // 5. Riff Valley
     const filteredRiffValleyRoutes = computed(() =>
       filterByRole(allRoutes.filter((r) => r.type === 'riff-valley'))
     );
 
-    // 4. Gestión
+    // 6. Gestión
     const filteredManagementRoutes = computed(() =>
       filterByRole(allRoutes.filter((r) => r.type === 'management'))
     );
 
-    // 5. Bottom
+    // 7. Bottom
     const filteredBottomRoutes = computed(() =>
       filterByRole(allRoutes.filter((r) => r.type === 'bottom'))
     );
@@ -409,6 +469,8 @@ emits: ['close-menu', 'toggle-theme'],
       logoutLabel: 'Cerrar sesión',
       filteredDiscAppRoutes,
       filteredNewDiscsRoutes,
+      filteredEventsRoutes,
+      filteredEventManagementRoutes,
       filteredRiffValleyRoutes,
       filteredManagementRoutes,
       filteredBottomRoutes,

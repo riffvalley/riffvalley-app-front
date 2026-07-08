@@ -15,6 +15,10 @@ import '@vuepic/vue-datepicker/dist/main.css';
 import CircleFlags from "vue-circle-flags";
 import "vue-circle-flags/dist/vue-circle-flags.css";
 
+// Leaflet
+import "leaflet/dist/leaflet.css";
+import "@helpers/leafletIcons";
+
 
 // FontAwesome
 import { library } from '@fortawesome/fontawesome-svg-core';
