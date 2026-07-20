@@ -31,13 +31,11 @@
     </div>
 
     <!-- Novedades + Comunidad + Top usuarios -->
-    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start mb-6">
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 mb-6">
       <!-- Novedades Riff Valley -->
-      <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl p-4 sm:p-6 border border-gray-200 dark:border-white/10 flex flex-col">
+      <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl p-4 sm:p-6 border border-gray-200 dark:border-white/10 flex flex-col h-full">
         <h3 class="text-xl font-bold text-rv-navy dark:text-white mb-4 text-center shrink-0">Novedades Riff Valley</h3>
-        <div class="overflow-y-auto max-h-[400px] pr-1">
-          <NewsFeed />
-        </div>
+        <NewsFeed />
       </div>
 
       <!-- Columna derecha -->
@@ -272,7 +270,6 @@
 import { defineComponent, ref, computed, onMounted } from "vue";
 import { useAuthStore } from "@stores/auth/auth";
 import { getTopRatedOrFeaturedAndStats, getDiscs } from "@services/discs/discs";
-import { getRatesStats } from "@services/rates/rates";
 import StatsModal from "@components/StatsModal.vue";
 import DiscCard from "@components/DiscCardComponent.vue";
 import NewsFeed from "@views/homePage/components/NewsFeed.vue";
@@ -384,30 +381,32 @@ export default defineComponent({
     };
 
     // ── API calls ─────────────────────────────────────────
+    const fetchUserStats = async () => {
+      try {
+        const allTimeResponse = await getTopRatedOrFeaturedAndStats(undefined, undefined, undefined, undefined, undefined);
+        stats.value.totalDiscs = allTimeResponse.totalDiscs;
+        const myUsername = authStore.username;
+        const myRates = allTimeResponse.topUsersByRates.find((u: any) => u.user.username === myUsername);
+        const myCover = allTimeResponse.topUsersByCover.find((u: any) => u.user.username === myUsername);
+        userDiscVotes.value  = myRates?.rateCount ?? 0;
+        userCoverVotes.value = myCover?.totalCover ?? 0;
+      } catch { /* silently */ } finally {
+        loading.value = false;
+      }
+    };
+
     const fetchStats = async () => {
       try {
         let statsRange: [string, string] | undefined;
         if (selectedStatsYear.value !== "all") {
           statsRange = [`${selectedStatsYear.value}-01-01`, `${selectedStatsYear.value}-12-31`];
         }
-        const yearNum = selectedStatsYear.value !== "all" ? Number(selectedStatsYear.value) : undefined;
-        const [response, ratesStats] = await Promise.all([
-          getTopRatedOrFeaturedAndStats(undefined, undefined, undefined, statsRange, statsRange),
-          getRatesStats(yearNum),
-        ]);
-        stats.value.totalDiscs   = response.totalDiscs;
+        const response = await getTopRatedOrFeaturedAndStats(undefined, undefined, undefined, statsRange, statsRange);
         stats.value.totalVotes   = response.totalVotes;
         topUsersByRates.value    = response.topUsersByRates;
         topUsersByCover.value    = response.topUsersByCover;
         ratingDistribution.value = response.ratingDistribution;
-
-        userDiscVotes.value  = ratesStats.totalVotes;
-        const myUsername = authStore.username;
-        const myCover = response.topUsersByCover.find((u: any) => u.user.username === myUsername);
-        userCoverVotes.value = myCover?.totalCover ?? 0;
-      } catch { /* silently */ } finally {
-        loading.value = false;
-      }
+      } catch { /* silently */ }
     };
 
     const fetchTopDiscs = async () => {
@@ -454,6 +453,7 @@ export default defineComponent({
     };
 
     onMounted(() => {
+      fetchUserStats();
       fetchStats();
       fetchTopDiscs();
     });
