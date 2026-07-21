@@ -1025,11 +1025,10 @@ ctx.fillText(formattedDate.value || "", SIZE / 2, titleY + 25);
 
 // Scores
 const scores = [
-  { val: props.averageRate, label: "DISCO" },
-  { val: props.averageCover, label: "PORTADA" },
+  { val: props.averageRate, label: "NOTA" },
 ].filter(score => typeof score.val === "number");
 
-const scoreY = 408;
+const scoreY = 395;
 
 // Divisor horizontal encima de las notas
 const dividerY = scoreY - 40;
@@ -1039,29 +1038,6 @@ ctx.lineTo(SIZE * 0.9, dividerY);
 ctx.strokeStyle = "rgba(255,255,255,0.18)";
 ctx.lineWidth = 1;
 ctx.stroke();
-
-if (scores.length >= 2) {
-  const leftX = SIZE / 2 - 72;
-  const rightX = SIZE / 2 + 72;
-
-  ctx.font = `900 33px ${font}`;
-  ctx.fillStyle = "#fff";
-  ctx.fillText(scores[0].val!.toFixed(2), leftX, scoreY);
-  ctx.fillText(scores[1].val!.toFixed(2), rightX, scoreY);
-
-  ctx.font = `800 10px ${font}`;
-  ctx.fillStyle = "rgba(255,255,255,0.62)";
-  ctx.fillText(scores[0].label, leftX, scoreY + 22);
-  ctx.fillText(scores[1].label, rightX, scoreY + 22);
-
-  // Divisor vertical entre las dos notas
-  ctx.beginPath();
-  ctx.moveTo(SIZE / 2, scoreY - 26);
-  ctx.lineTo(SIZE / 2, scoreY + 24);
-  ctx.strokeStyle = "rgba(255,255,255,0.22)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
 
 if (scores.length === 1) {
   ctx.font = `900 33px ${font}`;

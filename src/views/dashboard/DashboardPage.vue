@@ -30,23 +30,35 @@
       </div>
     </div>
 
-    <!-- Novedades + Comunidad + Top usuarios -->
-    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 mb-6 items-start">
+    <!-- Módulos dinámicos del dashboard -->
+    <div class="flex flex-wrap gap-6">
+
       <!-- Novedades Riff Valley -->
-      <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl p-4 sm:p-6 border border-gray-200 dark:border-white/10">
-        <h3 class="text-xl font-bold text-rv-navy dark:text-white mb-4 text-center shrink-0">Novedades Riff Valley</h3>
-        <NewsFeed />
+      <div v-if="isEnabled('novedades')" :style="{ order: orderOf('novedades') }"
+           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+        <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex-1">
+          <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-pink/8 to-rv-purple/8 dark:from-rv-pink/10 dark:to-rv-purple/10 border-b border-gray-100 dark:border-white/10">
+            <i class="fa-solid fa-newspaper text-rv-pink"></i>
+            <h3 class="font-bold text-gray-900 dark:text-white">Novedades Riff Valley</h3>
+          </div>
+          <div class="p-4 sm:p-5">
+            <NewsFeed />
+          </div>
+        </div>
       </div>
 
-      <!-- Columna derecha -->
-      <div class="flex flex-col gap-6">
+      <!-- Comunidad + Top usuarios -->
+      <div v-if="isEnabled('comunidad')" :style="{ order: orderOf('comunidad') }"
+           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+      <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex-1">
+
         <!-- Comunidad -->
-        <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl p-4 sm:p-5 border border-gray-200 dark:border-white/10">
-          <h3 class="text-lg font-bold text-rv-navy dark:text-white mb-4 flex items-center justify-center gap-2">
-            <img src="/LOGO-RIFF-VALLEY.svg" alt="Riff Valley" class="w-5 h-5 brightness-0 dark:brightness-100" />
+        <div class="px-5 py-4 border-b border-gray-100 dark:border-white/10">
+          <h3 class="text-sm font-bold text-rv-navy dark:text-white mb-3 flex items-center gap-2">
+            <img src="/LOGO-RIFF-VALLEY.svg" alt="Riff Valley" class="w-4 h-4 brightness-0 dark:brightness-100" />
             Comunidad
           </h3>
-          <div class="flex flex-col gap-2.5">
+          <div class="flex flex-col gap-2">
             <div class="community-row">
               <span class="community-label">App</span>
               <a href="https://t.me/RiffValleyAppUpdates" target="_blank" rel="noopener noreferrer" class="community-pill bg-[#229ED9] hover:bg-[#1a8bc2]"><i class="fa-brands fa-telegram"></i> Canal</a>
@@ -66,9 +78,9 @@
         </div>
 
         <!-- Top Usuarios -->
-        <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl p-4 sm:p-5 border border-gray-200 dark:border-white/10">
+        <div class="px-5 py-4">
           <div class="flex items-center justify-between mb-3">
-            <h3 class="text-base font-bold text-rv-navy dark:text-white flex items-center gap-2">
+            <h3 class="text-sm font-bold text-rv-navy dark:text-white flex items-center gap-2">
               <i class="fa-solid fa-user-group"></i>Top usuarios
             </h3>
             <div class="relative inline-flex">
@@ -82,7 +94,7 @@
             </div>
           </div>
 
-          <!-- Tabs Discos / Portadas -->
+          <!-- Tabs -->
           <div class="flex gap-1 mb-3 p-1 bg-gray-100 dark:bg-rv-darkSurface rounded-lg">
             <button @click="topUsersTab = 'rates'"
               :class="topUsersTab === 'rates' ? 'bg-rv-purple text-white shadow' : 'bg-gray-200 dark:bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-white/10'"
@@ -96,27 +108,29 @@
             </button>
           </div>
 
-          <!-- Lista ranking -->
-          <ul class="space-y-0.5">
-            <template v-if="topUsersTab === 'rates'">
-              <li v-if="topUsersByRates.length === 0" class="text-gray-400 italic text-xs text-center py-3">No hay datos</li>
+          <!-- Ranking en 2 columnas -->
+          <template v-if="topUsersTab === 'rates'">
+            <p v-if="topUsersByRates.length === 0" class="text-gray-400 italic text-xs text-center py-3">No hay datos</p>
+            <ul v-else class="grid grid-cols-2 gap-x-2">
               <li v-for="(user, index) in topUsersByRates" :key="user.user.id"
-                class="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                <span class="text-xs w-5 text-center shrink-0" v-html="getTrophyIcon(index)"></span>
-                <span class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ user.user.username }}</span>
-                <span class="text-xs font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-2 py-0.5 rounded-full">{{ user.rateCount }}</span>
+                class="flex items-center gap-1.5 py-1 px-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-0">
+                <span class="text-xs w-4 text-center shrink-0" v-html="getTrophyIcon(index)"></span>
+                <span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ user.user.username }}</span>
+                <span class="text-[10px] font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1.5 py-0.5 rounded-full">{{ user.rateCount }}</span>
               </li>
-            </template>
-            <template v-else>
-              <li v-if="topUsersByCover.length === 0" class="text-gray-400 italic text-xs text-center py-3">No hay datos</li>
+            </ul>
+          </template>
+          <template v-else>
+            <p v-if="topUsersByCover.length === 0" class="text-gray-400 italic text-xs text-center py-3">No hay datos</p>
+            <ul v-else class="grid grid-cols-2 gap-x-2">
               <li v-for="(user, index) in topUsersByCover" :key="user.user.id"
-                class="flex items-center gap-2.5 py-1.5 px-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                <span class="text-xs w-5 text-center shrink-0" v-html="getTrophyIcon(index)"></span>
-                <span class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ user.user.username }}</span>
-                <span class="text-xs font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-2 py-0.5 rounded-full">{{ user.totalCover }}</span>
+                class="flex items-center gap-1.5 py-1 px-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-0">
+                <span class="text-xs w-4 text-center shrink-0" v-html="getTrophyIcon(index)"></span>
+                <span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ user.user.username }}</span>
+                <span class="text-[10px] font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1.5 py-0.5 rounded-full">{{ user.totalCover }}</span>
               </li>
-            </template>
-          </ul>
+            </ul>
+          </template>
 
           <div class="mt-3 pt-3 border-t border-gray-100 dark:border-white/10 text-center">
             <button @click="showDetailedStats = true"
@@ -127,10 +141,11 @@
           </div>
         </div>
       </div>
-    </div>
+      </div>
 
-    <!-- Top 3 Semana -->
-    <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden mb-6">
+      <!-- Top 3 Semana -->
+      <div v-if="isEnabled('top3semana')" :style="{ order: orderOf('top3semana') }" class="w-full">
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
       <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-rv-pink/8 to-rv-purple/8 dark:from-rv-pink/10 dark:to-rv-purple/10 border-b border-gray-100 dark:border-white/10">
         <div class="flex items-center gap-2">
           <i class="fa-solid fa-fire text-rv-pink"></i>
@@ -163,13 +178,15 @@
         </div>
         <p v-else class="text-center text-gray-400 dark:text-gray-500 text-sm py-6">No hay discos valorados esta semana</p>
       </div>
-    </div>
+      </div>
+      </div>
 
-    <!-- Top 3 Mes -->
-    <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden mb-6">
+      <!-- Top 3 Mes -->
+      <div v-if="isEnabled('top3mes')" :style="{ order: orderOf('top3mes') }" class="w-full">
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
       <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 dark:from-rv-purple/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10">
         <div class="flex items-center gap-2">
-          <i class="fa-solid fa-calendar-star text-rv-purple"></i>
+          <i class="fa-solid fa-fire text-rv-purple"></i>
           <h3 class="font-bold text-gray-900 dark:text-white">Top 3 · Mes actual</h3>
         </div>
         <span class="text-xs text-gray-400 dark:text-gray-500 capitalize">{{ monthLabel }}</span>
@@ -197,13 +214,13 @@
         </div>
         <p v-else class="text-center text-gray-400 dark:text-gray-500 text-sm py-6">No hay discos valorados este mes</p>
       </div>
-    </div>
-
-    <!-- Fila inferior: Disco aleatorio + hueco para futura sección -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      </div>
+      </div>
 
       <!-- Disco Aleatorio -->
-      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col">
+      <div v-if="isEnabled('discoAleatorio')" :style="{ order: orderOf('discoAleatorio') }"
+           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
         <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-amber-400/10 to-rv-pink/8 dark:from-amber-400/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10">
           <i class="fa-solid fa-shuffle text-amber-500"></i>
           <h3 class="font-bold text-gray-900 dark:text-white">Disco aleatorio</h3>
@@ -257,9 +274,12 @@
           </div>
         </div>
       </div>
+      </div>
 
       <!-- Portada del día -->
-      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col">
+      <div v-if="isEnabled('portadaDia')" :style="{ order: orderOf('portadaDia') }"
+           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
         <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 dark:from-rv-purple/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10 shrink-0">
           <i class="fa-solid fa-image text-rv-purple"></i>
           <h3 class="font-bold text-gray-900 dark:text-white">Portada del día</h3>
@@ -326,6 +346,167 @@
           </div>
         </div>
       </div>
+      </div>
+
+      <!-- Tus artistas favoritos -->
+      <div v-if="isEnabled('artistas')" :style="{ order: orderOf('artistas') }" class="w-full">
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
+      <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-pink/8 to-rv-purple/8 dark:from-rv-pink/10 dark:to-rv-purple/10 border-b border-gray-100 dark:border-white/10">
+        <i class="fa-solid fa-heart text-rv-pink"></i>
+        <h3 class="font-bold text-gray-900 dark:text-white">Tus artistas favoritos</h3>
+      </div>
+      <div class="p-4 sm:p-6">
+        <!-- Loading -->
+        <div v-if="topArtistsLoading" class="flex flex-col gap-3">
+          <div class="grid grid-cols-3 gap-3">
+            <div v-for="i in 3" :key="i" class="aspect-[3/2] rounded-2xl bg-gray-100 dark:bg-white/5 animate-pulse"></div>
+          </div>
+          <div class="grid grid-cols-4 gap-3">
+            <div v-for="i in 4" :key="i+3" class="aspect-[4/3] rounded-xl bg-gray-100 dark:bg-white/5 animate-pulse"></div>
+          </div>
+        </div>
+
+        <!-- Cards -->
+        <div v-else-if="topArtists.length" class="flex flex-col gap-3">
+          <!-- Fila superior: top 3 grandes — 1 col en móvil, 3 en sm+ -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div v-for="artist in topArtists.slice(0, 3)" :key="artist.id"
+              class="relative rounded-2xl overflow-hidden aspect-[3/2] group">
+              <img v-if="artist.image" :src="artist.image" :alt="artist.name"
+                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <div v-else class="w-full h-full bg-gradient-to-br from-rv-purple/30 to-rv-pink/30 flex items-center justify-center">
+                <i class="fa-solid fa-music text-4xl text-white/40"></i>
+              </div>
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+              <div class="absolute bottom-0 left-0 right-0 p-4">
+                <p class="text-white font-bold text-base leading-snug drop-shadow-md line-clamp-1">{{ artist.name }}</p>
+                <div class="flex items-center gap-1.5 mt-1">
+                  <i class="fa-solid fa-star text-amber-400 text-xs"></i>
+                  <span class="text-white font-bold text-sm">{{ artist.avgRate.toFixed(2) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fila inferior: artistas 4-7 — 2 col en móvil, 4 en sm+ -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div v-for="artist in topArtists.slice(3, 7)" :key="artist.id"
+              class="relative rounded-xl overflow-hidden aspect-[4/3] group">
+              <img v-if="artist.image" :src="artist.image" :alt="artist.name"
+                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              <div v-else class="w-full h-full bg-gradient-to-br from-rv-purple/30 to-rv-pink/30 flex items-center justify-center">
+                <i class="fa-solid fa-music text-2xl text-white/40"></i>
+              </div>
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+              <div class="absolute bottom-0 left-0 right-0 p-2.5">
+                <p class="text-white font-bold text-xs leading-snug drop-shadow-md line-clamp-1">{{ artist.name }}</p>
+                <div class="flex items-center gap-1 mt-0.5">
+                  <i class="fa-solid fa-star text-amber-400 text-[9px]"></i>
+                  <span class="text-white font-bold text-[10px]">{{ artist.avgRate.toFixed(2) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p v-else class="text-center text-gray-400 dark:text-gray-500 text-sm py-6">
+          Vota algún disco para ver tus artistas favoritos
+        </p>
+      </div>
+      </div>
+      </div>
+
+      <!-- Cementerio de discos -->
+      <div v-if="isEnabled('cementerio')" :style="{ order: orderOf('cementerio') }"
+           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
+        <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-800/5 to-gray-600/5 dark:from-white/3 dark:to-white/5 border-b border-gray-100 dark:border-white/10 shrink-0">
+          <div class="flex flex-col">
+            <div class="flex items-center gap-2">
+              <span class="text-base leading-none">🪦</span>
+              <h3 class="font-bold text-gray-900 dark:text-white">Cementerio de discos</h3>
+            </div>
+            <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 pl-6">Solo discos sin votos</p>
+          </div>
+          <button @click="fetchCemeteryDiscs" :disabled="cemeteryRolling"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow
+                   bg-gray-100 dark:bg-rv-navy text-rv-navy dark:text-white
+                   hover:bg-rv-navy hover:text-white dark:hover:bg-rv-pink hover:-translate-y-0.5 hover:shadow-md
+                   active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none
+                   transition-all duration-200 border border-gray-200 dark:border-white/10 outline-none focus:outline-none ring-0">
+            <i class="fa-solid fa-shuffle text-[10px]" :class="{ 'animate-spin': cemeteryRolling }"></i>
+            {{ cemeteryRolling ? 'Buscando…' : 'Otros olvidados' }}
+          </button>
+        </div>
+
+        <div class="p-4 sm:p-5 flex-1">
+          <div v-if="cemeteryLoading" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div v-for="i in 2" :key="i" class="aspect-square rounded-xl bg-gray-100 dark:bg-white/5 animate-pulse"></div>
+          </div>
+          <div v-else-if="cemeteryDiscs.length > 0" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div v-for="disc in cemeteryDiscs" :key="disc.id" class="flex justify-center">
+              <DiscCard :key="disc.id" :id="disc.id" :ep="disc.ep" :image="disc.image" :name="disc.name"
+                :releaseDate="disc.releaseDate" :artistName="disc.artist?.name" :genreName="disc.genre?.name"
+                :genreColor="disc.genre?.color" :link="disc.link" :averageRate="disc.averageRate"
+                :averageCover="disc.averageCover" :rate="disc.userRate?.rate" :cover="disc.userRate?.cover"
+                :isNew="!disc.userRate" :userDiscRate="disc.userRate?.id" :favoriteId="disc.userFavoriteId"
+                :pendingId="disc.pendingId" :comment-count="disc.commentCount" :rateCount="disc.voteCount"
+                :artistCountry="disc.artist?.country" :debut="disc.debut" />
+            </div>
+          </div>
+          <p v-else class="text-center text-gray-400 dark:text-gray-500 text-sm py-6">
+            ¡No quedan discos sin votar!
+          </p>
+        </div>
+      </div>
+      </div>
+
+      <!-- Tu mundo musical -->
+      <div v-if="isEnabled('mundoMusical')" :style="{ order: orderOf('mundoMusical') }"
+           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
+        <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-blue/8 to-rv-purple/8 dark:from-rv-blue/10 dark:to-rv-purple/10 border-b border-gray-100 dark:border-white/10 shrink-0">
+          <i class="fa-solid fa-earth-americas text-rv-blue"></i>
+          <h3 class="font-bold text-gray-900 dark:text-white">Tu mundo musical</h3>
+        </div>
+
+        <div class="p-4 sm:p-5 flex flex-col gap-2 flex-1">
+          <!-- Loading -->
+          <template v-if="musicMapLoading">
+            <div v-for="i in 10" :key="i" class="flex items-center gap-3">
+              <div class="w-5 h-5 rounded-full bg-gray-100 dark:bg-white/5 animate-pulse shrink-0"></div>
+              <div class="h-3 rounded-full bg-gray-100 dark:bg-white/5 animate-pulse flex-1"></div>
+              <div class="w-10 h-3 rounded-full bg-gray-100 dark:bg-white/5 animate-pulse shrink-0"></div>
+            </div>
+          </template>
+
+          <!-- Top 10 países -->
+          <template v-else-if="musicMapData.length">
+            <div v-for="(entry, i) in musicMapData" :key="entry.isoCode"
+              class="flex items-center gap-3 py-0.5">
+              <span class="text-xs text-gray-400 dark:text-gray-500 w-4 text-right shrink-0">{{ i + 1 }}</span>
+              <div class="relative group shrink-0">
+                <CircleFlags :country="entry.isoCode" :show-flag-name="false" class="w-5 h-5 cursor-help" />
+                <span class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 text-[9px] font-semibold
+                             text-white bg-rv-navy rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300
+                             whitespace-nowrap pointer-events-none z-10">
+                  {{ entry.name }}
+                </span>
+              </div>
+              <div class="flex-1 h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                <div class="h-full bg-rv-blue rounded-full transition-all duration-500"
+                  :style="{ width: entry.pct + '%' }"></div>
+              </div>
+              <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400 shrink-0 w-16 text-right">
+                {{ entry.count }} <span class="text-gray-400 dark:text-gray-600">({{ entry.pct }}%)</span>
+              </span>
+            </div>
+          </template>
+
+          <p v-else class="text-center text-gray-400 dark:text-gray-500 text-sm py-6">Sin datos disponibles</p>
+        </div>
+      </div>
+      </div>
 
     </div>
 
@@ -336,6 +517,8 @@
 import { defineComponent, ref, computed, onMounted } from "vue";
 import { useAuthStore } from "@stores/auth/auth";
 import { getTopRatedOrFeaturedAndStats, getDiscs } from "@services/discs/discs";
+import { getRatesByUser } from "@services/rates/rates";
+import { useDashboardConfig } from "@/composables/useDashboardConfig";
 import StatsModal from "@components/StatsModal.vue";
 import DiscCard from "@components/DiscCardComponent.vue";
 import NewsFeed from "@views/homePage/components/NewsFeed.vue";
@@ -398,6 +581,7 @@ export default defineComponent({
   name: "DashboardPage",
   components: { StatsModal, DiscCard, NewsFeed },
   setup() {
+    const { isEnabled, orderOf } = useDashboardConfig();
     const authStore = useAuthStore();
 
     // ── Stats / top usuarios ──────────────────────────────
@@ -427,6 +611,118 @@ export default defineComponent({
     const dicePhrase    = ref(DICE_PHRASES[0]);
     const unvotedDiscCount = ref(0);
     let diceInterval: ReturnType<typeof setInterval> | null = null;
+
+    // ── Top artistas ─────────────────────────────────────
+    interface ArtistEntry { id: string; name: string; image: string; avgRate: number }
+    const topArtists        = ref<ArtistEntry[]>([]);
+    const topArtistsLoading = ref(true);
+
+    const fetchTopArtists = async () => {
+      try {
+        const response = await getRatesByUser(1000, 0, undefined, undefined, undefined, undefined, 'rate');
+const map: Record<string, { name: string; image: string; sum: number; count: number }> = {};
+        for (const rate of response.data as any[]) {
+          const r = parseFloat(rate.rate);
+          if (isNaN(r)) continue;
+          const a = rate.disc?.artist;
+          if (!a) continue;
+          const key = a.id ?? a.name;
+          if (!key) continue;
+          if (!map[key]) map[key] = { name: a.name ?? key, image: a.image ?? '', sum: 0, count: 0 };
+          map[key].sum   += r;
+          map[key].count += 1;
+        }
+        topArtists.value = Object.entries(map)
+          .map(([id, v]) => ({ id, name: v.name, image: v.image, avgRate: v.sum / v.count, count: v.count }))
+          .sort((a, b) =>
+            b.avgRate - a.avgRate ||
+            b.count   - a.count  ||
+            a.name.localeCompare(b.name)
+          )
+          .slice(0, 7);
+      } catch { /* silently */ } finally {
+        topArtistsLoading.value = false;
+      }
+    };
+
+    // ── Mapa musical ─────────────────────────────────────
+    const COUNTRY_ABBR: Record<string, string> = {
+      "United States of America": "USA",
+      "United Kingdom of Great Britain and Northern Ireland": "United Kingdom",
+    };
+    interface CountryEntry { isoCode: string; name: string; count: number; pct: number }
+    const musicMapData    = ref<CountryEntry[]>([]);
+    const musicMapLoading = ref(true);
+
+    const fetchMusicMap = async () => {
+      try {
+        const response = await getRatesByUser(1000, 0, undefined, undefined, undefined, undefined, 'rate');
+        const counts: Record<string, { name: string; count: number }> = {};
+        for (const rate of response.data as any[]) {
+          const country = rate.disc?.artist?.country;
+          if (!country?.isoCode) continue;
+          const iso = country.isoCode;
+          if (!counts[iso]) counts[iso] = { name: COUNTRY_ABBR[country.name] ?? country.name ?? iso, count: 0 };
+          counts[iso].count++;
+        }
+        const total = Object.values(counts).reduce((a, b) => a + b.count, 0) || 1;
+        musicMapData.value = Object.entries(counts)
+          .sort((a, b) => b[1].count - a[1].count)
+          .slice(0, 10)
+          .map(([iso, { name, count }]) => ({
+            isoCode: iso.toLowerCase(),
+            name,
+            count,
+            pct: Math.round((count / total) * 100),
+          }));
+      } catch { /* silently */ } finally {
+        musicMapLoading.value = false;
+      }
+    };
+
+    // ── Cementerio de discos ──────────────────────────────
+    const cemeteryDiscs   = ref<any[]>([]);
+    const cemeteryLoading = ref(true);
+    const cemeteryRolling = ref(false);
+    const cemeteryTotal   = ref(0);
+
+    const fetchCemeteryDiscs = async () => {
+      if (cemeteryRolling.value) return;
+      cemeteryRolling.value = true;
+      try {
+        if (!cemeteryTotal.value) {
+          const countRes = await getDiscs(1, 0);
+          cemeteryTotal.value = countRes.totalItems || 1000;
+        }
+        const total = cemeteryTotal.value;
+        const found: any[] = [];
+        const tried = new Set<number>();
+        const BATCH = 20;
+
+        while (found.length < 2 && tried.size < 5) {
+          const offset = Math.floor(Math.random() * Math.max(total - BATCH, 1));
+          if (tried.has(offset)) continue;
+          tried.add(offset);
+
+          const res = await getDiscs(BATCH, offset);
+          const data = res.data as any[];
+          if (!Array.isArray(data)) break;
+
+          const flat = data.flatMap((item: any) => ('discs' in item ? item.discs : [item]));
+          const unvoted = flat.filter((d: any) => !d.voteCount || d.voteCount === 0);
+
+          for (const d of unvoted) {
+            if (found.length >= 2) break;
+            if (!found.find(f => f.id === d.id)) found.push(transformDisc(d));
+          }
+        }
+
+        if (found.length) cemeteryDiscs.value = found;
+      } catch { /* silently */ } finally {
+        cemeteryRolling.value = false;
+        cemeteryLoading.value = false;
+      }
+    };
 
     // ── Portada del día ───────────────────────────────────
     const coverOfDay          = ref<any>(null);
@@ -591,9 +887,13 @@ export default defineComponent({
       fetchStats();
       fetchTopDiscs();
       fetchCoverOfDay();
+      fetchCemeteryDiscs();
+      fetchTopArtists();
+      fetchMusicMap();
     });
 
     return {
+      isEnabled, orderOf,
       username, todayFormatted, stats, loading, userDiscVotes, userCoverVotes,
       topUsersByRates, topUsersByCover, ratingDistribution,
       showDetailedStats, selectedStatsYear, availableStatsYears,
@@ -601,6 +901,9 @@ export default defineComponent({
       loadingTopDiscs, topWeekDiscs, topMonthDiscs,
       diceRolled, diceRolling, randomDisc, currentDiceFace, dicePhrase,
       coverOfDay, coverOfDayLoading, coverVoteValue, coverVoteSubmitting, coverVoted, submitCoverVote,
+      cemeteryDiscs, cemeteryLoading, cemeteryRolling, fetchCemeteryDiscs,
+      topArtists, topArtistsLoading,
+      musicMapData, musicMapLoading,
       window,
       getTrophyIcon, medalClass, fetchStats, rollDice, topUsersTab,
     };
