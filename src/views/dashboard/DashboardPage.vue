@@ -31,9 +31,9 @@
     </div>
 
     <!-- Novedades + Comunidad + Top usuarios -->
-    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 mb-6">
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 mb-6 items-start">
       <!-- Novedades Riff Valley -->
-      <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl p-4 sm:p-6 border border-gray-200 dark:border-white/10 flex flex-col h-full">
+      <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl p-4 sm:p-6 border border-gray-200 dark:border-white/10">
         <h3 class="text-xl font-bold text-rv-navy dark:text-white mb-4 text-center shrink-0">Novedades Riff Valley</h3>
         <NewsFeed />
       </div>
@@ -85,12 +85,12 @@
           <!-- Tabs Discos / Portadas -->
           <div class="flex gap-1 mb-3 p-1 bg-gray-100 dark:bg-rv-darkSurface rounded-lg">
             <button @click="topUsersTab = 'rates'"
-              :class="topUsersTab === 'rates' ? 'bg-white dark:bg-rv-darkCard shadow text-rv-navy dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-rv-navy dark:hover:text-white'"
+              :class="topUsersTab === 'rates' ? 'bg-rv-purple text-white shadow' : 'bg-gray-200 dark:bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-white/10'"
               class="flex-1 py-1 px-2 rounded-md text-xs font-semibold transition-all duration-150 outline-none focus:outline-none">
               <i class="fa-solid fa-compact-disc mr-1 text-[10px]"></i>Discos
             </button>
             <button @click="topUsersTab = 'cover'"
-              :class="topUsersTab === 'cover' ? 'bg-white dark:bg-rv-darkCard shadow text-rv-navy dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-rv-navy dark:hover:text-white'"
+              :class="topUsersTab === 'cover' ? 'bg-rv-purple text-white shadow' : 'bg-gray-200 dark:bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-white/10'"
               class="flex-1 py-1 px-2 rounded-md text-xs font-semibold transition-all duration-150 outline-none focus:outline-none">
               <i class="fa-solid fa-image mr-1 text-[10px]"></i>Portadas
             </button>
@@ -140,14 +140,14 @@
       </div>
       <div class="p-4 sm:p-6">
         <!-- Loading skeletons -->
-        <div v-if="loadingTopDiscs" class="grid grid-cols-3 gap-4">
+        <div v-if="loadingTopDiscs" class="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div v-for="i in 3" :key="i" class="flex flex-col gap-2">
             <div class="h-5 w-10 rounded-full bg-gray-100 dark:bg-white/5 mx-auto animate-pulse"></div>
             <div class="aspect-square rounded-xl bg-gray-100 dark:bg-white/5 animate-pulse"></div>
           </div>
         </div>
         <!-- Cards -->
-        <div v-else-if="topWeekDiscs.length > 0" class="grid grid-cols-3 gap-4">
+        <div v-else-if="topWeekDiscs.length > 0" class="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div v-for="(disc, i) in topWeekDiscs" :key="disc.id" class="flex flex-col items-center gap-2">
             <div class="medal-chip" :class="medalClass(i)">
               <i class="fa-solid fa-trophy text-[10px]"></i> {{ i + 1 }}º
@@ -175,13 +175,13 @@
         <span class="text-xs text-gray-400 dark:text-gray-500 capitalize">{{ monthLabel }}</span>
       </div>
       <div class="p-4 sm:p-6">
-        <div v-if="loadingTopDiscs" class="grid grid-cols-3 gap-4">
+        <div v-if="loadingTopDiscs" class="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div v-for="i in 3" :key="i" class="flex flex-col gap-2">
             <div class="h-5 w-10 rounded-full bg-gray-100 dark:bg-white/5 mx-auto animate-pulse"></div>
             <div class="aspect-square rounded-xl bg-gray-100 dark:bg-white/5 animate-pulse"></div>
           </div>
         </div>
-        <div v-else-if="topMonthDiscs.length > 0" class="grid grid-cols-3 gap-4">
+        <div v-else-if="topMonthDiscs.length > 0" class="grid grid-cols-1 xl:grid-cols-3 gap-4">
           <div v-for="(disc, i) in topMonthDiscs" :key="disc.id" class="flex flex-col items-center gap-2">
             <div class="medal-chip" :class="medalClass(i)">
               <i class="fa-solid fa-trophy text-[10px]"></i> {{ i + 1 }}º
@@ -203,14 +203,14 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
       <!-- Disco Aleatorio -->
-      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col">
         <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-amber-400/10 to-rv-pink/8 dark:from-amber-400/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10">
           <i class="fa-solid fa-shuffle text-amber-500"></i>
           <h3 class="font-bold text-gray-900 dark:text-white">Disco aleatorio</h3>
         </div>
 
         <!-- Estado inicial / lanzando -->
-        <div v-if="!diceRolled" class="flex flex-col items-center gap-5 py-12 px-6">
+        <div v-if="!diceRolled" class="flex flex-col items-center justify-center gap-5 flex-1 px-6 py-8">
           <i class="fa-solid text-7xl transition-all duration-100"
             :class="[diceRolling ? currentDiceFace + ' text-rv-pink scale-110' : 'fa-dice-five text-gray-300 dark:text-gray-600']"></i>
           <p class="text-gray-500 dark:text-gray-400 text-sm text-center">Descubre un disco al azar de toda la colección</p>
@@ -231,7 +231,7 @@
           <div class="flex justify-between items-center mb-5">
             <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
               <i class="fa-solid fa-dice text-amber-400"></i>
-              ¡El dado ha hablado!
+              {{ dicePhrase }}
             </span>
             <button @click="rollDice" :disabled="diceRolling"
               class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold shadow
@@ -245,7 +245,7 @@
             </button>
           </div>
           <div class="flex justify-center max-w-xs mx-auto">
-            <DiscCard v-if="randomDisc" :id="randomDisc.id" :ep="randomDisc.ep" :image="randomDisc.image"
+            <DiscCard v-if="randomDisc" :key="randomDisc.id" :id="randomDisc.id" :ep="randomDisc.ep" :image="randomDisc.image"
               :name="randomDisc.name" :releaseDate="randomDisc.releaseDate" :artistName="randomDisc.artist?.name"
               :genreName="randomDisc.genre?.name" :genreColor="randomDisc.genre?.color" :link="randomDisc.link"
               :averageRate="randomDisc.averageRate" :averageCover="randomDisc.averageCover"
@@ -258,8 +258,74 @@
         </div>
       </div>
 
-      <!-- Hueco reservado para futura sección -->
-      <div></div>
+      <!-- Portada del día -->
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col">
+        <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 dark:from-rv-purple/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10 shrink-0">
+          <i class="fa-solid fa-image text-rv-purple"></i>
+          <h3 class="font-bold text-gray-900 dark:text-white">Portada del día</h3>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="coverOfDayLoading" class="flex flex-col items-center justify-center gap-3 py-16 flex-1">
+          <i class="fa-solid fa-spinner animate-spin text-2xl text-rv-purple"></i>
+          <span class="text-sm text-gray-400 dark:text-gray-500">Buscando portada…</span>
+        </div>
+
+        <!-- Contenido -->
+        <div v-else-if="coverOfDay" class="flex flex-col flex-1">
+          <!-- Portada grande -->
+          <div class="relative overflow-hidden flex-1 min-h-0 group/cover cursor-zoom-in"
+               @click="coverOfDay.image && window.open(coverOfDay.image, '_blank')">
+            <img :src="coverOfDay.image ?? '/news/default.jpg'" :alt="coverOfDay.name"
+              class="w-full h-full object-cover transition-transform duration-300 group-hover/cover:scale-105"
+              style="min-height: 280px; max-height: 460px;" />
+            <!-- Icono lupa en hover -->
+            <div class="absolute inset-0 flex items-center justify-center
+                        opacity-0 group-hover/cover:opacity-100 transition-opacity duration-200 pointer-events-none">
+              <div class="w-14 h-14 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                <i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i>
+              </div>
+            </div>
+            <!-- Gradiente inferior -->
+            <div class="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none"></div>
+            <!-- Nombre disco + artista sobre la imagen -->
+            <div class="absolute bottom-0 left-0 right-0 p-4">
+              <p class="text-white font-bold text-base leading-snug drop-shadow-md">{{ coverOfDay.name }}</p>
+              <p class="text-white/70 text-sm mt-0.5">{{ coverOfDay.artist?.name }}</p>
+            </div>
+          </div>
+
+          <!-- Sección de voto -->
+          <div class="p-4 shrink-0 border-t border-gray-100 dark:border-white/10">
+            <div v-if="!coverVoted" class="flex items-center gap-3">
+              <span class="text-sm text-gray-500 dark:text-gray-400 shrink-0">Tu nota:</span>
+              <input type="number" v-model.number="coverVoteValue" min="1" max="10" step="0.5" placeholder=""
+                class="w-16 px-2 py-1.5 text-center text-sm font-bold border border-gray-200 dark:border-white/10 rounded-lg
+                       bg-white dark:bg-rv-darkCard text-rv-navy dark:text-white
+                       focus:outline-none focus:border-rv-purple transition-colors" />
+              <button @click="submitCoverVote" :disabled="coverVoteSubmitting || !coverVoteValue"
+                class="flex-1 py-1.5 rounded-full text-xs font-semibold shadow
+                       bg-rv-purple text-white hover:opacity-85 hover:-translate-y-0.5
+                       disabled:opacity-40 disabled:pointer-events-none
+                       transition-all duration-200 border-0 outline-none focus:outline-none">
+                <i class="fa-solid fa-image mr-1"></i>
+                {{ coverVoteSubmitting ? 'Enviando…' : 'Votar portada' }}
+              </button>
+            </div>
+            <div v-else class="flex items-center justify-between gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-circle-check text-green-500"></i>
+                Portada votada con <span class="font-bold text-rv-purple ml-1">{{ coverVoteValue }}</span>
+              </div>
+              <button @click="coverVoted = false"
+                class="text-xs text-gray-400 dark:text-gray-500 hover:text-rv-purple dark:hover:text-rv-purple
+                       border-0 outline-none focus:outline-none transition-colors">
+                <i class="fa-solid fa-pen text-[10px] mr-1"></i>Editar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
     </div>
 
@@ -274,8 +340,22 @@ import StatsModal from "@components/StatsModal.vue";
 import DiscCard from "@components/DiscCardComponent.vue";
 import NewsFeed from "@views/homePage/components/NewsFeed.vue";
 import { getAvailableYears } from "@helpers/dateConstants";
+import { postRateService, updateRateService } from "@services/rates/rates";
+import SwalService from "@services/swal/SwalService";
 
 const DICE_FACES = ['fa-dice-one','fa-dice-two','fa-dice-three','fa-dice-four','fa-dice-five','fa-dice-six'];
+const DICE_PHRASES = [
+  '¡El dado ha hablado!',
+  '¿Tu próximo favorito?',
+  '¡Dale una escucha!',
+  'El destino lo eligió.',
+  '¡El universo decidió!',
+  'La ruleta ha girado.',
+  '¿Te atreves con él?',
+  'El azar tiene gusto.',
+  '¡Sorpresa musical!',
+  '¿Lo conocías ya?',
+];
 
 const formatDate = (d: Date): string => {
   const y = d.getFullYear();
@@ -344,7 +424,16 @@ export default defineComponent({
     const diceRolling   = ref(false);
     const randomDisc    = ref<any>(null);
     const currentDiceFace = ref('fa-dice-five');
+    const dicePhrase    = ref(DICE_PHRASES[0]);
+    const unvotedDiscCount = ref(0);
     let diceInterval: ReturnType<typeof setInterval> | null = null;
+
+    // ── Portada del día ───────────────────────────────────
+    const coverOfDay          = ref<any>(null);
+    const coverOfDayLoading   = ref(true);
+    const coverVoteValue      = ref<number | null>(null);
+    const coverVoteSubmitting = ref(false);
+    const coverVoted          = ref(false);
 
     // ── Computed ──────────────────────────────────────────
     const username = computed(() => authStore.username ?? "");
@@ -426,16 +515,19 @@ export default defineComponent({
     const rollDice = async () => {
       if (diceRolling.value) return;
       diceRolling.value = true;
+      dicePhrase.value = DICE_PHRASES[Math.floor(Math.random() * DICE_PHRASES.length)];
 
-      // Animate dice faces
       diceInterval = setInterval(() => {
         currentDiceFace.value = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
       }, 80);
 
       try {
-        const total = stats.value.totalDiscs || 100;
-        const offset = Math.floor(Math.random() * total);
-        const response = await getDiscs(1, offset);
+        if (!unvotedDiscCount.value) {
+          const countRes = await getDiscs(1, 0, undefined, undefined, undefined, undefined, undefined, false);
+          unvotedDiscCount.value = countRes.totalItems || stats.value.totalDiscs || 100;
+        }
+        const offset = Math.floor(Math.random() * unvotedDiscCount.value);
+        const response = await getDiscs(1, offset, undefined, undefined, undefined, undefined, undefined, false);
         const data = response.data as any[];
         let disc: any = null;
         if (Array.isArray(data) && data.length > 0) {
@@ -452,10 +544,53 @@ export default defineComponent({
       }
     };
 
-    onMounted(() => {
-      fetchUserStats();
+    const fetchCoverOfDay = async () => {
+      coverOfDayLoading.value = true;
+      try {
+        const dayMs = Math.floor(Date.now() / 86400000);
+        const total = stats.value.totalDiscs || 1000;
+        const offset = dayMs % total;
+        const response = await getDiscs(1, offset);
+        const data = response.data as any[];
+        if (Array.isArray(data) && data.length > 0) {
+          const disc = transformDisc(data[0]);
+          coverOfDay.value = disc;
+          if (disc.userRate?.cover) {
+            coverVoteValue.value = disc.userRate.cover;
+            coverVoted.value = true;
+          }
+        }
+      } catch { /* silently */ } finally {
+        coverOfDayLoading.value = false;
+      }
+    };
+
+    const submitCoverVote = async () => {
+      if (!coverOfDay.value || !coverVoteValue.value) return;
+      coverVoteSubmitting.value = true;
+      try {
+        const payload = {
+          discId: coverOfDay.value.id,
+          rate: coverOfDay.value.userRate?.rate ?? null,
+          cover: Number(coverVoteValue.value),
+        };
+        if (coverOfDay.value.userRate?.id) {
+          await updateRateService(coverOfDay.value.userRate.id, payload);
+        } else {
+          await postRateService(payload);
+        }
+        coverVoted.value = true;
+        SwalService.success('¡Portada votada con éxito!');
+      } catch { /* silently */ } finally {
+        coverVoteSubmitting.value = false;
+      }
+    };
+
+    onMounted(async () => {
+      await fetchUserStats();
       fetchStats();
       fetchTopDiscs();
+      fetchCoverOfDay();
     });
 
     return {
@@ -464,7 +599,9 @@ export default defineComponent({
       showDetailedStats, selectedStatsYear, availableStatsYears,
       weekLabel, monthLabel,
       loadingTopDiscs, topWeekDiscs, topMonthDiscs,
-      diceRolled, diceRolling, randomDisc, currentDiceFace,
+      diceRolled, diceRolling, randomDisc, currentDiceFace, dicePhrase,
+      coverOfDay, coverOfDayLoading, coverVoteValue, coverVoteSubmitting, coverVoted, submitCoverVote,
+      window,
       getTrophyIcon, medalClass, fetchStats, rollDice, topUsersTab,
     };
   },
@@ -476,6 +613,7 @@ export default defineComponent({
 .community-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   white-space: nowrap;
 }
@@ -483,7 +621,7 @@ export default defineComponent({
   font-size: 0.7rem;
   font-weight: 600;
   color: #9ca3af;
-  width: 4.5rem;
+  width: 5.5rem;
   flex-shrink: 0;
   text-align: right;
   text-transform: uppercase;
