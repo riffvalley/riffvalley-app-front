@@ -100,10 +100,18 @@
 
       <!-- Dashboard -->
       <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
-        <div class="text-center mb-5">
+        <div class="flex items-center justify-between mb-5">
+          <div class="flex-1"></div>
           <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
             Dashboard
           </span>
+          <div class="flex-1 flex justify-end">
+            <button type="button" @click="resetDashboard"
+              class="text-xs text-gray-400 dark:text-gray-500 hover:text-rv-pink dark:hover:text-rv-pink transition-colors duration-150 flex items-center gap-1">
+              <i class="fa-solid fa-rotate-left text-[10px]"></i>
+              Restablecer
+            </button>
+          </div>
         </div>
 
         <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
@@ -160,20 +168,20 @@
           Puedes cambiarlo manualmente en cualquier momento desde el propio filtro de año.
         </p>
 
-        <div class="flex rounded-full bg-gray-200 dark:bg-rv-darkSurface p-1 border border-gray-100 dark:border-white/10 gap-1">
+        <div class="flex rounded-lg bg-gray-100 dark:bg-rv-darkSurface p-1 gap-1">
           <button type="button" @click="setDefaultYearFilter('current')"
-            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            class="flex-1 py-1.5 rounded-md text-sm font-semibold transition-all duration-150 focus:outline-none"
             :class="defaultYearFilter === 'current'
-              ? 'bg-rv-navy text-white shadow'
-              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
-            Año actual <span v-if="defaultYearFilter === 'current'" class="text-[10px] text-rv-pink ml-1">✓</span>
+              ? 'bg-rv-purple text-white shadow'
+              : 'bg-gray-200 dark:bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-white/10'">
+            Año actual <span v-if="defaultYearFilter === 'current'" class="text-[10px] text-black ml-1">✓</span>
           </button>
           <button type="button" @click="setDefaultYearFilter('all')"
-            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            class="flex-1 py-1.5 rounded-md text-sm font-semibold transition-all duration-150 focus:outline-none"
             :class="defaultYearFilter === 'all'
-              ? 'bg-rv-navy text-white shadow'
-              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
-            Todos los años <span v-if="defaultYearFilter === 'all'" class="text-[10px] text-rv-pink ml-1">✓</span>
+              ? 'bg-rv-purple text-white shadow'
+              : 'bg-gray-200 dark:bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-white/10'">
+            Todos los años <span v-if="defaultYearFilter === 'all'" class="text-[10px] text-black ml-1">✓</span>
           </button>
         </div>
 
@@ -237,20 +245,20 @@
           Elige cómo se abre Spotify al pulsar el botón de un disco. En móvil siempre redirige a la app independientemente de esta opción.
         </p>
 
-        <div class="flex rounded-full bg-gray-200 dark:bg-rv-darkSurface p-1 border border-gray-100 dark:border-white/10 gap-1">
+        <div class="flex rounded-lg bg-gray-100 dark:bg-rv-darkSurface p-1 gap-1">
           <button type="button" @click="setSpotifyMode('app')"
-            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            class="flex-1 py-1.5 rounded-md text-sm font-semibold transition-all duration-150 focus:outline-none"
             :class="spotifyMode === 'app'
-              ? 'bg-rv-navy text-white shadow'
-              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
-            Spotify Desktop <span v-if="spotifyMode === 'app'" class="text-[10px] text-rv-pink ml-1">✓</span>
+              ? 'bg-rv-purple text-white shadow'
+              : 'bg-gray-200 dark:bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-white/10'">
+            Spotify Desktop <span v-if="spotifyMode === 'app'" class="text-[10px] text-black ml-1">✓</span>
           </button>
           <button type="button" @click="setSpotifyMode('web')"
-            class="flex-1 py-1.5 rounded-full text-sm font-semibold transition-all duration-200 focus:outline-none"
+            class="flex-1 py-1.5 rounded-md text-sm font-semibold transition-all duration-150 focus:outline-none"
             :class="spotifyMode === 'web'
-              ? 'bg-rv-navy text-white shadow'
-              : 'text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white'">
-            Spotify Web <span v-if="spotifyMode === 'web'" class="text-[10px] text-rv-pink ml-1">✓</span>
+              ? 'bg-rv-purple text-white shadow'
+              : 'bg-gray-200 dark:bg-transparent text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-white/10'">
+            Spotify Web <span v-if="spotifyMode === 'web'" class="text-[10px] text-black ml-1">✓</span>
           </button>
         </div>
 
@@ -354,7 +362,7 @@ export default {
     const authStore = useAuthStore();
 
     // ── Dashboard config ──────────────────────────────────────
-    const { modules: dashboardModules, toggleModule: toggleDashModule, reorder: reorderDashboard } = useDashboardConfig();
+    const { modules: dashboardModules, toggleModule: toggleDashModule, reorder: reorderDashboard, resetToDefault: resetDashboard } = useDashboardConfig();
     const dashDragging = ref(null);
     const dashDragOver = ref(null);
     const onDashDragStart = (index) => { dashDragging.value = index; };
@@ -515,7 +523,7 @@ export default {
       noSpoilers, toggleNoSpoilers,
       defaultYearFilter, currentYear, setDefaultYearFilter,
       spotifyMode, setSpotifyMode,
-      dashboardModules, toggleDashModule,
+      dashboardModules, toggleDashModule, resetDashboard,
       dashDragging, dashDragOver,
       onDashDragStart, onDashDragOver, onDashDrop, onDashDragEnd,
     };
