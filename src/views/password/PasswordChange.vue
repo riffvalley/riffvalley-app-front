@@ -1,5 +1,5 @@
 <template>
-  <div v-if="ready" class="mx-auto max-w-5xl px-4 py-8 min-h-screen dark:bg-rv-darkBg">
+  <div v-if="ready" class="mx-auto max-w-6xl px-4 py-8 min-h-screen dark:bg-rv-darkBg">
     <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-rv-navy dark:text-white">
       <i class="fa-solid fa-circle-user mr-3"></i>Perfil
     </h1>
@@ -7,7 +7,7 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
 
-      <!-- IZQUIERDA: Avatares + Dashboard -->
+      <!-- IZQUIERDA: Avatares -->
       <div class="flex flex-col gap-6">
       <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
         <div class="text-center mb-5">
@@ -96,59 +96,6 @@
             disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">
           Guardar avatar
         </button>
-      </section>
-
-      <!-- Dashboard -->
-      <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
-        <div class="text-center mb-5">
-          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
-            Dashboard
-          </span>
-        </div>
-
-        <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-          Activa o desactiva módulos y arrastra para reordenarlos. Los cambios se aplican al instante.
-        </p>
-
-        <ul class="space-y-2">
-          <li
-            v-for="(mod, index) in dashboardModules"
-            :key="mod.id"
-            draggable="true"
-            @dragstart="onDashDragStart(index)"
-            @dragover.prevent="onDashDragOver(index)"
-            @drop.prevent="onDashDrop(index)"
-            @dragend="onDashDragEnd"
-            class="flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all duration-150 cursor-grab active:cursor-grabbing select-none"
-            :class="[
-              dashDragOver === index && dashDragging !== index
-                ? 'border-rv-pink/50 bg-rv-pink/5 dark:bg-rv-pink/10'
-                : 'border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-rv-darkSurface',
-              dashDragging === index ? 'opacity-40' : 'opacity-100'
-            ]"
-          >
-            <i class="fa-solid fa-grip-vertical text-gray-300 dark:text-white/20 text-sm shrink-0"></i>
-            <i :class="[mod.icon, 'text-sm shrink-0', mod.enabled ? 'text-rv-pink' : 'text-gray-300 dark:text-gray-600']"></i>
-            <span class="flex-1 text-sm font-medium text-gray-700 dark:text-gray-300">{{ mod.label }}</span>
-            <button type="button"
-              @click="toggleDashModule(mod.id)"
-              :aria-checked="mod.enabled"
-              role="switch"
-              class="relative flex-shrink-0 w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none border-0"
-              :class="mod.enabled ? 'bg-rv-pink' : 'bg-gray-300 dark:bg-gray-600'">
-              <span class="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200"
-                :class="mod.enabled ? 'translate-x-4' : 'translate-x-0'"></span>
-            </button>
-          </li>
-        </ul>
-
-        <div class="mt-4 text-center">
-          <button type="button" @click="resetDashboard"
-            class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-150 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-rv-darkSurface">
-            <i class="fa-solid fa-rotate-left text-[10px]"></i>
-            Restablecer orden por defecto
-          </button>
-        </div>
       </section>
       </div><!-- /columna izquierda -->
 
@@ -345,6 +292,17 @@
       </div><!-- /columna derecha -->
 
     </div>
+
+    <!-- Dashboard: builder visual a todo el ancho -->
+    <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-6 md:p-8 mt-6 md:mt-8">
+      <div class="text-center mb-6">
+        <span class="bg-rv-navy text-white px-5 py-1.5 rounded-full text-base font-bold">
+          Dashboard
+        </span>
+      </div>
+
+      <DashboardBuilder />
+    </section>
   </div>
 </template>
 
@@ -353,28 +311,14 @@ import { ref, computed, watch, onMounted } from "vue";
 import SwalService from "@services/swal/SwalService";
 import { useUserStore } from "@stores/user/users";
 import { useAuthStore } from "@stores/auth/auth";
-import { useDashboardConfig } from "@/composables/useDashboardConfig";
+import DashboardBuilder from "./components/DashboardBuilder.vue";
 
 export default {
   name: "ChangePassword",
+  components: { DashboardBuilder },
   setup() {
     const userStore = useUserStore();
     const authStore = useAuthStore();
-
-    // ── Dashboard config ──────────────────────────────────────
-    const { modules: dashboardModules, toggleModule: toggleDashModule, reorder: reorderDashboard, resetToDefault: resetDashboard } = useDashboardConfig();
-    const dashDragging = ref(null);
-    const dashDragOver = ref(null);
-    const onDashDragStart = (index) => { dashDragging.value = index; };
-    const onDashDragOver  = (index) => { dashDragOver.value = index; };
-    const onDashDrop      = (index) => {
-      if (dashDragging.value !== null && dashDragging.value !== index) {
-        reorderDashboard(dashDragging.value, index);
-      }
-      dashDragging.value = null;
-      dashDragOver.value = null;
-    };
-    const onDashDragEnd = () => { dashDragging.value = null; dashDragOver.value = null; };
 
     const ready = ref(false);
     const password = ref("");
@@ -523,9 +467,6 @@ export default {
       noSpoilers, toggleNoSpoilers,
       defaultYearFilter, currentYear, setDefaultYearFilter,
       spotifyMode, setSpotifyMode,
-      dashboardModules, toggleDashModule, resetDashboard,
-      dashDragging, dashDragOver,
-      onDashDragStart, onDashDragOver, onDashDrop, onDashDragEnd,
     };
   },
 };

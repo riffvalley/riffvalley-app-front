@@ -89,6 +89,62 @@ export async function getDiscs(
   return response.data;
 }
 
+export interface RandomDiscsParams {
+  genre?: string;
+  country?: string;
+  countryId?: string;
+  year?: number;
+  ep?: boolean;
+  debut?: boolean;
+  limit?: number;
+}
+
+// GET /discs/random: selección aleatoria hecha por la propia base de datos
+// (ORDER BY RANDOM() en Postgres), en vez del truco de "pedir el total y
+// luego un offset al azar" desde el cliente.
+export async function getRandomDiscs(params: RandomDiscsParams = {}): Promise<Disc[]> {
+  const response = await api.get<Disc[]>("/discs/random", { params });
+  return response.data;
+}
+
+export interface DiscOptionCountry {
+  id: string;
+  name: string;
+  isoCode: string;
+}
+
+export interface DiscOptionGenre {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface DiscOptionsFilters {
+  country?: string;
+  genre?: string;
+  year?: number;
+  ep?: boolean;
+  debut?: boolean;
+}
+
+// GET /discs/options: N valores al azar de `field` (país/género/año/ep/debut)
+// que tienen garantizado al menos un disco para los filtros ya elegidos —
+// nunca devuelve una opción que luego resulte en "no hay discos".
+export function getDiscOptions(field: 'country', filters?: DiscOptionsFilters, limit?: number): Promise<DiscOptionCountry[]>;
+export function getDiscOptions(field: 'genre', filters?: DiscOptionsFilters, limit?: number): Promise<DiscOptionGenre[]>;
+export function getDiscOptions(field: 'year', filters?: DiscOptionsFilters, limit?: number): Promise<number[]>;
+export function getDiscOptions(field: 'ep' | 'debut', filters?: DiscOptionsFilters, limit?: number): Promise<boolean[]>;
+export async function getDiscOptions(
+  field: 'country' | 'genre' | 'year' | 'ep' | 'debut',
+  filters: DiscOptionsFilters = {},
+  limit?: number
+): Promise<DiscOptionCountry[] | DiscOptionGenre[] | number[] | boolean[]> {
+  const response = await api.get<DiscOptionCountry[] | DiscOptionGenre[] | number[] | boolean[]>("/discs/options", {
+    params: { field, ...filters, limit },
+  });
+  return response.data;
+}
+
 export async function updateDisc(
   id: string,
   data: {
