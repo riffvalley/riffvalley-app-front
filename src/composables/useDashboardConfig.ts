@@ -11,10 +11,10 @@ export interface DashboardModule {
 const DEFAULT_MODULES: DashboardModule[] = [
   { id: 'novedades',      label: 'Novedades Riff Valley',    icon: 'fa-solid fa-newspaper',      size: 'half', enabled: true },
   { id: 'comunidad',      label: 'Comunidad / Top usuarios', icon: 'fa-solid fa-users',           size: 'half', enabled: true },
-  { id: 'top3semana',     label: 'Top 3 Semana actual',      icon: 'fa-solid fa-fire',            size: 'full', enabled: true },
-  { id: 'top3mes',        label: 'Top 3 Mes actual',         icon: 'fa-solid fa-fire',            size: 'full', enabled: true },
   { id: 'discoAleatorio', label: 'Disco aleatorio',          icon: 'fa-solid fa-shuffle',         size: 'half', enabled: true },
   { id: 'portadaDia',     label: 'Portada del día',          icon: 'fa-solid fa-image',           size: 'half', enabled: true },
+  { id: 'top3mes',        label: 'Top 3 Mes actual',         icon: 'fa-solid fa-fire',            size: 'full', enabled: true },
+  { id: 'top3semana',     label: 'Top 3 Semana actual',      icon: 'fa-solid fa-fire',            size: 'full', enabled: true },
   { id: 'artistas',       label: 'Tus artistas favoritos',   icon: 'fa-solid fa-heart',           size: 'full', enabled: true },
   { id: 'cementerio',     label: 'Cementerio de discos',     icon: 'fa-solid fa-skull',           size: 'half', enabled: true },
   { id: 'mundoMusical',   label: 'Tu mundo musical',         icon: 'fa-solid fa-earth-americas',  size: 'half', enabled: true },
@@ -74,5 +74,10 @@ export function useDashboardConfig() {
     saveConfig(modules.value);
   }
 
-  return { modules, isEnabled, orderOf, toggleModule, reorder };
+  function resetToDefault() {
+    modules.value = DEFAULT_MODULES.map(m => ({ ...m }));
+    localStorage.removeItem(LS_KEY);
+  }
+
+  return { modules, isEnabled, orderOf, toggleModule, reorder, resetToDefault };
 }
