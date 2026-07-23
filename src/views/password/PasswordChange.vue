@@ -100,18 +100,10 @@
 
       <!-- Dashboard -->
       <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
-        <div class="flex items-center justify-between mb-5">
-          <div class="flex-1"></div>
+        <div class="text-center mb-5">
           <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">
             Dashboard
           </span>
-          <div class="flex-1 flex justify-end">
-            <button type="button" @click="resetDashboard"
-              class="text-xs text-gray-400 dark:text-gray-500 hover:text-rv-pink dark:hover:text-rv-pink transition-colors duration-150 flex items-center gap-1">
-              <i class="fa-solid fa-rotate-left text-[10px]"></i>
-              Restablecer
-            </button>
-          </div>
         </div>
 
         <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
@@ -149,6 +141,14 @@
             </button>
           </li>
         </ul>
+
+        <div class="mt-4 text-center">
+          <button type="button" @click="resetDashboard"
+            class="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-150 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-rv-darkSurface">
+            <i class="fa-solid fa-rotate-left text-[10px]"></i>
+            Restablecer orden por defecto
+          </button>
+        </div>
       </section>
       </div><!-- /columna izquierda -->
 

@@ -26,6 +26,10 @@
             <p class="text-2xl font-bold text-blue-500 dark:text-blue-400 tabular-nums">{{ loading ? '…' : stats.totalDiscs }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">discos en la app</p>
           </div>
+          <div class="text-center bg-white/70 dark:bg-white/5 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/60 dark:border-white/10 shadow-sm min-w-[80px]">
+            <p class="text-2xl font-bold text-amber-500 tabular-nums">{{ userStreak }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">racha de días votando</p>
+          </div>
         </div>
       </div>
     </div>
@@ -508,6 +512,52 @@
       </div>
       </div>
 
+      <!-- Últimos 10 votos -->
+      <div v-if="isEnabled('ultimosVotos')" :style="{ order: orderOf('ultimosVotos') }"
+           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
+        <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 dark:from-rv-purple/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10 shrink-0">
+          <i class="fa-solid fa-clock-rotate-left text-rv-purple"></i>
+          <h3 class="font-bold text-gray-900 dark:text-white">Tus últimos 5 votos</h3>
+        </div>
+        <div class="flex-1 pt-2">
+          <!-- Loading -->
+          <div v-if="recentVotesLoading" class="flex flex-col gap-0">
+            <div v-for="i in 3" :key="i" class="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 dark:border-white/5">
+              <div class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/5 animate-pulse shrink-0"></div>
+              <div class="flex-1 flex flex-col gap-1.5">
+                <div class="h-3 w-3/4 rounded bg-gray-100 dark:bg-white/5 animate-pulse"></div>
+                <div class="h-2.5 w-1/2 rounded bg-gray-100 dark:bg-white/5 animate-pulse"></div>
+              </div>
+              <div class="w-8 h-5 rounded-full bg-gray-100 dark:bg-white/5 animate-pulse shrink-0"></div>
+            </div>
+          </div>
+          <!-- Lista -->
+          <ul v-else-if="recentVotes.length" class="flex flex-col divide-y divide-gray-100 dark:divide-white/5">
+            <li v-for="rate in recentVotes" :key="rate.id" class="flex items-center gap-3 px-4 py-2.5">
+              <div class="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-white/5">
+                <img v-if="rate.disc?.image" :src="rate.disc.image" :alt="rate.disc?.name"
+                     class="w-full h-full object-cover" loading="lazy" />
+                <div v-else class="w-full h-full flex items-center justify-center">
+                  <i class="fa-solid fa-music text-gray-300 text-xs"></i>
+                </div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate leading-snug">{{ rate.disc?.name }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ rate.disc?.artist?.name }}</p>
+              </div>
+              <span class="text-xs font-bold tabular-nums shrink-0 px-2 py-0.5 rounded-full bg-rv-pink/10 text-rv-pink dark:bg-rv-pink/20">
+                {{ rate.rate }}
+              </span>
+            </li>
+          </ul>
+          <p v-else class="text-center text-gray-400 dark:text-gray-500 text-sm py-6 px-4">
+            Aún no has votado ningún disco
+          </p>
+        </div>
+      </div>
+      </div>
+
     </div>
 
   </div>
@@ -517,7 +567,7 @@
 import { defineComponent, ref, computed, onMounted } from "vue";
 import { useAuthStore } from "@stores/auth/auth";
 import { getTopRatedOrFeaturedAndStats, getDiscs } from "@services/discs/discs";
-import { getRatesByUser } from "@services/rates/rates";
+import { getRatesByUser, getUserHistoryService } from "@services/rates/rates";
 import { useDashboardConfig } from "@/composables/useDashboardConfig";
 import StatsModal from "@components/StatsModal.vue";
 import DiscCard from "@components/DiscCardComponent.vue";
@@ -611,6 +661,13 @@ export default defineComponent({
     const dicePhrase    = ref(DICE_PHRASES[0]);
     const unvotedDiscCount = ref(0);
     let diceInterval: ReturnType<typeof setInterval> | null = null;
+
+    // ── Racha ─────────────────────────────────────────────
+    const userStreak = ref(0);
+
+    // ── Últimos 10 votos ──────────────────────────────────
+    const recentVotes        = ref<any[]>([]);
+    const recentVotesLoading = ref(true);
 
     // ── Top artistas ─────────────────────────────────────
     interface ArtistEntry { id: string; name: string; image: string; avgRate: number }
@@ -882,6 +939,37 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
       }
     };
 
+    const fetchStreak = async () => {
+      try {
+        const userId = authStore.userId;
+        if (!userId) return;
+        const res = await getUserHistoryService({ userId, limit: 100, type: 'rate', order: 'DESC' });
+        const days = new Set(
+          res.data
+            .filter(e => e.action === 'created')
+            .map(e => e.timestamp.slice(0, 10))
+        );
+        let streak = 0;
+        const today = new Date();
+        for (let i = 0; ; i++) {
+          const d = new Date(today);
+          d.setDate(d.getDate() - i);
+          if (days.has(formatDate(d))) streak++;
+          else break;
+        }
+        userStreak.value = streak;
+      } catch { /* silently */ }
+    };
+
+    const fetchRecentVotes = async () => {
+      try {
+        const response = await getRatesByUser(5, 0, undefined, undefined, undefined, undefined, 'rate');
+        recentVotes.value = (response as any).data ?? [];
+      } catch { /* silently */ } finally {
+        recentVotesLoading.value = false;
+      }
+    };
+
     onMounted(async () => {
       await fetchUserStats();
       fetchStats();
@@ -890,6 +978,8 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
       fetchCemeteryDiscs();
       fetchTopArtists();
       fetchMusicMap();
+      fetchStreak();
+      fetchRecentVotes();
     });
 
     return {
@@ -904,6 +994,8 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
       cemeteryDiscs, cemeteryLoading, cemeteryRolling, fetchCemeteryDiscs,
       topArtists, topArtistsLoading,
       musicMapData, musicMapLoading,
+      userStreak,
+      recentVotes, recentVotesLoading,
       window,
       getTrophyIcon, medalClass, fetchStats, rollDice, topUsersTab,
     };
