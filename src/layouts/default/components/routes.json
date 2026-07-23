@@ -1,10 +1,10 @@
 [
   {
     "to": "/",
-    "label": "Home",
+    "label": "Dashboard",
     "activeClass": "bg-gray-700",
     "type": "disc-app",
-    "icon": "fa-solid fa-house"
+    "icon": "fa-solid fa-layer-group"
   },
   {
     "to": "/disc-list",
@@ -12,6 +12,13 @@
     "activeClass": "bg-gray-700",
     "type": "disc-app",
     "icon": "fa-solid fa-compact-disc"
+  },
+  {
+    "to": "/rankings",
+    "label": "Top Discos",
+    "activeClass": "bg-gray-700",
+    "type": "disc-app",
+    "icon": "fa-solid fa-star"
   },
   {
     "to": "/artists",

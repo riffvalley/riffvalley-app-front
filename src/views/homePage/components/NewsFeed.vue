@@ -43,7 +43,7 @@
     </div>
 
     <!-- ── Grid ─────────────────────────────────────────────── -->
-    <div v-else class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2 sm:gap-2">
+    <div v-else class="flex flex-col gap-1.5">
       <component
         :is="post.source === 'app' ? 'button' : 'a'"
         v-for="post in visiblePosts"
@@ -53,19 +53,18 @@
         class="group text-left
                bg-transparent border-0 p-0 appearance-none
                outline-none focus:outline-none focus-visible:outline-none
-               ring-0 focus:ring-0 focus-visible:ring-0
-               sm:relative sm:block sm:rounded-xl sm:overflow-hidden sm:aspect-square"
+               ring-0 focus:ring-0 focus-visible:ring-0"
       >
-        <!-- ── Mobile: layout horizontal ───────────────────── -->
+        <!-- Layout horizontal (todos los tamaños) -->
         <div
-          class="sm:hidden flex items-center gap-3 p-3
+          class="flex items-center gap-3 p-3
                  bg-white dark:bg-rv-darkSurface rounded-xl
                  border border-gray-100 dark:border-white/10
                  border-l-4 transition-all duration-200
-                 active:scale-[0.98]"
+                 hover:brightness-105 active:scale-[0.98]"
           :class="sourceBorderColor(post.source)"
         >
-          <div class="w-14 h-14 flex-shrink-0 rounded-lg overflow-hidden">
+          <div class="w-12 h-12 flex-shrink-0 rounded-lg overflow-hidden">
             <img
               :src="post.image ?? '/news/default.jpg'"
               :alt="post.title"
@@ -88,71 +87,6 @@
             class="fa-solid text-gray-300 dark:text-white/20 text-xs flex-shrink-0"
             :class="post.source === 'app' ? 'fa-book-open' : 'fa-arrow-up-right-from-square'"
           ></i>
-        </div>
-
-        <!-- ── Desktop: tarjeta cuadrada ───────────────────── -->
-        <div class="hidden sm:block h-full relative">
-
-          <!-- Barra de color superior (solo en hover) -->
-          <div class="absolute top-0 left-0 right-0 h-[6px] z-20
-                      opacity-0 group-hover:opacity-100
-                      transition-opacity duration-300"
-               :class="sourceAccentBar(post.source)"
-               :style="{ boxShadow: sourceAccentGlow(post.source) }"></div>
-
-          <!-- Imagen -->
-          <img
-            :src="post.image ?? '/news/default.jpg'"
-            :alt="post.title"
-            class="absolute inset-0 w-full h-full object-cover
-                   transition-all duration-500 ease-out
-                   brightness-[0.80] group-hover:brightness-[0.45]
-                   scale-100 group-hover:scale-105"
-            loading="lazy"
-          />
-
-          <!-- Degradado -->
-          <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent
-                      transition-opacity duration-300 group-hover:opacity-80"></div>
-
-          <!-- Badge fuente -->
-          <div class="absolute top-3 left-3 z-10">
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold
-                         shadow-md backdrop-blur-sm"
-                  :class="sourceBadgeClass(post.source)">
-              <i :class="sourceBadgeIcon(post.source)" class="text-[8px]"></i>
-              {{ sourceLabel(post) }}
-            </span>
-          </div>
-
-          <!-- Icono destino (hover) -->
-          <div class="absolute top-3 right-3 z-10
-                      opacity-0 group-hover:opacity-100
-                      -translate-y-1 group-hover:translate-y-0
-                      transition-all duration-200">
-            <span class="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <i class="fa-solid text-white text-[9px]"
-                 :class="post.source === 'app' ? 'fa-book-open' : 'fa-arrow-up-right-from-square'"></i>
-            </span>
-          </div>
-
-          <!-- Contenido inferior -->
-          <div class="absolute bottom-0 left-0 right-0 p-3 z-10
-                      translate-y-1 group-hover:translate-y-0
-                      transition-transform duration-300 ease-out">
-            <h4 class="text-white font-bold text-[12px] sm:text-[13px] leading-snug line-clamp-3 drop-shadow-md"
-                v-html="post.title"></h4>
-            <div class="flex items-center justify-between mt-1.5
-                        opacity-0 group-hover:opacity-100
-                        translate-y-1 group-hover:translate-y-0
-                        transition-all duration-300 delay-75">
-              <span class="text-white/60 text-[9px]">{{ post.date }}</span>
-              <span class="text-white/50 text-[9px]">
-                {{ post.source === 'app' ? 'Leer más' : 'Abrir' }}
-                <i class="fa-solid fa-chevron-right text-[7px] ml-0.5"></i>
-              </span>
-            </div>
-          </div>
         </div>
 
       </component>
