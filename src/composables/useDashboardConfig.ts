@@ -18,6 +18,7 @@ const DEFAULT_MODULES: DashboardModule[] = [
   { id: 'artistas',       label: 'Tus artistas favoritos',   icon: 'fa-solid fa-heart',           size: 'full', enabled: true },
   { id: 'cementerio',     label: 'Cementerio de discos',     icon: 'fa-solid fa-skull',           size: 'half', enabled: true },
   { id: 'mundoMusical',   label: 'Tu mundo musical',         icon: 'fa-solid fa-earth-americas',  size: 'half', enabled: true },
+  { id: 'ultimosVotos',   label: 'Tus últimos 5 votos',      icon: 'fa-solid fa-clock-rotate-left', size: 'half', enabled: true },
 ];
 
 const LS_KEY = 'rv_dashboard_config';
