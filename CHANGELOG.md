@@ -1,3 +1,8 @@
+## 1.20.0 (2026-07-24)
+
+* feat(list): add button to publish best discs list as WordPress draft (#144) ([8564053](https://github.com/riffvalley/riffvalley-app-front/commit/8564053)), closes [#144](https://github.com/riffvalley/riffvalley-app-front/issues/144)
+* Feat/reunion create as calendar event (#142) ([3e3e295](https://github.com/riffvalley/riffvalley-app-front/commit/3e3e295)), closes [#142](https://github.com/riffvalley/riffvalley-app-front/issues/142)
+
 ## 1.19.0 (2026-06-19)
 
 * feat(discs): destacar discos en home y botón pinned en calendario (#141) ([d16d2cb](https://github.com/riffvalley/riffvalley-app-front/commit/d16d2cb)), closes [#141](https://github.com/riffvalley/riffvalley-app-front/issues/141)
