@@ -74,6 +74,22 @@ export async function createWpPosts(id: string): Promise<CreateWpPostsResponse> 
   return response.data;
 }
 
+export interface BestDiscsWpPostResponse {
+  wpPostId: number;
+  link: string;
+  title: string;
+  skipped?: boolean;
+  added?: number;
+  removed?: number;
+  message?: string;
+  warning?: string;
+}
+
+export async function generateBestDiscsWpPost(id: string): Promise<BestDiscsWpPostResponse> {
+  const response = await api.post<BestDiscsWpPostResponse>(`/lists/${id}/wp-best-post`);
+  return response.data;
+}
+
 export async function deleteList(id: string): Promise<void> {
   await api.delete(`/lists/${id}`);
 }
