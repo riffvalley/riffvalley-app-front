@@ -31,6 +31,15 @@ export const useAsignationStore = defineStore("asignation", {
           done: updatedAsignation.done,
           position: updatedAsignation.position,
           userId: updatedAsignation.userId,
+          ...(updatedAsignation.description !== undefined
+            ? { description: updatedAsignation.description }
+            : {}),
+          ...(updatedAsignation.similarBands !== undefined
+            ? { similarBands: updatedAsignation.similarBands }
+            : {}),
+          ...(updatedAsignation.spotifyTrackId !== undefined
+            ? { spotifyTrackId: updatedAsignation.spotifyTrackId }
+            : {}),
         };
     
         await updateAsignationService(updatedAsignation.id, data);
