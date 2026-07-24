@@ -1,10 +1,10 @@
 <template>
-  <div class="flex flex-col flex-1 font-serif bg-white dark:bg-rv-darkSurface">
+  <div class="flex flex-col flex-1 bg-white dark:bg-rv-darkSurface">
 
     <!-- Intro -->
     <div v-if="phase === 'intro'" class="flex flex-col items-center justify-center gap-4 flex-1 px-6 py-8 text-center">
       <i class="fa-solid fa-book-open text-5xl text-rv-purple dark:text-rv-pink"></i>
-      <p class="text-gray-500 dark:text-gray-400 text-sm italic leading-relaxed max-w-xs">
+      <p class="font-serif text-gray-500 dark:text-gray-400 text-sm italic leading-relaxed max-w-xs">
         El destino baraja las cartas de tu colección. Responde a sus preguntas y descubrirás el disco que te aguarda...
       </p>
       <button @click="startAdventure" type="button"
@@ -23,7 +23,7 @@
       <p class="font-sans text-[11px] uppercase tracking-widest text-rv-pink/80 dark:text-rv-pink/70 text-center font-semibold">
         Elección {{ stepIndex + 1 }} de {{ categoryOrder.length }}
       </p>
-      <p class="text-gray-500 dark:text-gray-400 text-sm italic leading-relaxed text-center">
+      <p class="font-serif text-gray-500 dark:text-gray-400 text-sm italic leading-relaxed text-center">
         {{ currentQuestion.flavor }}
       </p>
       <p class="text-gray-900 dark:text-white font-bold text-center text-base">{{ currentQuestion.label }}</p>
@@ -47,12 +47,12 @@
     <!-- Consultando el oráculo -->
     <div v-else-if="phase === 'loading'" class="flex flex-col items-center justify-center gap-3 flex-1 px-6 py-16">
       <i class="fa-solid fa-spinner animate-spin text-2xl text-rv-purple dark:text-rv-pink"></i>
-      <span class="text-sm text-gray-500 dark:text-gray-400 italic">Consultando el oráculo…</span>
+      <span class="font-serif text-sm text-gray-500 dark:text-gray-400 italic">Consultando el oráculo…</span>
     </div>
 
     <!-- Resultado -->
     <div v-else-if="phase === 'result' && resultDisc" class="flex flex-col gap-4 flex-1 px-4 py-5">
-      <p class="text-gray-500 dark:text-gray-400 text-sm italic leading-relaxed text-center">
+      <p class="font-serif text-gray-500 dark:text-gray-400 text-sm italic leading-relaxed text-center">
         El destino ha hablado. Este es el disco que te esperaba:
       </p>
       <div class="flex justify-center">
@@ -80,7 +80,7 @@
     <!-- Sin resultados -->
     <div v-else-if="phase === 'empty'" class="flex flex-col items-center justify-center gap-3 flex-1 px-6 py-10 text-center">
       <i class="fa-solid fa-book-skull text-3xl text-gray-300 dark:text-gray-600"></i>
-      <p class="text-gray-500 dark:text-gray-400 text-sm italic leading-relaxed max-w-xs">
+      <p class="font-serif text-gray-500 dark:text-gray-400 text-sm italic leading-relaxed max-w-xs">
         El oráculo permanece en silencio... ningún disco responde a esa combinación del destino.
       </p>
       <button @click="restart" type="button"
@@ -153,7 +153,7 @@ const LABEL: Record<Category, string> = {
 };
 
 const BOOL_OPTION_LABEL: Record<'ep' | 'debut', Record<'true' | 'false', string>> = {
-  ep: { true: 'Un EP', false: 'Un álbum completo' },
+  ep: { true: 'Un EP', false: 'Un álbum' },
   debut: { true: 'Un debut', false: 'Una banda ya consagrada' },
 };
 

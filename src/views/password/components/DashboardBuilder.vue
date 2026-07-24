@@ -1,151 +1,210 @@
 <template>
   <div>
-    <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-5 text-center max-w-xl mx-auto">
-      Cada fila tiene 2 huecos de 1x1 o 1 hueco de 2x1. Arrastra un módulo hasta un hueco para colocarlo,
-      o hasta la franja entre filas para crear una fila nueva ahí. Los cambios se aplican al instante.
-    </p>
 
-    <!-- Grid activo: filas explícitas, igual que se empaquetan en el Dashboard real -->
-    <div class="flex flex-col gap-1.5">
-      <template v-for="(row, idx) in rows" :key="row.a.id">
-        <!-- Franja para insertar una fila nueva antes de esta -->
+    <!-- ── Vista MÓVIL ──────────────────────────────────────────────── -->
+    <div class="sm:hidden">
+      <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4 text-center">
+        Activa o desactiva módulos y reordénalos con las flechas.
+      </p>
+
+      <!-- Módulos activos -->
+      <div class="flex flex-col rounded-xl border border-gray-100 dark:border-white/10 overflow-hidden mb-4 divide-y divide-gray-100 dark:divide-white/5">
+        <p v-if="!enabledModules.length" class="text-center text-gray-400 dark:text-gray-500 text-xs italic py-4 px-3">
+          No hay módulos activos.
+        </p>
+        <div v-for="(mod, i) in enabledModules" :key="mod.id"
+          class="flex items-center gap-2.5 px-3 py-2.5 bg-white dark:bg-rv-darkSurface">
+          <i :class="[mod.icon, 'text-rv-pink text-sm shrink-0 w-4 text-center ml-1']" aria-hidden="true"></i>
+          <span class="flex-1 min-w-0 text-xs font-semibold text-gray-700 dark:text-white truncate">{{ mod.label }}</span>
+          <div class="flex flex-col gap-0.5 shrink-0">
+            <button @click="moveUp(i)" :disabled="i === 0" type="button"
+              class="w-8 h-7 rounded flex items-center justify-center
+                     text-gray-400 bg-gray-100 dark:bg-white/10
+                     hover:text-rv-pink hover:bg-gray-200 dark:hover:bg-white/20
+                     disabled:opacity-25 disabled:pointer-events-none transition-colors border-0 outline-none focus:outline-none">
+              <i class="fa-solid fa-chevron-up text-[9px]"></i>
+            </button>
+            <button @click="moveDown(i)" :disabled="i === enabledModules.length - 1" type="button"
+              class="w-8 h-7 rounded flex items-center justify-center
+                     text-gray-400 bg-gray-100 dark:bg-white/10
+                     hover:text-rv-pink hover:bg-gray-200 dark:hover:bg-white/20
+                     disabled:opacity-25 disabled:pointer-events-none transition-colors border-0 outline-none focus:outline-none">
+              <i class="fa-solid fa-chevron-down text-[9px]"></i>
+            </button>
+          </div>
+          <button @click="disableModule(mod.id)" type="button"
+            class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 ml-2
+                   text-gray-400 bg-gray-100 dark:bg-white/10
+                   hover:text-white hover:bg-rv-pink transition-colors duration-150">
+            <i class="fa-solid fa-xmark text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Módulos desactivados -->
+      <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+        Módulos disponibles
+      </p>
+      <div class="flex flex-col rounded-xl border border-gray-100 dark:border-white/10 overflow-hidden mb-4 divide-y divide-gray-100 dark:divide-white/5">
+        <p v-if="!disabledModules.length" class="text-center text-gray-400 dark:text-gray-500 text-xs italic py-4 px-3">
+          Todos los módulos están activados.
+        </p>
+        <div v-for="mod in disabledModules" :key="mod.id"
+          class="flex items-center gap-2.5 px-3 py-2.5 bg-white dark:bg-rv-darkSurface">
+          <i :class="[mod.icon, 'text-gray-300 dark:text-white/20 text-sm shrink-0 w-4 text-center']" aria-hidden="true"></i>
+          <span class="flex-1 min-w-0 text-xs text-gray-400 dark:text-gray-500 truncate">{{ mod.label }}</span>
+          <button @click="enableModule(mod.id)" type="button"
+            class="w-6 h-6 rounded-full flex items-center justify-center shrink-0
+                   text-gray-400 bg-gray-100 dark:bg-white/10
+                   hover:text-white hover:bg-rv-pink transition-colors duration-150">
+            <i class="fa-solid fa-plus text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Vista DESKTOP: builder de arrastre ──────────────────────── -->
+    <div class="hidden sm:block">
+      <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-5 text-center max-w-xl mx-auto">
+        Cada fila admite dos módulos 1×1 o uno 2×1. Arrástralos a un hueco o entre filas para reorganizarlos al instante.
+      </p>
+
+      <!-- Grid activo -->
+      <div class="flex flex-col gap-1.5">
+        <template v-for="(row, idx) in rows" :key="row.a.id">
+          <div
+            class="rounded-full transition-all duration-150 flex items-center justify-center cursor-default"
+            :class="hoverKey === 'row:' + row.a.id
+              ? 'h-10 bg-rv-pink/10 border-2 border-dashed border-rv-pink/50'
+              : dragging
+                ? 'h-7 bg-rv-pink/5 border-2 border-dashed border-rv-pink/25'
+                : 'h-2.5 hover:h-4 hover:bg-gray-100 dark:hover:bg-white/5'"
+            @dragover.prevent="setHover('row:' + row.a.id)"
+            @drop.prevent="dropAt(row.a.id)"
+          >
+            <i v-if="hoverKey === 'row:' + row.a.id" class="fa-solid fa-plus text-rv-pink text-xs"></i>
+          </div>
+
+          <div class="flex gap-2 items-stretch">
+            <div
+              v-if="row.b"
+              draggable="true"
+              @dragstart="onRowDragStart($event, row)"
+              @dragend="clearDrag"
+              title="Arrastrar toda la fila"
+              class="flex items-center justify-center w-6 shrink-0 rounded-md cursor-grab active:cursor-grabbing select-none
+                     text-gray-300 dark:text-white/20 hover:text-rv-pink hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+            >
+              <i class="fa-solid fa-grip-vertical text-sm"></i>
+            </div>
+
+            <div class="flex gap-3 flex-1 min-w-0">
+              <template v-if="row.type === 'full'">
+                <ModuleCard :key="row.a.id" :mod="row.a" full :dragging="isDragging(row.a.id)" :hover-side="sideOf(row.a.id)"
+                  @dragstart="dragStartModule(row.a.id)" @dragover="onCardDragOver(row.a.id, $event)"
+                  @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag" @remove="disableModule(row.a.id)" />
+              </template>
+              <template v-else>
+                <ModuleCard :key="row.a.id" :mod="row.a" :dragging="isDragging(row.a.id)" :hover-side="sideOf(row.a.id)"
+                  @dragstart="dragStartModule(row.a.id)" @dragover="onCardDragOver(row.a.id, $event)"
+                  @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag" @remove="disableModule(row.a.id)" />
+                <ModuleCard v-if="row.b" :key="row.b.id" :mod="row.b" :dragging="isDragging(row.b.id)" :hover-side="sideOf(row.b.id)"
+                  @dragstart="dragStartModule(row.b.id)" @dragover="onCardDragOver(row.b.id, $event)"
+                  @drop="onCardDrop(row.b.id, $event)" @dragend="clearDrag" @remove="disableModule(row.b.id)" />
+                <div v-else
+                  class="flex-1 min-w-0 flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-4 text-sm transition-colors duration-150"
+                  :class="hoverKey === 'gap:' + idx
+                    ? 'border-rv-pink/60 bg-rv-pink/5 dark:bg-rv-pink/10 text-rv-pink'
+                    : dragging
+                      ? 'border-rv-pink/30 text-rv-pink/70'
+                      : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500'"
+                  @dragover.prevent="setHover('gap:' + idx)"
+                  @drop.prevent="dropAt(nextRowFirstId(idx))"
+                >
+                  <i class="fa-solid fa-plus text-xs"></i>
+                  Hueco 1x1 libre
+                </div>
+              </template>
+            </div>
+          </div>
+        </template>
+
         <div
           class="rounded-full transition-all duration-150 flex items-center justify-center cursor-default"
-          :class="hoverKey === 'row:' + row.a.id
+          :class="hoverKey === 'row:end'
             ? 'h-10 bg-rv-pink/10 border-2 border-dashed border-rv-pink/50'
             : dragging
               ? 'h-7 bg-rv-pink/5 border-2 border-dashed border-rv-pink/25'
               : 'h-2.5 hover:h-4 hover:bg-gray-100 dark:hover:bg-white/5'"
-          @dragover.prevent="setHover('row:' + row.a.id)"
-          @drop.prevent="dropAt(row.a.id)"
+          @dragover.prevent="setHover('row:end')"
+          @drop.prevent="dropAt(null)"
         >
-          <i v-if="hoverKey === 'row:' + row.a.id" class="fa-solid fa-plus text-rv-pink text-xs"></i>
+          <i v-if="hoverKey === 'row:end'" class="fa-solid fa-plus text-rv-pink text-xs"></i>
         </div>
 
-        <div class="flex gap-2 items-stretch">
-          <!-- Tirador para arrastrar la fila entera como bloque: solo tiene sentido
-               cuando la fila tiene DOS módulos (si no, arrastrar el único módulo
-               ya mueve "la fila" y este tirador sería un segundo control redundante) -->
-          <div
-            v-if="row.b"
-            draggable="true"
-            @dragstart="onRowDragStart($event, row)"
-            @dragend="clearDrag"
-            title="Arrastrar toda la fila"
-            class="flex items-center justify-center w-6 shrink-0 rounded-md cursor-grab active:cursor-grabbing select-none
-                   text-gray-300 dark:text-white/20 hover:text-rv-pink hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-          >
-            <i class="fa-solid fa-grip-vertical text-sm"></i>
-          </div>
-
-          <div class="flex gap-3 flex-1">
-            <template v-if="row.type === 'full'">
-              <ModuleCard :key="row.a.id" :mod="row.a" full :dragging="isDragging(row.a.id)" :hover-side="sideOf(row.a.id)"
-                @dragstart="dragStartModule(row.a.id)" @dragover="onCardDragOver(row.a.id, $event)"
-                @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag" @remove="disableModule(row.a.id)" />
-            </template>
-            <template v-else>
-              <ModuleCard :key="row.a.id" :mod="row.a" :dragging="isDragging(row.a.id)" :hover-side="sideOf(row.a.id)"
-                @dragstart="dragStartModule(row.a.id)" @dragover="onCardDragOver(row.a.id, $event)"
-                @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag" @remove="disableModule(row.a.id)" />
-              <ModuleCard v-if="row.b" :key="row.b.id" :mod="row.b" :dragging="isDragging(row.b.id)" :hover-side="sideOf(row.b.id)"
-                @dragstart="dragStartModule(row.b.id)" @dragover="onCardDragOver(row.b.id, $event)"
-                @drop="onCardDrop(row.b.id, $event)" @dragend="clearDrag" @remove="disableModule(row.b.id)" />
-              <!-- Hueco libre: falta un 1x1 para completar la fila -->
-              <div v-else
-                class="w-full sm:w-[calc(50%-6px)] flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-4 text-sm transition-colors duration-150"
-                :class="hoverKey === 'gap:' + idx
-                  ? 'border-rv-pink/60 bg-rv-pink/5 dark:bg-rv-pink/10 text-rv-pink'
-                  : dragging
-                    ? 'border-rv-pink/30 text-rv-pink/70'
-                    : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500'"
-                @dragover.prevent="setHover('gap:' + idx)"
-                @drop.prevent="dropAt(nextRowFirstId(idx))"
-              >
-                <i class="fa-solid fa-plus text-xs"></i>
-                Hueco 1x1 libre
-              </div>
-            </template>
-          </div>
-        </div>
-      </template>
-
-      <!-- Franja final: crear una fila nueva al final -->
-      <div
-        class="rounded-full transition-all duration-150 flex items-center justify-center cursor-default"
-        :class="hoverKey === 'row:end'
-          ? 'h-10 bg-rv-pink/10 border-2 border-dashed border-rv-pink/50'
-          : dragging
-            ? 'h-7 bg-rv-pink/5 border-2 border-dashed border-rv-pink/25'
-            : 'h-2.5 hover:h-4 hover:bg-gray-100 dark:hover:bg-white/5'"
-        @dragover.prevent="setHover('row:end')"
-        @drop.prevent="dropAt(null)"
-      >
-        <i v-if="hoverKey === 'row:end'" class="fa-solid fa-plus text-rv-pink text-xs"></i>
-      </div>
-
-      <!-- Zona para añadir una fila totalmente nueva -->
-      <div
-        class="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-5 text-sm transition-colors duration-150"
-        :class="hoverKey === 'append'
-          ? 'border-rv-pink/60 bg-rv-pink/5 dark:bg-rv-pink/10 text-rv-pink'
-          : dragging
-            ? 'border-rv-pink/30 text-rv-pink/70'
-            : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500'"
-        @dragover.prevent="setHover('append')"
-        @drop.prevent="dropAt(null)"
-      >
-        <i class="fa-solid fa-plus text-xs"></i>
-        Arrastra aquí un módulo (1x1 o 2x1) para crear una fila nueva
-      </div>
-
-      <p v-if="!enabledModules.length" class="w-full text-center text-gray-400 dark:text-gray-500 text-sm italic py-2">
-        No hay módulos activos. Arrastra alguno desde "Módulos disponibles".
-      </p>
-    </div>
-
-    <!-- Bandeja de módulos desactivados -->
-    <div class="mt-6">
-      <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-3">
-        Módulos disponibles
-      </p>
-      <div
-        class="flex flex-wrap gap-3 min-h-[3.5rem] p-3 rounded-2xl border-2 border-dashed transition-colors duration-150"
-        :class="hoverKey === 'tray'
-          ? 'border-rv-pink/50 bg-rv-pink/5 dark:bg-rv-pink/10'
-          : dragging?.kind === 'module'
-            ? 'border-rv-pink/25'
-            : 'border-gray-100 dark:border-white/10'"
-        @dragover.prevent="setHover('tray')"
-        @drop.prevent="dropTray"
-      >
         <div
-          v-for="mod in disabledModules"
-          :key="mod.id"
-          draggable="true"
-          @dragstart="onModuleDragStart($event, mod.id)"
-          @dragend="clearDrag"
-          @click="enableModule(mod.id)"
-          class="flex items-center gap-2 rounded-full border border-gray-200 dark:border-white/10 bg-white dark:bg-rv-darkCard
-                 px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 cursor-grab active:cursor-grabbing select-none
-                 hover:border-rv-pink/40 hover:text-rv-pink dark:hover:text-rv-pink transition-colors"
-          :class="isDragging(mod.id) ? 'opacity-40' : 'opacity-100'"
+          class="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-5 text-sm transition-colors duration-150"
+          :class="hoverKey === 'append'
+            ? 'border-rv-pink/60 bg-rv-pink/5 dark:bg-rv-pink/10 text-rv-pink'
+            : dragging
+              ? 'border-rv-pink/30 text-rv-pink/70'
+              : 'border-gray-200 dark:border-white/10 text-gray-400 dark:text-gray-500'"
+          @dragover.prevent="setHover('append')"
+          @drop.prevent="dropAt(null)"
         >
-          <i :class="[mod.icon, 'text-sm']"></i>
-          {{ mod.label }}
-          <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/10">
-            {{ mod.size === 'full' ? '2x1' : '1x1' }}
-          </span>
+          <i class="fa-solid fa-plus text-xs"></i>
+          Arrastra aquí un módulo (1x1 o 2x1) para crear una fila nueva
         </div>
-        <p v-if="!disabledModules.length" class="w-full text-center text-gray-400 dark:text-gray-500 text-sm italic py-3">
-          Todos los módulos están activados.
+
+        <p v-if="!enabledModules.length" class="w-full text-center text-gray-400 dark:text-gray-500 text-sm italic py-2">
+          No hay módulos activos. Arrastra alguno desde "Módulos disponibles".
         </p>
       </div>
+
+      <!-- Bandeja de módulos desactivados -->
+      <div class="mt-6">
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-3">
+          Módulos disponibles
+        </p>
+        <div
+          class="flex flex-wrap gap-3 min-h-[3.5rem] p-3 rounded-2xl border-2 border-dashed transition-colors duration-150"
+          :class="hoverKey === 'tray'
+            ? 'border-rv-pink/50 bg-rv-pink/5 dark:bg-rv-pink/10'
+            : dragging?.kind === 'module'
+              ? 'border-rv-pink/25'
+              : 'border-gray-100 dark:border-white/10'"
+          @dragover.prevent="setHover('tray')"
+          @drop.prevent="dropTray"
+        >
+          <div
+            v-for="mod in disabledModules"
+            :key="mod.id"
+            draggable="true"
+            @dragstart="onModuleDragStart($event, mod.id)"
+            @dragend="clearDrag"
+            @click="enableModule(mod.id)"
+            class="flex items-center gap-2 rounded-full border border-gray-200 dark:border-white/10 bg-white dark:bg-rv-darkCard
+                   px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 cursor-grab active:cursor-grabbing select-none
+                   hover:border-rv-pink/40 hover:text-rv-pink dark:hover:text-rv-pink transition-colors"
+            :class="isDragging(mod.id) ? 'opacity-40' : 'opacity-100'"
+          >
+            <i :class="[mod.icon, 'text-sm']"></i>
+            {{ mod.label }}
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/10">
+              {{ mod.size === 'full' ? '2x1' : '1x1' }}
+            </span>
+          </div>
+          <p v-if="!disabledModules.length" class="w-full text-center text-gray-400 dark:text-gray-500 text-sm italic py-3">
+            Todos los módulos están activados.
+          </p>
+        </div>
+      </div>
     </div>
 
+    <!-- Restablecer (compartido) -->
     <div class="mt-6 text-center">
       <button type="button" @click="resetToDefault"
-        class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-150 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-rv-darkSurface">
+        class="text-sm text-gray-500 dark:text-white hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-150 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-rv-darkSurface">
         <i class="fa-solid fa-rotate-left text-xs"></i>
         Restablecer orden por defecto
       </button>
@@ -192,6 +251,18 @@ function computeRows(mods: DashboardModule[]): Row[] {
 }
 
 const rows = computed(() => computeRows(enabledModules.value));
+
+function moveUp(index: number) {
+  const mods = enabledModules.value;
+  if (index === 0) return;
+  moveModule(mods[index].id, mods[index - 1].id);
+}
+
+function moveDown(index: number) {
+  const mods = enabledModules.value;
+  if (index >= mods.length - 1) return;
+  moveModule(mods[index].id, mods[index + 2]?.id ?? null);
+}
 
 // Id del módulo que arranca la siguiente fila (o null si es la última):
 // es el punto de inserción correcto para rellenar un hueco 1x1.

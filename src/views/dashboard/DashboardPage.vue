@@ -235,8 +235,8 @@
           <button @click="rollDice" :disabled="diceRolling" type="button"
             @mouseenter="startDiceHover" @mouseleave="stopDiceHover"
             class="inline-flex flex-col items-center gap-2 px-10 py-6 rounded-3xl text-lg font-semibold shadow-md
-                   bg-rv-navy dark:bg-rv-purple text-white
-                   hover:bg-rv-pink hover:-translate-y-0.5 hover:shadow-lg
+                   bg-rv-pink dark:bg-rv-purple text-white
+                   hover:-translate-y-0.5 hover:shadow-lg
                    active:scale-[0.97] active:translate-y-0
                    disabled:opacity-50 disabled:pointer-events-none
                    transition-all duration-200 border-0 outline-none focus:outline-none ring-0">
@@ -253,27 +253,9 @@
 
         <!-- Resultado -->
         <div v-else class="p-4 sm:p-6">
-          <div class="flex justify-between items-center mb-5">
-            <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-              <i class="fa-solid fa-dice text-amber-400"></i>
-              {{ dicePhrase }}
-            </span>
-            <button @click="rollDice" :disabled="diceRolling" type="button"
-              @mouseenter="startDiceHover" @mouseleave="stopDiceHover"
-              class="inline-flex flex-col items-center gap-1 px-5 py-3 rounded-2xl text-xs font-semibold shadow
-                     bg-rv-navy dark:bg-rv-purple text-white
-                     hover:bg-rv-pink hover:-translate-y-0.5 hover:shadow-md
-                     active:scale-[0.97] active:translate-y-0
-                     disabled:opacity-50 disabled:pointer-events-none
-                     transition-all duration-200 border-0 outline-none focus:outline-none ring-0">
-              <span class="flex items-center gap-1">
-                <i class="fa-solid text-lg transition-transform duration-100"
-                  :class="[diceRolling || diceHovering ? currentDiceFace : 'fa-dice-five', diceHovering && !diceRolling ? 'dice-wobble' : '']"></i>
-                <i class="fa-solid text-lg transition-transform duration-100"
-                  :class="[diceRolling || diceHovering ? currentDiceFace2 : 'fa-dice-three', diceHovering && !diceRolling ? 'dice-wobble dice-wobble-delay' : '']"></i>
-              </span>
-              {{ diceRolling ? 'Lanzando…' : 'Vuelve a tirar' }}
-            </button>
+          <div class="flex items-center gap-1.5 mb-6 text-sm text-gray-500 dark:text-gray-400">
+            <i class="fa-solid fa-dice text-amber-400"></i>
+            {{ dicePhrase }}
           </div>
           <div class="flex justify-center max-w-xs mx-auto">
             <DiscCard v-if="randomDisc" :key="randomDisc.id" :id="randomDisc.id" :ep="randomDisc.ep" :image="randomDisc.image"
@@ -285,6 +267,20 @@
               :favoriteId="randomDisc.userFavoriteId" :pendingId="randomDisc.pendingId"
               :comment-count="randomDisc.commentCount" :rateCount="randomDisc.voteCount"
               :artistCountry="randomDisc.artist?.country" :debut="randomDisc.debut" />
+          </div>
+          <div class="flex justify-center mt-5">
+            <button @click="rollDice" :disabled="diceRolling" type="button"
+              @mouseenter="startDiceHover" @mouseleave="stopDiceHover"
+              class="inline-flex items-center gap-2 px-5 py-1.5 rounded-2xl text-xs font-semibold shadow
+                     bg-rv-pink dark:bg-rv-purple text-white
+                     hover:-translate-y-0.5 hover:shadow-md
+                     active:scale-[0.97] active:translate-y-0
+                     disabled:opacity-50 disabled:pointer-events-none
+                     transition-all duration-200 border-0 outline-none focus:outline-none ring-0">
+              <i class="fa-solid text-sm transition-transform duration-100"
+                :class="[diceRolling || diceHovering ? currentDiceFace : 'fa-dice-five', diceHovering && !diceRolling ? 'dice-wobble' : '']"></i>
+              {{ diceRolling ? 'Lanzando…' : 'Vuelve a tirar' }}
+            </button>
           </div>
         </div>
       </div>
@@ -352,9 +348,11 @@
                 Portada votada con <span class="font-bold text-rv-purple ml-1">{{ coverVoteValue }}</span>
               </div>
               <button @click="coverVoted = false"
-                class="text-xs text-gray-400 dark:text-gray-500 hover:text-rv-purple dark:hover:text-rv-purple
+                class="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full
+                       bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400
+                       hover:bg-gray-200 dark:hover:bg-white/20 hover:text-gray-700 dark:hover:text-gray-200
                        border-0 outline-none focus:outline-none transition-colors">
-                <i class="fa-solid fa-pen text-[10px] mr-1"></i>Editar
+                <i class="fa-solid fa-pen text-[10px]"></i>Editar
               </button>
             </div>
           </div>

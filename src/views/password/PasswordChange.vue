@@ -97,6 +97,24 @@
           Guardar avatar
         </button>
       </section>
+      <!-- Dashboard -->
+      <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5 md:p-6">
+        <div class="text-center mb-5">
+          <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-sm font-bold">Dashboard</span>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 text-center leading-relaxed mb-4">
+          Personaliza tu dashboard: activa módulos y reorganízalos a tu gusto.
+        </p>
+        <div class="text-center">
+          <button type="button" @click="showDashboardModal = true"
+            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold
+                   bg-rv-pink text-white hover:-translate-y-0.5 hover:shadow-md
+                   active:scale-[0.97] transition-all duration-200 border-0 outline-none focus:outline-none">
+            <i class="fa-solid fa-sliders"></i>
+            Personalizar
+          </button>
+        </div>
+      </section>
       </div><!-- /columna izquierda -->
 
       <!-- DERECHA: Preferencias + Cambiar contraseña -->
@@ -293,21 +311,49 @@
 
     </div>
 
-    <!-- Dashboard: builder visual a todo el ancho -->
-    <section class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-6 md:p-8 mt-6 md:mt-8">
-      <div class="text-center mb-6">
-        <span class="bg-rv-navy text-white px-5 py-1.5 rounded-full text-base font-bold">
-          Dashboard
-        </span>
-      </div>
+    <!-- Modal DashboardBuilder -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showDashboardModal"
+          class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
+          @click.self="showDashboardModal = false">
 
-      <DashboardBuilder />
-    </section>
+          <!-- Backdrop -->
+          <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showDashboardModal = false"></div>
+
+          <!-- Panel -->
+          <div class="relative z-10 w-full sm:max-w-5xl bg-white dark:bg-rv-darkCard
+                      rounded-2xl shadow-2xl
+                      max-h-[92dvh] flex flex-col overflow-hidden">
+
+            <!-- Cabecera -->
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-white/10 shrink-0">
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-rv-pink"></i>
+                <span class="font-bold text-gray-900 dark:text-white">Personalizar dashboard</span>
+              </div>
+              <button type="button" @click="showDashboardModal = false"
+                class="w-8 h-8 rounded-full flex items-center justify-center
+                       text-gray-400 bg-gray-100 dark:bg-white/10
+                       hover:text-white hover:bg-rv-pink dark:hover:bg-rv-pink
+                       border-0 outline-none transition-colors duration-150">
+                <i class="fa-solid fa-xmark text-sm"></i>
+              </button>
+            </div>
+
+            <!-- Contenido scrollable -->
+            <div class="overflow-y-auto overflow-x-hidden flex-1 p-5">
+              <DashboardBuilder />
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import SwalService from "@services/swal/SwalService";
 import { useUserStore } from "@stores/user/users";
 import { useAuthStore } from "@stores/auth/auth";
@@ -321,6 +367,12 @@ export default {
     const authStore = useAuthStore();
 
     const ready = ref(false);
+    const showDashboardModal = ref(false);
+
+    watch(showDashboardModal, (val) => {
+      document.body.style.overflow = val ? 'hidden' : '';
+    });
+    onUnmounted(() => { document.body.style.overflow = ''; });
     const password = ref("");
     const confirmPassword = ref("");
 
@@ -467,7 +519,31 @@ export default {
       noSpoilers, toggleNoSpoilers,
       defaultYearFilter, currentYear, setDefaultYearFilter,
       spotifyMode, setSpotifyMode,
+      showDashboardModal,
     };
   },
 };
 </script>
+
+<style scoped>
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+.modal-enter-active .relative,
+.modal-leave-active .relative {
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+.modal-enter-from .relative {
+  transform: translateY(20px);
+  opacity: 0;
+}
+.modal-leave-to .relative {
+  transform: translateY(20px);
+  opacity: 0;
+}
+</style>
