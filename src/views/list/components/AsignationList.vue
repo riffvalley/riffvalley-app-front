@@ -28,12 +28,20 @@
               </div>
               Radar {{ group }}
             </h4>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors shadow-sm"
-              :class="(groupedWeekAsignations[group]?.length || 0) >= 4
-                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30'
-                : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/30'">
-              {{ groupedWeekAsignations[group]?.length || 0 }}/4
-            </span>
+            <div class="flex items-center gap-1.5">
+              <a v-if="getWeeklyWpPost(group)" :href="getWeeklyWpPost(group).wpPostUrl" target="_blank" rel="noopener noreferrer"
+                class="flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-900/30 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors text-[10px] font-bold"
+                title="Ver borrador en WordPress">
+                <i class="fab fa-wordpress"></i>
+                <span>Borrador</span>
+              </a>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors shadow-sm"
+                :class="(groupedWeekAsignations[group]?.length || 0) >= 4
+                  ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30'
+                  : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/30'">
+                {{ groupedWeekAsignations[group]?.length || 0 }}/4
+              </span>
+            </div>
           </div>
 
           <!-- Grid Radar (dentro de cada grupo) - Vertical Compacto -->
@@ -130,6 +138,16 @@
                       {{ user.username }}
                     </option>
                   </select>
+
+                  <button @click="openDescriptionModal(asignation)"
+                    :class="(asignation.description || asignation.similarBands || asignation.spotifyTrackId)
+                      ? 'bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600'
+                      : 'bg-gray-50 dark:bg-rv-darkBg text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'"
+                    class="flex items-center gap-1 px-1.5 py-1 rounded-md text-[9px] font-semibold transition-colors flex-shrink-0"
+                    title="Editar disco">
+                    <i class="fa-solid fa-pen text-[8px]"></i>
+                    <span>Editar</span>
+                  </button>
 
                   <label class="relative flex items-center justify-center cursor-pointer flex-shrink-0" title="Marcar como hecho">
                     <input type="checkbox" :checked="asignation.done" @change="toggleDone(asignation)" class="peer sr-only" />
@@ -261,6 +279,16 @@
                   </option>
                 </select>
 
+                <button @click="openDescriptionModal(asignation)"
+                  :class="(asignation.description || asignation.similarBands || asignation.spotifyTrackId)
+                    ? 'bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600'
+                    : 'bg-gray-50 dark:bg-rv-darkBg text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'"
+                  class="flex items-center gap-1 px-1.5 py-1 rounded-md text-[9px] font-semibold transition-colors flex-shrink-0"
+                  title="Editar disco">
+                  <i class="fa-solid fa-pen text-[8px]"></i>
+                  <span>Editar</span>
+                </button>
+
                 <label class="relative flex items-center justify-center cursor-pointer flex-shrink-0" title="Marcar como hecho">
                   <input type="checkbox" :checked="asignation.done" @change="toggleDone(asignation)" class="peer sr-only" />
                   <div class="w-4 h-4 border-2 border-gray-300 dark:border-white/20 rounded peer-checked:bg-green-500 peer-checked:border-green-500 transition-colors"></div>
@@ -334,6 +362,15 @@
         </div>
       </div>
     </template>
+
+    <DiscDescriptionModal
+      v-if="editingAsignation"
+      :key="editingAsignation.id"
+      :asignation="editingAsignation"
+      :saving="savingDescription"
+      @close="editingAsignation = null"
+      @submit="handleSaveDescription"
+    />
   </div>
 </template>
 
@@ -342,6 +379,7 @@ import { defineComponent, ref, watch, computed, nextTick } from "vue";
 import { useAsignationStore } from "@stores/asignation/asignation";
 import { useUserStore } from "@stores/user/users";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
+import DiscDescriptionModal from "./DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
 import CircleFlags from "vue-circle-flags";
 
@@ -349,8 +387,9 @@ export default defineComponent({
   name: "AsignationList",
   props: {
     type: { type: String, required: true },
+    wpWeeklyPosts: { type: Array as () => any[], default: () => [] },
   },
-  components: { SpotifyArtistButton },
+  components: { SpotifyArtistButton, DiscDescriptionModal },
   setup(props) {
     const asignationStore = useAsignationStore();
     const userStore = useUserStore();
@@ -358,6 +397,8 @@ export default defineComponent({
 
     const users = computed(() => userStore.usersRv);
     const editingUserAsignationId = ref<string | null>(null);
+    const editingAsignation = ref<any>(null);
+    const savingDescription = ref(false);
 
     if (userStore.usersRv.length === 0) userStore.loadRvUsers();
 
@@ -501,6 +542,30 @@ export default defineComponent({
       await updatePosition({ ...asignation, position: group });
     };
 
+    const openDescriptionModal = (asignation: any) => {
+      editingAsignation.value = asignation;
+    };
+
+    const handleSaveDescription = async (payload: { description: string; similarBands: string; spotifyTrackId: string }) => {
+      const asignation = editingAsignation.value;
+      savingDescription.value = true;
+      try {
+        await asignationStore.updateAsignationStore({ ...asignation, ...payload });
+        const idx = asignations.value.findIndex((a) => a.id === asignation.id);
+        if (idx !== -1) asignations.value[idx] = { ...asignations.value[idx], ...payload };
+        SwalService.success('Disco actualizado');
+      } catch (e) {
+        SwalService.error('No se pudo guardar (revisa si se sincronizó con WordPress)');
+      } finally {
+        savingDescription.value = false;
+        editingAsignation.value = null;
+      }
+    };
+
+    const getWeeklyWpPost = (group: number) => {
+      return (props.wpWeeklyPosts || []).find((p: any) => p.position === group) || null;
+    };
+
     return {
       asignations, isWeek, unassignedWeekAsignations, groupedWeekAsignations,
       availablePositions, availablePositionsCount, remove, toggleDone,
@@ -508,6 +573,8 @@ export default defineComponent({
       onDragStart, onDragOver, onDragLeave, onDrop, dragOverGroup, draggedItem,
       users, editingUserAsignationId, startEditingUser, changeUser,
       moveTo, getDiscCountry,
+      editingAsignation, savingDescription, openDescriptionModal, handleSaveDescription,
+      getWeeklyWpPost,
     };
   },
 });

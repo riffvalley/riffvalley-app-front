@@ -61,12 +61,22 @@ export interface WpPost {
   wpPostId: number;
   link: string;
   title: string;
-  skipped?: boolean;
+  added?: number;
+  updated?: number;
+  removed?: number;
+  warning?: string;
+  adopted?: boolean;
 }
 
 export interface CreateWpPostsResponse {
   created: number;
   posts: WpPost[];
+}
+
+export interface WeeklyWpPostRecord {
+  position: number;
+  wpPostId: number;
+  wpPostUrl: string;
 }
 
 export async function createWpPosts(id: string): Promise<CreateWpPostsResponse> {
