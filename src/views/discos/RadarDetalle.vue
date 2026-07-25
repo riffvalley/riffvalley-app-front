@@ -106,7 +106,7 @@
             <h2 class="text-base font-bold text-gray-900 dark:text-white">Asignaciones</h2>
           </div>
           <div class="p-4 md:p-5">
-            <AsignationList :type="list.type" />
+            <AsignationList :type="list.type" :wp-weekly-posts="list.wpWeeklyPosts" />
           </div>
         </div>
 
@@ -237,15 +237,50 @@ async function publishToWordPress() {
   publishingWp.value = true;
   try {
     const result = await createWpPosts(list.value.id);
+
+    const existingWeeklyPosts = Array.isArray(list.value.wpWeeklyPosts) ? list.value.wpWeeklyPosts : [];
+    const mergedWeeklyPosts = [...existingWeeklyPosts];
+    for (const p of result.posts) {
+      const record = { position: p.position, wpPostId: p.wpPostId, wpPostUrl: p.link };
+      const idx = mergedWeeklyPosts.findIndex((e: any) => e.position === p.position);
+      if (idx !== -1) mergedWeeklyPosts[idx] = record;
+      else mergedWeeklyPosts.push(record);
+    }
+    list.value.wpWeeklyPosts = mergedWeeklyPosts;
+
     const postsHtml = result.posts
-      .map(p => `<li class="mb-1">
-        ${p.skipped ? '⚠️ Ya existía' : '✅ Creado'} —
-        <a href="${p.link}" target="_blank" class="text-blue-600 underline">${p.title}</a>
-      </li>`)
+      .map(p => {
+        const linkHtml = `<a href="${p.link}" target="_blank" class="text-blue-600 underline">${p.title}</a>`;
+
+        const changes: string[] = [];
+        if (p.added) changes.push(`${p.added} añadido${p.added === 1 ? '' : 's'}`);
+        if (p.updated) changes.push(`${p.updated} actualizado${p.updated === 1 ? '' : 's'}`);
+        if (p.removed) changes.push(`${p.removed} eliminado${p.removed === 1 ? '' : 's'}`);
+
+        let icon = '✅';
+        let statusText = 'Creado';
+        if (p.adopted) {
+          icon = 'ℹ️';
+          statusText = 'Vinculado a un post existente sin trackear';
+        } else if (p.warning) {
+          icon = '⚠️';
+          statusText = changes.length ? `Actualizado (${changes.join(', ')})` : 'Aviso al actualizar';
+        } else if (changes.length) {
+          statusText = `Actualizado (${changes.join(', ')})`;
+        }
+
+        return `<li class="mb-2">
+          <div>${icon} Posición ${p.position} — ${statusText}</div>
+          <div>${linkHtml}</div>
+          ${p.warning ? `<div class="text-amber-600 text-xs mt-1">${p.warning}</div>` : ''}
+        </li>`;
+      })
       .join('');
+
+    const hasWarning = result.posts.some(p => p.warning);
     Swal.fire({
-      icon: 'success',
-      title: `${result.created} post(s) creados en WordPress`,
+      icon: hasWarning ? 'warning' : 'success',
+      title: 'Resultado de publicación en WordPress',
       html: `<ul class="text-left text-sm mt-2">${postsHtml}</ul>`,
     });
   } catch (error: any) {

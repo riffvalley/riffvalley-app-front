@@ -119,7 +119,7 @@
             </div>
         </div>
 
-        <MejoresDescriptionModal
+        <DiscDescriptionModal
             v-if="editingAsignation"
             :key="editingAsignation.id"
             :asignation="editingAsignation"
@@ -135,13 +135,13 @@ import { defineComponent, ref, watch, computed, nextTick } from "vue";
 import { useAsignationStore } from "@stores/asignation/asignation";
 import { useUserStore } from "@stores/user/users";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
-import MejoresDescriptionModal from "./MejoresDescriptionModal.vue";
+import DiscDescriptionModal from "./DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
 import CircleFlags from "vue-circle-flags";
 
 export default defineComponent({
     name: "MejoresAsignationList",
-    components: { SpotifyArtistButton, MejoresDescriptionModal },
+    components: { SpotifyArtistButton, DiscDescriptionModal },
     setup() {
         const asignationStore = useAsignationStore();
         const userStore = useUserStore();
