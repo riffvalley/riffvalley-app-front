@@ -1,69 +1,7 @@
 <template>
   <div>
 
-    <!-- ── Vista MÓVIL ──────────────────────────────────────────────── -->
-    <div class="sm:hidden">
-      <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4 text-center">
-        Activa o desactiva módulos y reordénalos con las flechas.
-      </p>
-
-      <!-- Módulos activos -->
-      <div class="flex flex-col rounded-xl border border-gray-100 dark:border-white/10 overflow-hidden mb-4 divide-y divide-gray-100 dark:divide-white/5">
-        <p v-if="!enabledModules.length" class="text-center text-gray-400 dark:text-gray-500 text-xs italic py-4 px-3">
-          No hay módulos activos.
-        </p>
-        <div v-for="(mod, i) in enabledModules" :key="mod.id"
-          class="flex items-center gap-2.5 px-3 py-2.5 bg-white dark:bg-rv-darkSurface">
-          <i :class="[mod.icon, 'text-rv-pink text-sm shrink-0 w-4 text-center ml-1']" aria-hidden="true"></i>
-          <span class="flex-1 min-w-0 text-xs font-semibold text-gray-700 dark:text-white truncate">{{ mod.label }}</span>
-          <div class="flex flex-col gap-0.5 shrink-0">
-            <button @click="moveUp(i)" :disabled="i === 0" type="button"
-              class="w-8 h-7 rounded flex items-center justify-center
-                     text-gray-400 bg-gray-100 dark:bg-white/10
-                     hover:text-rv-pink hover:bg-gray-200 dark:hover:bg-white/20
-                     disabled:opacity-25 disabled:pointer-events-none transition-colors border-0 outline-none focus:outline-none">
-              <i class="fa-solid fa-chevron-up text-[9px]"></i>
-            </button>
-            <button @click="moveDown(i)" :disabled="i === enabledModules.length - 1" type="button"
-              class="w-8 h-7 rounded flex items-center justify-center
-                     text-gray-400 bg-gray-100 dark:bg-white/10
-                     hover:text-rv-pink hover:bg-gray-200 dark:hover:bg-white/20
-                     disabled:opacity-25 disabled:pointer-events-none transition-colors border-0 outline-none focus:outline-none">
-              <i class="fa-solid fa-chevron-down text-[9px]"></i>
-            </button>
-          </div>
-          <button @click="disableModule(mod.id)" type="button"
-            class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 ml-2
-                   text-gray-400 bg-gray-100 dark:bg-white/10
-                   hover:text-white hover:bg-rv-pink transition-colors duration-150">
-            <i class="fa-solid fa-xmark text-[10px]"></i>
-          </button>
-        </div>
-      </div>
-
-      <!-- Módulos desactivados -->
-      <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
-        Módulos disponibles
-      </p>
-      <div class="flex flex-col rounded-xl border border-gray-100 dark:border-white/10 overflow-hidden mb-4 divide-y divide-gray-100 dark:divide-white/5">
-        <p v-if="!disabledModules.length" class="text-center text-gray-400 dark:text-gray-500 text-xs italic py-4 px-3">
-          Todos los módulos están activados.
-        </p>
-        <div v-for="mod in disabledModules" :key="mod.id"
-          class="flex items-center gap-2.5 px-3 py-2.5 bg-white dark:bg-rv-darkSurface">
-          <i :class="[mod.icon, 'text-gray-300 dark:text-white/20 text-sm shrink-0 w-4 text-center']" aria-hidden="true"></i>
-          <span class="flex-1 min-w-0 text-xs text-gray-400 dark:text-gray-500 truncate">{{ mod.label }}</span>
-          <button @click="enableModule(mod.id)" type="button"
-            class="w-6 h-6 rounded-full flex items-center justify-center shrink-0
-                   text-gray-400 bg-gray-100 dark:bg-white/10
-                   hover:text-white hover:bg-rv-pink transition-colors duration-150">
-            <i class="fa-solid fa-plus text-[10px]"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── Vista DESKTOP: builder de arrastre ──────────────────────── -->
+    <!-- ── Vista DESKTOP: builder de arrastre (dashboard de escritorio) ── -->
     <div class="hidden sm:block">
       <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-5 text-center max-w-xl mx-auto">
         Cada fila admite dos módulos 1×1 o uno 2×1. Arrástralos a un hueco o entre filas para reorganizarlos al instante.
@@ -102,15 +40,15 @@
               <template v-if="row.type === 'full'">
                 <ModuleCard :key="row.a.id" :mod="row.a" full :dragging="isDragging(row.a.id)" :hover-side="sideOf(row.a.id)"
                   @dragstart="dragStartModule(row.a.id)" @dragover="onCardDragOver(row.a.id, $event)"
-                  @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag" @remove="disableModule(row.a.id)" />
+                  @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag" @remove="desktopDisableModule(row.a.id)" />
               </template>
               <template v-else>
                 <ModuleCard :key="row.a.id" :mod="row.a" :dragging="isDragging(row.a.id)" :hover-side="sideOf(row.a.id)"
                   @dragstart="dragStartModule(row.a.id)" @dragover="onCardDragOver(row.a.id, $event)"
-                  @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag" @remove="disableModule(row.a.id)" />
+                  @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag" @remove="desktopDisableModule(row.a.id)" />
                 <ModuleCard v-if="row.b" :key="row.b.id" :mod="row.b" :dragging="isDragging(row.b.id)" :hover-side="sideOf(row.b.id)"
                   @dragstart="dragStartModule(row.b.id)" @dragover="onCardDragOver(row.b.id, $event)"
-                  @drop="onCardDrop(row.b.id, $event)" @dragend="clearDrag" @remove="disableModule(row.b.id)" />
+                  @drop="onCardDrop(row.b.id, $event)" @dragend="clearDrag" @remove="desktopDisableModule(row.b.id)" />
                 <div v-else
                   class="flex-1 min-w-0 flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-4 text-sm transition-colors duration-150"
                   :class="hoverKey === 'gap:' + idx
@@ -156,7 +94,7 @@
           Arrastra aquí un módulo (1x1 o 2x1) para crear una fila nueva
         </div>
 
-        <p v-if="!enabledModules.length" class="w-full text-center text-gray-400 dark:text-gray-500 text-sm italic py-2">
+        <p v-if="!desktopEnabled.length" class="w-full text-center text-gray-400 dark:text-gray-500 text-sm italic py-2">
           No hay módulos activos. Arrastra alguno desde "Módulos disponibles".
         </p>
       </div>
@@ -177,12 +115,12 @@
           @drop.prevent="dropTray"
         >
           <div
-            v-for="mod in disabledModules"
+            v-for="mod in desktopDisabled"
             :key="mod.id"
             draggable="true"
             @dragstart="onModuleDragStart($event, mod.id)"
             @dragend="clearDrag"
-            @click="enableModule(mod.id)"
+            @click="desktopEnableModule(mod.id)"
             class="flex items-center gap-2 rounded-full border border-gray-200 dark:border-white/10 bg-white dark:bg-rv-darkCard
                    px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 cursor-grab active:cursor-grabbing select-none
                    hover:border-rv-pink/40 hover:text-rv-pink dark:hover:text-rv-pink transition-colors"
@@ -194,20 +132,95 @@
               {{ mod.size === 'full' ? '2x1' : '1x1' }}
             </span>
           </div>
-          <p v-if="!disabledModules.length" class="w-full text-center text-gray-400 dark:text-gray-500 text-sm italic py-3">
+          <p v-if="!desktopDisabled.length" class="w-full text-center text-gray-400 dark:text-gray-500 text-sm italic py-3">
             Todos los módulos están activados.
           </p>
         </div>
       </div>
+
+      <!-- Restablecer (escritorio) -->
+      <div class="mt-6 text-center">
+        <button type="button" @click="desktopReset"
+          class="text-sm text-gray-500 dark:text-white hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-150 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-rv-darkSurface">
+          <i class="fa-solid fa-rotate-left text-xs"></i>
+          Restablecer diseño de escritorio
+        </button>
+      </div>
     </div>
 
-    <!-- Restablecer (compartido) -->
-    <div class="mt-6 text-center">
-      <button type="button" @click="resetToDefault"
-        class="text-sm text-gray-500 dark:text-white hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-150 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-rv-darkSurface">
-        <i class="fa-solid fa-rotate-left text-xs"></i>
-        Restablecer orden por defecto
-      </button>
+    <!-- ── Dashboard en el móvil: siempre visible (único editor en viewport
+         móvil; acompaña al builder de arriba en viewport de escritorio) ── -->
+    <div class="sm:mt-10 sm:pt-8 sm:border-t sm:border-gray-100 dark:sm:border-white/10">
+      <div class="hidden sm:flex justify-center mb-3">
+        <span class="bg-rv-navy text-white px-4 py-1 rounded-full text-xs font-bold">Dashboard en el móvil</span>
+      </div>
+      <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4 text-center">
+        Activa o desactiva módulos y reordénalos con las flechas.
+      </p>
+
+      <!-- Módulos activos -->
+      <div class="flex flex-col rounded-xl border border-gray-100 dark:border-white/10 overflow-hidden mb-4 divide-y divide-gray-100 dark:divide-white/5">
+        <p v-if="!mobileEnabled.length" class="text-center text-gray-400 dark:text-gray-500 text-xs italic py-4 px-3">
+          No hay módulos activos.
+        </p>
+        <div v-for="(mod, i) in mobileEnabled" :key="mod.id"
+          class="flex items-center gap-2.5 px-3 py-2.5 bg-white dark:bg-rv-darkSurface">
+          <i :class="[mod.icon, 'text-rv-pink text-sm shrink-0 w-4 text-center ml-1']" aria-hidden="true"></i>
+          <span class="flex-1 min-w-0 text-xs font-semibold text-gray-700 dark:text-white truncate">{{ mod.label }}</span>
+          <div class="flex flex-col gap-0.5 shrink-0">
+            <button @click="mobileMoveUp(i)" :disabled="i === 0" type="button"
+              class="w-8 h-7 rounded flex items-center justify-center
+                     text-gray-400 bg-gray-100 dark:bg-white/10
+                     hover:text-rv-pink hover:bg-gray-200 dark:hover:bg-white/20
+                     disabled:opacity-25 disabled:pointer-events-none transition-colors border-0 outline-none focus:outline-none">
+              <i class="fa-solid fa-chevron-up text-[9px]"></i>
+            </button>
+            <button @click="mobileMoveDown(i)" :disabled="i === mobileEnabled.length - 1" type="button"
+              class="w-8 h-7 rounded flex items-center justify-center
+                     text-gray-400 bg-gray-100 dark:bg-white/10
+                     hover:text-rv-pink hover:bg-gray-200 dark:hover:bg-white/20
+                     disabled:opacity-25 disabled:pointer-events-none transition-colors border-0 outline-none focus:outline-none">
+              <i class="fa-solid fa-chevron-down text-[9px]"></i>
+            </button>
+          </div>
+          <button @click="mobileDisableModule(mod.id)" type="button"
+            class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 ml-2
+                   text-gray-400 bg-gray-100 dark:bg-white/10
+                   hover:text-white hover:bg-rv-pink transition-colors duration-150">
+            <i class="fa-solid fa-xmark text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Módulos desactivados -->
+      <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-2">
+        Módulos disponibles
+      </p>
+      <div class="flex flex-col rounded-xl border border-gray-100 dark:border-white/10 overflow-hidden mb-4 divide-y divide-gray-100 dark:divide-white/5">
+        <p v-if="!mobileDisabled.length" class="text-center text-gray-400 dark:text-gray-500 text-xs italic py-4 px-3">
+          Todos los módulos están activados.
+        </p>
+        <div v-for="mod in mobileDisabled" :key="mod.id"
+          class="flex items-center gap-2.5 px-3 py-2.5 bg-white dark:bg-rv-darkSurface">
+          <i :class="[mod.icon, 'text-gray-300 dark:text-white/20 text-sm shrink-0 w-4 text-center']" aria-hidden="true"></i>
+          <span class="flex-1 min-w-0 text-xs text-gray-400 dark:text-gray-500 truncate">{{ mod.label }}</span>
+          <button @click="mobileEnableModule(mod.id)" type="button"
+            class="w-6 h-6 rounded-full flex items-center justify-center shrink-0
+                   text-gray-400 bg-gray-100 dark:bg-white/10
+                   hover:text-white hover:bg-rv-pink transition-colors duration-150">
+            <i class="fa-solid fa-plus text-[10px]"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Restablecer (móvil) -->
+      <div class="text-center">
+        <button type="button" @click="mobileReset"
+          class="text-sm text-gray-500 dark:text-white hover:text-gray-700 dark:hover:text-gray-200 transition-colors duration-150 inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-rv-darkSurface">
+          <i class="fa-solid fa-rotate-left text-xs"></i>
+          Restablecer orden por defecto
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -217,7 +230,28 @@ import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useDashboardConfig, type DashboardModule } from '@/composables/useDashboardConfig';
 import ModuleCard from './ModuleCard.vue';
 
-const { modules, enabledModules, disabledModules, moveModule, moveGroup, enableModule, disableModule, resetToDefault } = useDashboardConfig();
+const desktop = useDashboardConfig('desktop');
+const mobile = useDashboardConfig('mobile');
+
+const {
+  modules: desktopModules,
+  enabledModules: desktopEnabled,
+  disabledModules: desktopDisabled,
+  moveModule: desktopMoveModule,
+  moveGroup: desktopMoveGroup,
+  enableModule: desktopEnableModule,
+  disableModule: desktopDisableModule,
+  resetToDefault: desktopReset,
+} = desktop;
+
+const {
+  enabledModules: mobileEnabled,
+  disabledModules: mobileDisabled,
+  moveModule: mobileMoveModuleTo,
+  enableModule: mobileEnableModule,
+  disableModule: mobileDisableModule,
+  resetToDefault: mobileReset,
+} = mobile;
 
 interface Row {
   type: 'full' | 'half';
@@ -250,18 +284,18 @@ function computeRows(mods: DashboardModule[]): Row[] {
   return rows;
 }
 
-const rows = computed(() => computeRows(enabledModules.value));
+const rows = computed(() => computeRows(desktopEnabled.value));
 
-function moveUp(index: number) {
-  const mods = enabledModules.value;
+function mobileMoveUp(index: number) {
+  const mods = mobileEnabled.value;
   if (index === 0) return;
-  moveModule(mods[index].id, mods[index - 1].id);
+  mobileMoveModuleTo(mods[index].id, mods[index - 1].id);
 }
 
-function moveDown(index: number) {
-  const mods = enabledModules.value;
+function mobileMoveDown(index: number) {
+  const mods = mobileEnabled.value;
   if (index >= mods.length - 1) return;
-  moveModule(mods[index].id, mods[index + 2]?.id ?? null);
+  mobileMoveModuleTo(mods[index].id, mods[index + 2]?.id ?? null);
 }
 
 // Id del módulo que arranca la siguiente fila (o null si es la última):
@@ -273,8 +307,8 @@ function nextRowFirstId(rowIndex: number): string | null {
 // Id del módulo que sigue a `id` en el orden completo (incluye desactivados),
 // o null si es el último. Es el punto de inserción para "soltar después de".
 function idAfter(id: string): string | null {
-  const idx = modules.value.findIndex(m => m.id === id);
-  return modules.value[idx + 1]?.id ?? null;
+  const idx = desktopModules.value.findIndex(m => m.id === id);
+  return desktopModules.value[idx + 1]?.id ?? null;
 }
 
 // Lo que se está arrastrando: un módulo suelto, o una fila entera (sus 1-2
@@ -353,13 +387,13 @@ function dropAt(beforeId: string | null) {
   if (dragging.value.kind === 'row') {
     // Ya están todos activados (una fila solo existe con módulos activos);
     // basta con reordenar el grupo entero de una vez.
-    moveGroup(dragging.value.ids, beforeId);
+    desktopMoveGroup(dragging.value.ids, beforeId);
   } else {
     // Solo forzamos enable:true si venía de la bandeja de desactivados —
     // si no, un simple reordenar dentro de la rejilla acabaría mostrando
     // el toast de "Módulo activado" en vez de "Orden actualizado".
-    const fromTray = disabledModules.value.some(m => m.id === dragging.value!.id);
-    moveModule(dragging.value.id, beforeId, fromTray ? { enable: true } : undefined);
+    const fromTray = desktopDisabled.value.some(m => m.id === dragging.value!.id);
+    desktopMoveModule(dragging.value.id, beforeId, fromTray ? { enable: true } : undefined);
   }
   clearDrag();
 }
@@ -368,7 +402,7 @@ function dropTray() {
   // Solo se puede desactivar un módulo suelto, no una fila entera: si sueltas
   // el tirador de la fila sobre la bandeja, no hacemos nada (usa la "x" de
   // cada tarjeta para desactivar módulos individuales).
-  if (dragging.value?.kind === 'module') disableModule(dragging.value.id);
+  if (dragging.value?.kind === 'module') desktopDisableModule(dragging.value.id);
   clearDrag();
 }
 
