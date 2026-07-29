@@ -232,38 +232,30 @@
 
         <!-- Estado inicial / lanzando -->
         <div v-if="!diceRolled" class="flex flex-col items-center justify-center gap-5 flex-1 px-6 py-8">
-          <i class="fa-solid text-7xl transition-all duration-100"
-            :class="[diceRolling ? currentDiceFace + ' text-rv-pink scale-110' : 'fa-dice-five text-gray-300 dark:text-gray-600']"></i>
-          <p class="text-gray-500 dark:text-gray-400 text-sm text-center">Descubre un disco al azar de toda la colección</p>
-          <button @click="rollDice" :disabled="diceRolling"
-            class="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold shadow-md
-                   bg-rv-navy dark:bg-rv-purple text-white
-                   hover:opacity-85 hover:-translate-y-0.5 hover:shadow-lg
+          <button @click="rollDice" :disabled="diceRolling" type="button"
+            @mouseenter="startDiceHover" @mouseleave="stopDiceHover"
+            class="inline-flex flex-col items-center gap-2 px-10 py-6 rounded-3xl text-lg font-semibold shadow-md
+                   bg-rv-pink dark:bg-rv-purple text-white
+                   hover:-translate-y-0.5 hover:shadow-lg
                    active:scale-[0.97] active:translate-y-0
                    disabled:opacity-50 disabled:pointer-events-none
                    transition-all duration-200 border-0 outline-none focus:outline-none ring-0">
-            <i class="fa-solid transition-all duration-100" :class="diceRolling ? currentDiceFace : 'fa-dice'"></i>
-            {{ diceRolling ? 'Lanzando…' : 'Tirar el dado' }}
+            <span class="flex items-center gap-2">
+              <i class="fa-solid text-4xl transition-transform duration-100"
+                :class="[diceRolling || diceHovering ? currentDiceFace : 'fa-dice-five', diceHovering && !diceRolling ? 'dice-wobble' : '']"></i>
+              <i class="fa-solid text-4xl transition-transform duration-100"
+                :class="[diceRolling || diceHovering ? currentDiceFace2 : 'fa-dice-three', diceHovering && !diceRolling ? 'dice-wobble dice-wobble-delay' : '']"></i>
+            </span>
+            {{ diceRolling ? 'Lanzando…' : 'Tira los dados' }}
           </button>
+          <p class="text-gray-500 dark:text-gray-400 text-base text-center">Descubre un disco al azar de toda la colección</p>
         </div>
 
         <!-- Resultado -->
         <div v-else class="p-4 sm:p-6">
-          <div class="flex justify-between items-center mb-5">
-            <span class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
-              <i class="fa-solid fa-dice text-amber-400"></i>
-              {{ dicePhrase }}
-            </span>
-            <button @click="rollDice" :disabled="diceRolling"
-              class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold shadow
-                     bg-gray-100 dark:bg-rv-navy text-rv-navy dark:text-white
-                     hover:bg-rv-navy hover:text-white dark:hover:bg-rv-pink hover:-translate-y-0.5 hover:shadow-md
-                     active:scale-[0.97] active:translate-y-0
-                     disabled:opacity-50 disabled:pointer-events-none
-                     transition-all duration-200 border border-gray-200 dark:border-white/10 outline-none focus:outline-none ring-0">
-              <i class="fa-solid transition-all duration-100" :class="diceRolling ? currentDiceFace : 'fa-dice'"></i>
-              {{ diceRolling ? 'Lanzando…' : 'Volver a tirar' }}
-            </button>
+          <div class="flex items-center gap-1.5 mb-6 text-sm text-gray-500 dark:text-gray-400">
+            <i class="fa-solid fa-dice text-amber-400"></i>
+            {{ dicePhrase }}
           </div>
           <div class="flex justify-center max-w-xs mx-auto">
             <DiscCard v-if="randomDisc" :key="randomDisc.id" :id="randomDisc.id" :ep="randomDisc.ep" :image="randomDisc.image"
@@ -275,6 +267,20 @@
               :favoriteId="randomDisc.userFavoriteId" :pendingId="randomDisc.pendingId"
               :comment-count="randomDisc.commentCount" :rateCount="randomDisc.voteCount"
               :artistCountry="randomDisc.artist?.country" :debut="randomDisc.debut" />
+          </div>
+          <div class="flex justify-center mt-5">
+            <button @click="rollDice" :disabled="diceRolling" type="button"
+              @mouseenter="startDiceHover" @mouseleave="stopDiceHover"
+              class="inline-flex items-center gap-2 px-5 py-1.5 rounded-2xl text-xs font-semibold shadow
+                     bg-rv-pink dark:bg-rv-purple text-white
+                     hover:-translate-y-0.5 hover:shadow-md
+                     active:scale-[0.97] active:translate-y-0
+                     disabled:opacity-50 disabled:pointer-events-none
+                     transition-all duration-200 border-0 outline-none focus:outline-none ring-0">
+              <i class="fa-solid text-sm transition-transform duration-100"
+                :class="[diceRolling || diceHovering ? currentDiceFace : 'fa-dice-five', diceHovering && !diceRolling ? 'dice-wobble' : '']"></i>
+              {{ diceRolling ? 'Lanzando…' : 'Vuelve a tirar' }}
+            </button>
           </div>
         </div>
       </div>
@@ -342,9 +348,11 @@
                 Portada votada con <span class="font-bold text-rv-purple ml-1">{{ coverVoteValue }}</span>
               </div>
               <button @click="coverVoted = false"
-                class="text-xs text-gray-400 dark:text-gray-500 hover:text-rv-purple dark:hover:text-rv-purple
+                class="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full
+                       bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400
+                       hover:bg-gray-200 dark:hover:bg-white/20 hover:text-gray-700 dark:hover:text-gray-200
                        border-0 outline-none focus:outline-none transition-colors">
-                <i class="fa-solid fa-pen text-[10px] mr-1"></i>Editar
+                <i class="fa-solid fa-pen text-[10px]"></i>Editar
               </button>
             </div>
           </div>
@@ -558,6 +566,18 @@
       </div>
       </div>
 
+      <!-- Crea tu propia aventura -->
+      <div v-if="isEnabled('aventura')" :style="{ order: orderOf('aventura') }"
+           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
+        <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 dark:from-rv-purple/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10 shrink-0">
+          <i class="fa-solid fa-book-open text-rv-purple"></i>
+          <h3 class="font-bold text-gray-900 dark:text-white">Crea tu propia aventura</h3>
+        </div>
+        <AdventureModule />
+      </div>
+      </div>
+
     </div>
 
   </div>
@@ -572,6 +592,7 @@ import { useDashboardConfig } from "@/composables/useDashboardConfig";
 import StatsModal from "@components/StatsModal.vue";
 import DiscCard from "@components/DiscCardComponent.vue";
 import NewsFeed from "@views/homePage/components/NewsFeed.vue";
+import AdventureModule from "@views/dashboard/components/AdventureModule.vue";
 import { getAvailableYears } from "@helpers/dateConstants";
 import { postRateService, updateRateService } from "@services/rates/rates";
 import SwalService from "@services/swal/SwalService";
@@ -629,7 +650,7 @@ const transformDisc = (disc: any) => ({
 
 export default defineComponent({
   name: "DashboardPage",
-  components: { StatsModal, DiscCard, NewsFeed },
+  components: { StatsModal, DiscCard, NewsFeed, AdventureModule },
   setup() {
     const { isEnabled, orderOf } = useDashboardConfig();
     const authStore = useAuthStore();
@@ -657,10 +678,13 @@ export default defineComponent({
     const diceRolled    = ref(false);
     const diceRolling   = ref(false);
     const randomDisc    = ref<any>(null);
-    const currentDiceFace = ref('fa-dice-five');
+    const currentDiceFace  = ref('fa-dice-five');
+    const currentDiceFace2 = ref('fa-dice-three');
+    const diceHovering  = ref(false);
     const dicePhrase    = ref(DICE_PHRASES[0]);
     const unvotedDiscCount = ref(0);
     let diceInterval: ReturnType<typeof setInterval> | null = null;
+    let hoverInterval: ReturnType<typeof setInterval> | null = null;
 
     // ── Racha ─────────────────────────────────────────────
     const userStreak = ref(0);
@@ -865,13 +889,35 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
       }
     };
 
+    // Mientras el dado está en reposo, el hover cicla las caras para dar la
+    // sensación de que "va a rodar". Se detiene si arranca un lanzamiento
+    // real (rollDice) para no pelear por currentDiceFace con su propio interval.
+    const startDiceHover = () => {
+      if (diceRolling.value || hoverInterval) return;
+      diceHovering.value = true;
+      hoverInterval = setInterval(() => {
+        currentDiceFace.value  = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
+        currentDiceFace2.value = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
+      }, 500);
+    };
+
+    const stopDiceHover = () => {
+      diceHovering.value = false;
+      if (hoverInterval) {
+        clearInterval(hoverInterval);
+        hoverInterval = null;
+      }
+    };
+
     const rollDice = async () => {
       if (diceRolling.value) return;
+      stopDiceHover();
       diceRolling.value = true;
       dicePhrase.value = DICE_PHRASES[Math.floor(Math.random() * DICE_PHRASES.length)];
 
       diceInterval = setInterval(() => {
-        currentDiceFace.value = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
+        currentDiceFace.value  = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
+        currentDiceFace2.value = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
       }, 80);
 
       try {
@@ -892,7 +938,8 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
         }
       } catch { /* silently */ } finally {
         if (diceInterval) clearInterval(diceInterval);
-        currentDiceFace.value = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
+        currentDiceFace.value  = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
+        currentDiceFace2.value = DICE_FACES[Math.floor(Math.random() * DICE_FACES.length)];
         diceRolling.value = false;
       }
     };
@@ -989,7 +1036,8 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
       showDetailedStats, selectedStatsYear, availableStatsYears,
       weekLabel, monthLabel,
       loadingTopDiscs, topWeekDiscs, topMonthDiscs,
-      diceRolled, diceRolling, randomDisc, currentDiceFace, dicePhrase,
+      diceRolled, diceRolling, randomDisc, currentDiceFace, currentDiceFace2, dicePhrase,
+      diceHovering, startDiceHover, stopDiceHover,
       coverOfDay, coverOfDayLoading, coverVoteValue, coverVoteSubmitting, coverVoted, submitCoverVote,
       cemeteryDiscs, cemeteryLoading, cemeteryRolling, fetchCemeteryDiscs,
       topArtists, topArtistsLoading,
@@ -1004,6 +1052,23 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
 </script>
 
 <style scoped>
+/* Dado: balanceo continuo mientras el ratón está encima, para que el cambio
+   de cara se sienta como movimiento y no como un simple parpadeo del número. */
+@keyframes dice-wobble {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  25%      { transform: rotate(-12deg) scale(1.08); }
+  50%      { transform: rotate(0deg) scale(1.15); }
+  75%      { transform: rotate(12deg) scale(1.08); }
+}
+.dice-wobble {
+  animation: dice-wobble 0.5s ease-in-out infinite;
+}
+/* Pequeño desfase para que los dos dados no se muevan perfectamente
+   sincronizados, como al agitar un par de dados reales. */
+.dice-wobble-delay {
+  animation-delay: 0.15s;
+}
+
 /* Community */
 .community-row {
   display: flex;
