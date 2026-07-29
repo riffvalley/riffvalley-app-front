@@ -112,28 +112,32 @@
             </button>
           </div>
 
-          <!-- Ranking en 2 columnas -->
+          <!-- Ranking en 2 columnas: izquierda 1-10, derecha 11-20 (no intercalado por fila) -->
           <template v-if="topUsersTab === 'rates'">
             <p v-if="topUsersByRates.length === 0" class="text-gray-400 italic text-xs text-center py-3">No hay datos</p>
-            <ul v-else class="grid grid-cols-2 gap-x-2">
-              <li v-for="(user, index) in topUsersByRates" :key="user.user.id"
-                class="flex items-center gap-1.5 py-1 px-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-0">
-                <span class="text-xs w-4 text-center shrink-0" v-html="getTrophyIcon(index)"></span>
-                <span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ user.user.username }}</span>
-                <span class="text-[10px] font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1.5 py-0.5 rounded-full">{{ user.rateCount }}</span>
-              </li>
-            </ul>
+            <div v-else class="grid grid-cols-2 gap-x-2">
+              <ul v-for="(col, colIdx) in topUsersByRatesColumns" :key="colIdx">
+                <li v-for="entry in col" :key="entry.user.user.id"
+                  class="flex items-center gap-1.5 py-1 px-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-0">
+                  <span class="text-xs w-4 text-center shrink-0" v-html="getTrophyIcon(entry.index)"></span>
+                  <span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ entry.user.user.username }}</span>
+                  <span class="text-[10px] font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1.5 py-0.5 rounded-full">{{ entry.user.rateCount }}</span>
+                </li>
+              </ul>
+            </div>
           </template>
           <template v-else>
             <p v-if="topUsersByCover.length === 0" class="text-gray-400 italic text-xs text-center py-3">No hay datos</p>
-            <ul v-else class="grid grid-cols-2 gap-x-2">
-              <li v-for="(user, index) in topUsersByCover" :key="user.user.id"
-                class="flex items-center gap-1.5 py-1 px-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-0">
-                <span class="text-xs w-4 text-center shrink-0" v-html="getTrophyIcon(index)"></span>
-                <span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ user.user.username }}</span>
-                <span class="text-[10px] font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1.5 py-0.5 rounded-full">{{ user.totalCover }}</span>
-              </li>
-            </ul>
+            <div v-else class="grid grid-cols-2 gap-x-2">
+              <ul v-for="(col, colIdx) in topUsersByCoverColumns" :key="colIdx">
+                <li v-for="entry in col" :key="entry.user.user.id"
+                  class="flex items-center gap-1.5 py-1 px-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-0">
+                  <span class="text-xs w-4 text-center shrink-0" v-html="getTrophyIcon(entry.index)"></span>
+                  <span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ entry.user.user.username }}</span>
+                  <span class="text-[10px] font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1.5 py-0.5 rounded-full">{{ entry.user.totalCover }}</span>
+                </li>
+              </ul>
+            </div>
           </template>
 
           <div class="mt-3 pt-3 border-t border-gray-100 dark:border-white/10 text-center">
@@ -637,6 +641,14 @@ const getMonthRange = (): [string, string] => {
   ];
 };
 
+// Reparte un ranking en 2 columnas por bloques consecutivos (1-10 / 11-20) en
+// vez de por fila, para que cada columna se lea de arriba a abajo sin saltos.
+const splitIntoColumns = <T,>(list: T[]): Array<Array<{ user: T; index: number }>> => {
+  const indexed = list.map((user, index) => ({ user, index }));
+  const mid = Math.ceil(indexed.length / 2);
+  return [indexed.slice(0, mid), indexed.slice(mid)];
+};
+
 const transformDisc = (disc: any) => ({
   ...disc,
   artist: { ...disc.artist, country: disc.artist?.country ?? null },
@@ -673,6 +685,8 @@ export default defineComponent({
     const userCoverVotes = ref(0);
     const topUsersByRates = ref<any[]>([]);
     const topUsersByCover = ref<any[]>([]);
+    const topUsersByRatesColumns = computed(() => splitIntoColumns(topUsersByRates.value));
+    const topUsersByCoverColumns = computed(() => splitIntoColumns(topUsersByCover.value));
     const ratingDistribution = ref<Array<{ rate: number; count: number }>>([]);
     const showDetailedStats = ref(false);
     const selectedStatsYear = ref<number | string>(new Date().getFullYear());
@@ -1043,7 +1057,7 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
     return {
       isEnabled, orderOf,
       username, todayFormatted, stats, loading, userDiscVotes, userCoverVotes,
-      topUsersByRates, topUsersByCover, ratingDistribution,
+      topUsersByRates, topUsersByCover, topUsersByRatesColumns, topUsersByCoverColumns, ratingDistribution,
       showDetailedStats, selectedStatsYear, availableStatsYears,
       weekLabel, monthLabel,
       loadingTopDiscs, topWeekDiscs, topMonthDiscs,
