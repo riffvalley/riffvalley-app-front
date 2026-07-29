@@ -22,8 +22,8 @@ export interface DashboardModuleConfig {
   enabled: boolean;
 }
 
-function loadDashboardConfig(): DashboardModuleConfig[] | null {
-  const raw = localStorage.getItem("dashboardConfig");
+function loadDashboardConfig(key: string): DashboardModuleConfig[] | null {
+  const raw = localStorage.getItem(key);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
@@ -40,7 +40,8 @@ export const useAuthStore = defineStore("auth", {
     userId: localStorage.getItem("userId") as string | null,
     image: localStorage.getItem("image") as string | null,
     roles: loadRoles(), // 👈 ahora siempre es string[]
-    dashboardConfig: loadDashboardConfig() as DashboardModuleConfig[] | null,
+    dashboardConfig: loadDashboardConfig("dashboardConfig") as DashboardModuleConfig[] | null,
+    mobileDashboardConfig: loadDashboardConfig("mobileDashboardConfig") as DashboardModuleConfig[] | null,
   }),
   actions: {
     async login(payload: LoginPayload) {
@@ -53,6 +54,7 @@ export const useAuthStore = defineStore("auth", {
         this.image = response.image || null;
         this.roles = response.roles || []; // array desde backend
         this.dashboardConfig = response.dashboardConfig ?? null;
+        this.mobileDashboardConfig = response.mobileDashboardConfig ?? null;
 
         localStorage.setItem("token", response.token);
         localStorage.setItem("username", response.username);
@@ -60,6 +62,7 @@ export const useAuthStore = defineStore("auth", {
         localStorage.setItem("image", this.image || "");
         localStorage.setItem("roles", JSON.stringify(this.roles)); // ✅ serializado
         localStorage.setItem("dashboardConfig", JSON.stringify(this.dashboardConfig));
+        localStorage.setItem("mobileDashboardConfig", JSON.stringify(this.mobileDashboardConfig));
 
         api.defaults.headers.common["Authorization"] = `Bearer ${response.token}`;
       } catch (error) {
@@ -78,6 +81,11 @@ export const useAuthStore = defineStore("auth", {
       localStorage.setItem("dashboardConfig", JSON.stringify(config));
     },
 
+    setMobileDashboardConfig(config: DashboardModuleConfig[]) {
+      this.mobileDashboardConfig = config;
+      localStorage.setItem("mobileDashboardConfig", JSON.stringify(config));
+    },
+
     logout() {
       this.token = null;
       this.username = null;
@@ -85,6 +93,7 @@ export const useAuthStore = defineStore("auth", {
       this.image = null;
       this.roles = [];
       this.dashboardConfig = null;
+      this.mobileDashboardConfig = null;
 
       localStorage.removeItem("token");
       localStorage.removeItem("username");
@@ -92,6 +101,7 @@ export const useAuthStore = defineStore("auth", {
       localStorage.removeItem("image");
       localStorage.removeItem("roles");
       localStorage.removeItem("dashboardConfig");
+      localStorage.removeItem("mobileDashboardConfig");
 
       delete api.defaults.headers.common["Authorization"];
     },

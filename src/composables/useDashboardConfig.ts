@@ -52,28 +52,36 @@ function mergeWithDefaults(saved: DashboardModuleConfig[] | null): DashboardModu
   return merged;
 }
 
-export function useDashboardConfig() {
+export type DashboardConfigTarget = 'desktop' | 'mobile';
+
+export function useDashboardConfig(target: DashboardConfigTarget = 'desktop') {
   const authStore = useAuthStore();
   const userStore = useUserStore();
+  const isMobile = target === 'mobile';
 
   // `successMessage` es opcional para no forzar un toast en llamadas internas
   // (p.ej. la migración de la config antigua al montar). `payloadOverride` es
   // solo para resetToDefault, que siempre guarda [] y no el array actual.
   function persist(successMessage?: string, payloadOverride?: DashboardModuleConfig[]) {
     const payload = payloadOverride ?? modules.value.map(m => ({ id: m.id, enabled: m.enabled }));
-    authStore.setDashboardConfig(payload);
-    userStore.updateUserStore({ dashboardConfig: payload })
-      .then(() => {
-        if (successMessage) SwalService.success(successMessage);
-      })
-      .catch(() => {
-        SwalService.error('No se pudo guardar el cambio del dashboard');
-      });
+    if (isMobile) {
+      authStore.setMobileDashboardConfig(payload);
+      userStore.updateUserStore({ mobileDashboardConfig: payload })
+        .then(() => { if (successMessage) SwalService.success(successMessage); })
+        .catch(() => { SwalService.error('No se pudo guardar el cambio del dashboard'); });
+    } else {
+      authStore.setDashboardConfig(payload);
+      userStore.updateUserStore({ dashboardConfig: payload })
+        .then(() => { if (successMessage) SwalService.success(successMessage); })
+        .catch(() => { SwalService.error('No se pudo guardar el cambio del dashboard'); });
+    }
   }
 
-  let initial = authStore.dashboardConfig;
+  let initial = isMobile ? authStore.mobileDashboardConfig : authStore.dashboardConfig;
+  // La migración de la config antigua (localStorage previo al backend) solo
+  // aplica al dashboard de escritorio: el móvil nunca tuvo esa versión legacy.
   let migrateLegacy = false;
-  if (!initial) {
+  if (!isMobile && !initial) {
     const legacy = loadLegacyConfig();
     if (legacy) {
       initial = legacy;

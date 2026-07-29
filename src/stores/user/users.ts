@@ -72,6 +72,7 @@ export const useUserStore = defineStore("user", {
         if (updatedUser?.password) data.password = updatedUser.password;
         if (updatedUser?.image) data.image = updatedUser.image;
         if (updatedUser?.dashboardConfig) data.dashboardConfig = updatedUser.dashboardConfig;
+        if (updatedUser?.mobileDashboardConfig) data.mobileDashboardConfig = updatedUser.mobileDashboardConfig;
         await updateUserService(data);
       } catch (error) {
         console.error("Error updating asignation:", error);

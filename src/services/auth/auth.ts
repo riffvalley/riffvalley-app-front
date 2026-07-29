@@ -13,6 +13,7 @@ export interface LoginResponse {
   roles?: string[];
   image?: string | null;
   dashboardConfig?: { id: string; enabled: boolean }[] | null;
+  mobileDashboardConfig?: { id: string; enabled: boolean }[] | null;
 }
 
 export interface Superuser {

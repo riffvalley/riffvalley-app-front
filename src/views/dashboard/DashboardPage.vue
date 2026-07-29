@@ -589,6 +589,7 @@ import { useAuthStore } from "@stores/auth/auth";
 import { getTopRatedOrFeaturedAndStats, getDiscs } from "@services/discs/discs";
 import { getRatesByUser, getUserHistoryService } from "@services/rates/rates";
 import { useDashboardConfig } from "@/composables/useDashboardConfig";
+import { useIsMobileViewport } from "@/composables/useIsMobileViewport";
 import StatsModal from "@components/StatsModal.vue";
 import DiscCard from "@components/DiscCardComponent.vue";
 import NewsFeed from "@views/homePage/components/NewsFeed.vue";
@@ -652,7 +653,17 @@ export default defineComponent({
   name: "DashboardPage",
   components: { StatsModal, DiscCard, NewsFeed, AdventureModule },
   setup() {
-    const { isEnabled, orderOf } = useDashboardConfig();
+    const desktopDashboardConfig = useDashboardConfig('desktop');
+    const mobileDashboardConfig = useDashboardConfig('mobile');
+    const isMobileViewport = useIsMobileViewport();
+
+    // El dashboard en el móvil tiene su propia configuración (mobileDashboardConfig):
+    // se usa solo cuando el viewport es realmente móvil, en escritorio siempre manda dashboardConfig.
+    const isEnabled = (id: string) =>
+      isMobileViewport.value ? mobileDashboardConfig.isEnabled(id) : desktopDashboardConfig.isEnabled(id);
+    const orderOf = (id: string) =>
+      isMobileViewport.value ? mobileDashboardConfig.orderOf(id) : desktopDashboardConfig.orderOf(id);
+
     const authStore = useAuthStore();
 
     // ── Stats / top usuarios ──────────────────────────────
