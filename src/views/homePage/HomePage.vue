@@ -2,7 +2,7 @@
   <div class="max-w-[100rem] mx-auto mt-10 px-4">
 
     <!-- Título + subtítulo + botón -->
-    <div class="flex flex-col items-center justify-center py-8 gap-2">
+    <div class="flex flex-col items-center justify-center pb-8 gap-2">
       <h2 class="text-2xl md:text-3xl font-bold text-rv-navy dark:text-white text-center">
         <i class="fa-solid fa-star mr-2"></i>Top Discos
       </h2>
