@@ -394,7 +394,7 @@ export default defineComponent({
         const covers = updatedVotes.map((v: any) => Number(v.cover)).filter((c: number) => c > 0);
         if (rates.length) localAverageRate.value = rates.reduce((a: number, b: number) => a + b, 0) / rates.length;
         if (covers.length) localAverageCover.value = covers.reduce((a: number, b: number) => a + b, 0) / covers.length;
-        rateCount.value = updatedVotes.length;
+        rateCount.value = rates.length; // solo votos a disco (rate > 0)
       } catch { /* silently ignore, los valores anteriores se mantienen */ }
     };
     const formattedDate = computed(() => {
@@ -577,6 +577,8 @@ export default defineComponent({
       try {
         if (!showVotes.value) return; // si se está cerrando, no pida nada
         votes.value = await getDiscRates(props.id);
+        // Corregir el contador para contar solo votos a disco (rate > 0)
+        rateCount.value = votes.value.filter((v: any) => Number(v.rate) > 0).length;
       } catch (error) {
         console.error("Error fetching votes:", error);
         Swal.fire({

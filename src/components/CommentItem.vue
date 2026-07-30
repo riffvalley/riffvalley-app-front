@@ -62,7 +62,7 @@
           </button>
           <span class="text-gray-300 dark:text-white/15 select-none">·</span>
           <span class="text-gray-400 dark:text-gray-500">{{ timeAgo(localComment.createdAt) }}</span>
-          <span v-if="localComment.editedAt" class="text-gray-400 dark:text-gray-500 italic">(editado)</span>
+          <span v-if="isEdited" class="text-gray-400 dark:text-gray-500 italic">(editado)</span>
         </div>
 
         <!-- Bubble -->
@@ -223,6 +223,16 @@ export default defineComponent({
     const user           = computed(() => authStore.loggedUser);
     const isOwnComment   = computed(() => localComment.value?.user?.id === user.value?.id);
 
+    // Solo mostrar "(editado)" si editedAt es al menos 10 segundos posterior a createdAt.
+    // El backend guarda editedAt = createdAt por defecto (bug de TypeORM @UpdateDateColumn),
+    // así que comparamos para no mostrarlo en comentarios recién creados.
+    const isEdited = computed(() => {
+      if (!localComment.value.editedAt || !localComment.value.createdAt) return false;
+      const created = new Date(localComment.value.createdAt).getTime();
+      const edited  = new Date(localComment.value.editedAt).getTime();
+      return (edited - created) > 10_000;
+    });
+
     const displayedAvatar = computed(() => {
       const u = localComment.value?.user || {};
       if (u.avatarUrl && typeof u.avatarUrl === "string" && u.avatarUrl.length) return u.avatarUrl;
@@ -306,7 +316,7 @@ export default defineComponent({
     }));
 
     return {
-      localComment, isOwnComment,
+      localComment, isOwnComment, isEdited,
       avatarSizePx, avatarPx, avatarStyle,
       showReplyForm, replyText, replyInputRef,
       showReplyEmojiPicker, activeReplyEmojiCategory, emojiCategories, currentReplyEmojis, insertReplyEmoji,

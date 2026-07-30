@@ -157,6 +157,7 @@ export async function updateDisc(
     ep?: boolean;
     debut?: boolean;
     artistId?: string;
+    pinned?: boolean;
   }
 ): Promise<void> {
   await api.patch(`/discs/${id}`, data);
@@ -182,6 +183,17 @@ export async function createDiscWithArtist(dto: CreateDiscWithArtistDto): Promis
 
 export async function deleteDisc(id: string): Promise<void> {
   await api.delete(`/discs/${id}`);
+}
+
+export interface DiscSpotifyTrack {
+  id: string;
+  name: string;
+  trackNumber: number;
+}
+
+export async function getDiscSpotifyTracks(discId: string): Promise<DiscSpotifyTrack[]> {
+  const response = await api.get<DiscSpotifyTrack[]>(`/discs/${discId}/spotify-tracks`);
+  return response.data;
 }
 
 export async function getTopRatedOrFeaturedAndStats(

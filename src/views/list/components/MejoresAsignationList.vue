@@ -69,6 +69,17 @@
                                 <i class="fa-solid fa-trash text-xs"></i>
                             </button>
                         </div>
+
+                        <!-- Editar disco Row -->
+                        <button @click="openDescriptionModal(asignation)"
+                            :class="(asignation.description || asignation.similarBands || asignation.spotifyTrackId)
+                                ? 'bg-indigo-600 dark:bg-indigo-500 text-white border-indigo-600 dark:border-indigo-500 hover:bg-indigo-700 dark:hover:bg-indigo-600'
+                                : 'bg-gray-50 dark:bg-rv-darkBg text-indigo-600 dark:text-indigo-400 border-gray-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'"
+                            class="mt-2 w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg transition-colors border text-xs font-semibold"
+                            title="Editar disco">
+                            <i class="fa-solid fa-pen text-[10px]"></i>
+                            <span>Editar disco</span>
+                        </button>
                     </div>
                 </div>
 
@@ -107,6 +118,15 @@
                 </div>
             </div>
         </div>
+
+        <DiscDescriptionModal
+            v-if="editingAsignation"
+            :key="editingAsignation.id"
+            :asignation="editingAsignation"
+            :saving="savingDescription"
+            @close="editingAsignation = null"
+            @submit="handleSaveDescription"
+        />
     </div>
 </template>
 
@@ -115,12 +135,13 @@ import { defineComponent, ref, watch, computed, nextTick } from "vue";
 import { useAsignationStore } from "@stores/asignation/asignation";
 import { useUserStore } from "@stores/user/users";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
+import DiscDescriptionModal from "./DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
 import CircleFlags from "vue-circle-flags";
 
 export default defineComponent({
     name: "MejoresAsignationList",
-    components: { SpotifyArtistButton },
+    components: { SpotifyArtistButton, DiscDescriptionModal },
     setup() {
         const asignationStore = useAsignationStore();
         const userStore = useUserStore();
@@ -128,6 +149,8 @@ export default defineComponent({
 
         const users = computed(() => userStore.usersRv);
         const editingUserAsignationId = ref<string | null>(null);
+        const editingAsignation = ref<any>(null);
+        const savingDescription = ref(false);
 
         if (userStore.usersRv.length === 0) userStore.loadRvUsers();
 
@@ -191,10 +214,31 @@ export default defineComponent({
             navigator.clipboard.writeText(text).then(() => SwalService.success("Enlace imagen copiado"));
         };
 
+        const openDescriptionModal = (asignation: any) => {
+            editingAsignation.value = asignation;
+        };
+
+        const handleSaveDescription = async (payload: { description: string; similarBands: string; spotifyTrackId: string }) => {
+            const asignation = editingAsignation.value;
+            savingDescription.value = true;
+            try {
+                await asignationStore.updateAsignationStore({ ...asignation, ...payload });
+                const idx = asignations.value.findIndex(a => a.id === asignation.id);
+                if (idx !== -1) asignations.value[idx] = { ...asignations.value[idx], ...payload };
+                SwalService.success('Disco actualizado');
+            } catch (e) {
+                SwalService.error('No se pudo guardar (revisa si se sincronizó con WordPress)');
+            } finally {
+                savingDescription.value = false;
+                editingAsignation.value = null;
+            }
+        };
+
         return {
-            asignations, users, editingUserAsignationId,
+            asignations, users, editingUserAsignationId, editingAsignation, savingDescription,
             startEditingUser, changeUser, remove, toggleDone,
-            copyArtistAndDisc, copyToClipboard
+            copyArtistAndDisc, copyToClipboard,
+            openDescriptionModal, handleSaveDescription
         };
     }
 });

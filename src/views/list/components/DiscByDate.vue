@@ -30,7 +30,9 @@
 
           <div v-if="groupState[index]" class="mt-4">
             <ul>
-              <li v-for="disc in group.discs" :key="disc.id" class="flex justify-between items-center p-4 border-b">
+              <li v-for="disc in group.discs" :key="disc.id"
+                  class="flex justify-between items-center p-4 border-b transition-colors"
+                  :class="disc.pinned ? 'border-l-4 border-l-green-400 bg-green-50 dark:bg-green-900/10' : ''">
 
                 <div class="flex items-center gap-2">
                   <p class="px-2 py-1 rounded-full text-xs font-medium text-white text-center shadow-sm"
@@ -83,6 +85,11 @@
                 <button v-else @click="assignUser(disc.id)" class="bg-blue-500 text-white px-4 py-2 rounded ml-2">
                   Asignar
                 </button>
+                <button @click="togglePinned(disc)"
+                  class="px-3 py-2 rounded text-xs font-semibold text-white ml-2 transition-colors"
+                  :class="disc.pinned ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 dark:bg-white/20 hover:bg-green-500'">
+                  {{ disc.pinned ? '★ Destacado' : '☆ Destacar' }}
+                </button>
               </li>
             </ul>
           </div>
@@ -105,7 +112,7 @@ import {
   computed,
   nextTick,
 } from "vue";
-import { getDiscsDated } from "@services/discs/discs";
+import { getDiscsDated, updateDisc } from "@services/discs/discs";
 import { getRvUsers } from "@services/users/users";
 import { getGenres } from "@services/genres/genres"; // Importa getGenres
 import SwalService from "@services/swal/SwalService";
@@ -462,6 +469,15 @@ export default defineComponent({
         );
       }
     };
+    const togglePinned = async (disc: any) => {
+      try {
+        await updateDisc(disc.id, { pinned: !disc.pinned });
+        disc.pinned = !disc.pinned;
+      } catch {
+        SwalService.error('No se pudo actualizar el estado destacado');
+      }
+    };
+
     // Abreviaturas
     const countryAbbr: Record<string, string> = {
       "United States of America": "USA",
@@ -486,7 +502,8 @@ export default defineComponent({
       genres,
       filteredDiscs,
       resetAndFetch,
-      countryAbbr
+      countryAbbr,
+      togglePinned,
     };
   },
 });
