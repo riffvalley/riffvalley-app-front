@@ -17,6 +17,22 @@ function loadRoles(): string[] {
   }
 }
 
+export interface DashboardModuleConfig {
+  id: string;
+  enabled: boolean;
+}
+
+function loadDashboardConfig(key: string): DashboardModuleConfig[] | null {
+  const raw = localStorage.getItem(key);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     token: localStorage.getItem("token") as string | null,
@@ -24,6 +40,8 @@ export const useAuthStore = defineStore("auth", {
     userId: localStorage.getItem("userId") as string | null,
     image: localStorage.getItem("image") as string | null,
     roles: loadRoles(), // 👈 ahora siempre es string[]
+    dashboardConfig: loadDashboardConfig("dashboardConfig") as DashboardModuleConfig[] | null,
+    mobileDashboardConfig: loadDashboardConfig("mobileDashboardConfig") as DashboardModuleConfig[] | null,
   }),
   actions: {
     async login(payload: LoginPayload) {
@@ -35,12 +53,16 @@ export const useAuthStore = defineStore("auth", {
         this.userId = response.id;
         this.image = response.image || null;
         this.roles = response.roles || []; // array desde backend
+        this.dashboardConfig = response.dashboardConfig ?? null;
+        this.mobileDashboardConfig = response.mobileDashboardConfig ?? null;
 
         localStorage.setItem("token", response.token);
         localStorage.setItem("username", response.username);
         localStorage.setItem("userId", response.id);
         localStorage.setItem("image", this.image || "");
         localStorage.setItem("roles", JSON.stringify(this.roles)); // ✅ serializado
+        localStorage.setItem("dashboardConfig", JSON.stringify(this.dashboardConfig));
+        localStorage.setItem("mobileDashboardConfig", JSON.stringify(this.mobileDashboardConfig));
 
         api.defaults.headers.common["Authorization"] = `Bearer ${response.token}`;
       } catch (error) {
@@ -54,18 +76,32 @@ export const useAuthStore = defineStore("auth", {
       localStorage.setItem("image", this.image || "");
     },
 
+    setDashboardConfig(config: DashboardModuleConfig[]) {
+      this.dashboardConfig = config;
+      localStorage.setItem("dashboardConfig", JSON.stringify(config));
+    },
+
+    setMobileDashboardConfig(config: DashboardModuleConfig[]) {
+      this.mobileDashboardConfig = config;
+      localStorage.setItem("mobileDashboardConfig", JSON.stringify(config));
+    },
+
     logout() {
       this.token = null;
       this.username = null;
       this.userId = null;
       this.image = null;
       this.roles = [];
+      this.dashboardConfig = null;
+      this.mobileDashboardConfig = null;
 
       localStorage.removeItem("token");
       localStorage.removeItem("username");
       localStorage.removeItem("userId");
       localStorage.removeItem("image");
       localStorage.removeItem("roles");
+      localStorage.removeItem("dashboardConfig");
+      localStorage.removeItem("mobileDashboardConfig");
 
       delete api.defaults.headers.common["Authorization"];
     },

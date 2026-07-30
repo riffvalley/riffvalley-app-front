@@ -3,13 +3,18 @@ import type { RouteRecordRaw } from "vue-router";
 import { useAuthStore } from "../stores/auth/auth";
 
 import Login from "@views/loginPage/LoginPage.vue";
-import HomePage from "@views/homePage/HomePage.vue";
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
     name: "Home",
-    component: HomePage,
+    component: () => import("@views/dashboard/DashboardPage.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/rankings",
+    name: "Rankings",
+    component: () => import("@views/homePage/HomePage.vue"),
     meta: { requiresAuth: true },
   },
   {
