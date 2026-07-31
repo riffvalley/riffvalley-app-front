@@ -28,7 +28,7 @@
           </div>
           <div class="text-center bg-white/70 dark:bg-white/5 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/60 dark:border-white/10 shadow-sm min-w-[80px]">
             <p class="text-2xl font-bold text-amber-500 tabular-nums">{{ userStreak }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">racha de días votando</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">racha de días</p>
           </div>
         </div>
       </div>
@@ -524,48 +524,18 @@
       </div>
       </div>
 
-      <!-- Últimos 10 votos -->
+      <!-- Últimos 5 votos — TEMPORALMENTE DESHABILITADO (overflow móvil pendiente) -->
       <div v-if="isEnabled('ultimosVotos')" :style="{ order: orderOf('ultimosVotos') }"
-           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
-      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
+           class="w-full lg:w-[calc(50%-12px)] min-w-0 flex flex-col">
+      <div class="w-full min-w-0 bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
         <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 dark:from-rv-purple/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10 shrink-0">
-          <i class="fa-solid fa-clock-rotate-left text-rv-purple"></i>
-          <h3 class="font-bold text-gray-900 dark:text-white">Tus últimos 5 votos</h3>
+          <i class="fa-solid fa-clock-rotate-left text-rv-purple opacity-40"></i>
+          <h3 class="font-bold text-gray-400 dark:text-gray-500">Tus últimos 5 votos</h3>
+          <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">En revisión</span>
         </div>
-        <div class="flex-1 pt-2">
-          <!-- Loading -->
-          <div v-if="recentVotesLoading" class="flex flex-col gap-0">
-            <div v-for="i in 3" :key="i" class="flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 dark:border-white/5">
-              <div class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/5 animate-pulse shrink-0"></div>
-              <div class="flex-1 flex flex-col gap-1.5">
-                <div class="h-3 w-3/4 rounded bg-gray-100 dark:bg-white/5 animate-pulse"></div>
-                <div class="h-2.5 w-1/2 rounded bg-gray-100 dark:bg-white/5 animate-pulse"></div>
-              </div>
-              <div class="w-8 h-5 rounded-full bg-gray-100 dark:bg-white/5 animate-pulse shrink-0"></div>
-            </div>
-          </div>
-          <!-- Lista -->
-          <ul v-else-if="recentVotes.length" class="flex flex-col divide-y divide-gray-100 dark:divide-white/5">
-            <li v-for="rate in recentVotes" :key="rate.id" class="flex items-center gap-3 px-4 py-2.5">
-              <div class="w-9 h-9 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-white/5">
-                <img v-if="rate.disc?.image" :src="rate.disc.image" :alt="rate.disc?.name"
-                     class="w-full h-full object-cover" loading="lazy" />
-                <div v-else class="w-full h-full flex items-center justify-center">
-                  <i class="fa-solid fa-music text-gray-300 text-xs"></i>
-                </div>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate leading-snug">{{ rate.disc?.name }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ rate.disc?.artist?.name }}</p>
-              </div>
-              <span class="text-xs font-bold tabular-nums shrink-0 px-2 py-0.5 rounded-full bg-rv-pink/10 text-rv-pink dark:bg-rv-pink/20">
-                {{ rate.rate }}
-              </span>
-            </li>
-          </ul>
-          <p v-else class="text-center text-gray-400 dark:text-gray-500 text-sm py-6 px-4">
-            Aún no has votado ningún disco
-          </p>
+        <div class="flex flex-col items-center justify-center gap-2 py-10 px-6 text-center flex-1">
+          <i class="fa-solid fa-wrench text-2xl text-gray-300 dark:text-gray-600"></i>
+          <p class="text-sm text-gray-400 dark:text-gray-500">Este módulo está temporalmente deshabilitado.</p>
         </div>
       </div>
       </div>
@@ -1100,7 +1070,7 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  white-space: nowrap;
+  overflow: hidden;
 }
 .community-label {
   font-size: 0.7rem;
