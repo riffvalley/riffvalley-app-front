@@ -1,3 +1,7 @@
+## <small>1.21.3 (2026-07-31)</small>
+
+* fix: improve layout and accessibility in DashboardPage and style.css ([07da341](https://github.com/riffvalley/riffvalley-app-front/commit/07da341))
+
 ## <small>1.21.2 (2026-07-31)</small>
 
 * Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([c43cc7e](https://github.com/riffvalley/riffvalley-app-front/commit/c43cc7e))
