@@ -1,3 +1,8 @@
+## <small>1.21.4 (2026-07-31)</small>
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([9dac164](https://github.com/riffvalley/riffvalley-app-front/commit/9dac164))
+* fix: enhance recent votes display with loading state and improved layout ([36eec8b](https://github.com/riffvalley/riffvalley-app-front/commit/36eec8b))
+
 ## <small>1.21.3 (2026-07-31)</small>
 
 * fix: improve layout and accessibility in DashboardPage and style.css ([07da341](https://github.com/riffvalley/riffvalley-app-front/commit/07da341))
