@@ -524,18 +524,48 @@
       </div>
       </div>
 
-      <!-- Últimos 5 votos — TEMPORALMENTE DESHABILITADO (overflow móvil pendiente) -->
+      <!-- Últimos 5 votos -->
       <div v-if="isEnabled('ultimosVotos')" :style="{ order: orderOf('ultimosVotos') }"
-           class="w-full lg:w-[calc(50%-12px)] min-w-0 flex flex-col">
-      <div class="w-full min-w-0 bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
+           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+      <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
         <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 dark:from-rv-purple/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10 shrink-0">
-          <i class="fa-solid fa-clock-rotate-left text-rv-purple opacity-40"></i>
-          <h3 class="font-bold text-gray-400 dark:text-gray-500">Tus últimos 5 votos</h3>
-          <span class="ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">En revisión</span>
+          <i class="fa-solid fa-clock-rotate-left text-rv-purple"></i>
+          <h3 class="font-bold text-gray-900 dark:text-white">Tus últimos 5 votos</h3>
         </div>
-        <div class="flex flex-col items-center justify-center gap-2 py-10 px-6 text-center flex-1">
-          <i class="fa-solid fa-wrench text-2xl text-gray-300 dark:text-gray-600"></i>
-          <p class="text-sm text-gray-400 dark:text-gray-500">Este módulo está temporalmente deshabilitado.</p>
+        <div class="flex-1 pt-2">
+          <!-- Loading -->
+          <div v-if="recentVotesLoading">
+            <div v-for="i in 3" :key="i" class="recent-vote-row border-b border-gray-100 dark:border-white/5">
+              <div class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/5 animate-pulse"></div>
+              <div class="flex flex-col gap-1.5">
+                <div class="h-3 w-3/4 rounded bg-gray-100 dark:bg-white/5 animate-pulse"></div>
+                <div class="h-2.5 w-1/2 rounded bg-gray-100 dark:bg-white/5 animate-pulse"></div>
+              </div>
+              <div class="h-5 rounded-full bg-gray-100 dark:bg-white/5 animate-pulse"></div>
+            </div>
+          </div>
+          <!-- Lista -->
+          <div v-else-if="recentVotes.length">
+            <div v-for="rate in recentVotes" :key="rate.id" class="recent-vote-row border-b border-gray-100 dark:border-white/5 last:border-b-0">
+              <div class="w-9 h-9 rounded-lg overflow-hidden bg-gray-100 dark:bg-white/5">
+                <img v-if="rate.disc?.image" :src="rate.disc.image" :alt="rate.disc?.name"
+                     class="w-full h-full object-cover" loading="lazy" />
+                <div v-else class="w-full h-full flex items-center justify-center">
+                  <i class="fa-solid fa-music text-gray-300 text-xs"></i>
+                </div>
+              </div>
+              <div class="overflow-hidden">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate leading-snug">{{ rate.disc?.name }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ rate.disc?.artist?.name }}</p>
+              </div>
+              <span class="text-xs font-bold tabular-nums shrink-0 px-2 py-0.5 rounded-full bg-rv-pink/10 text-rv-pink dark:bg-rv-pink/20">
+                {{ rate.rate }}
+              </span>
+            </div>
+          </div>
+          <p v-else class="text-center text-gray-400 dark:text-gray-500 text-sm py-6 px-4">
+            Aún no has votado ningún disco
+          </p>
         </div>
       </div>
       </div>
@@ -1098,6 +1128,15 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
 .community-pill:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+
+/* Últimos votos — grid para truncar títulos largos de forma fiable */
+.recent-vote-row {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
 }
 
 /* Medals */
