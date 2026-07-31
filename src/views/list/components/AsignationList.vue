@@ -12,7 +12,7 @@
       </div>
 
       <!-- Radares (Grupos) - Grid de 2 Columnas -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <div v-for="group in availablePositions" :key="group"
           class="p-3 rounded-2xl border border-dashed transition-all duration-300"
           :class="dragOverGroup === group
@@ -103,19 +103,19 @@
               <div class="mt-2 mx-3 mb-2.5 pt-2 border-t border-gray-100 dark:border-white/10 flex items-center justify-between gap-2">
                 <!-- Action buttons -->
                 <div class="flex items-center gap-1">
-                  <div class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer" title="Spotify">
+                  <div class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer" title="Spotify">
                     <SpotifyArtistButton :artistName="asignation.disc.artist.name" class="!text-[9px] !bg-transparent !text-inherit !p-0 !w-full !h-full flex items-center justify-center !shadow-none" />
                   </div>
                   <button @click="copyArtistAndDisc(asignation.disc.artist.name, asignation.disc.name)"
-                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-rv-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Copiar info">
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-rv-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Copiar info">
                     <i class="fa-solid fa-clipboard text-[9px]"></i>
                   </button>
                   <button @click="copyToClipboard(asignation.disc.image)"
-                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Copiar imagen">
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Copiar imagen">
                     <i class="fa-solid fa-image text-[9px]"></i>
                   </button>
                   <button @click="remove(asignation.id)"
-                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
                     <i class="fa-solid fa-trash text-[9px]"></i>
                   </button>
                 </div>
@@ -123,7 +123,7 @@
                 <!-- User + Done -->
                 <div class="flex items-center gap-1.5 flex-shrink-0">
                   <div v-if="editingUserAsignationId !== asignation.id" @click="startEditingUser(asignation)"
-                    class="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-rv-darkBg px-1 py-0.5 rounded transition-colors group/user">
+                    class="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 px-1 py-0.5 rounded transition-colors group/user">
                     <div class="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-indigo-700 dark:text-indigo-300 ring-1 ring-white dark:ring-rv-darkSurface overflow-hidden">
                       <img v-if="asignation.user?.image" :src="asignation.user.image" class="w-full h-full object-cover" />
                       <span v-else>{{ asignation.user?.username?.charAt(0) || '?' }}</span>
@@ -142,11 +142,11 @@
                   <button @click="openDescriptionModal(asignation)"
                     :class="(asignation.description || asignation.similarBands || asignation.spotifyTrackId)
                       ? 'bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600'
-                      : 'bg-gray-50 dark:bg-rv-darkBg text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'"
+                      : 'bg-gray-50 dark:bg-white/10 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'"
                     class="flex items-center gap-1 px-1.5 py-1 rounded-md text-[9px] font-semibold transition-colors flex-shrink-0"
                     title="Editar disco">
                     <i class="fa-solid fa-pen text-[8px]"></i>
-                    <span>Editar</span>
+                    <span class="hidden lg:inline">Editar</span>
                   </button>
 
                   <label class="relative flex items-center justify-center cursor-pointer flex-shrink-0" title="Marcar como hecho">
@@ -243,19 +243,19 @@
             <div class="mt-2 mx-3 mb-3 pt-2 border-t border-gray-100 dark:border-white/10 flex items-center justify-between gap-2">
               <!-- Action buttons -->
               <div class="flex items-center gap-1">
-                <div class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer" title="Spotify">
+                <div class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer" title="Spotify">
                   <SpotifyArtistButton :artistName="asignation.disc.artist.name" class="!text-[9px] !bg-transparent !text-inherit !p-0 !w-full !h-full flex items-center justify-center !shadow-none" />
                 </div>
                 <button @click="copyArtistAndDisc(asignation.disc.artist.name, asignation.disc.name)"
-                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-rv-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Copiar info">
+                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-rv-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Copiar info">
                   <i class="fa-solid fa-clipboard text-[9px]"></i>
                 </button>
                 <button @click="copyToClipboard(asignation.disc.image)"
-                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Copiar imagen">
+                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Copiar imagen">
                   <i class="fa-solid fa-image text-[9px]"></i>
                 </button>
                 <button @click="remove(asignation.id)"
-                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
+                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
                   <i class="fa-solid fa-trash text-[9px]"></i>
                 </button>
               </div>
@@ -263,7 +263,7 @@
               <!-- User + Done -->
               <div class="flex items-center gap-1.5 flex-shrink-0">
                 <div v-if="editingUserAsignationId !== asignation.id" @click="startEditingUser(asignation)"
-                  class="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-rv-darkBg px-1 py-0.5 rounded transition-colors group/user">
+                  class="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 px-1 py-0.5 rounded transition-colors group/user">
                   <div class="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-indigo-700 dark:text-indigo-300 ring-1 ring-white dark:ring-rv-darkCard overflow-hidden">
                     <img v-if="asignation.user?.image" :src="asignation.user.image" class="w-full h-full object-cover" />
                     <span v-else>{{ asignation.user?.username?.charAt(0) || '?' }}</span>
@@ -282,7 +282,7 @@
                 <button @click="openDescriptionModal(asignation)"
                   :class="(asignation.description || asignation.similarBands || asignation.spotifyTrackId)
                     ? 'bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600'
-                    : 'bg-gray-50 dark:bg-rv-darkBg text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'"
+                    : 'bg-gray-50 dark:bg-white/10 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'"
                   class="flex items-center gap-1 px-1.5 py-1 rounded-md text-[9px] font-semibold transition-colors flex-shrink-0"
                   title="Editar disco">
                   <i class="fa-solid fa-pen text-[8px]"></i>

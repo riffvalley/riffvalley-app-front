@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import { getDiscSpotifyTracks, type DiscSpotifyTrack } from '@services/discs/discs';
@@ -174,11 +174,14 @@ function handleClose() {
   if (props.saving) return;
   emit('close');
 }
+
+onMounted(() => { document.body.style.overflow = 'hidden'; });
+onUnmounted(() => { document.body.style.overflow = ''; });
 </script>
 
 <template>
   <Teleport to="body">
-    <div class="modal-overlay" @click.self="handleClose">
+    <div class="modal-overlay">
       <div class="modal-content">
         <button @click="handleClose" :disabled="saving" class="modal-close">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -186,7 +189,7 @@ function handleClose() {
           </svg>
         </button>
 
-        <h3 class="text-xl font-bold text-white mb-1">Editar disco</h3>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Editar disco</h3>
         <p class="text-sm text-rv-pink mb-6">
           {{ asignation.disc.artist.name }} – {{ asignation.disc.name }}
         </p>
@@ -197,7 +200,7 @@ function handleClose() {
               <label class="block text-sm text-rv-pink font-medium">Texto de reseña</label>
               <div class="flex items-center gap-3">
                 <button type="button" @click="checkSpelling" :disabled="checkingSpelling"
-                  class="text-xs font-semibold text-rv-pink hover:text-white transition-colors flex items-center gap-1.5 disabled:opacity-50">
+                  class="text-xs font-semibold text-gray-700 dark:text-rv-pink transition-colors flex items-center gap-1.5 disabled:opacity-50 bg-gray-200 dark:bg-white/10 hover:bg-gray-300 dark:hover:bg-white/20 rounded-lg px-2.5 py-1">
                   <i class="fa-solid" :class="checkingSpelling ? 'fa-circle-notch fa-spin' : 'fa-spell-check'"></i>
                   {{ checkingSpelling ? 'Revisando...' : 'Corregir ortografía' }}
                 </button>
@@ -273,7 +276,7 @@ function handleClose() {
           </div>
         </div>
 
-        <div class="flex justify-end gap-3 pt-4 mt-5 border-t border-white/10">
+        <div class="flex justify-end gap-3 pt-4 mt-5 border-t border-gray-200 dark:border-white/10">
           <button type="button" @click="handleClose" :disabled="saving" class="modal-btn-cancel">Cancelar</button>
           <button @click="handleSubmit" :disabled="saving" class="modal-btn-primary">
             {{ saving ? 'Guardando... (puede tardar unos segundos)' : 'Guardar' }}
@@ -288,7 +291,7 @@ function handleClose() {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -297,10 +300,11 @@ function handleClose() {
   padding: 1rem;
 }
 
+/* ── Modal content ── */
 .modal-content {
   position: relative;
-  background: #00021f;
-  border: 1px solid rgba(176, 102, 159, 0.3);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 16px;
   padding: 1.5rem;
   width: 100%;
@@ -309,25 +313,42 @@ function handleClose() {
   overflow-y: auto;
 }
 
+html.dark .modal-content {
+  background: #2a2b3d;
+  border-color: rgba(176, 102, 159, 0.3);
+}
+
+/* ── Close button ── */
 .modal-close {
   position: absolute;
   right: 1rem;
   top: 1rem;
   color: #e46e8a;
-  transition: opacity 0.2s;
+  background: #e5e7eb;
+  border-radius: 8px;
+  transition: background-color 0.15s;
 }
 
 .modal-close:hover {
-  opacity: 0.7;
+  background: #d1d5db;
 }
 
+html.dark .modal-close {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .modal-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Inputs ── */
 .modal-input {
   width: 100%;
   padding: 0.625rem 1rem;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(176, 102, 159, 0.3);
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  color: #fff;
+  color: #111827;
   transition: border-color 0.2s;
 }
 
@@ -337,22 +358,49 @@ function handleClose() {
 }
 
 .modal-input::placeholder {
-  color: #6b7280;
+  color: #9ca3af;
 }
 
 .modal-input option {
+  background: #ffffff;
+  color: #111827;
+}
+
+html.dark .modal-input {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(176, 102, 159, 0.3);
+  color: #fff;
+}
+
+html.dark .modal-input::placeholder {
+  color: #6b7280;
+}
+
+html.dark .modal-input option {
   background: #00021f;
   color: #fff;
 }
 
+/* ── Buttons ── */
 .modal-btn-cancel {
   padding: 0.5rem 1rem;
-  color: #e46e8a;
-  transition: opacity 0.2s;
+  border-radius: 8px;
+  background: #e5e7eb;
+  color: #374151;
+  transition: background-color 0.15s;
 }
 
 .modal-btn-cancel:hover {
-  opacity: 0.7;
+  background: #d1d5db;
+}
+
+html.dark .modal-btn-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e46e8a;
+}
+
+html.dark .modal-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .modal-btn-primary {
@@ -373,23 +421,10 @@ function handleClose() {
   cursor: not-allowed;
 }
 
-/* Quill editor theming */
+/* ── Quill – light mode ── */
 .quill-wrapper :deep(.ql-toolbar) {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(176, 102, 159, 0.3);
+  border: 1px solid #e5e7eb;
   border-radius: 8px 8px 0 0;
-}
-
-.quill-wrapper :deep(.ql-toolbar .ql-stroke) {
-  stroke: #9ca3af;
-}
-
-.quill-wrapper :deep(.ql-toolbar .ql-fill) {
-  fill: #9ca3af;
-}
-
-.quill-wrapper :deep(.ql-toolbar .ql-picker-label) {
-  color: #9ca3af;
 }
 
 .quill-wrapper :deep(.ql-toolbar button:hover .ql-stroke),
@@ -403,30 +438,55 @@ function handleClose() {
 }
 
 .quill-wrapper :deep(.ql-container) {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(176, 102, 159, 0.3);
+  border: 1px solid #e5e7eb;
   border-top: none;
   border-radius: 0 0 8px 8px;
-  color: #fff;
   min-height: 200px;
   font-size: 0.95rem;
 }
 
 .quill-wrapper :deep(.ql-editor.ql-blank::before) {
-  color: #6b7280;
   font-style: normal;
 }
 
-.quill-wrapper :deep(.ql-snow .ql-picker-options) {
-  background: #00021f;
+/* ── Quill – dark mode ── */
+html.dark .quill-wrapper :deep(.ql-toolbar) {
+  background: rgba(0, 0, 0, 0.3);
   border-color: rgba(176, 102, 159, 0.3);
 }
 
-.quill-wrapper :deep(.ql-snow .ql-picker-item) {
+html.dark .quill-wrapper :deep(.ql-toolbar .ql-stroke) {
+  stroke: #9ca3af;
+}
+
+html.dark .quill-wrapper :deep(.ql-toolbar .ql-fill) {
+  fill: #9ca3af;
+}
+
+html.dark .quill-wrapper :deep(.ql-toolbar .ql-picker-label) {
+  color: #9ca3af;
+}
+
+html.dark .quill-wrapper :deep(.ql-container) {
+  background: rgba(0, 0, 0, 0.4);
+  border-color: rgba(176, 102, 159, 0.3);
+  color: #fff;
+}
+
+html.dark .quill-wrapper :deep(.ql-editor.ql-blank::before) {
+  color: #6b7280;
+}
+
+html.dark .quill-wrapper :deep(.ql-snow .ql-picker-options) {
+  background: #2a2b3d;
+  border-color: rgba(176, 102, 159, 0.3);
+}
+
+html.dark .quill-wrapper :deep(.ql-snow .ql-picker-item) {
   color: #d1d5db;
 }
 
-.quill-wrapper :deep(.ql-snow .ql-picker-item:hover) {
+html.dark .quill-wrapper :deep(.ql-snow .ql-picker-item:hover) {
   color: #e46e8a;
 }
 </style>
