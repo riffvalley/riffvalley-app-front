@@ -1,3 +1,7 @@
+## <small>1.21.1 (2026-07-31)</small>
+
+* fix: update styles and improve accessibility in AsignationList and DiscDescriptionModal components ([214a5ea](https://github.com/riffvalley/riffvalley-app-front/commit/214a5ea))
+
 ## 1.21.0 (2026-07-30)
 
 * Feat/cambios rv (#145) ([36c5e61](https://github.com/riffvalley/riffvalley-app-front/commit/36c5e61)), closes [#145](https://github.com/riffvalley/riffvalley-app-front/issues/145)
