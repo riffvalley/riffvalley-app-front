@@ -1,3 +1,8 @@
+## <small>1.21.2 (2026-07-31)</small>
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([c43cc7e](https://github.com/riffvalley/riffvalley-app-front/commit/c43cc7e))
+* fix: enhance layout responsiveness by adjusting flex properties in DefaultLayout component ([b3ad133](https://github.com/riffvalley/riffvalley-app-front/commit/b3ad133))
+
 ## <small>1.21.1 (2026-07-31)</small>
 
 * fix: update styles and improve accessibility in AsignationList and DiscDescriptionModal components ([214a5ea](https://github.com/riffvalley/riffvalley-app-front/commit/214a5ea))
