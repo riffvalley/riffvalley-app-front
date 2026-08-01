@@ -31,26 +31,25 @@
           <div v-if="groupState[index]" class="mt-4">
             <ul>
               <li v-for="disc in group.discs" :key="disc.id"
-                  class="flex justify-between items-center p-4 border-b transition-colors"
+                  class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border-b gap-2 transition-colors"
                   :class="disc.pinned ? 'border-l-4 border-l-green-400 bg-green-50 dark:bg-green-900/10' : ''">
 
-                <div class="flex items-center gap-2">
-                  <p class="px-2 py-1 rounded-full text-xs font-medium text-white text-center shadow-sm"
+                <!-- Info del disco -->
+                <div class="flex items-center gap-2 flex-wrap min-w-0">
+                  <p class="px-2 py-1 rounded-full text-xs font-medium text-white text-center shadow-sm shrink-0"
                     :style="{ backgroundColor: disc.genre?.color || 'grey' }">
                     {{ disc.genre?.name || "Sin género" }}
                   </p>
-
-                  <h4 class="text-md font-semibold">
+                  <h4 class="text-sm font-semibold min-w-0">
                     {{ disc.artist.name }} - {{ disc.name }}
                   </h4>
                   <SpotifyArtistButton :artistName="disc.artist.name" />
                   <span v-if="disc.ep"
-                    class="px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500 shadow-sm">
+                    class="px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500 shadow-sm shrink-0">
                     EP
                   </span>
-                  <!-- Bandera (con fallback por si el backend manda artistCountry plano) -->
                   <div v-if="(disc.artist?.country?.isoCode?.length >= 2) || (disc.artistCountry?.isoCode?.length >= 2)"
-                    class="relative group">
+                    class="relative group shrink-0">
                     <CircleFlags
                       :country="(disc.artist?.country?.isoCode || disc.artistCountry?.isoCode).slice(0, 2).toLowerCase()"
                       :show-flag-name="false" class="h-5 w-5 cursor-help" aria-hidden="true" />
@@ -67,29 +66,30 @@
                       }}
                     </span>
                   </div>
-
                 </div>
 
-                <!-- Selector de usuarios -->
-                <select v-model="selectedUser[disc.id]" class="border rounded px-2 py-1 ml-4">
-                  <option value="" disabled>Seleccionar</option>
-                  <option v-for="user in users" :key="user.id" :value="user.id">
-                    {{ user.username }}
-                  </option>
-                </select>
-                <!-- Botón de asignar -->
-                <button v-if="disc.hasExistingAsignation" @click="updateAsignation(disc.id)"
-                  class="bg-yellow-500 text-white px-4 py-2 rounded ml-2">
-                  Actualizar
-                </button>
-                <button v-else @click="assignUser(disc.id)" class="bg-blue-500 text-white px-4 py-2 rounded ml-2">
-                  Asignar
-                </button>
-                <button @click="togglePinned(disc)"
-                  class="px-3 py-2 rounded text-xs font-semibold text-white ml-2 transition-colors"
-                  :class="disc.pinned ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 dark:bg-white/20 hover:bg-green-500'">
-                  {{ disc.pinned ? '★ Destacado' : '☆ Destacar' }}
-                </button>
+                <!-- Acciones -->
+                <div class="flex items-center gap-2 flex-wrap">
+                  <select v-model="selectedUser[disc.id]" class="border rounded px-2 py-1 text-sm flex-1 sm:flex-none sm:w-36 bg-white text-gray-900">
+                    <option value="" disabled>Seleccionar</option>
+                    <option v-for="user in users" :key="user.id" :value="user.id">
+                      {{ user.username }}
+                    </option>
+                  </select>
+                  <button v-if="disc.hasExistingAsignation" @click="updateAsignation(disc.id)"
+                    class="bg-yellow-500 text-white px-3 py-1.5 rounded text-sm font-semibold">
+                    Actualizar
+                  </button>
+                  <button v-else @click="assignUser(disc.id)"
+                    class="bg-blue-500 text-white px-3 py-1.5 rounded text-sm font-semibold">
+                    Asignar
+                  </button>
+                  <button @click="togglePinned(disc)"
+                    class="px-3 py-1.5 rounded text-xs font-semibold text-white transition-colors"
+                    :class="disc.pinned ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 dark:bg-white/20 hover:bg-green-500'">
+                    {{ disc.pinned ? '★ Destacado' : '☆ Destacar' }}
+                  </button>
+                </div>
               </li>
             </ul>
           </div>
