@@ -1,3 +1,8 @@
+## 1.22.0 (2026-08-01)
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([775cd1f](https://github.com/riffvalley/riffvalley-app-front/commit/775cd1f))
+* feat: add custom guillemets button to Quill editor and enhance toolbar options ([89e72a7](https://github.com/riffvalley/riffvalley-app-front/commit/89e72a7))
+
 ## <small>1.21.4 (2026-07-31)</small>
 
 * Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([9dac164](https://github.com/riffvalley/riffvalley-app-front/commit/9dac164))
