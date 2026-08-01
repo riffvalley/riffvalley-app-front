@@ -1,5 +1,6 @@
 <template>
   <div class="min-h-screen bg-gray-100 dark:bg-rv-darkBg py-8 px-4">
+    <div ref="scrollSentinel" class="h-px w-full"></div>
     <div class="max-w-3xl mx-auto">
 
       <!-- Cabecera -->
@@ -13,13 +14,13 @@
       <!-- Secciones -->
       <div class="space-y-4">
 
-        <!-- Home -->
+        <!-- Dashboard -->
         <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
           <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
-            <i class="fa-solid fa-house mr-2 text-rv-pink"></i>Home
+            <i class="fa-solid fa-layer-group mr-2 text-rv-pink"></i>Dashboard
           </h2>
           <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-            La portada de la app. Aquí encontrarás el <strong class="text-gray-800 dark:text-white">top 20 de discos mejor valorados</strong> filtrable por semana, mes, año o histórico. También puedes filtrar por género y país. En la parte superior hay un panel con las novedades de Riff Valley y un ranking de los usuarios más activos votando.
+            La pantalla de inicio. De un vistazo puedes ver tus <strong class="text-gray-800 dark:text-white">últimas votaciones</strong>, los artistas con más discos en la app, un resumen de tu actividad y los discos mejor valorados recientemente. Es el punto de partida para saber qué está pasando en Riff Valley.
           </p>
         </div>
 
@@ -44,19 +45,14 @@
             class="rounded-lg shadow mx-auto w-full max-w-md" />
         </div>
 
-        <!-- Calendario -->
+        <!-- Top Discos -->
         <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
           <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
-            <i class="fa-solid fa-calendar-days mr-2 text-rv-pink"></i>Calendario
+            <i class="fa-solid fa-star mr-2 text-rv-pink"></i>Top Discos
           </h2>
-          <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
-            Todos los lanzamientos organizados por día y mes, pensado para tener una visión cronológica de lo que ha salido y lo que está por salir. Puedes filtrar por género, país y año.
+          <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+            El ranking de la app. Aquí encontrarás el <strong class="text-gray-800 dark:text-white">top 20 de discos mejor valorados</strong> filtrable por semana, mes, año o histórico. También puedes filtrar por género y país. En la parte superior hay un panel con las novedades de Riff Valley y un ranking de los usuarios más activos votando.
           </p>
-          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed italic">
-            Ten en cuenta que algunas fechas pueden no ser exactas, ya que dependemos de fuentes externas para obtener la información.
-          </p>
-          <img src="@/assets/CalendarioEjemplo.png" alt="Ejemplo sección Calendario"
-            class="rounded-lg shadow mx-auto mt-3 w-full max-w-md" />
         </div>
 
         <!-- Artistas -->
@@ -76,6 +72,21 @@
           </ul>
         </div>
 
+        <!-- Calendario -->
+        <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
+          <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
+            <i class="fa-solid fa-calendar-days mr-2 text-rv-pink"></i>Calendario
+          </h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
+            Todos los lanzamientos organizados por día y mes, pensado para tener una visión cronológica de lo que ha salido y lo que está por salir. Puedes filtrar por género, país y año.
+          </p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed italic">
+            Ten en cuenta que algunas fechas pueden no ser exactas, ya que dependemos de fuentes externas para obtener la información.
+          </p>
+          <img src="@/assets/CalendarioEjemplo.png" alt="Ejemplo sección Calendario"
+            class="rounded-lg shadow mx-auto mt-3 w-full max-w-md" />
+        </div>
+
         <!-- Estadísticas -->
         <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
           <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
@@ -86,16 +97,16 @@
           </p>
         </div>
 
-        <!-- Sugerir discos -->
+        <!-- Bugs y Sugerencias -->
         <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
           <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
-            <i class="fa-solid fa-lightbulb mr-2 text-rv-pink"></i>Solicitud de discos
+            <i class="fa-solid fa-bug mr-2 text-rv-pink"></i>Bugs y Sugerencias
           </h2>
           <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
-            ¿Echas en falta algún disco o artista? Puedes sugerirlos desde el apartado correspondiente rellenando el formulario con el nombre del artista, el álbum y si lo tienes, un enlace de Spotify o Bandcamp para facilitarnos la búsqueda.
+            ¿Has encontrado algún error o tienes una idea para mejorar la app? Puedes reportarlo desde este apartado. También puedes usar este espacio para pedir discos o artistas que eches en falta.
           </p>
           <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed italic">
-            Todas las sugerencias se revisan manualmente antes de ser añadidas. No todo lo sugerido entra necesariamente en la app — nos centramos en metal, rock, hardcore y géneros relacionados.
+            Todas las sugerencias se revisan manualmente. No todo lo sugerido entra necesariamente en la app — nos centramos en metal, rock, hardcore y géneros relacionados.
           </p>
         </div>
 
@@ -174,11 +185,31 @@
 import { ref, onMounted, onUnmounted } from "vue";
 
 const showScrollTop = ref(false);
-const handleScroll = () => { showScrollTop.value = window.scrollY > 400; };
-const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+const scrollSentinel = ref(null);
+let sentinelObserver = null;
 
-onMounted(() => window.addEventListener("scroll", handleScroll, { passive: true }));
-onUnmounted(() => window.removeEventListener("scroll", handleScroll));
+const scrollToTop = () => {
+  let el = scrollSentinel.value?.parentElement ?? null;
+  while (el) {
+    if (el.scrollTop > 0) {
+      el.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (el === document.documentElement) break;
+    el = el.parentElement;
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+onMounted(() => {
+  sentinelObserver = new IntersectionObserver(
+    ([entry]) => { showScrollTop.value = !entry.isIntersecting; },
+    { threshold: 0 }
+  );
+  if (scrollSentinel.value) sentinelObserver.observe(scrollSentinel.value);
+});
+
+onUnmounted(() => { sentinelObserver?.disconnect(); });
 </script>
 
 <style scoped>
