@@ -1,3 +1,8 @@
+## 1.23.0 (2026-08-01)
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([748235b](https://github.com/riffvalley/riffvalley-app-front/commit/748235b))
+* feat: implement scroll-to-top functionality across multiple views ([e10d98a](https://github.com/riffvalley/riffvalley-app-front/commit/e10d98a))
+
 ## 1.22.0 (2026-08-01)
 
 * Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([775cd1f](https://github.com/riffvalley/riffvalley-app-front/commit/775cd1f))
