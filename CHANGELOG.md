@@ -1,3 +1,7 @@
+## 1.25.0 (2026-08-01)
+
+* feat: update HowToUseModal and HowToUse views with new section titles and descriptions ([13b632d](https://github.com/riffvalley/riffvalley-app-front/commit/13b632d))
+
 ## 1.24.0 (2026-08-01)
 
 * Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([a52a948](https://github.com/riffvalley/riffvalley-app-front/commit/a52a948))
