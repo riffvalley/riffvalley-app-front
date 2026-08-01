@@ -1,3 +1,7 @@
+## <small>1.25.1 (2026-08-01)</small>
+
+* fix: handle null user streak in DashboardPage and adjust streak calculation logic ([3de01c4](https://github.com/riffvalley/riffvalley-app-front/commit/3de01c4))
+
 ## 1.25.0 (2026-08-01)
 
 * feat: update HowToUseModal and HowToUse views with new section titles and descriptions ([13b632d](https://github.com/riffvalley/riffvalley-app-front/commit/13b632d))
