@@ -1,3 +1,8 @@
+## 1.24.0 (2026-08-01)
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([a52a948](https://github.com/riffvalley/riffvalley-app-front/commit/a52a948))
+* feat: add scroll-to-top functionality with IntersectionObserver in DiscCalendar components ([578a35d](https://github.com/riffvalley/riffvalley-app-front/commit/578a35d))
+
 ## 1.23.0 (2026-08-01)
 
 * Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([748235b](https://github.com/riffvalley/riffvalley-app-front/commit/748235b))
