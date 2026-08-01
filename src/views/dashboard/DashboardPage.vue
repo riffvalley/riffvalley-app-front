@@ -27,7 +27,7 @@
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">discos en la app</p>
           </div>
           <div class="text-center bg-white/70 dark:bg-white/5 backdrop-blur-sm rounded-2xl px-4 py-3 border border-white/60 dark:border-white/10 shadow-sm min-w-[80px]">
-            <p class="text-2xl font-bold text-amber-500 tabular-nums">{{ userStreak }}</p>
+            <p class="text-2xl font-bold text-amber-500 tabular-nums">{{ userStreak ?? '-' }}</p>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">racha de días</p>
           </div>
         </div>
@@ -731,7 +731,7 @@ export default defineComponent({
     let hoverInterval: ReturnType<typeof setInterval> | null = null;
 
     // ── Racha ─────────────────────────────────────────────
-    const userStreak = ref(0);
+    const userStreak = ref<number | null>(null);
 
     // ── Últimos 10 votos ──────────────────────────────────
     const recentVotes        = ref<any[]>([]);
@@ -1042,7 +1042,8 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
         );
         let streak = 0;
         const today = new Date();
-        for (let i = 0; ; i++) {
+        const startOffset = days.has(formatDate(today)) ? 0 : 1;
+        for (let i = startOffset; ; i++) {
           const d = new Date(today);
           d.setDate(d.getDate() - i);
           if (days.has(formatDate(d))) streak++;
