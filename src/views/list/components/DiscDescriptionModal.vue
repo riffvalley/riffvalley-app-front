@@ -154,10 +154,20 @@ watch(() => props.asignation.id, () => {
   loadTracks();
 }, { immediate: true });
 
-const toolbarOptions = [
-  ['bold', 'italic'],
-  ['link'],
-];
+function insertGuillemets() {
+  const quill = quillEditorRef.value?.getQuill();
+  if (!quill) return;
+  const sel = quill.getSelection(true);
+  if (sel.length === 0) {
+    quill.insertText(sel.index, '«»', 'user');
+    quill.setSelection(sel.index + 1, 0);
+  } else {
+    const text = quill.getText(sel.index, sel.length);
+    quill.deleteText(sel.index, sel.length, 'user');
+    quill.insertText(sel.index, `«${text}»`, 'user');
+    quill.setSelection(sel.index + 1, sel.length);
+  }
+}
 
 function handleSubmit() {
   emit('submit', {
@@ -217,9 +227,18 @@ onUnmounted(() => { document.body.style.overflow = ''; });
                 v-model:content="description"
                 content-type="html"
                 theme="snow"
-                :toolbar="toolbarOptions"
+                toolbar="#desc-toolbar"
                 placeholder="Escribe la reseña de este disco..."
-              />
+              >
+                <template #toolbar>
+                  <div id="desc-toolbar">
+                    <button class="ql-bold" title="Negrita"></button>
+                    <button class="ql-italic" title="Cursiva"></button>
+                    <button class="ql-link" title="Enlace"></button>
+                    <button type="button" class="ql-guillemets" @click.prevent="insertGuillemets" title="Comillas francesas (« »)">«»</button>
+                  </div>
+                </template>
+              </QuillEditor>
             </div>
 
             <div v-if="spellMatches.length" class="mt-3 space-y-2 max-h-56 overflow-y-auto pr-1">
@@ -487,6 +506,28 @@ html.dark .quill-wrapper :deep(.ql-snow .ql-picker-item) {
 }
 
 html.dark .quill-wrapper :deep(.ql-snow .ql-picker-item:hover) {
+  color: #e46e8a;
+}
+
+/* ── Botón guillemets custom ── */
+.quill-wrapper :deep(.ql-guillemets) {
+  font-size: 0.8rem;
+  font-weight: 600;
+  width: auto;
+  padding: 0 6px;
+  color: #444;
+  letter-spacing: -0.5px;
+}
+
+.quill-wrapper :deep(.ql-guillemets:hover) {
+  color: #e46e8a;
+}
+
+html.dark .quill-wrapper :deep(.ql-guillemets) {
+  color: #9ca3af;
+}
+
+html.dark .quill-wrapper :deep(.ql-guillemets:hover) {
   color: #e46e8a;
 }
 </style>
