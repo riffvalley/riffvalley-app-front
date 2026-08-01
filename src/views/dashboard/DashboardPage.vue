@@ -585,10 +585,29 @@
     </div>
 
   </div>
+
+  <!-- Scroll to top — solo móvil -->
+  <Transition name="scroll-top-btn">
+    <button
+      v-show="showScrollTop"
+      type="button"
+      @click="scrollToTop"
+      class="md:hidden fixed bottom-6 right-4 z-40
+             w-10 h-10 rounded-full shadow-lg
+             bg-rv-pink text-white
+             flex items-center justify-center
+             hover:bg-rv-purple active:scale-95
+             transition-colors duration-200"
+      aria-label="Volver arriba"
+    >
+      <i class="fa-solid fa-chevron-up text-sm"></i>
+    </button>
+  </Transition>
+
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted } from "vue";
+import { defineComponent, ref, computed, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "@stores/auth/auth";
 import { getTopRatedOrFeaturedAndStats, getDiscs } from "@services/discs/discs";
 import { getRatesByUser, getUserHistoryService } from "@services/rates/rates";
@@ -1042,7 +1061,13 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
       }
     };
 
+    // ── Scroll to top (solo móvil) ────────────────────────────
+    const showScrollTop = ref(false);
+    const onScroll = () => { showScrollTop.value = window.scrollY > 300; };
+    const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+
     onMounted(async () => {
+      window.addEventListener('scroll', onScroll, { passive: true });
       await fetchUserStats();
       fetchStats();
       fetchTopDiscs();
@@ -1052,6 +1077,10 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
       fetchMusicMap();
       fetchStreak();
       fetchRecentVotes();
+    });
+
+    onUnmounted(() => {
+      window.removeEventListener('scroll', onScroll);
     });
 
     return {
@@ -1071,6 +1100,7 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
       recentVotes, recentVotesLoading,
       window,
       getTrophyIcon, medalClass, fetchStats, rollDice, topUsersTab,
+      showScrollTop, scrollToTop,
     };
   },
 });
@@ -1154,4 +1184,15 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
 .medal-gold   { background: linear-gradient(135deg, #FFD700, #FF8C00); }
 .medal-silver { background: linear-gradient(135deg, #C0C0C0, #888); }
 .medal-bronze { background: linear-gradient(135deg, #CD7F32, #8B4513); }
+
+/* Scroll to top */
+.scroll-top-btn-enter-active,
+.scroll-top-btn-leave-active {
+  transition: opacity 0.2s, transform 0.2s;
+}
+.scroll-top-btn-enter-from,
+.scroll-top-btn-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
 </style>

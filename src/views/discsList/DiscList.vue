@@ -1,5 +1,7 @@
 <template>
   <div :class="{ 'menu-open': menuVisible }" class="max-w-[100rem] mx-auto mt-10 px-4">
+<!-- Sentinel: cuando sale del viewport → mostrar botón scroll-top -->
+<div ref="scrollSentinel" class="h-px w-full"></div>
 <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-rv-navy dark:text-white">
   <i class="fa-solid fa-compact-disc mr-3"></i>Discos
 </h1>
@@ -568,22 +570,35 @@ response = await getCommentsByUser(
       resetAndFetch();
     });
 
-    const handleScroll = () => {
-      showScrollTop.value = window.scrollY > 400;
-    };
+    const scrollSentinel = ref<HTMLElement | null>(null);
+    let sentinelObserver: IntersectionObserver | null = null;
 
     const scrollToTop = () => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      let el: Element | null = scrollSentinel.value?.parentElement ?? null;
+      while (el) {
+        if (el.scrollTop > 0) {
+          el.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        if (el === document.documentElement) break;
+        el = el.parentElement;
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     onMounted(() => {
       fetchData();
       setupObserver();
-      window.addEventListener("scroll", handleScroll);
+
+      sentinelObserver = new IntersectionObserver(
+        ([entry]) => { showScrollTop.value = !entry.isIntersecting; },
+        { threshold: 0 }
+      );
+      if (scrollSentinel.value) sentinelObserver.observe(scrollSentinel.value);
     });
 
     onUnmounted(() => {
-      window.removeEventListener("scroll", handleScroll);
+      sentinelObserver?.disconnect();
     });
 
     const resetAndFetch = () => {
@@ -619,6 +634,7 @@ response = await getCommentsByUser(
       formatDate,
       showScrollTop,
       scrollToTop,
+      scrollSentinel,
     };
   },
 });

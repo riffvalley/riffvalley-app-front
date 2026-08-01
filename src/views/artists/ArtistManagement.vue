@@ -1,5 +1,7 @@
 <template>
 <div class="px-3 sm:px-6 py-5 max-w-5xl mx-auto">
+  <!-- Sentinel scroll-to-top -->
+  <div ref="scrollSentinel" class="h-px w-full"></div>
     <!-- Cabecera -->
     <div :class="isManager
       ? 'flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6'
@@ -287,17 +289,17 @@ class="flex items-center gap-2 sm:gap-3 text-sm text-gray-700 dark:text-gray-200
       <button
         @click="goToPage(currentPage - 1)"
         :disabled="currentPage <= 1"
-        class="px-3 py-1.5 rounded-xl border text-sm disabled:opacity-40 hover:border-rv-pink hover:text-rv-pink transition-colors"
+        class="w-9 h-9 rounded-xl bg-gray-400 dark:bg-white/20 text-white text-sm disabled:opacity-40 hover:bg-rv-pink dark:hover:bg-rv-pink transition-colors flex items-center justify-center"
       >
         <i class="fa-solid fa-chevron-left"></i>
       </button>
-<span class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-  Página {{ currentPage }} de {{ totalPages }}
-</span>
+      <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+        Página {{ currentPage }} de {{ totalPages }}
+      </span>
       <button
         @click="goToPage(currentPage + 1)"
         :disabled="currentPage >= totalPages"
-        class="px-3 py-1.5 rounded-xl border text-sm disabled:opacity-40 hover:border-rv-pink hover:text-rv-pink transition-colors"
+        class="w-9 h-9 rounded-xl bg-gray-400 dark:bg-white/20 text-white text-sm disabled:opacity-40 hover:bg-rv-pink dark:hover:bg-rv-pink transition-colors flex items-center justify-center"
       >
         <i class="fa-solid fa-chevron-right"></i>
       </button>
@@ -1062,8 +1064,21 @@ export default defineComponent({
 
     // --- Scroll to top ---
     const showScrollTop = ref(false);
-    const handleScroll = () => { showScrollTop.value = window.scrollY > 400; };
-    const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+    const scrollSentinel = ref<HTMLElement | null>(null);
+    let sentinelObserver: IntersectionObserver | null = null;
+
+    const scrollToTop = () => {
+      let el: Element | null = scrollSentinel.value?.parentElement ?? null;
+      while (el) {
+        if (el.scrollTop > 0) {
+          el.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        if (el === document.documentElement) break;
+        el = el.parentElement;
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     onMounted(async () => {
       await Promise.all([
@@ -1071,10 +1086,14 @@ export default defineComponent({
         getCountries(250, 0).then(r => { countries.value = r.data.sort((a, b) => a.name.localeCompare(b.name)); }),
         getGenres(150, 0).then(r => { genres.value = r.data.sort((a, b) => a.name.localeCompare(b.name)); }),
       ]);
-      window.addEventListener("scroll", handleScroll, { passive: true });
+      sentinelObserver = new IntersectionObserver(
+        ([entry]) => { showScrollTop.value = !entry.isIntersecting; },
+        { threshold: 0 }
+      );
+      if (scrollSentinel.value) sentinelObserver.observe(scrollSentinel.value);
     });
 
-    onUnmounted(() => window.removeEventListener("scroll", handleScroll));
+    onUnmounted(() => { sentinelObserver?.disconnect(); });
 
     return {
       artists,
@@ -1130,6 +1149,7 @@ export default defineComponent({
       pickSpotifyImage,
       showScrollTop,
       scrollToTop,
+      scrollSentinel,
     };
   },
 });
