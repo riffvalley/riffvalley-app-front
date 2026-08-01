@@ -59,7 +59,7 @@
         <div
           class="flex items-center gap-3 p-3
                  bg-white dark:bg-rv-darkSurface rounded-xl
-                 border border-gray-100 dark:border-white/10
+                 border border-gray-100 dark:border-t-white/10 dark:border-r-white/10 dark:border-b-white/10
                  border-l-4 transition-all duration-200
                  hover:brightness-105 active:scale-[0.98]"
           :class="sourceBorderColor(post.source)"
