@@ -1,5 +1,7 @@
 <template>
   <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
+  <!-- Sentinel scroll-to-top -->
+  <div ref="scrollSentinel" class="h-px w-full"></div>
 <template v-if="!embedded">
   <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-rv-navy dark:text-white">
     <i class="fa-solid fa-calendar-days mr-3"></i>Calendario
@@ -576,8 +578,21 @@ export default defineComponent({
 
     // --- Scroll to top ---
     const showScrollTop = ref(false);
-    const handleScroll = () => { showScrollTop.value = window.scrollY > 400; };
-    const scrollToTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+    const scrollSentinel = ref<HTMLElement | null>(null);
+    let sentinelObserver: IntersectionObserver | null = null;
+
+    const scrollToTop = () => {
+      let el: Element | null = scrollSentinel.value?.parentElement ?? null;
+      while (el) {
+        if (el.scrollTop > 0) {
+          el.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+        if (el === document.documentElement) break;
+        el = el.parentElement;
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     onMounted(() => {
       if (loadMore.value) observer.observe(loadMore.value);
@@ -585,10 +600,14 @@ export default defineComponent({
       const d = initial.value;
       selectMonth(d ? d.getMonth() : new Date().getMonth());
 
-      window.addEventListener("scroll", handleScroll, { passive: true });
+      sentinelObserver = new IntersectionObserver(
+        ([entry]) => { showScrollTop.value = !entry.isIntersecting; },
+        { threshold: 0 }
+      );
+      if (scrollSentinel.value) sentinelObserver.observe(scrollSentinel.value);
     });
 
-    onUnmounted(() => window.removeEventListener("scroll", handleScroll));
+    onUnmounted(() => { sentinelObserver?.disconnect(); });
 
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting) {
@@ -648,6 +667,7 @@ export default defineComponent({
       buscarImagenesLastFm,
       showScrollTop,
       scrollToTop,
+      scrollSentinel,
     };
   },
 });
