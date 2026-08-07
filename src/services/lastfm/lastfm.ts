@@ -27,7 +27,7 @@ export async function getArtistInfo(artistName: string): Promise<LastFmArtist> {
 }
 
 export async function fillImages(month: number, year: number, week: number): Promise<FillImagesResponse> {
-  const response = await api.post("/lastfm/fill-images", null, {
+  const response = await api.post("/lastfm/fill-images", {}, {
     params: { month, year, week },
   });
   return response.data;

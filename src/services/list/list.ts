@@ -80,7 +80,7 @@ export interface WeeklyWpPostRecord {
 }
 
 export async function createWpPosts(id: string, position?: number): Promise<CreateWpPostsResponse> {
-  const response = await api.post<CreateWpPostsResponse>(`/lists/${id}/wp-posts`, null, {
+  const response = await api.post<CreateWpPostsResponse>(`/lists/${id}/wp-posts`, {}, {
     params: position ? { position } : undefined,
   });
   return response.data;
