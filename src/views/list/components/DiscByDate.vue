@@ -318,10 +318,21 @@ export default defineComponent({
           console.log(
             `Assigned user ${userId} to disc ${discId} for list ${props.listId}`
           );
+
+          // Encuentra el disco correspondiente para partir con su género
+          // por defecto (editable luego desde el modal de edición).
+          const groupIndex = discs.value.findIndex((group) =>
+            group.discs.some((disc: any) => disc.id === discId)
+          );
+          const disc = groupIndex !== -1
+            ? discs.value[groupIndex].discs.find((d: any) => d.id === discId)
+            : null;
+
           const response = await postAsignationService({
             userId,
             discId,
             listId: props.listId,
+            genre: disc?.genre?.name,
           });
 
           // Muestra la respuesta del servidor
@@ -330,11 +341,7 @@ export default defineComponent({
           // Actualiza la store con la nueva asignación
           asignationStore.addAsignation(response);
 
-          // Encuentra el disco correspondiente y actualiza su estado
-          const groupIndex = discs.value.findIndex((group) =>
-            group.discs.some((disc: any) => disc.id === discId)
-          );
-
+          // Actualiza el estado del disco
           if (groupIndex !== -1) {
             const discIndex = discs.value[groupIndex].discs.findIndex(
               (disc: any) => disc.id === discId
