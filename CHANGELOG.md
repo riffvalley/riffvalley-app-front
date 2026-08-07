@@ -1,3 +1,11 @@
+## 1.26.0 (2026-08-07)
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([f025aba](https://github.com/riffvalley/riffvalley-app-front/commit/f025aba))
+* Merge pull request #151 from riffvalley/feat/radar-wp-por-posicion ([2b02581](https://github.com/riffvalley/riffvalley-app-front/commit/2b02581)), closes [#151](https://github.com/riffvalley/riffvalley-app-front/issues/151)
+* feat(radar): crear WordPress por posición desde cada radar ([ee290fd](https://github.com/riffvalley/riffvalley-app-front/commit/ee290fd))
+* style: enhance layout and styling of disc items in DiscByDate component ([105224d](https://github.com/riffvalley/riffvalley-app-front/commit/105224d))
+* style: update border styles for NewsFeed component to improve visual consistency ([ccd7ec0](https://github.com/riffvalley/riffvalley-app-front/commit/ccd7ec0))
+
 ## <small>1.25.1 (2026-08-01)</small>
 
 * fix: handle null user streak in DashboardPage and adjust streak calculation logic ([3de01c4](https://github.com/riffvalley/riffvalley-app-front/commit/3de01c4))
