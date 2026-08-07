@@ -35,6 +35,11 @@
                 <i class="fab fa-wordpress"></i>
                 <span>Borrador</span>
               </a>
+              <button @click="publishRadarToWordPress(group)" :disabled="publishingRadar[group]"
+                :title="(getWeeklyWpPost(group) ? 'Actualizar' : 'Crear') + ' WordPress del Radar ' + group"
+                class="w-6 h-6 flex items-center justify-center rounded-md bg-orange-50 dark:bg-orange-900/20 text-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/30 disabled:opacity-50 transition-colors">
+                <i :class="publishingRadar[group] ? 'fa-solid fa-spinner fa-spin' : 'fab fa-wordpress'" class="text-xs"></i>
+              </button>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors shadow-sm"
                 :class="(groupedWeekAsignations[group]?.length || 0) >= 4
                   ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30'
@@ -375,22 +380,26 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch, computed, nextTick } from "vue";
+import { defineComponent, ref, reactive, watch, computed, nextTick } from "vue";
 import { useAsignationStore } from "@stores/asignation/asignation";
 import { useUserStore } from "@stores/user/users";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import DiscDescriptionModal from "./DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
+import { createWpPosts } from "@services/list/list";
+import Swal from "sweetalert2";
 import CircleFlags from "vue-circle-flags";
 
 export default defineComponent({
   name: "AsignationList",
   props: {
     type: { type: String, required: true },
+    listId: { type: String, required: true },
     wpWeeklyPosts: { type: Array as () => any[], default: () => [] },
   },
+  emits: ["wp-published"],
   components: { SpotifyArtistButton, DiscDescriptionModal },
-  setup(props) {
+  setup(props, { emit }) {
     const asignationStore = useAsignationStore();
     const userStore = useUserStore();
     const asignations = ref<any[]>([]);
@@ -566,6 +575,57 @@ export default defineComponent({
       return (props.wpWeeklyPosts || []).find((p: any) => p.position === group) || null;
     };
 
+    const publishingRadar = reactive<Record<number, boolean>>({});
+
+    const publishRadarToWordPress = async (group: number) => {
+      if (publishingRadar[group]) return;
+      publishingRadar[group] = true;
+      try {
+        const result = await createWpPosts(props.listId, group);
+        emit("wp-published", result.posts);
+
+        const postsHtml = result.posts
+          .map((p: any) => {
+            const linkHtml = `<a href="${p.link}" target="_blank" class="text-blue-600 underline">${p.title}</a>`;
+
+            const changes: string[] = [];
+            if (p.added) changes.push(`${p.added} añadido${p.added === 1 ? '' : 's'}`);
+            if (p.updated) changes.push(`${p.updated} actualizado${p.updated === 1 ? '' : 's'}`);
+            if (p.removed) changes.push(`${p.removed} eliminado${p.removed === 1 ? '' : 's'}`);
+
+            let icon = '✅';
+            let statusText = 'Creado';
+            if (p.adopted) {
+              icon = 'ℹ️';
+              statusText = 'Vinculado a un post existente sin trackear';
+            } else if (p.warning) {
+              icon = '⚠️';
+              statusText = changes.length ? `Actualizado (${changes.join(', ')})` : 'Aviso al actualizar';
+            } else if (changes.length) {
+              statusText = `Actualizado (${changes.join(', ')})`;
+            }
+
+            return `<li class="mb-2">
+              <div>${icon} ${statusText}</div>
+              <div>${linkHtml}</div>
+              ${p.warning ? `<div class="text-amber-600 text-xs mt-1">${p.warning}</div>` : ''}
+            </li>`;
+          })
+          .join('');
+
+        const hasWarning = result.posts.some((p: any) => p.warning);
+        Swal.fire({
+          icon: hasWarning ? 'warning' : 'success',
+          title: `Radar ${group}`,
+          html: `<ul class="text-left text-sm mt-2">${postsHtml}</ul>`,
+        });
+      } catch (error: any) {
+        SwalService.error(error.response?.data?.message || `Error al publicar el Radar ${group} en WordPress`);
+      } finally {
+        publishingRadar[group] = false;
+      }
+    };
+
     return {
       asignations, isWeek, unassignedWeekAsignations, groupedWeekAsignations,
       availablePositions, availablePositionsCount, remove, toggleDone,
@@ -574,7 +634,7 @@ export default defineComponent({
       users, editingUserAsignationId, startEditingUser, changeUser,
       moveTo, getDiscCountry,
       editingAsignation, savingDescription, openDescriptionModal, handleSaveDescription,
-      getWeeklyWpPost,
+      getWeeklyWpPost, publishingRadar, publishRadarToWordPress,
     };
   },
 });
