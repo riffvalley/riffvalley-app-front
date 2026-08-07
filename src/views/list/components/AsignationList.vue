@@ -145,7 +145,7 @@
                   </select>
 
                   <button @click="openDescriptionModal(asignation)"
-                    :class="(asignation.description || asignation.similarBands || asignation.spotifyTrackId)
+                    :class="(asignation.description || asignation.similarBands || asignation.spotifyTrackId || asignation.genre)
                       ? 'bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600'
                       : 'bg-gray-50 dark:bg-white/10 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'"
                     class="flex items-center gap-1 px-1.5 py-1 rounded-md text-[9px] font-semibold transition-colors flex-shrink-0"
@@ -285,7 +285,7 @@
                 </select>
 
                 <button @click="openDescriptionModal(asignation)"
-                  :class="(asignation.description || asignation.similarBands || asignation.spotifyTrackId)
+                  :class="(asignation.description || asignation.similarBands || asignation.spotifyTrackId || asignation.genre)
                     ? 'bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600'
                     : 'bg-gray-50 dark:bg-white/10 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'"
                   class="flex items-center gap-1 px-1.5 py-1 rounded-md text-[9px] font-semibold transition-colors flex-shrink-0"
@@ -555,7 +555,7 @@ export default defineComponent({
       editingAsignation.value = asignation;
     };
 
-    const handleSaveDescription = async (payload: { description: string; similarBands: string; spotifyTrackId: string }) => {
+    const handleSaveDescription = async (payload: { description: string; similarBands: string; spotifyTrackId: string; genre: string }) => {
       const asignation = editingAsignation.value;
       savingDescription.value = true;
       try {
