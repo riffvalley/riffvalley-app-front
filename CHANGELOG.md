@@ -1,3 +1,8 @@
+## <small>1.26.1 (2026-08-07)</small>
+
+* Merge pull request #152 from riffvalley/feat/radar-wp-por-posicion ([50912c9](https://github.com/riffvalley/riffvalley-app-front/commit/50912c9)), closes [#152](https://github.com/riffvalley/riffvalley-app-front/issues/152)
+* fix(api): evitar body "null" en peticiones POST sin payload ([3eb5e6c](https://github.com/riffvalley/riffvalley-app-front/commit/3eb5e6c))
+
 ## 1.26.0 (2026-08-07)
 
 * Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([f025aba](https://github.com/riffvalley/riffvalley-app-front/commit/f025aba))
