@@ -16,10 +16,16 @@ const emit = defineEmits<{
   submit: [payload: { description: string; similarBands: string; spotifyTrackId: string; genre: string }];
 }>();
 
+// Si la asignación aún no tiene un género propio guardado, partimos del
+// género del disco como punto de partida editable (en vez de vacío).
+function defaultGenre(asignation: any) {
+  return asignation.genre || asignation.disc?.genre?.name || '';
+}
+
 const description = ref(props.asignation.description || '');
 const similarBands = ref(props.asignation.similarBands || '');
 const spotifyTrackId = ref(props.asignation.spotifyTrackId || '');
-const genre = ref(props.asignation.genre || '');
+const genre = ref(defaultGenre(props.asignation));
 const tracks = ref<DiscSpotifyTrack[]>([]);
 const loadingTracks = ref(false);
 
@@ -151,7 +157,7 @@ watch(() => props.asignation.id, () => {
   description.value = props.asignation.description || '';
   similarBands.value = props.asignation.similarBands || '';
   spotifyTrackId.value = props.asignation.spotifyTrackId || '';
-  genre.value = props.asignation.genre || '';
+  genre.value = defaultGenre(props.asignation);
   spellMatches.value = [];
   loadTracks();
 }, { immediate: true });
