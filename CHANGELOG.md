@@ -1,3 +1,9 @@
+## 1.27.0 (2026-08-07)
+
+* Merge pull request #153 from riffvalley/feat/genero-asignacion ([a99a548](https://github.com/riffvalley/riffvalley-app-front/commit/a99a548)), closes [#153](https://github.com/riffvalley/riffvalley-app-front/issues/153)
+* feat(asignations): añadir campo género editable en el modal de disco ([c5b0636](https://github.com/riffvalley/riffvalley-app-front/commit/c5b0636))
+* feat(asignations): precargar género con el del disco por defecto ([d766b01](https://github.com/riffvalley/riffvalley-app-front/commit/d766b01))
+
 ## <small>1.26.1 (2026-08-07)</small>
 
 * Merge pull request #152 from riffvalley/feat/radar-wp-por-posicion ([50912c9](https://github.com/riffvalley/riffvalley-app-front/commit/50912c9)), closes [#152](https://github.com/riffvalley/riffvalley-app-front/issues/152)
