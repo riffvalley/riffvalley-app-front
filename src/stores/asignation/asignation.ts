@@ -40,6 +40,9 @@ export const useAsignationStore = defineStore("asignation", {
           ...(updatedAsignation.spotifyTrackId !== undefined
             ? { spotifyTrackId: updatedAsignation.spotifyTrackId }
             : {}),
+          ...(updatedAsignation.genre !== undefined
+            ? { genre: updatedAsignation.genre }
+            : {}),
         };
     
         await updateAsignationService(updatedAsignation.id, data);

@@ -7,18 +7,25 @@ import { checkSpelling as checkSpellingService, type LanguageToolMatch } from '@
 import SwalService from '@services/swal/SwalService';
 
 const props = defineProps<{
-  asignation: any; // debe traer .disc.id, .disc.artist.name, .disc.name, .description, .similarBands, .spotifyTrackId
+  asignation: any; // debe traer .disc.id, .disc.artist.name, .disc.name, .description, .similarBands, .spotifyTrackId, .genre
   saving?: boolean;
 }>();
 
 const emit = defineEmits<{
   close: [];
-  submit: [payload: { description: string; similarBands: string; spotifyTrackId: string }];
+  submit: [payload: { description: string; similarBands: string; spotifyTrackId: string; genre: string }];
 }>();
+
+// Si la asignación aún no tiene un género propio guardado, partimos del
+// género del disco como punto de partida editable (en vez de vacío).
+function defaultGenre(asignation: any) {
+  return asignation.genre || asignation.disc?.genre?.name || '';
+}
 
 const description = ref(props.asignation.description || '');
 const similarBands = ref(props.asignation.similarBands || '');
 const spotifyTrackId = ref(props.asignation.spotifyTrackId || '');
+const genre = ref(defaultGenre(props.asignation));
 const tracks = ref<DiscSpotifyTrack[]>([]);
 const loadingTracks = ref(false);
 
@@ -150,6 +157,7 @@ watch(() => props.asignation.id, () => {
   description.value = props.asignation.description || '';
   similarBands.value = props.asignation.similarBands || '';
   spotifyTrackId.value = props.asignation.spotifyTrackId || '';
+  genre.value = defaultGenre(props.asignation);
   spellMatches.value = [];
   loadTracks();
 }, { immediate: true });
@@ -174,6 +182,7 @@ function handleSubmit() {
     description: description.value,
     similarBands: similarBands.value,
     spotifyTrackId: spotifyTrackId.value,
+    genre: genre.value,
   });
 }
 
@@ -273,6 +282,16 @@ onUnmounted(() => { document.body.style.overflow = ''; });
               v-model="similarBands"
               type="text"
               placeholder="Ej: Opeth, Katatonia, Ne Obliviscaris"
+              class="modal-input"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm text-rv-pink mb-1.5 font-medium">Género</label>
+            <input
+              v-model="genre"
+              type="text"
+              placeholder="Ej: Death Metal Progresivo"
               class="modal-input"
             />
           </div>
