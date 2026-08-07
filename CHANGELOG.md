@@ -1,3 +1,8 @@
+## 1.28.0 (2026-08-07)
+
+* Merge pull request #154 from riffvalley/feat/genero-asignacion ([4369f7c](https://github.com/riffvalley/riffvalley-app-front/commit/4369f7c)), closes [#154](https://github.com/riffvalley/riffvalley-app-front/issues/154)
+* feat(asignations): enviar género del disco al crear la asignación ([1e1e82e](https://github.com/riffvalley/riffvalley-app-front/commit/1e1e82e))
+
 ## 1.27.0 (2026-08-07)
 
 * Merge pull request #153 from riffvalley/feat/genero-asignacion ([a99a548](https://github.com/riffvalley/riffvalley-app-front/commit/a99a548)), closes [#153](https://github.com/riffvalley/riffvalley-app-front/issues/153)
