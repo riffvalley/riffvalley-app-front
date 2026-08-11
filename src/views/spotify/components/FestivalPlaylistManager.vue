@@ -34,7 +34,7 @@
                   <input type="file" accept="image/jpeg" class="block w-full text-xs text-gray-500 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2 file:py-2 file:text-xs file:font-semibold dark:file:bg-white/10 dark:file:text-gray-200" :disabled="!connection.canUploadImages || savingImage" @change="selectImage" />
                 </label>
                 <p class="mt-2 text-[11px] leading-4 text-gray-500">JPEG cuadrado. Máximo 256 KB una vez codificado.</p>
-                <button v-if="selectedImage" class="mt-2 w-full rounded-lg bg-rv-gradient px-3 py-2 text-xs font-semibold text-white shadow-sm disabled:opacity-50" :disabled="savingImage" @click="uploadImage">
+                <button v-if="selectedImage" class="mt-2 w-full rounded-lg bg-rv-pink px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:opacity-50" :disabled="savingImage" @click="uploadImage">
                   {{ savingImage ? 'Subiendo…' : 'Subir portada' }}
                 </button>
                 <button v-if="canManage && !connection.canUploadImages" class="mt-2 text-left text-xs font-semibold text-rv-purple hover:underline" @click="$emit('renew')">Renovar permisos de Spotify</button>
@@ -53,7 +53,7 @@
                 <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <input v-model="editForm.isPublic" type="checkbox" :disabled="!canManage" class="h-4 w-4 rounded" /> Playlist pública
                 </label>
-                <button v-if="canManage" type="submit" class="rounded-lg bg-rv-gradient px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:opacity-50" :disabled="savingDetails || !editForm.name.trim()">
+                <button v-if="canManage" type="submit" class="rounded-lg bg-rv-pink px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:opacity-50" :disabled="savingDetails || !editForm.name.trim()">
                   {{ savingDetails ? 'Guardando…' : 'Guardar cambios' }}
                 </button>
               </form>
@@ -117,7 +117,7 @@
             <p v-else-if="artistQuery.trim().length >= 2 && searchResults.length === 0" class="py-4 text-center text-sm text-gray-500">No se encontraron artistas.</p>
             <div v-if="canCreateSearchedArtist" class="mt-3 rounded-xl border border-dashed border-rv-purple/60 bg-rv-purple/10 p-3">
               <p class="text-xs leading-5 text-gray-600 dark:text-gray-300">No hay una coincidencia exacta. Se creará como pendiente de completar imagen, país y descripción.</p>
-              <button class="mt-2 w-full rounded-lg bg-rv-gradient px-3 py-2 text-sm font-bold text-white shadow-sm disabled:cursor-wait disabled:opacity-60" :disabled="creatingArtist || syncingArtistId !== null" @click="createAndAddArtist">
+              <button class="mt-2 w-full rounded-lg bg-rv-pink px-3 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:cursor-wait disabled:opacity-60" :disabled="creatingArtist || syncingArtistId !== null" @click="createAndAddArtist">
                 {{ creatingArtist ? 'Creando y sincronizando artista…' : `Crear artista “${artistQuery.trim()}”` }}
               </button>
             </div>
@@ -130,7 +130,7 @@
                     <span v-if="artist.description" class="mt-0.5 block truncate text-xs !text-gray-500 dark:!text-gray-300">{{ artist.description }}</span>
                   </span>
                   <span v-if="isArtistPresent(artist.id)" class="text-xs font-semibold !text-green-400">Añadido</span>
-                  <button v-else class="rounded-md bg-rv-gradient px-3 py-1.5 text-xs font-semibold text-white shadow-sm disabled:opacity-50" :disabled="!canManage || syncingArtistId !== null || creatingArtist" @click="addArtist(artist.id)">
+                  <button v-else class="rounded-md bg-rv-pink px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:opacity-50" :disabled="!canManage || syncingArtistId !== null || creatingArtist" @click="addArtist(artist.id)">
                     {{ syncingArtistId === artist.id ? 'Sincronizando artista…' : 'Añadir' }}
                   </button>
                 </div>
@@ -152,10 +152,20 @@
 
           <section v-if="canManage" class="rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20">
             <h3 class="font-bold text-red-800 dark:text-red-300">Zona peligrosa</h3>
-            <p class="mt-1 text-xs leading-5 text-red-700 dark:text-red-300/80">Elimina todas las canciones y asociaciones de artistas, pero conserva la playlist y su información.</p>
-            <button class="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-wait disabled:opacity-60" :disabled="clearingPlaylist" @click="requestClearPlaylist">
-              {{ clearingPlaylist ? 'Vaciando playlist…' : 'Vaciar playlist' }}
-            </button>
+            <div class="mt-4 rounded-xl border border-red-200 bg-white/70 p-3 dark:border-red-900 dark:bg-rv-darkSurface">
+              <p class="text-sm font-bold text-gray-900 dark:text-white">Vaciar canciones de Spotify</p>
+              <p class="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">Conserva la playlist, su portada y sus metadatos, pero elimina todas sus canciones reales de Spotify y las asociaciones de artistas.</p>
+              <button class="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-wait disabled:opacity-60" :disabled="clearingPlaylist || deletingPlaylist" @click="requestClearPlaylist">
+                {{ clearingPlaylist ? 'Vaciando playlist…' : 'Vaciar canciones de Spotify' }}
+              </button>
+            </div>
+            <div class="mt-4 rounded-xl border border-red-300 bg-white/70 p-3 dark:border-red-800 dark:bg-rv-darkSurface">
+              <p class="text-sm font-bold text-gray-900 dark:text-white">Eliminar playlist de Riff Valley</p>
+              <p class="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">Elimina el registro local y sus datos de sincronización. La playlist real y sus canciones seguirán existiendo en Spotify.</p>
+              <button class="mt-3 rounded-lg border-2 border-red-600 bg-transparent px-4 py-2 text-sm font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white disabled:cursor-wait disabled:opacity-60 dark:text-red-300" :disabled="deletingPlaylist || clearingPlaylist" @click="openDeleteConfirmation">
+                {{ deletingPlaylist ? 'Eliminando…' : 'Eliminar playlist' }}
+              </button>
+            </div>
           </section>
         </div>
       </div>
@@ -170,11 +180,32 @@
             <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Escribe exactamente <strong>VACIAR</strong> para confirmar. Esta acción no se puede deshacer.</p>
           </div>
         </div>
-        <input v-model="clearConfirmationText" autofocus autocomplete="off" placeholder="VACIAR" class="w-full rounded-lg border border-red-300 px-3 py-2 font-mono uppercase text-gray-900 outline-none focus:ring-2 focus:ring-red-500 dark:border-red-800 dark:bg-rv-darkSurface dark:text-white" :disabled="clearingPlaylist" @keyup.enter="confirmClearPlaylist" />
+        <input v-model="clearConfirmationText" autofocus autocomplete="off" autocapitalize="characters" placeholder="VACIAR" class="w-full rounded-lg border border-red-300 px-3 py-2 font-mono uppercase text-gray-900 outline-none focus:ring-2 focus:ring-red-500 dark:border-red-800 dark:bg-rv-darkSurface dark:text-white" :disabled="clearingPlaylist" @input="normalizeConfirmationInput($event, 'clear')" @keyup.enter="confirmClearPlaylist" />
         <div class="mt-5 flex justify-end gap-2">
           <button class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-rv-darkBg" :disabled="clearingPlaylist" @click="closeClearConfirmation">Cancelar</button>
           <button class="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40" :disabled="clearConfirmationText !== 'VACIAR' || clearingPlaylist" @click="confirmClearPlaylist">
             {{ clearingPlaylist ? 'Vaciando playlist…' : 'Vaciar definitivamente' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showDeleteConfirmation" class="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4" @click.self="closeDeleteConfirmation">
+      <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-rv-darkCard">
+        <div class="mb-4 flex items-start gap-3">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-300"><i class="fa-solid fa-trash"></i></span>
+          <div>
+            <h3 class="font-bold text-gray-900 dark:text-white">Eliminar playlist de Riff Valley</h3>
+            <p class="mt-2 text-sm leading-5 text-gray-600 dark:text-gray-300">Se eliminará «{{ detail?.name }}» de Riff Valley junto con sus asociaciones de artistas y datos de sincronización. La playlist real y sus canciones seguirán existiendo en Spotify.</p>
+          </div>
+        </div>
+        <p class="mb-2 text-sm text-gray-700 dark:text-gray-200">Escribe exactamente <strong>ELIMINAR</strong> para confirmar:</p>
+        <input v-model="deleteConfirmationText" autofocus autocomplete="off" autocapitalize="characters" placeholder="ELIMINAR" class="w-full rounded-lg border border-red-300 px-3 py-2 font-mono uppercase text-gray-900 outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-60 dark:border-red-800 dark:bg-rv-darkSurface dark:text-white" :disabled="deletingPlaylist" @input="normalizeConfirmationInput($event, 'delete')" @keyup.enter="confirmDeletePlaylist" />
+        <p v-if="deletePlaylistError" class="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">{{ deletePlaylistError }}</p>
+        <div class="mt-5 flex justify-end gap-2">
+          <button class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-rv-darkBg" :disabled="deletingPlaylist" @click="closeDeleteConfirmation">Cancelar</button>
+          <button class="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40" :disabled="deleteConfirmationText !== 'ELIMINAR' || deletingPlaylist" @click="confirmDeletePlaylist">
+            {{ deletingPlaylist ? 'Eliminando…' : 'Eliminar definitivamente' }}
           </button>
         </div>
       </div>
@@ -190,6 +221,7 @@ import {
   addArtistToFestivalPlaylist,
   clearFestivalPlaylist,
   createPendingFestivalArtist,
+  deleteFestivalPlaylist,
   getArtistTopSongs,
   getFestivalPlaylist,
   removeArtistFromFestivalPlaylist,
@@ -216,6 +248,7 @@ const emit = defineEmits<{
   close: [];
   renew: [];
   updated: [playlist: SyncedFestivalPlaylist];
+  deleted: [playlistId: string];
 }>();
 
 const fallbackImage = '/LOGO-RIFF-VALLEY.svg';
@@ -239,6 +272,10 @@ const previewLoadingId = ref<string | null>(null);
 const clearingPlaylist = ref(false);
 const showClearConfirmation = ref(false);
 const clearConfirmationText = ref('');
+const deletingPlaylist = ref(false);
+const showDeleteConfirmation = ref(false);
+const deleteConfirmationText = ref('');
+const deletePlaylistError = ref<string | null>(null);
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
 const editForm = reactive({ name: '', description: '', isPublic: false });
@@ -452,6 +489,46 @@ async function confirmClearPlaylist() {
     SwalService.error(errorMessage(error, 'No se pudo vaciar la playlist'));
   } finally {
     clearingPlaylist.value = false;
+  }
+}
+
+function openDeleteConfirmation() {
+  if (!detail.value || deletingPlaylist.value || !props.canManage) return;
+  deleteConfirmationText.value = '';
+  deletePlaylistError.value = null;
+  showDeleteConfirmation.value = true;
+}
+
+function closeDeleteConfirmation() {
+  if (deletingPlaylist.value) return;
+  showDeleteConfirmation.value = false;
+  deleteConfirmationText.value = '';
+  deletePlaylistError.value = null;
+}
+
+function normalizeConfirmationInput(event: Event, target: 'clear' | 'delete') {
+  const value = (event.target as HTMLInputElement).value.toUpperCase();
+  if (target === 'clear') clearConfirmationText.value = value;
+  else deleteConfirmationText.value = value;
+}
+
+async function confirmDeletePlaylist() {
+  if (!detail.value || deleteConfirmationText.value !== 'ELIMINAR' || deletingPlaylist.value) return;
+  const playlistId = detail.value.id;
+  deletingPlaylist.value = true;
+  deletePlaylistError.value = null;
+  try {
+    await deleteFestivalPlaylist(playlistId);
+    showDeleteConfirmation.value = false;
+    deleteConfirmationText.value = '';
+    detail.value = null;
+    emit('deleted', playlistId);
+    emit('close');
+    SwalService.success('Playlist eliminada de Riff Valley. La playlist de Spotify no se ha eliminado.');
+  } catch (error) {
+    deletePlaylistError.value = errorMessage(error, 'No se pudo eliminar la playlist de Riff Valley');
+  } finally {
+    deletingPlaylist.value = false;
   }
 }
 

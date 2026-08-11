@@ -154,6 +154,11 @@ export async function clearFestivalPlaylist(
   return data;
 }
 
+export async function deleteFestivalPlaylist(id: string): Promise<{ ok: true }> {
+  const { data } = await api.delete<{ ok: true }>(`/spotify/${id}`);
+  return data;
+}
+
 export async function getFestivalPlaylist(id: string): Promise<SyncedFestivalPlaylist> {
   const { data } = await api.get<SyncedFestivalPlaylist>(`/festival-playlists/${id}`);
   return data;
