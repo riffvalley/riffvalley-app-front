@@ -3,12 +3,17 @@
         <div class="flex items-center justify-between mb-6">
             <h1 class="text-2xl md:text-3xl font-semibold dark:text-white"><i class="fa-solid fa-guitar mr-2"></i>Géneros</h1>
             <div class="flex gap-2 items-center">
-                <button class="bg-black dark:bg-rv-purple text-white px-4 py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-rv-pink transition-colors disabled:opacity-50"
+                <button v-if="activeTab === 'playlists'" class="bg-black dark:bg-rv-purple text-white px-4 py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-rv-pink transition-colors disabled:opacity-50"
                     :disabled="!connection.connected" @click="openCreate">
                     <span class="hidden sm:inline">Nuevo </span>Género
                 </button>
             </div>
         </div>
+
+        <nav class="mb-6 flex gap-1 rounded-xl bg-gray-200 p-1 dark:bg-white/10" aria-label="Secciones de géneros">
+            <button class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'playlists' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20'" @click="activeTab = 'playlists'">Playlists</button>
+            <button class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'kanban' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20'" @click="activeTab = 'kanban'">Kanban editorial</button>
+        </nav>
 
         <div v-if="!connection.connected && !loading" class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
             <p class="text-sm font-semibold">Spotify debe estar conectado para crear, vincular o modificar estas playlists.</p>
@@ -18,6 +23,38 @@
         <!-- Loading / Error -->
         <div v-if="loading" class="text-center py-10 dark:text-gray-400">Cargando géneros...</div>
         <div v-else-if="error" class="text-red-500 text-center py-10">{{ error }}</div>
+
+        <template v-else-if="activeTab === 'playlists'">
+            <div v-if="items.length === 0" class="rounded-xl border border-dashed border-gray-300 py-16 text-center dark:border-white/20">
+                <i class="fa-brands fa-spotify mb-3 text-4xl text-gray-300"></i>
+                <p class="font-semibold text-gray-700 dark:text-gray-200">Aún no hay playlists de géneros</p>
+            </div>
+
+            <div v-else class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                <article v-for="item in items" :key="item.id" class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-rv-darkCard">
+                    <div class="flex items-start gap-3">
+                        <div class="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-rv-purple to-rv-blue shadow-sm">
+                            <img v-if="item.imageUrl" :src="item.imageUrl" :alt="`Portada de ${item.name}`" class="h-full w-full object-cover" />
+                            <div v-else class="grid h-full place-items-center text-xl text-white/80"><i class="fa-solid fa-music"></i></div>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-start justify-between gap-2">
+                                <h2 class="min-w-0 flex-1 truncate text-base font-bold text-gray-900 dark:text-white">{{ item.name }}</h2>
+                                <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300">{{ item.spotifyPlaylistId ? (item.isPublic === false ? 'Privada' : 'Pública') : 'No vinculada' }}</span>
+                            </div>
+                            <p class="mt-1 h-8 overflow-hidden text-xs leading-4 text-gray-500 dark:text-gray-400">{{ summary(item.description) || 'Sin descripción' }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span><i class="fa-solid fa-user-group mr-1"></i>{{ artistCount(item) }} artistas</span>
+                        <a v-if="item.link" :href="item.link" target="_blank" rel="noopener noreferrer" class="font-semibold !text-[#1DB954] hover:underline">Abrir en Spotify</a>
+                    </div>
+                    <button v-if="item.spotifyPlaylistId" class="mt-3 w-full rounded-lg bg-rv-pink px-3 py-1.5 text-xs font-semibold text-white hover:bg-rv-purple" @click="openManager(item)">Gestionar playlist</button>
+                    <button v-else-if="item.link" class="mt-3 w-full rounded-lg bg-rv-pink px-3 py-1.5 text-xs font-semibold text-white hover:bg-rv-purple disabled:opacity-50" :disabled="linkingItemId !== null" @click="linkExisting(item)">{{ linkingItemId === item.id ? 'Vinculando…' : 'Vincular con Spotify' }}</button>
+                    <div v-else class="mt-3 rounded-lg bg-amber-50 px-3 py-1.5 text-center text-[11px] font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">Playlist sin enlace de Spotify</div>
+                </article>
+            </div>
+        </template>
 
         <!-- Kanban Board -->
         <div v-else class="flex flex-col md:flex-row gap-4 pb-4 md:h-full md:overflow-x-auto">
@@ -206,6 +243,7 @@ import {
 } from '@services/spotify/genrePlaylists';
 
 const authStore = useAuthStore();
+const activeTab = ref<'playlists' | 'kanban'>('playlists');
 
 // --- Types ---
 type ColumnId = SpotifyStatus;
@@ -265,6 +303,7 @@ function fmtDate(iso: string) {
     return new Date(iso).toLocaleDateString() + ' ' + new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 function artistCount(item: Spotify) { return item.playlistArtists?.length ?? item.playlistArtistsCount ?? 0; }
+function summary(value?: string | null) { if (!value) return ''; return value.length > 110 ? `${value.slice(0, 107)}…` : value; }
 function apiError(error: unknown, fallback: string) { return axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message || fallback : fallback; }
 
 // --- Logic ---
