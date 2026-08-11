@@ -16,9 +16,9 @@
         Puedes consultar la playlist, pero tu rol no permite modificarla.
       </div>
 
-      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,.8fr)]">
-        <div class="space-y-6">
-          <section class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
+      <div class="grid items-start gap-6 lg:grid-cols-2">
+        <div class="contents">
+          <section class="order-1 rounded-xl border border-gray-200 p-4 dark:border-white/10 lg:col-start-1 lg:row-start-1">
             <div class="mb-4 flex items-center justify-between gap-3">
               <h3 class="font-bold text-gray-900 dark:text-white">Información y portada</h3>
               <a :href="detail.link" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-[#1DB954] hover:underline">
@@ -60,7 +60,7 @@
             </div>
           </section>
 
-          <section class="spotify-artists-section rounded-xl border border-gray-200 p-4 dark:border-white/10">
+          <section class="spotify-artists-section order-3 rounded-xl border border-gray-200 p-4 dark:border-white/10 lg:col-start-2 lg:row-start-2">
             <div class="mb-4 flex items-center justify-between">
               <h3 class="spotify-artists-title font-bold">Artistas sincronizados</h3>
               <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-white/10 dark:text-gray-300">{{ detail.playlistArtists.length }}</span>
@@ -93,25 +93,8 @@
           </section>
         </div>
 
-        <div class="space-y-6">
-          <section class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
-            <h3 class="font-bold text-gray-900 dark:text-white">Estado de conexión Spotify</h3>
-            <div class="mt-3 flex items-center gap-3">
-              <span class="h-3 w-3 rounded-full" :class="connection.authorizationStatus === 'expiring_soon' ? 'bg-amber-500' : connection.connected ? 'bg-green-500' : 'bg-red-500'"></span>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-semibold dark:text-white">{{ managerConnectionTitle }}</p>
-                <p v-if="connection.displayName" class="truncate text-xs text-gray-500">{{ connection.displayName }}</p>
-              </div>
-            </div>
-            <p v-if="connection.missingScopes.length" class="mt-3 text-xs text-amber-700 dark:text-amber-300">Faltan permisos: {{ connection.missingScopes.join(', ') }}</p>
-            <p v-if="connection.authorizationStatus === 'expiring_soon'" class="mt-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">La autorización caduca en {{ connection.daysUntilReauthorization }} días.</p>
-            <p v-if="connection.reauthorizationRequired" class="mt-3 rounded-lg bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-300">La sincronización está pausada hasta que vuelvas a autorizar Spotify.</p>
-            <button v-if="canManage && shouldOfferReauthorization" class="mt-3 text-sm font-semibold text-rv-purple hover:underline" @click="$emit('renew')">
-              {{ connection.reauthorizationRequired || connection.authorizationStatus === 'expiring_soon' ? 'Volver a autorizar Spotify' : connection.connected ? 'Renovar permisos' : 'Conectar Spotify' }}
-            </button>
-          </section>
-
-          <section class="spotify-artists-section rounded-xl border border-gray-200 p-4 dark:border-white/10">
+        <div class="contents">
+          <section class="spotify-artists-section order-2 rounded-xl border border-gray-200 p-4 dark:border-white/10 lg:col-start-2 lg:row-start-1">
             <h3 class="spotify-artists-title font-bold">Añadir artistas</h3>
             <p class="mt-1 text-xs text-gray-500">La selección de temas se calcula con datos de setlist.fm y se sincroniza después con Spotify.</p>
             <input v-model="artistQuery" type="search" placeholder="Buscar artista interno…" :disabled="!canManage || syncingArtistId !== null || creatingArtist" class="mt-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-white/20 dark:bg-rv-darkSurface dark:text-white disabled:opacity-60" />
@@ -152,7 +135,7 @@
             </div>
           </section>
 
-          <section v-if="canManage" class="rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20">
+          <section v-if="canManage" class="order-4 rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20 lg:col-start-1 lg:row-start-2">
             <h3 class="font-bold text-red-800 dark:text-red-300">Zona peligrosa</h3>
             <div class="mt-4 rounded-xl border border-red-200 bg-white/70 p-3 dark:border-red-900 dark:bg-rv-darkSurface">
               <p class="text-sm font-bold text-gray-900 dark:text-white">Vaciar canciones de Spotify</p>
@@ -292,18 +275,6 @@ const canCreateSearchedArtist = computed(() =>
   && !searchFailed.value
   && !hasExactArtistMatch.value,
 );
-const managerConnectionTitle = computed(() => {
-  if (props.connection.reauthorizationRequired) return 'Reautorización necesaria';
-  if (props.connection.authorizationStatus === 'expiring_soon') return 'Cuenta conectada · caduca pronto';
-  return props.connection.connected ? 'Cuenta conectada' : 'Cuenta desconectada';
-});
-const shouldOfferReauthorization = computed(() =>
-  !props.connection.connected
-  || props.connection.reauthorizationRequired
-  || props.connection.authorizationStatus === 'expiring_soon'
-  || props.connection.missingScopes.length > 0,
-);
-
 function errorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError<{ message?: string }>(error)) return error.response?.data?.message || fallback;
   return fallback;
