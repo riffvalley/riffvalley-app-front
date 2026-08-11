@@ -1,3 +1,8 @@
+## 1.33.0 (2026-08-11)
+
+* Merge pull request #159 from riffvalley/feat/festival-playlists-spotify ([39ccc38](https://github.com/riffvalley/riffvalley-app-front/commit/39ccc38)), closes [#159](https://github.com/riffvalley/riffvalley-app-front/issues/159)
+* feat: add genre playlist shuffle action ([f85241c](https://github.com/riffvalley/riffvalley-app-front/commit/f85241c))
+
 ## 1.32.0 (2026-08-11)
 
 * Merge pull request #158 from riffvalley/feat/festival-playlists-spotify ([71d11c6](https://github.com/riffvalley/riffvalley-app-front/commit/71d11c6)), closes [#158](https://github.com/riffvalley/riffvalley-app-front/issues/158)
