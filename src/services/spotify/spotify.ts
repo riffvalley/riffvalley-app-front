@@ -34,6 +34,12 @@ export interface Spotify {
   updatedAt: string; // ISO
   user?: { id: string; username: string; image?: string }; // Usuario asignado
   userId?: string;
+  /** Campos presentes en playlists de festivales sincronizadas. */
+  description?: string | null;
+  spotifyPlaylistId?: string | null;
+  imageUrl?: string | null;
+  isPublic?: boolean;
+  playlistArtists?: Array<{ id: string }>;
 }
 
 // =========================
@@ -49,7 +55,9 @@ export interface CreateSpotifyDto {
   userId?: string;
 }
 
-export interface UpdateSpotifyDto extends Partial<CreateSpotifyDto> { }
+export interface UpdateSpotifyDto extends Omit<Partial<CreateSpotifyDto>, 'userId'> {
+  userId?: string | null;
+}
 
 // Utils
 export const toISO = (d: Date) => d.toISOString();
