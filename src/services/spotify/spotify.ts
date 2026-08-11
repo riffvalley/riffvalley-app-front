@@ -40,6 +40,7 @@ export interface Spotify {
   imageUrl?: string | null;
   isPublic?: boolean;
   playlistArtists?: Array<{ id: string }>;
+  playlistArtistsCount?: number;
 }
 
 // =========================

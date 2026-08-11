@@ -97,15 +97,17 @@
           <section class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
             <h3 class="font-bold text-gray-900 dark:text-white">Estado de conexión Spotify</h3>
             <div class="mt-3 flex items-center gap-3">
-              <span class="h-3 w-3 rounded-full" :class="connection.connected ? 'bg-green-500' : 'bg-red-500'"></span>
+              <span class="h-3 w-3 rounded-full" :class="connection.authorizationStatus === 'expiring_soon' ? 'bg-amber-500' : connection.connected ? 'bg-green-500' : 'bg-red-500'"></span>
               <div class="min-w-0 flex-1">
-                <p class="text-sm font-semibold dark:text-white">{{ connection.connected ? 'Cuenta conectada' : 'Cuenta desconectada' }}</p>
+                <p class="text-sm font-semibold dark:text-white">{{ managerConnectionTitle }}</p>
                 <p v-if="connection.displayName" class="truncate text-xs text-gray-500">{{ connection.displayName }}</p>
               </div>
             </div>
             <p v-if="connection.missingScopes.length" class="mt-3 text-xs text-amber-700 dark:text-amber-300">Faltan permisos: {{ connection.missingScopes.join(', ') }}</p>
-            <button v-if="canManage && (!connection.connected || connection.missingScopes.length)" class="mt-3 text-sm font-semibold text-rv-purple hover:underline" @click="$emit('renew')">
-              {{ connection.connected ? 'Renovar permisos' : 'Conectar Spotify' }}
+            <p v-if="connection.authorizationStatus === 'expiring_soon'" class="mt-3 rounded-lg bg-amber-50 p-2 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">La autorización caduca en {{ connection.daysUntilReauthorization }} días.</p>
+            <p v-if="connection.reauthorizationRequired" class="mt-3 rounded-lg bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-300">La sincronización está pausada hasta que vuelvas a autorizar Spotify.</p>
+            <button v-if="canManage && shouldOfferReauthorization" class="mt-3 text-sm font-semibold text-rv-purple hover:underline" @click="$emit('renew')">
+              {{ connection.reauthorizationRequired || connection.authorizationStatus === 'expiring_soon' ? 'Volver a autorizar Spotify' : connection.connected ? 'Renovar permisos' : 'Conectar Spotify' }}
             </button>
           </section>
 
@@ -289,6 +291,17 @@ const canCreateSearchedArtist = computed(() =>
   && !searching.value
   && !searchFailed.value
   && !hasExactArtistMatch.value,
+);
+const managerConnectionTitle = computed(() => {
+  if (props.connection.reauthorizationRequired) return 'Reautorización necesaria';
+  if (props.connection.authorizationStatus === 'expiring_soon') return 'Cuenta conectada · caduca pronto';
+  return props.connection.connected ? 'Cuenta conectada' : 'Cuenta desconectada';
+});
+const shouldOfferReauthorization = computed(() =>
+  !props.connection.connected
+  || props.connection.reauthorizationRequired
+  || props.connection.authorizationStatus === 'expiring_soon'
+  || props.connection.missingScopes.length > 0,
 );
 
 function errorMessage(error: unknown, fallback: string): string {

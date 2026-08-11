@@ -27,20 +27,33 @@
         <div class="flex items-center gap-3">
           <span class="grid h-11 w-11 place-items-center rounded-full bg-[#1DB954]/10 text-xl text-[#1DB954]"><i class="fa-brands fa-spotify"></i></span>
           <div>
-            <p class="font-semibold text-gray-900 dark:text-white">{{ connection.connected ? 'Spotify conectado' : 'Spotify desconectado' }}</p>
+            <p class="font-semibold text-gray-900 dark:text-white">{{ connectionTitle }}</p>
             <p class="text-sm text-gray-500 dark:text-gray-400">
-              {{ connection.connected ? (connection.displayName || connection.spotifyUserId || 'Cuenta oficial') : 'Conecta la cuenta oficial para sincronizar playlists.' }}
+              {{ connectionDescription }}
             </p>
             <p v-if="connection.missingScopes.length" class="mt-1 text-xs text-amber-600 dark:text-amber-300">Faltan permisos: {{ connection.missingScopes.join(', ') }}</p>
+            <p v-if="connection.refreshTokenExpiresAt && connection.connected" class="mt-1 text-xs text-gray-500 dark:text-gray-400">Autorización válida hasta el {{ formatAuthorizationDate(connection.refreshTokenExpiresAt) }}.</p>
           </div>
         </div>
         <div class="flex gap-2">
           <button class="rounded-lg bg-[#1DB954] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50" :disabled="connecting" @click="startSpotifyOAuth">
-            {{ connecting ? 'Redirigiendo…' : connection.connected ? 'Renovar permisos' : 'Conectar Spotify' }}
+            {{ connecting ? 'Redirigiendo…' : connectButtonLabel }}
           </button>
-          <button v-if="connection.connected" class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-rv-darkBg" @click="confirmDisconnect">Desconectar</button>
+          <button v-if="connection.spotifyUserId" class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-rv-darkBg" @click="confirmDisconnect">Desconectar</button>
         </div>
       </section>
+
+      <div v-if="canManage && connection.authorizationStatus === 'expiring_soon'" class="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
+        <p class="font-bold"><i class="fa-solid fa-clock mr-2"></i>La autorización de Spotify caduca pronto</p>
+        <p class="mt-1 text-sm">Quedan {{ connection.daysUntilReauthorization }} días. Vuelve a autorizar ahora para evitar que se interrumpa la sincronización.</p>
+        <button class="mt-3 rounded-lg bg-amber-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50" :disabled="connecting" @click="startSpotifyOAuth">Volver a autorizar Spotify</button>
+      </div>
+
+      <div v-if="canManage && connection.reauthorizationRequired" class="mb-6 rounded-xl border border-red-300 bg-red-50 p-4 text-red-900 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200">
+        <p class="font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Spotify necesita volver a autorizarse</p>
+        <p class="mt-1 text-sm">{{ reauthorizationMessage }} Las playlists no se han eliminado, pero no podrán modificarse hasta completar la autorización.</p>
+        <button class="mt-3 rounded-lg bg-[#1DB954] px-4 py-2 text-sm font-bold text-white disabled:opacity-50" :disabled="connecting" @click="startSpotifyOAuth">Volver a autorizar Spotify</button>
+      </div>
 
       <div v-if="items.length === 0" class="rounded-xl border border-dashed border-gray-300 py-16 text-center dark:border-white/20">
         <i class="fa-brands fa-spotify mb-3 text-4xl text-gray-300"></i>
@@ -66,7 +79,7 @@
           </div>
           <div>
             <div class="mt-3 flex items-center justify-between text-xs text-gray-500">
-              <span><i class="fa-solid fa-user-group mr-1"></i>{{ item.playlistArtists?.length || 0 }} artistas</span>
+              <span><i class="fa-solid fa-user-group mr-1"></i>{{ artistCount(item) }} artistas</span>
               <a v-if="item.link" :href="item.link" target="_blank" rel="noopener noreferrer" class="font-semibold text-[#1DB954] hover:underline">Abrir en Spotify</a>
             </div>
             <button v-if="item.spotifyPlaylistId" class="mt-3 w-full rounded-lg bg-rv-pink px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:cursor-not-allowed disabled:opacity-50" :disabled="!canManage" @click="openManager(item)">
@@ -93,7 +106,7 @@
               <img v-if="item.imageUrl" :src="item.imageUrl" class="h-12 w-12 rounded-lg object-cover" alt="" />
               <div class="min-w-0 flex-1">
                 <h3 class="truncate font-semibold text-gray-900 dark:text-white">{{ item.name }}</h3>
-                <p class="mt-0.5 text-xs text-gray-500">{{ item.spotifyPlaylistId ? `${item.playlistArtists?.length || 0} artistas` : 'No vinculada con Spotify' }}</p>
+                <p class="mt-0.5 text-xs text-gray-500">{{ item.spotifyPlaylistId ? `${artistCount(item)} artistas` : 'No vinculada con Spotify' }}</p>
               </div>
             </div>
 
@@ -200,7 +213,19 @@ const columns: Column[] = [
   { id: 'published', label: 'Publicado', bgClass: 'bg-green-50 dark:bg-green-900/20', borderClass: 'border-t-4 border-green-500', textClass: 'text-green-900 dark:text-green-300', countClass: 'bg-green-200 text-green-800 dark:bg-green-900/40 dark:text-green-300' },
 ];
 
-const emptyConnection: SpotifyConnection = { connected: false, spotifyUserId: null, displayName: null, canUploadImages: false, missingScopes: [] };
+const emptyConnection: SpotifyConnection = {
+  connected: false,
+  spotifyUserId: null,
+  displayName: null,
+  canUploadImages: false,
+  missingScopes: [],
+  authorizationStatus: 'disconnected',
+  reauthorizationRequired: false,
+  reauthorizationReason: null,
+  authorizedAt: null,
+  refreshTokenExpiresAt: null,
+  daysUntilReauthorization: null,
+};
 const authStore = useAuthStore();
 const route = useRoute();
 const router = useRouter();
@@ -225,6 +250,30 @@ const spotifyUrlError = computed(() => validateSpotifyPlaylistUrl(createForm.spo
 const canSubmitCreate = computed(() => createMode.value === 'new'
   ? createForm.name.trim().length > 0
   : createForm.spotifyUrl.length > 0 && spotifyUrlError.value === null);
+const connectionTitle = computed(() => {
+  if (connection.value.reauthorizationRequired) return 'Spotify necesita autorización';
+  if (connection.value.authorizationStatus === 'expiring_soon') return 'Spotify conectado · caduca pronto';
+  return connection.value.connected ? 'Spotify conectado' : 'Spotify desconectado';
+});
+const connectionDescription = computed(() => {
+  if (connection.value.spotifyUserId) return connection.value.displayName || connection.value.spotifyUserId;
+  return 'Conecta la cuenta oficial para sincronizar playlists.';
+});
+const connectButtonLabel = computed(() => {
+  if (connection.value.reauthorizationRequired || connection.value.authorizationStatus === 'expiring_soon') return 'Volver a autorizar';
+  return connection.value.connected ? 'Renovar permisos' : 'Conectar Spotify';
+});
+const reauthorizationMessage = computed(() => connection.value.reauthorizationReason === 'refresh_token_invalid'
+  ? 'Spotify ha invalidado la autorización guardada.'
+  : 'La autorización de seis meses ha caducado.');
+
+function formatAuthorizationDate(value: string): string {
+  return new Intl.DateTimeFormat('es-ES', { dateStyle: 'long' }).format(new Date(value));
+}
+
+function artistCount(item: Spotify): number {
+  return item.playlistArtists?.length ?? item.playlistArtistsCount ?? 0;
+}
 
 function errorMessage(errorValue: unknown, fallback: string): string {
   if (axios.isAxiosError<{ message?: string }>(errorValue)) return errorValue.response?.data?.message || fallback;
