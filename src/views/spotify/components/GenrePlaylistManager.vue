@@ -70,14 +70,13 @@
                 >
                   JPEG cuadrado. Máximo 256 KB codificado.
                 </p>
-                <button
-                  v-if="selectedImage"
-                  class="mt-2 w-full rounded-lg bg-rv-pink px-3 py-2 text-xs font-semibold text-white hover:bg-rv-purple disabled:opacity-50"
-                  :disabled="savingImage"
-                  @click="uploadImage"
+                <p
+                  v-if="savingImage"
+                  class="mt-2 text-xs font-semibold text-rv-purple"
                 >
-                  {{ savingImage ? "Subiendo…" : "Subir portada" }}
-                </button>
+                  <i class="fa-solid fa-spinner fa-spin mr-1"></i>Subiendo
+                  portada…
+                </p>
                 <button
                   v-if="!connection.canUploadImages"
                   class="mt-2 !bg-transparent p-0 text-left text-xs font-semibold text-rv-purple hover:underline"
@@ -86,7 +85,7 @@
                   Renovar permisos de Spotify
                 </button>
               </div>
-              <form class="space-y-3" @submit.prevent="saveDetails">
+              <div class="space-y-3">
                 <div>
                   <label
                     class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
@@ -122,14 +121,33 @@
                   />
                   Playlist pública</label
                 >
-                <button
-                  type="submit"
-                  class="rounded-lg bg-rv-pink px-4 py-2 text-sm font-semibold text-white hover:bg-rv-purple disabled:opacity-50"
-                  :disabled="savingDetails || !editForm.name.trim()"
+                <p
+                  class="text-xs"
+                  :class="
+                    detailsSaveFailed
+                      ? 'text-red-600 dark:text-red-300'
+                      : 'text-gray-500 dark:text-gray-400'
+                  "
                 >
-                  {{ savingDetails ? "Guardando…" : "Guardar cambios" }}
-                </button>
-              </form>
+                  <i
+                    class="fa-solid mr-1"
+                    :class="
+                      savingDetails
+                        ? 'fa-spinner fa-spin'
+                        : detailsSaveFailed
+                          ? 'fa-triangle-exclamation'
+                          : 'fa-cloud-arrow-up'
+                    "
+                  ></i>
+                  {{
+                    savingDetails
+                      ? "Guardando cambios…"
+                      : detailsSaveFailed
+                        ? "No se pudieron guardar los últimos cambios"
+                        : "Los cambios se guardan automáticamente"
+                  }}
+                </p>
+              </div>
             </div>
           </section>
 
@@ -586,6 +604,7 @@ const catalogStore = useCatalogStore();
 const detail = ref<SyncedGenrePlaylist | null>(null);
 const loading = ref(true);
 const savingDetails = ref(false);
+const detailsSaveFailed = ref(false);
 const savingImage = ref(false);
 const selectedImage = ref<File | null>(null);
 const imagePreview = ref<string | null>(null);
@@ -606,6 +625,8 @@ const selectedTrackIds = ref<string[]>([]);
 const loadingTracks = ref(false);
 const savingSelection = ref(false);
 const editForm = reactive({ name: "", description: "", isPublic: false });
+let detailsSaveRequested = false;
+let detailsSavePromise: Promise<void> | null = null;
 let artistTimer: ReturnType<typeof setTimeout> | null = null;
 
 const hasExactArtist = computed(() =>
@@ -627,17 +648,21 @@ function errorMessage(error: unknown, fallback: string) {
     ? error.response?.data?.message || fallback
     : fallback;
 }
-function applyDetail(value: SyncedGenrePlaylist) {
+function applyDetail(value: SyncedGenrePlaylist, syncForm = false) {
   detail.value = value;
-  editForm.name = value.name;
-  editForm.description = value.description ?? "";
-  editForm.isPublic = value.isPublic;
+  if (syncForm) {
+    editForm.name = value.name;
+    editForm.description = value.description ?? "";
+    editForm.isPublic = value.isPublic;
+  } else {
+    void saveDetails();
+  }
   emit("updated", value);
 }
 async function loadDetail() {
   loading.value = true;
   try {
-    applyDetail(await getGenrePlaylist(props.playlistId));
+    applyDetail(await getGenrePlaylist(props.playlistId), true);
   } catch (error) {
     SwalService.error(errorMessage(error, "No se pudo cargar la playlist"));
     emit("close");
@@ -839,23 +864,42 @@ async function removeArtist(entry: PlaylistArtist) {
     SwalService.error(errorMessage(error, "No se pudo eliminar el artista"));
   }
 }
-async function saveDetails() {
-  if (!detail.value || !editForm.name.trim()) return;
-  savingDetails.value = true;
-  try {
-    applyDetail(
-      await updateGenrePlaylist(detail.value.id, {
+function saveDetails(): Promise<void> {
+  detailsSaveRequested = true;
+  if (detailsSavePromise) return detailsSavePromise;
+
+  detailsSavePromise = (async () => {
+    savingDetails.value = true;
+    detailsSaveFailed.value = false;
+    while (detailsSaveRequested) {
+      detailsSaveRequested = false;
+      if (!detail.value || !editForm.name.trim()) continue;
+      const playlistId = detail.value.id;
+      const snapshot = {
         name: editForm.name.trim(),
         description: editForm.description,
         public: editForm.isPublic,
-      }),
-    );
-    SwalService.success("Playlist actualizada");
-  } catch (error) {
-    SwalService.error(errorMessage(error, "No se pudo actualizar"));
-  } finally {
+      };
+      const alreadySaved =
+        detail.value.name === snapshot.name &&
+        (detail.value.description ?? "") === snapshot.description &&
+        detail.value.isPublic === snapshot.public;
+      if (alreadySaved) continue;
+      try {
+        const updated = await updateGenrePlaylist(playlistId, snapshot);
+        detail.value = updated;
+        emit("updated", updated);
+      } catch (error) {
+        detailsSaveFailed.value = true;
+        detailsSaveRequested = false;
+        SwalService.error(errorMessage(error, "No se pudo actualizar"));
+      }
+    }
+  })().finally(() => {
     savingDetails.value = false;
-  }
+    detailsSavePromise = null;
+  });
+  return detailsSavePromise;
 }
 function clearPreview() {
   if (imagePreview.value) URL.revokeObjectURL(imagePreview.value);
@@ -874,23 +918,32 @@ function selectImage(event: Event) {
   }
   selectedImage.value = file;
   imagePreview.value = URL.createObjectURL(file);
+  void uploadImage(input);
 }
-async function uploadImage() {
+async function uploadImage(input?: HTMLInputElement) {
   if (!detail.value || !selectedImage.value) return;
   savingImage.value = true;
   try {
     applyDetail(
       await updateGenrePlaylistImage(detail.value.id, selectedImage.value),
     );
-    selectedImage.value = null;
-    clearPreview();
     SwalService.success("Portada actualizada");
   } catch (error) {
     SwalService.error(errorMessage(error, "No se pudo actualizar la portada"));
   } finally {
     savingImage.value = false;
+    selectedImage.value = null;
+    clearPreview();
+    if (input) input.value = "";
   }
 }
+
+watch(
+  () => [editForm.name, editForm.description, editForm.isPublic],
+  () => {
+    void saveDetails();
+  },
+);
 async function clearPlaylist() {
   if (!detail.value) return;
   const result = await SwalService.confirm(
