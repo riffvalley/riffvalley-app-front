@@ -1,3 +1,8 @@
+## 1.29.0 (2026-08-11)
+
+* Merge pull request #155 from riffvalley/feat/festival-playlists-spotify ([d49a7c8](https://github.com/riffvalley/riffvalley-app-front/commit/d49a7c8)), closes [#155](https://github.com/riffvalley/riffvalley-app-front/issues/155)
+* feat(spotify): manage synced festival playlists ([2b11284](https://github.com/riffvalley/riffvalley-app-front/commit/2b11284))
+
 ## 1.28.0 (2026-08-07)
 
 * Merge pull request #154 from riffvalley/feat/genero-asignacion ([4369f7c](https://github.com/riffvalley/riffvalley-app-front/commit/4369f7c)), closes [#154](https://github.com/riffvalley/riffvalley-app-front/issues/154)
