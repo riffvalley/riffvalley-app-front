@@ -1,3 +1,9 @@
+## 1.30.0 (2026-08-11)
+
+* Merge pull request #156 from riffvalley/feat/festival-playlists-spotify ([f54700a](https://github.com/riffvalley/riffvalley-app-front/commit/f54700a)), closes [#156](https://github.com/riffvalley/riffvalley-app-front/issues/156)
+* style(spotify): align festival playlist colors ([25c403c](https://github.com/riffvalley/riffvalley-app-front/commit/25c403c))
+* feat(spotify): refine festival playlist management ([ea0e92b](https://github.com/riffvalley/riffvalley-app-front/commit/ea0e92b))
+
 ## 1.29.0 (2026-08-11)
 
 * Merge pull request #155 from riffvalley/feat/festival-playlists-spotify ([d49a7c8](https://github.com/riffvalley/riffvalley-app-front/commit/d49a7c8)), closes [#155](https://github.com/riffvalley/riffvalley-app-front/issues/155)
