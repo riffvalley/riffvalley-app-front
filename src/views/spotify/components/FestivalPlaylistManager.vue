@@ -34,7 +34,7 @@
                   <input type="file" accept="image/jpeg" class="block w-full text-xs text-gray-500 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2 file:py-2 file:text-xs file:font-semibold dark:file:bg-white/10 dark:file:text-gray-200" :disabled="!connection.canUploadImages || savingImage" @change="selectImage" />
                 </label>
                 <p class="mt-2 text-[11px] leading-4 text-gray-500">JPEG cuadrado. Máximo 256 KB una vez codificado.</p>
-                <button v-if="selectedImage" class="mt-2 w-full rounded-lg bg-rv-gradient px-3 py-2 text-xs font-semibold text-white shadow-sm disabled:opacity-50" :disabled="savingImage" @click="uploadImage">
+                <button v-if="selectedImage" class="mt-2 w-full rounded-lg bg-rv-pink px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:opacity-50" :disabled="savingImage" @click="uploadImage">
                   {{ savingImage ? 'Subiendo…' : 'Subir portada' }}
                 </button>
                 <button v-if="canManage && !connection.canUploadImages" class="mt-2 text-left text-xs font-semibold text-rv-purple hover:underline" @click="$emit('renew')">Renovar permisos de Spotify</button>
@@ -53,7 +53,7 @@
                 <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                   <input v-model="editForm.isPublic" type="checkbox" :disabled="!canManage" class="h-4 w-4 rounded" /> Playlist pública
                 </label>
-                <button v-if="canManage" type="submit" class="rounded-lg bg-rv-gradient px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:opacity-50" :disabled="savingDetails || !editForm.name.trim()">
+                <button v-if="canManage" type="submit" class="rounded-lg bg-rv-pink px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:opacity-50" :disabled="savingDetails || !editForm.name.trim()">
                   {{ savingDetails ? 'Guardando…' : 'Guardar cambios' }}
                 </button>
               </form>
@@ -117,7 +117,7 @@
             <p v-else-if="artistQuery.trim().length >= 2 && searchResults.length === 0" class="py-4 text-center text-sm text-gray-500">No se encontraron artistas.</p>
             <div v-if="canCreateSearchedArtist" class="mt-3 rounded-xl border border-dashed border-rv-purple/60 bg-rv-purple/10 p-3">
               <p class="text-xs leading-5 text-gray-600 dark:text-gray-300">No hay una coincidencia exacta. Se creará como pendiente de completar imagen, país y descripción.</p>
-              <button class="mt-2 w-full rounded-lg bg-rv-gradient px-3 py-2 text-sm font-bold text-white shadow-sm disabled:cursor-wait disabled:opacity-60" :disabled="creatingArtist || syncingArtistId !== null" @click="createAndAddArtist">
+              <button class="mt-2 w-full rounded-lg bg-rv-pink px-3 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:cursor-wait disabled:opacity-60" :disabled="creatingArtist || syncingArtistId !== null" @click="createAndAddArtist">
                 {{ creatingArtist ? 'Creando y sincronizando artista…' : `Crear artista “${artistQuery.trim()}”` }}
               </button>
             </div>
@@ -130,7 +130,7 @@
                     <span v-if="artist.description" class="mt-0.5 block truncate text-xs !text-gray-500 dark:!text-gray-300">{{ artist.description }}</span>
                   </span>
                   <span v-if="isArtistPresent(artist.id)" class="text-xs font-semibold !text-green-400">Añadido</span>
-                  <button v-else class="rounded-md bg-rv-gradient px-3 py-1.5 text-xs font-semibold text-white shadow-sm disabled:opacity-50" :disabled="!canManage || syncingArtistId !== null || creatingArtist" @click="addArtist(artist.id)">
+                  <button v-else class="rounded-md bg-rv-pink px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:opacity-50" :disabled="!canManage || syncingArtistId !== null || creatingArtist" @click="addArtist(artist.id)">
                     {{ syncingArtistId === artist.id ? 'Sincronizando artista…' : 'Añadir' }}
                   </button>
                 </div>

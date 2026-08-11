@@ -5,16 +5,16 @@
         <h1 class="text-2xl font-semibold dark:text-white md:text-3xl"><i class="fa-brands fa-spotify mr-2 text-[#1DB954]"></i>Festivales</h1>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Playlists reales de Spotify y seguimiento editorial.</p>
       </div>
-      <button v-if="activeTab === 'playlists' && canManage" class="rounded-lg bg-rv-gradient px-4 py-2 font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50" :disabled="!connection.connected" :title="connection.connected ? 'Crear playlist' : 'Conecta Spotify para crear una playlist'" @click="openCreate">
+      <button v-if="activeTab === 'playlists' && canManage" class="rounded-lg bg-rv-pink px-4 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:cursor-not-allowed disabled:opacity-50" :disabled="!connection.connected" :title="connection.connected ? 'Crear playlist' : 'Conecta Spotify para crear una playlist'" @click="openCreate">
         Nueva playlist de festival
       </button>
     </div>
 
-    <nav class="mb-6 flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-rv-darkSurface" aria-label="Secciones de festivales">
-      <button class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'playlists' ? 'bg-white text-gray-900 shadow-sm dark:bg-rv-darkCard dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'" @click="activeTab = 'playlists'">
+    <nav class="mb-6 flex gap-1 rounded-xl bg-gray-200 p-1 dark:bg-white/10" aria-label="Secciones de festivales">
+      <button class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'playlists' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20 dark:hover:text-white'" @click="activeTab = 'playlists'">
         Playlists
       </button>
-      <button class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'kanban' ? 'bg-white text-gray-900 shadow-sm dark:bg-rv-darkCard dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'" @click="activeTab = 'kanban'">
+      <button class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'kanban' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20 dark:hover:text-white'" @click="activeTab = 'kanban'">
         Kanban editorial
       </button>
     </nav>
@@ -69,10 +69,10 @@
               <span><i class="fa-solid fa-user-group mr-1"></i>{{ item.playlistArtists?.length || 0 }} artistas</span>
               <a v-if="item.link" :href="item.link" target="_blank" rel="noopener noreferrer" class="font-semibold text-[#1DB954] hover:underline">Abrir en Spotify</a>
             </div>
-            <button v-if="item.spotifyPlaylistId" class="mt-3 w-full rounded-lg bg-rv-gradient px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50" :disabled="!canManage" @click="openManager(item)">
+            <button v-if="item.spotifyPlaylistId" class="mt-3 w-full rounded-lg bg-rv-pink px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:cursor-not-allowed disabled:opacity-50" :disabled="!canManage" @click="openManager(item)">
               Gestionar playlist
             </button>
-            <button v-else-if="item.link && canManage" class="mt-3 w-full rounded-lg bg-rv-gradient px-3 py-1.5 text-xs font-semibold text-white shadow-sm disabled:cursor-wait disabled:opacity-60" :disabled="linkingItemId !== null" @click="confirmLinkExisting(item)">
+            <button v-else-if="item.link && canManage" class="mt-3 w-full rounded-lg bg-rv-pink px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:cursor-wait disabled:opacity-60" :disabled="linkingItemId !== null" @click="confirmLinkExisting(item)">
               {{ linkingItemId === item.id ? 'Vinculando playlist…' : 'Vincular con Spotify' }}
             </button>
             <div v-else class="mt-3 rounded-lg bg-amber-50 px-3 py-1.5 text-center text-[11px] font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">Playlist no vinculada con Spotify</div>
@@ -129,9 +129,9 @@
     <div v-if="showCreate" class="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" @click.self="closeCreate">
       <form class="w-full max-w-lg space-y-4 rounded-xl bg-white p-6 shadow-xl dark:bg-rv-darkCard" @submit.prevent="createPlaylist">
         <h2 class="text-lg font-bold dark:text-white">Nueva playlist de festival</h2>
-        <div class="grid grid-cols-2 gap-1 rounded-xl bg-gray-100 p-1 dark:bg-rv-darkSurface">
-          <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold transition-colors" :class="createMode === 'new' ? 'bg-white text-gray-900 shadow-sm dark:bg-rv-darkCard dark:text-white' : 'text-gray-500 dark:text-gray-300'" @click="createMode = 'new'">Crear nueva en Spotify</button>
-          <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold transition-colors" :class="createMode === 'link' ? 'bg-white text-gray-900 shadow-sm dark:bg-rv-darkCard dark:text-white' : 'text-gray-500 dark:text-gray-300'" @click="createMode = 'link'">Vincular existente</button>
+        <div class="grid grid-cols-2 gap-1 rounded-xl bg-gray-200 p-1 dark:bg-white/10">
+          <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold transition-colors" :class="createMode === 'new' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20'" @click="createMode = 'new'">Crear nueva en Spotify</button>
+          <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold transition-colors" :class="createMode === 'link' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20'" @click="createMode = 'link'">Vincular existente</button>
         </div>
         <div v-if="createMode === 'new'">
           <label class="mb-1 block text-sm font-medium dark:text-gray-300">Nombre</label>
@@ -152,7 +152,7 @@
         </div>
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" class="rounded-lg bg-gray-100 px-4 py-2 font-semibold text-gray-700 transition-colors hover:bg-gray-200 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-rv-darkBg" @click="closeCreate">Cancelar</button>
-          <button type="submit" class="rounded-lg bg-rv-gradient px-4 py-2 font-semibold text-white shadow-sm disabled:opacity-50" :disabled="creating || !canSubmitCreate">{{ creating ? (createMode === 'link' ? 'Vinculando playlist…' : 'Creando en Spotify…') : (createMode === 'link' ? 'Vincular playlist' : 'Crear playlist') }}</button>
+          <button type="submit" class="rounded-lg bg-rv-pink px-4 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:opacity-50" :disabled="creating || !canSubmitCreate">{{ creating ? (createMode === 'link' ? 'Vinculando playlist…' : 'Creando en Spotify…') : (createMode === 'link' ? 'Vincular playlist' : 'Crear playlist') }}</button>
         </div>
       </form>
     </div>
