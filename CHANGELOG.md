@@ -1,3 +1,12 @@
+## 1.32.0 (2026-08-11)
+
+* Merge pull request #158 from riffvalley/feat/festival-playlists-spotify ([71d11c6](https://github.com/riffvalley/riffvalley-app-front/commit/71d11c6)), closes [#158](https://github.com/riffvalley/riffvalley-app-front/issues/158)
+* feat: add genre playlist and kanban tabs ([46d2bdd](https://github.com/riffvalley/riffvalley-app-front/commit/46d2bdd))
+* feat: add genre-filtered artist modal ([f8e9290](https://github.com/riffvalley/riffvalley-app-front/commit/f8e9290))
+* feat: manage curated Spotify genre playlists ([4704bd2](https://github.com/riffvalley/riffvalley-app-front/commit/4704bd2))
+* feat: show playlists on artist cards ([9bd8d87](https://github.com/riffvalley/riffvalley-app-front/commit/9bd8d87))
+* fix: switch genre playlist tabs explicitly ([ac58f3c](https://github.com/riffvalley/riffvalley-app-front/commit/ac58f3c))
+
 ## 1.31.0 (2026-08-11)
 
 * Merge pull request #157 from riffvalley/feat/festival-playlists-spotify ([5832eab](https://github.com/riffvalley/riffvalley-app-front/commit/5832eab)), closes [#157](https://github.com/riffvalley/riffvalley-app-front/issues/157)
