@@ -182,10 +182,16 @@ const editingContent = ref<any>({
     authorId: ''
 });
 
-// Backlog items (content with backlog: true)
+const isBacklogItem = (content: Content) =>
+    content.backlog || content.list?.status === 'completed';
+
+const mergeContentsById = (...collections: Content[][]): Content[] =>
+    [...new Map(collections.flat().map(content => [content.id, content])).values()];
+
+// Backlog items (explicit backlog or a completed list)
 const backlogItems = computed(() => {
     return allContents.value
-        .filter(c => c.backlog)
+        .filter(isBacklogItem)
         .sort((a, b) => {
             // Primero ordenar por usuario: 'riff valley' primero
             const aIsRiffValley = a.author?.username?.toLowerCase() === 'riff valley';
@@ -202,7 +208,7 @@ const backlogItems = computed(() => {
 // Calendar events (content with publicationDate and not in backlog)
 const calendarEvents = computed(() => {
     return allContents.value
-        .filter(c => !c.backlog && c.publicationDate)
+        .filter(c => !isBacklogItem(c) && c.publicationDate)
         .map(c => {
             let start = c.publicationDate;
 
@@ -815,6 +821,8 @@ async function updateListStatus(list: any) {
     if (!list || !list.id) return;
     try {
         await updateList(list.id, { status: list.status });
+        await loadBacklogContents();
+        await loadContentsByMonth(currentYear.value, currentMonth.value);
         SwalService.success('Estado actualizado');
     } catch (error) {
         console.error('Error updating status:', error);
@@ -889,11 +897,11 @@ async function loadContentsByMonth(year: number, month: number) {
     try {
         const monthContents = await getContentsByMonth(year, month);
 
-        // Keep backlog items and add new month contents
-        const currentBacklog = allContents.value.filter(c => c.backlog);
-        const scheduledItems = monthContents.filter(c => !c.backlog && c.publicationDate);
+        // Keep backlog items and add only events that still belong on the calendar.
+        const currentBacklog = allContents.value.filter(isBacklogItem);
+        const scheduledItems = monthContents.filter(c => !isBacklogItem(c) && c.publicationDate);
 
-        allContents.value = [...currentBacklog, ...scheduledItems];
+        allContents.value = mergeContentsById(currentBacklog, scheduledItems);
     } catch (error) {
         console.error('Error loading contents by month:', error);
     }
@@ -903,8 +911,8 @@ async function loadBacklogContents() {
     try {
         const backlog = await getContents(true);
         // Preserve existing scheduled items while updating backlog
-        const scheduledItems = allContents.value.filter(c => !c.backlog && c.publicationDate);
-        allContents.value = [...backlog, ...scheduledItems];
+        const scheduledItems = allContents.value.filter(c => !isBacklogItem(c) && c.publicationDate);
+        allContents.value = mergeContentsById(backlog, scheduledItems);
     } catch (error) {
         console.error('Error loading backlog contents:', error);
     }
