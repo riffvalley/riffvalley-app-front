@@ -22,15 +22,6 @@
       <div v-if="isManager" class="flex flex-wrap items-center gap-3">
         <span class="text-sm text-gray-400 dark:text-gray-400">{{ totalItems }} artistas</span>
         <button
-          @click="deleteOrphans"
-          :disabled="deletingOrphans"
-          class="text-xs font-semibold px-3 py-1.5 rounded-xl border border-red-200 text-red-500 bg-white hover:bg-red-50 transition-colors disabled:opacity-40"
-          title="Eliminar artistas sin discos ni lanzamientos"
-        >
-          <i class="fa-solid fa-broom mr-1.5"></i>
-          {{ deletingOrphans ? 'Limpiando...' : `Limpiar huérfanos (${orphanCount})` }}
-        </button>
-        <button
           @click="fillAllImages"
           :disabled="fillingImages"
           class="text-xs font-semibold px-3 py-1.5 rounded-xl border border-green-300 text-green-600 bg-white hover:bg-green-50 transition-colors disabled:opacity-40"
@@ -613,7 +604,7 @@ class="border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2 text-sm 
 
 <script lang="ts">
 import { defineComponent, ref, reactive, watch, onMounted, onUnmounted } from "vue";
-import { getArtistsManagement, deleteArtist, updateArtist, searchArtistsByName, deleteOrphanArtists } from "@services/artist/artist";
+import { getArtistsManagement, deleteArtist, updateArtist, searchArtistsByName } from "@services/artist/artist";
 import { getArtistInfo } from "@services/lastfm/lastfm";
 import type { ArtistManagementItem, ArtistManagementDisc } from "@services/artist/artist";
 import { getCountries } from "@services/countries/countries";
@@ -639,7 +630,6 @@ export default defineComponent({
     const totalItems = ref(0);
     const totalPages = ref(1);
     const currentPage = ref(1);
-    const orphanCount = ref(0);
     const loading = ref(false);
     const query = ref("");
     const countries = ref<Country[]>([]);
@@ -650,7 +640,6 @@ export default defineComponent({
     const authStore = useAuthStore();
     const isManager = authStore.hasRole?.('riffValley') || authStore.hasRole?.('superUser')
       || (authStore.roles || '').includes('riffValley') || (authStore.roles || '').includes('superUser');
-    const deletingOrphans = ref(false);
     const fillingImages = ref(false);
     const fillProgress = ref(0);
     const fillTotal = ref(0);
@@ -675,7 +664,6 @@ export default defineComponent({
         totalItems.value = res.totalItems;
         totalPages.value = res.totalPages;
         currentPage.value = res.currentPage;
-        orphanCount.value = res.orphanCount ?? 0;
       } catch {
         Swal.fire({ icon: "error", title: "Error al cargar artistas", timer: 3000, showConfirmButton: false, toast: true, position: "top-end" });
       } finally {
@@ -852,35 +840,6 @@ export default defineComponent({
         Swal.fire({ icon: "success", title: "Artista eliminado", timer: 2000, showConfirmButton: false, toast: true, position: "top-end" });
       } catch {
         Swal.fire({ icon: "error", title: "No se pudo eliminar el artista", timer: 3000, showConfirmButton: false, toast: true, position: "top-end" });
-      }
-    };
-
-    const deleteOrphans = async () => {
-      const result = await Swal.fire({
-        title: '¿Limpiar artistas huérfanos?',
-        text: 'Se eliminarán todos los artistas que no tienen discos ni lanzamientos nacionales.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#6b7280',
-        confirmButtonText: 'Sí, limpiar',
-        cancelButtonText: 'Cancelar',
-      });
-      if (!result.isConfirmed) return;
-      deletingOrphans.value = true;
-      try {
-        const res = await deleteOrphanArtists();
-        await fetchArtists(1);
-        Swal.fire({
-          icon: 'success',
-          title: `${res.deleted} artistas eliminados`,
-          html: res.artists.length ? `<div class="text-sm text-gray-500 dark:text-gray-300 max-h-40 overflow-y-auto text-left">${res.artists.join('<br>')}</div>` : undefined,
-          confirmButtonColor: '#00021f',
-        });
-      } catch {
-        Swal.fire({ icon: 'error', title: 'Error al limpiar huérfanos', timer: 3000, showConfirmButton: false, toast: true, position: 'top-end' });
-      } finally {
-        deletingOrphans.value = false;
       }
     };
 
@@ -1108,9 +1067,6 @@ export default defineComponent({
       selectedCountryId,
       needsReview,
       isManager,
-      orphanCount,
-      deletingOrphans,
-      deleteOrphans,
       fillingImages,
       fillProgress,
       fillTotal,
