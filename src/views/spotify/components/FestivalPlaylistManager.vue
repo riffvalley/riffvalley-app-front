@@ -474,6 +474,14 @@
                 <div v-if="canManage" class="mt-3 flex justify-end gap-2">
                   <button
                     v-if="entry.status === 'failed'"
+                    class="rounded-md bg-[#1DB954]/15 px-3 py-1.5 text-xs font-semibold text-[#15803d] disabled:opacity-50 dark:text-[#4ade80]"
+                    :disabled="syncingArtistId !== null"
+                    @click="openManualTrackSelection(entry)"
+                  >
+                    Elegir canciones
+                  </button>
+                  <button
+                    v-if="entry.status === 'failed'"
                     class="rounded-md bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 disabled:opacity-50"
                     :disabled="syncingArtistId !== null"
                     @click="addArtist(entry.artistId)"
@@ -491,6 +499,140 @@
               </div>
             </div>
           </section>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="manualTrackArtist"
+      class="fixed inset-0 z-[70] grid place-items-center bg-black/75 p-4"
+      @click.self="closeManualTrackSelection"
+    >
+      <div
+        class="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-rv-darkCard"
+      >
+        <div
+          class="flex items-start justify-between gap-4 border-b border-gray-200 p-5 dark:border-white/10"
+        >
+          <div>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+              Canciones de {{ manualTrackArtist.artist.name }}
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">
+              Selecciona entre 1 y 10 canciones para añadirlas a la playlist.
+            </p>
+          </div>
+          <button
+            class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+            :disabled="savingManualTracks"
+            aria-label="Cerrar"
+            @click="closeManualTrackSelection"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="border-b border-gray-200 p-4 dark:border-white/10">
+          <div class="relative">
+            <i
+              class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"
+            ></i>
+            <input
+              v-model="manualTrackQuery"
+              type="search"
+              placeholder="Buscar una canción concreta"
+              class="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-[#1DB954] focus:ring-2 focus:ring-[#1DB954]/20 dark:border-white/15 dark:bg-rv-darkSurface dark:text-white"
+            />
+          </div>
+        </div>
+
+        <div class="min-h-0 flex-1 overflow-y-auto p-4">
+          <div
+            v-if="loadingManualTracks"
+            class="grid place-items-center py-12 text-gray-500 dark:text-gray-300"
+          >
+            <i class="fa-solid fa-spinner fa-spin text-xl"></i>
+          </div>
+          <p
+            v-else-if="manualTrackCandidates.length === 0"
+            class="py-12 text-center text-sm text-gray-500 dark:text-gray-300"
+          >
+            No se han encontrado canciones. Prueba con otra búsqueda.
+          </p>
+          <div v-else class="space-y-2">
+            <button
+              v-for="track in manualTrackCandidates"
+              :key="track.spotifyTrackId"
+              type="button"
+              class="flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-colors"
+              :class="
+                isManualTrackSelected(track.spotifyTrackId)
+                  ? 'border-[#1DB954] bg-[#1DB954]/10 dark:bg-[#1DB954]/15'
+                  : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-white/10 dark:bg-rv-darkSurface dark:hover:bg-white/10'
+              "
+              @click="toggleManualTrack(track.spotifyTrackId)"
+            >
+              <img
+                :src="track.imageUrl || fallbackImage"
+                class="h-12 w-12 shrink-0 rounded-md object-cover"
+                alt=""
+              />
+              <span class="min-w-0 flex-1">
+                <span
+                  class="block truncate text-sm font-bold text-gray-900 dark:text-white"
+                  >{{ track.name }}</span
+                >
+                <span
+                  class="block truncate text-xs text-gray-500 dark:text-gray-300"
+                  >{{
+                    track.artists?.map((artist) => artist.name).join(", ") ||
+                    manualTrackArtist.artist.name
+                  }}<template v-if="track.album"> · {{ track.album }}</template>
+                </span>
+              </span>
+              <span class="shrink-0 text-xs text-gray-400">{{
+                formatDuration(track.durationMs)
+              }}</span>
+              <span
+                class="grid h-6 w-6 shrink-0 place-items-center rounded-full border"
+                :class="
+                  isManualTrackSelected(track.spotifyTrackId)
+                    ? 'border-[#1DB954] bg-[#1DB954] text-white'
+                    : 'border-gray-300 text-transparent dark:border-white/30'
+                "
+              >
+                <i class="fa-solid fa-check text-[10px]"></i>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="flex items-center justify-between gap-4 border-t border-gray-200 p-4 dark:border-white/10"
+        >
+          <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+            {{ selectedManualTrackIds.length }} / 10 seleccionadas
+          </span>
+          <div class="flex gap-2">
+            <button
+              class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-50 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+              :disabled="savingManualTracks"
+              @click="closeManualTrackSelection"
+            >
+              Cancelar
+            </button>
+            <button
+              class="rounded-lg bg-[#1DB954] px-4 py-2 text-sm font-bold text-white hover:bg-[#169c46] disabled:cursor-not-allowed disabled:opacity-40"
+              :disabled="
+                selectedManualTrackIds.length < 1 ||
+                selectedManualTrackIds.length > 10 ||
+                savingManualTracks
+              "
+              @click="saveManualTracks"
+            >
+              {{ savingManualTracks ? "Guardando…" : "Guardar canciones" }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -636,13 +778,16 @@ import {
   getArtistTopSongs,
   getFestivalPlaylist,
   removeArtistFromFestivalPlaylist,
+  replaceFailedFestivalArtistTracks,
   searchFestivalArtists,
+  searchFailedFestivalArtistTracks,
   updateFestivalPlaylist,
   updateFestivalPlaylistImage,
   validatePlaylistImage,
   type FestivalArtist,
   type PlaylistArtist,
   type PlaylistArtistSyncStatus,
+  type PlaylistTrack,
   type SpotifyConnection,
   type SyncedFestivalPlaylist,
   type TopSongsResponse,
@@ -677,6 +822,12 @@ const searching = ref(false);
 const searchFailed = ref(false);
 const creatingArtist = ref(false);
 const syncingArtistId = ref<string | null>(null);
+const manualTrackArtist = ref<PlaylistArtist | null>(null);
+const manualTrackQuery = ref("");
+const manualTrackCandidates = ref<PlaylistTrack[]>([]);
+const selectedManualTrackIds = ref<string[]>([]);
+const loadingManualTracks = ref(false);
+const savingManualTracks = ref(false);
 const expandedArtists = ref(new Set<string>());
 const preview = ref<TopSongsResponse | null>(null);
 const previewArtistId = ref<string | null>(null);
@@ -689,6 +840,7 @@ const showDeleteConfirmation = ref(false);
 const deleteConfirmationText = ref("");
 const deletePlaylistError = ref<string | null>(null);
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
+let manualTrackSearchTimer: ReturnType<typeof setTimeout> | null = null;
 const queuedDetailFields = new Set<DetailField>();
 let detailsSavePromise: Promise<void> | null = null;
 
@@ -883,6 +1035,14 @@ watch(artistQuery, (query) => {
   }, 300);
 });
 
+watch(manualTrackQuery, (query) => {
+  if (!manualTrackArtist.value) return;
+  if (manualTrackSearchTimer) clearTimeout(manualTrackSearchTimer);
+  manualTrackSearchTimer = setTimeout(() => {
+    void loadManualTracks(query.trim());
+  }, 300);
+});
+
 function isArtistPresent(artistId: string) {
   return (
     detail.value?.playlistArtists.some(
@@ -908,6 +1068,114 @@ async function addArtist(artistId: string) {
     await loadDetail();
   } finally {
     syncingArtistId.value = null;
+  }
+}
+
+function openManualTrackSelection(entry: PlaylistArtist) {
+  if (entry.status !== "failed" || syncingArtistId.value) return;
+  manualTrackArtist.value = entry;
+  manualTrackQuery.value = "";
+  manualTrackCandidates.value = [...entry.tracks];
+  selectedManualTrackIds.value = entry.tracks
+    .slice(0, 10)
+    .map((track) => track.spotifyTrackId);
+  void loadManualTracks("");
+}
+
+function closeManualTrackSelection() {
+  if (savingManualTracks.value) return;
+  if (manualTrackSearchTimer) clearTimeout(manualTrackSearchTimer);
+  manualTrackArtist.value = null;
+  manualTrackQuery.value = "";
+  manualTrackCandidates.value = [];
+  selectedManualTrackIds.value = [];
+}
+
+async function loadManualTracks(query: string) {
+  if (!detail.value || !manualTrackArtist.value) return;
+  const playlistId = detail.value.id;
+  const artistId = manualTrackArtist.value.artistId;
+  loadingManualTracks.value = true;
+  try {
+    const response = await searchFailedFestivalArtistTracks(
+      playlistId,
+      artistId,
+      query,
+    );
+    if (
+      detail.value?.id === playlistId &&
+      manualTrackArtist.value?.artistId === artistId &&
+      manualTrackQuery.value.trim() === query
+    ) {
+      manualTrackCandidates.value = response.tracks;
+    }
+  } catch (error) {
+    SwalService.error(errorMessage(error, "No se pudieron buscar canciones"));
+  } finally {
+    if (
+      detail.value?.id === playlistId &&
+      manualTrackArtist.value?.artistId === artistId &&
+      manualTrackQuery.value.trim() === query
+    ) {
+      loadingManualTracks.value = false;
+    }
+  }
+}
+
+function isManualTrackSelected(trackId: string) {
+  return selectedManualTrackIds.value.includes(trackId);
+}
+
+function toggleManualTrack(trackId: string) {
+  const index = selectedManualTrackIds.value.indexOf(trackId);
+  if (index >= 0) {
+    selectedManualTrackIds.value.splice(index, 1);
+    return;
+  }
+  if (selectedManualTrackIds.value.length >= 10) {
+    SwalService.error("Solo puedes seleccionar un máximo de 10 canciones");
+    return;
+  }
+  selectedManualTrackIds.value.push(trackId);
+}
+
+function formatDuration(durationMs?: number) {
+  if (!durationMs) return "";
+  const totalSeconds = Math.round(durationMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  return `${minutes}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+async function saveManualTracks() {
+  if (
+    !detail.value ||
+    !manualTrackArtist.value ||
+    selectedManualTrackIds.value.length < 1 ||
+    selectedManualTrackIds.value.length > 10 ||
+    savingManualTracks.value
+  )
+    return;
+  const artistName = manualTrackArtist.value.artist.name;
+  savingManualTracks.value = true;
+  try {
+    applyDetail(
+      await replaceFailedFestivalArtistTracks(
+        detail.value.id,
+        manualTrackArtist.value.artistId,
+        selectedManualTrackIds.value,
+      ),
+    );
+    savingManualTracks.value = false;
+    closeManualTrackSelection();
+    SwalService.success(
+      `${artistName} sincronizado con las canciones elegidas`,
+    );
+  } catch (error) {
+    SwalService.error(
+      errorMessage(error, "No se pudieron guardar las canciones"),
+    );
+  } finally {
+    savingManualTracks.value = false;
   }
 }
 
@@ -1109,6 +1377,7 @@ function statusClass(status: PlaylistArtistSyncStatus) {
 onMounted(loadDetail);
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer);
+  if (manualTrackSearchTimer) clearTimeout(manualTrackSearchTimer);
   clearImagePreview();
 });
 </script>

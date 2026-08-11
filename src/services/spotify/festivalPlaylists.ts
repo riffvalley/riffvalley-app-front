@@ -92,6 +92,12 @@ export interface TopSongsResponse {
   sources: string[];
 }
 
+export interface FestivalArtistTrackSearchResponse {
+  artist: Pick<FestivalArtist, "id" | "name">;
+  query: string;
+  tracks: PlaylistTrack[];
+}
+
 export interface CreateFestivalPlaylistDto {
   name: string;
   description?: string;
@@ -260,6 +266,30 @@ export async function addArtistToFestivalPlaylist(
   const { data } = await api.post<SyncedFestivalPlaylist>(
     `/festival-playlists/${playlistId}/artists`,
     { artistId, tracksPerArtist, recentSetlists },
+  );
+  return data;
+}
+
+export async function searchFailedFestivalArtistTracks(
+  playlistId: string,
+  artistId: string,
+  query = "",
+): Promise<FestivalArtistTrackSearchResponse> {
+  const { data } = await api.get<FestivalArtistTrackSearchResponse>(
+    `/festival-playlists/${playlistId}/artists/${artistId}/tracks`,
+    { params: { q: query || undefined } },
+  );
+  return data;
+}
+
+export async function replaceFailedFestivalArtistTracks(
+  playlistId: string,
+  artistId: string,
+  spotifyTrackIds: string[],
+): Promise<SyncedFestivalPlaylist> {
+  const { data } = await api.put<SyncedFestivalPlaylist>(
+    `/festival-playlists/${playlistId}/artists/${artistId}/tracks`,
+    { spotifyTrackIds },
   );
   return data;
 }
