@@ -1,3 +1,12 @@
+## 1.34.0 (2026-08-11)
+
+* Merge pull request #160 from riffvalley/feat/festival-playlists-spotify ([41c0a1b](https://github.com/riffvalley/riffvalley-app-front/commit/41c0a1b)), closes [#160](https://github.com/riffvalley/riffvalley-app-front/issues/160)
+* feat: autosave Spotify playlist changes ([2274408](https://github.com/riffvalley/riffvalley-app-front/commit/2274408))
+* feat: choose tracks for failed festival artists ([3e16cea](https://github.com/riffvalley/riffvalley-app-front/commit/3e16cea))
+* refactor: save playlist text fields explicitly ([7275bf5](https://github.com/riffvalley/riffvalley-app-front/commit/7275bf5))
+* fix: show completed lists in calendar backlog ([5406162](https://github.com/riffvalley/riffvalley-app-front/commit/5406162))
+* fix: use playlist calendar events as backlog source ([15fa5ca](https://github.com/riffvalley/riffvalley-app-front/commit/15fa5ca))
+
 ## 1.33.0 (2026-08-11)
 
 * Merge pull request #159 from riffvalley/feat/festival-playlists-spotify ([39ccc38](https://github.com/riffvalley/riffvalley-app-front/commit/39ccc38)), closes [#159](https://github.com/riffvalley/riffvalley-app-front/issues/159)
