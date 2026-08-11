@@ -1,153 +1,500 @@
 <template>
-  <div class="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-rv-darkCard">
-    <header class="flex items-center justify-between gap-4 border-b border-gray-200 p-5 dark:border-white/10">
+  <div
+    class="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-rv-darkCard"
+  >
+    <header
+      class="flex items-center justify-between gap-4 border-b border-gray-200 p-5 dark:border-white/10"
+    >
       <div>
-        <p class="text-xs font-semibold uppercase tracking-widest text-[#1DB954]">Playlist sincronizada</p>
-        <h2 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">{{ detail?.name || playlistName }}</h2>
+        <p
+          class="text-xs font-semibold uppercase tracking-widest text-[#1DB954]"
+        >
+          Playlist sincronizada
+        </p>
+        <h2 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">
+          {{ detail?.name || playlistName }}
+        </h2>
       </div>
-      <button class="grid h-9 w-9 shrink-0 place-items-center rounded-full p-0 leading-none text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Cerrar" @click="$emit('close')">
+      <button
+        class="grid h-9 w-9 shrink-0 place-items-center rounded-full p-0 leading-none text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white"
+        aria-label="Cerrar"
+        @click="$emit('close')"
+      >
         <i class="fa-solid fa-xmark block leading-none" aria-hidden="true"></i>
       </button>
     </header>
 
-    <div v-if="loading" class="grid min-h-80 place-items-center text-gray-500">Cargando playlist…</div>
+    <div v-if="loading" class="grid min-h-80 place-items-center text-gray-500">
+      Cargando playlist…
+    </div>
     <div v-else-if="detail" class="overflow-y-auto p-5 md:p-6">
-      <div v-if="!canManage" class="mb-5 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
+      <div
+        v-if="!canManage"
+        class="mb-5 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200"
+      >
         Puedes consultar la playlist, pero tu rol no permite modificarla.
       </div>
 
       <div class="grid items-start gap-6 lg:grid-cols-2">
         <div class="space-y-6">
-          <section class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
+          <section
+            class="rounded-xl border border-gray-200 p-4 dark:border-white/10"
+          >
             <div class="mb-4 flex items-center justify-between gap-3">
-              <h3 class="font-bold text-gray-900 dark:text-white">Información y portada</h3>
-              <a :href="detail.link" target="_blank" rel="noopener noreferrer" class="text-sm font-semibold text-[#1DB954] hover:underline">
-                Abrir en Spotify <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-xs"></i>
+              <h3 class="font-bold text-gray-900 dark:text-white">
+                Información y portada
+              </h3>
+              <a
+                :href="detail.link"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-sm font-semibold text-[#1DB954] hover:underline"
+              >
+                Abrir en Spotify
+                <i
+                  class="fa-solid fa-arrow-up-right-from-square ml-1 text-xs"
+                ></i>
               </a>
             </div>
 
             <div class="grid gap-4 sm:grid-cols-[150px_1fr]">
               <div>
-                <img :src="imagePreview || detail.imageUrl || fallbackImage" alt="Portada de la playlist" class="aspect-square w-full rounded-xl bg-gray-100 object-cover dark:bg-rv-darkSurface" />
+                <img
+                  :src="imagePreview || detail.imageUrl || fallbackImage"
+                  alt="Portada de la playlist"
+                  class="aspect-square w-full rounded-xl bg-gray-100 object-cover dark:bg-rv-darkSurface"
+                />
                 <label v-if="canManage" class="mt-3 block">
                   <span class="sr-only">Seleccionar portada JPEG</span>
-                  <input type="file" accept="image/jpeg" class="block w-full text-xs text-gray-500 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2 file:py-2 file:text-xs file:font-semibold dark:file:bg-white/10 dark:file:text-gray-200" :disabled="!connection.canUploadImages || savingImage" @change="selectImage" />
+                  <input
+                    type="file"
+                    accept="image/jpeg"
+                    class="block w-full text-xs text-gray-500 file:mr-2 file:rounded-md file:border-0 file:bg-gray-100 file:px-2 file:py-2 file:text-xs file:font-semibold dark:file:bg-white/10 dark:file:text-gray-200"
+                    :disabled="!connection.canUploadImages || savingImage"
+                    @change="selectImage"
+                  />
                 </label>
-                <p class="mt-2 text-[11px] leading-4 text-gray-500">JPEG cuadrado. Máximo 256 KB una vez codificado.</p>
-                <button v-if="selectedImage" class="mt-2 w-full rounded-lg bg-rv-pink px-3 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:opacity-50" :disabled="savingImage" @click="uploadImage">
-                  {{ savingImage ? 'Subiendo…' : 'Subir portada' }}
+                <p class="mt-2 text-[11px] leading-4 text-gray-500">
+                  JPEG cuadrado. Máximo 256 KB una vez codificado.
+                </p>
+                <p
+                  v-if="savingImage"
+                  class="mt-2 text-xs font-semibold text-rv-purple"
+                >
+                  <i class="fa-solid fa-spinner fa-spin mr-1"></i>Subiendo
+                  portada…
+                </p>
+                <button
+                  v-if="canManage && !connection.canUploadImages"
+                  class="mt-2 text-left text-xs font-semibold text-rv-purple hover:underline"
+                  @click="$emit('renew')"
+                >
+                  Renovar permisos de Spotify
                 </button>
-                <button v-if="canManage && !connection.canUploadImages" class="mt-2 text-left text-xs font-semibold text-rv-purple hover:underline" @click="$emit('renew')">Renovar permisos de Spotify</button>
               </div>
 
-              <form class="space-y-3" @submit.prevent="saveDetails">
+              <div class="space-y-3">
                 <div>
-                  <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Nombre</label>
-                  <input v-model="editForm.name" maxlength="100" :disabled="!canManage" class="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-white/20 dark:bg-rv-darkSurface dark:text-white disabled:opacity-60" />
+                  <div class="mb-1 flex items-center justify-between gap-2">
+                    <label
+                      class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >Nombre</label
+                    >
+                    <button
+                      v-if="canManage && nameDirty"
+                      class="inline-flex items-center gap-1 rounded-md bg-rv-pink px-2 py-1 text-[11px] font-semibold text-white hover:bg-rv-purple disabled:opacity-50"
+                      :disabled="
+                        !editForm.name.trim() || isDetailFieldSaving('name')
+                      "
+                      title="Guardar nombre"
+                      @click="requestDetailSave('name')"
+                    >
+                      <i
+                        class="fa-solid"
+                        :class="
+                          isDetailFieldSaving('name')
+                            ? 'fa-spinner fa-spin'
+                            : 'fa-floppy-disk'
+                        "
+                      ></i>
+                      Guardar
+                    </button>
+                  </div>
+                  <input
+                    v-model="editForm.name"
+                    maxlength="100"
+                    :disabled="!canManage"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 dark:border-white/20 dark:bg-rv-darkSurface dark:text-white disabled:opacity-60"
+                  />
                 </div>
                 <div>
-                  <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Descripción</label>
-                  <textarea v-model="editForm.description" maxlength="300" rows="4" :disabled="!canManage" class="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 dark:border-white/20 dark:bg-rv-darkSurface dark:text-white disabled:opacity-60"></textarea>
-                  <p class="text-right text-xs text-gray-400">{{ editForm.description.length }}/300</p>
+                  <div class="mb-1 flex items-center justify-between gap-2">
+                    <label
+                      class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >Descripción</label
+                    >
+                    <button
+                      v-if="canManage && descriptionDirty"
+                      class="inline-flex items-center gap-1 rounded-md bg-rv-pink px-2 py-1 text-[11px] font-semibold text-white hover:bg-rv-purple disabled:opacity-50"
+                      :disabled="isDetailFieldSaving('description')"
+                      title="Guardar descripción"
+                      @click="requestDetailSave('description')"
+                    >
+                      <i
+                        class="fa-solid"
+                        :class="
+                          isDetailFieldSaving('description')
+                            ? 'fa-spinner fa-spin'
+                            : 'fa-floppy-disk'
+                        "
+                      ></i>
+                      Guardar
+                    </button>
+                  </div>
+                  <textarea
+                    v-model="editForm.description"
+                    maxlength="300"
+                    rows="4"
+                    :disabled="!canManage"
+                    class="w-full resize-none rounded-lg border border-gray-300 px-3 py-2 dark:border-white/20 dark:bg-rv-darkSurface dark:text-white disabled:opacity-60"
+                  ></textarea>
+                  <p class="text-right text-xs text-gray-400">
+                    {{ editForm.description.length }}/300
+                  </p>
                 </div>
-                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
-                  <input v-model="editForm.isPublic" type="checkbox" :disabled="!canManage" class="h-4 w-4 rounded" /> Playlist pública
+                <label
+                  class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
+                >
+                  <input
+                    v-model="editForm.isPublic"
+                    type="checkbox"
+                    :disabled="!canManage"
+                    class="h-4 w-4 rounded"
+                  />
+                  Playlist pública
                 </label>
-                <button v-if="canManage" type="submit" class="rounded-lg bg-rv-pink px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:opacity-50" :disabled="savingDetails || !editForm.name.trim()">
-                  {{ savingDetails ? 'Guardando…' : 'Guardar cambios' }}
-                </button>
-              </form>
+                <p
+                  v-if="canManage"
+                  class="text-xs text-gray-500 dark:text-gray-400"
+                >
+                  <i
+                    class="fa-solid mr-1"
+                    :class="
+                      isDetailFieldSaving('public')
+                        ? 'fa-spinner fa-spin'
+                        : 'fa-cloud-arrow-up'
+                    "
+                  ></i>
+                  {{
+                    isDetailFieldSaving("public")
+                      ? "Actualizando visibilidad…"
+                      : "La visibilidad se guarda automáticamente"
+                  }}
+                </p>
+              </div>
             </div>
           </section>
 
-          <section v-if="canManage" class="rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20">
-            <h3 class="font-bold text-red-800 dark:text-red-300">Zona peligrosa</h3>
-            <div class="mt-4 rounded-xl border border-red-200 bg-white/70 p-3 dark:border-red-900 dark:bg-rv-darkSurface">
-              <p class="text-sm font-bold text-gray-900 dark:text-white">Vaciar canciones de Spotify</p>
-              <p class="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">Conserva la playlist, su portada y sus metadatos, pero elimina todas sus canciones reales de Spotify y las asociaciones de artistas.</p>
-              <button class="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-wait disabled:opacity-60" :disabled="clearingPlaylist || deletingPlaylist" @click="requestClearPlaylist">
-                {{ clearingPlaylist ? 'Vaciando playlist…' : 'Vaciar canciones de Spotify' }}
+          <section
+            v-if="canManage"
+            class="rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20"
+          >
+            <h3 class="font-bold text-red-800 dark:text-red-300">
+              Zona peligrosa
+            </h3>
+            <div
+              class="mt-4 rounded-xl border border-red-200 bg-white/70 p-3 dark:border-red-900 dark:bg-rv-darkSurface"
+            >
+              <p class="text-sm font-bold text-gray-900 dark:text-white">
+                Vaciar canciones de Spotify
+              </p>
+              <p
+                class="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300"
+              >
+                Conserva la playlist, su portada y sus metadatos, pero elimina
+                todas sus canciones reales de Spotify y las asociaciones de
+                artistas.
+              </p>
+              <button
+                class="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-wait disabled:opacity-60"
+                :disabled="clearingPlaylist || deletingPlaylist"
+                @click="requestClearPlaylist"
+              >
+                {{
+                  clearingPlaylist
+                    ? "Vaciando playlist…"
+                    : "Vaciar canciones de Spotify"
+                }}
               </button>
             </div>
-            <div class="mt-4 rounded-xl border border-red-300 bg-white/70 p-3 dark:border-red-800 dark:bg-rv-darkSurface">
-              <p class="text-sm font-bold text-gray-900 dark:text-white">Eliminar playlist de Riff Valley</p>
-              <p class="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">Elimina el registro local y sus datos de sincronización. La playlist real y sus canciones seguirán existiendo en Spotify.</p>
-              <button class="mt-3 rounded-lg border-2 border-red-600 bg-transparent px-4 py-2 text-sm font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white disabled:cursor-wait disabled:opacity-60 dark:text-red-300" :disabled="deletingPlaylist || clearingPlaylist" @click="openDeleteConfirmation">
-                {{ deletingPlaylist ? 'Eliminando…' : 'Eliminar playlist' }}
+            <div
+              class="mt-4 rounded-xl border border-red-300 bg-white/70 p-3 dark:border-red-800 dark:bg-rv-darkSurface"
+            >
+              <p class="text-sm font-bold text-gray-900 dark:text-white">
+                Eliminar playlist de Riff Valley
+              </p>
+              <p
+                class="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300"
+              >
+                Elimina el registro local y sus datos de sincronización. La
+                playlist real y sus canciones seguirán existiendo en Spotify.
+              </p>
+              <button
+                class="mt-3 rounded-lg border-2 border-red-600 bg-transparent px-4 py-2 text-sm font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white disabled:cursor-wait disabled:opacity-60 dark:text-red-300"
+                :disabled="deletingPlaylist || clearingPlaylist"
+                @click="openDeleteConfirmation"
+              >
+                {{ deletingPlaylist ? "Eliminando…" : "Eliminar playlist" }}
               </button>
             </div>
           </section>
         </div>
 
         <div class="space-y-6">
-          <section class="rounded-xl border border-gray-200 bg-white p-4 text-gray-900 dark:border-white/10 dark:bg-rv-darkCard dark:text-white">
-            <h3 class="font-bold text-gray-900 dark:text-white">Añadir artistas</h3>
-            <p class="mt-1 text-xs text-gray-500 dark:text-gray-300">La selección de temas se calcula con datos de setlist.fm y se sincroniza después con Spotify.</p>
-            <input v-model="artistQuery" type="search" placeholder="Buscar artista interno…" :disabled="!canManage || syncingArtistId !== null || creatingArtist" class="mt-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-white/20 dark:bg-rv-darkSurface dark:text-white disabled:opacity-60" />
-            <p v-if="searching" class="py-4 text-center text-sm text-gray-500 dark:text-gray-300">Buscando…</p>
-            <p v-else-if="artistQuery.trim().length >= 2 && searchResults.length === 0" class="py-4 text-center text-sm text-gray-500 dark:text-gray-300">No se encontraron artistas.</p>
-            <div v-if="canCreateSearchedArtist" class="mt-3 rounded-xl border border-dashed border-rv-purple/60 bg-rv-purple/10 p-3">
-              <p class="text-xs leading-5 text-gray-600 dark:text-gray-300">No hay una coincidencia exacta. Se creará como pendiente de completar imagen, país y descripción.</p>
-              <button class="mt-2 w-full rounded-lg bg-rv-pink px-3 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:cursor-wait disabled:opacity-60" :disabled="creatingArtist || syncingArtistId !== null" @click="createAndAddArtist">
-                {{ creatingArtist ? 'Creando y sincronizando artista…' : `Crear artista “${artistQuery.trim()}”` }}
+          <section
+            class="rounded-xl border border-gray-200 bg-white p-4 text-gray-900 dark:border-white/10 dark:bg-rv-darkCard dark:text-white"
+          >
+            <h3 class="font-bold text-gray-900 dark:text-white">
+              Añadir artistas
+            </h3>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-300">
+              La selección de temas se calcula con datos de setlist.fm y se
+              sincroniza después con Spotify.
+            </p>
+            <input
+              v-model="artistQuery"
+              type="search"
+              placeholder="Buscar artista interno…"
+              :disabled="
+                !canManage || syncingArtistId !== null || creatingArtist
+              "
+              class="mt-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-white/20 dark:bg-rv-darkSurface dark:text-white disabled:opacity-60"
+            />
+            <p
+              v-if="searching"
+              class="py-4 text-center text-sm text-gray-500 dark:text-gray-300"
+            >
+              Buscando…
+            </p>
+            <p
+              v-else-if="
+                artistQuery.trim().length >= 2 && searchResults.length === 0
+              "
+              class="py-4 text-center text-sm text-gray-500 dark:text-gray-300"
+            >
+              No se encontraron artistas.
+            </p>
+            <div
+              v-if="canCreateSearchedArtist"
+              class="mt-3 rounded-xl border border-dashed border-rv-purple/60 bg-rv-purple/10 p-3"
+            >
+              <p class="text-xs leading-5 text-gray-600 dark:text-gray-300">
+                No hay una coincidencia exacta. Se creará como pendiente de
+                completar imagen, país y descripción.
+              </p>
+              <button
+                class="mt-2 w-full rounded-lg bg-rv-pink px-3 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:cursor-wait disabled:opacity-60"
+                :disabled="creatingArtist || syncingArtistId !== null"
+                @click="createAndAddArtist"
+              >
+                {{
+                  creatingArtist
+                    ? "Creando y sincronizando artista…"
+                    : `Crear artista “${artistQuery.trim()}”`
+                }}
               </button>
             </div>
             <div class="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
-              <div v-for="artist in searchResults" :key="artist.id" class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-rv-darkCard">
+              <div
+                v-for="artist in searchResults"
+                :key="artist.id"
+                class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-rv-darkCard"
+              >
                 <div class="flex items-center gap-2">
-                  <img :src="artist.image || fallbackArtist" class="h-11 w-11 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15" :alt="`Imagen de ${artist.name}`" />
+                  <img
+                    :src="artist.image || fallbackArtist"
+                    class="h-11 w-11 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15"
+                    :alt="`Imagen de ${artist.name}`"
+                  />
                   <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm font-bold text-gray-900 dark:text-white">{{ artist.name }}</span>
-                    <span v-if="artist.description" class="mt-0.5 block truncate text-xs !text-gray-500 dark:!text-gray-300">{{ artist.description }}</span>
+                    <span
+                      class="block truncate text-sm font-bold text-gray-900 dark:text-white"
+                      >{{ artist.name }}</span
+                    >
+                    <span
+                      v-if="artist.description"
+                      class="mt-0.5 block truncate text-xs !text-gray-500 dark:!text-gray-300"
+                      >{{ artist.description }}</span
+                    >
                   </span>
-                  <span v-if="isArtistPresent(artist.id)" class="text-xs font-semibold !text-green-400">Añadido</span>
-                  <button v-else class="rounded-md bg-rv-pink px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:opacity-50" :disabled="!canManage || syncingArtistId !== null || creatingArtist" @click="addArtist(artist.id)">
-                    {{ syncingArtistId === artist.id ? 'Sincronizando artista…' : 'Añadir' }}
+                  <span
+                    v-if="isArtistPresent(artist.id)"
+                    class="text-xs font-semibold !text-green-400"
+                    >Añadido</span
+                  >
+                  <button
+                    v-else
+                    class="rounded-md bg-rv-pink px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:opacity-50"
+                    :disabled="
+                      !canManage || syncingArtistId !== null || creatingArtist
+                    "
+                    @click="addArtist(artist.id)"
+                  >
+                    {{
+                      syncingArtistId === artist.id
+                        ? "Sincronizando artista…"
+                        : "Añadir"
+                    }}
                   </button>
                 </div>
-                <button class="mt-2 text-xs font-semibold !text-pink-300 hover:underline" :disabled="previewLoadingId === artist.id" @click="loadPreview(artist)">
-                  {{ previewLoadingId === artist.id ? 'Calculando…' : 'Ver canciones probables' }}
+                <button
+                  class="mt-2 text-xs font-semibold !text-pink-300 hover:underline"
+                  :disabled="previewLoadingId === artist.id"
+                  @click="loadPreview(artist)"
+                >
+                  {{
+                    previewLoadingId === artist.id
+                      ? "Calculando…"
+                      : "Ver canciones probables"
+                  }}
                 </button>
-                <div v-if="previewArtistId === artist.id && preview" class="mt-2 rounded-md bg-white p-2 text-xs !text-gray-700 dark:bg-rv-darkBg dark:!text-gray-200">
-                  <p class="mb-1 font-semibold">{{ preview.setlistsAnalyzed }} setlists analizados</p>
+                <div
+                  v-if="previewArtistId === artist.id && preview"
+                  class="mt-2 rounded-md bg-white p-2 text-xs !text-gray-700 dark:bg-rv-darkBg dark:!text-gray-200"
+                >
+                  <p class="mb-1 font-semibold">
+                    {{ preview.setlistsAnalyzed }} setlists analizados
+                  </p>
                   <ol class="list-inside list-decimal space-y-1">
-                    <li v-for="song in preview.songs" :key="song.name">{{ song.name }} · {{ song.plays }}</li>
+                    <li v-for="song in preview.songs" :key="song.name">
+                      {{ song.name }} · {{ song.plays }}
+                    </li>
                   </ol>
-                  <div v-if="preview.sources.length" class="mt-2 flex flex-wrap gap-2">
-                    <a v-for="source in preview.sources" :key="source" :href="source" target="_blank" rel="noopener noreferrer" class="text-rv-purple hover:underline">Fuente</a>
+                  <div
+                    v-if="preview.sources.length"
+                    class="mt-2 flex flex-wrap gap-2"
+                  >
+                    <a
+                      v-for="source in preview.sources"
+                      :key="source"
+                      :href="source"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-rv-purple hover:underline"
+                      >Fuente</a
+                    >
                   </div>
                 </div>
               </div>
             </div>
           </section>
 
-          <section class="rounded-xl border border-gray-200 bg-white p-4 text-gray-900 dark:border-white/10 dark:bg-rv-darkCard dark:text-white">
+          <section
+            class="rounded-xl border border-gray-200 bg-white p-4 text-gray-900 dark:border-white/10 dark:bg-rv-darkCard dark:text-white"
+          >
             <div class="mb-4 flex items-center justify-between">
-              <h3 class="font-bold text-gray-900 dark:text-white">Artistas sincronizados</h3>
-              <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-white/10 dark:text-gray-300">{{ detail.playlistArtists.length }}</span>
+              <h3 class="font-bold text-gray-900 dark:text-white">
+                Artistas sincronizados
+              </h3>
+              <span
+                class="rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-white/10 dark:text-gray-300"
+                >{{ detail.playlistArtists.length }}</span
+              >
             </div>
-            <p v-if="detail.playlistArtists.length === 0" class="py-5 text-center text-sm text-gray-500 dark:text-gray-300">Todavía no hay artistas en esta playlist.</p>
-            <div v-for="entry in detail.playlistArtists" :key="entry.id" class="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm last:mb-0 dark:border-white/10 dark:bg-rv-darkCard">
-              <button class="flex w-full items-center gap-3 !bg-white p-3.5 text-left transition-colors hover:!bg-gray-50 dark:!bg-rv-darkCard dark:hover:!bg-rv-darkBg" @click="toggleArtist(entry.id)">
-                <img :src="entry.artist.image || fallbackArtist" class="h-12 w-12 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15" :alt="`Imagen de ${entry.artist.name}`" />
+            <p
+              v-if="detail.playlistArtists.length === 0"
+              class="py-5 text-center text-sm text-gray-500 dark:text-gray-300"
+            >
+              Todavía no hay artistas en esta playlist.
+            </p>
+            <div
+              v-for="entry in detail.playlistArtists"
+              :key="entry.id"
+              class="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm last:mb-0 dark:border-white/10 dark:bg-rv-darkCard"
+            >
+              <button
+                class="flex w-full items-center gap-3 !bg-white p-3.5 text-left transition-colors hover:!bg-gray-50 dark:!bg-rv-darkCard dark:hover:!bg-rv-darkBg"
+                @click="toggleArtist(entry.id)"
+              >
+                <img
+                  :src="entry.artist.image || fallbackArtist"
+                  class="h-12 w-12 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15"
+                  :alt="`Imagen de ${entry.artist.name}`"
+                />
                 <span class="min-w-0 flex-1">
-                  <span class="block truncate text-[15px] font-bold leading-5 text-gray-900 dark:text-white">{{ entry.artist.name }}</span>
-                  <span class="mt-0.5 block text-xs !text-gray-500 dark:!text-gray-300">{{ entry.tracks.length }} canciones · {{ entry.setlistsAnalyzed }} setlists analizados</span>
+                  <span
+                    class="block truncate text-[15px] font-bold leading-5 text-gray-900 dark:text-white"
+                    >{{ entry.artist.name }}</span
+                  >
+                  <span
+                    class="mt-0.5 block text-xs !text-gray-500 dark:!text-gray-300"
+                    >{{ entry.tracks.length }} canciones ·
+                    {{ entry.setlistsAnalyzed }} setlists analizados</span
+                  >
                 </span>
-                <span class="rounded-full px-2 py-1 text-[11px] font-bold" :class="statusClass(entry.status)">{{ statusLabel(entry.status) }}</span>
-                <i class="fa-solid fa-chevron-down text-xs text-gray-400 transition-transform" :class="{ 'rotate-180': expandedArtists.has(entry.id) }"></i>
+                <span
+                  class="rounded-full px-2 py-1 text-[11px] font-bold"
+                  :class="statusClass(entry.status)"
+                  >{{ statusLabel(entry.status) }}</span
+                >
+                <i
+                  class="fa-solid fa-chevron-down text-xs text-gray-400 transition-transform"
+                  :class="{ 'rotate-180': expandedArtists.has(entry.id) }"
+                ></i>
               </button>
-              <div v-if="expandedArtists.has(entry.id)" class="border-t border-gray-200 bg-white p-3 dark:border-white/10 dark:bg-rv-darkBg">
-                <p v-if="entry.status === 'failed' && entry.lastError" class="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-300">{{ entry.lastError }}</p>
+              <div
+                v-if="expandedArtists.has(entry.id)"
+                class="border-t border-gray-200 bg-white p-3 dark:border-white/10 dark:bg-rv-darkBg"
+              >
+                <p
+                  v-if="entry.status === 'failed' && entry.lastError"
+                  class="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-300"
+                >
+                  {{ entry.lastError }}
+                </p>
                 <div v-if="entry.tracks.length" class="space-y-1">
-                  <a v-for="track in entry.tracks" :key="track.spotifyTrackId" :href="track.url" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm !text-rv-navy hover:bg-gray-100 dark:!text-white dark:hover:bg-white/10">
-                    <span class="truncate !text-rv-navy dark:!text-white">{{ track.name }}</span>
-                    <span class="shrink-0 text-xs !text-gray-500 dark:!text-gray-300">{{ track.plays }} apariciones <i class="fa-brands fa-spotify ml-1 text-[#1DB954]"></i></span>
+                  <a
+                    v-for="track in entry.tracks"
+                    :key="track.spotifyTrackId"
+                    :href="track.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm !text-rv-navy hover:bg-gray-100 dark:!text-white dark:hover:bg-white/10"
+                  >
+                    <span class="truncate !text-rv-navy dark:!text-white">{{
+                      track.name
+                    }}</span>
+                    <span
+                      class="shrink-0 text-xs !text-gray-500 dark:!text-gray-300"
+                      >{{ track.plays }} apariciones
+                      <i class="fa-brands fa-spotify ml-1 text-[#1DB954]"></i
+                    ></span>
                   </a>
                 </div>
                 <div v-if="canManage" class="mt-3 flex justify-end gap-2">
-                  <button v-if="entry.status === 'failed'" class="rounded-md bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 disabled:opacity-50" :disabled="syncingArtistId !== null" @click="addArtist(entry.artistId)">Reintentar</button>
-                  <button class="rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-50 dark:bg-red-950/30 dark:text-red-300" :disabled="syncingArtistId !== null" @click="removeArtist(entry)">Eliminar artista</button>
+                  <button
+                    v-if="entry.status === 'failed'"
+                    class="rounded-md bg-[#1DB954]/15 px-3 py-1.5 text-xs font-semibold text-[#15803d] disabled:opacity-50 dark:text-[#4ade80]"
+                    :disabled="syncingArtistId !== null"
+                    @click="openManualTrackSelection(entry)"
+                  >
+                    Elegir canciones
+                  </button>
+                  <button
+                    v-if="entry.status === 'failed'"
+                    class="rounded-md bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 disabled:opacity-50"
+                    :disabled="syncingArtistId !== null"
+                    @click="addArtist(entry.artistId)"
+                  >
+                    Reintentar
+                  </button>
+                  <button
+                    class="rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-50 dark:bg-red-950/30 dark:text-red-300"
+                    :disabled="syncingArtistId !== null"
+                    @click="removeArtist(entry)"
+                  >
+                    Eliminar artista
+                  </button>
                 </div>
               </div>
             </div>
@@ -156,41 +503,255 @@
       </div>
     </div>
 
-    <div v-if="showClearConfirmation" class="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4" @click.self="closeClearConfirmation">
-      <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-rv-darkCard">
-        <div class="mb-4 flex items-start gap-3">
-          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-300"><i class="fa-solid fa-triangle-exclamation"></i></span>
+    <div
+      v-if="manualTrackArtist"
+      class="fixed inset-0 z-[70] grid place-items-center bg-black/75 p-4"
+      @click.self="closeManualTrackSelection"
+    >
+      <div
+        class="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-rv-darkCard"
+      >
+        <div
+          class="flex items-start justify-between gap-4 border-b border-gray-200 p-5 dark:border-white/10"
+        >
           <div>
-            <h3 class="font-bold text-gray-900 dark:text-white">Confirmación final</h3>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Escribe exactamente <strong>VACIAR</strong> para confirmar. Esta acción no se puede deshacer.</p>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+              Canciones de {{ manualTrackArtist.artist.name }}
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">
+              Selecciona entre 1 y 10 canciones para añadirlas a la playlist.
+            </p>
+          </div>
+          <button
+            class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+            :disabled="savingManualTracks"
+            aria-label="Cerrar"
+            @click="closeManualTrackSelection"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="border-b border-gray-200 p-4 dark:border-white/10">
+          <div class="relative">
+            <i
+              class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"
+            ></i>
+            <input
+              v-model="manualTrackQuery"
+              type="search"
+              placeholder="Buscar una canción concreta"
+              class="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 outline-none focus:border-[#1DB954] focus:ring-2 focus:ring-[#1DB954]/20 dark:border-white/15 dark:bg-rv-darkSurface dark:text-white"
+            />
           </div>
         </div>
-        <input v-model="clearConfirmationText" autofocus autocomplete="off" autocapitalize="characters" placeholder="VACIAR" class="w-full rounded-lg border border-red-300 px-3 py-2 font-mono uppercase text-gray-900 outline-none focus:ring-2 focus:ring-red-500 dark:border-red-800 dark:bg-rv-darkSurface dark:text-white" :disabled="clearingPlaylist" @input="normalizeConfirmationInput($event, 'clear')" @keyup.enter="confirmClearPlaylist" />
+
+        <div class="min-h-0 flex-1 overflow-y-auto p-4">
+          <div
+            v-if="loadingManualTracks"
+            class="grid place-items-center py-12 text-gray-500 dark:text-gray-300"
+          >
+            <i class="fa-solid fa-spinner fa-spin text-xl"></i>
+          </div>
+          <p
+            v-else-if="manualTrackCandidates.length === 0"
+            class="py-12 text-center text-sm text-gray-500 dark:text-gray-300"
+          >
+            No se han encontrado canciones. Prueba con otra búsqueda.
+          </p>
+          <div v-else class="space-y-2">
+            <button
+              v-for="track in manualTrackCandidates"
+              :key="track.spotifyTrackId"
+              type="button"
+              class="flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-colors"
+              :class="
+                isManualTrackSelected(track.spotifyTrackId)
+                  ? 'border-[#1DB954] bg-[#1DB954]/10 dark:bg-[#1DB954]/15'
+                  : 'border-gray-200 bg-white hover:bg-gray-50 dark:border-white/10 dark:bg-rv-darkSurface dark:hover:bg-white/10'
+              "
+              @click="toggleManualTrack(track.spotifyTrackId)"
+            >
+              <img
+                :src="track.imageUrl || fallbackImage"
+                class="h-12 w-12 shrink-0 rounded-md object-cover"
+                alt=""
+              />
+              <span class="min-w-0 flex-1">
+                <span
+                  class="block truncate text-sm font-bold text-gray-900 dark:text-white"
+                  >{{ track.name }}</span
+                >
+                <span
+                  class="block truncate text-xs text-gray-500 dark:text-gray-300"
+                  >{{
+                    track.artists?.map((artist) => artist.name).join(", ") ||
+                    manualTrackArtist.artist.name
+                  }}<template v-if="track.album"> · {{ track.album }}</template>
+                </span>
+              </span>
+              <span class="shrink-0 text-xs text-gray-400">{{
+                formatDuration(track.durationMs)
+              }}</span>
+              <span
+                class="grid h-6 w-6 shrink-0 place-items-center rounded-full border"
+                :class="
+                  isManualTrackSelected(track.spotifyTrackId)
+                    ? 'border-[#1DB954] bg-[#1DB954] text-white'
+                    : 'border-gray-300 text-transparent dark:border-white/30'
+                "
+              >
+                <i class="fa-solid fa-check text-[10px]"></i>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="flex items-center justify-between gap-4 border-t border-gray-200 p-4 dark:border-white/10"
+        >
+          <span class="text-sm font-semibold text-gray-700 dark:text-gray-200">
+            {{ selectedManualTrackIds.length }} / 10 seleccionadas
+          </span>
+          <div class="flex gap-2">
+            <button
+              class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 disabled:opacity-50 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+              :disabled="savingManualTracks"
+              @click="closeManualTrackSelection"
+            >
+              Cancelar
+            </button>
+            <button
+              class="rounded-lg bg-[#1DB954] px-4 py-2 text-sm font-bold text-white hover:bg-[#169c46] disabled:cursor-not-allowed disabled:opacity-40"
+              :disabled="
+                selectedManualTrackIds.length < 1 ||
+                selectedManualTrackIds.length > 10 ||
+                savingManualTracks
+              "
+              @click="saveManualTracks"
+            >
+              {{ savingManualTracks ? "Guardando…" : "Guardar canciones" }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="showClearConfirmation"
+      class="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4"
+      @click.self="closeClearConfirmation"
+    >
+      <div
+        class="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-rv-darkCard"
+      >
+        <div class="mb-4 flex items-start gap-3">
+          <span
+            class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-300"
+            ><i class="fa-solid fa-triangle-exclamation"></i
+          ></span>
+          <div>
+            <h3 class="font-bold text-gray-900 dark:text-white">
+              Confirmación final
+            </h3>
+            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+              Escribe exactamente <strong>VACIAR</strong> para confirmar. Esta
+              acción no se puede deshacer.
+            </p>
+          </div>
+        </div>
+        <input
+          v-model="clearConfirmationText"
+          autofocus
+          autocomplete="off"
+          autocapitalize="characters"
+          placeholder="VACIAR"
+          class="w-full rounded-lg border border-red-300 px-3 py-2 font-mono uppercase text-gray-900 outline-none focus:ring-2 focus:ring-red-500 dark:border-red-800 dark:bg-rv-darkSurface dark:text-white"
+          :disabled="clearingPlaylist"
+          @input="normalizeConfirmationInput($event, 'clear')"
+          @keyup.enter="confirmClearPlaylist"
+        />
         <div class="mt-5 flex justify-end gap-2">
-          <button class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-rv-darkBg" :disabled="clearingPlaylist" @click="closeClearConfirmation">Cancelar</button>
-          <button class="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40" :disabled="clearConfirmationText !== 'VACIAR' || clearingPlaylist" @click="confirmClearPlaylist">
-            {{ clearingPlaylist ? 'Vaciando playlist…' : 'Vaciar definitivamente' }}
+          <button
+            class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-rv-darkBg"
+            :disabled="clearingPlaylist"
+            @click="closeClearConfirmation"
+          >
+            Cancelar
+          </button>
+          <button
+            class="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="clearConfirmationText !== 'VACIAR' || clearingPlaylist"
+            @click="confirmClearPlaylist"
+          >
+            {{
+              clearingPlaylist ? "Vaciando playlist…" : "Vaciar definitivamente"
+            }}
           </button>
         </div>
       </div>
     </div>
 
-    <div v-if="showDeleteConfirmation" class="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4" @click.self="closeDeleteConfirmation">
-      <div class="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-rv-darkCard">
+    <div
+      v-if="showDeleteConfirmation"
+      class="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4"
+      @click.self="closeDeleteConfirmation"
+    >
+      <div
+        class="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl dark:bg-rv-darkCard"
+      >
         <div class="mb-4 flex items-start gap-3">
-          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-300"><i class="fa-solid fa-trash"></i></span>
+          <span
+            class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-300"
+            ><i class="fa-solid fa-trash"></i
+          ></span>
           <div>
-            <h3 class="font-bold text-gray-900 dark:text-white">Eliminar playlist de Riff Valley</h3>
-            <p class="mt-2 text-sm leading-5 text-gray-600 dark:text-gray-300">Se eliminará «{{ detail?.name }}» de Riff Valley junto con sus asociaciones de artistas y datos de sincronización. La playlist real y sus canciones seguirán existiendo en Spotify.</p>
+            <h3 class="font-bold text-gray-900 dark:text-white">
+              Eliminar playlist de Riff Valley
+            </h3>
+            <p class="mt-2 text-sm leading-5 text-gray-600 dark:text-gray-300">
+              Se eliminará «{{ detail?.name }}» de Riff Valley junto con sus
+              asociaciones de artistas y datos de sincronización. La playlist
+              real y sus canciones seguirán existiendo en Spotify.
+            </p>
           </div>
         </div>
-        <p class="mb-2 text-sm text-gray-700 dark:text-gray-200">Escribe exactamente <strong>ELIMINAR</strong> para confirmar:</p>
-        <input v-model="deleteConfirmationText" autofocus autocomplete="off" autocapitalize="characters" placeholder="ELIMINAR" class="w-full rounded-lg border border-red-300 px-3 py-2 font-mono uppercase text-gray-900 outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-60 dark:border-red-800 dark:bg-rv-darkSurface dark:text-white" :disabled="deletingPlaylist" @input="normalizeConfirmationInput($event, 'delete')" @keyup.enter="confirmDeletePlaylist" />
-        <p v-if="deletePlaylistError" class="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">{{ deletePlaylistError }}</p>
+        <p class="mb-2 text-sm text-gray-700 dark:text-gray-200">
+          Escribe exactamente <strong>ELIMINAR</strong> para confirmar:
+        </p>
+        <input
+          v-model="deleteConfirmationText"
+          autofocus
+          autocomplete="off"
+          autocapitalize="characters"
+          placeholder="ELIMINAR"
+          class="w-full rounded-lg border border-red-300 px-3 py-2 font-mono uppercase text-gray-900 outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-60 dark:border-red-800 dark:bg-rv-darkSurface dark:text-white"
+          :disabled="deletingPlaylist"
+          @input="normalizeConfirmationInput($event, 'delete')"
+          @keyup.enter="confirmDeletePlaylist"
+        />
+        <p
+          v-if="deletePlaylistError"
+          class="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+        >
+          {{ deletePlaylistError }}
+        </p>
         <div class="mt-5 flex justify-end gap-2">
-          <button class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-rv-darkBg" :disabled="deletingPlaylist" @click="closeDeleteConfirmation">Cancelar</button>
-          <button class="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40" :disabled="deleteConfirmationText !== 'ELIMINAR' || deletingPlaylist" @click="confirmDeletePlaylist">
-            {{ deletingPlaylist ? 'Eliminando…' : 'Eliminar definitivamente' }}
+          <button
+            class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-rv-darkBg"
+            :disabled="deletingPlaylist"
+            @click="closeDeleteConfirmation"
+          >
+            Cancelar
+          </button>
+          <button
+            class="rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="
+              deleteConfirmationText !== 'ELIMINAR' || deletingPlaylist
+            "
+            @click="confirmDeletePlaylist"
+          >
+            {{ deletingPlaylist ? "Eliminando…" : "Eliminar definitivamente" }}
           </button>
         </div>
       </div>
@@ -199,9 +760,16 @@
 </template>
 
 <script setup lang="ts">
-import axios from 'axios';
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
-import SwalService from '@services/swal/SwalService';
+import axios from "axios";
+import {
+  computed,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  watch,
+} from "vue";
+import SwalService from "@services/swal/SwalService";
 import {
   addArtistToFestivalPlaylist,
   clearFestivalPlaylist,
@@ -210,17 +778,20 @@ import {
   getArtistTopSongs,
   getFestivalPlaylist,
   removeArtistFromFestivalPlaylist,
+  replaceFailedFestivalArtistTracks,
   searchFestivalArtists,
+  searchFailedFestivalArtistTracks,
   updateFestivalPlaylist,
   updateFestivalPlaylistImage,
   validatePlaylistImage,
   type FestivalArtist,
   type PlaylistArtist,
   type PlaylistArtistSyncStatus,
+  type PlaylistTrack,
   type SpotifyConnection,
   type SyncedFestivalPlaylist,
   type TopSongsResponse,
-} from '@services/spotify/festivalPlaylists';
+} from "@services/spotify/festivalPlaylists";
 
 const props = defineProps<{
   playlistId: string;
@@ -236,85 +807,157 @@ const emit = defineEmits<{
   deleted: [playlistId: string];
 }>();
 
-const fallbackImage = '/LOGO-RIFF-VALLEY.svg';
-const fallbackArtist = '/LOGO-RIFF-VALLEY.svg';
+const fallbackImage = "/LOGO-RIFF-VALLEY.svg";
+const fallbackArtist = "/LOGO-RIFF-VALLEY.svg";
 const detail = ref<SyncedFestivalPlaylist | null>(null);
 const loading = ref(true);
-const savingDetails = ref(false);
+type DetailField = "name" | "description" | "public";
+const savingDetailFields = ref<DetailField[]>([]);
 const savingImage = ref(false);
 const selectedImage = ref<File | null>(null);
 const imagePreview = ref<string | null>(null);
-const artistQuery = ref('');
+const artistQuery = ref("");
 const searchResults = ref<FestivalArtist[]>([]);
 const searching = ref(false);
 const searchFailed = ref(false);
 const creatingArtist = ref(false);
 const syncingArtistId = ref<string | null>(null);
+const manualTrackArtist = ref<PlaylistArtist | null>(null);
+const manualTrackQuery = ref("");
+const manualTrackCandidates = ref<PlaylistTrack[]>([]);
+const selectedManualTrackIds = ref<string[]>([]);
+const loadingManualTracks = ref(false);
+const savingManualTracks = ref(false);
 const expandedArtists = ref(new Set<string>());
 const preview = ref<TopSongsResponse | null>(null);
 const previewArtistId = ref<string | null>(null);
 const previewLoadingId = ref<string | null>(null);
 const clearingPlaylist = ref(false);
 const showClearConfirmation = ref(false);
-const clearConfirmationText = ref('');
+const clearConfirmationText = ref("");
 const deletingPlaylist = ref(false);
 const showDeleteConfirmation = ref(false);
-const deleteConfirmationText = ref('');
+const deleteConfirmationText = ref("");
 const deletePlaylistError = ref<string | null>(null);
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
+let manualTrackSearchTimer: ReturnType<typeof setTimeout> | null = null;
+const queuedDetailFields = new Set<DetailField>();
+let detailsSavePromise: Promise<void> | null = null;
 
-const editForm = reactive({ name: '', description: '', isPublic: false });
+const editForm = reactive({ name: "", description: "", isPublic: false });
+const nameDirty = computed(
+  () => !!detail.value && editForm.name.trim() !== detail.value.name,
+);
+const descriptionDirty = computed(
+  () =>
+    !!detail.value && editForm.description !== (detail.value.description ?? ""),
+);
 const searchedArtistName = computed(() => artistQuery.value.trim());
-const hasExactArtistMatch = computed(() => searchResults.value.some((artist) =>
-  artist.name.trim().localeCompare(searchedArtistName.value, undefined, { sensitivity: 'base' }) === 0,
-));
-const canCreateSearchedArtist = computed(() =>
-  props.canManage
-  && searchedArtistName.value.length >= 2
-  && !searching.value
-  && !searchFailed.value
-  && !hasExactArtistMatch.value,
+const hasExactArtistMatch = computed(() =>
+  searchResults.value.some(
+    (artist) =>
+      artist.name.trim().localeCompare(searchedArtistName.value, undefined, {
+        sensitivity: "base",
+      }) === 0,
+  ),
+);
+const canCreateSearchedArtist = computed(
+  () =>
+    props.canManage &&
+    searchedArtistName.value.length >= 2 &&
+    !searching.value &&
+    !searchFailed.value &&
+    !hasExactArtistMatch.value,
 );
 function errorMessage(error: unknown, fallback: string): string {
-  if (axios.isAxiosError<{ message?: string }>(error)) return error.response?.data?.message || fallback;
+  if (axios.isAxiosError<{ message?: string }>(error))
+    return error.response?.data?.message || fallback;
   return fallback;
 }
 
-function applyDetail(value: SyncedFestivalPlaylist) {
+function applyDetail(value: SyncedFestivalPlaylist, syncForm = false) {
   detail.value = value;
-  editForm.name = value.name;
-  editForm.description = value.description ?? '';
-  editForm.isPublic = value.isPublic;
-  emit('updated', value);
+  if (syncForm) {
+    editForm.name = value.name;
+    editForm.description = value.description ?? "";
+    editForm.isPublic = value.isPublic;
+  }
+  emit("updated", value);
 }
 
 async function loadDetail() {
   loading.value = true;
   try {
-    applyDetail(await getFestivalPlaylist(props.playlistId));
+    applyDetail(await getFestivalPlaylist(props.playlistId), true);
   } catch (error) {
-    SwalService.error(errorMessage(error, 'No se pudo cargar la playlist'));
-    emit('close');
+    SwalService.error(errorMessage(error, "No se pudo cargar la playlist"));
+    emit("close");
   } finally {
     loading.value = false;
   }
 }
 
-async function saveDetails() {
-  if (!detail.value || !editForm.name.trim()) return;
-  savingDetails.value = true;
-  try {
-    applyDetail(await updateFestivalPlaylist(detail.value.id, {
-      name: editForm.name.trim(),
-      description: editForm.description,
-      public: editForm.isPublic,
-    }));
-    SwalService.success('Playlist actualizada en Spotify');
-  } catch (error) {
-    SwalService.error(errorMessage(error, 'No se pudo actualizar la playlist'));
-  } finally {
-    savingDetails.value = false;
-  }
+function isDetailFieldSaving(field: DetailField) {
+  return savingDetailFields.value.includes(field);
+}
+
+function requestDetailSave(field: DetailField): Promise<void> {
+  queuedDetailFields.add(field);
+  if (detailsSavePromise) return detailsSavePromise;
+
+  detailsSavePromise = (async () => {
+    while (queuedDetailFields.size) {
+      const field = queuedDetailFields.values().next().value as DetailField;
+      queuedDetailFields.delete(field);
+      if (!detail.value || !props.canManage) continue;
+      const playlistId = detail.value.id;
+      const snapshot =
+        field === "name"
+          ? editForm.name.trim()
+          : field === "description"
+            ? editForm.description
+            : editForm.isPublic;
+      if (field === "name" && (!snapshot || snapshot === detail.value.name))
+        continue;
+      if (
+        field === "description" &&
+        snapshot === (detail.value.description ?? "")
+      )
+        continue;
+      if (field === "public" && snapshot === detail.value.isPublic) continue;
+      savingDetailFields.value = [...savingDetailFields.value, field];
+      try {
+        await updateFestivalPlaylist(playlistId, {
+          ...(field === "name" ? { name: snapshot as string } : {}),
+          ...(field === "description"
+            ? { description: snapshot as string }
+            : {}),
+          ...(field === "public" ? { public: snapshot as boolean } : {}),
+        });
+        if (!detail.value) continue;
+        detail.value = {
+          ...detail.value,
+          ...(field === "name" ? { name: snapshot as string } : {}),
+          ...(field === "description"
+            ? { description: snapshot as string }
+            : {}),
+          ...(field === "public" ? { isPublic: snapshot as boolean } : {}),
+        };
+        emit("updated", detail.value);
+      } catch (error) {
+        SwalService.error(
+          errorMessage(error, "No se pudo actualizar la playlist"),
+        );
+      } finally {
+        savingDetailFields.value = savingDetailFields.value.filter(
+          (value) => value !== field,
+        );
+      }
+    }
+  })().finally(() => {
+    detailsSavePromise = null;
+  });
+  return detailsSavePromise;
 }
 
 function clearImagePreview() {
@@ -330,28 +973,44 @@ function selectImage(event: Event) {
   if (!file) return;
   const validationError = validatePlaylistImage(file);
   if (validationError) {
-    input.value = '';
+    input.value = "";
     SwalService.error(validationError);
     return;
   }
   selectedImage.value = file;
   imagePreview.value = URL.createObjectURL(file);
+  void uploadImage(input);
 }
 
-async function uploadImage() {
-  if (!detail.value || !selectedImage.value || !props.connection.canUploadImages) return;
+async function uploadImage(input?: HTMLInputElement) {
+  if (
+    !detail.value ||
+    !selectedImage.value ||
+    !props.connection.canUploadImages
+  )
+    return;
   savingImage.value = true;
   try {
-    applyDetail(await updateFestivalPlaylistImage(detail.value.id, selectedImage.value));
-    selectedImage.value = null;
-    clearImagePreview();
-    SwalService.success('Portada actualizada en Spotify');
+    applyDetail(
+      await updateFestivalPlaylistImage(detail.value.id, selectedImage.value),
+    );
+    SwalService.success("Portada actualizada en Spotify");
   } catch (error) {
-    SwalService.error(errorMessage(error, 'No se pudo actualizar la portada'));
+    SwalService.error(errorMessage(error, "No se pudo actualizar la portada"));
   } finally {
     savingImage.value = false;
+    selectedImage.value = null;
+    clearImagePreview();
+    if (input) input.value = "";
   }
 }
+
+watch(
+  () => editForm.isPublic,
+  () => {
+    void requestDetailSave("public");
+  },
+);
 
 watch(artistQuery, (query) => {
   if (searchTimer) clearTimeout(searchTimer);
@@ -365,57 +1024,202 @@ watch(artistQuery, (query) => {
   searchTimer = setTimeout(async () => {
     try {
       const response = await searchFestivalArtists(query.trim(), 15, 0);
-      if (artistQuery.value.trim() === query.trim()) searchResults.value = response.data;
+      if (artistQuery.value.trim() === query.trim())
+        searchResults.value = response.data;
     } catch (error) {
       if (artistQuery.value.trim() === query.trim()) searchFailed.value = true;
-      SwalService.error(errorMessage(error, 'No se pudieron buscar artistas'));
+      SwalService.error(errorMessage(error, "No se pudieron buscar artistas"));
     } finally {
       if (artistQuery.value.trim() === query.trim()) searching.value = false;
     }
   }, 300);
 });
 
+watch(manualTrackQuery, (query) => {
+  if (!manualTrackArtist.value) return;
+  if (manualTrackSearchTimer) clearTimeout(manualTrackSearchTimer);
+  manualTrackSearchTimer = setTimeout(() => {
+    void loadManualTracks(query.trim());
+  }, 300);
+});
+
 function isArtistPresent(artistId: string) {
-  return detail.value?.playlistArtists.some((entry) => entry.artistId === artistId) ?? false;
+  return (
+    detail.value?.playlistArtists.some(
+      (entry) => entry.artistId === artistId,
+    ) ?? false
+  );
 }
 
 async function addArtist(artistId: string) {
   if (!detail.value || syncingArtistId.value) return;
-  const existing = detail.value.playlistArtists.find((entry) => entry.artistId === artistId);
-  if (existing && existing.status !== 'failed') return;
+  const existing = detail.value.playlistArtists.find(
+    (entry) => entry.artistId === artistId,
+  );
+  if (existing && existing.status !== "failed") return;
   syncingArtistId.value = artistId;
   try {
-    applyDetail(await addArtistToFestivalPlaylist(detail.value.id, artistId, 10, 10));
-    SwalService.success('Artista y canciones sincronizados');
+    applyDetail(
+      await addArtistToFestivalPlaylist(detail.value.id, artistId, 10, 10),
+    );
+    SwalService.success("Artista y canciones sincronizados");
   } catch (error) {
-    SwalService.error(errorMessage(error, 'No se pudo sincronizar el artista'));
+    SwalService.error(errorMessage(error, "No se pudo sincronizar el artista"));
     await loadDetail();
   } finally {
     syncingArtistId.value = null;
   }
 }
 
+function openManualTrackSelection(entry: PlaylistArtist) {
+  if (entry.status !== "failed" || syncingArtistId.value) return;
+  manualTrackArtist.value = entry;
+  manualTrackQuery.value = "";
+  manualTrackCandidates.value = [...entry.tracks];
+  selectedManualTrackIds.value = entry.tracks
+    .slice(0, 10)
+    .map((track) => track.spotifyTrackId);
+  void loadManualTracks("");
+}
+
+function closeManualTrackSelection() {
+  if (savingManualTracks.value) return;
+  if (manualTrackSearchTimer) clearTimeout(manualTrackSearchTimer);
+  manualTrackArtist.value = null;
+  manualTrackQuery.value = "";
+  manualTrackCandidates.value = [];
+  selectedManualTrackIds.value = [];
+}
+
+async function loadManualTracks(query: string) {
+  if (!detail.value || !manualTrackArtist.value) return;
+  const playlistId = detail.value.id;
+  const artistId = manualTrackArtist.value.artistId;
+  loadingManualTracks.value = true;
+  try {
+    const response = await searchFailedFestivalArtistTracks(
+      playlistId,
+      artistId,
+      query,
+    );
+    if (
+      detail.value?.id === playlistId &&
+      manualTrackArtist.value?.artistId === artistId &&
+      manualTrackQuery.value.trim() === query
+    ) {
+      manualTrackCandidates.value = response.tracks;
+    }
+  } catch (error) {
+    SwalService.error(errorMessage(error, "No se pudieron buscar canciones"));
+  } finally {
+    if (
+      detail.value?.id === playlistId &&
+      manualTrackArtist.value?.artistId === artistId &&
+      manualTrackQuery.value.trim() === query
+    ) {
+      loadingManualTracks.value = false;
+    }
+  }
+}
+
+function isManualTrackSelected(trackId: string) {
+  return selectedManualTrackIds.value.includes(trackId);
+}
+
+function toggleManualTrack(trackId: string) {
+  const index = selectedManualTrackIds.value.indexOf(trackId);
+  if (index >= 0) {
+    selectedManualTrackIds.value.splice(index, 1);
+    return;
+  }
+  if (selectedManualTrackIds.value.length >= 10) {
+    SwalService.error("Solo puedes seleccionar un máximo de 10 canciones");
+    return;
+  }
+  selectedManualTrackIds.value.push(trackId);
+}
+
+function formatDuration(durationMs?: number) {
+  if (!durationMs) return "";
+  const totalSeconds = Math.round(durationMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  return `${minutes}:${String(totalSeconds % 60).padStart(2, "0")}`;
+}
+
+async function saveManualTracks() {
+  if (
+    !detail.value ||
+    !manualTrackArtist.value ||
+    selectedManualTrackIds.value.length < 1 ||
+    selectedManualTrackIds.value.length > 10 ||
+    savingManualTracks.value
+  )
+    return;
+  const artistName = manualTrackArtist.value.artist.name;
+  savingManualTracks.value = true;
+  try {
+    applyDetail(
+      await replaceFailedFestivalArtistTracks(
+        detail.value.id,
+        manualTrackArtist.value.artistId,
+        selectedManualTrackIds.value,
+      ),
+    );
+    savingManualTracks.value = false;
+    closeManualTrackSelection();
+    SwalService.success(
+      `${artistName} sincronizado con las canciones elegidas`,
+    );
+  } catch (error) {
+    SwalService.error(
+      errorMessage(error, "No se pudieron guardar las canciones"),
+    );
+  } finally {
+    savingManualTracks.value = false;
+  }
+}
+
 async function createAndAddArtist() {
-  if (!detail.value || !canCreateSearchedArtist.value || creatingArtist.value || syncingArtistId.value) return;
+  if (
+    !detail.value ||
+    !canCreateSearchedArtist.value ||
+    creatingArtist.value ||
+    syncingArtistId.value
+  )
+    return;
   const name = searchedArtistName.value;
   let createdArtist: FestivalArtist | null = null;
   creatingArtist.value = true;
   try {
     createdArtist = await createPendingFestivalArtist(name);
-    applyDetail(await addArtistToFestivalPlaylist(detail.value.id, createdArtist.id, 10, 20));
-    artistQuery.value = '';
+    applyDetail(
+      await addArtistToFestivalPlaylist(
+        detail.value.id,
+        createdArtist.id,
+        10,
+        20,
+      ),
+    );
+    artistQuery.value = "";
     searchResults.value = [];
-    SwalService.success(`Artista “${createdArtist.name}” creado y sincronizado`);
+    SwalService.success(
+      `Artista “${createdArtist.name}” creado y sincronizado`,
+    );
   } catch (error) {
-    if (createdArtist && !searchResults.value.some((artist) => artist.id === createdArtist?.id)) {
+    if (
+      createdArtist &&
+      !searchResults.value.some((artist) => artist.id === createdArtist?.id)
+    ) {
       searchResults.value.unshift(createdArtist);
     }
-    SwalService.error(errorMessage(
-      error,
-      createdArtist
-        ? 'El artista se creó como pendiente, pero no pudo sincronizarse con la playlist'
-        : 'No se pudo crear el artista',
-    ));
+    SwalService.error(
+      errorMessage(
+        error,
+        createdArtist
+          ? "El artista se creó como pendiente, pero no pudo sincronizarse con la playlist"
+          : "No se pudo crear el artista",
+      ),
+    );
   } finally {
     creatingArtist.value = false;
   }
@@ -424,18 +1228,20 @@ async function createAndAddArtist() {
 async function removeArtist(entry: PlaylistArtist) {
   if (!detail.value || syncingArtistId.value) return;
   const result = await SwalService.confirm(
-    '¿Eliminar artista?',
+    "¿Eliminar artista?",
     `Se eliminarán de Spotify las pistas de ${entry.artist.name}, excepto las compartidas con otros artistas.`,
-    'Sí, eliminar',
-    'Cancelar',
+    "Sí, eliminar",
+    "Cancelar",
   );
   if (!result.isConfirmed) return;
   syncingArtistId.value = entry.artistId;
   try {
-    applyDetail(await removeArtistFromFestivalPlaylist(detail.value.id, entry.artistId));
-    SwalService.success('Artista eliminado de la playlist');
+    applyDetail(
+      await removeArtistFromFestivalPlaylist(detail.value.id, entry.artistId),
+    );
+    SwalService.success("Artista eliminado de la playlist");
   } catch (error) {
-    SwalService.error(errorMessage(error, 'No se pudo eliminar el artista'));
+    SwalService.error(errorMessage(error, "No se pudo eliminar el artista"));
   } finally {
     syncingArtistId.value = null;
   }
@@ -444,33 +1250,38 @@ async function removeArtist(entry: PlaylistArtist) {
 async function requestClearPlaylist() {
   if (!detail.value || clearingPlaylist.value || !props.canManage) return;
   const result = await SwalService.confirm(
-    '¿Vaciar completamente la playlist?',
-    'Se eliminarán todas las canciones de Spotify y todos los artistas sincronizados. La playlist seguirá existiendo, pero quedará vacía.',
-    'Continuar',
-    'Cancelar',
+    "¿Vaciar completamente la playlist?",
+    "Se eliminarán todas las canciones de Spotify y todos los artistas sincronizados. La playlist seguirá existiendo, pero quedará vacía.",
+    "Continuar",
+    "Cancelar",
   );
   if (!result.isConfirmed) return;
-  clearConfirmationText.value = '';
+  clearConfirmationText.value = "";
   showClearConfirmation.value = true;
 }
 
 function closeClearConfirmation() {
   if (clearingPlaylist.value) return;
   showClearConfirmation.value = false;
-  clearConfirmationText.value = '';
+  clearConfirmationText.value = "";
 }
 
 async function confirmClearPlaylist() {
-  if (!detail.value || clearConfirmationText.value !== 'VACIAR' || clearingPlaylist.value) return;
+  if (
+    !detail.value ||
+    clearConfirmationText.value !== "VACIAR" ||
+    clearingPlaylist.value
+  )
+    return;
   clearingPlaylist.value = true;
   try {
     applyDetail(await clearFestivalPlaylist(detail.value.id));
     expandedArtists.value = new Set();
     showClearConfirmation.value = false;
-    clearConfirmationText.value = '';
-    SwalService.success('La playlist se ha vaciado completamente');
+    clearConfirmationText.value = "";
+    SwalService.success("La playlist se ha vaciado completamente");
   } catch (error) {
-    SwalService.error(errorMessage(error, 'No se pudo vaciar la playlist'));
+    SwalService.error(errorMessage(error, "No se pudo vaciar la playlist"));
   } finally {
     clearingPlaylist.value = false;
   }
@@ -478,7 +1289,7 @@ async function confirmClearPlaylist() {
 
 function openDeleteConfirmation() {
   if (!detail.value || deletingPlaylist.value || !props.canManage) return;
-  deleteConfirmationText.value = '';
+  deleteConfirmationText.value = "";
   deletePlaylistError.value = null;
   showDeleteConfirmation.value = true;
 }
@@ -486,31 +1297,41 @@ function openDeleteConfirmation() {
 function closeDeleteConfirmation() {
   if (deletingPlaylist.value) return;
   showDeleteConfirmation.value = false;
-  deleteConfirmationText.value = '';
+  deleteConfirmationText.value = "";
   deletePlaylistError.value = null;
 }
 
-function normalizeConfirmationInput(event: Event, target: 'clear' | 'delete') {
+function normalizeConfirmationInput(event: Event, target: "clear" | "delete") {
   const value = (event.target as HTMLInputElement).value.toUpperCase();
-  if (target === 'clear') clearConfirmationText.value = value;
+  if (target === "clear") clearConfirmationText.value = value;
   else deleteConfirmationText.value = value;
 }
 
 async function confirmDeletePlaylist() {
-  if (!detail.value || deleteConfirmationText.value !== 'ELIMINAR' || deletingPlaylist.value) return;
+  if (
+    !detail.value ||
+    deleteConfirmationText.value !== "ELIMINAR" ||
+    deletingPlaylist.value
+  )
+    return;
   const playlistId = detail.value.id;
   deletingPlaylist.value = true;
   deletePlaylistError.value = null;
   try {
     await deleteFestivalPlaylist(playlistId);
     showDeleteConfirmation.value = false;
-    deleteConfirmationText.value = '';
+    deleteConfirmationText.value = "";
     detail.value = null;
-    emit('deleted', playlistId);
-    emit('close');
-    SwalService.success('Playlist eliminada de Riff Valley. La playlist de Spotify no se ha eliminado.');
+    emit("deleted", playlistId);
+    emit("close");
+    SwalService.success(
+      "Playlist eliminada de Riff Valley. La playlist de Spotify no se ha eliminado.",
+    );
   } catch (error) {
-    deletePlaylistError.value = errorMessage(error, 'No se pudo eliminar la playlist de Riff Valley');
+    deletePlaylistError.value = errorMessage(
+      error,
+      "No se pudo eliminar la playlist de Riff Valley",
+    );
   } finally {
     deletingPlaylist.value = false;
   }
@@ -523,7 +1344,9 @@ async function loadPreview(artist: FestivalArtist) {
   try {
     preview.value = await getArtistTopSongs(artist.name, 10, 10);
   } catch (error) {
-    SwalService.error(errorMessage(error, 'No se pudo calcular la vista previa'));
+    SwalService.error(
+      errorMessage(error, "No se pudo calcular la vista previa"),
+    );
   } finally {
     previewLoadingId.value = null;
   }
@@ -537,20 +1360,24 @@ function toggleArtist(id: string) {
 }
 
 function statusLabel(status: PlaylistArtistSyncStatus) {
-  return { syncing: 'Sincronizando', synced: 'Sincronizado', failed: 'Error' }[status];
+  return { syncing: "Sincronizando", synced: "Sincronizado", failed: "Error" }[
+    status
+  ];
 }
 
 function statusClass(status: PlaylistArtistSyncStatus) {
   return {
-    syncing: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
-    synced: 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300',
-    failed: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300',
+    syncing: "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300",
+    synced:
+      "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300",
+    failed: "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300",
   }[status];
 }
 
 onMounted(loadDetail);
 onBeforeUnmount(() => {
   if (searchTimer) clearTimeout(searchTimer);
+  if (manualTrackSearchTimer) clearTimeout(manualTrackSearchTimer);
   clearImagePreview();
 });
 </script>

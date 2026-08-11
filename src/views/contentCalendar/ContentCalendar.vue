@@ -182,6 +182,9 @@ const editingContent = ref<any>({
     authorId: ''
 });
 
+const mergeContentsById = (...collections: Content[][]): Content[] =>
+    [...new Map(collections.flat().map(content => [content.id, content])).values()];
+
 // Backlog items (content with backlog: true)
 const backlogItems = computed(() => {
     return allContents.value
@@ -815,6 +818,8 @@ async function updateListStatus(list: any) {
     if (!list || !list.id) return;
     try {
         await updateList(list.id, { status: list.status });
+        await loadBacklogContents();
+        await loadContentsByMonth(currentYear.value, currentMonth.value);
         SwalService.success('Estado actualizado');
     } catch (error) {
         console.error('Error updating status:', error);
@@ -893,7 +898,7 @@ async function loadContentsByMonth(year: number, month: number) {
         const currentBacklog = allContents.value.filter(c => c.backlog);
         const scheduledItems = monthContents.filter(c => !c.backlog && c.publicationDate);
 
-        allContents.value = [...currentBacklog, ...scheduledItems];
+        allContents.value = mergeContentsById(currentBacklog, scheduledItems);
     } catch (error) {
         console.error('Error loading contents by month:', error);
     }
@@ -904,7 +909,7 @@ async function loadBacklogContents() {
         const backlog = await getContents(true);
         // Preserve existing scheduled items while updating backlog
         const scheduledItems = allContents.value.filter(c => !c.backlog && c.publicationDate);
-        allContents.value = [...backlog, ...scheduledItems];
+        allContents.value = mergeContentsById(backlog, scheduledItems);
     } catch (error) {
         console.error('Error loading backlog contents:', error);
     }

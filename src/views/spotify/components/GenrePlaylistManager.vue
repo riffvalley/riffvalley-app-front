@@ -70,14 +70,13 @@
                 >
                   JPEG cuadrado. Máximo 256 KB codificado.
                 </p>
-                <button
-                  v-if="selectedImage"
-                  class="mt-2 w-full rounded-lg bg-rv-pink px-3 py-2 text-xs font-semibold text-white hover:bg-rv-purple disabled:opacity-50"
-                  :disabled="savingImage"
-                  @click="uploadImage"
+                <p
+                  v-if="savingImage"
+                  class="mt-2 text-xs font-semibold text-rv-purple"
                 >
-                  {{ savingImage ? "Subiendo…" : "Subir portada" }}
-                </button>
+                  <i class="fa-solid fa-spinner fa-spin mr-1"></i>Subiendo
+                  portada…
+                </p>
                 <button
                   v-if="!connection.canUploadImages"
                   class="mt-2 !bg-transparent p-0 text-left text-xs font-semibold text-rv-purple hover:underline"
@@ -86,12 +85,33 @@
                   Renovar permisos de Spotify
                 </button>
               </div>
-              <form class="space-y-3" @submit.prevent="saveDetails">
+              <div class="space-y-3">
                 <div>
-                  <label
-                    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >Nombre</label
-                  >
+                  <div class="mb-1 flex items-center justify-between gap-2">
+                    <label
+                      class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >Nombre</label
+                    >
+                    <button
+                      v-if="nameDirty"
+                      class="inline-flex items-center gap-1 rounded-md bg-rv-pink px-2 py-1 text-[11px] font-semibold text-white hover:bg-rv-purple disabled:opacity-50"
+                      :disabled="
+                        !editForm.name.trim() || isDetailFieldSaving('name')
+                      "
+                      title="Guardar nombre"
+                      @click="requestDetailSave('name')"
+                    >
+                      <i
+                        class="fa-solid"
+                        :class="
+                          isDetailFieldSaving('name')
+                            ? 'fa-spinner fa-spin'
+                            : 'fa-floppy-disk'
+                        "
+                      ></i>
+                      Guardar
+                    </button>
+                  </div>
                   <input
                     v-model="editForm.name"
                     maxlength="100"
@@ -99,10 +119,29 @@
                   />
                 </div>
                 <div>
-                  <label
-                    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >Descripción</label
-                  >
+                  <div class="mb-1 flex items-center justify-between gap-2">
+                    <label
+                      class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >Descripción</label
+                    >
+                    <button
+                      v-if="descriptionDirty"
+                      class="inline-flex items-center gap-1 rounded-md bg-rv-pink px-2 py-1 text-[11px] font-semibold text-white hover:bg-rv-purple disabled:opacity-50"
+                      :disabled="isDetailFieldSaving('description')"
+                      title="Guardar descripción"
+                      @click="requestDetailSave('description')"
+                    >
+                      <i
+                        class="fa-solid"
+                        :class="
+                          isDetailFieldSaving('description')
+                            ? 'fa-spinner fa-spin'
+                            : 'fa-floppy-disk'
+                        "
+                      ></i>
+                      Guardar
+                    </button>
+                  </div>
                   <textarea
                     v-model="editForm.description"
                     maxlength="300"
@@ -122,14 +161,22 @@
                   />
                   Playlist pública</label
                 >
-                <button
-                  type="submit"
-                  class="rounded-lg bg-rv-pink px-4 py-2 text-sm font-semibold text-white hover:bg-rv-purple disabled:opacity-50"
-                  :disabled="savingDetails || !editForm.name.trim()"
-                >
-                  {{ savingDetails ? "Guardando…" : "Guardar cambios" }}
-                </button>
-              </form>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  <i
+                    class="fa-solid mr-1"
+                    :class="
+                      isDetailFieldSaving('public')
+                        ? 'fa-spinner fa-spin'
+                        : 'fa-cloud-arrow-up'
+                    "
+                  ></i>
+                  {{
+                    isDetailFieldSaving("public")
+                      ? "Actualizando visibilidad…"
+                      : "La visibilidad se guarda automáticamente"
+                  }}
+                </p>
+              </div>
             </div>
           </section>
 
@@ -585,7 +632,8 @@ const fallbackArtist = "/LOGO-RIFF-VALLEY.svg";
 const catalogStore = useCatalogStore();
 const detail = ref<SyncedGenrePlaylist | null>(null);
 const loading = ref(true);
-const savingDetails = ref(false);
+type DetailField = "name" | "description" | "public";
+const savingDetailFields = ref<DetailField[]>([]);
 const savingImage = ref(false);
 const selectedImage = ref<File | null>(null);
 const imagePreview = ref<string | null>(null);
@@ -606,6 +654,15 @@ const selectedTrackIds = ref<string[]>([]);
 const loadingTracks = ref(false);
 const savingSelection = ref(false);
 const editForm = reactive({ name: "", description: "", isPublic: false });
+const nameDirty = computed(
+  () => !!detail.value && editForm.name.trim() !== detail.value.name,
+);
+const descriptionDirty = computed(
+  () =>
+    !!detail.value && editForm.description !== (detail.value.description ?? ""),
+);
+const queuedDetailFields = new Set<DetailField>();
+let detailsSavePromise: Promise<void> | null = null;
 let artistTimer: ReturnType<typeof setTimeout> | null = null;
 
 const hasExactArtist = computed(() =>
@@ -627,17 +684,19 @@ function errorMessage(error: unknown, fallback: string) {
     ? error.response?.data?.message || fallback
     : fallback;
 }
-function applyDetail(value: SyncedGenrePlaylist) {
+function applyDetail(value: SyncedGenrePlaylist, syncForm = false) {
   detail.value = value;
-  editForm.name = value.name;
-  editForm.description = value.description ?? "";
-  editForm.isPublic = value.isPublic;
+  if (syncForm) {
+    editForm.name = value.name;
+    editForm.description = value.description ?? "";
+    editForm.isPublic = value.isPublic;
+  }
   emit("updated", value);
 }
 async function loadDetail() {
   loading.value = true;
   try {
-    applyDetail(await getGenrePlaylist(props.playlistId));
+    applyDetail(await getGenrePlaylist(props.playlistId), true);
   } catch (error) {
     SwalService.error(errorMessage(error, "No se pudo cargar la playlist"));
     emit("close");
@@ -839,23 +898,65 @@ async function removeArtist(entry: PlaylistArtist) {
     SwalService.error(errorMessage(error, "No se pudo eliminar el artista"));
   }
 }
-async function saveDetails() {
-  if (!detail.value || !editForm.name.trim()) return;
-  savingDetails.value = true;
-  try {
-    applyDetail(
-      await updateGenrePlaylist(detail.value.id, {
-        name: editForm.name.trim(),
-        description: editForm.description,
-        public: editForm.isPublic,
-      }),
-    );
-    SwalService.success("Playlist actualizada");
-  } catch (error) {
-    SwalService.error(errorMessage(error, "No se pudo actualizar"));
-  } finally {
-    savingDetails.value = false;
-  }
+function isDetailFieldSaving(field: DetailField) {
+  return savingDetailFields.value.includes(field);
+}
+
+function requestDetailSave(field: DetailField): Promise<void> {
+  queuedDetailFields.add(field);
+  if (detailsSavePromise) return detailsSavePromise;
+
+  detailsSavePromise = (async () => {
+    while (queuedDetailFields.size) {
+      const field = queuedDetailFields.values().next().value as DetailField;
+      queuedDetailFields.delete(field);
+      if (!detail.value) continue;
+      const playlistId = detail.value.id;
+      const snapshot =
+        field === "name"
+          ? editForm.name.trim()
+          : field === "description"
+            ? editForm.description
+            : editForm.isPublic;
+      if (field === "name" && (!snapshot || snapshot === detail.value.name))
+        continue;
+      if (
+        field === "description" &&
+        snapshot === (detail.value.description ?? "")
+      )
+        continue;
+      if (field === "public" && snapshot === detail.value.isPublic) continue;
+      savingDetailFields.value = [...savingDetailFields.value, field];
+      try {
+        await updateGenrePlaylist(playlistId, {
+          ...(field === "name" ? { name: snapshot as string } : {}),
+          ...(field === "description"
+            ? { description: snapshot as string }
+            : {}),
+          ...(field === "public" ? { public: snapshot as boolean } : {}),
+        });
+        if (!detail.value) continue;
+        detail.value = {
+          ...detail.value,
+          ...(field === "name" ? { name: snapshot as string } : {}),
+          ...(field === "description"
+            ? { description: snapshot as string }
+            : {}),
+          ...(field === "public" ? { isPublic: snapshot as boolean } : {}),
+        };
+        emit("updated", detail.value);
+      } catch (error) {
+        SwalService.error(errorMessage(error, "No se pudo actualizar"));
+      } finally {
+        savingDetailFields.value = savingDetailFields.value.filter(
+          (value) => value !== field,
+        );
+      }
+    }
+  })().finally(() => {
+    detailsSavePromise = null;
+  });
+  return detailsSavePromise;
 }
 function clearPreview() {
   if (imagePreview.value) URL.revokeObjectURL(imagePreview.value);
@@ -874,23 +975,32 @@ function selectImage(event: Event) {
   }
   selectedImage.value = file;
   imagePreview.value = URL.createObjectURL(file);
+  void uploadImage(input);
 }
-async function uploadImage() {
+async function uploadImage(input?: HTMLInputElement) {
   if (!detail.value || !selectedImage.value) return;
   savingImage.value = true;
   try {
     applyDetail(
       await updateGenrePlaylistImage(detail.value.id, selectedImage.value),
     );
-    selectedImage.value = null;
-    clearPreview();
     SwalService.success("Portada actualizada");
   } catch (error) {
     SwalService.error(errorMessage(error, "No se pudo actualizar la portada"));
   } finally {
     savingImage.value = false;
+    selectedImage.value = null;
+    clearPreview();
+    if (input) input.value = "";
   }
 }
+
+watch(
+  () => editForm.isPublic,
+  () => {
+    void requestDetailSave("public");
+  },
+);
 async function clearPlaylist() {
   if (!detail.value) return;
   const result = await SwalService.confirm(
