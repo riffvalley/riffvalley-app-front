@@ -1,12 +1,12 @@
 <template>
   <div class="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-rv-darkCard">
-    <header class="flex items-start justify-between gap-4 border-b border-gray-200 p-5 dark:border-white/10">
+    <header class="flex items-center justify-between gap-4 border-b border-gray-200 p-5 dark:border-white/10">
       <div>
         <p class="text-xs font-semibold uppercase tracking-widest text-[#1DB954]">Playlist sincronizada</p>
         <h2 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">{{ detail?.name || playlistName }}</h2>
       </div>
-      <button class="h-9 w-9 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10" aria-label="Cerrar" @click="$emit('close')">
-        <i class="fa-solid fa-xmark"></i>
+      <button class="grid h-9 w-9 shrink-0 place-items-center rounded-full p-0 leading-none text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Cerrar" @click="$emit('close')">
+        <i class="fa-solid fa-xmark block leading-none" aria-hidden="true"></i>
       </button>
     </header>
 
@@ -60,9 +60,9 @@
             </div>
           </section>
 
-          <section class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
+          <section class="spotify-artists-section rounded-xl border border-gray-200 p-4 dark:border-white/10">
             <div class="mb-4 flex items-center justify-between">
-              <h3 class="font-bold text-gray-900 dark:text-white">Artistas sincronizados</h3>
+              <h3 class="spotify-artists-title font-bold">Artistas sincronizados</h3>
               <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-white/10 dark:text-gray-300">{{ detail.playlistArtists.length }}</span>
             </div>
             <p v-if="detail.playlistArtists.length === 0" class="py-5 text-center text-sm text-gray-500">Todavía no hay artistas en esta playlist.</p>
@@ -70,7 +70,7 @@
               <button class="flex w-full items-center gap-3 p-3.5 text-left transition-colors hover:bg-gray-100 dark:hover:bg-rv-darkBg" @click="toggleArtist(entry.id)">
                 <img :src="entry.artist.image || fallbackArtist" class="h-12 w-12 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15" :alt="`Imagen de ${entry.artist.name}`" />
                 <span class="min-w-0 flex-1">
-                  <span class="block truncate text-[15px] font-bold leading-5 !text-rv-navy dark:!text-white">{{ entry.artist.name }}</span>
+                  <span class="spotify-artists-title block truncate text-[15px] font-bold leading-5">{{ entry.artist.name }}</span>
                   <span class="mt-0.5 block text-xs !text-gray-500 dark:!text-gray-300">{{ entry.tracks.length }} canciones · {{ entry.setlistsAnalyzed }} setlists analizados</span>
                 </span>
                 <span class="rounded-full px-2 py-1 text-[11px] font-bold" :class="statusClass(entry.status)">{{ statusLabel(entry.status) }}</span>
@@ -111,8 +111,8 @@
             </button>
           </section>
 
-          <section class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
-            <h3 class="font-bold text-gray-900 dark:text-white">Añadir artistas</h3>
+          <section class="spotify-artists-section rounded-xl border border-gray-200 p-4 dark:border-white/10">
+            <h3 class="spotify-artists-title font-bold">Añadir artistas</h3>
             <p class="mt-1 text-xs text-gray-500">La selección de temas se calcula con datos de setlist.fm y se sincroniza después con Spotify.</p>
             <input v-model="artistQuery" type="search" placeholder="Buscar artista interno…" :disabled="!canManage || syncingArtistId !== null || creatingArtist" class="mt-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-white/20 dark:bg-rv-darkSurface dark:text-white disabled:opacity-60" />
             <p v-if="searching" class="py-4 text-center text-sm text-gray-500">Buscando…</p>
@@ -128,7 +128,7 @@
                 <div class="flex items-center gap-2">
                   <img :src="artist.image || fallbackArtist" class="h-11 w-11 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15" :alt="`Imagen de ${artist.name}`" />
                   <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm font-bold !text-rv-navy dark:!text-white">{{ artist.name }}</span>
+                    <span class="spotify-artists-title block truncate text-sm font-bold">{{ artist.name }}</span>
                     <span v-if="artist.description" class="mt-0.5 block truncate text-xs !text-gray-500 dark:!text-gray-300">{{ artist.description }}</span>
                   </span>
                   <span v-if="isArtistPresent(artist.id)" class="text-xs font-semibold !text-green-400">Añadido</span>
@@ -583,3 +583,21 @@ onBeforeUnmount(() => {
   clearImagePreview();
 });
 </script>
+
+<style scoped>
+.spotify-artists-section {
+  background-color: #ffffff;
+}
+
+.spotify-artists-title {
+  color: #111827 !important;
+}
+
+:global(.dark) .spotify-artists-section {
+  background-color: #2a2b3d;
+}
+
+:global(.dark) .spotify-artists-title {
+  color: #ffffff !important;
+}
+</style>
