@@ -67,7 +67,7 @@
             </div>
             <p v-if="detail.playlistArtists.length === 0" class="py-5 text-center text-sm text-gray-500">Todavía no hay artistas en esta playlist.</p>
             <div v-for="entry in detail.playlistArtists" :key="entry.id" class="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-sm last:mb-0 dark:border-white/10 dark:bg-rv-darkSurface">
-              <button class="flex w-full items-center gap-3 p-3.5 text-left transition-colors hover:bg-gray-100 dark:hover:bg-rv-darkBg" @click="toggleArtist(entry.id)">
+              <button class="spotify-artist-row flex w-full items-center gap-3 p-3.5 text-left transition-colors" @click="toggleArtist(entry.id)">
                 <img :src="entry.artist.image || fallbackArtist" class="h-12 w-12 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15" :alt="`Imagen de ${entry.artist.name}`" />
                 <span class="min-w-0 flex-1">
                   <span class="spotify-artists-title block truncate text-[15px] font-bold leading-5">{{ entry.artist.name }}</span>
@@ -593,11 +593,27 @@ onBeforeUnmount(() => {
   color: #111827 !important;
 }
 
+.spotify-artist-row {
+  background-color: #f9fafb !important;
+}
+
+.spotify-artist-row:hover {
+  background-color: #f3f4f6 !important;
+}
+
 :global(.dark) .spotify-artists-section {
   background-color: #2a2b3d;
 }
 
 :global(.dark) .spotify-artists-title {
   color: #ffffff !important;
+}
+
+:global(.dark) .spotify-artist-row {
+  background-color: #2a2b3d !important;
+}
+
+:global(.dark) .spotify-artist-row:hover {
+  background-color: #00021f !important;
 }
 </style>
