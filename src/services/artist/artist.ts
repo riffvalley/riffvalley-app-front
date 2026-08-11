@@ -7,7 +7,9 @@ export interface ArtistResult {
 }
 
 export async function searchArtists(query: string): Promise<ArtistResult[]> {
-  const response = await api.get<ArtistResult[]>("/artists/search", { params: { query } });
+  const response = await api.get<ArtistResult[]>("/artists/search", {
+    params: { query },
+  });
   return response.data;
 }
 
@@ -21,12 +23,20 @@ export interface ArtistWithCountry {
   country: { id: string; name: string; isoCode: string };
 }
 
-export async function searchArtistsByName(name: string): Promise<ArtistWithCountry[]> {
-  const response = await api.get<ArtistWithCountry[]>("/artists/search/by-name", { params: { name } });
+export async function searchArtistsByName(
+  name: string,
+): Promise<ArtistWithCountry[]> {
+  const response = await api.get<ArtistWithCountry[]>(
+    "/artists/search/by-name",
+    { params: { name } },
+  );
   return response.data;
 }
 
-export async function postArtist(payload: { name: string; countryId?: string }): Promise<ArtistWithCountry> {
+export async function postArtist(payload: {
+  name: string;
+  countryId?: string;
+}): Promise<ArtistWithCountry> {
   const response = await api.post<ArtistWithCountry>("/artists", payload);
   return response.data;
 }
@@ -38,7 +48,7 @@ export async function updateArtist(
     countryId?: string;
     image?: string;
     description?: string;
-  }
+  },
 ): Promise<void> {
   console.log("Actualizando artista", id);
   console.log("Datos enviados al backend:", data);
@@ -74,6 +84,14 @@ export interface ArtistManagementNationalRelease {
   discId: string;
 }
 
+export interface ArtistManagementSpotifyPlaylist {
+  id: string;
+  name: string;
+  link: string;
+  type: "festival" | "genero" | "especial" | "otras";
+  imageUrl: string | null;
+}
+
 export interface ArtistManagementItem {
   id: string;
   name: string;
@@ -82,6 +100,7 @@ export interface ArtistManagementItem {
   country: { id: string; name: string; isoCode: string } | null;
   discs: ArtistManagementDisc[];
   nationalReleases: ArtistManagementNationalRelease[];
+  spotifyPlaylists: ArtistManagementSpotifyPlaylist[];
 }
 
 export interface ArtistManagementResponse {
@@ -99,7 +118,9 @@ export interface DeleteOrphansResponse {
 }
 
 export async function deleteOrphanArtists(): Promise<DeleteOrphansResponse> {
-  const response = await api.delete<DeleteOrphansResponse>("/artists/orphans/all");
+  const response = await api.delete<DeleteOrphansResponse>(
+    "/artists/orphans/all",
+  );
   return response.data;
 }
 
@@ -111,6 +132,9 @@ export async function getArtistsManagement(params: {
   countryId?: string;
   needsReview?: boolean;
 }): Promise<ArtistManagementResponse> {
-  const response = await api.get<ArtistManagementResponse>("/artists/management", { params });
+  const response = await api.get<ArtistManagementResponse>(
+    "/artists/management",
+    { params },
+  );
   return response.data;
 }
