@@ -47,29 +47,35 @@
         <p class="font-semibold text-gray-700 dark:text-gray-200">Aún no hay playlists de festivales</p>
       </div>
 
-      <div v-else class="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        <article v-for="item in items" :key="item.id" class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-rv-darkCard">
-          <div class="relative aspect-[2/1] bg-gradient-to-br from-rv-purple to-rv-blue">
-            <img v-if="item.imageUrl" :src="item.imageUrl" :alt="`Portada de ${item.name}`" class="h-full w-full object-cover" />
-            <div v-else class="grid h-full place-items-center text-5xl text-white/70"><i class="fa-solid fa-music"></i></div>
-            <span class="absolute right-3 top-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur">
-              {{ item.spotifyPlaylistId ? (item.isPublic === false ? 'Privada' : 'Pública') : item.link ? 'No vinculada' : 'Sin enlace' }}
-            </span>
+      <div v-else class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        <article v-for="item in items" :key="item.id" class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-rv-darkCard">
+          <div class="flex items-start gap-3">
+            <div class="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-rv-purple to-rv-blue shadow-sm">
+              <img v-if="item.imageUrl" :src="item.imageUrl" :alt="`Portada de ${item.name}`" class="h-full w-full object-cover" />
+              <div v-else class="grid h-full place-items-center text-xl text-white/80"><i class="fa-solid fa-music"></i></div>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-start justify-between gap-2">
+                <h2 class="min-w-0 flex-1 truncate text-base font-bold text-gray-900 dark:text-white">{{ item.name }}</h2>
+                <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300">
+                  {{ item.spotifyPlaylistId ? (item.isPublic === false ? 'Privada' : 'Pública') : item.link ? 'No vinculada' : 'Sin enlace' }}
+                </span>
+              </div>
+              <p class="mt-1 h-8 overflow-hidden text-xs leading-4 text-gray-500 dark:text-gray-400">{{ summary(item.description) || 'Sin descripción' }}</p>
+            </div>
           </div>
-          <div class="p-4">
-            <h2 class="truncate text-lg font-bold text-gray-900 dark:text-white">{{ item.name }}</h2>
-            <p class="mt-1 min-h-10 text-sm text-gray-500 dark:text-gray-400">{{ summary(item.description) || 'Sin descripción' }}</p>
-            <div class="mt-4 flex items-center justify-between text-xs text-gray-500">
+          <div>
+            <div class="mt-3 flex items-center justify-between text-xs text-gray-500">
               <span><i class="fa-solid fa-user-group mr-1"></i>{{ item.playlistArtists?.length || 0 }} artistas</span>
               <a v-if="item.link" :href="item.link" target="_blank" rel="noopener noreferrer" class="font-semibold text-[#1DB954] hover:underline">Abrir en Spotify</a>
             </div>
-            <button v-if="item.spotifyPlaylistId" class="mt-4 w-full rounded-lg bg-rv-gradient px-4 py-2 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50" :disabled="!canManage" @click="openManager(item)">
+            <button v-if="item.spotifyPlaylistId" class="mt-3 w-full rounded-lg bg-rv-gradient px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50" :disabled="!canManage" @click="openManager(item)">
               Gestionar playlist
             </button>
-            <button v-else-if="item.link && canManage" class="mt-4 w-full rounded-lg bg-rv-gradient px-4 py-2 text-sm font-semibold text-white shadow-sm disabled:cursor-wait disabled:opacity-60" :disabled="linkingItemId !== null" @click="confirmLinkExisting(item)">
+            <button v-else-if="item.link && canManage" class="mt-3 w-full rounded-lg bg-rv-gradient px-3 py-1.5 text-xs font-semibold text-white shadow-sm disabled:cursor-wait disabled:opacity-60" :disabled="linkingItemId !== null" @click="confirmLinkExisting(item)">
               {{ linkingItemId === item.id ? 'Vinculando playlist…' : 'Vincular con Spotify' }}
             </button>
-            <div v-else class="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-center text-xs font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">Playlist no vinculada con Spotify</div>
+            <div v-else class="mt-3 rounded-lg bg-amber-50 px-3 py-1.5 text-center text-[11px] font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">Playlist no vinculada con Spotify</div>
           </div>
         </article>
       </div>
@@ -152,7 +158,7 @@
     </div>
 
     <div v-if="managedPlaylist" class="fixed inset-0 z-50 grid place-items-center bg-black/60 p-2 md:p-4" @click.self="managedPlaylist = null">
-      <FestivalPlaylistManager :playlist-id="managedPlaylist.id" :playlist-name="managedPlaylist.name" :connection="connection" :can-manage="canManage" @close="managedPlaylist = null" @renew="startSpotifyOAuth" @updated="applySyncedPlaylist" />
+      <FestivalPlaylistManager :playlist-id="managedPlaylist.id" :playlist-name="managedPlaylist.name" :connection="connection" :can-manage="canManage" @close="managedPlaylist = null" @renew="startSpotifyOAuth" @updated="applySyncedPlaylist" @deleted="removeDeletedPlaylist" />
     </div>
   </div>
 </template>
@@ -365,6 +371,11 @@ function applySyncedPlaylist(updated: SyncedFestivalPlaylist) {
   const index = items.value.findIndex((item) => item.id === updated.id);
   if (index !== -1) items.value[index] = updated;
   if (managedPlaylist.value?.id === updated.id) managedPlaylist.value = items.value[index] || updated;
+}
+
+function removeDeletedPlaylist(playlistId: string) {
+  items.value = [...items.value.filter((item) => item.id !== playlistId)];
+  managedPlaylist.value = null;
 }
 
 function summary(value?: string | null) {
