@@ -95,10 +95,31 @@
 
               <div class="space-y-3">
                 <div>
-                  <label
-                    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >Nombre</label
-                  >
+                  <div class="mb-1 flex items-center justify-between gap-2">
+                    <label
+                      class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >Nombre</label
+                    >
+                    <button
+                      v-if="canManage && nameDirty"
+                      class="inline-flex items-center gap-1 rounded-md bg-rv-pink px-2 py-1 text-[11px] font-semibold text-white hover:bg-rv-purple disabled:opacity-50"
+                      :disabled="
+                        !editForm.name.trim() || isDetailFieldSaving('name')
+                      "
+                      title="Guardar nombre"
+                      @click="requestDetailSave('name')"
+                    >
+                      <i
+                        class="fa-solid"
+                        :class="
+                          isDetailFieldSaving('name')
+                            ? 'fa-spinner fa-spin'
+                            : 'fa-floppy-disk'
+                        "
+                      ></i>
+                      Guardar
+                    </button>
+                  </div>
                   <input
                     v-model="editForm.name"
                     maxlength="100"
@@ -107,10 +128,29 @@
                   />
                 </div>
                 <div>
-                  <label
-                    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                    >Descripción</label
-                  >
+                  <div class="mb-1 flex items-center justify-between gap-2">
+                    <label
+                      class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >Descripción</label
+                    >
+                    <button
+                      v-if="canManage && descriptionDirty"
+                      class="inline-flex items-center gap-1 rounded-md bg-rv-pink px-2 py-1 text-[11px] font-semibold text-white hover:bg-rv-purple disabled:opacity-50"
+                      :disabled="isDetailFieldSaving('description')"
+                      title="Guardar descripción"
+                      @click="requestDetailSave('description')"
+                    >
+                      <i
+                        class="fa-solid"
+                        :class="
+                          isDetailFieldSaving('description')
+                            ? 'fa-spinner fa-spin'
+                            : 'fa-floppy-disk'
+                        "
+                      ></i>
+                      Guardar
+                    </button>
+                  </div>
                   <textarea
                     v-model="editForm.description"
                     maxlength="300"
@@ -135,29 +175,20 @@
                 </label>
                 <p
                   v-if="canManage"
-                  class="text-xs"
-                  :class="
-                    detailsSaveFailed
-                      ? 'text-red-600 dark:text-red-300'
-                      : 'text-gray-500 dark:text-gray-400'
-                  "
+                  class="text-xs text-gray-500 dark:text-gray-400"
                 >
                   <i
                     class="fa-solid mr-1"
                     :class="
-                      savingDetails
+                      isDetailFieldSaving('public')
                         ? 'fa-spinner fa-spin'
-                        : detailsSaveFailed
-                          ? 'fa-triangle-exclamation'
-                          : 'fa-cloud-arrow-up'
+                        : 'fa-cloud-arrow-up'
                     "
                   ></i>
                   {{
-                    savingDetails
-                      ? "Guardando cambios…"
-                      : detailsSaveFailed
-                        ? "No se pudieron guardar los últimos cambios"
-                        : "Los cambios se guardan automáticamente"
+                    isDetailFieldSaving("public")
+                      ? "Actualizando visibilidad…"
+                      : "La visibilidad se guarda automáticamente"
                   }}
                 </p>
               </div>
@@ -635,8 +666,8 @@ const fallbackImage = "/LOGO-RIFF-VALLEY.svg";
 const fallbackArtist = "/LOGO-RIFF-VALLEY.svg";
 const detail = ref<SyncedFestivalPlaylist | null>(null);
 const loading = ref(true);
-const savingDetails = ref(false);
-const detailsSaveFailed = ref(false);
+type DetailField = "name" | "description" | "public";
+const savingDetailFields = ref<DetailField[]>([]);
 const savingImage = ref(false);
 const selectedImage = ref<File | null>(null);
 const imagePreview = ref<string | null>(null);
@@ -658,19 +689,24 @@ const showDeleteConfirmation = ref(false);
 const deleteConfirmationText = ref("");
 const deletePlaylistError = ref<string | null>(null);
 let searchTimer: ReturnType<typeof setTimeout> | null = null;
-let detailsSaveRequested = false;
+const queuedDetailFields = new Set<DetailField>();
 let detailsSavePromise: Promise<void> | null = null;
 
 const editForm = reactive({ name: "", description: "", isPublic: false });
+const nameDirty = computed(
+  () => !!detail.value && editForm.name.trim() !== detail.value.name,
+);
+const descriptionDirty = computed(
+  () =>
+    !!detail.value && editForm.description !== (detail.value.description ?? ""),
+);
 const searchedArtistName = computed(() => artistQuery.value.trim());
 const hasExactArtistMatch = computed(() =>
   searchResults.value.some(
     (artist) =>
-      artist.name
-        .trim()
-        .localeCompare(searchedArtistName.value, undefined, {
-          sensitivity: "base",
-        }) === 0,
+      artist.name.trim().localeCompare(searchedArtistName.value, undefined, {
+        sensitivity: "base",
+      }) === 0,
   ),
 );
 const canCreateSearchedArtist = computed(
@@ -693,8 +729,6 @@ function applyDetail(value: SyncedFestivalPlaylist, syncForm = false) {
     editForm.name = value.name;
     editForm.description = value.description ?? "";
     editForm.isPublic = value.isPublic;
-  } else {
-    void saveDetails();
   }
   emit("updated", value);
 }
@@ -711,41 +745,64 @@ async function loadDetail() {
   }
 }
 
-function saveDetails(): Promise<void> {
-  detailsSaveRequested = true;
+function isDetailFieldSaving(field: DetailField) {
+  return savingDetailFields.value.includes(field);
+}
+
+function requestDetailSave(field: DetailField): Promise<void> {
+  queuedDetailFields.add(field);
   if (detailsSavePromise) return detailsSavePromise;
 
   detailsSavePromise = (async () => {
-    savingDetails.value = true;
-    detailsSaveFailed.value = false;
-    while (detailsSaveRequested) {
-      detailsSaveRequested = false;
-      if (!detail.value || !editForm.name.trim() || !props.canManage) continue;
+    while (queuedDetailFields.size) {
+      const field = queuedDetailFields.values().next().value as DetailField;
+      queuedDetailFields.delete(field);
+      if (!detail.value || !props.canManage) continue;
       const playlistId = detail.value.id;
-      const snapshot = {
-        name: editForm.name.trim(),
-        description: editForm.description,
-        public: editForm.isPublic,
-      };
-      const alreadySaved =
-        detail.value.name === snapshot.name &&
-        (detail.value.description ?? "") === snapshot.description &&
-        detail.value.isPublic === snapshot.public;
-      if (alreadySaved) continue;
+      const snapshot =
+        field === "name"
+          ? editForm.name.trim()
+          : field === "description"
+            ? editForm.description
+            : editForm.isPublic;
+      if (field === "name" && (!snapshot || snapshot === detail.value.name))
+        continue;
+      if (
+        field === "description" &&
+        snapshot === (detail.value.description ?? "")
+      )
+        continue;
+      if (field === "public" && snapshot === detail.value.isPublic) continue;
+      savingDetailFields.value = [...savingDetailFields.value, field];
       try {
-        const updated = await updateFestivalPlaylist(playlistId, snapshot);
-        detail.value = updated;
-        emit("updated", updated);
+        await updateFestivalPlaylist(playlistId, {
+          ...(field === "name" ? { name: snapshot as string } : {}),
+          ...(field === "description"
+            ? { description: snapshot as string }
+            : {}),
+          ...(field === "public" ? { public: snapshot as boolean } : {}),
+        });
+        if (!detail.value) continue;
+        detail.value = {
+          ...detail.value,
+          ...(field === "name" ? { name: snapshot as string } : {}),
+          ...(field === "description"
+            ? { description: snapshot as string }
+            : {}),
+          ...(field === "public" ? { isPublic: snapshot as boolean } : {}),
+        };
+        emit("updated", detail.value);
       } catch (error) {
-        detailsSaveFailed.value = true;
-        detailsSaveRequested = false;
         SwalService.error(
           errorMessage(error, "No se pudo actualizar la playlist"),
+        );
+      } finally {
+        savingDetailFields.value = savingDetailFields.value.filter(
+          (value) => value !== field,
         );
       }
     }
   })().finally(() => {
-    savingDetails.value = false;
     detailsSavePromise = null;
   });
   return detailsSavePromise;
@@ -797,9 +854,9 @@ async function uploadImage(input?: HTMLInputElement) {
 }
 
 watch(
-  () => [editForm.name, editForm.description, editForm.isPublic],
+  () => editForm.isPublic,
   () => {
-    void saveDetails();
+    void requestDetailSave("public");
   },
 );
 
