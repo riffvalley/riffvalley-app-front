@@ -11,8 +11,8 @@
         </div>
 
         <nav class="mb-6 flex gap-1 rounded-xl bg-gray-200 p-1 dark:bg-white/10" aria-label="Secciones de géneros">
-            <button class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'playlists' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20'" @click="activeTab = 'playlists'">Playlists</button>
-            <button class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'kanban' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20'" @click="activeTab = 'kanban'">Kanban editorial</button>
+            <button type="button" class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'playlists' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20'" @click="selectTab('playlists')">Playlists</button>
+            <button type="button" class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'kanban' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20'" @click="selectTab('kanban')">Kanban editorial</button>
         </nav>
 
         <div v-if="!connection.connected && !loading" class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
@@ -24,7 +24,7 @@
         <div v-if="loading" class="text-center py-10 dark:text-gray-400">Cargando géneros...</div>
         <div v-else-if="error" class="text-red-500 text-center py-10">{{ error }}</div>
 
-        <template v-else-if="activeTab === 'playlists'">
+        <section v-show="!loading && !error && activeTab === 'playlists'">
             <div v-if="items.length === 0" class="rounded-xl border border-dashed border-gray-300 py-16 text-center dark:border-white/20">
                 <i class="fa-brands fa-spotify mb-3 text-4xl text-gray-300"></i>
                 <p class="font-semibold text-gray-700 dark:text-gray-200">Aún no hay playlists de géneros</p>
@@ -54,10 +54,10 @@
                     <div v-else class="mt-3 rounded-lg bg-amber-50 px-3 py-1.5 text-center text-[11px] font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">Playlist sin enlace de Spotify</div>
                 </article>
             </div>
-        </template>
+        </section>
 
         <!-- Kanban Board -->
-        <div v-else class="flex flex-col md:flex-row gap-4 pb-4 md:h-full md:overflow-x-auto">
+        <div v-show="!loading && !error && activeTab === 'kanban'" class="flex flex-col md:flex-row gap-4 pb-4 md:h-full md:overflow-x-auto">
             <div v-for="col in columns" :key="col.id"
                 class="w-full md:flex-1 md:min-w-[220px] rounded-xl p-2 flex flex-col"
                 :class="[col.bgClass, col.borderClass]" @dragover.prevent="onDragOver" @drop="onDrop(col.id)">
@@ -244,6 +244,7 @@ import {
 
 const authStore = useAuthStore();
 const activeTab = ref<'playlists' | 'kanban'>('playlists');
+function selectTab(tab: 'playlists' | 'kanban') { activeTab.value = tab; }
 
 // --- Types ---
 type ColumnId = SpotifyStatus;
