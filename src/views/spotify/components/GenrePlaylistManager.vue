@@ -153,7 +153,7 @@
               </p>
               <button
                 class="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-60"
-                :disabled="clearing || deleting"
+                :disabled="clearing || deleting || shuffling"
                 @click="clearPlaylist"
               >
                 {{ clearing ? "Vaciando…" : "Vaciar canciones" }}
@@ -173,7 +173,7 @@
               </p>
               <button
                 class="mt-3 rounded-lg border-2 border-red-600 !bg-transparent px-4 py-2 text-sm font-bold text-red-700 hover:!bg-red-600 hover:text-white dark:text-red-300"
-                :disabled="deleting || clearing"
+                :disabled="deleting || clearing || shuffling"
                 @click="deletePlaylist"
               >
                 {{ deleting ? "Eliminando…" : "Eliminar playlist" }}
@@ -198,6 +198,7 @@
               </div>
               <button
                 class="shrink-0 rounded-lg bg-rv-pink px-4 py-2 text-sm font-bold text-white hover:bg-rv-purple"
+                :disabled="shuffling"
                 @click="openArtistModal"
               >
                 <i class="fa-solid fa-plus mr-1"></i>
@@ -209,14 +210,27 @@
           <section
             class="rounded-xl border border-gray-200 bg-white p-4 text-gray-900 dark:border-white/10 dark:bg-rv-darkCard dark:text-white"
           >
-            <div class="mb-4 flex items-center justify-between">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
               <h3 class="font-bold text-gray-900 dark:text-white">
                 Artistas sincronizados
               </h3>
-              <span
-                class="rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-white/10 dark:text-gray-300"
-                >{{ detail.playlistArtists.length }}</span
-              >
+              <div class="flex items-center gap-2">
+                <button
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-[#1DB954] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#169c46] disabled:opacity-50"
+                  :disabled="shuffling || clearing || deleting"
+                  @click="shufflePlaylist"
+                >
+                  <i
+                    class="fa-solid"
+                    :class="shuffling ? 'fa-spinner fa-spin' : 'fa-shuffle'"
+                  ></i>
+                  {{ shuffling ? "Mezclando…" : "Mezclar orden" }}
+                </button>
+                <span
+                  class="rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-white/10 dark:text-gray-300"
+                  >{{ detail.playlistArtists.length }}</span
+                >
+              </div>
             </div>
             <p
               v-if="!detail.playlistArtists.length"
@@ -248,6 +262,7 @@
                 <button
                   class="grid h-8 w-8 place-items-center !bg-blue-50 p-0 text-blue-600 dark:!bg-blue-900/20 dark:text-blue-300"
                   title="Cambiar canciones"
+                  :disabled="shuffling"
                   @click="editArtist(entry)"
                 >
                   <i class="fa-solid fa-pen text-xs"></i>
@@ -255,6 +270,7 @@
                 <button
                   class="grid h-8 w-8 place-items-center !bg-red-50 p-0 text-red-600 dark:!bg-red-900/20 dark:text-red-300"
                   title="Eliminar artista"
+                  :disabled="shuffling"
                   @click="removeArtist(entry)"
                 >
                   <i class="fa-solid fa-trash text-xs"></i>
@@ -545,6 +561,7 @@ import {
   removeGenreArtist,
   replaceGenreArtistTracks,
   searchGenreArtistTracks,
+  shuffleGenrePlaylist,
   updateGenrePlaylist,
   updateGenrePlaylistImage,
   type SpotifyTrackCandidate,
@@ -574,6 +591,7 @@ const selectedImage = ref<File | null>(null);
 const imagePreview = ref<string | null>(null);
 const clearing = ref(false);
 const deleting = ref(false);
+const shuffling = ref(false);
 const showArtistModal = ref(false);
 const selectedGenreId = ref("");
 const artistQuery = ref("");
@@ -891,6 +909,25 @@ async function clearPlaylist() {
     SwalService.error(errorMessage(error, "No se pudo vaciar"));
   } finally {
     clearing.value = false;
+  }
+}
+async function shufflePlaylist() {
+  if (!detail.value) return;
+  const result = await SwalService.confirm(
+    "¿Mezclar el orden de la playlist?",
+    "Se conservarán todas las canciones, pero cambiará su orden real en Spotify.",
+    "Sí, mezclar",
+    "Cancelar",
+  );
+  if (!result.isConfirmed) return;
+  shuffling.value = true;
+  try {
+    applyDetail(await shuffleGenrePlaylist(detail.value.id));
+    SwalService.success("Orden de la playlist mezclado");
+  } catch (error) {
+    SwalService.error(errorMessage(error, "No se pudo mezclar la playlist"));
+  } finally {
+    shuffling.value = false;
   }
 }
 async function deletePlaylist() {

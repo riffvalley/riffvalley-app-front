@@ -162,3 +162,12 @@ export async function clearGenrePlaylist(
   );
   return data;
 }
+
+export async function shuffleGenrePlaylist(
+  id: string,
+): Promise<SyncedGenrePlaylist> {
+  const { data } = await api.post<SyncedGenrePlaylist>(
+    `/genre-playlists/${id}/shuffle`,
+  );
+  return data;
+}
