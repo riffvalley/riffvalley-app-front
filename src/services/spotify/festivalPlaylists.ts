@@ -8,6 +8,12 @@ export interface SpotifyConnection {
   displayName: string | null;
   canUploadImages: boolean;
   missingScopes: string[];
+  authorizationStatus: 'disconnected' | 'connected' | 'expiring_soon' | 'reauthorization_required';
+  reauthorizationRequired: boolean;
+  reauthorizationReason: 'refresh_token_expired' | 'refresh_token_invalid' | null;
+  authorizedAt: string | null;
+  refreshTokenExpiresAt: string | null;
+  daysUntilReauthorization: number | null;
 }
 
 export interface PlaylistTrack {

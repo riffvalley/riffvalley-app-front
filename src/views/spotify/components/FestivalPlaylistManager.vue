@@ -1,12 +1,12 @@
 <template>
   <div class="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-rv-darkCard">
-    <header class="flex items-start justify-between gap-4 border-b border-gray-200 p-5 dark:border-white/10">
+    <header class="flex items-center justify-between gap-4 border-b border-gray-200 p-5 dark:border-white/10">
       <div>
         <p class="text-xs font-semibold uppercase tracking-widest text-[#1DB954]">Playlist sincronizada</p>
         <h2 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">{{ detail?.name || playlistName }}</h2>
       </div>
-      <button class="h-9 w-9 rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-white/10" aria-label="Cerrar" @click="$emit('close')">
-        <i class="fa-solid fa-xmark"></i>
+      <button class="grid h-9 w-9 shrink-0 place-items-center rounded-full p-0 leading-none text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white" aria-label="Cerrar" @click="$emit('close')">
+        <i class="fa-solid fa-xmark block leading-none" aria-hidden="true"></i>
       </button>
     </header>
 
@@ -16,7 +16,7 @@
         Puedes consultar la playlist, pero tu rol no permite modificarla.
       </div>
 
-      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(320px,.8fr)]">
+      <div class="grid items-start gap-6 lg:grid-cols-2">
         <div class="space-y-6">
           <section class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
             <div class="mb-4 flex items-center justify-between gap-3">
@@ -60,61 +60,32 @@
             </div>
           </section>
 
-          <section class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
-            <div class="mb-4 flex items-center justify-between">
-              <h3 class="font-bold text-gray-900 dark:text-white">Artistas sincronizados</h3>
-              <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-white/10 dark:text-gray-300">{{ detail.playlistArtists.length }}</span>
-            </div>
-            <p v-if="detail.playlistArtists.length === 0" class="py-5 text-center text-sm text-gray-500">Todavía no hay artistas en esta playlist.</p>
-            <div v-for="entry in detail.playlistArtists" :key="entry.id" class="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 shadow-sm last:mb-0 dark:border-white/10 dark:bg-rv-darkSurface">
-              <button class="flex w-full items-center gap-3 p-3.5 text-left transition-colors hover:bg-gray-100 dark:hover:bg-rv-darkBg" @click="toggleArtist(entry.id)">
-                <img :src="entry.artist.image || fallbackArtist" class="h-12 w-12 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15" :alt="`Imagen de ${entry.artist.name}`" />
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-[15px] font-bold leading-5 !text-rv-navy dark:!text-white">{{ entry.artist.name }}</span>
-                  <span class="mt-0.5 block text-xs !text-gray-500 dark:!text-gray-300">{{ entry.tracks.length }} canciones · {{ entry.setlistsAnalyzed }} setlists analizados</span>
-                </span>
-                <span class="rounded-full px-2 py-1 text-[11px] font-bold" :class="statusClass(entry.status)">{{ statusLabel(entry.status) }}</span>
-                <i class="fa-solid fa-chevron-down text-xs text-gray-400 transition-transform" :class="{ 'rotate-180': expandedArtists.has(entry.id) }"></i>
+          <section v-if="canManage" class="rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20">
+            <h3 class="font-bold text-red-800 dark:text-red-300">Zona peligrosa</h3>
+            <div class="mt-4 rounded-xl border border-red-200 bg-white/70 p-3 dark:border-red-900 dark:bg-rv-darkSurface">
+              <p class="text-sm font-bold text-gray-900 dark:text-white">Vaciar canciones de Spotify</p>
+              <p class="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">Conserva la playlist, su portada y sus metadatos, pero elimina todas sus canciones reales de Spotify y las asociaciones de artistas.</p>
+              <button class="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-wait disabled:opacity-60" :disabled="clearingPlaylist || deletingPlaylist" @click="requestClearPlaylist">
+                {{ clearingPlaylist ? 'Vaciando playlist…' : 'Vaciar canciones de Spotify' }}
               </button>
-              <div v-if="expandedArtists.has(entry.id)" class="border-t border-gray-200 bg-white p-3 dark:border-white/10 dark:bg-rv-darkBg">
-                <p v-if="entry.status === 'failed' && entry.lastError" class="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-300">{{ entry.lastError }}</p>
-                <div v-if="entry.tracks.length" class="space-y-1">
-                  <a v-for="track in entry.tracks" :key="track.spotifyTrackId" :href="track.url" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm !text-rv-navy hover:bg-gray-100 dark:!text-white dark:hover:bg-white/10">
-                    <span class="truncate !text-rv-navy dark:!text-white">{{ track.name }}</span>
-                    <span class="shrink-0 text-xs !text-gray-500 dark:!text-gray-300">{{ track.plays }} apariciones <i class="fa-brands fa-spotify ml-1 text-[#1DB954]"></i></span>
-                  </a>
-                </div>
-                <div v-if="canManage" class="mt-3 flex justify-end gap-2">
-                  <button v-if="entry.status === 'failed'" class="rounded-md bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 disabled:opacity-50" :disabled="syncingArtistId !== null" @click="addArtist(entry.artistId)">Reintentar</button>
-                  <button class="rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-50 dark:bg-red-950/30 dark:text-red-300" :disabled="syncingArtistId !== null" @click="removeArtist(entry)">Eliminar artista</button>
-                </div>
-              </div>
+            </div>
+            <div class="mt-4 rounded-xl border border-red-300 bg-white/70 p-3 dark:border-red-800 dark:bg-rv-darkSurface">
+              <p class="text-sm font-bold text-gray-900 dark:text-white">Eliminar playlist de Riff Valley</p>
+              <p class="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">Elimina el registro local y sus datos de sincronización. La playlist real y sus canciones seguirán existiendo en Spotify.</p>
+              <button class="mt-3 rounded-lg border-2 border-red-600 bg-transparent px-4 py-2 text-sm font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white disabled:cursor-wait disabled:opacity-60 dark:text-red-300" :disabled="deletingPlaylist || clearingPlaylist" @click="openDeleteConfirmation">
+                {{ deletingPlaylist ? 'Eliminando…' : 'Eliminar playlist' }}
+              </button>
             </div>
           </section>
         </div>
 
         <div class="space-y-6">
-          <section class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
-            <h3 class="font-bold text-gray-900 dark:text-white">Estado de conexión Spotify</h3>
-            <div class="mt-3 flex items-center gap-3">
-              <span class="h-3 w-3 rounded-full" :class="connection.connected ? 'bg-green-500' : 'bg-red-500'"></span>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-semibold dark:text-white">{{ connection.connected ? 'Cuenta conectada' : 'Cuenta desconectada' }}</p>
-                <p v-if="connection.displayName" class="truncate text-xs text-gray-500">{{ connection.displayName }}</p>
-              </div>
-            </div>
-            <p v-if="connection.missingScopes.length" class="mt-3 text-xs text-amber-700 dark:text-amber-300">Faltan permisos: {{ connection.missingScopes.join(', ') }}</p>
-            <button v-if="canManage && (!connection.connected || connection.missingScopes.length)" class="mt-3 text-sm font-semibold text-rv-purple hover:underline" @click="$emit('renew')">
-              {{ connection.connected ? 'Renovar permisos' : 'Conectar Spotify' }}
-            </button>
-          </section>
-
-          <section class="rounded-xl border border-gray-200 p-4 dark:border-white/10">
+          <section class="rounded-xl border border-gray-200 bg-white p-4 text-gray-900 dark:border-white/10 dark:bg-rv-darkCard dark:text-white">
             <h3 class="font-bold text-gray-900 dark:text-white">Añadir artistas</h3>
-            <p class="mt-1 text-xs text-gray-500">La selección de temas se calcula con datos de setlist.fm y se sincroniza después con Spotify.</p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-300">La selección de temas se calcula con datos de setlist.fm y se sincroniza después con Spotify.</p>
             <input v-model="artistQuery" type="search" placeholder="Buscar artista interno…" :disabled="!canManage || syncingArtistId !== null || creatingArtist" class="mt-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-white/20 dark:bg-rv-darkSurface dark:text-white disabled:opacity-60" />
-            <p v-if="searching" class="py-4 text-center text-sm text-gray-500">Buscando…</p>
-            <p v-else-if="artistQuery.trim().length >= 2 && searchResults.length === 0" class="py-4 text-center text-sm text-gray-500">No se encontraron artistas.</p>
+            <p v-if="searching" class="py-4 text-center text-sm text-gray-500 dark:text-gray-300">Buscando…</p>
+            <p v-else-if="artistQuery.trim().length >= 2 && searchResults.length === 0" class="py-4 text-center text-sm text-gray-500 dark:text-gray-300">No se encontraron artistas.</p>
             <div v-if="canCreateSearchedArtist" class="mt-3 rounded-xl border border-dashed border-rv-purple/60 bg-rv-purple/10 p-3">
               <p class="text-xs leading-5 text-gray-600 dark:text-gray-300">No hay una coincidencia exacta. Se creará como pendiente de completar imagen, país y descripción.</p>
               <button class="mt-2 w-full rounded-lg bg-rv-pink px-3 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:cursor-wait disabled:opacity-60" :disabled="creatingArtist || syncingArtistId !== null" @click="createAndAddArtist">
@@ -122,11 +93,11 @@
               </button>
             </div>
             <div class="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
-              <div v-for="artist in searchResults" :key="artist.id" class="rounded-xl border border-gray-200 bg-gray-50 p-3 shadow-sm dark:border-white/10 dark:bg-rv-darkSurface">
+              <div v-for="artist in searchResults" :key="artist.id" class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-rv-darkCard">
                 <div class="flex items-center gap-2">
                   <img :src="artist.image || fallbackArtist" class="h-11 w-11 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15" :alt="`Imagen de ${artist.name}`" />
                   <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm font-bold !text-rv-navy dark:!text-white">{{ artist.name }}</span>
+                    <span class="block truncate text-sm font-bold text-gray-900 dark:text-white">{{ artist.name }}</span>
                     <span v-if="artist.description" class="mt-0.5 block truncate text-xs !text-gray-500 dark:!text-gray-300">{{ artist.description }}</span>
                   </span>
                   <span v-if="isArtistPresent(artist.id)" class="text-xs font-semibold !text-green-400">Añadido</span>
@@ -150,21 +121,35 @@
             </div>
           </section>
 
-          <section v-if="canManage" class="rounded-xl border border-red-300 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20">
-            <h3 class="font-bold text-red-800 dark:text-red-300">Zona peligrosa</h3>
-            <div class="mt-4 rounded-xl border border-red-200 bg-white/70 p-3 dark:border-red-900 dark:bg-rv-darkSurface">
-              <p class="text-sm font-bold text-gray-900 dark:text-white">Vaciar canciones de Spotify</p>
-              <p class="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">Conserva la playlist, su portada y sus metadatos, pero elimina todas sus canciones reales de Spotify y las asociaciones de artistas.</p>
-              <button class="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-red-700 disabled:cursor-wait disabled:opacity-60" :disabled="clearingPlaylist || deletingPlaylist" @click="requestClearPlaylist">
-                {{ clearingPlaylist ? 'Vaciando playlist…' : 'Vaciar canciones de Spotify' }}
-              </button>
+          <section class="rounded-xl border border-gray-200 bg-white p-4 text-gray-900 dark:border-white/10 dark:bg-rv-darkCard dark:text-white">
+            <div class="mb-4 flex items-center justify-between">
+              <h3 class="font-bold text-gray-900 dark:text-white">Artistas sincronizados</h3>
+              <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-white/10 dark:text-gray-300">{{ detail.playlistArtists.length }}</span>
             </div>
-            <div class="mt-4 rounded-xl border border-red-300 bg-white/70 p-3 dark:border-red-800 dark:bg-rv-darkSurface">
-              <p class="text-sm font-bold text-gray-900 dark:text-white">Eliminar playlist de Riff Valley</p>
-              <p class="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-300">Elimina el registro local y sus datos de sincronización. La playlist real y sus canciones seguirán existiendo en Spotify.</p>
-              <button class="mt-3 rounded-lg border-2 border-red-600 bg-transparent px-4 py-2 text-sm font-bold text-red-700 transition-colors hover:bg-red-600 hover:text-white disabled:cursor-wait disabled:opacity-60 dark:text-red-300" :disabled="deletingPlaylist || clearingPlaylist" @click="openDeleteConfirmation">
-                {{ deletingPlaylist ? 'Eliminando…' : 'Eliminar playlist' }}
+            <p v-if="detail.playlistArtists.length === 0" class="py-5 text-center text-sm text-gray-500 dark:text-gray-300">Todavía no hay artistas en esta playlist.</p>
+            <div v-for="entry in detail.playlistArtists" :key="entry.id" class="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm last:mb-0 dark:border-white/10 dark:bg-rv-darkCard">
+              <button class="flex w-full items-center gap-3 !bg-white p-3.5 text-left transition-colors hover:!bg-gray-50 dark:!bg-rv-darkCard dark:hover:!bg-rv-darkBg" @click="toggleArtist(entry.id)">
+                <img :src="entry.artist.image || fallbackArtist" class="h-12 w-12 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15" :alt="`Imagen de ${entry.artist.name}`" />
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-[15px] font-bold leading-5 text-gray-900 dark:text-white">{{ entry.artist.name }}</span>
+                  <span class="mt-0.5 block text-xs !text-gray-500 dark:!text-gray-300">{{ entry.tracks.length }} canciones · {{ entry.setlistsAnalyzed }} setlists analizados</span>
+                </span>
+                <span class="rounded-full px-2 py-1 text-[11px] font-bold" :class="statusClass(entry.status)">{{ statusLabel(entry.status) }}</span>
+                <i class="fa-solid fa-chevron-down text-xs text-gray-400 transition-transform" :class="{ 'rotate-180': expandedArtists.has(entry.id) }"></i>
               </button>
+              <div v-if="expandedArtists.has(entry.id)" class="border-t border-gray-200 bg-white p-3 dark:border-white/10 dark:bg-rv-darkBg">
+                <p v-if="entry.status === 'failed' && entry.lastError" class="mb-3 rounded-lg bg-red-50 p-2 text-xs text-red-700 dark:bg-red-950/30 dark:text-red-300">{{ entry.lastError }}</p>
+                <div v-if="entry.tracks.length" class="space-y-1">
+                  <a v-for="track in entry.tracks" :key="track.spotifyTrackId" :href="track.url" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between gap-3 rounded-md px-2 py-2 text-sm !text-rv-navy hover:bg-gray-100 dark:!text-white dark:hover:bg-white/10">
+                    <span class="truncate !text-rv-navy dark:!text-white">{{ track.name }}</span>
+                    <span class="shrink-0 text-xs !text-gray-500 dark:!text-gray-300">{{ track.plays }} apariciones <i class="fa-brands fa-spotify ml-1 text-[#1DB954]"></i></span>
+                  </a>
+                </div>
+                <div v-if="canManage" class="mt-3 flex justify-end gap-2">
+                  <button v-if="entry.status === 'failed'" class="rounded-md bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-800 disabled:opacity-50" :disabled="syncingArtistId !== null" @click="addArtist(entry.artistId)">Reintentar</button>
+                  <button class="rounded-md bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-50 dark:bg-red-950/30 dark:text-red-300" :disabled="syncingArtistId !== null" @click="removeArtist(entry)">Eliminar artista</button>
+                </div>
+              </div>
             </div>
           </section>
         </div>
@@ -290,7 +275,6 @@ const canCreateSearchedArtist = computed(() =>
   && !searchFailed.value
   && !hasExactArtistMatch.value,
 );
-
 function errorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError<{ message?: string }>(error)) return error.response?.data?.message || fallback;
   return fallback;
