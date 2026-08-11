@@ -3,19 +3,61 @@
         <div class="flex items-center justify-between mb-6">
             <h1 class="text-2xl md:text-3xl font-semibold dark:text-white"><i class="fa-solid fa-guitar mr-2"></i>Géneros</h1>
             <div class="flex gap-2 items-center">
-                <button class="bg-black dark:bg-rv-purple text-white px-4 py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-rv-pink transition-colors"
-                    @click="openCreate">
+                <button v-if="activeTab === 'playlists'" class="bg-black dark:bg-rv-purple text-white px-4 py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-rv-pink transition-colors disabled:opacity-50"
+                    :disabled="!connection.connected" @click="openCreate">
                     <span class="hidden sm:inline">Nuevo </span>Género
                 </button>
             </div>
+        </div>
+
+        <nav class="mb-6 flex gap-1 rounded-xl bg-gray-200 p-1 dark:bg-white/10" aria-label="Secciones de géneros">
+            <button type="button" class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'playlists' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20'" @click="selectTab('playlists')">Playlists</button>
+            <button type="button" class="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors" :class="activeTab === 'kanban' ? 'bg-rv-pink text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-50 hover:text-rv-pink dark:bg-rv-darkCard dark:text-white dark:hover:bg-white/20'" @click="selectTab('kanban')">Kanban editorial</button>
+        </nav>
+
+        <div v-if="!connection.connected && !loading" class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-200">
+            <p class="text-sm font-semibold">Spotify debe estar conectado para crear, vincular o modificar estas playlists.</p>
+            <button class="rounded-lg bg-[#1DB954] px-4 py-2 text-sm font-bold text-white" @click="startSpotifyOAuth">Conectar Spotify</button>
         </div>
 
         <!-- Loading / Error -->
         <div v-if="loading" class="text-center py-10 dark:text-gray-400">Cargando géneros...</div>
         <div v-else-if="error" class="text-red-500 text-center py-10">{{ error }}</div>
 
+        <section v-show="!loading && !error && activeTab === 'playlists'">
+            <div v-if="items.length === 0" class="rounded-xl border border-dashed border-gray-300 py-16 text-center dark:border-white/20">
+                <i class="fa-brands fa-spotify mb-3 text-4xl text-gray-300"></i>
+                <p class="font-semibold text-gray-700 dark:text-gray-200">Aún no hay playlists de géneros</p>
+            </div>
+
+            <div v-else class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                <article v-for="item in items" :key="item.id" class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-rv-darkCard">
+                    <div class="flex items-start gap-3">
+                        <div class="h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-rv-purple to-rv-blue shadow-sm">
+                            <img v-if="item.imageUrl" :src="item.imageUrl" :alt="`Portada de ${item.name}`" class="h-full w-full object-cover" />
+                            <div v-else class="grid h-full place-items-center text-xl text-white/80"><i class="fa-solid fa-music"></i></div>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-start justify-between gap-2">
+                                <h2 class="min-w-0 flex-1 truncate text-base font-bold text-gray-900 dark:text-white">{{ item.name }}</h2>
+                                <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300">{{ item.spotifyPlaylistId ? (item.isPublic === false ? 'Privada' : 'Pública') : 'No vinculada' }}</span>
+                            </div>
+                            <p class="mt-1 h-8 overflow-hidden text-xs leading-4 text-gray-500 dark:text-gray-400">{{ summary(item.description) || 'Sin descripción' }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                        <span><i class="fa-solid fa-user-group mr-1"></i>{{ artistCount(item) }} artistas</span>
+                        <a v-if="item.link" :href="item.link" target="_blank" rel="noopener noreferrer" class="font-semibold !text-[#1DB954] hover:underline">Abrir en Spotify</a>
+                    </div>
+                    <button v-if="item.spotifyPlaylistId" class="mt-3 w-full rounded-lg bg-rv-pink px-3 py-1.5 text-xs font-semibold text-white hover:bg-rv-purple" @click="openManager(item)">Gestionar playlist</button>
+                    <button v-else-if="item.link" class="mt-3 w-full rounded-lg bg-rv-pink px-3 py-1.5 text-xs font-semibold text-white hover:bg-rv-purple disabled:opacity-50" :disabled="linkingItemId !== null" @click="linkExisting(item)">{{ linkingItemId === item.id ? 'Vinculando…' : 'Vincular con Spotify' }}</button>
+                    <div v-else class="mt-3 rounded-lg bg-amber-50 px-3 py-1.5 text-center text-[11px] font-semibold text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">Playlist sin enlace de Spotify</div>
+                </article>
+            </div>
+        </section>
+
         <!-- Kanban Board -->
-        <div v-else class="flex flex-col md:flex-row gap-4 pb-4 md:h-full md:overflow-x-auto">
+        <div v-show="!loading && !error && activeTab === 'kanban'" class="flex flex-col md:flex-row gap-4 pb-4 md:h-full md:overflow-x-auto">
             <div v-for="col in columns" :key="col.id"
                 class="w-full md:flex-1 md:min-w-[220px] rounded-xl p-2 flex flex-col"
                 :class="[col.bgClass, col.borderClass]" @dragover.prevent="onDragOver" @drop="onDrop(col.id)">
@@ -38,6 +80,10 @@
                             <h3 class="font-semibold text-gray-900 dark:text-gray-100 leading-tight">
                                 {{ item.name }}
                             </h3>
+                            <div class="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                <span>{{ artistCount(item) }} artistas</span>
+                                <span>{{ item.spotifyPlaylistId ? 'Sincronizada' : 'No vinculada' }}</span>
+                            </div>
                         </div>
 
                         <!-- User Selector & Actions -->
@@ -85,10 +131,16 @@
                                 <!-- Buttons -->
                                 <div class="flex items-center gap-2">
                                     <!-- Edit -->
-                                    <button @click="openEdit(item)"
+                                    <button @click="item.spotifyPlaylistId ? openManager(item) : openEdit(item)"
                                         class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
                                         title="Editar">
-                                        <i class="fa-solid fa-pen text-xs"></i>
+                                        <i class="fa-solid text-xs" :class="item.spotifyPlaylistId ? 'fa-sliders' : 'fa-pen'"></i>
+                                    </button>
+
+                                    <button v-if="!item.spotifyPlaylistId && item.link" @click="linkExisting(item)"
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/20 text-[#1DB954] hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
+                                        title="Vincular con Spotify" :disabled="linkingItemId !== null">
+                                        <i class="fa-solid" :class="linkingItemId === item.id ? 'fa-spinner fa-spin' : 'fa-link'"></i>
                                     </button>
 
                                     <!-- Delete -->
@@ -116,21 +168,33 @@
         <div v-if="showModal" class="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
             @click.self="closeModal">
             <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
-                <h3 class="text-lg font-bold dark:text-white">{{ isEditing ? 'Editar Género' : 'Nuevo Género' }}</h3>
+                <h3 class="text-lg font-bold dark:text-white">{{ isEditing ? 'Editar Género' : 'Nueva playlist de género' }}</h3>
 
-                <div>
+                <div v-if="!isEditing" class="grid grid-cols-2 gap-1 rounded-xl bg-gray-200 p-1 dark:bg-white/10">
+                    <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold" :class="createMode === 'new' ? 'bg-rv-pink text-white' : 'bg-white text-gray-700 dark:bg-rv-darkCard dark:text-white'" @click="createMode = 'new'">Crear nueva</button>
+                    <button type="button" class="rounded-lg px-3 py-2 text-sm font-semibold" :class="createMode === 'link' ? 'bg-rv-pink text-white' : 'bg-white text-gray-700 dark:bg-rv-darkCard dark:text-white'" @click="createMode = 'link'">Vincular existente</button>
+                </div>
+
+                <div v-if="isEditing || createMode === 'new'">
                     <label class="block text-sm font-medium mb-1 dark:text-gray-300">Nombre</label>
                     <input v-model="form.name" type="text"
                         class="w-full rounded-lg border dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 px-3 py-2 outline-none focus:ring-2 focus:ring-black/40 dark:focus:ring-white/20" />
                 </div>
 
-                <div>
+                <div v-if="isEditing || createMode === 'link'">
                     <label class="block text-sm font-medium mb-1 dark:text-gray-300">Enlace</label>
                     <input v-model="form.link" type="url"
                         class="w-full rounded-lg border dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 px-3 py-2 outline-none focus:ring-2 focus:ring-black/40 dark:focus:ring-white/20" />
                 </div>
 
-                <div>
+                <div v-if="!isEditing && createMode === 'new'">
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Descripción</label>
+                    <textarea v-model="form.description" maxlength="300" rows="3" class="w-full resize-none rounded-lg border dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 px-3 py-2"></textarea>
+                </div>
+
+                <label v-if="!isEditing && createMode === 'new'" class="flex items-center gap-2 text-sm dark:text-gray-300"><input v-model="form.isPublic" type="checkbox" class="h-4 w-4 rounded" /> Playlist pública</label>
+
+                <div v-if="isEditing">
                     <label class="block text-sm font-medium mb-1 dark:text-gray-300">Fecha (Opcional)</label>
                     <input v-model="form.updateDate" type="date"
                         class="w-full rounded-lg border dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 px-3 py-2 outline-none focus:ring-2 focus:ring-black/40 dark:focus:ring-white/20 [color-scheme:dark]" />
@@ -144,6 +208,10 @@
             </div>
         </div>
 
+        <div v-if="managedPlaylist" class="fixed inset-0 z-50 grid place-items-center bg-black/60 p-2 md:p-4" @click.self="managedPlaylist = null">
+            <GenrePlaylistManager :playlist-id="managedPlaylist.id" :playlist-name="managedPlaylist.name" :connection="connection" @close="managedPlaylist = null" @renew="startSpotifyOAuth" @updated="applySyncedPlaylist" @deleted="removeDeletedPlaylist" />
+        </div>
+
     </div>
 </template>
 
@@ -151,7 +219,6 @@
 import { ref, onMounted, reactive, nextTick } from 'vue';
 import {
     getSpotifyGenres,
-    createSpotify,
     updateSpotify,
     removeSpotify,
     type Spotify,
@@ -161,8 +228,23 @@ import {
 import { getUsersRv, type Superuser } from '@services/auth/auth';
 import { useAuthStore } from '@stores/auth/auth';
 import SwalService from '@services/swal/SwalService';
+import axios from 'axios';
+import GenrePlaylistManager from './components/GenrePlaylistManager.vue';
+import {
+    connectSpotify,
+    getSpotifyConnection,
+    type SpotifyConnection,
+} from '@services/spotify/festivalPlaylists';
+import {
+    createGenrePlaylist,
+    createLinkedGenrePlaylist,
+    linkExistingGenrePlaylist,
+    type SyncedGenrePlaylist,
+} from '@services/spotify/genrePlaylists';
 
 const authStore = useAuthStore();
+const activeTab = ref<'playlists' | 'kanban'>('playlists');
+function selectTab(tab: 'playlists' | 'kanban') { activeTab.value = tab; }
 
 // --- Types ---
 type ColumnId = SpotifyStatus;
@@ -191,6 +273,10 @@ const users = ref<Superuser[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const draggedItem = ref<Spotify | null>(null);
+const managedPlaylist = ref<Spotify | null>(null);
+const linkingItemId = ref<string | null>(null);
+const createMode = ref<'new' | 'link'>('new');
+const connection = ref<SpotifyConnection>({ connected: false, spotifyUserId: null, displayName: null, canUploadImages: false, missingScopes: [], authorizationStatus: 'disconnected', reauthorizationRequired: false, reauthorizationReason: null, authorizedAt: null, refreshTokenExpiresAt: null, daysUntilReauthorization: null });
 
 // User Edit State
 const editingUserItemId = ref<string | null>(null);
@@ -203,7 +289,9 @@ const editingId = ref<string | null>(null);
 const form = reactive({
     name: '',
     link: '',
-    updateDate: ''
+    updateDate: '',
+    description: '',
+    isPublic: true,
 });
 
 // --- Getters ---
@@ -215,6 +303,9 @@ function fmtDate(iso: string) {
     if (!iso) return '';
     return new Date(iso).toLocaleDateString() + ' ' + new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
+function artistCount(item: Spotify) { return item.playlistArtists?.length ?? item.playlistArtistsCount ?? 0; }
+function summary(value?: string | null) { if (!value) return ''; return value.length > 110 ? `${value.slice(0, 107)}…` : value; }
+function apiError(error: unknown, fallback: string) { return axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message || fallback : fallback; }
 
 // --- Logic ---
 async function reload() {
@@ -225,6 +316,12 @@ async function reload() {
             users.value = await getUsersRv();
         }
         items.value = await getSpotifyGenres();
+        try {
+            connection.value = await getSpotifyConnection();
+        } catch (connectionError) {
+            connection.value.connected = false;
+            SwalService.error(apiError(connectionError, 'No se pudo consultar la conexión con Spotify'));
+        }
     } catch (e: any) {
         console.error(e);
         error.value = e?.response?.data?.message || 'Error cargando datos';
@@ -324,6 +421,9 @@ function openCreate() {
     form.name = '';
     form.link = '';
     form.updateDate = '';
+    form.description = '';
+    form.isPublic = true;
+    createMode.value = 'new';
     showModal.value = true;
 }
 
@@ -342,7 +442,7 @@ function closeModal() {
 }
 
 async function save() {
-    if (!form.name || !form.link) {
+    if ((isEditing.value && (!form.name || !form.link)) || (!isEditing.value && createMode.value === 'new' && !form.name) || (!isEditing.value && createMode.value === 'link' && !form.link)) {
         SwalService.error('Completa todos los campos');
         return;
     }
@@ -360,14 +460,9 @@ async function save() {
             await nextTick();
             SwalService.success('Género actualizado');
         } else {
-            const created = await createSpotify({
-                name: form.name,
-                link: form.link,
-                status: 'not_started',
-                type: 'genero',
-                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
-                userId: authStore.userId || undefined
-            });
+            const created = createMode.value === 'link'
+                ? await createLinkedGenrePlaylist(form.link)
+                : await createGenrePlaylist({ name: form.name.trim(), description: form.description, public: form.isPublic });
             if (!created.user && authStore.userId) {
                 created.user = {
                     id: authStore.userId,
@@ -385,6 +480,20 @@ async function save() {
         SwalService.error('Error guardando género');
     }
 }
+
+async function linkExisting(item: Spotify) {
+    if (linkingItemId.value) return;
+    const confirmation = await SwalService.confirm('¿Vincular con Spotify?', 'Se conservarán como protegidas las canciones que ya existan en la playlist.', 'Sí, vincular', 'Cancelar');
+    if (!confirmation.isConfirmed) return;
+    linkingItemId.value = item.id;
+    try { applySyncedPlaylist(await linkExistingGenrePlaylist(item.id)); SwalService.success('Playlist vinculada correctamente'); }
+    catch (error) { SwalService.error(apiError(error, 'No se pudo vincular la playlist')); }
+    finally { linkingItemId.value = null; }
+}
+function openManager(item: Spotify) { if (item.spotifyPlaylistId) managedPlaylist.value = item; }
+function applySyncedPlaylist(updated: SyncedGenrePlaylist) { const index = items.value.findIndex((item) => item.id === updated.id); if (index !== -1) items.value[index] = updated; if (managedPlaylist.value?.id === updated.id) managedPlaylist.value = items.value[index] || updated; }
+function removeDeletedPlaylist(id: string) { items.value = items.value.filter((item) => item.id !== id); managedPlaylist.value = null; }
+async function startSpotifyOAuth() { try { const { authorizationUrl } = await connectSpotify(); window.location.assign(authorizationUrl); } catch (error) { SwalService.error(apiError(error, 'No se pudo iniciar Spotify')); } }
 
 // --- Delete Item ---
 async function confirmDelete(item: Spotify) {

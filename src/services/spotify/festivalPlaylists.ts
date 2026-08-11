@@ -1,6 +1,6 @@
-import api from '@services/api/api';
+import api from "@services/api/api";
 
-export type PlaylistArtistSyncStatus = 'syncing' | 'synced' | 'failed';
+export type PlaylistArtistSyncStatus = "syncing" | "synced" | "failed";
 
 export interface SpotifyConnection {
   connected: boolean;
@@ -8,9 +8,11 @@ export interface SpotifyConnection {
   displayName: string | null;
   canUploadImages: boolean;
   missingScopes: string[];
-  authorizationStatus: 'disconnected' | 'connected' | 'expiring_soon' | 'reauthorization_required';
+  authorizationStatus:
+    "disconnected" | "connected" | "expiring_soon" | "reauthorization_required";
   reauthorizationRequired: boolean;
-  reauthorizationReason: 'refresh_token_expired' | 'refresh_token_invalid' | null;
+  reauthorizationReason:
+    "refresh_token_expired" | "refresh_token_invalid" | null;
   authorizedAt: string | null;
   refreshTokenExpiresAt: string | null;
   daysUntilReauthorization: number | null;
@@ -22,6 +24,10 @@ export interface PlaylistTrack {
   name: string;
   url: string;
   plays: number;
+  artists?: Array<{ id: string; name: string }>;
+  album?: string;
+  imageUrl?: string | null;
+  durationMs?: number;
 }
 
 export interface FestivalArtist {
@@ -41,6 +47,8 @@ export interface PlaylistArtist {
   artistId: string;
   artist: FestivalArtist;
   status: PlaylistArtistSyncStatus;
+  selectionMode?: "setlist" | "manual";
+  spotifyArtistId?: string | null;
   setlistsAnalyzed: number;
   tracks: PlaylistTrack[];
   lastError: string | null;
@@ -52,12 +60,12 @@ export interface SyncedFestivalPlaylist {
   id: string;
   name: string;
   description: string | null;
-  status: 'not_started' | 'in_progress' | 'editing' | 'ready' | 'published';
+  status: "not_started" | "in_progress" | "editing" | "ready" | "published";
   link: string;
   spotifyPlaylistId: string | null;
   imageUrl: string | null;
   isPublic: boolean;
-  type: 'festival';
+  type: "festival";
   updateDate: string;
   createdAt: string;
   updatedAt: string;
@@ -103,32 +111,41 @@ export function approximateBase64Size(fileSize: number): number {
 }
 
 export function validatePlaylistImage(file: File): string | null {
-  if (file.type !== 'image/jpeg') return 'La portada debe ser un archivo JPEG.';
+  if (file.type !== "image/jpeg") return "La portada debe ser un archivo JPEG.";
   if (approximateBase64Size(file.size) > MAX_SPOTIFY_IMAGE_BASE64_BYTES) {
-    return 'La imagen supera el límite de 256 KB una vez codificada para Spotify.';
+    return "La imagen supera el límite de 256 KB una vez codificada para Spotify.";
   }
   return null;
 }
 
 export async function getSpotifyConnection(): Promise<SpotifyConnection> {
-  const { data } = await api.get<SpotifyConnection>('/festival-playlists/spotify/connection');
+  const { data } = await api.get<SpotifyConnection>(
+    "/festival-playlists/spotify/connection",
+  );
   return data;
 }
 
 export async function connectSpotify(): Promise<{ authorizationUrl: string }> {
-  const { data } = await api.post<{ authorizationUrl: string }>('/festival-playlists/spotify/connect');
+  const { data } = await api.post<{ authorizationUrl: string }>(
+    "/festival-playlists/spotify/connect",
+  );
   return data;
 }
 
 export async function disconnectSpotify(): Promise<{ connected: false }> {
-  const { data } = await api.delete<{ connected: false }>('/festival-playlists/spotify/connection');
+  const { data } = await api.delete<{ connected: false }>(
+    "/festival-playlists/spotify/connection",
+  );
   return data;
 }
 
 export async function createFestivalPlaylist(
   dto: CreateFestivalPlaylistDto,
 ): Promise<SyncedFestivalPlaylist> {
-  const { data } = await api.post<SyncedFestivalPlaylist>('/festival-playlists', dto);
+  const { data } = await api.post<SyncedFestivalPlaylist>(
+    "/festival-playlists",
+    dto,
+  );
   return data;
 }
 
@@ -136,7 +153,7 @@ export async function createLinkedFestivalPlaylist(
   spotifyUrl: string,
 ): Promise<SyncedFestivalPlaylist> {
   const { data } = await api.post<SyncedFestivalPlaylist>(
-    '/festival-playlists/link',
+    "/festival-playlists/link",
     { spotifyUrl },
   );
   return data;
@@ -160,13 +177,19 @@ export async function clearFestivalPlaylist(
   return data;
 }
 
-export async function deleteFestivalPlaylist(id: string): Promise<{ ok: true }> {
+export async function deleteFestivalPlaylist(
+  id: string,
+): Promise<{ ok: true }> {
   const { data } = await api.delete<{ ok: true }>(`/spotify/${id}`);
   return data;
 }
 
-export async function getFestivalPlaylist(id: string): Promise<SyncedFestivalPlaylist> {
-  const { data } = await api.get<SyncedFestivalPlaylist>(`/festival-playlists/${id}`);
+export async function getFestivalPlaylist(
+  id: string,
+): Promise<SyncedFestivalPlaylist> {
+  const { data } = await api.get<SyncedFestivalPlaylist>(
+    `/festival-playlists/${id}`,
+  );
   return data;
 }
 
@@ -174,7 +197,10 @@ export async function updateFestivalPlaylist(
   id: string,
   dto: UpdateFestivalPlaylistDto,
 ): Promise<SyncedFestivalPlaylist> {
-  const { data } = await api.patch<SyncedFestivalPlaylist>(`/festival-playlists/${id}`, dto);
+  const { data } = await api.patch<SyncedFestivalPlaylist>(
+    `/festival-playlists/${id}`,
+    dto,
+  );
   return data;
 }
 
@@ -183,22 +209,23 @@ export async function updateFestivalPlaylistImage(
   file: File,
 ): Promise<SyncedFestivalPlaylist> {
   const formData = new FormData();
-  formData.append('image', file);
+  formData.append("image", file);
   const { data } = await api.put<SyncedFestivalPlaylist>(
     `/festival-playlists/${id}/image`,
     formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
+    { headers: { "Content-Type": "multipart/form-data" } },
   );
   return data;
 }
 
 export async function searchFestivalArtists(
-  query: string,
+  query = "",
   limit = 15,
   offset = 0,
+  genreId?: string,
 ): Promise<ArtistSearchResponse> {
-  const { data } = await api.get<ArtistSearchResponse>('/artists/management', {
-    params: { query, limit, offset },
+  const { data } = await api.get<ArtistSearchResponse>("/artists/management", {
+    params: { query, limit, offset, genreId },
   });
   return data;
 }
@@ -206,7 +233,7 @@ export async function searchFestivalArtists(
 export async function createPendingFestivalArtist(
   name: string,
 ): Promise<PendingFestivalArtist> {
-  const { data } = await api.post<PendingFestivalArtist>('/artists', { name });
+  const { data } = await api.post<PendingFestivalArtist>("/artists", { name });
   return data;
 }
 
@@ -215,9 +242,12 @@ export async function getArtistTopSongs(
   limit = 10,
   recentSetlists = 10,
 ): Promise<TopSongsResponse> {
-  const { data } = await api.get<TopSongsResponse>('/festival-playlists/artists/top-songs', {
-    params: { artist, limit, recentSetlists },
-  });
+  const { data } = await api.get<TopSongsResponse>(
+    "/festival-playlists/artists/top-songs",
+    {
+      params: { artist, limit, recentSetlists },
+    },
+  );
   return data;
 }
 
