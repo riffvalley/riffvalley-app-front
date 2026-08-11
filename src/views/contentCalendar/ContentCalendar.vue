@@ -182,16 +182,13 @@ const editingContent = ref<any>({
     authorId: ''
 });
 
-const isBacklogItem = (content: Content) =>
-    content.backlog || content.list?.status === 'completed';
-
 const mergeContentsById = (...collections: Content[][]): Content[] =>
     [...new Map(collections.flat().map(content => [content.id, content])).values()];
 
-// Backlog items (explicit backlog or a completed list)
+// Backlog items (content with backlog: true)
 const backlogItems = computed(() => {
     return allContents.value
-        .filter(isBacklogItem)
+        .filter(c => c.backlog)
         .sort((a, b) => {
             // Primero ordenar por usuario: 'riff valley' primero
             const aIsRiffValley = a.author?.username?.toLowerCase() === 'riff valley';
@@ -208,7 +205,7 @@ const backlogItems = computed(() => {
 // Calendar events (content with publicationDate and not in backlog)
 const calendarEvents = computed(() => {
     return allContents.value
-        .filter(c => !isBacklogItem(c) && c.publicationDate)
+        .filter(c => !c.backlog && c.publicationDate)
         .map(c => {
             let start = c.publicationDate;
 
@@ -897,9 +894,9 @@ async function loadContentsByMonth(year: number, month: number) {
     try {
         const monthContents = await getContentsByMonth(year, month);
 
-        // Keep backlog items and add only events that still belong on the calendar.
-        const currentBacklog = allContents.value.filter(isBacklogItem);
-        const scheduledItems = monthContents.filter(c => !isBacklogItem(c) && c.publicationDate);
+        // Keep backlog items and add new month contents
+        const currentBacklog = allContents.value.filter(c => c.backlog);
+        const scheduledItems = monthContents.filter(c => !c.backlog && c.publicationDate);
 
         allContents.value = mergeContentsById(currentBacklog, scheduledItems);
     } catch (error) {
@@ -911,7 +908,7 @@ async function loadBacklogContents() {
     try {
         const backlog = await getContents(true);
         // Preserve existing scheduled items while updating backlog
-        const scheduledItems = allContents.value.filter(c => !isBacklogItem(c) && c.publicationDate);
+        const scheduledItems = allContents.value.filter(c => !c.backlog && c.publicationDate);
         allContents.value = mergeContentsById(backlog, scheduledItems);
     } catch (error) {
         console.error('Error loading backlog contents:', error);
