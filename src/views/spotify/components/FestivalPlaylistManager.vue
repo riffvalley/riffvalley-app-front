@@ -80,8 +80,8 @@
         </div>
 
         <div class="space-y-6">
-          <section class="spotify-artists-section rounded-xl border border-gray-200 p-4 dark:border-white/10">
-            <h3 class="spotify-artists-title font-bold">Añadir artistas</h3>
+          <section class="rounded-xl border border-gray-200 bg-white p-4 text-gray-900 dark:border-white/10 dark:bg-rv-darkCard dark:text-white">
+            <h3 class="font-bold text-gray-900 dark:text-white">Añadir artistas</h3>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-300">La selección de temas se calcula con datos de setlist.fm y se sincroniza después con Spotify.</p>
             <input v-model="artistQuery" type="search" placeholder="Buscar artista interno…" :disabled="!canManage || syncingArtistId !== null || creatingArtist" class="mt-4 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-white/20 dark:bg-rv-darkSurface dark:text-white disabled:opacity-60" />
             <p v-if="searching" class="py-4 text-center text-sm text-gray-500 dark:text-gray-300">Buscando…</p>
@@ -93,11 +93,11 @@
               </button>
             </div>
             <div class="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
-              <div v-for="artist in searchResults" :key="artist.id" class="spotify-artist-card rounded-xl border border-gray-200 p-3 shadow-sm dark:border-white/10">
+              <div v-for="artist in searchResults" :key="artist.id" class="rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-rv-darkCard">
                 <div class="flex items-center gap-2">
                   <img :src="artist.image || fallbackArtist" class="h-11 w-11 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15" :alt="`Imagen de ${artist.name}`" />
                   <span class="min-w-0 flex-1">
-                    <span class="spotify-artists-title block truncate text-sm font-bold">{{ artist.name }}</span>
+                    <span class="block truncate text-sm font-bold text-gray-900 dark:text-white">{{ artist.name }}</span>
                     <span v-if="artist.description" class="mt-0.5 block truncate text-xs !text-gray-500 dark:!text-gray-300">{{ artist.description }}</span>
                   </span>
                   <span v-if="isArtistPresent(artist.id)" class="text-xs font-semibold !text-green-400">Añadido</span>
@@ -121,17 +121,17 @@
             </div>
           </section>
 
-          <section class="spotify-artists-section rounded-xl border border-gray-200 p-4 dark:border-white/10">
+          <section class="rounded-xl border border-gray-200 bg-white p-4 text-gray-900 dark:border-white/10 dark:bg-rv-darkCard dark:text-white">
             <div class="mb-4 flex items-center justify-between">
-              <h3 class="spotify-artists-title font-bold">Artistas sincronizados</h3>
+              <h3 class="font-bold text-gray-900 dark:text-white">Artistas sincronizados</h3>
               <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-white/10 dark:text-gray-300">{{ detail.playlistArtists.length }}</span>
             </div>
             <p v-if="detail.playlistArtists.length === 0" class="py-5 text-center text-sm text-gray-500 dark:text-gray-300">Todavía no hay artistas en esta playlist.</p>
-            <div v-for="entry in detail.playlistArtists" :key="entry.id" class="spotify-artist-card mb-3 overflow-hidden rounded-xl border border-gray-200 shadow-sm last:mb-0 dark:border-white/10">
-              <button class="spotify-artist-row flex w-full items-center gap-3 p-3.5 text-left transition-colors" @click="toggleArtist(entry.id)">
+            <div v-for="entry in detail.playlistArtists" :key="entry.id" class="mb-3 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm last:mb-0 dark:border-white/10 dark:bg-rv-darkCard">
+              <button class="flex w-full items-center gap-3 !bg-white p-3.5 text-left transition-colors hover:!bg-gray-50 dark:!bg-rv-darkCard dark:hover:!bg-rv-darkBg" @click="toggleArtist(entry.id)">
                 <img :src="entry.artist.image || fallbackArtist" class="h-12 w-12 shrink-0 rounded-lg bg-gray-100 object-cover ring-1 ring-black/10 dark:ring-white/15" :alt="`Imagen de ${entry.artist.name}`" />
                 <span class="min-w-0 flex-1">
-                  <span class="spotify-artists-title block truncate text-[15px] font-bold leading-5">{{ entry.artist.name }}</span>
+                  <span class="block truncate text-[15px] font-bold leading-5 text-gray-900 dark:text-white">{{ entry.artist.name }}</span>
                   <span class="mt-0.5 block text-xs !text-gray-500 dark:!text-gray-300">{{ entry.tracks.length }} canciones · {{ entry.setlistsAnalyzed }} setlists analizados</span>
                 </span>
                 <span class="rounded-full px-2 py-1 text-[11px] font-bold" :class="statusClass(entry.status)">{{ statusLabel(entry.status) }}</span>
@@ -554,41 +554,3 @@ onBeforeUnmount(() => {
   clearImagePreview();
 });
 </script>
-
-<style scoped>
-.spotify-artists-section {
-  background-color: #ffffff !important;
-  color: #111827;
-}
-
-.spotify-artists-title {
-  color: #111827 !important;
-}
-
-.spotify-artist-card,
-.spotify-artist-row {
-  background-color: #ffffff !important;
-}
-
-.spotify-artist-row:hover {
-  background-color: #f9fafb !important;
-}
-
-:global(.dark) .spotify-artists-section {
-  background-color: #404157 !important;
-  color: #ffffff;
-}
-
-:global(.dark) .spotify-artists-title {
-  color: #ffffff !important;
-}
-
-:global(.dark) .spotify-artist-card,
-:global(.dark) .spotify-artist-row {
-  background-color: #404157 !important;
-}
-
-:global(.dark) .spotify-artist-row:hover {
-  background-color: #00021f !important;
-}
-</style>
