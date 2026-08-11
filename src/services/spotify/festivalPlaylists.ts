@@ -219,12 +219,13 @@ export async function updateFestivalPlaylistImage(
 }
 
 export async function searchFestivalArtists(
-  query: string,
+  query = "",
   limit = 15,
   offset = 0,
+  genreId?: string,
 ): Promise<ArtistSearchResponse> {
   const { data } = await api.get<ArtistSearchResponse>("/artists/management", {
-    params: { query, limit, offset },
+    params: { query, limit, offset, genreId },
   });
   return data;
 }
