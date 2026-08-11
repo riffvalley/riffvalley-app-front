@@ -1,3 +1,14 @@
+## 1.31.0 (2026-08-11)
+
+* Merge pull request #157 from riffvalley/feat/festival-playlists-spotify ([5832eab](https://github.com/riffvalley/riffvalley-app-front/commit/5832eab)), closes [#157](https://github.com/riffvalley/riffvalley-app-front/issues/157)
+* fix: align festival artist dark colors ([1fc26fe](https://github.com/riffvalley/riffvalley-app-front/commit/1fc26fe))
+* fix: apply festival artist dark theme ([453c13f](https://github.com/riffvalley/riffvalley-app-front/commit/453c13f))
+* fix: improve festival artist contrast ([bc2018c](https://github.com/riffvalley/riffvalley-app-front/commit/bc2018c))
+* fix: override festival artist row background ([d7ba3e4](https://github.com/riffvalley/riffvalley-app-front/commit/d7ba3e4))
+* style: align festival modal columns ([76a82c2](https://github.com/riffvalley/riffvalley-app-front/commit/76a82c2))
+* style: reorganize festival playlist modal ([4b44e47](https://github.com/riffvalley/riffvalley-app-front/commit/4b44e47))
+* feat: show Spotify authorization status ([9fb4873](https://github.com/riffvalley/riffvalley-app-front/commit/9fb4873))
+
 ## 1.30.0 (2026-08-11)
 
 * Merge pull request #156 from riffvalley/feat/festival-playlists-spotify ([f54700a](https://github.com/riffvalley/riffvalley-app-front/commit/f54700a)), closes [#156](https://github.com/riffvalley/riffvalley-app-front/issues/156)
