@@ -14,14 +14,26 @@ describe('auth HTTP integration', () => {
     configureAuthHttp(client, { getAccessToken: () => 'TOKEN', onUnauthorized: vi.fn() });
     client.defaults.adapter = async (config) => ({ data: config.headers.Authorization ?? null, status: 200, statusText: 'OK', headers: {}, config });
     await expect(client.get('/private')).resolves.toMatchObject({ data: 'Bearer TOKEN' });
-    await expect(client.post('/login', {}, { auth: { skipAccessToken: true } })).resolves.toMatchObject({ data: null });
+    await expect(client.post('/login', {}, { authMeta: { skipAccessToken: true } })).resolves.toMatchObject({ data: null });
+  });
+
+  it('keeps Axios Basic Auth config free while preserving the final Bearer header', async () => {
+    const client = axios.create();
+    configureAuthHttp(client, { getAccessToken: () => 'TOKEN', onUnauthorized: vi.fn() });
+    client.defaults.adapter = async (config) => ({
+      data: { authorization: config.headers.Authorization, auth: config.auth ?? null },
+      status: 200, statusText: 'OK', headers: {}, config,
+    });
+    await expect(client.get('/private')).resolves.toMatchObject({
+      data: { authorization: 'Bearer TOKEN', auth: null },
+    });
   });
 
   it('does not globally process login 401 responses', async () => {
     const client = axios.create(); const expired = vi.fn();
     configureAuthHttp(client, { getAccessToken: () => 'TOKEN', onUnauthorized: expired });
     client.defaults.adapter = unauthorized;
-    await expect(client.post('/login', {}, { auth: { skipAccessToken: true, skipGlobalUnauthorized: true } })).rejects.toBeInstanceOf(Error);
+    await expect(client.post('/login', {}, { authMeta: { skipAccessToken: true, skipGlobalUnauthorized: true } })).rejects.toBeInstanceOf(Error);
     expect(expired).not.toHaveBeenCalled();
   });
 

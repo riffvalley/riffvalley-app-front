@@ -5,7 +5,7 @@ import { mapLoginResponse, type LoginBootstrapResult } from '../model/auth.mappe
 
 export async function requestLogin(credentials: LoginCredentials): Promise<LoginBootstrapResult> {
   const response = await api.post<LoginResponseDto>('/auth/login', credentials, {
-    auth: { skipAccessToken: true, skipGlobalUnauthorized: true },
+    authMeta: { skipAccessToken: true, skipGlobalUnauthorized: true },
   });
   return mapLoginResponse(response.data);
 }

@@ -360,11 +360,13 @@ onUnauthorized(): void | Promise<void>
 
 No importa Pinia ni Router. `main.ts` crea `authInfrastructure` con la instancia explícita de Pinia y conecta los callbacks al cliente Axios.
 
-La metadata Axios ampliada admite:
+La metadata Axios ampliada vive en `authMeta` y admite:
 
 - `skipAccessToken`: impide adjuntar el token;
 - `skipGlobalUnauthorized`: impide ejecutar el tratamiento global de un `401`;
 - `accessToken`: metadata interna que registra el token usado por la petición.
+
+`AxiosRequestConfig.auth` no se utiliza para metadata Auth: es una opción reservada de Axios para HTTP Basic Auth y puede sobrescribir la cabecera `Authorization`. Mantener la metadata del módulo bajo `authMeta` garantiza que las peticiones autenticadas conserven `Authorization: Bearer <token>`.
 
 El endpoint de login marca las dos opciones `skip...` como `true`. Así no envía un token anterior y un `401` de credenciales incorrectas permanece como error local del formulario, sin expirar la sesión global.
 
@@ -517,7 +519,7 @@ No debe importar archivos bajo `@/modules/auth/...`. `auth.architecture.test.ts`
 
 ## 15. Suite de tests actual
 
-El script `yarn test:auth` ejecuta los tests situados bajo `src/modules/auth`. En la verificación realizada para este documento ejecutó **9 archivos y 33 tests**, todos correctos. Los grupos actuales protegen:
+El script `yarn test:auth` ejecuta los tests situados bajo `src/modules/auth`. En la verificación realizada para este documento ejecutó **9 archivos y 34 tests**, todos correctos. Los grupos actuales protegen:
 
 | Archivo | Contratos cubiertos |
 | --- | --- |
@@ -525,7 +527,7 @@ El script `yarn test:auth` ejecuta los tests situados bajo `src/modules/auth`. E
 | `auth.permissions.test.ts` | `requiredRoles` ANY, prioridad de denegación, ausencia de jerarquía para `admin` y prioridad de mantenimiento |
 | `auth.storage.test.ts` | documento V1, rechazo y limpieza de V1 inválido, migración JSON/CSV y separación del dashboard |
 | `auth.store.test.ts` | inicialización concurrente/idempotente, estado derivado, registro de `session` en Pinia, login persistido, avatar, logout y fachada sin sesión/token |
-| `auth.http.test.ts` | token actual, bypass de token, bypass de 401 de login, coalescencia de 401 y protección TOKEN-A/TOKEN-B |
+| `auth.http.test.ts` | token actual, `authMeta` separado del Basic Auth reservado de Axios, bypass de token, bypass de 401 de login, coalescencia de 401 y protección TOKEN-A/TOKEN-B |
 | `auth.guard.test.ts` | espera de inicialización y destinos para anónimo, rol ausente, `/import`, mantenimiento activo e inactivo |
 | `LoginForm.test.ts` | binding de credenciales, submit, visibilidad de contraseña, loading/disabled y error estable |
 | `LoginBackground.test.ts` | creación y cleanup explícito de RAF, resize y mousemove |
