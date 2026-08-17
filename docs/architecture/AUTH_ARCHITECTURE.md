@@ -296,17 +296,14 @@ El guard espera siempre a que la promesa termine antes de decidir acceso. El sto
 
 ```ts
 interface LoginResponseDto {
-  id: unknown;
-  username: unknown;
   token: unknown;
-  roles: unknown;
-  image?: unknown;
+  user: unknown;
 }
 ```
 
-`roles` es obligatorio. El mapper rechaza roles ausentes, valores que no sean arrays y roles desconocidos, además de validar identidad, token e imagen.
+El mapper exige un token no vacío y un objeto `user` con `id`, `username`, `avatarUrl` y `roles`. `avatarUrl` debe ser `string | null`; `roles` debe ser un array y todos sus elementos deben pertenecer al conjunto cerrado `Role`. El contrato plano anterior no se acepta.
 
-`mapLoginResponse()` devuelve directamente `AuthSession`. Los campos adicionales de la respuesta legacy del backend se toleran e ignoran: Auth no los declara, valida, mapea ni persiste. `LoginBootstrapResult` y `legacyDashboardPreferences` ya no existen.
+`mapLoginResponse()` valida el contrato anidado definitivo y devuelve directamente `AuthSession`, cuya representación coincide con la respuesta validada. No transforma `image`, no conoce Dashboard y no mantiene compatibilidad dual. `LoginBootstrapResult` y `legacyDashboardPreferences` no existen.
 
 ### Flujo completo
 
@@ -512,11 +509,11 @@ No debe importar archivos bajo `@/modules/auth/...`. `auth.architecture.test.ts`
 
 ## 15. Suite de tests actual
 
-El script `yarn test:auth` ejecuta los tests situados bajo `src/modules/auth`. En la verificación de este lote ejecutó **9 archivos y 35 tests**, todos correctos. Los grupos actuales protegen:
+El script `yarn test:auth` ejecuta los tests situados bajo `src/modules/auth`. En la verificación de este lote ejecutó **9 archivos y 39 tests**, todos correctos. Los grupos actuales protegen:
 
 | Archivo | Contratos cubiertos |
 | --- | --- |
-| `auth.mapper.test.ts` | sesión Auth mapeada, campos legacy adicionales ignorados, roles válidos, rol desconocido y roles ausentes |
+| `auth.mapper.test.ts` | contrato anidado definitivo, avatar nulo, roles válidos, rol desconocido, token/usuario inválidos, rechazo del contrato plano y ausencia de conocimiento legacy/Dashboard |
 | `auth.permissions.test.ts` | `requiredRoles` ANY, prioridad de denegación, ausencia de jerarquía para `admin` y prioridad de mantenimiento |
 | `auth.storage.test.ts` | documento V1, rechazo y limpieza de V1 inválido, migración JSON/CSV y separación del dashboard |
 | `auth.store.test.ts` | inicialización concurrente/idempotente, estado derivado, registro de `session` en Pinia, login persistido, avatar, logout y fachada sin sesión/token |
@@ -542,7 +539,7 @@ Los siguientes puntos deben permanecer ciertos:
 - El token solo está disponible mediante `createAuthInfrastructure()`.
 - Roles desconocidos invalidan completamente sesión o respuesta.
 - Los roles son exactos y no tienen jerarquía implícita.
-- El mapper produce exclusivamente `AuthSession` e ignora campos adicionales de la respuesta legacy.
+- El mapper produce exclusivamente `AuthSession` desde el contrato anidado definitivo y rechaza el contrato plano anterior.
 - `LoginBootstrapResult` y `legacyDashboardPreferences` no existen.
 - `AuthSessionStorage` es el único código que conoce claves Auth, JSON, V1 y migración.
 - Dashboard, `theme` y `bgMode` permanecen fuera de `AuthSessionStorage`.
