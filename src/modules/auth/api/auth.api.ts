@@ -1,0 +1,11 @@
+import api from '@/services/api/api';
+import type { LoginCredentials, LoginBootstrapResult } from '../model/auth.types';
+import type { LoginResponseDto } from './auth.dto';
+import { mapLoginResponse } from '../model/auth.mapper';
+
+export async function requestLogin(credentials: LoginCredentials): Promise<LoginBootstrapResult> {
+  const response = await api.post<LoginResponseDto>('/auth/login', credentials, {
+    auth: { skipAccessToken: true, skipGlobalUnauthorized: true },
+  });
+  return mapLoginResponse(response.data);
+}

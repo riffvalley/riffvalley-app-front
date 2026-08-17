@@ -3,6 +3,10 @@ import vue from '@vitejs/plugin-vue'
 import path from 'path';
 
 export default defineConfig({
+  test: {
+    environment: 'jsdom',
+    clearMocks: true,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),  // 📌 Asegúrate de que esto esté presente

@@ -6,7 +6,7 @@
         <!-- Backlog Panel -->
         <transition name="backlog-slide" @after-enter="updateCalendarSize" @after-leave="updateCalendarSize">
             <div v-if="showBacklog" class="fixed lg:relative inset-y-0 left-0 z-30 lg:z-auto shrink-0">
-                <BacklogPanel :backlog-items="backlogItems" :show-only-my-events="showOnlyMyEvents" :user-id="authStore.userId"
+                <BacklogPanel :backlog-items="backlogItems" :show-only-my-events="showOnlyMyEvents" :user-id="authStore.currentUser?.id"
                     @create-new="showCreateModal = true" @edit-content="openEditModal" @delete-content="handleDeleteFromBacklog"
                     @close="showBacklog = false"
                     ref="backlogPanelRef" />
@@ -22,17 +22,17 @@
                 </h1>
                 <div class="flex items-center gap-2">
                     <!-- Botón de filtro de usuario -->
-                    <button v-if="authStore.userId" @click="toggleMyEventsFilter"
+                    <button v-if="authStore.currentUser?.id" @click="toggleMyEventsFilter"
                         class="relative transition-all duration-300"
                         :class="showOnlyMyEvents ? '' : 'opacity-50 grayscale'"
                         :title="showOnlyMyEvents ? 'Mostrar todos los eventos' : 'Mostrar solo mis eventos'">
-                        <img v-if="authStore.image" :src="authStore.image" :alt="authStore.username || 'Usuario'"
+                        <img v-if="authStore.currentUser?.avatarUrl" :src="authStore.currentUser?.avatarUrl" :alt="authStore.currentUser?.username || 'Usuario'"
                             class="w-9 h-9 rounded-full object-cover transition-all"
                             :class="showOnlyMyEvents ? 'ring-2 ring-rv-pink ring-offset-2' : ''" />
                         <div v-else
                             class="w-9 h-9 rounded-full bg-rv-purple flex items-center justify-center text-white font-bold text-base"
                             :class="showOnlyMyEvents ? 'ring-2 ring-rv-pink ring-offset-2' : ''">
-                            {{ authStore.username?.charAt(0).toUpperCase() }}
+                            {{ authStore.currentUser?.username?.charAt(0).toUpperCase() }}
                         </div>
                     </button>
 
@@ -115,7 +115,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
 import type { ContentType, Content } from '@services/contents/contents';
 import { getContents, createContent as createContentAPI, updateContent, deleteContent, getContentsByMonth } from '@services/contents/contents';
-import { useAuthStore } from '@stores/auth/auth';
+import { useAuthStore } from '@/modules/auth';
 import { getRvUsers } from '@services/users/users';
 import SwalService from '@services/swal/SwalService';
 import { updateAsignationService } from '@services/asignation/asignation';
@@ -284,7 +284,7 @@ const calendarOptions = ref({
         const author = arg.event.extendedProps.author;
         const editor = arg.event.extendedProps.editor;
         const notes = arg.event.extendedProps.notes || '';
-        const isMyEvent = authStore.userId && author?.id === authStore.userId;
+        const isMyEvent = authStore.currentUser?.id && author?.id === authStore.currentUser?.id;
         const shouldDim = showOnlyMyEvents.value && !isMyEvent;
         const shouldHighlight = showOnlyMyEvents.value && isMyEvent;
 
@@ -877,8 +877,8 @@ async function loadRvUsers() {
     try {
         rvUsers.value = await getRvUsers();
         // Set default author to current user if available
-        if (authStore.userId && !newContent.value.authorId) {
-            newContent.value.authorId = authStore.userId;
+        if (authStore.currentUser?.id && !newContent.value.authorId) {
+            newContent.value.authorId = authStore.currentUser?.id;
         }
     } catch (error) {
         console.error('Error loading RV users:', error);

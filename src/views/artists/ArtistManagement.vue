@@ -621,7 +621,7 @@ import type { Genre } from "@services/genres/genres";
 import { getDiscRates } from "@services/rates/rates";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
 import axios from "axios";
-import { useAuthStore } from "@stores/auth/auth";
+import { useAuthStore } from "@/modules/auth";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import DiscDetail from "@components/DiscDetail.vue";
 import DiscCardComponent from "@components/DiscCardComponent.vue";
@@ -646,8 +646,7 @@ export default defineComponent({
     const selectedCountryId = ref("");
     const needsReview = ref<boolean | null>(null);
     const authStore = useAuthStore();
-    const isManager = authStore.hasRole?.('riffValley') || authStore.hasRole?.('superUser')
-      || (authStore.roles || '').includes('riffValley') || (authStore.roles || '').includes('superUser');
+    const isManager = authStore.hasAnyRole(['riffValley', 'superUser']);
     const deletingOrphans = ref(false);
     const fillingImages = ref(false);
     const fillProgress = ref(0);
@@ -712,7 +711,7 @@ export default defineComponent({
       try {
         const authStore = useAuthStore();
         const rates = await getDiscRates(disc.id);
-        const myRate = rates.find(r => r.user.id === authStore.userId);
+        const myRate = rates.find(r => r.user.id === authStore.currentUser?.id);
         selectedDiscCard.value = {
           ...disc,
           artistName: artist.name,

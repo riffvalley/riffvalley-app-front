@@ -296,7 +296,7 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref, onMounted } from 'vue';
-import { useAuthStore } from '@stores/auth/auth.ts';
+import { useAuthStore } from '@/modules/auth';
 import { getLatestPublicVersion } from '@services/versions/versions';
 import { getAllRequests } from '@services/requests/requests';
 import { getSuggestions } from '@services/suggestions/suggestions';

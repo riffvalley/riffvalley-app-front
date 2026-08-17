@@ -252,7 +252,7 @@ import {
     toISO
 } from '@services/articles/articles';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
-import { useAuthStore } from '@stores/auth/auth';
+import { useAuthStore } from '@/modules/auth';
 import SwalService from '@services/swal/SwalService';
 
 const authStore = useAuthStore();
@@ -381,10 +381,10 @@ async function reload() {
             users.value = await getUsersRv();
         }
 
-        if (!selectedUserId.value && authStore.userId) {
-            const isRv = users.value.some(u => u.id === authStore.userId);
+        if (!selectedUserId.value && authStore.currentUser?.id) {
+            const isRv = users.value.some(u => u.id === authStore.currentUser?.id);
             if (isRv) {
-                selectedUserId.value = authStore.userId;
+                selectedUserId.value = authStore.currentUser?.id;
             } else if (users.value.length > 0) {
                 selectedUserId.value = users.value[0].id;
             }
@@ -605,13 +605,13 @@ async function save() {
                 link: form.link || undefined,
                 status: 'not_started',
                 updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
-                userId: authStore.userId || undefined
+                userId: authStore.currentUser?.id || undefined
             });
-            if (!created.user && authStore.userId) {
+            if (!created.user && authStore.currentUser?.id) {
                 created.user = {
-                    id: authStore.userId,
-                    username: authStore.username || 'Yo',
-                    image: authStore.image || undefined
+                    id: authStore.currentUser?.id,
+                    username: authStore.currentUser?.username || 'Yo',
+                    image: authStore.currentUser?.avatarUrl || undefined
                 } as any;
             }
             items.value.push(created);

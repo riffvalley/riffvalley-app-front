@@ -159,7 +159,7 @@ import {
     toISO
 } from '@services/spotify/spotify';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
-import { useAuthStore } from '@stores/auth/auth';
+import { useAuthStore } from '@/modules/auth';
 import SwalService from '@services/swal/SwalService';
 
 const authStore = useAuthStore();
@@ -366,13 +366,13 @@ async function save() {
                 status: 'not_started',
                 type: 'genero',
                 updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
-                userId: authStore.userId || undefined
+                userId: authStore.currentUser?.id || undefined
             });
-            if (!created.user && authStore.userId) {
+            if (!created.user && authStore.currentUser?.id) {
                 created.user = {
-                    id: authStore.userId,
-                    username: authStore.username || 'Yo',
-                    image: authStore.image || undefined
+                    id: authStore.currentUser?.id,
+                    username: authStore.currentUser?.username || 'Yo',
+                    image: authStore.currentUser?.avatarUrl || undefined
                 } as any;
             }
             items.value.push(created);

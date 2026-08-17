@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "yarn vue-tsc --noEmit && yarn vite build",
+    "test": "vitest run",
+    "test:auth": "vitest run src/modules/auth",
+    "test:watch": "vitest",
     "preview": "vite preview",
     "prepare": "husky"
   },
@@ -41,18 +44,23 @@
     "@semantic-release/github": "^11.0.6",
     "@semantic-release/npm": "^12.0.2",
     "@semantic-release/release-notes-generator": "^14.1.0",
+    "@types/jsdom": "^30",
     "@types/node": "^22.10.7",
     "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/test-utils": "^2.4.11",
     "@vue/tsconfig": "^0.7.0",
     "autoprefixer": "^10.4.20",
     "daisyui": "^5.5.8",
     "husky": "^9.1.7",
+    "jsdom": "^30.0.1",
+    "msw": "^2.15.0",
     "postcss": "^8.4.49",
     "semantic-release": "^24.2.8",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.6.2",
     "vite": "^6.0.5",
     "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.1.10",
     "vue-tsc": "^2.2.0"
   },
   "packageManager": "yarn@4.10.1"

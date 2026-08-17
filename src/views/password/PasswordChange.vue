@@ -297,7 +297,7 @@
 import { ref, computed, watch, onMounted } from "vue";
 import SwalService from "@services/swal/SwalService";
 import { useUserStore } from "@stores/user/users";
-import { useAuthStore } from "@stores/auth/auth";
+import { useAuthStore } from "@/modules/auth";
 
 export default {
   name: "ChangePassword",
@@ -394,7 +394,7 @@ export default {
 
     const loadAvatars = () => {
       avatars.value = allAvatars.value;
-      const saved = authStore.avatarUrl || localStorage.getItem("image");
+      const saved = authStore.currentUser?.avatarUrl || localStorage.getItem("image");
       selectedAvatar.value = (saved && saved.length) ? saved : (avatars.value[0] || "");
 
       // Abrir la pestaña que contiene el avatar actual
@@ -417,7 +417,7 @@ export default {
     const saveAvatar = async () => {
       try {
         await userStore.updateUserStore({ image: selectedAvatar.value });
-        authStore.setImage(selectedAvatar.value);
+        authStore.updateCurrentUser({ avatarUrl: selectedAvatar.value });
         SwalService.success("Avatar actualizado correctamente");
         errorMessage.value = "";
       } catch (error) {

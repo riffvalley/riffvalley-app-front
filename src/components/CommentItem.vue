@@ -164,7 +164,7 @@
 <script lang="ts">
 import { computed, defineComponent, ref, watch, nextTick } from "vue";
 import { postcommentService, updateCommentService, deleteCommentService } from "@services/comments/comments";
-import { useAuthStore } from "@stores/auth/auth.ts";
+import { useAuthStore } from "@/modules/auth";
 import SwalService from "@services/swal/SwalService";
 
 export default defineComponent({
@@ -220,7 +220,7 @@ export default defineComponent({
     };
 
     const authStore      = useAuthStore();
-    const user           = computed(() => authStore.loggedUser);
+    const user           = computed(() => authStore.currentUser);
     const isOwnComment   = computed(() => localComment.value?.user?.id === user.value?.id);
 
     // Solo mostrar "(editado)" si editedAt es al menos 10 segundos posterior a createdAt.
@@ -237,7 +237,7 @@ export default defineComponent({
       const u = localComment.value?.user || {};
       if (u.avatarUrl && typeof u.avatarUrl === "string" && u.avatarUrl.length) return u.avatarUrl;
       if (u.image    && typeof u.image    === "string" && u.image.length)    return u.image;
-      if (u.id && user.value?.id && u.id === user.value.id && authStore.avatarUrl) return authStore.avatarUrl;
+      if (u.id && user.value?.id && u.id === user.value.id && authStore.currentUser?.avatarUrl) return authStore.currentUser?.avatarUrl;
       return null;
     });
 
@@ -255,8 +255,8 @@ export default defineComponent({
         });
         if (!localComment.value.replies) localComment.value.replies = [];
         if (newReply?.user?.id && user.value?.id && newReply.user.id === user.value.id) {
-          if (!newReply.user.avatarUrl && !newReply.user.image && authStore.avatarUrl) {
-            newReply.user.avatarUrl = authStore.avatarUrl;
+          if (!newReply.user.avatarUrl && !newReply.user.image && authStore.currentUser?.avatarUrl) {
+            newReply.user.avatarUrl = authStore.currentUser?.avatarUrl;
           }
         }
         localComment.value.replies.push(newReply);

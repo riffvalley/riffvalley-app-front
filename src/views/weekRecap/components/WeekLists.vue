@@ -80,7 +80,7 @@
 import { defineComponent, ref, onMounted, computed } from "vue";
 import { getLists } from "@services/list/list";
 import { useRouter } from "vue-router";
-import { useAuthStore } from "@stores/auth/auth";
+import { useAuthStore } from "@/modules/auth";
 import { useAsignationStore } from "@stores/asignation/asignation";
 import SwalService from "@services/swal/SwalService";
 export default defineComponent({
@@ -95,7 +95,7 @@ export default defineComponent({
     const lists = ref<any[]>([]);
     const router = useRouter();
     const authStore = useAuthStore();
-    const user = computed(() => authStore.loggedUser);
+    const user = computed(() => authStore.currentUser);
     const asignationStore = useAsignationStore();
 
     // Llamada para obtener listas

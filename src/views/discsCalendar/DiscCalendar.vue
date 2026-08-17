@@ -151,7 +151,7 @@ import { MONTHS, getYearOptions } from "@helpers/dateConstants";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
 import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
-import { useAuthStore } from "@stores/auth/auth";
+import { useAuthStore } from "@/modules/auth";
 import SwalService from "@services/swal/SwalService";
 
 export default defineComponent({
