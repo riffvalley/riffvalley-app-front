@@ -1,43 +1,73 @@
 import { reactive } from 'vue';
-export interface DashboardModuleConfig {
-  id: string;
-  enabled: boolean;
-}
+import {
+  getDashboardPreferences,
+  patchDashboardPreferences,
+  type DashboardModuleConfig,
+  type DashboardPreferences,
+} from '@/services/dashboard/preferences';
 
-export interface DashboardPreferences {
+export type { DashboardModuleConfig, DashboardPreferences } from '@/services/dashboard/preferences';
+
+interface DashboardPreferencesState {
   dashboardConfig: DashboardModuleConfig[] | null;
   mobileDashboardConfig: DashboardModuleConfig[] | null;
 }
 
-const read = (key: keyof DashboardPreferences): DashboardModuleConfig[] | null => {
-  try {
-    const value = localStorage.getItem(key);
-    if (!value) return null;
-    const parsed: unknown = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed as DashboardModuleConfig[] : null;
-  } catch { return null; }
-};
-
-export const dashboardPreferences = reactive<DashboardPreferences>({
-  dashboardConfig: read('dashboardConfig'),
-  mobileDashboardConfig: read('mobileDashboardConfig'),
+export const dashboardPreferences = reactive<DashboardPreferencesState>({
+  dashboardConfig: null,
+  mobileDashboardConfig: null,
 });
 
 export function setDashboardPreferences(preferences: DashboardPreferences): void {
   dashboardPreferences.dashboardConfig = preferences.dashboardConfig;
   dashboardPreferences.mobileDashboardConfig = preferences.mobileDashboardConfig;
-  for (const key of ['dashboardConfig', 'mobileDashboardConfig'] as const) {
-    if (preferences[key] === null) localStorage.removeItem(key);
-    else localStorage.setItem(key, JSON.stringify(preferences[key]));
-  }
 }
 
-export function setDashboardPreference(key: keyof DashboardPreferences, value: DashboardModuleConfig[]): void {
-  dashboardPreferences[key] = value;
-  localStorage.setItem(key, JSON.stringify(value));
+let loadPromise: Promise<DashboardPreferences> | null = null;
+let generation = 0;
+
+export function loadDashboardPreferences(): Promise<DashboardPreferences> {
+  if (dashboardPreferences.dashboardConfig && dashboardPreferences.mobileDashboardConfig) {
+    return Promise.resolve({
+      dashboardConfig: dashboardPreferences.dashboardConfig,
+      mobileDashboardConfig: dashboardPreferences.mobileDashboardConfig,
+    });
+  }
+  if (!loadPromise) {
+    const requestedGeneration = generation;
+    loadPromise = getDashboardPreferences()
+      .then((preferences) => {
+        if (generation !== requestedGeneration) {
+          throw new Error('Dashboard preferences load invalidated');
+        }
+        setDashboardPreferences(preferences);
+        return preferences;
+      })
+      .finally(() => { loadPromise = null; });
+  }
+  return loadPromise;
+}
+
+export async function saveDashboardPreference(
+  key: keyof DashboardPreferences,
+  value: DashboardModuleConfig[],
+): Promise<DashboardPreferences> {
+  await loadDashboardPreferences();
+  const preferences: DashboardPreferences = {
+    dashboardConfig: key === 'dashboardConfig'
+      ? value
+      : dashboardPreferences.dashboardConfig ?? [],
+    mobileDashboardConfig: key === 'mobileDashboardConfig'
+      ? value
+      : dashboardPreferences.mobileDashboardConfig ?? [],
+  };
+  setDashboardPreferences(preferences);
+  await patchDashboardPreferences(preferences);
+  return preferences;
 }
 
 export function clearDashboardPreferences(): void {
+  generation += 1;
   dashboardPreferences.dashboardConfig = null;
   dashboardPreferences.mobileDashboardConfig = null;
   localStorage.removeItem('dashboardConfig');

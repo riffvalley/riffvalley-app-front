@@ -9,7 +9,7 @@ vi.mock('vue-router', () => ({ useRouter: () => ({ push: mocks.push }) }));
 describe('LoginForm', () => {
   beforeEach(() => { mocks.login.mockReset(); mocks.push.mockReset(); });
   it('binds credentials, submits, and toggles password visibility', async () => {
-    mocks.login.mockResolvedValue({ dashboardConfig: null, mobileDashboardConfig: null });
+    mocks.login.mockResolvedValue(undefined);
     const wrapper = mount(LoginForm);
     const inputs = wrapper.findAll('input');
     await inputs[0].setValue('ana'); await inputs[1].setValue('secret');
@@ -20,13 +20,13 @@ describe('LoginForm', () => {
     expect(mocks.login).toHaveBeenCalledWith({ username: 'ana', password: 'secret' });
   });
   it('disables the button while login is pending', async () => {
-    let resolveLogin!: (value: { dashboardConfig: null; mobileDashboardConfig: null }) => void;
+    let resolveLogin!: () => void;
     mocks.login.mockReturnValue(new Promise((resolve) => { resolveLogin = resolve; }));
     const wrapper = mount(LoginForm);
     await wrapper.get('form').trigger('submit'); await wrapper.vm.$nextTick();
     const submit = wrapper.get('button[type="submit"]');
     expect(submit.attributes()).toHaveProperty('disabled'); expect(submit.text()).toBe('Accediendo...');
-    resolveLogin({ dashboardConfig: null, mobileDashboardConfig: null });
+    resolveLogin();
   });
   it('shows the stable login error', async () => {
     mocks.login.mockRejectedValue(new Error('bad credentials'));

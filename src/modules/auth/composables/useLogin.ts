@@ -1,7 +1,6 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../model/auth.store';
-import { setDashboardPreferences } from '@/stores/dashboardPreferences';
 
 export function useLogin() {
   const username = ref('');
@@ -15,8 +14,7 @@ export function useLogin() {
     error.value = null;
     loading.value = true;
     try {
-      const preferences = await auth.login({ username: username.value, password: password.value });
-      setDashboardPreferences(preferences);
+      await auth.login({ username: username.value, password: password.value });
       await router.push({ name: 'Home' });
     } catch {
       error.value = 'Acceso fallido. Revisa tus credenciales.';

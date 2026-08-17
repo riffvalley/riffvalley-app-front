@@ -20,7 +20,7 @@ describe('auth store', () => {
   });
   it('persists a valid login and updates the session state', async () => {
     const session = { token: 'new', user: { id: '2', username: 'ana', avatarUrl: null, roles: ['user'] as const } };
-    vi.mocked(requestLogin).mockResolvedValue({ session, legacyDashboardPreferences: { dashboardConfig: null, mobileDashboardConfig: null } });
+    vi.mocked(requestLogin).mockResolvedValue(session);
     const storage: AuthSessionStorage = { restore: vi.fn(), persist: vi.fn(), clear: vi.fn() };
     const auth = createAuthStore(storage)();
     await auth.login({ username: 'ana', password: 'secret' });

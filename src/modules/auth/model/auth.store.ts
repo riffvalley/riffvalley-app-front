@@ -29,11 +29,10 @@ export function createAuthStore(sessionStorage: AuthSessionStorage) {
     }
 
     async function login(credentials: LoginCredentials) {
-      const result = await requestLogin(credentials);
-      sessionStorage.persist(result.session);
-      session.value = result.session;
+      const newSession = await requestLogin(credentials);
+      sessionStorage.persist(newSession);
+      session.value = newSession;
       status.value = 'authenticated';
-      return result.legacyDashboardPreferences;
     }
 
     function logout(_reason: LogoutReason = 'manual'): void {

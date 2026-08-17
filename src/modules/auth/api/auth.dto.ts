@@ -4,6 +4,4 @@ export interface LoginResponseDto {
   token: unknown;
   roles: unknown;
   image?: unknown;
-  dashboardConfig?: unknown;
-  mobileDashboardConfig?: unknown;
 }

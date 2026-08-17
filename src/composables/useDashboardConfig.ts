@@ -1,8 +1,8 @@
-import { computed, ref } from 'vue';
-import { useUserStore } from '@stores/user/users';
+import { computed, ref, watch } from 'vue';
 import {
   dashboardPreferences,
-  setDashboardPreference,
+  loadDashboardPreferences,
+  saveDashboardPreference,
   type DashboardModuleConfig,
 } from '@stores/dashboardPreferences';
 import SwalService from '@services/swal/SwalService';
@@ -59,45 +59,39 @@ function mergeWithDefaults(saved: DashboardModuleConfig[] | null): DashboardModu
 export type DashboardConfigTarget = 'desktop' | 'mobile';
 
 export function useDashboardConfig(target: DashboardConfigTarget = 'desktop') {
-  const userStore = useUserStore();
   const isMobile = target === 'mobile';
+  const preferenceKey = isMobile ? 'mobileDashboardConfig' : 'dashboardConfig';
+  const modules = ref<DashboardModule[]>(mergeWithDefaults(dashboardPreferences[preferenceKey]));
 
-  // `successMessage` es opcional para no forzar un toast en llamadas internas
-  // (p.ej. la migración de la config antigua al montar). `payloadOverride` es
-  // solo para resetToDefault, que siempre guarda [] y no el array actual.
-  function persist(successMessage?: string, payloadOverride?: DashboardModuleConfig[]) {
+  async function persist(successMessage?: string, payloadOverride?: DashboardModuleConfig[]) {
     const payload = payloadOverride ?? modules.value.map(m => ({ id: m.id, enabled: m.enabled }));
-    if (isMobile) {
-      setDashboardPreference('mobileDashboardConfig', payload);
-      userStore.updateUserStore({ mobileDashboardConfig: payload })
-        .then(() => { if (successMessage) SwalService.success(successMessage); })
-        .catch(() => { SwalService.error('No se pudo guardar el cambio del dashboard'); });
-    } else {
-      setDashboardPreference('dashboardConfig', payload);
-      userStore.updateUserStore({ dashboardConfig: payload })
-        .then(() => { if (successMessage) SwalService.success(successMessage); })
-        .catch(() => { SwalService.error('No se pudo guardar el cambio del dashboard'); });
+    try {
+      await saveDashboardPreference(preferenceKey, payload);
+      if (successMessage) SwalService.success(successMessage);
+    } catch {
+      SwalService.error('No se pudo guardar el cambio del dashboard');
     }
   }
 
-  let initial = isMobile ? dashboardPreferences.mobileDashboardConfig : dashboardPreferences.dashboardConfig;
-  // La migración de la config antigua (localStorage previo al backend) solo
-  // aplica al dashboard de escritorio: el móvil nunca tuvo esa versión legacy.
-  let migrateLegacy = false;
-  if (!isMobile && !initial) {
-    const legacy = loadLegacyConfig();
-    if (legacy) {
-      initial = legacy;
-      migrateLegacy = true;
-    }
-  }
+  watch(
+    () => dashboardPreferences[preferenceKey],
+    (preferences) => {
+      if (preferences) modules.value = mergeWithDefaults(preferences);
+    },
+  );
 
-  const modules = ref<DashboardModule[]>(mergeWithDefaults(initial));
-
-  if (migrateLegacy) {
-    persist();
-    localStorage.removeItem(LEGACY_LS_KEY);
-  }
+  void loadDashboardPreferences()
+    .then(async (preferences) => {
+      if (isMobile || preferences.dashboardConfig.length > 0) return;
+      const legacy = loadLegacyConfig();
+      if (!legacy) return;
+      modules.value = mergeWithDefaults(legacy);
+      await persist(undefined, legacy);
+      localStorage.removeItem(LEGACY_LS_KEY);
+    })
+    .catch(() => {
+      SwalService.error('No se pudo cargar la configuración del dashboard');
+    });
 
   const enabledModules = computed(() => modules.value.filter(m => m.enabled));
   const disabledModules = computed(() => modules.value.filter(m => !m.enabled));

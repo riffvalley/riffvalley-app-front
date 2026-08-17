@@ -1,5 +1,4 @@
 import type { LoginResponseDto } from '../api/auth.dto';
-import type { DashboardModuleConfig, DashboardPreferences } from '@/stores/dashboardPreferences';
 import { ROLES, type AuthSession, type Role } from './auth.types';
 
 const roleSet = new Set<string>(ROLES);
@@ -13,24 +12,7 @@ export function parseRoles(value: unknown): Role[] | null {
   return value.map((role) => role);
 }
 
-function parseDashboardConfig(value: unknown): DashboardModuleConfig[] | null {
-  if (value == null) return null;
-  if (!Array.isArray(value) || !value.every((item) =>
-    typeof item === 'object' && item !== null &&
-    typeof (item as Record<string, unknown>).id === 'string' &&
-    typeof (item as Record<string, unknown>).enabled === 'boolean')) return null;
-  return value.map((item) => ({
-    id: (item as DashboardModuleConfig).id,
-    enabled: (item as DashboardModuleConfig).enabled,
-  }));
-}
-
-export interface LoginBootstrapResult {
-  session: AuthSession;
-  legacyDashboardPreferences: DashboardPreferences;
-}
-
-export function mapLoginResponse(dto: LoginResponseDto): LoginBootstrapResult {
+export function mapLoginResponse(dto: LoginResponseDto): AuthSession {
   const roles = parseRoles(dto.roles);
   if (typeof dto.id !== 'string' || !dto.id || typeof dto.username !== 'string' || !dto.username ||
       typeof dto.token !== 'string' || !dto.token || roles === null ||
@@ -39,13 +21,7 @@ export function mapLoginResponse(dto: LoginResponseDto): LoginBootstrapResult {
   }
 
   return {
-    session: {
-      token: dto.token,
-      user: { id: dto.id, username: dto.username, avatarUrl: dto.image || null, roles },
-    },
-    legacyDashboardPreferences: {
-      dashboardConfig: parseDashboardConfig(dto.dashboardConfig),
-      mobileDashboardConfig: parseDashboardConfig(dto.mobileDashboardConfig),
-    },
+    token: dto.token,
+    user: { id: dto.id, username: dto.username, avatarUrl: dto.image || null, roles },
   };
 }

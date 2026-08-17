@@ -24,7 +24,7 @@ No pertenecen al dominio Auth:
 - recarga de página tras el logout;
 - configuración general de Axios o Vue Router.
 
-Las preferencias de dashboard aparecen en la respuesta legacy de login, por lo que el mapper las extrae temporalmente, pero su tipo, estado y persistencia pertenecen a `src/stores/dashboardPreferences.ts`. `theme` y `bgMode` son preferencias locales de UI gestionadas por la pantalla de login y no forman parte de la sesión.
+Aunque el backend todavía incluye preferencias de dashboard en la respuesta legacy de login, el frontend las ignora. Dashboard carga y guarda sus preferencias mediante `/dashboard/preferences`; su tipo y estado pertenecen a `src/services/dashboard/preferences.ts` y `src/stores/dashboardPreferences.ts`. `theme` y `bgMode` son preferencias locales de UI gestionadas por la pantalla de login y no forman parte de la sesión.
 
 ## 2. Estructura real
 
@@ -84,8 +84,10 @@ flowchart LR
     MAP --> DOM[tipos de dominio Auth]
     PS --> ST[AuthSessionStorage]
     ST --> LS[(localStorage)]
-    MAP --> DP[tipos de dashboardPreferences<br/>bridge legacy]
-    UL --> DP
+
+    DASH[Dashboard UI / useDashboardConfig] --> DPS[dashboardPreferences store]
+    DPS --> DAPI[dashboard preferences API]
+    DAPI --> AXIOS
 
     ROUTER[Vue Router] --> GUARD[auth.guard]
     GUARD --> PS
@@ -105,7 +107,7 @@ Las dependencias internas siguen estas reglas:
 Los internals de `src/modules/auth` pueden colaborar mediante imports relativos. La restricción de acceso exclusivo a `@/modules/auth` se aplica a consumidores externos; el barrel es la frontera pública del módulo, no una capa que los propios internals deban atravesar.
 
 - `auth.api.ts` conoce el DTO, el mapper y las credenciales, pero no el storage ni la UI.
-- `auth.mapper.ts` valida el DTO y produce sesión de dominio más el payload legacy de dashboard.
+- `auth.mapper.ts` valida el DTO y produce exclusivamente una sesión de dominio Auth.
 - `auth.store.ts` coordina API, estado y `AuthSessionStorage`; no accede directamente a `localStorage` ni serializa JSON.
 - `auth.storage.ts` es el único propietario de las claves de sesión, el documento versionado y la migración legacy.
 - `auth.permissions.ts` es una política pura, independiente de Vue Router y Pinia.
@@ -288,7 +290,7 @@ El guard espera siempre a que la promesa termine antes de decidir acceso. El sto
 
 ## 9. Login
 
-### DTO, mapper y bridge legacy
+### DTO y mapper
 
 `LoginResponseDto` trata los datos del backend como `unknown`:
 
@@ -299,23 +301,12 @@ interface LoginResponseDto {
   token: unknown;
   roles: unknown;
   image?: unknown;
-  dashboardConfig?: unknown;
-  mobileDashboardConfig?: unknown;
 }
 ```
 
 `roles` es obligatorio. El mapper rechaza roles ausentes, valores que no sean arrays y roles desconocidos, además de validar identidad, token e imagen.
 
-`LoginBootstrapResult` vive en `auth.mapper.ts`, no en los tipos de dominio, porque representa el resultado del bridge de login:
-
-```ts
-interface LoginBootstrapResult {
-  session: AuthSession;
-  legacyDashboardPreferences: DashboardPreferences;
-}
-```
-
-`mapLoginResponse()` separa la sesión Auth de las preferencias legacy. Las configuraciones de dashboard válidas se reducen a objetos `{ id: string, enabled: boolean }`; datos ausentes o inválidos producen `null`. Los tipos canónicos `DashboardModuleConfig` y `DashboardPreferences` pertenecen a `dashboardPreferences.ts`, no a Auth.
+`mapLoginResponse()` devuelve directamente `AuthSession`. Los campos adicionales de la respuesta legacy del backend se toleran e ignoran: Auth no los declara, valida, mapea ni persiste. `LoginBootstrapResult` y `legacyDashboardPreferences` ya no existen.
 
 ### Flujo completo
 
@@ -328,7 +319,6 @@ sequenceDiagram
     participant A as auth.api
     participant M as auth.mapper
     participant P as AuthSessionStorage
-    participant D as dashboardPreferences
     participant R as Vue Router
 
     U->>F: submit usuario/password
@@ -338,16 +328,15 @@ sequenceDiagram
     S->>A: requestLogin(credentials)
     A->>A: POST /auth/login<br/>sin token y sin 401 global
     A->>M: mapLoginResponse(response.data)
-    M-->>S: session + legacyDashboardPreferences
+    M-->>S: AuthSession
     S->>P: persist(session)
-    S->>S: session = result.session<br/>status = authenticated
-    S-->>C: legacyDashboardPreferences
-    C->>D: setDashboardPreferences(...)
+    S->>S: session = result<br/>status = authenticated
+    S-->>C: login completado
     C->>R: push(Home)
     C->>C: loading = false
 ```
 
-Si cualquier paso falla, `useLogin` muestra el mensaje estable `Acceso fallido. Revisa tus credenciales.` y restablece `loading`. La navegación y la persistencia de dashboard quedan fuera del store Auth.
+Si cualquier paso falla, `useLogin` muestra el mensaje estable `Acceso fallido. Revisa tus credenciales.` y restablece `loading`. La navegación queda fuera del store Auth y el flujo no conoce preferencias de dashboard.
 
 ## 10. Integración Axios y expiración
 
@@ -405,7 +394,11 @@ En `main.ts`, `onUnauthorized` ejecuta `performLogout(useAuthStore(pinia), 'expi
 
 ## 11. Logout y preferencias de dashboard
 
-El logout Auth solo limpia sesión y cambia el estado a anónimo. La compatibilidad observable con la limpieza histórica del dashboard se conserva mediante una orquestación de aplicación:
+Dashboard obtiene ambos arrays mediante `GET /dashboard/preferences` al crear `useDashboardConfig`. `loadDashboardPreferences()` comparte la petición concurrente y reutiliza el estado ya cargado, evitando un GET por cada instancia desktop/mobile. Los cambios se guardan con `PATCH /dashboard/preferences`, enviando siempre `dashboardConfig` y `mobileDashboardConfig` completos mediante el cliente Axios compartido; el Bearer lo añade la infraestructura Auth.
+
+El estado reactivo pertenece a `src/stores/dashboardPreferences.ts`. `useDashboardConfig` proyecta ese estado sobre la definición visual de módulos y mantiene sincronizadas sus instancias. La compatibilidad con la clave local histórica `rv_dashboard_config` se migra desde Dashboard, después de la carga remota, y nunca desde login. Las claves anteriores `dashboardConfig` y `mobileDashboardConfig` solo se eliminan durante logout; ya no son fuente de carga ni persistencia.
+
+El logout Auth solo limpia sesión y cambia el estado a anónimo. La limpieza del estado Dashboard se conserva mediante una orquestación de aplicación:
 
 ```mermaid
 flowchart LR
@@ -489,7 +482,7 @@ LoginPage
 
 - `LoginPage.vue` compone tarjeta, cabecera, accesos inferiores, solicitud de acceso, redes sociales, tooltips, selector light/dark y modales. Gestiona `theme` directamente como preferencia visual.
 - `LoginForm.vue` contiene campos, visibilidad de contraseña, estados visuales, loading y error. Delega el flujo a `useLogin`.
-- `useLogin.ts` coordina Auth, preferencias legacy de dashboard y navegación a `Home`.
+- `useLogin.ts` coordina Auth y navegación a `Home`; no importa ni inicializa Dashboard.
 - `LoginBackground.vue` es propietario del canvas, selector FAB, `bgMode`, ondas, partículas, blobs, puntero, resize y ciclo de animación.
 
 El FAB permite `none`, `waves`, `constellation` y `nebula`, persiste `bgMode`, se abre en arco, selecciona y cierra una opción, y se cierra al pulsar fuera mediante `LoginPage` llamando al método expuesto `closeSelector()`.
@@ -519,11 +512,11 @@ No debe importar archivos bajo `@/modules/auth/...`. `auth.architecture.test.ts`
 
 ## 15. Suite de tests actual
 
-El script `yarn test:auth` ejecuta los tests situados bajo `src/modules/auth`. En la verificación realizada para este documento ejecutó **9 archivos y 34 tests**, todos correctos. Los grupos actuales protegen:
+El script `yarn test:auth` ejecuta los tests situados bajo `src/modules/auth`. En la verificación de este lote ejecutó **9 archivos y 35 tests**, todos correctos. Los grupos actuales protegen:
 
 | Archivo | Contratos cubiertos |
 | --- | --- |
-| `auth.mapper.test.ts` | sesión mapeada, dashboard fuera de sesión, roles válidos, rol desconocido y roles ausentes |
+| `auth.mapper.test.ts` | sesión Auth mapeada, campos legacy adicionales ignorados, roles válidos, rol desconocido y roles ausentes |
 | `auth.permissions.test.ts` | `requiredRoles` ANY, prioridad de denegación, ausencia de jerarquía para `admin` y prioridad de mantenimiento |
 | `auth.storage.test.ts` | documento V1, rechazo y limpieza de V1 inválido, migración JSON/CSV y separación del dashboard |
 | `auth.store.test.ts` | inicialización concurrente/idempotente, estado derivado, registro de `session` en Pinia, login persistido, avatar, logout y fachada sin sesión/token |
@@ -531,12 +524,13 @@ El script `yarn test:auth` ejecuta los tests situados bajo `src/modules/auth`. E
 | `auth.guard.test.ts` | espera de inicialización y destinos para anónimo, rol ausente, `/import`, mantenimiento activo e inactivo |
 | `LoginForm.test.ts` | binding de credenciales, submit, visibilidad de contraseña, loading/disabled y error estable |
 | `LoginBackground.test.ts` | creación y cleanup explícito de RAF, resize y mousemove |
-| `auth.architecture.test.ts` | prohibición de deep imports externos |
+| `auth.architecture.test.ts` | prohibición de deep imports externos y ausencia del bridge Dashboard en Auth productivo |
 
 Fuera del script `test:auth`, pero directamente relacionados:
 
-- `src/application/logout.test.ts` comprueba que la orquestación delega logout y limpia las preferencias legacy;
-- `src/stores/dashboardPreferences.test.ts` comprueba estado reactivo y eliminación de ambas claves persistidas.
+- `src/application/logout.test.ts` comprueba que la orquestación delega logout y limpia el estado y las claves anteriores;
+- `src/stores/dashboardPreferences.test.ts` comprueba carga compartida, guardado de ambos arrays y limpieza reactiva/local;
+- `src/services/dashboard/preferences.test.ts` comprueba los endpoints propios y el Bearer añadido por el Axios compartido.
 
 ## 16. Invariantes arquitectónicas
 
@@ -548,10 +542,11 @@ Los siguientes puntos deben permanecer ciertos:
 - El token solo está disponible mediante `createAuthInfrastructure()`.
 - Roles desconocidos invalidan completamente sesión o respuesta.
 - Los roles son exactos y no tienen jerarquía implícita.
-- El mapper separa sesión Auth y preferencias legacy de dashboard.
-- `LoginBootstrapResult` pertenece al bridge del mapper, no al dominio.
+- El mapper produce exclusivamente `AuthSession` e ignora campos adicionales de la respuesta legacy.
+- `LoginBootstrapResult` y `legacyDashboardPreferences` no existen.
 - `AuthSessionStorage` es el único código que conoce claves Auth, JSON, V1 y migración.
 - Dashboard, `theme` y `bgMode` permanecen fuera de `AuthSessionStorage`.
+- Dashboard se carga y guarda mediante `/dashboard/preferences`, nunca mediante login o `PATCH /auth`.
 - `initialize()` comparte una única restauración.
 - Axios permanece desacoplado de Pinia y Router.
 - Un `401` de login no expira la sesión global.
@@ -570,6 +565,7 @@ Los siguientes puntos deben permanecer ciertos:
 - Usar casts para aceptar roles no validados o tolerar roles desconocidos.
 - Convertir `admin` en un rol jerárquico.
 - Mover dashboard, `theme` o `bgMode` a la sesión Auth.
+- Leer preferencias Dashboard desde la respuesta de login o guardarlas mediante `PATCH /auth`.
 - Hacer que Axios importe Pinia o Vue Router.
 - Navegar desde el store Auth o desde `auth.http.ts`.
 - Procesar globalmente el `401` del login.
@@ -593,6 +589,7 @@ Los siguientes puntos deben permanecer ciertos:
 - [ ] ¿La lógica 401 conserva coalescencia y comparación token usado/token actual?
 - [ ] ¿Logout manual y expiración siguen pasando por `performLogout()`?
 - [ ] ¿La limpieza del dashboard permanece en su propietario externo?
+- [ ] ¿Dashboard sigue cargando y guardando ambos arrays mediante `/dashboard/preferences`?
 - [ ] ¿El guard espera `initialize()` y mantiene los destinos actuales?
 - [ ] ¿Los cambios de UI conservan exactamente la apariencia y animaciones legacy?
 - [ ] ¿Todo listener, timer o RAF nuevo tiene cleanup explícito?
