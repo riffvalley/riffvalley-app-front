@@ -1,5 +1,8 @@
 import { reactive } from 'vue';
-import type { DashboardModuleConfig } from '@/modules/auth';
+export interface DashboardModuleConfig {
+  id: string;
+  enabled: boolean;
+}
 
 export interface DashboardPreferences {
   dashboardConfig: DashboardModuleConfig[] | null;
@@ -32,4 +35,11 @@ export function setDashboardPreferences(preferences: DashboardPreferences): void
 export function setDashboardPreference(key: keyof DashboardPreferences, value: DashboardModuleConfig[]): void {
   dashboardPreferences[key] = value;
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+export function clearDashboardPreferences(): void {
+  dashboardPreferences.dashboardConfig = null;
+  dashboardPreferences.mobileDashboardConfig = null;
+  localStorage.removeItem('dashboardConfig');
+  localStorage.removeItem('mobileDashboardConfig');
 }

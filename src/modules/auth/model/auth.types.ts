@@ -18,20 +18,7 @@ export interface AuthSession {
 
 export type CurrentUserPatch = Partial<Pick<AuthenticatedUser, 'avatarUrl'>>;
 
-export interface DashboardModuleConfig {
-  id: string;
-  enabled: boolean;
-}
-
 export interface LoginCredentials {
   username: string;
   password: string;
-}
-
-export interface LoginBootstrapResult {
-  session: AuthSession;
-  legacyDashboardPreferences: {
-    dashboardConfig: DashboardModuleConfig[] | null;
-    mobileDashboardConfig: DashboardModuleConfig[] | null;
-  };
 }

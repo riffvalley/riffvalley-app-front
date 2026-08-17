@@ -4,13 +4,19 @@ import type { Role } from './model/auth.types';
 import { useAuthStore } from './model/auth.store';
 
 function rolesFromMeta(to: RouteLocationNormalized, key: 'requiredRoles' | 'deniedRoles'): Role[] | undefined {
-  return to.matched.flatMap((record) => (record.meta[key] as Role[] | undefined) ?? []);
+  return to.matched.flatMap((record) => record.meta[key] ?? []);
 }
 
-export const authGuard: NavigationGuard = async (to) => {
-  const auth = useAuthStore();
+interface GuardDependencies {
+  useAuth: typeof useAuthStore;
+  isMaintenance(): boolean;
+}
+
+export function createAuthGuard(dependencies: GuardDependencies): NavigationGuard {
+  return async (to) => {
+  const auth = dependencies.useAuth();
   await auth.initialize();
-  const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+  const isMaintenance = dependencies.isMaintenance();
   const maintenanceRoute = to.name === 'Maintenance';
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
   if (!requiresAuth && !isMaintenance && !maintenanceRoute) return true;
@@ -26,4 +32,10 @@ export const authGuard: NavigationGuard = async (to) => {
   if (decision.reason === 'maintenance') return { name: isMaintenance ? 'Maintenance' : 'Home' };
   if (decision.reason === 'anonymous') return { name: 'Login' };
   return { name: 'Home' };
-};
+  };
+}
+
+export const authGuard = createAuthGuard({
+  useAuth: useAuthStore,
+  isMaintenance: () => import.meta.env.VITE_MAINTENANCE_MODE === 'true',
+});

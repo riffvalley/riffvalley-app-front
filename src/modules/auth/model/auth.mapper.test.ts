@@ -12,4 +12,8 @@ describe('mapLoginResponse', () => {
   it('rejects the complete DTO when one role is unknown', () => {
     expect(() => mapLoginResponse({ id: '1', username: 'ana', token: 'token', roles: ['superAdmin'] })).toThrow('Invalid login response');
   });
+
+  it('rejects a DTO without roles', () => {
+    expect(() => mapLoginResponse({ id: '1', username: 'ana', token: 'token' } as never)).toThrow('Invalid login response');
+  });
 });

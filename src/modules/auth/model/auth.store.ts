@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue';
-import { defineStore } from 'pinia';
+import { defineStore, type Pinia } from 'pinia';
 import { requestLogin } from '../api/auth.api';
 import type { AuthSessionStorage } from './auth.storage';
 import { localStorageAuthSessionStorage } from './auth.storage';
@@ -51,10 +51,31 @@ export function createAuthStore(sessionStorage: AuthSessionStorage) {
       sessionStorage.persist(session.value);
     }
 
-    function getAccessToken(): string | null { return session.value?.token ?? null; }
-
-    return { status, currentUser, roles, isAuthenticated, initialize, login, logout, hasRole, hasAnyRole, updateCurrentUser, getAccessToken };
+    return { status, session, currentUser, roles, isAuthenticated, initialize, login, logout, hasRole, hasAnyRole, updateCurrentUser };
   });
 }
 
-export const useAuthStore = createAuthStore(localStorageAuthSessionStorage);
+const useAuthPiniaStore = createAuthStore(localStorageAuthSessionStorage);
+
+export function useAuthStore(pinia?: Pinia) {
+  const store = useAuthPiniaStore(pinia);
+  return {
+    get status() { return store.status; },
+    get currentUser() { return store.currentUser; },
+    get roles() { return store.roles; },
+    get isAuthenticated() { return store.isAuthenticated; },
+    initialize: store.initialize,
+    login: store.login,
+    logout: store.logout,
+    hasRole: store.hasRole,
+    hasAnyRole: store.hasAnyRole,
+    updateCurrentUser: store.updateCurrentUser,
+  };
+}
+
+export function createAuthInfrastructure(pinia: Pinia) {
+  const store = useAuthPiniaStore(pinia);
+  return {
+    getAccessToken(): string | null { return store.session?.token ?? null; },
+  };
+}

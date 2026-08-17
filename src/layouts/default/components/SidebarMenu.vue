@@ -303,6 +303,7 @@ import { getSuggestions } from '@services/suggestions/suggestions';
 import { useSupportStore } from '@stores/support/support';
 import { usePetitionsStore } from '@stores/petitions/petitions';
 import routesData from './routes.json';
+import { performLogout } from '@/application/logout';
 
 // Tipo actualizado con 'new-discs'
 type AppRoute = {
@@ -330,7 +331,7 @@ emits: ['close-menu', 'toggle-theme'],
     const latestVersion = ref<string | null>(null);
 
     const handleLogout = () => {
-      authStore.logout();
+      performLogout(authStore);
       window.location.href = '/';
     };
 

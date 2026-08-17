@@ -3,7 +3,8 @@ import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
 import api from './services/api/api';
-import { authInfrastructure, configureAuthHttp, useAuthStore } from '@/modules/auth';
+import { configureAuthHttp, createAuthInfrastructure, useAuthStore } from '@/modules/auth';
+import { performLogout } from '@/application/logout';
 
 // VueSweetalert2
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -36,10 +37,11 @@ const app = createApp(App);
 app.use(CircleFlags);
 const pinia = createPinia();
 app.use(pinia);
+const authInfrastructure = createAuthInfrastructure(pinia);
 configureAuthHttp(api, {
   getAccessToken: authInfrastructure.getAccessToken,
   async onUnauthorized() {
-    useAuthStore(pinia).logout('expired');
+    performLogout(useAuthStore(pinia), 'expired');
     if (router.currentRoute.value.name !== 'Login') await router.push({ name: 'Login' });
   },
 });
