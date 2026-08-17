@@ -33,6 +33,24 @@
               <!-- Meta Info Row -->
               <div class="flex flex-wrap items-center gap-2 md:gap-3">
 
+                <!-- WordPress -->
+                <button @click="publishToWordPress" :disabled="publishingWp"
+                  class="flex items-center gap-2 px-3 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold rounded-xl shadow-sm transition-colors"
+                  title="El post se crea/actualiza siempre como borrador en WordPress, nunca se publica solo">
+                  <i class="fab fa-wordpress"></i>
+                  <span class="hidden sm:inline">
+                    {{ publishingWp ? 'Publicando...' : (list.wpPostId ? 'Añadir discos nuevos al post' : 'Crear post en WordPress') }}
+                  </span>
+                  <span class="sm:hidden">{{ publishingWp ? '...' : 'WP' }}</span>
+                </button>
+
+                <!-- Ver borrador en WP -->
+                <a v-if="list.wpPostUrl" :href="list.wpPostUrl" target="_blank" rel="noopener noreferrer"
+                  class="flex items-center gap-1.5 px-3 py-2 bg-white/70 dark:bg-black/20 backdrop-blur-sm border border-indigo-200 dark:border-white/5 text-indigo-600 dark:text-indigo-300 text-sm font-semibold rounded-xl hover:bg-white dark:hover:bg-black/30 transition-colors">
+                  <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                  <span class="hidden sm:inline">Ver borrador en WP</span>
+                </a>
+
                 <!-- Status Badge -->
                 <div class="bg-white/70 dark:bg-black/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-indigo-200 dark:border-white/5 flex items-center gap-2">
                   <select v-model="list.status" @change="updateField('status', list.status)"
@@ -107,8 +125,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getListDetails, updateList } from '@services/list/list';
+import { getListDetails, updateList, generateBestDiscsWpPost } from '@services/list/list';
 import SwalService from '@services/swal/SwalService';
+import Swal from 'sweetalert2';
 import { useAsignationStore } from '@stores/asignation/asignation';
 import { useUserStore } from '@stores/user/users';
 import DiscsByDate from '../list/components/DiscByDate.vue';
@@ -121,6 +140,7 @@ const userStore = useUserStore();
 
 const list = ref<any>(null);
 const loading = ref(true);
+const publishingWp = ref(false);
 
 function formatDateForInput(dateString: string) {
   if (!dateString) return '';
@@ -162,6 +182,61 @@ async function updateField(field: string, value: any) {
     await updateList(list.value.id, { [field]: value });
   } catch (error) {
     SwalService.error('No se pudo guardar el cambio');
+  }
+}
+
+async function publishToWordPress() {
+  if (!list.value) return;
+  publishingWp.value = true;
+  try {
+    const result = await generateBestDiscsWpPost(list.value.id);
+    list.value.wpPostId = result.wpPostId;
+    list.value.wpPostUrl = result.link;
+
+    const linkHtml = `<a href="${result.link}" target="_blank" class="text-blue-600 underline">${result.title}</a>`;
+    const removedText = result.removed ? ` (se han eliminado ${result.removed})` : '';
+
+    if (result.skipped) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Ya existía un borrador en WordPress',
+        html: `Se ha enlazado la lista al post ya existente: ${linkHtml}`,
+      });
+    } else if (result.warning) {
+      // Algo no ha ido del todo bien al actualizar el post (p.ej. discos que
+      // no se pudieron localizar en el contenido existente) — se avisa con
+      // icono de aviso en vez de éxito, aunque el post se haya actualizado.
+      const changes: string[] = [];
+      if (result.added) changes.push(`${result.added} añadido${result.added === 1 ? '' : 's'}`);
+      if (result.removed) changes.push(`${result.removed} eliminado${result.removed === 1 ? '' : 's'}`);
+      Swal.fire({
+        icon: 'warning',
+        title: changes.length ? `Post actualizado (${changes.join(', ')})` : 'Aviso al actualizar el post',
+        html: `${result.warning}<br><br>${linkHtml}`,
+      });
+    } else if (result.added !== undefined && result.added > 0) {
+      Swal.fire({
+        icon: 'success',
+        title: `Se han añadido ${result.added} discos nuevos al borrador${removedText}`,
+        html: linkHtml,
+      });
+    } else if (result.added === 0) {
+      Swal.fire({
+        icon: 'info',
+        title: `No hay discos nuevos que añadir${removedText}`,
+        html: result.removed ? linkHtml : undefined,
+      });
+    } else {
+      Swal.fire({
+        icon: 'success',
+        title: 'Borrador creado',
+        html: linkHtml,
+      });
+    }
+  } catch (error: any) {
+    SwalService.error(error.response?.data?.message || 'Error al publicar en WordPress');
+  } finally {
+    publishingWp.value = false;
   }
 }
 

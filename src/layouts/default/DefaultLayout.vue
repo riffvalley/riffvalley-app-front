@@ -1,5 +1,5 @@
 <template>
-  <div class="flex">
+  <div class="flex w-full overflow-x-hidden">
     <!-- ✅ Botón hamburguesa fijado a la pantalla -->
     <button v-if="!menuVisible" class="menu-hamburguesa fixed top-4 left-4 z-30
          bg-gradient-to-r from-rv-pink/90 to-rv-pink
@@ -23,7 +23,7 @@
 
     <!-- Contenido principal -->
 <main :class="[
-'flex-1 bg-gray-100 dark:bg-rv-darkBg text-rv-navy dark:text-white p-6 transition-[margin] duration-300',
+'flex-1 min-w-0 overflow-x-hidden bg-gray-100 dark:bg-rv-darkBg text-rv-navy dark:text-white p-6 transition-[margin] duration-300',
   menuVisible ? 'ml-72' : 'ml-0 md:ml-72',
 ]">
       <slot />

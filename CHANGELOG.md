@@ -1,3 +1,141 @@
+## 1.34.0 (2026-08-11)
+
+* Merge pull request #160 from riffvalley/feat/festival-playlists-spotify ([41c0a1b](https://github.com/riffvalley/riffvalley-app-front/commit/41c0a1b)), closes [#160](https://github.com/riffvalley/riffvalley-app-front/issues/160)
+* feat: autosave Spotify playlist changes ([2274408](https://github.com/riffvalley/riffvalley-app-front/commit/2274408))
+* feat: choose tracks for failed festival artists ([3e16cea](https://github.com/riffvalley/riffvalley-app-front/commit/3e16cea))
+* refactor: save playlist text fields explicitly ([7275bf5](https://github.com/riffvalley/riffvalley-app-front/commit/7275bf5))
+* fix: show completed lists in calendar backlog ([5406162](https://github.com/riffvalley/riffvalley-app-front/commit/5406162))
+* fix: use playlist calendar events as backlog source ([15fa5ca](https://github.com/riffvalley/riffvalley-app-front/commit/15fa5ca))
+
+## 1.33.0 (2026-08-11)
+
+* Merge pull request #159 from riffvalley/feat/festival-playlists-spotify ([39ccc38](https://github.com/riffvalley/riffvalley-app-front/commit/39ccc38)), closes [#159](https://github.com/riffvalley/riffvalley-app-front/issues/159)
+* feat: add genre playlist shuffle action ([f85241c](https://github.com/riffvalley/riffvalley-app-front/commit/f85241c))
+
+## 1.32.0 (2026-08-11)
+
+* Merge pull request #158 from riffvalley/feat/festival-playlists-spotify ([71d11c6](https://github.com/riffvalley/riffvalley-app-front/commit/71d11c6)), closes [#158](https://github.com/riffvalley/riffvalley-app-front/issues/158)
+* feat: add genre playlist and kanban tabs ([46d2bdd](https://github.com/riffvalley/riffvalley-app-front/commit/46d2bdd))
+* feat: add genre-filtered artist modal ([f8e9290](https://github.com/riffvalley/riffvalley-app-front/commit/f8e9290))
+* feat: manage curated Spotify genre playlists ([4704bd2](https://github.com/riffvalley/riffvalley-app-front/commit/4704bd2))
+* feat: show playlists on artist cards ([9bd8d87](https://github.com/riffvalley/riffvalley-app-front/commit/9bd8d87))
+* fix: switch genre playlist tabs explicitly ([ac58f3c](https://github.com/riffvalley/riffvalley-app-front/commit/ac58f3c))
+
+## 1.31.0 (2026-08-11)
+
+* Merge pull request #157 from riffvalley/feat/festival-playlists-spotify ([5832eab](https://github.com/riffvalley/riffvalley-app-front/commit/5832eab)), closes [#157](https://github.com/riffvalley/riffvalley-app-front/issues/157)
+* fix: align festival artist dark colors ([1fc26fe](https://github.com/riffvalley/riffvalley-app-front/commit/1fc26fe))
+* fix: apply festival artist dark theme ([453c13f](https://github.com/riffvalley/riffvalley-app-front/commit/453c13f))
+* fix: improve festival artist contrast ([bc2018c](https://github.com/riffvalley/riffvalley-app-front/commit/bc2018c))
+* fix: override festival artist row background ([d7ba3e4](https://github.com/riffvalley/riffvalley-app-front/commit/d7ba3e4))
+* style: align festival modal columns ([76a82c2](https://github.com/riffvalley/riffvalley-app-front/commit/76a82c2))
+* style: reorganize festival playlist modal ([4b44e47](https://github.com/riffvalley/riffvalley-app-front/commit/4b44e47))
+* feat: show Spotify authorization status ([9fb4873](https://github.com/riffvalley/riffvalley-app-front/commit/9fb4873))
+
+## 1.30.0 (2026-08-11)
+
+* Merge pull request #156 from riffvalley/feat/festival-playlists-spotify ([f54700a](https://github.com/riffvalley/riffvalley-app-front/commit/f54700a)), closes [#156](https://github.com/riffvalley/riffvalley-app-front/issues/156)
+* style(spotify): align festival playlist colors ([25c403c](https://github.com/riffvalley/riffvalley-app-front/commit/25c403c))
+* feat(spotify): refine festival playlist management ([ea0e92b](https://github.com/riffvalley/riffvalley-app-front/commit/ea0e92b))
+
+## 1.29.0 (2026-08-11)
+
+* Merge pull request #155 from riffvalley/feat/festival-playlists-spotify ([d49a7c8](https://github.com/riffvalley/riffvalley-app-front/commit/d49a7c8)), closes [#155](https://github.com/riffvalley/riffvalley-app-front/issues/155)
+* feat(spotify): manage synced festival playlists ([2b11284](https://github.com/riffvalley/riffvalley-app-front/commit/2b11284))
+
+## 1.28.0 (2026-08-07)
+
+* Merge pull request #154 from riffvalley/feat/genero-asignacion ([4369f7c](https://github.com/riffvalley/riffvalley-app-front/commit/4369f7c)), closes [#154](https://github.com/riffvalley/riffvalley-app-front/issues/154)
+* feat(asignations): enviar género del disco al crear la asignación ([1e1e82e](https://github.com/riffvalley/riffvalley-app-front/commit/1e1e82e))
+
+## 1.27.0 (2026-08-07)
+
+* Merge pull request #153 from riffvalley/feat/genero-asignacion ([a99a548](https://github.com/riffvalley/riffvalley-app-front/commit/a99a548)), closes [#153](https://github.com/riffvalley/riffvalley-app-front/issues/153)
+* feat(asignations): añadir campo género editable en el modal de disco ([c5b0636](https://github.com/riffvalley/riffvalley-app-front/commit/c5b0636))
+* feat(asignations): precargar género con el del disco por defecto ([d766b01](https://github.com/riffvalley/riffvalley-app-front/commit/d766b01))
+
+## <small>1.26.1 (2026-08-07)</small>
+
+* Merge pull request #152 from riffvalley/feat/radar-wp-por-posicion ([50912c9](https://github.com/riffvalley/riffvalley-app-front/commit/50912c9)), closes [#152](https://github.com/riffvalley/riffvalley-app-front/issues/152)
+* fix(api): evitar body "null" en peticiones POST sin payload ([3eb5e6c](https://github.com/riffvalley/riffvalley-app-front/commit/3eb5e6c))
+
+## 1.26.0 (2026-08-07)
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([f025aba](https://github.com/riffvalley/riffvalley-app-front/commit/f025aba))
+* Merge pull request #151 from riffvalley/feat/radar-wp-por-posicion ([2b02581](https://github.com/riffvalley/riffvalley-app-front/commit/2b02581)), closes [#151](https://github.com/riffvalley/riffvalley-app-front/issues/151)
+* feat(radar): crear WordPress por posición desde cada radar ([ee290fd](https://github.com/riffvalley/riffvalley-app-front/commit/ee290fd))
+* style: enhance layout and styling of disc items in DiscByDate component ([105224d](https://github.com/riffvalley/riffvalley-app-front/commit/105224d))
+* style: update border styles for NewsFeed component to improve visual consistency ([ccd7ec0](https://github.com/riffvalley/riffvalley-app-front/commit/ccd7ec0))
+
+## <small>1.25.1 (2026-08-01)</small>
+
+* fix: handle null user streak in DashboardPage and adjust streak calculation logic ([3de01c4](https://github.com/riffvalley/riffvalley-app-front/commit/3de01c4))
+
+## 1.25.0 (2026-08-01)
+
+* feat: update HowToUseModal and HowToUse views with new section titles and descriptions ([13b632d](https://github.com/riffvalley/riffvalley-app-front/commit/13b632d))
+
+## 1.24.0 (2026-08-01)
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([a52a948](https://github.com/riffvalley/riffvalley-app-front/commit/a52a948))
+* feat: add scroll-to-top functionality with IntersectionObserver in DiscCalendar components ([578a35d](https://github.com/riffvalley/riffvalley-app-front/commit/578a35d))
+
+## 1.23.0 (2026-08-01)
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([748235b](https://github.com/riffvalley/riffvalley-app-front/commit/748235b))
+* feat: implement scroll-to-top functionality across multiple views ([e10d98a](https://github.com/riffvalley/riffvalley-app-front/commit/e10d98a))
+
+## 1.22.0 (2026-08-01)
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([775cd1f](https://github.com/riffvalley/riffvalley-app-front/commit/775cd1f))
+* feat: add custom guillemets button to Quill editor and enhance toolbar options ([89e72a7](https://github.com/riffvalley/riffvalley-app-front/commit/89e72a7))
+
+## <small>1.21.4 (2026-07-31)</small>
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([9dac164](https://github.com/riffvalley/riffvalley-app-front/commit/9dac164))
+* fix: enhance recent votes display with loading state and improved layout ([36eec8b](https://github.com/riffvalley/riffvalley-app-front/commit/36eec8b))
+
+## <small>1.21.3 (2026-07-31)</small>
+
+* fix: improve layout and accessibility in DashboardPage and style.css ([07da341](https://github.com/riffvalley/riffvalley-app-front/commit/07da341))
+
+## <small>1.21.2 (2026-07-31)</small>
+
+* Merge branch 'main' of https://github.com/riffvalley/riffvalley-app-front ([c43cc7e](https://github.com/riffvalley/riffvalley-app-front/commit/c43cc7e))
+* fix: enhance layout responsiveness by adjusting flex properties in DefaultLayout component ([b3ad133](https://github.com/riffvalley/riffvalley-app-front/commit/b3ad133))
+
+## <small>1.21.1 (2026-07-31)</small>
+
+* fix: update styles and improve accessibility in AsignationList and DiscDescriptionModal components ([214a5ea](https://github.com/riffvalley/riffvalley-app-front/commit/214a5ea))
+
+## 1.21.0 (2026-07-30)
+
+* Feat/cambios rv (#145) ([36c5e61](https://github.com/riffvalley/riffvalley-app-front/commit/36c5e61)), closes [#145](https://github.com/riffvalley/riffvalley-app-front/issues/145)
+* Feat/cambios rv (#146) ([344a8c4](https://github.com/riffvalley/riffvalley-app-front/commit/344a8c4)), closes [#146](https://github.com/riffvalley/riffvalley-app-front/issues/146)
+* Feat/cambios rv (#147) ([4373e1b](https://github.com/riffvalley/riffvalley-app-front/commit/4373e1b)), closes [#147](https://github.com/riffvalley/riffvalley-app-front/issues/147)
+* Feat/home totti (#149) ([4d7271a](https://github.com/riffvalley/riffvalley-app-front/commit/4d7271a)), closes [#149](https://github.com/riffvalley/riffvalley-app-front/issues/149)
+* Feat/reunion create as calendar event (#138) ([07f731a](https://github.com/riffvalley/riffvalley-app-front/commit/07f731a)), closes [#138](https://github.com/riffvalley/riffvalley-app-front/issues/138)
+* Merge branch 'main' into dev ([dd48688](https://github.com/riffvalley/riffvalley-app-front/commit/dd48688))
+* Merge pull request #143 from riffvalley/dev2 ([d59e50d](https://github.com/riffvalley/riffvalley-app-front/commit/d59e50d)), closes [#143](https://github.com/riffvalley/riffvalley-app-front/issues/143)
+* Merge pull request #148 from riffvalley/feat/home-totti ([eb08f93](https://github.com/riffvalley/riffvalley-app-front/commit/eb08f93)), closes [#148](https://github.com/riffvalley/riffvalley-app-front/issues/148)
+* Merge pull request Riff Valley App 3.0.0-beta from riffvalley/dev ([e8e5f73](https://github.com/riffvalley/riffvalley-app-front/commit/e8e5f73))
+* test dashboard ([734e3bd](https://github.com/riffvalley/riffvalley-app-front/commit/734e3bd))
+* update labels and icons for dashboard and home page ([31aad70](https://github.com/riffvalley/riffvalley-app-front/commit/31aad70))
+* fix: correct padding in title section of HomePage component ([89045b5](https://github.com/riffvalley/riffvalley-app-front/commit/89045b5))
+* feat: add reset button to dashboard for restoring default settings ([7800a7d](https://github.com/riffvalley/riffvalley-app-front/commit/7800a7d))
+* feat: add reset functionality to dashboard configuration ([15b9a87](https://github.com/riffvalley/riffvalley-app-front/commit/15b9a87))
+* feat: add user streak and recent votes display to dashboard ([73a8e79](https://github.com/riffvalley/riffvalley-app-front/commit/73a8e79))
+* feat: add user streak and recent votes display to dashboard; update reset button styling in password ([8f0d9e9](https://github.com/riffvalley/riffvalley-app-front/commit/8f0d9e9))
+* feat: enhance dashboard customization with new modal and drag-and-drop functionality for modules ([c89c4e9](https://github.com/riffvalley/riffvalley-app-front/commit/c89c4e9))
+* feat: implement dynamic dashboard modules with drag-and-drop functionality ([69c4df0](https://github.com/riffvalley/riffvalley-app-front/commit/69c4df0))
+* feat(dashboard): sync module config to backend, add builder UI, dice and adventure module ([f7c1ac4](https://github.com/riffvalley/riffvalley-app-front/commit/f7c1ac4))
+* refactor: update news feed fetching logic and enhance dashboard layout ([4bf0dfd](https://github.com/riffvalley/riffvalley-app-front/commit/4bf0dfd))
+
+## 1.20.0 (2026-07-24)
+
+* feat(list): add button to publish best discs list as WordPress draft (#144) ([8564053](https://github.com/riffvalley/riffvalley-app-front/commit/8564053)), closes [#144](https://github.com/riffvalley/riffvalley-app-front/issues/144)
+* Feat/reunion create as calendar event (#142) ([3e3e295](https://github.com/riffvalley/riffvalley-app-front/commit/3e3e295)), closes [#142](https://github.com/riffvalley/riffvalley-app-front/issues/142)
+
 ## 1.19.0 (2026-06-19)
 
 * feat(discs): destacar discos en home y botón pinned en calendario (#141) ([d16d2cb](https://github.com/riffvalley/riffvalley-app-front/commit/d16d2cb)), closes [#141](https://github.com/riffvalley/riffvalley-app-front/issues/141)

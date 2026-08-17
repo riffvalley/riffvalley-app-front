@@ -12,7 +12,7 @@
       </div>
 
       <!-- Radares (Grupos) - Grid de 2 Columnas -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <div v-for="group in availablePositions" :key="group"
           class="p-3 rounded-2xl border border-dashed transition-all duration-300"
           :class="dragOverGroup === group
@@ -28,12 +28,25 @@
               </div>
               Radar {{ group }}
             </h4>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors shadow-sm"
-              :class="(groupedWeekAsignations[group]?.length || 0) >= 4
-                ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30'
-                : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/30'">
-              {{ groupedWeekAsignations[group]?.length || 0 }}/4
-            </span>
+            <div class="flex items-center gap-1.5">
+              <a v-if="getWeeklyWpPost(group)" :href="getWeeklyWpPost(group).wpPostUrl" target="_blank" rel="noopener noreferrer"
+                class="flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-900/30 hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors text-[10px] font-bold"
+                title="Ver borrador en WordPress">
+                <i class="fab fa-wordpress"></i>
+                <span>Borrador</span>
+              </a>
+              <button @click="publishRadarToWordPress(group)" :disabled="publishingRadar[group]"
+                :title="(getWeeklyWpPost(group) ? 'Actualizar' : 'Crear') + ' WordPress del Radar ' + group"
+                class="w-6 h-6 flex items-center justify-center rounded-md bg-orange-50 dark:bg-orange-900/20 text-orange-500 hover:bg-orange-100 dark:hover:bg-orange-900/30 disabled:opacity-50 transition-colors">
+                <i :class="publishingRadar[group] ? 'fa-solid fa-spinner fa-spin' : 'fab fa-wordpress'" class="text-xs"></i>
+              </button>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border transition-colors shadow-sm"
+                :class="(groupedWeekAsignations[group]?.length || 0) >= 4
+                  ? 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 border-red-100 dark:border-red-900/30'
+                  : 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 border-green-100 dark:border-green-900/30'">
+                {{ groupedWeekAsignations[group]?.length || 0 }}/4
+              </span>
+            </div>
           </div>
 
           <!-- Grid Radar (dentro de cada grupo) - Vertical Compacto -->
@@ -95,19 +108,19 @@
               <div class="mt-2 mx-3 mb-2.5 pt-2 border-t border-gray-100 dark:border-white/10 flex items-center justify-between gap-2">
                 <!-- Action buttons -->
                 <div class="flex items-center gap-1">
-                  <div class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer" title="Spotify">
+                  <div class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer" title="Spotify">
                     <SpotifyArtistButton :artistName="asignation.disc.artist.name" class="!text-[9px] !bg-transparent !text-inherit !p-0 !w-full !h-full flex items-center justify-center !shadow-none" />
                   </div>
                   <button @click="copyArtistAndDisc(asignation.disc.artist.name, asignation.disc.name)"
-                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-rv-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Copiar info">
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-rv-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Copiar info">
                     <i class="fa-solid fa-clipboard text-[9px]"></i>
                   </button>
                   <button @click="copyToClipboard(asignation.disc.image)"
-                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Copiar imagen">
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Copiar imagen">
                     <i class="fa-solid fa-image text-[9px]"></i>
                   </button>
                   <button @click="remove(asignation.id)"
-                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
+                    class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
                     <i class="fa-solid fa-trash text-[9px]"></i>
                   </button>
                 </div>
@@ -115,7 +128,7 @@
                 <!-- User + Done -->
                 <div class="flex items-center gap-1.5 flex-shrink-0">
                   <div v-if="editingUserAsignationId !== asignation.id" @click="startEditingUser(asignation)"
-                    class="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-rv-darkBg px-1 py-0.5 rounded transition-colors group/user">
+                    class="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 px-1 py-0.5 rounded transition-colors group/user">
                     <div class="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-indigo-700 dark:text-indigo-300 ring-1 ring-white dark:ring-rv-darkSurface overflow-hidden">
                       <img v-if="asignation.user?.image" :src="asignation.user.image" class="w-full h-full object-cover" />
                       <span v-else>{{ asignation.user?.username?.charAt(0) || '?' }}</span>
@@ -130,6 +143,16 @@
                       {{ user.username }}
                     </option>
                   </select>
+
+                  <button @click="openDescriptionModal(asignation)"
+                    :class="(asignation.description || asignation.similarBands || asignation.spotifyTrackId || asignation.genre)
+                      ? 'bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600'
+                      : 'bg-gray-50 dark:bg-white/10 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'"
+                    class="flex items-center gap-1 px-1.5 py-1 rounded-md text-[9px] font-semibold transition-colors flex-shrink-0"
+                    title="Editar disco">
+                    <i class="fa-solid fa-pen text-[8px]"></i>
+                    <span class="hidden lg:inline">Editar</span>
+                  </button>
 
                   <label class="relative flex items-center justify-center cursor-pointer flex-shrink-0" title="Marcar como hecho">
                     <input type="checkbox" :checked="asignation.done" @change="toggleDone(asignation)" class="peer sr-only" />
@@ -225,19 +248,19 @@
             <div class="mt-2 mx-3 mb-3 pt-2 border-t border-gray-100 dark:border-white/10 flex items-center justify-between gap-2">
               <!-- Action buttons -->
               <div class="flex items-center gap-1">
-                <div class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer" title="Spotify">
+                <div class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors cursor-pointer" title="Spotify">
                   <SpotifyArtistButton :artistName="asignation.disc.artist.name" class="!text-[9px] !bg-transparent !text-inherit !p-0 !w-full !h-full flex items-center justify-center !shadow-none" />
                 </div>
                 <button @click="copyArtistAndDisc(asignation.disc.artist.name, asignation.disc.name)"
-                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-rv-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Copiar info">
+                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-rv-purple hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors" title="Copiar info">
                   <i class="fa-solid fa-clipboard text-[9px]"></i>
                 </button>
                 <button @click="copyToClipboard(asignation.disc.image)"
-                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Copiar imagen">
+                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors" title="Copiar imagen">
                   <i class="fa-solid fa-image text-[9px]"></i>
                 </button>
                 <button @click="remove(asignation.id)"
-                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-rv-darkBg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
+                  class="w-6 h-6 flex items-center justify-center rounded-md bg-gray-50 dark:bg-white/10 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" title="Eliminar">
                   <i class="fa-solid fa-trash text-[9px]"></i>
                 </button>
               </div>
@@ -245,7 +268,7 @@
               <!-- User + Done -->
               <div class="flex items-center gap-1.5 flex-shrink-0">
                 <div v-if="editingUserAsignationId !== asignation.id" @click="startEditingUser(asignation)"
-                  class="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-rv-darkBg px-1 py-0.5 rounded transition-colors group/user">
+                  class="flex items-center gap-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 px-1 py-0.5 rounded transition-colors group/user">
                   <div class="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex-shrink-0 flex items-center justify-center text-[8px] font-bold text-indigo-700 dark:text-indigo-300 ring-1 ring-white dark:ring-rv-darkCard overflow-hidden">
                     <img v-if="asignation.user?.image" :src="asignation.user.image" class="w-full h-full object-cover" />
                     <span v-else>{{ asignation.user?.username?.charAt(0) || '?' }}</span>
@@ -260,6 +283,16 @@
                     {{ user.username }}
                   </option>
                 </select>
+
+                <button @click="openDescriptionModal(asignation)"
+                  :class="(asignation.description || asignation.similarBands || asignation.spotifyTrackId || asignation.genre)
+                    ? 'bg-indigo-600 dark:bg-indigo-500 text-white hover:bg-indigo-700 dark:hover:bg-indigo-600'
+                    : 'bg-gray-50 dark:bg-white/10 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-white/10 hover:bg-indigo-50 dark:hover:bg-indigo-900/20'"
+                  class="flex items-center gap-1 px-1.5 py-1 rounded-md text-[9px] font-semibold transition-colors flex-shrink-0"
+                  title="Editar disco">
+                  <i class="fa-solid fa-pen text-[8px]"></i>
+                  <span>Editar</span>
+                </button>
 
                 <label class="relative flex items-center justify-center cursor-pointer flex-shrink-0" title="Marcar como hecho">
                   <input type="checkbox" :checked="asignation.done" @change="toggleDone(asignation)" class="peer sr-only" />
@@ -334,30 +367,47 @@
         </div>
       </div>
     </template>
+
+    <DiscDescriptionModal
+      v-if="editingAsignation"
+      :key="editingAsignation.id"
+      :asignation="editingAsignation"
+      :saving="savingDescription"
+      @close="editingAsignation = null"
+      @submit="handleSaveDescription"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch, computed, nextTick } from "vue";
+import { defineComponent, ref, reactive, watch, computed, nextTick } from "vue";
 import { useAsignationStore } from "@stores/asignation/asignation";
 import { useUserStore } from "@stores/user/users";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
+import DiscDescriptionModal from "./DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
+import { createWpPosts } from "@services/list/list";
+import Swal from "sweetalert2";
 import CircleFlags from "vue-circle-flags";
 
 export default defineComponent({
   name: "AsignationList",
   props: {
     type: { type: String, required: true },
+    listId: { type: String, required: true },
+    wpWeeklyPosts: { type: Array as () => any[], default: () => [] },
   },
-  components: { SpotifyArtistButton },
-  setup(props) {
+  emits: ["wp-published"],
+  components: { SpotifyArtistButton, DiscDescriptionModal },
+  setup(props, { emit }) {
     const asignationStore = useAsignationStore();
     const userStore = useUserStore();
     const asignations = ref<any[]>([]);
 
     const users = computed(() => userStore.usersRv);
     const editingUserAsignationId = ref<string | null>(null);
+    const editingAsignation = ref<any>(null);
+    const savingDescription = ref(false);
 
     if (userStore.usersRv.length === 0) userStore.loadRvUsers();
 
@@ -501,6 +551,81 @@ export default defineComponent({
       await updatePosition({ ...asignation, position: group });
     };
 
+    const openDescriptionModal = (asignation: any) => {
+      editingAsignation.value = asignation;
+    };
+
+    const handleSaveDescription = async (payload: { description: string; similarBands: string; spotifyTrackId: string; genre: string }) => {
+      const asignation = editingAsignation.value;
+      savingDescription.value = true;
+      try {
+        await asignationStore.updateAsignationStore({ ...asignation, ...payload });
+        const idx = asignations.value.findIndex((a) => a.id === asignation.id);
+        if (idx !== -1) asignations.value[idx] = { ...asignations.value[idx], ...payload };
+        SwalService.success('Disco actualizado');
+      } catch (e) {
+        SwalService.error('No se pudo guardar (revisa si se sincronizó con WordPress)');
+      } finally {
+        savingDescription.value = false;
+        editingAsignation.value = null;
+      }
+    };
+
+    const getWeeklyWpPost = (group: number) => {
+      return (props.wpWeeklyPosts || []).find((p: any) => p.position === group) || null;
+    };
+
+    const publishingRadar = reactive<Record<number, boolean>>({});
+
+    const publishRadarToWordPress = async (group: number) => {
+      if (publishingRadar[group]) return;
+      publishingRadar[group] = true;
+      try {
+        const result = await createWpPosts(props.listId, group);
+        emit("wp-published", result.posts);
+
+        const postsHtml = result.posts
+          .map((p: any) => {
+            const linkHtml = `<a href="${p.link}" target="_blank" class="text-blue-600 underline">${p.title}</a>`;
+
+            const changes: string[] = [];
+            if (p.added) changes.push(`${p.added} añadido${p.added === 1 ? '' : 's'}`);
+            if (p.updated) changes.push(`${p.updated} actualizado${p.updated === 1 ? '' : 's'}`);
+            if (p.removed) changes.push(`${p.removed} eliminado${p.removed === 1 ? '' : 's'}`);
+
+            let icon = '✅';
+            let statusText = 'Creado';
+            if (p.adopted) {
+              icon = 'ℹ️';
+              statusText = 'Vinculado a un post existente sin trackear';
+            } else if (p.warning) {
+              icon = '⚠️';
+              statusText = changes.length ? `Actualizado (${changes.join(', ')})` : 'Aviso al actualizar';
+            } else if (changes.length) {
+              statusText = `Actualizado (${changes.join(', ')})`;
+            }
+
+            return `<li class="mb-2">
+              <div>${icon} ${statusText}</div>
+              <div>${linkHtml}</div>
+              ${p.warning ? `<div class="text-amber-600 text-xs mt-1">${p.warning}</div>` : ''}
+            </li>`;
+          })
+          .join('');
+
+        const hasWarning = result.posts.some((p: any) => p.warning);
+        Swal.fire({
+          icon: hasWarning ? 'warning' : 'success',
+          title: `Radar ${group}`,
+          html: `<ul class="text-left text-sm mt-2">${postsHtml}</ul>`,
+        });
+      } catch (error: any) {
+        SwalService.error(error.response?.data?.message || `Error al publicar el Radar ${group} en WordPress`);
+      } finally {
+        publishingRadar[group] = false;
+      }
+    };
+
     return {
       asignations, isWeek, unassignedWeekAsignations, groupedWeekAsignations,
       availablePositions, availablePositionsCount, remove, toggleDone,
@@ -508,6 +633,8 @@ export default defineComponent({
       onDragStart, onDragOver, onDragLeave, onDrop, dragOverGroup, draggedItem,
       users, editingUserAsignationId, startEditingUser, changeUser,
       moveTo, getDiscCountry,
+      editingAsignation, savingDescription, openDescriptionModal, handleSaveDescription,
+      getWeeklyWpPost, publishingRadar, publishRadarToWordPress,
     };
   },
 });

@@ -61,7 +61,11 @@ export interface WpPost {
   wpPostId: number;
   link: string;
   title: string;
-  skipped?: boolean;
+  added?: number;
+  updated?: number;
+  removed?: number;
+  warning?: string;
+  adopted?: boolean;
 }
 
 export interface CreateWpPostsResponse {
@@ -69,8 +73,32 @@ export interface CreateWpPostsResponse {
   posts: WpPost[];
 }
 
-export async function createWpPosts(id: string): Promise<CreateWpPostsResponse> {
-  const response = await api.post<CreateWpPostsResponse>(`/lists/${id}/wp-posts`);
+export interface WeeklyWpPostRecord {
+  position: number;
+  wpPostId: number;
+  wpPostUrl: string;
+}
+
+export async function createWpPosts(id: string, position?: number): Promise<CreateWpPostsResponse> {
+  const response = await api.post<CreateWpPostsResponse>(`/lists/${id}/wp-posts`, {}, {
+    params: position ? { position } : undefined,
+  });
+  return response.data;
+}
+
+export interface BestDiscsWpPostResponse {
+  wpPostId: number;
+  link: string;
+  title: string;
+  skipped?: boolean;
+  added?: number;
+  removed?: number;
+  message?: string;
+  warning?: string;
+}
+
+export async function generateBestDiscsWpPost(id: string): Promise<BestDiscsWpPostResponse> {
+  const response = await api.post<BestDiscsWpPostResponse>(`/lists/${id}/wp-best-post`);
   return response.data;
 }
 

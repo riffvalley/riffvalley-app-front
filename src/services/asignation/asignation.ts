@@ -19,6 +19,10 @@ export async function updateAsignationService(
   data: {
     done?: boolean;
     userId?: string;
+    description?: string;
+    similarBands?: string;
+    spotifyTrackId?: string;
+    genre?: string;
   }
 ): Promise<void> {
   await api.patch(`/asignations/${id}`, data);
