@@ -1,5 +1,6 @@
 // @services/spotify/spotify.ts
 import api from '@services/api/api';
+import type { ContentRef } from '@services/contents/contents';
 
 // =========================
 // Tipos
@@ -41,6 +42,8 @@ export interface Spotify {
   isPublic?: boolean;
   playlistArtists?: Array<{ id: string }>;
   playlistArtistsCount?: number;
+  /** Content asociado (creación manual, sin sincronización automática). `null` si no existe. */
+  content: ContentRef | null;
 }
 
 // =========================
@@ -109,5 +112,14 @@ export async function updateSpotify(id: string, dto: UpdateSpotifyDto): Promise<
 
 export async function removeSpotify(id: string): Promise<{ ok: true } | { message: string }> {
   const { data } = await api.delete<{ ok: true } | { message: string }>(`/spotify/${id}`);
+  return data;
+}
+
+/**
+ * Crea manualmente el Content asociado a este Spotify (backlog: true, sin publicationDate).
+ * Requiere que el registro ya tenga un usuario asignado (userId).
+ */
+export async function createSpotifyContent(spotifyId: string): Promise<Spotify> {
+  const { data } = await api.post<Spotify>(`/spotify/${spotifyId}/content`, {});
   return data;
 }
