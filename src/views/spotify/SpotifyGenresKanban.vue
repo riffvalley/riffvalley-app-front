@@ -157,12 +157,12 @@
                                         <i class="fa-brands fa-spotify text-base"></i>
                                     </a>
 
-                                    <!-- Content: Create -->
+                                    <!-- Content: Add to calendar -->
                                     <button v-if="!item.content" @click="handleCreateContent(item)"
                                         :disabled="!item.user"
                                         class="w-8 h-8 flex items-center justify-center rounded-lg bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 disabled:cursor-not-allowed disabled:opacity-40 transition-colors"
-                                        :title="item.user ? 'Crear content' : 'Asigna un usuario para poder crear el content'">
-                                        <i class="fa-solid fa-file-circle-plus text-xs"></i>
+                                        :title="item.user ? 'Añadir al calendario' : 'Asigna un usuario para poder añadir al calendario'">
+                                        <i class="fa-solid fa-calendar-plus text-xs"></i>
                                     </button>
                                 </div>
                             </div>
@@ -524,20 +524,20 @@ async function confirmDelete(item: Spotify) {
     }
 }
 
-// --- Create Content ---
+// --- Add to calendar (creates the associated Content) ---
 async function handleCreateContent(item: Spotify) {
     if (!item.user) {
-        SwalService.error('Asigna un usuario antes de crear el content.');
+        SwalService.error('Asigna un usuario antes de añadirlo al calendario.');
         return;
     }
     try {
         const updated = await createSpotifyContent(item.id);
         const index = items.value.findIndex(x => x.id === item.id);
         if (index !== -1) items.value[index] = { ...items.value[index], content: updated.content };
-        SwalService.success('Content creado');
+        SwalService.success('Añadido al calendario');
     } catch (e) {
         console.error(e);
-        SwalService.error(apiError(e, 'No se pudo crear el content'));
+        SwalService.error(apiError(e, 'No se pudo añadir al calendario'));
     }
 }
 
