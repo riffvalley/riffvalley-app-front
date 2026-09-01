@@ -183,15 +183,15 @@
                                         <i class="fa-solid fa-link text-xs"></i>
                                     </a>
 
-                                    <!-- Content: Create -->
+                                    <!-- Content: Add to calendar -->
                                     <button v-if="!item.content" @click="handleCreateContent(item)"
                                         :disabled="!item.user"
                                         class="w-8 h-8 flex items-center justify-center rounded-lg transition-colors disabled:cursor-not-allowed"
                                         :class="item.user
                                             ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-100 dark:hover:bg-cyan-900/40'
                                             : 'bg-gray-50 dark:bg-white/5 text-gray-300 dark:text-gray-600'"
-                                        :title="item.user ? 'Crear content' : 'Asigna un usuario para poder crear el content'">
-                                        <i class="fa-solid fa-file-circle-plus text-xs"></i>
+                                        :title="item.user ? 'Añadir al calendario' : 'Asigna un usuario para poder añadir al calendario'">
+                                        <i class="fa-solid fa-calendar-plus text-xs"></i>
                                     </button>
                                 </div>
                             </div>
@@ -657,20 +657,20 @@ async function confirmDelete(item: Article) {
     }
 }
 
-// --- Create Content ---
+// --- Add to calendar (creates the associated Content) ---
 async function handleCreateContent(item: Article) {
     if (!item.user) {
-        SwalService.error('Asigna un usuario al artículo antes de crear el content.');
+        SwalService.error('Asigna un usuario al artículo antes de añadirlo al calendario.');
         return;
     }
 
     try {
         const updated = await createArticleContent(item.id);
         item.content = updated.content;
-        SwalService.success('Content creado');
+        SwalService.success('Añadido al calendario');
     } catch (e: any) {
         console.error(e);
-        SwalService.error(e?.response?.data?.message || 'Error creando el content');
+        SwalService.error(e?.response?.data?.message || 'No se pudo añadir al calendario');
     }
 }
 
