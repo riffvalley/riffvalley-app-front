@@ -1,3 +1,8 @@
+## 1.35.0 (2026-09-01)
+
+* Merge pull request #161 from riffvalley/feat/manual-media-content-creation ([b86c158](https://github.com/riffvalley/riffvalley-app-front/commit/b86c158)), closes [#161](https://github.com/riffvalley/riffvalley-app-front/issues/161)
+* feat(content): add manual content creation button for videos, articles and spotify ([4d9dd00](https://github.com/riffvalley/riffvalley-app-front/commit/4d9dd00))
+
 ## 1.34.0 (2026-08-11)
 
 * Merge pull request #160 from riffvalley/feat/festival-playlists-spotify ([41c0a1b](https://github.com/riffvalley/riffvalley-app-front/commit/41c0a1b)), closes [#160](https://github.com/riffvalley/riffvalley-app-front/issues/160)
