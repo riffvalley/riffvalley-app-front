@@ -1,4 +1,5 @@
 import api from '@services/api/api';
+import type { ContentRef } from '@services/contents/contents';
 
 // =========================
 // Tipos
@@ -36,6 +37,8 @@ export interface Video {
     editor?: { id: string; username: string; image?: string }; // Editor asignado
     editorId?: string;
     listId?: string;
+    /** Content asociado (creación manual, sin sincronización automática). `null` si no existe. */
+    content: ContentRef | null;
 }
 
 // =========================
@@ -90,5 +93,14 @@ export async function deleteVideo(id: string): Promise<void> {
 
 export async function createVideoList(videoId: string): Promise<any> {
     const { data } = await api.post(`/videos/${videoId}/list`);
+    return data;
+}
+
+/**
+ * Crea manualmente el Content asociado a este video (backlog: true, sin publicationDate).
+ * Requiere que el video ya tenga un usuario asignado (userId).
+ */
+export async function createVideoContent(videoId: string): Promise<Video> {
+    const { data } = await api.post<Video>(`/videos/${videoId}/content`, {});
     return data;
 }

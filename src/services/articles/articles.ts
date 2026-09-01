@@ -1,5 +1,6 @@
 
 import api from '@services/api/api';
+import type { ContentRef } from '@services/contents/contents';
 
 // =========================
 // Tipos
@@ -49,6 +50,8 @@ export interface Article {
     editorId?: string;
     coauthor?: { id: string; username: string; image?: string }; // Coautor
     coauthorId?: string;
+    /** Content asociado (creación manual, sin sincronización automática). `null` si no existe. */
+    content: ContentRef | null;
 }
 
 // =========================
@@ -99,4 +102,13 @@ export async function updateArticle(id: string, dto: UpdateArticleDto): Promise<
 
 export async function deleteArticle(id: string): Promise<void> {
     await api.delete(`/articles/${id}`);
+}
+
+/**
+ * Crea manualmente el Content asociado a este artículo (backlog: true, sin publicationDate).
+ * Requiere que el artículo ya tenga un usuario asignado (userId).
+ */
+export async function createArticleContent(articleId: string): Promise<Article> {
+    const { data } = await api.post<Article>(`/articles/${articleId}/content`, {});
+    return data;
 }

@@ -48,6 +48,25 @@ export interface Content {
     article: Article | null;
 }
 
+/**
+ * Content asociado embebido en la respuesta de un Video/Article/Spotify
+ * (GET/POST /videos|articles|spotify[/:id][/content]).
+ * Es una vista resumida de Content: solo garantiza los campos que el
+ * backend documenta siempre presentes; el resto se trata como opcional
+ * porque Video/Article/Spotify y Content son entidades desacopladas.
+ */
+export interface ContentRef {
+    id: string;
+    type: ContentType;
+    name: string;
+    publicationDate: string | null;
+    backlog: boolean;
+    ready?: boolean;
+    notes?: string | null;
+    closeDate?: string | null;
+    author?: Author;
+}
+
 export interface CreateContentDto {
     type: ContentType;
     name: string;

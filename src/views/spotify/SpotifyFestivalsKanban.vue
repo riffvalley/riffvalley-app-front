@@ -132,6 +132,7 @@
                 <button v-else-if="item.link && canManage" class="grid h-8 w-8 place-items-center rounded-lg bg-green-50 text-[#1DB954] disabled:cursor-wait disabled:opacity-50 dark:bg-green-900/20" title="Vincular con Spotify" :disabled="linkingItemId !== null" @click="confirmLinkExisting(item)"><i class="fa-solid" :class="linkingItemId === item.id ? 'fa-spinner fa-spin' : 'fa-link'"></i></button>
                 <button v-if="!item.spotifyPlaylistId && canManage" class="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400" title="Eliminar registro antiguo" @click="confirmDeleteLegacy(item)"><i class="fa-solid fa-trash text-xs"></i></button>
                 <a v-if="item.link" :href="item.link" target="_blank" rel="noopener noreferrer" class="grid h-8 w-8 place-items-center rounded-lg bg-green-50 text-[#1DB954] dark:bg-green-900/20" title="Abrir en Spotify"><i class="fa-brands fa-spotify"></i></a>
+                <button v-if="!item.content && canManage" class="grid h-8 w-8 place-items-center rounded-lg bg-cyan-50 text-cyan-600 hover:bg-cyan-100 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-cyan-900/20 dark:text-cyan-400 dark:hover:bg-cyan-900/40" :disabled="!item.user" :title="item.user ? 'Crear content' : 'Asigna un usuario para poder crear el content'" @click="handleCreateContent(item)"><i class="fa-solid fa-file-circle-plus text-xs"></i></button>
               </div>
             </div>
           </article>
@@ -186,6 +187,7 @@ import {
   getSpotifyFestivals,
   removeSpotify,
   updateSpotify,
+  createSpotifyContent,
   type Spotify,
   type SpotifyStatus,
 } from '@services/spotify/spotify';
@@ -481,6 +483,22 @@ async function confirmDeleteLegacy(item: Spotify) {
     SwalService.success('Festival eliminado');
   } catch (deleteError) {
     SwalService.error(errorMessage(deleteError, 'No se pudo eliminar el festival'));
+  }
+}
+
+async function handleCreateContent(item: Spotify) {
+  if (!canManage.value) return;
+  if (!item.user) {
+    SwalService.error('Asigna un usuario antes de crear el content.');
+    return;
+  }
+  try {
+    const updated = await createSpotifyContent(item.id);
+    const index = items.value.findIndex((candidate) => candidate.id === item.id);
+    if (index !== -1) items.value[index] = { ...items.value[index], content: updated.content };
+    SwalService.success('Content creado');
+  } catch (createError) {
+    SwalService.error(errorMessage(createError, 'No se pudo crear el content'));
   }
 }
 
