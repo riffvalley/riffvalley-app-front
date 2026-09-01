@@ -1,3 +1,8 @@
+## <small>1.35.1 (2026-09-01)</small>
+
+* Merge pull request #162 from riffvalley/fix/rename-create-content-button ([b44f057](https://github.com/riffvalley/riffvalley-app-front/commit/b44f057)), closes [#162](https://github.com/riffvalley/riffvalley-app-front/issues/162)
+* fix(ui): rename manual content button to "Añadir al calendario" ([de34244](https://github.com/riffvalley/riffvalley-app-front/commit/de34244)), closes [#161](https://github.com/riffvalley/riffvalley-app-front/issues/161)
+
 ## 1.35.0 (2026-09-01)
 
 * Merge pull request #161 from riffvalley/feat/manual-media-content-creation ([b86c158](https://github.com/riffvalley/riffvalley-app-front/commit/b86c158)), closes [#161](https://github.com/riffvalley/riffvalley-app-front/issues/161)
