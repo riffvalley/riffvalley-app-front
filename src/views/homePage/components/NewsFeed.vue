@@ -50,14 +50,14 @@
         :key="post.id"
         v-bind="post.source === 'app' ? {} : { href: post.link, target: '_blank', rel: 'noopener noreferrer' }"
         @click="post.source === 'app' ? openAppPost(post) : undefined"
-        class="group text-left
+        class="group text-left w-full min-w-0 block
                bg-transparent border-0 p-0 appearance-none
                outline-none focus:outline-none focus-visible:outline-none
                ring-0 focus:ring-0 focus-visible:ring-0"
       >
         <!-- Layout horizontal (todos los tamaños) -->
         <div
-          class="flex items-center gap-3 p-3
+          class="flex items-center gap-3 p-3 min-w-0
                  bg-white dark:bg-rv-darkSurface rounded-xl
                  border border-gray-100 dark:border-t-white/10 dark:border-r-white/10 dark:border-b-white/10
                  border-l-4 transition-all duration-200
@@ -72,9 +72,9 @@
               loading="lazy"
             />
           </div>
-          <div class="flex-1 min-w-0">
-            <h4 class="text-rv-navy dark:text-white font-bold text-xs leading-snug line-clamp-2" v-html="post.title"></h4>
-            <div class="flex items-center gap-2 mt-1">
+          <div class="flex-1 min-w-0 overflow-hidden">
+            <h4 class="text-rv-navy dark:text-white font-bold text-xs leading-snug line-clamp-2 break-words">{{ truncateTitle(post.title) }}</h4>
+            <div class="flex items-center gap-2 mt-1 flex-wrap">
               <span class="text-gray-400 text-[9px] shrink-0">{{ post.date }}</span>
               <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold shrink-0"
                     :class="sourceBadgeClass(post.source)">
@@ -282,6 +282,11 @@ function sourceBadgeIcon(source: string) {
   if (source === 'telegram')      return 'fa-brands fa-telegram';
   if (source === 'riffvalley.es') return 'fa-solid fa-globe';
   return 'fa-solid fa-users';
+}
+
+function truncateTitle(title: string, max = 70): string {
+  if (!title) return '';
+  return title.length > max ? title.slice(0, max).trimEnd() + '…' : title;
 }
 
 function sourceLabel(post: NewsPost) {
