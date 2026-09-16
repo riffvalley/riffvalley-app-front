@@ -39,7 +39,7 @@
 
       <!-- Novedades Riff Valley -->
       <div v-if="isEnabled('novedades')" :style="{ order: orderOf('novedades') }"
-           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+           class="w-full lg:w-[calc(50%-12px)] min-w-0 flex flex-col">
         <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex-1">
           <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-pink/8 to-rv-purple/8 dark:from-rv-pink/10 dark:to-rv-purple/10 border-b border-gray-100 dark:border-white/10">
             <i class="fa-solid fa-newspaper text-rv-pink"></i>
@@ -53,7 +53,7 @@
 
       <!-- Comunidad + Top usuarios -->
       <div v-if="isEnabled('comunidad')" :style="{ order: orderOf('comunidad') }"
-           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+           class="w-full lg:w-[calc(50%-12px)] min-w-0 flex flex-col">
       <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex-1">
 
         <!-- Comunidad -->
@@ -227,7 +227,7 @@
 
       <!-- Disco Aleatorio -->
       <div v-if="isEnabled('discoAleatorio')" :style="{ order: orderOf('discoAleatorio') }"
-           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+           class="w-full lg:w-[calc(50%-12px)] min-w-0 flex flex-col">
       <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
         <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-amber-400/10 to-rv-pink/8 dark:from-amber-400/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10">
           <i class="fa-solid fa-shuffle text-amber-500"></i>
@@ -292,7 +292,7 @@
 
       <!-- Portada del día -->
       <div v-if="isEnabled('portadaDia')" :style="{ order: orderOf('portadaDia') }"
-           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+           class="w-full lg:w-[calc(50%-12px)] min-w-0 flex flex-col">
       <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
         <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 dark:from-rv-purple/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10 shrink-0">
           <i class="fa-solid fa-image text-rv-purple"></i>
@@ -434,7 +434,7 @@
 
       <!-- Cementerio de discos -->
       <div v-if="isEnabled('cementerio')" :style="{ order: orderOf('cementerio') }"
-           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+           class="w-full lg:w-[calc(50%-12px)] min-w-0 flex flex-col">
       <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
         <div class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-800/5 to-gray-600/5 dark:from-white/3 dark:to-white/5 border-b border-gray-100 dark:border-white/10 shrink-0">
           <div class="flex flex-col">
@@ -479,7 +479,7 @@
 
       <!-- Tu mundo musical -->
       <div v-if="isEnabled('mundoMusical')" :style="{ order: orderOf('mundoMusical') }"
-           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+           class="w-full lg:w-[calc(50%-12px)] min-w-0 flex flex-col">
       <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
         <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-blue/8 to-rv-purple/8 dark:from-rv-blue/10 dark:to-rv-purple/10 border-b border-gray-100 dark:border-white/10 shrink-0">
           <i class="fa-solid fa-earth-americas text-rv-blue"></i>
@@ -526,7 +526,7 @@
 
       <!-- Últimos 5 votos -->
       <div v-if="isEnabled('ultimosVotos')" :style="{ order: orderOf('ultimosVotos') }"
-           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+           class="w-full lg:w-[calc(50%-12px)] min-w-0 flex flex-col">
       <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
         <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 dark:from-rv-purple/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10 shrink-0">
           <i class="fa-solid fa-clock-rotate-left text-rv-purple"></i>
@@ -572,7 +572,7 @@
 
       <!-- Crea tu propia aventura -->
       <div v-if="isEnabled('aventura')" :style="{ order: orderOf('aventura') }"
-           class="w-full lg:w-[calc(50%-12px)] flex flex-col">
+           class="w-full lg:w-[calc(50%-12px)] min-w-0 flex flex-col">
       <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
         <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 dark:from-rv-purple/10 dark:to-rv-pink/10 border-b border-gray-100 dark:border-white/10 shrink-0">
           <i class="fa-solid fa-book-open text-rv-purple"></i>
