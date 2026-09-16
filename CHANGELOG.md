@@ -1,3 +1,8 @@
+## <small>1.35.2 (2026-09-16)</small>
+
+* Merge pull request #163 from riffvalley/september-kele ([cfa6030](https://github.com/riffvalley/riffvalley-app-front/commit/cfa6030)), closes [#163](https://github.com/riffvalley/riffvalley-app-front/issues/163)
+* fix(ui): adjust layout properties for responsive design in DashboardPage and NewsFeed components ([06015ac](https://github.com/riffvalley/riffvalley-app-front/commit/06015ac))
+
 ## <small>1.35.1 (2026-09-01)</small>
 
 * Merge pull request #162 from riffvalley/fix/rename-create-content-button ([b44f057](https://github.com/riffvalley/riffvalley-app-front/commit/b44f057)), closes [#162](https://github.com/riffvalley/riffvalley-app-front/issues/162)
