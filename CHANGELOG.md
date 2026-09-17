@@ -1,3 +1,8 @@
+## <small>1.36.1 (2026-09-17)</small>
+
+* Merge branch 'feat/sidebar-buttons' ([4c3637d](https://github.com/riffvalley/riffvalley-app-front/commit/4c3637d))
+* fix(sidebar): align Nuevos Discos role gating with router guards ([d6ae43d](https://github.com/riffvalley/riffvalley-app-front/commit/d6ae43d))
+
 ## 1.36.0 (2026-09-17)
 
 * feat(sidebar): add area selector for App, Riff Valley and Gestión ([a9db4b7](https://github.com/riffvalley/riffvalley-app-front/commit/a9db4b7))
