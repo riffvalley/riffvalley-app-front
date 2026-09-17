@@ -108,7 +108,7 @@ export default defineComponent({
     const loading = ref(true);
     const errorMsg = ref("");
 
-    const selectedYear = ref<number | null>(null);
+    const selectedYear = ref<number | null>(new Date().getFullYear());
     const yearOptions = getYearOptions();
 
     const fetchData = async () => {
