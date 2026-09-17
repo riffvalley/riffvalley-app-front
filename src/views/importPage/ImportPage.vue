@@ -156,17 +156,33 @@
       <div class="p-6 space-y-6">
         <!-- Imported -->
         <div>
-          <h3 class="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-circle-check"></i>
-            Importados ({{ importedDiscsParsed.length }})
-          </h3>
+          <div class="flex items-center justify-between flex-wrap gap-2 mb-3">
+            <h3 class="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-circle-check"></i>
+              Importados ({{ importedDiscsParsed.length }})
+            </h3>
+            <button
+              v-if="importedDiscsParsed.length"
+              @click="buscarEnlacesSpotify"
+              :disabled="searchingSpotify"
+              class="inline-flex items-center gap-2 bg-[#1DB954] text-white px-3 py-1.5 rounded-full text-xs font-semibold
+                     hover:bg-[#1aa34a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i class="fa-brands fa-spotify"></i>
+              {{ searchingSpotify ? 'Buscando...' : 'Buscar en Spotify' }}
+            </button>
+          </div>
           <div v-if="importedDiscsParsed.length" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
             <div
               v-for="(disc, index) in importedDiscsParsed"
               :key="'imported-' + index"
               class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-xl px-3 py-2.5 min-h-[72px] flex flex-col justify-center"
             >
-              <p class="text-xs text-green-600 dark:text-green-400 font-medium truncate">{{ disc.artist }}</p>
+              <div class="flex items-center gap-1.5">
+                <p class="text-xs text-green-600 dark:text-green-400 font-medium truncate">{{ disc.artist }}</p>
+                <i v-if="spotifyFound[disc.discId] === true" class="fa-brands fa-spotify text-[#1DB954] text-xs" title="Encontrado en Spotify"></i>
+                <i v-else-if="spotifyFound[disc.discId] === false" class="fa-solid fa-circle-exclamation text-gray-400 text-xs" title="No encontrado en Spotify"></i>
+              </div>
               <p class="text-sm font-semibold text-green-800 dark:text-green-200 truncate">{{ disc.disc }}</p>
             </div>
           </div>
@@ -203,18 +219,24 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from 'vue';
+import axios from 'axios';
 import { fetchManualData } from '@services/imports/imports';
-import type { AlbumEntry } from '@services/imports/imports';
+import type { AlbumEntry, ManualImportResponse, DiscImportResultItem } from '@services/imports/imports';
+import { updateDisc } from '@services/discs/discs';
+import { obtenerTokenSpotify } from '@helpers/SpotifyFunctions.ts';
 import { useCatalogStore } from '@stores/catalog/catalog';
 import SearchableSelect from '@components/SearchableSelect.vue';
+import SwalService from '@services/swal/SwalService';
 
 export default defineComponent({
   name: 'ImportPage',
   components: { SearchableSelect },
   setup() {
     const selectedDate = ref('');
-    const responseData = ref<any>(null);
+    const responseData = ref<ManualImportResponse | null>(null);
     const error = ref('');
+    const searchingSpotify = ref(false);
+    const spotifyFound = ref<Record<string, boolean>>({});
 
     // New album form state
     const newLine      = ref('');
@@ -268,29 +290,71 @@ export default defineComponent({
       albums.value.splice(index, 1);
     }
 
+    const parseResultItem = (item: DiscImportResultItem) => {
+      const match = item.message.match(/Artist\s*"([^"]+)"\s*=>\s*Disc\s*"([^"]+)"/);
+      return {
+        discId: item.discId,
+        artistId: item.artistId,
+        artist: match ? match[1] : item.message,
+        disc: match ? match[2] : '',
+      };
+    };
+
     const importedDiscsParsed = computed(() => {
-      if (!responseData.value) return [];
-      const discs: string[] = responseData.value.data?.savedDiscs || [];
-      return discs.map((disc: string) => {
-        const match = disc.match(/Artist\s*"([^"]+)"\s*=>\s*Disc\s*"([^"]+)"/);
-        if (match) return { artist: match[1], disc: match[2] };
-        return { artist: disc, disc: '' };
-      });
+      const discs = responseData.value?.data?.savedDiscs ?? [];
+      return discs.map(parseResultItem);
     });
 
     const nonImportedDiscsParsed = computed(() => {
-      if (!responseData.value) return [];
-      const discs: string[] = responseData.value.data?.existingDiscs || [];
-      return discs.map((disc: string) => {
-        const match = disc.match(/Artist\s*"([^"]+)"\s*=>\s*Disc\s*"([^"]+)"/);
-        if (match) return { artist: match[1], disc: match[2] };
-        return { artist: disc, disc: '' };
-      });
+      const discs = responseData.value?.data?.existingDiscs ?? [];
+      return discs.map(parseResultItem);
     });
+
+    const buscarEnlacesSpotify = async () => {
+      if (!importedDiscsParsed.value.length) return;
+      searchingSpotify.value = true;
+      spotifyFound.value = {};
+      try {
+        const token = await obtenerTokenSpotify();
+        if (!token) {
+          SwalService.error('No se pudo obtener el token de Spotify.');
+          return;
+        }
+
+        let foundCount = 0;
+        for (const item of importedDiscsParsed.value) {
+          try {
+            const query = encodeURIComponent(`album:${item.disc} artist:${item.artist}`);
+            const response = await axios.get(
+              `https://api.spotify.com/v1/search?q=${query}&type=album&limit=1`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const album = response.data.albums.items[0];
+            if (album) {
+              await updateDisc(item.discId, {
+                link: album.external_urls.spotify,
+                image: album.images?.[0]?.url,
+                verified: true,
+              });
+              spotifyFound.value[item.discId] = true;
+              foundCount++;
+            } else {
+              spotifyFound.value[item.discId] = false;
+            }
+          } catch {
+            spotifyFound.value[item.discId] = false;
+          }
+        }
+        SwalService.success(`${foundCount} de ${importedDiscsParsed.value.length} discos actualizados con datos de Spotify`);
+      } finally {
+        searchingSpotify.value = false;
+      }
+    };
 
     const processData = async () => {
       error.value = '';
       responseData.value = null;
+      spotifyFound.value = {};
       try {
         const [year, month, day] = selectedDate.value.split('-');
         const monthNames = [
@@ -317,6 +381,9 @@ export default defineComponent({
       displayDate,
       importedDiscsParsed,
       nonImportedDiscsParsed,
+      buscarEnlacesSpotify,
+      searchingSpotify,
+      spotifyFound,
     };
   },
 });

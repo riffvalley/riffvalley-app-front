@@ -8,7 +8,21 @@ export interface AlbumEntry {
   debut?: boolean;
 }
 
-export async function fetchManualData(date: string, albums: AlbumEntry[]) {
+export interface DiscImportResultItem {
+  discId: string;
+  artistId: string;
+  message: string;
+}
+
+export interface ManualImportResponse {
+  message: string;
+  data: {
+    savedDiscs: DiscImportResultItem[];
+    existingDiscs: DiscImportResultItem[];
+  };
+}
+
+export async function fetchManualData(date: string, albums: AlbumEntry[]): Promise<ManualImportResponse> {
   try {
     const response = await api.post(`/scraping/process-manual-data`, { date, albums });
     return response.data;
