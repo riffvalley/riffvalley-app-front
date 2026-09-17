@@ -1,3 +1,7 @@
+## 1.36.0 (2026-09-17)
+
+* feat(sidebar): add area selector for App, Riff Valley and Gestión ([a9db4b7](https://github.com/riffvalley/riffvalley-app-front/commit/a9db4b7))
+
 ## <small>1.35.2 (2026-09-16)</small>
 
 * Merge pull request #163 from riffvalley/september-kele ([cfa6030](https://github.com/riffvalley/riffvalley-app-front/commit/cfa6030)), closes [#163](https://github.com/riffvalley/riffvalley-app-front/issues/163)
