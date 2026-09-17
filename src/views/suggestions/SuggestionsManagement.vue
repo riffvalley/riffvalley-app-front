@@ -124,6 +124,12 @@
               <i class="fa-solid fa-code-branch mr-1.5"></i>{{ s.versionItem.description }}
             </div>
 
+            <!-- Mejora interna (hecha sin vincular a versión) -->
+            <div v-else-if="s.status === 'done'"
+              class="mt-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+              <i class="fa-solid fa-wrench mr-1.5"></i>Mejora interna
+            </div>
+
             <!-- Acciones -->
             <div class="flex gap-2 mt-4 flex-wrap">
               <button v-if="s.status === 'in_progress'" @click="openDoneModal(s)"
@@ -239,16 +245,26 @@
             class="absolute top-3 right-3 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-300 rounded-full w-8 h-8 flex items-center justify-center text-base font-bold">&times;</button>
           <h3 class="text-lg font-bold mb-1 text-gray-900 dark:text-white">Marcar como hecho</h3>
           <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ doneModal.suggestion?.title }}</p>
-          <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Vincular a item de versión *</label>
-          <div v-if="doneModal.loadingItems" class="text-sm text-gray-400 py-4 text-center">Cargando items...</div>
-          <select v-else v-model="doneModal.versionItemId"
-            class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink mb-4">
-            <option value="">Selecciona un item</option>
-            <option v-for="item in doneModal.versionItems" :key="item.id" :value="item.id">
-              [{{ item.type }}] {{ item.description }}
-            </option>
-          </select>
-          <button @click="handleDone" :disabled="doneModal.saving || !doneModal.versionItemId"
+
+          <label class="flex items-center gap-2 mb-4 cursor-pointer select-none">
+            <input type="checkbox" v-model="doneModal.internal"
+              class="w-4 h-4 rounded border-gray-300 dark:border-white/20 text-rv-pink focus:ring-rv-pink" />
+            <span class="text-sm text-gray-700 dark:text-gray-300">Mejora interna (no se vincula a ningún item de versión)</span>
+          </label>
+
+          <template v-if="!doneModal.internal">
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Vincular a item de versión *</label>
+            <div v-if="doneModal.loadingItems" class="text-sm text-gray-400 py-4 text-center">Cargando items...</div>
+            <select v-else v-model="doneModal.versionItemId"
+              class="w-full border border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-rv-pink mb-4">
+              <option value="">Selecciona un item</option>
+              <option v-for="item in doneModal.versionItems" :key="item.id" :value="item.id">
+                [{{ item.type }}] {{ item.description }}
+              </option>
+            </select>
+          </template>
+
+          <button @click="handleDone" :disabled="doneModal.saving || (!doneModal.internal && !doneModal.versionItemId)"
             class="w-full bg-green-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-40">
             {{ doneModal.saving ? 'Guardando...' : 'Confirmar' }}
           </button>
@@ -320,6 +336,7 @@ export default defineComponent({
       suggestion: null as Suggestion | null,
       versionItems: [] as VersionItem[],
       versionItemId: '',
+      internal: false,
     });
 
     const fetchAll = async () => {
@@ -391,6 +408,7 @@ export default defineComponent({
     const openDoneModal = async (s: Suggestion) => {
       doneModal.value.suggestion = s;
       doneModal.value.versionItemId = '';
+      doneModal.value.internal = false;
       doneModal.value.show = true;
       doneModal.value.loadingItems = true;
       try {
@@ -403,10 +421,11 @@ export default defineComponent({
     };
 
     const handleDone = async () => {
-      if (!doneModal.value.suggestion || !doneModal.value.versionItemId) return;
+      const { suggestion, internal, versionItemId } = doneModal.value;
+      if (!suggestion || (!internal && !versionItemId)) return;
       doneModal.value.saving = true;
       try {
-        const updated = await doneSuggestion(doneModal.value.suggestion.id, doneModal.value.versionItemId);
+        const updated = await doneSuggestion(suggestion.id, internal ? undefined : versionItemId);
         updateInList(updated);
         doneModal.value.show = false;
         SwalService.success('Marcada como hecha');

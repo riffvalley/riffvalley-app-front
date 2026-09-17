@@ -76,7 +76,7 @@ export async function rejectSuggestion(id: string, rejectionReason: string): Pro
   return data;
 }
 
-export async function doneSuggestion(id: string, versionItemId: string): Promise<Suggestion> {
+export async function doneSuggestion(id: string, versionItemId?: string): Promise<Suggestion> {
   const { data } = await api.patch<Suggestion>(`/suggestions/${id}/done`, { versionItemId });
   return data;
 }
