@@ -70,7 +70,7 @@
     "label": "Peticiones",
     "activeClass": "bg-gray-700",
     "type": "new-discs",
-    "requiredRole": "user",
+    "requiredRole": "riffValley",
     "icon": "fa-solid fa-inbox"
   },
   {
@@ -78,7 +78,7 @@
     "label": "Añadir Discos",
     "activeClass": "bg-gray-700",
     "type": "new-discs",
-    "requiredRole": "user",
+    "requiredRole": ["user", "riffValley", "superUser"],
     "icon": "fa-solid fa-circle-plus"
   },
   {
