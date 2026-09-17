@@ -1,3 +1,7 @@
+## <small>1.37.1 (2026-09-17)</small>
+
+* fix(statistics): default year filter to the current year ([6ac9994](https://github.com/riffvalley/riffvalley-app-front/commit/6ac9994))
+
 ## 1.37.0 (2026-09-17)
 
 * feat(suggestions): allow closing support entries as internal improvement ([3c306d9](https://github.com/riffvalley/riffvalley-app-front/commit/3c306d9))
