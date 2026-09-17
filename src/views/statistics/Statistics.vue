@@ -17,24 +17,47 @@
 
     <div class="grid grid-cols-1 gap-6">
 
-      <!-- Resumen de votos -->
-      <div class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10
-                  grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-        <div>
-          <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Total de Votos</h2>
-          <p class="text-4xl font-bold text-rv-navy dark:text-white">{{ totalVotes }}</p>
+      <!-- Resumen + disco destacado -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Resumen de votos -->
+        <div class="lg:col-span-2 bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10
+                    grid grid-cols-2 sm:grid-cols-4 gap-5">
+          <div v-for="tile in summaryTiles" :key="tile.label" class="flex flex-col items-center text-center gap-2">
+            <span class="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm shadow-sm" :class="tile.color">
+              <i :class="tile.icon"></i>
+            </span>
+            <h2 class="text-xs font-semibold text-gray-500 dark:text-white/60 uppercase tracking-wide">{{ tile.label }}</h2>
+            <p class="text-3xl font-bold text-rv-navy dark:text-white leading-none">
+              {{ tile.value }}<span v-if="tile.suffix" class="text-base font-normal text-gray-400 dark:text-white/50">{{ tile.suffix }}</span>
+            </p>
+          </div>
+
+          <!-- Comparativa con el año anterior (ritmo real de voto, no depende del filtro de año) -->
+          <p v-if="yearOverYear" class="col-span-2 sm:col-span-4 text-center text-xs text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-100 dark:border-white/10">
+            En {{ yearOverYear.current.year }} llevas <span class="font-semibold text-rv-navy dark:text-white">{{ yearOverYear.current.votes }} votos</span>
+            (a día de hoy el {{ yearOverYear.previous.year }} llevabas {{ yearOverYear.previous.votes }})
+            <span v-if="yoyChange" :class="yoyChange.up ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'" class="font-semibold ml-1">
+              <i :class="yoyChange.up ? 'fa-solid fa-arrow-up' : 'fa-solid fa-arrow-down'"></i>
+              {{ Math.abs(yoyChange.pct).toFixed(0) }}%
+            </span>
+          </p>
         </div>
-        <div>
-          <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Media</h2>
-          <p class="text-4xl font-bold text-rv-navy dark:text-white">{{ mean }}</p>
-        </div>
-        <div>
-          <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Mediana</h2>
-          <p class="text-4xl font-bold text-rv-navy dark:text-white">{{ median }}</p>
-        </div>
-        <div>
-          <h2 class="text-sm font-semibold mb-2 text-gray-500 dark:text-white/70 uppercase tracking-wide">Ranking</h2>
-          <p class="text-4xl font-bold text-rv-navy dark:text-white">{{ rank }} <span class="text-xl font-normal text-gray-400 dark:text-white/50">/ {{ totalUsers }}</span></p>
+
+        <!-- Disco destacado del periodo -->
+        <div v-if="topDiscOverall"
+          class="bg-white dark:bg-rv-navy p-5 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10
+                 flex items-center gap-4">
+          <img :src="topDiscOverall.image ?? undefined" :alt="topDiscOverall.name"
+            class="w-16 h-16 rounded-xl object-cover ring-2 ring-white dark:ring-white/10 shadow-sm flex-shrink-0" />
+          <div class="min-w-0">
+            <h2 class="text-xs font-semibold text-gray-500 dark:text-white/60 uppercase tracking-wide mb-1">
+              <i class="fa-solid fa-star text-amber-400 mr-1"></i>Tu disco del año
+            </h2>
+            <p class="font-bold text-rv-navy dark:text-white truncate">{{ topDiscOverall.name }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ topDiscOverall.artist.name }}</p>
+            <p class="text-sm font-semibold text-rv-pink mt-0.5">Tu nota: {{ topDiscOverall.rate }}</p>
+          </div>
         </div>
       </div>
 
@@ -44,22 +67,35 @@
         <MonthlyVotesChart :monthly-votes="votesByMonth" />
       </div>
 
+      <!-- Calendario de actividad -->
+      <div v-if="votesByDay.length" class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10">
+        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Calendario de actividad {{ calendarYear }}</h2>
+        <ActivityCalendar :votes-by-day="votesByDay" :year="calendarYear" />
+      </div>
+
       <!-- Genre Chart Card -->
       <div class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10">
-        <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Mis votos por género</h2>
-        <div class="w-full overflow-x-auto">
-          <div class="min-w-[520px] sm:min-w-[600px] w-full">
-            <GenreBarChart :genre-distribution="votesByGenre" />
-          </div>
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Mis votos por género</h2>
+          <span v-if="votesByGenre.length"
+            class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rv-purple/10 text-rv-purple dark:bg-rv-purple/20 dark:text-rv-purple">
+            <i class="fa-solid fa-shuffle mr-1"></i>{{ votesByGenre.length }} género{{ votesByGenre.length !== 1 ? 's' : '' }} distinto{{ votesByGenre.length !== 1 ? 's' : '' }}
+          </span>
         </div>
+        <GenreBarChart :genre-distribution="votesByGenre" />
       </div>
 
       <!-- Score Chart Card -->
       <div class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10">
         <h2 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white">Distribución de notas</h2>
-        <div class="w-full max-w-[420px] mx-auto">
-          <ScoreDistributionChart :score-distribution="votesByScore" />
-        </div>
+        <ScoreDistributionChart :score-distribution="votesByScore" />
+      </div>
+
+      <!-- Discos polémicos -->
+      <div v-if="mostControversial.length" class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10">
+        <h2 class="text-lg font-semibold mb-1 text-gray-800 dark:text-white">Discos polémicos</h2>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mb-4">Donde más te alejas de la media de la comunidad</p>
+        <ControversialDiscsList :discs="mostControversial" />
       </div>
 
       <!-- Loading -->
@@ -79,11 +115,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, watch } from 'vue';
-import { getRatesStats } from '@services/rates/rates';
+import { defineComponent, ref, computed, onMounted, watch } from 'vue';
+import { getRatesStats, type RatesStatsResponse, type TopDisc, type ControversialDisc, type YearOverYear } from '@services/rates/rates';
 import GenreBarChart from './components/GenreBarChart.vue';
 import ScoreDistributionChart from './components/ScoreDistributionChart.vue';
 import MonthlyVotesChart from './components/MonthlyVotesChart.vue';
+import ActivityCalendar from './components/ActivityCalendar.vue';
+import ControversialDiscsList from './components/ControversialDiscsList.vue';
 import SimpleSelect from '@components/SimpleSelect.vue';
 import { getYearOptions } from '@helpers/dateConstants';
 
@@ -93,15 +131,21 @@ export default defineComponent({
     GenreBarChart,
     ScoreDistributionChart,
     MonthlyVotesChart,
+    ActivityCalendar,
+    ControversialDiscsList,
     SimpleSelect,
   },
   setup() {
     const totalVotes = ref(0);
     const mean = ref("0");
     const median = ref(0);
-    const votesByGenre = ref<{ genre: string; count: number }[]>([]);
-    const votesByMonth = ref<{ month: string; count: number; weeks: any[] }[]>([]);
-    const votesByScore = ref<{ score: number; count: number }[]>([]);
+    const votesByGenre = ref<RatesStatsResponse['votesByGenre']>([]);
+    const votesByMonth = ref<RatesStatsResponse['votesByMonth']>([]);
+    const votesByScore = ref<RatesStatsResponse['votesByScore']>([]);
+    const votesByDay = ref<RatesStatsResponse['votesByDay']>([]);
+    const topDiscOverall = ref<TopDisc | null>(null);
+    const mostControversial = ref<ControversialDisc[]>([]);
+    const yearOverYear = ref<YearOverYear | null>(null);
     const rank = ref(0);
     const totalUsers = ref(0);
 
@@ -110,6 +154,23 @@ export default defineComponent({
 
     const selectedYear = ref<number | null>(new Date().getFullYear());
     const yearOptions = getYearOptions();
+
+    const calendarYear = computed(() => selectedYear.value ?? new Date().getFullYear());
+
+    const yoyChange = computed(() => {
+      if (!yearOverYear.value) return null;
+      const { current, previous } = yearOverYear.value;
+      if (previous.votes === 0) return null;
+      const pct = ((current.votes - previous.votes) / previous.votes) * 100;
+      return { pct, up: pct >= 0 };
+    });
+
+    const summaryTiles = computed(() => [
+      { label: 'Total de votos', icon: 'fa-solid fa-check-to-slot', value: totalVotes.value, color: 'bg-rv-pink' },
+      { label: 'Media', icon: 'fa-solid fa-scale-balanced', value: mean.value, color: 'bg-rv-purple' },
+      { label: 'Mediana', icon: 'fa-solid fa-chart-simple', value: median.value, color: 'bg-rv-blue' },
+      { label: 'Ranking', icon: 'fa-solid fa-trophy', value: rank.value, suffix: ` / ${totalUsers.value}`, color: 'bg-amber-400' },
+    ]);
 
     const fetchData = async () => {
       loading.value = true;
@@ -124,6 +185,10 @@ export default defineComponent({
         votesByGenre.value = data.votesByGenre;
         votesByMonth.value = data.votesByMonth;
         votesByScore.value = data.votesByScore;
+        votesByDay.value = data.votesByDay;
+        topDiscOverall.value = data.topDiscOverall;
+        mostControversial.value = data.mostControversial;
+        yearOverYear.value = data.yearOverYear;
       } catch (error) {
         console.error("Error fetching statistics:", error);
         errorMsg.value = "No se pudieron cargar las estadísticas.";
@@ -147,12 +212,19 @@ export default defineComponent({
       votesByGenre,
       votesByMonth,
       votesByScore,
+      votesByDay,
+      topDiscOverall,
+      mostControversial,
+      yearOverYear,
+      yoyChange,
+      calendarYear,
       rank,
       totalUsers,
       loading,
       errorMsg,
       selectedYear,
       yearOptions,
+      summaryTiles,
     };
   },
 });
