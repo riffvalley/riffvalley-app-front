@@ -166,41 +166,33 @@
         </li>
 
         <li v-if="selectedArea === newDiscsAreaId && filteredNewDiscsRoutes.length > 0" class="pt-2">
-          <details class="group">
-            <summary class="font-bold uppercase text-xs tracking-wider flex justify-between items-center py-2 px-4
-         text-white group-open:text-gray-400
-         hover:text-white cursor-pointer">
-              <div class="flex items-center justify-start">
-                <i class="fa-solid fa-circle-plus text-base w-5 text-center mr-3"></i>
-                Nuevos Discos
+          <div class="font-bold uppercase text-xs tracking-wider flex items-center py-2 px-4 text-gray-400">
+            <i class="fa-solid fa-circle-plus text-base w-5 text-center mr-3"></i>
+            Nuevos Discos
+            <span
+              v-if="petitionsStore.pendingCount > 0"
+              class="ml-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+            >
+              {{ petitionsStore.pendingCount > 99 ? '99+' : petitionsStore.pendingCount }}
+            </span>
+          </div>
+          <ul>
+            <li v-for="route in filteredNewDiscsRoutes" :key="route.to" class="mt-1">
+              <router-link :to="route.to" class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
+         transition-all duration-300
+         hover:bg-gray-700 hover:text-white" :active-class="'bg-gradient-to-r from-[#d66a43] to-[#ce6241] text-white'"
+                @click="closeMenu">
+                <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
+                {{ route.label }}
                 <span
-                  v-if="petitionsStore.pendingCount > 0"
-                  class="ml-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+                  v-if="route.to === '/petitions' && petitionsStore.pendingCount > 0"
+                  class="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
                 >
                   {{ petitionsStore.pendingCount > 99 ? '99+' : petitionsStore.pendingCount }}
                 </span>
-              </div>
-              <i
-                class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200 group-open:rotate-180"></i>
-            </summary>
-            <ul>
-              <li v-for="route in filteredNewDiscsRoutes" :key="route.to" class="mt-1">
-                <router-link :to="route.to" class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
-         transition-all duration-300
-         hover:bg-gray-700 hover:text-white" :active-class="'bg-gradient-to-r from-[#d66a43] to-[#ce6241] text-white'"
-                  @click="closeMenu">
-                  <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
-                  {{ route.label }}
-                  <span
-                    v-if="route.to === '/petitions' && petitionsStore.pendingCount > 0"
-                    class="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
-                  >
-                    {{ petitionsStore.pendingCount > 99 ? '99+' : petitionsStore.pendingCount }}
-                  </span>
-                </router-link>
-              </li>
-            </ul>
-          </details>
+              </router-link>
+            </li>
+          </ul>
         </li>
 
         <template v-if="selectedArea === 'app'">
@@ -321,7 +313,7 @@ type AppRoute = {
   label: string;
   type: 'disc-app' | 'new-discs' | 'riff-valley' | 'management' | 'bottom';
   activeClass?: string;
-  requiredRole?: string;
+  requiredRole?: string | string[];
   icon?: string;
   children?: AppRoute[];
 };
@@ -360,10 +352,9 @@ emits: ['close-menu', 'toggle-theme'],
 
     const filterByRole = (routes: AppRoute[]) => {
       return routes.filter((route) => {
-        if (route.requiredRole) {
-          return authStore.hasRole(route.requiredRole);
-        }
-        return true;
+        if (!route.requiredRole) return true;
+        const requiredRoles = Array.isArray(route.requiredRole) ? route.requiredRole : [route.requiredRole];
+        return requiredRoles.some((role) => authStore.hasRole(role));
       });
     };
 
