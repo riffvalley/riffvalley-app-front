@@ -290,12 +290,18 @@ export default defineComponent({
       albums.value.splice(index, 1);
     }
 
-    const parseResultItem = (item: DiscImportResultItem) => {
-      const match = item.message.match(/Artist\s*"([^"]+)"\s*=>\s*Disc\s*"([^"]+)"/);
+    // Defensivo: el backend puede devolver cada item como string suelto (formato
+    // antiguo) o como { discId, artistId, message } (formato nuevo). Nunca debe
+    // reventar si el shape cambia otra vez o llega algo inesperado.
+    const parseResultItem = (item: DiscImportResultItem | string | null | undefined) => {
+      const isObject = typeof item === 'object' && item !== null;
+      const text = isObject ? item.message : item;
+      const safeText = typeof text === 'string' ? text : '';
+      const match = safeText.match(/Artist\s*"([^"]+)"\s*=>\s*Disc\s*"([^"]+)"/);
       return {
-        discId: item.discId,
-        artistId: item.artistId,
-        artist: match ? match[1] : item.message,
+        discId: isObject ? item.discId : '',
+        artistId: isObject ? item.artistId : '',
+        artist: match ? match[1] : safeText,
         disc: match ? match[2] : '',
       };
     };
