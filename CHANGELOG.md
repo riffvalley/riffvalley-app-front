@@ -1,3 +1,7 @@
+## 1.37.0 (2026-09-17)
+
+* feat(suggestions): allow closing support entries as internal improvement ([3c306d9](https://github.com/riffvalley/riffvalley-app-front/commit/3c306d9))
+
 ## <small>1.36.1 (2026-09-17)</small>
 
 * Merge branch 'feat/sidebar-buttons' ([4c3637d](https://github.com/riffvalley/riffvalley-app-front/commit/4c3637d))
