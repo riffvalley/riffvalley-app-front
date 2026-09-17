@@ -1,3 +1,7 @@
+## 1.38.0 (2026-09-17)
+
+* feat(import): align manual import response and add Spotify search ([f37a07e](https://github.com/riffvalley/riffvalley-app-front/commit/f37a07e))
+
 ## <small>1.37.1 (2026-09-17)</small>
 
 * fix(statistics): default year filter to the current year ([6ac9994](https://github.com/riffvalley/riffvalley-app-front/commit/6ac9994))
