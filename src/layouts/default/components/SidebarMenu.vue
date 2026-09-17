@@ -27,6 +27,7 @@
     <div class="flex-1 overflow-y-auto overscroll-contain py-4">
       <ul class="menu w-full px-2 space-y-1">
 
+        <template v-if="selectedArea === 'app'">
         <li v-for="route in filteredDiscAppRoutes" :key="route.to">
           <router-link :to="route.to" class="flex items-center justify-start py-2 px-4 text-sm font-medium rounded-primary
          transition-all duration-300
@@ -36,8 +37,135 @@
             {{ route.label }}
           </router-link>
         </li>
+        </template>
 
-        <li v-if="filteredNewDiscsRoutes.length > 0" class="pt-2">
+        <li v-if="selectedArea === 'riff-valley' && filteredRiffValleyRoutes.length > 0" class="pt-2">
+          <div class="font-bold uppercase text-xs tracking-wider flex items-center py-2 px-4 text-gray-400">
+            <svg viewBox="0 0 128 128" width="20" height="20" fill="currentColor" class="w-5 h-5 mr-3" aria-hidden="true">
+              <path d="M90.97,80.48c-33.67-13-33.05-24.71-21.76-33.75,2.05-1.64,4.45-3.2,7.06-4.65s4.67-4.03,5.39-7.02c.25-1.05.36-2.15.26-3.3-.3-3.79-2.71-8.15-8.93-12.88-6.5-4.94-7.99-9.54-6.92-13.54-.5-.01-1-.04-1.51-.04-3.01,0-5.97.24-8.85.7-1.14,3.82-.19,8.17,4.56,12.88,6.4,6.34,5.19,11.87,1.21,16.29-2.05,2.27-4.64,3.98-7.49,5.08-5.07,1.96-9.85,4.13-13.94,6.49-15.58,8.97-21.19,20.62,4.91,33.75,27.32,13.75,13.38,25.41-10.5,34.12,8.77,5.55,19.08,8.76,30.12,8.76,21.67,0,40.57-12.37,50.38-30.58-5.14-3.91-12.88-8.02-23.97-12.31Z" />
+              <path d="M75.98,126.83C31.45,134.92-6.92,96.55,1.18,52.02,5.47,28.42,28.51,5.38,52.11,1.09c44.53-8.1,82.91,30.28,74.8,74.82-4.29,23.59-27.34,46.63-50.93,50.92ZM74.57,8.53C35.31,1.39,1.48,35.22,8.62,74.48c4.15,22.81,22.09,40.75,44.9,44.9,39.26,7.15,73.1-26.69,65.96-65.95-4.15-22.81-22.09-40.75-44.9-44.9Z" />
+            </svg>
+            Riff Valley
+          </div>
+
+          <ul>
+            <li v-for="route in filteredRiffValleyRoutes" :key="route.to" class="mt-1">
+
+              <!-- CON HIJOS (ej: Discos) -->
+              <div v-if="route.children && route.children.length > 0">
+                <details class="group/child">
+                  <summary class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
+           transition-all duration-300
+           hover:bg-gray-700 hover:text-white cursor-pointer list-none">
+                    <div class="flex items-center justify-between w-full">
+                      <div class="flex items-center">
+                        <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
+                        {{ route.label }}
+                      </div>
+
+                      <i class="fa-solid fa-chevron-down text-[10px]
+                transition-transform duration-200
+                group-open/child:rotate-180"></i>
+                    </div>
+                  </summary>
+
+                  <ul>
+                    <li v-for="child in route.children" :key="child.to" class="mt-1">
+                      <router-link :to="child.to" class="flex items-center justify-start py-2 pl-12 pr-4 text-sm font-medium rounded-primary
+               transition-all duration-300
+               hover:bg-gray-700 hover:text-white"
+                        :active-class="'bg-gradient-to-r from-[#2f66c9] to-[#0064d6] text-white'" @click="closeMenu">
+                        <i :class="[child.icon, 'text-base w-5 text-center mr-3']"></i>
+                        {{ child.label }}
+                      </router-link>
+                    </li>
+                  </ul>
+                </details>
+              </div>
+
+              <!-- SIN HIJOS (ej: Calendario, Reuniones) -->
+              <router-link v-else :to="route.to" class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
+               transition-all duration-300
+               hover:bg-gray-700 hover:text-white"
+                :active-class="'bg-gradient-to-r from-[#2f66c9] to-[#0064d6] text-white'" @click="closeMenu">
+                <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
+                {{ route.label }}
+              </router-link>
+            </li>
+          </ul>
+        </li>
+
+        <li v-if="selectedArea === 'management' && filteredManagementRoutes.length > 0" class="pt-2">
+          <!-- CABECERA SECCIÓN -->
+          <div class="font-bold uppercase text-xs tracking-wider flex justify-between items-center py-2 px-4 text-gray-400">
+            <div class="flex items-center justify-start">
+              <i class="fa-solid fa-gears text-base w-5 text-center mr-3"></i>
+              Gestión
+            </div>
+            <span
+              v-if="supportStore.unreadCount > 0"
+              class="ml-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+            >
+              {{ supportStore.unreadCount > 99 ? '99+' : supportStore.unreadCount }}
+            </span>
+          </div>
+
+          <!-- ITEMS DE GESTIÓN -->
+          <ul>
+            <li v-for="route in filteredManagementRoutes" :key="route.to" class="mt-1">
+
+              <!-- CON HIJOS (ej: Versiones) -->
+              <div v-if="route.children && route.children.length > 0">
+                <details class="group/child">
+                  <summary class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
+           transition-all duration-300
+           hover:bg-gray-700 hover:text-white cursor-pointer list-none">
+                    <div class="flex items-center justify-between w-full">
+                      <div class="flex items-center">
+                        <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
+                        {{ route.label }}
+                      </div>
+
+                      <i class="fa-solid fa-chevron-down text-[10px]
+                transition-transform duration-200
+                group-open/child:rotate-180"></i>
+                    </div>
+                  </summary>
+
+                  <ul>
+                    <li v-for="child in route.children" :key="child.to" class="mt-1">
+                      <router-link :to="child.to" class="flex items-center justify-start py-2 pl-12 pr-4 text-sm font-medium rounded-primary
+               transition-all duration-300
+               hover:bg-gray-700 hover:text-white"
+                        :active-class="'bg-gradient-to-r from-[#b0669f] to-[#8a5bb4] text-white'" @click="closeMenu">
+                        <i :class="[child.icon, 'text-base w-5 text-center mr-3']"></i>
+                        {{ child.label }}
+                      </router-link>
+                    </li>
+                  </ul>
+                </details>
+              </div>
+
+              <!-- SIN HIJOS (ej: Usuarios) -->
+              <router-link v-else :to="route.to" class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
+          transition-all duration-300
+          hover:bg-gray-700 hover:text-white"
+                :active-class="'bg-gradient-to-r from-[#b0669f] to-[#8a5bb4] text-white'" @click="closeMenu">
+                <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
+                {{ route.label }}
+                <span
+                  v-if="route.to === '/suggestions/management' && supportStore.unreadCount > 0"
+                  class="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
+                >
+                  {{ supportStore.unreadCount > 99 ? '99+' : supportStore.unreadCount }}
+                </span>
+              </router-link>
+
+            </li>
+          </ul>
+        </li>
+
+        <li v-if="selectedArea === newDiscsAreaId && filteredNewDiscsRoutes.length > 0" class="pt-2">
           <details class="group">
             <summary class="font-bold uppercase text-xs tracking-wider flex justify-between items-center py-2 px-4
          text-white group-open:text-gray-400
@@ -75,148 +203,7 @@
           </details>
         </li>
 
-        <li v-if="filteredRiffValleyRoutes.length > 0" class="pt-2">
-          <details class="group">
-            <summary class="font-bold uppercase text-xs tracking-wider flex justify-between items-center py-2 px-4
-         text-white group-open:text-gray-400
-         hover:text-white cursor-pointer">
-              <div class="flex items-center justify-start">
-                <i class="fa-solid fa-headphones text-base w-5 text-center mr-3"></i>
-                Riff Valley
-              </div>
-
-              <i class="fa-solid fa-chevron-down text-[10px]
-               transition-transform duration-200
-               group-open:rotate-180"></i>
-            </summary>
-
-            <ul>
-              <li v-for="route in filteredRiffValleyRoutes" :key="route.to" class="mt-1">
-
-                <!-- CON HIJOS (ej: Discos) -->
-                <div v-if="route.children && route.children.length > 0">
-                  <details class="group/child">
-                    <summary class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
-             transition-all duration-300
-             hover:bg-gray-700 hover:text-white cursor-pointer list-none">
-                      <div class="flex items-center justify-between w-full">
-                        <div class="flex items-center">
-                          <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
-                          {{ route.label }}
-                        </div>
-
-                        <i class="fa-solid fa-chevron-down text-[10px]
-                  transition-transform duration-200
-                  group-open/child:rotate-180"></i>
-                      </div>
-                    </summary>
-
-                    <ul>
-                      <li v-for="child in route.children" :key="child.to" class="mt-1">
-                        <router-link :to="child.to" class="flex items-center justify-start py-2 pl-12 pr-4 text-sm font-medium rounded-primary
-                 transition-all duration-300
-                 hover:bg-gray-700 hover:text-white"
-                          :active-class="'bg-gradient-to-r from-[#2f66c9] to-[#0064d6] text-white'" @click="closeMenu">
-                          <i :class="[child.icon, 'text-base w-5 text-center mr-3']"></i>
-                          {{ child.label }}
-                        </router-link>
-                      </li>
-                    </ul>
-                  </details>
-                </div>
-
-                <!-- SIN HIJOS (ej: Calendario, Reuniones) -->
-                <router-link v-else :to="route.to" class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
-                 transition-all duration-300
-                 hover:bg-gray-700 hover:text-white"
-                  :active-class="'bg-gradient-to-r from-[#2f66c9] to-[#0064d6] text-white'" @click="closeMenu">
-                  <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
-                  {{ route.label }}
-                </router-link>
-              </li>
-            </ul>
-          </details>
-        </li>
-
-        <li v-if="filteredManagementRoutes.length > 0" class="pt-2">
-          <details class="group">
-            <!-- CABECERA SECCIÓN -->
-            <summary class="font-bold uppercase text-xs tracking-wider flex justify-between items-center py-2 px-4
-      text-white group-open:text-gray-400 hover:text-white cursor-pointer">
-              <div class="flex items-center justify-start">
-                <i class="fa-solid fa-gears text-base w-5 text-center mr-3"></i>
-                Gestión
-                <span
-                  v-if="supportStore.unreadCount > 0"
-                  class="ml-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
-                >
-                  {{ supportStore.unreadCount > 99 ? '99+' : supportStore.unreadCount }}
-                </span>
-              </div>
-
-              <i class="fa-solid fa-chevron-down text-[10px]
-               transition-transform duration-200
-               group-open:rotate-180"></i>
-            </summary>
-
-            <!-- ITEMS DE GESTIÓN -->
-            <ul>
-              <li v-for="route in filteredManagementRoutes" :key="route.to" class="mt-1">
-
-                <!-- CON HIJOS (ej: Versiones) -->
-                <div v-if="route.children && route.children.length > 0">
-                  <details class="group/child">
-                    <summary class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
-             transition-all duration-300
-             hover:bg-gray-700 hover:text-white cursor-pointer list-none">
-                      <div class="flex items-center justify-between w-full">
-                        <div class="flex items-center">
-                          <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
-                          {{ route.label }}
-                        </div>
-
-                        <i class="fa-solid fa-chevron-down text-[10px]
-                  transition-transform duration-200
-                  group-open/child:rotate-180"></i>
-                      </div>
-                    </summary>
-
-                    <ul>
-                      <li v-for="child in route.children" :key="child.to" class="mt-1">
-                        <router-link :to="child.to" class="flex items-center justify-start py-2 pl-12 pr-4 text-sm font-medium rounded-primary
-                 transition-all duration-300
-                 hover:bg-gray-700 hover:text-white"
-                          :active-class="'bg-gradient-to-r from-[#b0669f] to-[#8a5bb4] text-white'" @click="closeMenu">
-                          <i :class="[child.icon, 'text-base w-5 text-center mr-3']"></i>
-                          {{ child.label }}
-                        </router-link>
-                      </li>
-                    </ul>
-                  </details>
-                </div>
-
-                <!-- SIN HIJOS (ej: Usuarios) -->
-                <router-link v-else :to="route.to" class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
-            transition-all duration-300
-            hover:bg-gray-700 hover:text-white"
-                  :active-class="'bg-gradient-to-r from-[#b0669f] to-[#8a5bb4] text-white'" @click="closeMenu">
-                  <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
-                  {{ route.label }}
-                  <span
-                    v-if="route.to === '/suggestions/management' && supportStore.unreadCount > 0"
-                    class="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
-                  >
-                    {{ supportStore.unreadCount > 99 ? '99+' : supportStore.unreadCount }}
-                  </span>
-                </router-link>
-
-              </li>
-            </ul>
-          </details>
-        </li>
-
-        
-
+        <template v-if="selectedArea === 'app'">
         <li v-if="filteredBottomRoutes.length > 0" class="my-2 border-t border-gray-700/50"></li>
 
         <li v-for="route in filteredBottomRoutes" :key="route.to">
@@ -228,12 +215,36 @@
             {{ route.label }}
           </router-link>
         </li>
+        </template>
 
       </ul>
     </div>
 
-<!-- Switch modo oscuro -->
-<div class="px-2 mb-3 shrink-0">
+<!-- Selector de áreas + Switch modo oscuro -->
+<div class="px-2 mb-3 shrink-0 flex items-center justify-between gap-2">
+
+  <!-- Selector de áreas (solo riffValley / superUser) -->
+  <div v-if="areaOptions.length > 0" class="flex items-center gap-1">
+    <button
+      v-for="area in areaOptions"
+      :key="area.id"
+      type="button"
+      :aria-pressed="selectedArea === area.id"
+      :title="area.label"
+      @click="setArea(area.id)"
+      class="w-12 h-8 py-0 px-3 rounded-primary flex items-center justify-center transition-all duration-300"
+      :class="selectedArea === area.id
+        ? area.activeClass + ' text-white'
+        : 'text-white/50 hover:text-white hover:bg-white/10'"
+    >
+      <i v-if="area.icon" :class="[area.icon, 'text-sm']"></i>
+      <svg v-else-if="area.id === 'riff-valley'" viewBox="0 0 128 128" width="20" height="20" fill="currentColor" class="w-5 h-5" aria-hidden="true">
+        <path d="M90.97,80.48c-33.67-13-33.05-24.71-21.76-33.75,2.05-1.64,4.45-3.2,7.06-4.65s4.67-4.03,5.39-7.02c.25-1.05.36-2.15.26-3.3-.3-3.79-2.71-8.15-8.93-12.88-6.5-4.94-7.99-9.54-6.92-13.54-.5-.01-1-.04-1.51-.04-3.01,0-5.97.24-8.85.7-1.14,3.82-.19,8.17,4.56,12.88,6.4,6.34,5.19,11.87,1.21,16.29-2.05,2.27-4.64,3.98-7.49,5.08-5.07,1.96-9.85,4.13-13.94,6.49-15.58,8.97-21.19,20.62,4.91,33.75,27.32,13.75,13.38,25.41-10.5,34.12,8.77,5.55,19.08,8.76,30.12,8.76,21.67,0,40.57-12.37,50.38-30.58-5.14-3.91-12.88-8.02-23.97-12.31Z" />
+        <path d="M75.98,126.83C31.45,134.92-6.92,96.55,1.18,52.02,5.47,28.42,28.51,5.38,52.11,1.09c44.53-8.1,82.91,30.28,74.8,74.82-4.29,23.59-27.34,46.63-50.93,50.92ZM74.57,8.53C35.31,1.39,1.48,35.22,8.62,74.48c4.15,22.81,22.09,40.75,44.9,44.9,39.26,7.15,73.1-26.69,65.96-65.95-4.15-22.81-22.09-40.75-44.9-44.9Z" />
+      </svg>
+    </button>
+  </div>
+
   <label class="flex items-center justify-end pr-2 gap-3 text-white/75 cursor-pointer">
     <!-- Sol -->
     <i
@@ -315,6 +326,15 @@ type AppRoute = {
   children?: AppRoute[];
 };
 
+type SidebarAreaId = 'app' | 'riff-valley' | 'management';
+
+type SidebarArea = {
+  id: SidebarAreaId;
+  label: string;
+  activeClass: string;
+  icon?: string;
+};
+
 export default defineComponent({
   name: 'SidebarMenu',
 props: {
@@ -372,6 +392,55 @@ emits: ['close-menu', 'toggle-theme'],
       filterByRole(allRoutes.filter((r) => r.type === 'bottom'))
     );
 
+    // Selector de áreas (App / Riff Valley / Gestión) — visible solo para riffValley y superUser
+    const canSeeRiffValleyArea = computed(() => authStore.hasRole('riffValley'));
+    const canSeeManagementArea = computed(() => authStore.hasRole('superUser'));
+    const showAreaSelector = computed(() => canSeeRiffValleyArea.value || canSeeManagementArea.value);
+
+    // Nuevos Discos vive en la pestaña Gestión: los riffValley sin superUser
+    // solo verán ahí los discos nuevos (el resto de Gestión se filtra por rol).
+    // Los roles sin selector de áreas lo ven siempre en su única vista ("app").
+    const newDiscsAreaId = computed<SidebarAreaId>(() =>
+      showAreaSelector.value ? 'management' : 'app'
+    );
+
+    const areaOptions = computed<SidebarArea[]>(() => {
+      const options: SidebarArea[] = [];
+      if (!showAreaSelector.value) return options;
+
+      options.push({
+        id: 'app',
+        label: 'App',
+        icon: 'fa-solid fa-compact-disc',
+        activeClass: 'bg-gradient-to-r from-[#e46e8a] to-[#b0669f]',
+      });
+
+      if (canSeeRiffValleyArea.value) {
+        options.push({
+          id: 'riff-valley',
+          label: 'Riff Valley',
+          activeClass: 'bg-gradient-to-r from-[#2f66c9] to-[#0064d6]',
+        });
+      }
+
+      // Gestión es visible para riffValley y superUser; los riffValley sin
+      // superUser solo verán Nuevos Discos dentro de esta pestaña.
+      options.push({
+        id: 'management',
+        label: 'Gestión',
+        icon: 'fa-solid fa-gear',
+        activeClass: 'bg-gradient-to-r from-[#b0669f] to-[#8a5bb4]',
+      });
+
+      return options;
+    });
+
+    const selectedArea = ref<SidebarAreaId>('app');
+
+    const setArea = (id: SidebarAreaId) => {
+      selectedArea.value = id;
+    };
+
     // Fetch latest public version + badge counts
     onMounted(async () => {
       try {
@@ -413,6 +482,10 @@ emits: ['close-menu', 'toggle-theme'],
       filteredManagementRoutes,
       filteredBottomRoutes,
       versionDisplay,
+      areaOptions,
+      selectedArea,
+      setArea,
+      newDiscsAreaId,
     };
   },
 });
