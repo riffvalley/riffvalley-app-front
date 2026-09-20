@@ -149,6 +149,11 @@ function formatDateForInput(dateString: string) {
   return new Date(dateString).toISOString().split('T')[0];
 }
 
+function toLocalISODate(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 const maxListDate = computed(() => {
   if (!list.value?.listDate) return undefined;
   const d = new Date(list.value.listDate);
@@ -182,7 +187,7 @@ const minCloseDate = computed(() => {
   if (!list.value?.listDate) return undefined;
   const d = new Date(list.value.listDate);
   d.setHours(0, 0, 0, 0);
-  return d.toISOString().split('T')[0];
+  return toLocalISODate(d);
 });
 
 function getStatusClass(status: string) {
