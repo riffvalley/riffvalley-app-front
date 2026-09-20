@@ -10,7 +10,7 @@
         </h1>
       </div>
 
-      <!-- Actuales: viernes de esta semana y de la siguiente -->
+      <!-- Actuales: las aún abiertas, el próximo viernes y el siguiente -->
       <section class="mb-8">
         <div class="flex items-center gap-2 mb-4">
           <div class="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
@@ -42,15 +42,6 @@
         icon-wrap-class="bg-blue-100 dark:bg-blue-900/30" icon-class="text-blue-500 dark:text-blue-400">
         <div :class="gridClass">
           <RadarListCard v-for="list in futureLists" :key="list.id" :list="list" @open="goToListDetail" />
-        </div>
-      </CollapsibleSection>
-
-      <!-- Semana anterior, abierta hasta el martes -->
-      <CollapsibleSection v-if="previousOpenLists.length > 0" v-model:open="showPreviousOpen" class="mb-8"
-        title="Aún abiertas" icon="fa-regular fa-clock" :count="previousOpenLists.length"
-        icon-wrap-class="bg-red-100 dark:bg-red-900/30" icon-class="text-red-500 dark:text-red-400">
-        <div :class="gridClass">
-          <RadarListCard v-for="list in previousOpenLists" :key="list.id" :list="list" @open="goToListDetail" />
         </div>
       </CollapsibleSection>
 
@@ -102,7 +93,6 @@ const openLists = ref<any[]>([]);
 const pastLists = ref<any[]>([]);
 
 const showFuture = ref(false);
-const showPreviousOpen = ref(false);
 const showPast = ref(false);
 
 const currentDate = new Date();
@@ -124,25 +114,22 @@ function toDateKey(d: Date) {
 
 function listKey(list: any) {
   const date = list.listDate || list.releaseDate;
-  return date ? String(date).split('T')[0] : toDateKey(new Date());
+  return date ? String(date).split('T')[0] : '';
 }
 
 // Ventana de "actuales": el próximo viernes (hoy, si es viernes) y el siguiente.
-const todayKey = toDateKey(new Date());
 const currentWindowEndKey = (() => {
   const d = new Date();
   d.setDate(d.getDate() + ((5 - d.getDay() + 7) % 7) + 7);
   return toDateKey(d);
 })();
 
+// Incluye los radares de la semana pasada que siguen abiertos (hasta el martes).
 const currentLists = computed(() =>
-  openLists.value.filter(l => listKey(l) >= todayKey && listKey(l) <= currentWindowEndKey)
+  openLists.value.filter(l => listKey(l) <= currentWindowEndKey)
 );
 const futureLists = computed(() =>
   openLists.value.filter(l => listKey(l) > currentWindowEndKey)
-);
-const previousOpenLists = computed(() =>
-  openLists.value.filter(l => listKey(l) < todayKey)
 );
 
 function goToListDetail(id: string) {

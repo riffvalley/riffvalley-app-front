@@ -1,7 +1,7 @@
 <template>
   <section>
     <button type="button"
-      class="w-full flex items-center gap-2 text-left rounded-xl py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-rv-purple/40"
+      class="w-full flex items-center gap-2 text-left rounded-xl p-0 py-1 bg-transparent hover:bg-transparent border-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-rv-purple/40"
       :class="open ? 'mb-4' : ''"
       :aria-expanded="open"
       @click="open = !open">
