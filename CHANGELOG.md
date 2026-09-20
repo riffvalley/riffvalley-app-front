@@ -1,3 +1,8 @@
+## <small>1.39.1 (2026-09-20)</small>
+
+* Merge pull request #165 from riffvalley/fix/radar-cierre-martes ([b25dfac](https://github.com/riffvalley/riffvalley-app-front/commit/b25dfac)), closes [#165](https://github.com/riffvalley/riffvalley-app-front/issues/165)
+* fix(radar): títulos de secciones visibles y abiertas dentro de actuales ([473fb87](https://github.com/riffvalley/riffvalley-app-front/commit/473fb87))
+
 ## 1.39.0 (2026-09-20)
 
 * Merge pull request #164 from riffvalley/fix/radar-cierre-martes ([458ec73](https://github.com/riffvalley/riffvalley-app-front/commit/458ec73)), closes [#164](https://github.com/riffvalley/riffvalley-app-front/issues/164)
