@@ -1,3 +1,8 @@
+## 1.39.0 (2026-09-20)
+
+* Merge pull request #164 from riffvalley/fix/radar-cierre-martes ([458ec73](https://github.com/riffvalley/riffvalley-app-front/commit/458ec73)), closes [#164](https://github.com/riffvalley/riffvalley-app-front/issues/164)
+* feat(radar): mostrar solo las dos próximas semanas y colapsar el resto ([00eaa43](https://github.com/riffvalley/riffvalley-app-front/commit/00eaa43))
+
 ## 1.38.0 (2026-09-17)
 
 * feat(import): align manual import response and add Spotify search ([f37a07e](https://github.com/riffvalley/riffvalley-app-front/commit/f37a07e))
