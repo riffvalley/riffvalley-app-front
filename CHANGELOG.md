@@ -1,3 +1,8 @@
+## 1.40.0 (2026-09-20)
+
+* Merge pull request #166 from riffvalley/fix/radar-cierre-martes ([705fcbc](https://github.com/riffvalley/riffvalley-app-front/commit/705fcbc)), closes [#166](https://github.com/riffvalley/riffvalley-app-front/issues/166)
+* feat(mejores): colapsar anteriores y mover actuales debajo ([9af8b45](https://github.com/riffvalley/riffvalley-app-front/commit/9af8b45))
+
 ## <small>1.39.1 (2026-09-20)</small>
 
 * Merge pull request #165 from riffvalley/fix/radar-cierre-martes ([b25dfac](https://github.com/riffvalley/riffvalley-app-front/commit/b25dfac)), closes [#165](https://github.com/riffvalley/riffvalley-app-front/issues/165)
