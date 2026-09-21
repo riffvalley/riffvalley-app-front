@@ -1,3 +1,8 @@
+## 1.42.0 (2026-09-21)
+
+* Merge pull request #168 from riffvalley/feat/mejores-mis-votos ([de63446](https://github.com/riffvalley/riffvalley-app-front/commit/de63446)), closes [#168](https://github.com/riffvalley/riffvalley-app-front/issues/168)
+* feat(mejores): pestaña mis votos del mes con asignación a uno mismo ([0fffc9c](https://github.com/riffvalley/riffvalley-app-front/commit/0fffc9c))
+
 ## 1.41.0 (2026-09-21)
 
 * Merge pull request #167 from riffvalley/fix/radar-cierre-martes ([1142916](https://github.com/riffvalley/riffvalley-app-front/commit/1142916)), closes [#167](https://github.com/riffvalley/riffvalley-app-front/issues/167)
