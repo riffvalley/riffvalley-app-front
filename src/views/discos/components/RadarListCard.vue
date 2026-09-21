@@ -21,14 +21,14 @@
       <div class="mt-auto space-y-2">
         <!-- Fechas -->
         <div class="space-y-1 pt-2 border-t border-gray-100 dark:border-white/5">
-          <div class="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <div class="flex items-center justify-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
             <i class="fa-regular fa-calendar text-[10px] text-gray-400"></i>
             <span>{{ formatDate(list.releaseDate || list.listDate) }}</span>
           </div>
-          <div v-if="list.closeDate" class="flex items-center gap-1.5 text-xs"
+          <div v-if="list.closeDate" class="flex items-center justify-center gap-1.5 text-xs"
             :class="closed ? 'text-gray-400 dark:text-gray-500' : 'text-red-500 dark:text-red-400 font-medium'">
             <i class="fa-regular fa-clock text-[10px]"></i>
-            <span>{{ closed ? 'Cerrada' : 'Cierre' }}: {{ formatDate(list.closeDate) }}</span>
+            <span>{{ formatDate(list.closeDate) }}</span>
           </div>
         </div>
 
@@ -90,7 +90,7 @@ const assignees = computed(() => {
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleDateString('es-ES', {
-    day: 'numeric', month: 'long', year: 'numeric'
+    day: 'numeric', month: 'long'
   });
 }
 </script>
