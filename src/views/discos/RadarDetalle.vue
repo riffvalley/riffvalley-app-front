@@ -2,12 +2,21 @@
   <div class="p-4 md:p-6 min-h-screen bg-gray-50 dark:bg-rv-darkBg">
     <div class="max-w-7xl mx-auto">
 
-      <!-- Volver -->
-      <button @click="goBack"
-        class="mb-5 inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-lg bg-white dark:bg-rv-darkCard border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:text-rv-purple dark:hover:text-rv-pink hover:border-rv-purple/30 dark:hover:border-rv-pink/30 shadow-sm transition-all">
-        <i class="fa-solid fa-arrow-left text-xs"></i>
-        Volver a Radares
-      </button>
+      <!-- Volver / Eliminar -->
+      <div class="mb-5 flex items-center justify-between gap-3">
+        <button @click="goBack"
+          class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-lg bg-white dark:bg-rv-darkCard border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:text-rv-purple dark:hover:text-rv-pink hover:border-rv-purple/30 dark:hover:border-rv-pink/30 shadow-sm transition-all">
+          <i class="fa-solid fa-arrow-left text-xs"></i>
+          Volver a Radares
+        </button>
+
+        <button v-if="list" @click="deleteRadar" :disabled="deleting"
+          class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold rounded-lg bg-white dark:bg-rv-darkCard border border-red-200 dark:border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 shadow-sm transition-all"
+          title="Eliminar este radar">
+          <i class="fa-solid fa-trash text-xs"></i>
+          {{ deleting ? 'Eliminando...' : 'Eliminar radar' }}
+        </button>
+      </div>
 
       <!-- Loading -->
       <div v-if="loading" class="flex flex-col items-center justify-center py-24 gap-3">
@@ -129,7 +138,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getListDetails, updateList } from '@services/list/list';
+import { getListDetails, updateList, deleteList } from '@services/list/list';
 import SwalService from '@services/swal/SwalService';
 import { useAsignationStore } from '@stores/asignation/asignation';
 import { useUserStore } from '@stores/user/users';
@@ -143,6 +152,7 @@ const userStore = useUserStore();
 
 const list = ref<any>(null);
 const loading = ref(true);
+const deleting = ref(false);
 
 function formatDateForInput(dateString: string) {
   if (!dateString) return '';
@@ -197,6 +207,28 @@ function getStatusClass(status: string) {
     'published': 'bg-green-500 hover:bg-green-600 text-white',
   };
   return classes[status] || 'bg-white/20 hover:bg-white/30 text-white';
+}
+
+async function deleteRadar() {
+  if (!list.value || deleting.value) return;
+  const confirmed = await SwalService.confirm(
+    `¿Eliminar "${list.value.name}"?`,
+    'Esta acción no se puede deshacer. Se eliminarán el radar, sus asignaciones y su evento del calendario de contenido.',
+    'Sí, eliminar',
+    'Cancelar'
+  );
+  if (!confirmed.isConfirmed) return;
+
+  deleting.value = true;
+  try {
+    await deleteList(list.value.id);
+    SwalService.success('Radar eliminado');
+    router.push('/discos/radar');
+  } catch {
+    SwalService.error('No se pudo eliminar el radar');
+  } finally {
+    deleting.value = false;
+  }
 }
 
 function goBack() {
