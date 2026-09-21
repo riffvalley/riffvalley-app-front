@@ -1,3 +1,8 @@
+## <small>1.42.1 (2026-09-21)</small>
+
+* Merge pull request #169 from riffvalley/fix/mis-votos-sin-eps ([b77cec7](https://github.com/riffvalley/riffvalley-app-front/commit/b77cec7)), closes [#169](https://github.com/riffvalley/riffvalley-app-front/issues/169)
+* fix(mejores): excluir EPs de la pestaña mis votos ([cfd86da](https://github.com/riffvalley/riffvalley-app-front/commit/cfd86da))
+
 ## 1.42.0 (2026-09-21)
 
 * Merge pull request #168 from riffvalley/feat/mejores-mis-votos ([de63446](https://github.com/riffvalley/riffvalley-app-front/commit/de63446)), closes [#168](https://github.com/riffvalley/riffvalley-app-front/issues/168)
