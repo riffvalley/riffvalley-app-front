@@ -1,3 +1,8 @@
+## 1.43.0 (2026-09-21)
+
+* Merge pull request #170 from riffvalley/feat/radar-borrar-lista ([cdddaf3](https://github.com/riffvalley/riffvalley-app-front/commit/cdddaf3)), closes [#170](https://github.com/riffvalley/riffvalley-app-front/issues/170)
+* feat(radar): botón para eliminar radar desde el detalle ([c657ada](https://github.com/riffvalley/riffvalley-app-front/commit/c657ada))
+
 ## <small>1.42.1 (2026-09-21)</small>
 
 * Merge pull request #169 from riffvalley/fix/mis-votos-sin-eps ([b77cec7](https://github.com/riffvalley/riffvalley-app-front/commit/b77cec7)), closes [#169](https://github.com/riffvalley/riffvalley-app-front/issues/169)
