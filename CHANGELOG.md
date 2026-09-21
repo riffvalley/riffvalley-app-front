@@ -1,3 +1,8 @@
+## 1.41.0 (2026-09-21)
+
+* Merge pull request #167 from riffvalley/fix/radar-cierre-martes ([1142916](https://github.com/riffvalley/riffvalley-app-front/commit/1142916)), closes [#167](https://github.com/riffvalley/riffvalley-app-front/issues/167)
+* feat(discos): tarjetas de mejores centradas con acordeón y fechas simplificadas en radares ([f77e557](https://github.com/riffvalley/riffvalley-app-front/commit/f77e557))
+
 ## 1.40.0 (2026-09-20)
 
 * Merge pull request #166 from riffvalley/fix/radar-cierre-martes ([705fcbc](https://github.com/riffvalley/riffvalley-app-front/commit/705fcbc)), closes [#166](https://github.com/riffvalley/riffvalley-app-front/issues/166)
