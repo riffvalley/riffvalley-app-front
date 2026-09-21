@@ -2,7 +2,7 @@
   <div>
     <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
       <p class="text-sm text-gray-500 dark:text-gray-400">
-        Tus votos de discos lanzados en <span class="font-semibold capitalize">{{ monthLabel }}</span>,
+        Tus votos de discos (sin EPs) lanzados en <span class="font-semibold capitalize">{{ monthLabel }}</span>,
         de mayor a menor nota.
       </p>
       <span v-if="!loading" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
@@ -139,7 +139,8 @@ async function loadVotes() {
       'rate',
       'rate.rate:DESC,artist.name:ASC'
     );
-    votes.value = response.data ?? [];
+    // Los EPs no entran en Mejores del Mes.
+    votes.value = (response.data ?? []).filter((vote: any) => !vote.disc?.ep);
   } catch {
     votes.value = [];
     errorMessage.value = 'No se pudieron cargar tus votos';
