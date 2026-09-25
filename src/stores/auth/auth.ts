@@ -33,6 +33,10 @@ function loadDashboardConfig(key: string): DashboardModuleConfig[] | null {
   }
 }
 
+function loadDashboardButtonsEnabled(): boolean {
+  return localStorage.getItem("dashboardButtonsEnabled") === "true";
+}
+
 export const useAuthStore = defineStore("auth", {
   state: () => ({
     token: localStorage.getItem("token") as string | null,
@@ -40,6 +44,7 @@ export const useAuthStore = defineStore("auth", {
     userId: localStorage.getItem("userId") as string | null,
     image: localStorage.getItem("image") as string | null,
     roles: loadRoles(), // 👈 ahora siempre es string[]
+    dashboardButtonsEnabled: loadDashboardButtonsEnabled(),
     dashboardConfig: loadDashboardConfig("dashboardConfig") as DashboardModuleConfig[] | null,
     mobileDashboardConfig: loadDashboardConfig("mobileDashboardConfig") as DashboardModuleConfig[] | null,
   }),
@@ -53,6 +58,7 @@ export const useAuthStore = defineStore("auth", {
         this.userId = response.id;
         this.image = response.image || null;
         this.roles = response.roles || []; // array desde backend
+        this.dashboardButtonsEnabled = response.dashboardButtonsEnabled === true;
         this.dashboardConfig = response.dashboardConfig ?? null;
         this.mobileDashboardConfig = response.mobileDashboardConfig ?? null;
 
@@ -61,6 +67,7 @@ export const useAuthStore = defineStore("auth", {
         localStorage.setItem("userId", response.id);
         localStorage.setItem("image", this.image || "");
         localStorage.setItem("roles", JSON.stringify(this.roles)); // ✅ serializado
+        localStorage.setItem("dashboardButtonsEnabled", String(this.dashboardButtonsEnabled));
         localStorage.setItem("dashboardConfig", JSON.stringify(this.dashboardConfig));
         localStorage.setItem("mobileDashboardConfig", JSON.stringify(this.mobileDashboardConfig));
 
@@ -74,6 +81,11 @@ export const useAuthStore = defineStore("auth", {
     setImage(newImage: string) {
       this.image = newImage || null;
       localStorage.setItem("image", this.image || "");
+    },
+
+    setDashboardButtonsEnabled(enabled: boolean) {
+      this.dashboardButtonsEnabled = enabled;
+      localStorage.setItem("dashboardButtonsEnabled", String(enabled));
     },
 
     setDashboardConfig(config: DashboardModuleConfig[]) {
@@ -92,6 +104,7 @@ export const useAuthStore = defineStore("auth", {
       this.userId = null;
       this.image = null;
       this.roles = [];
+      this.dashboardButtonsEnabled = false;
       this.dashboardConfig = null;
       this.mobileDashboardConfig = null;
 
@@ -100,6 +113,7 @@ export const useAuthStore = defineStore("auth", {
       localStorage.removeItem("userId");
       localStorage.removeItem("image");
       localStorage.removeItem("roles");
+      localStorage.removeItem("dashboardButtonsEnabled");
       localStorage.removeItem("dashboardConfig");
       localStorage.removeItem("mobileDashboardConfig");
 
