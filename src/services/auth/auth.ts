@@ -12,6 +12,7 @@ export interface LoginResponse {
   token: string;
   roles?: string[];
   image?: string | null;
+  dashboardButtonsEnabled?: boolean;
   dashboardConfig?: { id: string; enabled: boolean }[] | null;
   mobileDashboardConfig?: { id: string; enabled: boolean }[] | null;
 }

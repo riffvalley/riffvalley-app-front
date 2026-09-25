@@ -71,6 +71,9 @@ export const useUserStore = defineStore("user", {
         const data: any = {};
         if (updatedUser?.password) data.password = updatedUser.password;
         if (updatedUser?.image) data.image = updatedUser.image;
+        if (typeof updatedUser?.dashboardButtonsEnabled === "boolean") {
+          data.dashboardButtonsEnabled = updatedUser.dashboardButtonsEnabled;
+        }
         if (updatedUser?.dashboardConfig) data.dashboardConfig = updatedUser.dashboardConfig;
         if (updatedUser?.mobileDashboardConfig) data.mobileDashboardConfig = updatedUser.mobileDashboardConfig;
         await updateUserService(data);
