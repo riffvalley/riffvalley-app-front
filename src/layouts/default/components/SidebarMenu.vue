@@ -226,10 +226,10 @@
     </div>
 
 <!-- Selector de áreas + Switch modo oscuro -->
-<div class="w-full px-2 mb-3 shrink-0 flex items-center justify-end gap-2">
+<div class="w-full px-2 mb-3 shrink-0 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
 
   <!-- Selector de áreas (solo riffValley / superUser) -->
-  <div v-if="showAreaSelector" class="flex shrink-0 items-center gap-1">
+  <div v-if="showAreaSelector" class="min-w-0 flex items-center gap-1 overflow-x-auto">
     <button
       v-for="area in areaOptions"
       :key="area.id"
@@ -250,7 +250,7 @@
     </button>
   </div>
 
-  <label class="ml-auto flex shrink-0 items-center justify-end pr-2 gap-3 text-white/75 cursor-pointer">
+  <label class="justify-self-end flex shrink-0 items-center justify-end pr-2 gap-3 text-white/75 cursor-pointer">
     <!-- Sol -->
     <i
       class="fa-regular fa-sun text-base transition-colors"
