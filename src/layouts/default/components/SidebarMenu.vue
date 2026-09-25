@@ -27,7 +27,7 @@
     <div class="flex-1 overflow-y-auto overscroll-contain py-4">
       <ul class="menu w-full px-2 space-y-1">
 
-        <template v-if="selectedArea === 'app'">
+        <template v-if="showAllAreas || selectedArea === 'app'">
         <li v-for="route in filteredDiscAppRoutes" :key="route.to">
           <router-link :to="route.to" class="flex items-center justify-start py-2 px-4 text-sm font-medium rounded-primary
          transition-all duration-300
@@ -39,14 +39,18 @@
         </li>
         </template>
 
-        <li v-if="selectedArea === 'riff-valley' && filteredRiffValleyRoutes.length > 0" class="pt-2">
-          <div class="font-bold uppercase text-xs tracking-wider flex items-center py-2 px-4 text-gray-400">
+        <li v-if="(showAllAreas || selectedArea === 'riff-valley') && filteredRiffValleyRoutes.length > 0" class="pt-2">
+          <details :open="!showAllAreas" class="group/area">
+          <summary v-if="showAllAreas" class="font-bold uppercase text-xs tracking-wider flex items-center justify-between py-2 px-4 text-gray-400 hover:text-white cursor-pointer list-none">
+            <span class="flex items-center">
             <svg viewBox="0 0 128 128" width="20" height="20" fill="currentColor" class="w-5 h-5 mr-3" aria-hidden="true">
               <path d="M90.97,80.48c-33.67-13-33.05-24.71-21.76-33.75,2.05-1.64,4.45-3.2,7.06-4.65s4.67-4.03,5.39-7.02c.25-1.05.36-2.15.26-3.3-.3-3.79-2.71-8.15-8.93-12.88-6.5-4.94-7.99-9.54-6.92-13.54-.5-.01-1-.04-1.51-.04-3.01,0-5.97.24-8.85.7-1.14,3.82-.19,8.17,4.56,12.88,6.4,6.34,5.19,11.87,1.21,16.29-2.05,2.27-4.64,3.98-7.49,5.08-5.07,1.96-9.85,4.13-13.94,6.49-15.58,8.97-21.19,20.62,4.91,33.75,27.32,13.75,13.38,25.41-10.5,34.12,8.77,5.55,19.08,8.76,30.12,8.76,21.67,0,40.57-12.37,50.38-30.58-5.14-3.91-12.88-8.02-23.97-12.31Z" />
               <path d="M75.98,126.83C31.45,134.92-6.92,96.55,1.18,52.02,5.47,28.42,28.51,5.38,52.11,1.09c44.53-8.1,82.91,30.28,74.8,74.82-4.29,23.59-27.34,46.63-50.93,50.92ZM74.57,8.53C35.31,1.39,1.48,35.22,8.62,74.48c4.15,22.81,22.09,40.75,44.9,44.9,39.26,7.15,73.1-26.69,65.96-65.95-4.15-22.81-22.09-40.75-44.9-44.9Z" />
             </svg>
             Riff Valley
-          </div>
+            </span>
+            <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200 group-open/area:rotate-180"></i>
+          </summary>
 
           <ul>
             <li v-for="route in filteredRiffValleyRoutes" :key="route.to" class="mt-1">
@@ -93,11 +97,13 @@
               </router-link>
             </li>
           </ul>
+          </details>
         </li>
 
-        <li v-if="selectedArea === 'management' && filteredManagementRoutes.length > 0" class="pt-2">
+        <li v-if="(showAllAreas || selectedArea === 'management') && filteredManagementRoutes.length > 0" class="pt-2">
           <!-- CABECERA SECCIÓN -->
-          <div class="font-bold uppercase text-xs tracking-wider flex justify-between items-center py-2 px-4 text-gray-400">
+          <details :open="!showAllAreas" class="group/area">
+          <summary v-if="showAllAreas" class="font-bold uppercase text-xs tracking-wider flex justify-between items-center py-2 px-4 text-gray-400 hover:text-white cursor-pointer list-none">
             <div class="flex items-center justify-start">
               <i class="fa-solid fa-gears text-base w-5 text-center mr-3"></i>
               Gestión
@@ -108,7 +114,8 @@
             >
               {{ supportStore.unreadCount > 99 ? '99+' : supportStore.unreadCount }}
             </span>
-          </div>
+            <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200 group-open/area:rotate-180"></i>
+          </summary>
 
           <!-- ITEMS DE GESTIÓN -->
           <ul>
@@ -163,10 +170,13 @@
 
             </li>
           </ul>
+          </details>
         </li>
 
-        <li v-if="selectedArea === newDiscsAreaId && filteredNewDiscsRoutes.length > 0" class="pt-2">
-          <div class="font-bold uppercase text-xs tracking-wider flex items-center py-2 px-4 text-gray-400">
+        <li v-if="(showAllAreas || selectedArea === newDiscsAreaId) && filteredNewDiscsRoutes.length > 0" class="pt-2">
+          <details :open="!showAllAreas" class="group/area">
+          <summary v-if="showAllAreas" class="font-bold uppercase text-xs tracking-wider flex items-center justify-between py-2 px-4 text-gray-400 hover:text-white cursor-pointer list-none">
+            <span class="flex items-center">
             <i class="fa-solid fa-circle-plus text-base w-5 text-center mr-3"></i>
             Nuevos Discos
             <span
@@ -175,7 +185,9 @@
             >
               {{ petitionsStore.pendingCount > 99 ? '99+' : petitionsStore.pendingCount }}
             </span>
-          </div>
+            </span>
+            <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200 group-open/area:rotate-180"></i>
+          </summary>
           <ul>
             <li v-for="route in filteredNewDiscsRoutes" :key="route.to" class="mt-1">
               <router-link :to="route.to" class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary
@@ -193,9 +205,10 @@
               </router-link>
             </li>
           </ul>
+          </details>
         </li>
 
-        <template v-if="selectedArea === 'app'">
+        <template v-if="showAllAreas || selectedArea === 'app'">
         <li v-if="filteredBottomRoutes.length > 0" class="my-2 border-t border-gray-700/50"></li>
 
         <li v-for="route in filteredBottomRoutes" :key="route.to">
@@ -216,7 +229,7 @@
 <div class="px-2 mb-3 shrink-0 flex items-center justify-between gap-2">
 
   <!-- Selector de áreas (solo riffValley / superUser) -->
-  <div v-if="areaOptions.length > 0" class="flex items-center gap-1">
+  <div v-if="showAreaSelector" class="flex items-center gap-1">
     <button
       v-for="area in areaOptions"
       :key="area.id"
@@ -387,6 +400,7 @@ emits: ['close-menu', 'toggle-theme'],
     const canSeeRiffValleyArea = computed(() => authStore.hasRole('riffValley'));
     const canSeeManagementArea = computed(() => authStore.hasRole('superUser'));
     const showAreaSelector = computed(() => canSeeRiffValleyArea.value || canSeeManagementArea.value);
+    const showAllAreas = computed(() => !authStore.dashboardButtonsEnabled);
 
     // Nuevos Discos vive en la pestaña Gestión: los riffValley sin superUser
     // solo verán ahí los discos nuevos (el resto de Gestión se filtra por rol).
@@ -474,6 +488,8 @@ emits: ['close-menu', 'toggle-theme'],
       filteredBottomRoutes,
       versionDisplay,
       areaOptions,
+      showAllAreas,
+      showAreaSelector: computed(() => showAreaSelector.value && !showAllAreas.value),
       selectedArea,
       setArea,
       newDiscsAreaId,
