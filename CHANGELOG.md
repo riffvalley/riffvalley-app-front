@@ -1,3 +1,8 @@
+## 1.44.0 (2026-09-25)
+
+* Merge pull request #173 from riffvalley/feat/dashboard-menu-main ([c4f40b6](https://github.com/riffvalley/riffvalley-app-front/commit/c4f40b6)), closes [#173](https://github.com/riffvalley/riffvalley-app-front/issues/173)
+* feat(sidebar): configure menu area buttons ([a011ed5](https://github.com/riffvalley/riffvalley-app-front/commit/a011ed5))
+
 ## 1.43.0 (2026-09-21)
 
 * Merge pull request #170 from riffvalley/feat/radar-borrar-lista ([cdddaf3](https://github.com/riffvalley/riffvalley-app-front/commit/cdddaf3)), closes [#170](https://github.com/riffvalley/riffvalley-app-front/issues/170)
