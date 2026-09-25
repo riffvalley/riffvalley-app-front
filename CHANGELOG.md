@@ -1,3 +1,12 @@
+## <small>1.44.1 (2026-09-25)</small>
+
+* Merge pull request #174 from riffvalley/fix/sidebar-theme-toggle-alignment ([da5c2c4](https://github.com/riffvalley/riffvalley-app-front/commit/da5c2c4)), closes [#174](https://github.com/riffvalley/riffvalley-app-front/issues/174)
+* fix(sidebar): align theme toggle to the right ([730edea](https://github.com/riffvalley/riffvalley-app-front/commit/730edea))
+* fix(sidebar): anchor theme toggle to the right ([8d773c3](https://github.com/riffvalley/riffvalley-app-front/commit/8d773c3))
+* fix(sidebar): compact navigation buttons ([339dba0](https://github.com/riffvalley/riffvalley-app-front/commit/339dba0))
+* fix(sidebar): keep theme toggle aligned ([aa6d993](https://github.com/riffvalley/riffvalley-app-front/commit/aa6d993))
+* fix(sidebar): pin theme toggle to the right column ([debf786](https://github.com/riffvalley/riffvalley-app-front/commit/debf786))
+
 ## 1.44.0 (2026-09-25)
 
 * Merge pull request #173 from riffvalley/feat/dashboard-menu-main ([c4f40b6](https://github.com/riffvalley/riffvalley-app-front/commit/c4f40b6)), closes [#173](https://github.com/riffvalley/riffvalley-app-front/issues/173)
