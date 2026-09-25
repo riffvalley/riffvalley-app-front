@@ -250,7 +250,7 @@
     </button>
   </div>
 
-  <label class="flex items-center justify-end pr-2 gap-3 text-white/75 cursor-pointer">
+  <label class="ml-auto flex items-center justify-end pr-2 gap-3 text-white/75 cursor-pointer">
     <!-- Sol -->
     <i
       class="fa-regular fa-sun text-base transition-colors"
