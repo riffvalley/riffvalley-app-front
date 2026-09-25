@@ -226,10 +226,10 @@
     </div>
 
 <!-- Selector de áreas + Switch modo oscuro -->
-<div class="px-2 mb-3 shrink-0 flex items-center justify-between gap-2">
+<div class="w-full px-2 mb-3 shrink-0 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
 
   <!-- Selector de áreas (solo riffValley / superUser) -->
-  <div v-if="showAreaSelector" class="flex items-center gap-1">
+  <div v-if="showAreaSelector" class="col-start-1 min-w-0 flex items-center gap-1 overflow-x-auto">
     <button
       v-for="area in areaOptions"
       :key="area.id"
@@ -237,7 +237,7 @@
       :aria-pressed="selectedArea === area.id"
       :title="area.label"
       @click="setArea(area.id)"
-      class="w-12 h-8 py-0 px-3 rounded-primary flex items-center justify-center transition-all duration-300"
+      class="w-10 h-8 py-0 px-2 rounded-primary flex items-center justify-center transition-all duration-300"
       :class="selectedArea === area.id
         ? area.activeClass + ' text-white'
         : 'text-white/50 hover:text-white hover:bg-white/10'"
@@ -250,7 +250,7 @@
     </button>
   </div>
 
-  <label class="flex items-center justify-end pr-2 gap-3 text-white/75 cursor-pointer">
+  <label class="col-start-2 justify-self-end flex shrink-0 items-center justify-end pr-2 gap-3 text-white/75 cursor-pointer">
     <!-- Sol -->
     <i
       class="fa-regular fa-sun text-base transition-colors"
