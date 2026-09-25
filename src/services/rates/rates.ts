@@ -240,3 +240,19 @@ export async function getRatesStats(year?: number): Promise<RatesStatsResponse> 
   });
   return response.data;
 }
+
+export interface RatedDiscItem {
+  id: string;
+  name: string;
+  rate: number;
+  artist: { name: string };
+  genre: { name: string; color: string } | null;
+}
+
+// Bajo demanda (galaxia de discos): no se pide en cada visita a Estadísticas.
+export async function getUserRatedDiscs(year?: number): Promise<RatedDiscItem[]> {
+  const response = await api.get<RatedDiscItem[]>("/rates/stats/discs", {
+    params: year ? { year } : undefined,
+  });
+  return response.data;
+}

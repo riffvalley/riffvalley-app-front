@@ -9,16 +9,18 @@
       Cargando gráfico…
     </p>
 
-    <img v-for="pos in coverPositions" :key="pos.index"
-      v-show="months[pos.index]?.topDisc?.image"
-      :src="months[pos.index]?.topDisc?.image ?? undefined"
-      :alt="months[pos.index]?.topDisc?.name"
-      class="absolute rounded-lg object-cover ring-2 ring-white dark:ring-rv-navy
-             hover:ring-rv-pink hover:scale-110 hover:z-10 transition-all duration-150 cursor-pointer"
-      :style="{ left: `${pos.x - COVER_SIZE / 2}px`, top: `${pos.y - COVER_SIZE / 2}px`, width: `${COVER_SIZE}px`, height: `${COVER_SIZE}px` }"
-      @mouseenter="onEnter(pos)"
-      @mouseleave="hoveredDisc = null"
-    />
+    <template v-if="!isMobile">
+      <img v-for="pos in coverPositions" :key="pos.index"
+        v-show="months[pos.index]?.topDisc?.image"
+        :src="months[pos.index]?.topDisc?.image ?? undefined"
+        :alt="months[pos.index]?.topDisc?.name"
+        class="absolute rounded-lg object-cover ring-2 ring-white dark:ring-rv-navy
+               hover:ring-rv-pink hover:scale-110 hover:z-10 transition-all duration-150 cursor-pointer"
+        :style="{ left: `${pos.x - COVER_SIZE / 2}px`, top: `${pos.y - COVER_SIZE / 2}px`, width: `${COVER_SIZE}px`, height: `${COVER_SIZE}px` }"
+        @mouseenter="onEnter(pos)"
+        @mouseleave="hoveredDisc = null"
+      />
+    </template>
 
     <DiscHoverTooltip v-if="hoveredDisc" :disc="hoveredDisc.disc" :x="hoveredDisc.x" :y="hoveredDisc.y" />
   </div>
@@ -40,6 +42,8 @@ import {
 import type { TopDisc } from "@services/rates/rates";
 import { createDiscCoverPositionsPlugin, type DiscCoverPosition } from "../utils/discCoverPositionsPlugin";
 import { externalTooltipHandler } from "../utils/externalTooltip";
+import { useIsMobileViewport } from "@/composables/useIsMobileViewport";
+import { translateMonthName } from "@helpers/dateConstants";
 import DiscHoverTooltip from "./DiscHoverTooltip.vue";
 
 ChartJS.register(Title, Tooltip, BarElement, CategoryScale, LinearScale);
@@ -62,6 +66,7 @@ export default defineComponent({
   setup(props) {
     const loaded = ref(false);
     const isDark = ref(document.documentElement.classList.contains("dark"));
+    const isMobile = useIsMobileViewport();
     const coverPositions = ref<DiscCoverPosition[]>([]);
     const hoveredDisc = ref<{ x: number; y: number; disc: TopDisc } | null>(null);
 
@@ -80,7 +85,7 @@ export default defineComponent({
     const chartOptions = computed<ChartOptions<"bar">>(() => ({
       responsive: true,
       maintainAspectRatio: false,
-      layout: { padding: { top: 70 } },
+      layout: { padding: { top: isMobile.value ? 20 : 70 } },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -122,7 +127,7 @@ export default defineComponent({
       if (!props.monthlyVotes.length) return;
       months.value = props.monthlyVotes;
       chartData.value = {
-        labels: props.monthlyVotes.map(m => m.month),
+        labels: props.monthlyVotes.map(m => translateMonthName(m.month)),
         datasets: [{
           label: "Votos",
           data: props.monthlyVotes.map(m => m.count),
@@ -144,7 +149,7 @@ export default defineComponent({
     onMounted(() => observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] }));
     onUnmounted(() => observer.disconnect());
 
-    return { loaded, isDark, chartData, chartOptions, positionsPlugin, coverPositions, months, hoveredDisc, onEnter, COVER_SIZE };
+    return { loaded, isDark, isMobile, chartData, chartOptions, positionsPlugin, coverPositions, months, hoveredDisc, onEnter, COVER_SIZE };
   },
 });
 </script>

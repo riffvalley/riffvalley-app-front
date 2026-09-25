@@ -3,6 +3,22 @@ export const MONTHS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
+const ENGLISH_MONTHS = [
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
+];
+
+/**
+ * El backend devuelve el nombre del mes en inglés (TO_CHAR de Postgres,
+ * locale por defecto). Lo traducimos aquí para mostrarlo en español; si no
+ * coincide con ninguno (ya viene en español, o algo inesperado), se devuelve
+ * tal cual en vez de romper.
+ */
+export function translateMonthName(month: string): string {
+  const idx = ENGLISH_MONTHS.indexOf(month.trim().toLowerCase());
+  return idx === -1 ? month : MONTHS[idx];
+}
+
 /**
  * Devuelve los años disponibles desde 2025 hasta el año actual
  * (o el siguiente si estamos en diciembre).

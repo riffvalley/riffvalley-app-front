@@ -77,13 +77,22 @@
       <div class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10">
         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
           <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Mis votos por género</h2>
-          <span v-if="votesByGenre.length"
-            class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rv-purple/10 text-rv-purple dark:bg-rv-purple/20 dark:text-rv-purple">
-            <i class="fa-solid fa-shuffle mr-1"></i>{{ votesByGenre.length }} género{{ votesByGenre.length !== 1 ? 's' : '' }} distinto{{ votesByGenre.length !== 1 ? 's' : '' }}
-          </span>
+          <div class="flex items-center gap-2">
+            <span v-if="votesByGenre.length"
+              class="text-xs font-semibold px-2.5 py-1 rounded-full bg-rv-purple/10 text-rv-purple dark:bg-rv-purple/20 dark:text-rv-purple">
+              <i class="fa-solid fa-shuffle mr-1"></i>{{ votesByGenre.length }} género{{ votesByGenre.length !== 1 ? 's' : '' }} distinto{{ votesByGenre.length !== 1 ? 's' : '' }}
+            </span>
+            <button v-if="votesByGenre.length" @click="showGalaxy = true"
+              class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-400 text-amber-900
+                     hover:bg-amber-300 transition-colors flex items-center gap-1">
+              <i class="fa-solid fa-star"></i>{{ isMobile ? 'Explorar géneros' : 'Ver galaxia musical' }}
+            </button>
+          </div>
         </div>
         <GenreBarChart :genre-distribution="votesByGenre" />
       </div>
+
+      <GenreGalaxyModal v-if="showGalaxy" :year="calendarYear" @close="showGalaxy = false" />
 
       <!-- Score Chart Card -->
       <div class="bg-white dark:bg-rv-navy p-6 rounded-2xl shadow-md dark:shadow-lg border border-gray-100 dark:border-white/10">
@@ -122,8 +131,10 @@ import ScoreDistributionChart from './components/ScoreDistributionChart.vue';
 import MonthlyVotesChart from './components/MonthlyVotesChart.vue';
 import ActivityCalendar from './components/ActivityCalendar.vue';
 import ControversialDiscsList from './components/ControversialDiscsList.vue';
+import GenreGalaxyModal from './components/GenreGalaxyModal.vue';
 import SimpleSelect from '@components/SimpleSelect.vue';
 import { getYearOptions } from '@helpers/dateConstants';
+import { useIsMobileViewport } from '@/composables/useIsMobileViewport';
 
 export default defineComponent({
   name: 'Statistics',
@@ -133,6 +144,7 @@ export default defineComponent({
     MonthlyVotesChart,
     ActivityCalendar,
     ControversialDiscsList,
+    GenreGalaxyModal,
     SimpleSelect,
   },
   setup() {
@@ -153,6 +165,8 @@ export default defineComponent({
     const errorMsg = ref("");
 
     const selectedYear = ref<number | null>(new Date().getFullYear());
+    const showGalaxy = ref(false);
+    const isMobile = useIsMobileViewport();
     const yearOptions = getYearOptions();
 
     const calendarYear = computed(() => selectedYear.value ?? new Date().getFullYear());
@@ -218,6 +232,8 @@ export default defineComponent({
       yearOverYear,
       yoyChange,
       calendarYear,
+      isMobile,
+      showGalaxy,
       rank,
       totalUsers,
       loading,
