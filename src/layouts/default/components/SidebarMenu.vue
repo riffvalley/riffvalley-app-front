@@ -237,7 +237,7 @@
       :aria-pressed="selectedArea === area.id"
       :title="area.label"
       @click="setArea(area.id)"
-      class="w-12 h-8 py-0 px-3 rounded-primary flex items-center justify-center transition-all duration-300"
+      class="w-10 h-8 py-0 px-2 rounded-primary flex items-center justify-center transition-all duration-300"
       :class="selectedArea === area.id
         ? area.activeClass + ' text-white'
         : 'text-white/50 hover:text-white hover:bg-white/10'"
