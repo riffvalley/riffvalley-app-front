@@ -90,3 +90,63 @@ legacy; el guard no sustituye autorización del backend. La escritura de
 preferencias en backend continúa en el recorrido legacy de usuario/composable.
 No se migra catálogo ni se comienza la Iteración 3. Los avisos iniciales de build
 (Browserslist, .flex-[2] y chunk grande) siguen presentes.
+
+## Subiteración 3.2 — Detalle de disco
+
+Inventario previo al corte: `components/DiscDetail.vue` no carga un disco de la
+API de Riff Valley ni permite editarlo. Busca por nombre de disco y artista en
+Spotify y muestra el primer álbum, su portada, fecha, artistas y pistas. Lo
+consumen el calendario normal, el calendario babyUser y la gestión de artistas.
+No confundir este modal con `DiscCardComponent` (valoraciones) ni con el detalle
+de asignaciones de Editorial.
+
+Fronteras conservadas:
+
+- **Catalog:** contrato mínimo `DiscDetailIdentity` (nombre del disco y nombre
+  del artista). No hay operaciones propias de Catalog en este modal; no se añade
+  un GET, una cache ni una dependencia de Spotify al módulo.
+- **Community:** valoraciones, comentarios, favoritos y pendientes siguen en
+  sus recorridos legacy. Los consumidores tienen acciones ajenas al modal;
+  no se trasladan a Catalog ni se migran en este corte.
+- **Releases:** peticiones, sugerencias, importación y estado de lanzamiento
+  nacional permanecen fuera. El modal no los consulta. La fecha obtenida de
+  Spotify es un dato del álbum externo, no el estado del flujo de Releases.
+- **Integrations:** solo la capacidad de búsqueda y detalle de álbum en Spotify
+  pasa a `integrations/spotify`. Autenticación y DTOs quedan en infraestructura;
+  la operación pura produce nombres y duraciones para presentación. El contenido
+  visual consume ese modelo y no conoce tokens ni respuestas HTTP.
+
+`app/components/DiscDetailModal.vue` ensambla la entrada pública de Catalog y el
+contenido público de la integración. `app/dependencies/discDetail.ts` conecta el
+puerto de aplicación con el adaptador. Catalog no importa Integrations, Community
+ni Releases. No se introduce un composable que concentre responsabilidades de
+varios módulos ni modelos específicos del detalle en shared.
+
+`components/DiscDetail.vue` es una fachada temporal que conserva el import, la
+prop `disc` y el evento `close` sin payload. Los tres consumidores no cambian.
+Se mantienen clases, breakpoints, overlay, scroll, enlaces y previews, mensajes
+de carga/error, selección del primer resultado y una búsqueda por montaje sin
+cache. No cambian rutas, guards, permisos, query params, almacenamiento ni
+endpoints. Las duraciones siguen sumando únicamente las pistas retornadas; no
+se añade paginación de Spotify ni nuevas acciones de producto.
+
+Pruebas: caracterización de la fachada antes de extraer el código (carga, primer
+resultado, canciones, enlaces, previews, duración y cierre); contrato de la
+operación pura, errores HTTP de búsqueda/detalle, opcionales ausentes y reapertura.
+Vue Test Utils usa happy-dom como dependencia de desarrollo para estas pruebas
+de componentes. Playwright cubre apertura, contenido, cierre y reapertura desde
+los dos calendarios con API y Spotify simulados.
+
+Deuda pendiente: el adaptador reutiliza únicamente `obtenerTokenSpotify` del
+helper legacy. Este conserva `VITE_CLIENT_ID`/`VITE_CLIENT_SECRET` y autenticación
+en el navegador; trasladar el consumo a infraestructura no oculta esos valores.
+La sustitución por autenticación de backend queda pendiente de disponer de ese
+contrato, según Iteración 5. Las demás capacidades del helper, ArtistDetail,
+tarjetas, acciones de Community/Releases y calendarios siguen en legacy para
+sus cortes correspondientes. No se inicia 3.3 ni la migración completa de esos
+módulos.
+
+Validación de 3.2: `yarn verify` pasa (lint, arquitectura en 35 archivos,
+typecheck, 59 tests en 11 suites y build). Los dos E2E de detalle pasan en
+Chromium. `git diff --check` pasa. Persisten los avisos de build ya registrados:
+Browserslist desactualizado, selector `.flex-[2]` y chunk superior a 500 kB.
