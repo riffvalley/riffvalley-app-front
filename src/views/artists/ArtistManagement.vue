@@ -820,7 +820,7 @@ import {
   defineComponent,
   ref,
   reactive,
-  watch,
+  computed,
   onMounted,
   onUnmounted,
 } from "vue";
@@ -834,11 +834,7 @@ import { getArtistInfo } from "@services/lastfm/lastfm";
 import type {
   ArtistManagementItem,
   ArtistManagementDisc,
-} from "@services/artist/artist";
-import { getCountries } from "@services/countries/countries";
-import type { Country } from "@services/countries/countries";
-import { getGenres } from "@services/genres/genres";
-import type { Genre } from "@services/genres/genres";
+} from "@/modules/catalog/domain/artistManagement";
 import { getDiscRates } from "@services/rates/rates";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
 import axios from "axios";
@@ -847,24 +843,26 @@ import SearchableSelect from "@components/SearchableSelect.vue";
 import DiscDetail from "@components/DiscDetail.vue";
 import DiscCardComponent from "@components/DiscCardComponent.vue";
 import Swal from "sweetalert2";
-
-const LIMIT = 30;
+import { fetchArtistManagement, fetchCatalog } from "@/app/dependencies/catalog";
+import { useArtistManagementList } from "@/modules/catalog/presentation/composables/useArtistManagementList";
+import { useCatalogStore } from "@/modules/catalog/presentation/catalogStore";
 
 export default defineComponent({
   name: "ArtistManagement",
   components: { SearchableSelect, DiscDetail, DiscCardComponent },
   setup() {
-    const artists = ref<ArtistManagementItem[]>([]);
-    const totalItems = ref(0);
-    const totalPages = ref(1);
-    const currentPage = ref(1);
-    const loading = ref(false);
-    const query = ref("");
-    const countries = ref<Country[]>([]);
-    const genres = ref<Genre[]>([]);
-    const selectedGenreId = ref("");
-    const selectedCountryId = ref("");
-    const needsReview = ref<boolean | null>(null);
+    const catalogStore = useCatalogStore();
+    const countries = computed(() => catalogStore.countries);
+    const genres = computed(() => catalogStore.genres);
+    const showLoadError = () => Swal.fire({
+      icon: "error", title: "Error al cargar artistas", timer: 3000,
+      showConfirmButton: false, toast: true, position: "top-end",
+    });
+    const {
+      artists, totalItems, totalPages, currentPage, loading, query,
+      selectedGenreId, selectedCountryId, needsReview, fetchArtists,
+      onQueryInput, goToPage,
+    } = useArtistManagementList({ getArtistsManagement: fetchArtistManagement }, showLoadError);
     const authStore = useAuthStore();
     const isManager =
       authStore.hasRole?.("riffValley") ||
@@ -874,7 +872,6 @@ export default defineComponent({
     const fillingImages = ref(false);
     const fillProgress = ref(0);
     const fillTotal = ref(0);
-    let searchTimer: ReturnType<typeof setTimeout> | null = null;
 
     const editModal = reactive({
       show: false,
@@ -885,50 +882,6 @@ export default defineComponent({
       image: "",
       description: "",
     });
-
-    const fetchArtists = async (page = 1) => {
-      loading.value = true;
-      try {
-        const offset = (page - 1) * LIMIT;
-        const res = await getArtistsManagement({
-          query: query.value || undefined,
-          limit: LIMIT,
-          offset,
-          genreId: selectedGenreId.value || undefined,
-          countryId: selectedCountryId.value || undefined,
-          needsReview: needsReview.value ?? undefined,
-        });
-        artists.value = res.data;
-        totalItems.value = res.totalItems;
-        totalPages.value = res.totalPages;
-        currentPage.value = res.currentPage;
-      } catch {
-        Swal.fire({
-          icon: "error",
-          title: "Error al cargar artistas",
-          timer: 3000,
-          showConfirmButton: false,
-          toast: true,
-          position: "top-end",
-        });
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    const onQueryInput = () => {
-      if (searchTimer) clearTimeout(searchTimer);
-      searchTimer = setTimeout(() => fetchArtists(1), 400);
-    };
-
-    watch(selectedGenreId, () => fetchArtists(1));
-    watch(selectedCountryId, () => fetchArtists(1));
-    watch(needsReview, () => fetchArtists(1));
-
-    const goToPage = (page: number) => {
-      if (page < 1 || page > totalPages.value) return;
-      fetchArtists(page);
-    };
 
     const selectedDisc = ref<any>(null);
     const selectedDiscCard = ref<any>(null);
@@ -1422,12 +1375,7 @@ export default defineComponent({
     onMounted(async () => {
       await Promise.all([
         fetchArtists(),
-        getCountries(250, 0).then((r) => {
-          countries.value = r.data.sort((a, b) => a.name.localeCompare(b.name));
-        }),
-        getGenres(150, 0).then((r) => {
-          genres.value = r.data.sort((a, b) => a.name.localeCompare(b.name));
-        }),
+        fetchCatalog(),
       ]);
       sentinelObserver = new IntersectionObserver(
         ([entry]) => {
