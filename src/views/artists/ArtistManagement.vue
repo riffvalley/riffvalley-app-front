@@ -748,6 +748,7 @@ import { useCatalogStore } from "@/modules/catalog/presentation/catalogStore";
 import ArtistEditForm from "@/app/components/ArtistEditForm.vue";
 import { deleteManagedArtist, saveManagedArtist } from "@/app/dependencies/catalog";
 import { applyArtistEditLocally, confirmAndDeleteArtist, removeArtistLocally } from "@/modules/catalog/presentation/artistManagementEditing";
+import { findArtistImages } from "@/app/dependencies/artistImages";
 
 export default defineComponent({
   name: "ArtistManagement",
@@ -1112,16 +1113,8 @@ export default defineComponent({
       fetchingSpotifyImage.value = true;
       spotifyImageOptions.value = [];
       try {
-        const token = await obtenerTokenSpotify();
-        if (!token) throw new Error("Sin token");
-        const res = await axios.get("https://api.spotify.com/v1/search", {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { q: editModal.name, type: "artist", limit: 5 },
-        });
-        const first = res.data.artists.items.find(
-          (a: any) => a.images?.length > 0,
-        );
-        if (!first) {
+        const options = await findArtistImages(editModal.name, 5);
+        if (!options.length) {
           Swal.fire({
             icon: "warning",
             title: "No se encontraron imágenes en Spotify",
@@ -1130,9 +1123,10 @@ export default defineComponent({
             toast: true,
             position: "top-end",
           });
+        } else if (options.length === 1) {
+          editModal.image = options[0].image;
         } else {
-          const img640 = first.images.find((img: any) => img.width === 640);
-          editModal.image = (img640 ?? first.images[0]).url;
+          spotifyImageOptions.value = options;
         }
       } catch {
         Swal.fire({
@@ -1157,18 +1151,7 @@ export default defineComponent({
       name: string,
     ): Promise<string | null> => {
       try {
-        const token = await obtenerTokenSpotify();
-        if (!token) return null;
-        const res = await axios.get("https://api.spotify.com/v1/search", {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { q: name, type: "artist", limit: 1 },
-        });
-        const first = res.data.artists?.items?.find(
-          (a: any) => a.images?.length > 0,
-        );
-        if (!first) return null;
-        const img640 = first.images.find((img: any) => img.width === 640);
-        return (img640 ?? first.images[0]).url;
+        return (await findArtistImages(name, 1))[0]?.image ?? null;
       } catch {
         return null;
       }

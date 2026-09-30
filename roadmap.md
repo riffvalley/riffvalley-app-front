@@ -519,6 +519,25 @@ composición de `app`. No exponer tokens ni DTOs del proveedor a presentación.
 **Cierre:** probar resultados sin imagen, selección, ausencia de resultados y
 error de proveedor; actualizar el artista solo cuando corresponda.
 
+**Estado: completado.** La búsqueda vive en `integrations/spotify`; el adaptador
+mantiene token y DTOs y entrega opciones `{ name, image }`. El editor consulta
+hasta cinco resultados: aplica la única imagen disponible o permite seleccionar
+manualmente entre varias. El fallback del modal Last.fm consulta un resultado y
+mantiene su degradado cuando no hay imagen o Spotify falla. Catalog sigue
+guardando el artista únicamente al usar Guardar; seleccionar una imagen actualiza
+el formulario, sin persistirla antes.
+
+Compatibilidad legacy: se conserva `ArtistManagement.vue` como vista y el flujo
+de rellenado masivo (3.4.10) sigue usando su implementación anterior. No se
+migra navegación/datos Last.fm del modal ni otros recorridos Spotify; no se
+inicia 3.4.9.
+
+**Validación:** pruebas de límites 1/5, preferencia de 640 px, ausencia de
+imágenes, errores de token/proveedor y selección manual. `yarn verify` pasa:
+77 archivos de arquitectura, 141 pruebas, cero regresiones TypeScript y build.
+`git diff --check` pasa. Persisten avisos conocidos de Browserslist, selector
+`.flex-[2]` y chunk superior a 500 kB.
+
 ### 3.4.9 — Modal Last.fm de gestión
 
 Migrar la consulta y navegación del modal de Last.fm: cache local, artistas
