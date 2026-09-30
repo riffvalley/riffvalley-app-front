@@ -223,7 +223,6 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, watch, nextTick, computed } from "vue";
-import { getDiscs } from "@services/discs/discs";
 import DiscCard from "@components/DiscCardComponent.vue";
 import Datepicker from "@vuepic/vue-datepicker";
 import { getRatesByUser } from "@services/rates/rates";
@@ -234,6 +233,7 @@ import DiscFilters from "@components/DiscFilters.vue";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
 import { getCommentsByUser } from "@services/comments/comments";
+import { fetchDiscList } from "@/app/dependencies/catalog";
 
 export default defineComponent({
   components: {
@@ -260,6 +260,8 @@ export default defineComponent({
     const totalPendings = ref("");
     const totalComments = ref("");
     const userComments = ref<any[]>([]);
+    let requestVersion = 0;
+    const inFlightPages = new Set<string>();
 
     const catalogStore = useCatalogStore();
 
@@ -305,8 +307,12 @@ export default defineComponent({
 
 
     const fetchData = async (reset = false) => {
+      const version = requestVersion;
+      const requestOffset = reset ? 0 : offset.value;
+      const pageKey = `${version}:${requestOffset}`;
+      if (inFlightPages.has(pageKey)) return;
+      inFlightPages.add(pageKey);
       let type;
-      if (loading.value) return;
       loading.value = true;
       try {
         if (reset) {
@@ -328,7 +334,7 @@ export default defineComponent({
           type = "rate";
           response = await getRatesByUser(
             limit.value,
-            offset.value,
+            requestOffset,
             searchQuery.value,
             selectedWeek.value,
             selectedGenre.value,
@@ -336,6 +342,7 @@ export default defineComponent({
             type,
             orderBy.value
           );
+          if (version !== requestVersion) return;
           totalRates.value = response.totalItems;
           discs.value.push(
             ...response.data.map((rate) => ({
@@ -357,7 +364,7 @@ export default defineComponent({
           type = "cover";
           response = await getRatesByUser(
             limit.value,
-            offset.value,
+            requestOffset,
             searchQuery.value,
             selectedWeek.value,
             selectedGenre.value,
@@ -365,6 +372,7 @@ export default defineComponent({
             type,
             orderBy.value
           );
+          if (version !== requestVersion) return;
           totalCovers.value = response.totalItems;
           discs.value.push(
             ...response.data.map((rate) => ({
@@ -386,13 +394,14 @@ export default defineComponent({
           } else if (viewMode.value === "comments") {
 response = await getCommentsByUser(
   limit.value,
-  offset.value,
+  requestOffset,
   searchQuery.value,
   selectedWeek.value,
   selectedGenre.value,
   selectedCountry.value,
   orderBy.value
 );
+  if (version !== requestVersion) return;
 
   totalComments.value = response.totalItems;
 
@@ -401,7 +410,7 @@ response = await getCommentsByUser(
         } else if (viewMode.value === "favorites") {
           response = await getFavoritesByUser(
             limit.value,
-            offset.value,
+            requestOffset,
             searchQuery.value,
             selectedWeek.value,
             selectedGenre.value,
@@ -409,6 +418,7 @@ response = await getCommentsByUser(
             type,
             orderBy.value
           );
+          if (version !== requestVersion) return;
           totalFavorites.value = response.totalItems;
           discs.value.push(
             ...response.data.map((favorite) => ({
@@ -435,12 +445,13 @@ response = await getCommentsByUser(
         } else if (viewMode.value === "pendientes") {
           response = await getPendingsByUser(
             limit.value,
-            offset.value,
+            requestOffset,
             searchQuery.value,
             selectedWeek.value,
             selectedGenre.value,
             selectedCountry.value
           );
+          if (version !== requestVersion) return;
           totalPendings.value = response.totalItems;
           discs.value.push(
             ...response.data.map((pending) => ({
@@ -472,29 +483,23 @@ response = await getCommentsByUser(
             actualOrderBy = "disc.releaseDate:DESC,artist.name:ASC";
           }
 
-          response = await getDiscs(
-            limit.value,
-            offset.value,
-            searchQuery.value,
-            selectedWeek.value,
-            selectedGenre.value,
-            selectedCountry.value,
-            actualOrderBy,
+          response = await fetchDiscList({
+            limit: limit.value,
+            offset: requestOffset,
+            query: searchQuery.value,
+            dateRange: selectedWeek.value,
+            genre: selectedGenre.value,
+            country: selectedCountry.value,
+            orderBy: actualOrderBy,
             voted,
-            votedType
-          );
+            votedType,
+          });
+          if (version !== requestVersion) return;
           totalDisc.value = response.totalItems;
-          discs.value.push(...response.data.map((disc) => ({
-            ...disc,
-            userRate: disc.userRate
-              ? {
-                  ...disc.userRate,
-                  rate: disc.userRate.rate != null ? parseFloat(disc.userRate.rate) : null,
-                  cover: disc.userRate.cover != null ? parseFloat(disc.userRate.cover) : null,
-                }
-              : null,
-          })));
+          discs.value.push(...response.data);
         }
+
+        if (version !== requestVersion) return;
 
         totalItems.value = response.totalItems;
         offset.value += limit.value;
@@ -502,9 +507,12 @@ response = await getCommentsByUser(
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
-        loading.value = false;
+        inFlightPages.delete(pageKey);
+        if (version === requestVersion) {
+          loading.value = [...inFlightPages].some((key) => key.startsWith(`${version}:`));
+        }
         await nextTick();
-        checkIfNeedsMore();
+        if (version === requestVersion) checkIfNeedsMore();
       }
     };
 
@@ -602,6 +610,7 @@ response = await getCommentsByUser(
     });
 
     const resetAndFetch = () => {
+      requestVersion += 1;
       offset.value = 0;
       fetchData(true);
     };

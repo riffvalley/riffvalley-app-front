@@ -126,6 +126,9 @@ La composición en `app` puede conocer todas las capas.
    antiguos mediante fachadas; retirarlos cuando no queden consumidores.
 10. Preservar URLs, nombres de rutas, query params, claves de localStorage y
     comportamiento de permisos salvo un cambio de producto explícito.
+11. La rama acumulativa de la refactorización es `chore/refactor-front`. Crear
+    cada rama de iteración desde ella; al completar y verificar la iteración,
+    integrar su rama en la acumulativa y publicarla antes de crear la siguiente.
 
 ## Mapa de funcionalidades
 
@@ -236,21 +239,103 @@ del arranque y finalmente separación de preferencias.
 mantienen su comportamiento. Los guards siguen siendo presentación: no
 sustituyen la autorización del backend.
 
-## Iteración 3 — Catálogo: listado, filtros, detalle, calendarios y artistas
+## Iteración 3 — Catalog
 
-Un corte por PR, en este orden:
+Cada subiteración puede ejecutarse y revisarse de forma independiente. Al
+terminar una, ejecutar `yarn verify`, correr los E2E relevantes si se afectan
+rutas o comportamiento crítico y documentar la deuda restante. No continuar
+automáticamente a la siguiente. La Iteración 3 solo se considera completa al
+cerrar 3.1–3.5.
 
-1. Listado y filtros: tipar parámetros y resultados, extraer coordinación de
-   carga/paginación y evitar que respuestas antiguas sobrescriban filtros
-   recientes. Preservar orden, rangos de fechas y parámetros de URL existentes.
-2. Detalle: separar datos del disco, presentación y acciones. Definir props y
-   eventos; no convertir el detalle en otro componente que lo haga todo.
-3. Calendarios estándar y baby: identificar comportamiento común, conservar
-   restricciones y extraer solo piezas realmente compartidas.
-4. Gestión de artistas: aplicar el mismo patrón por operación.
+### 3.1 — Listado y filtros de discos
 
-**Salida:** vistas centradas en composición, modelos tipados y carga reactiva
-controlada. Cada PR comprueba escritorio y móvil en las pantallas afectadas.
+**Objetivo:** migrar el recorrido de listado y filtros sin tocar todavía el
+detalle complejo.
+
+1. Caracterizar la carga del listado, los filtros y la paginación, incluidos
+   sus estados de loading, error y respuesta vacía.
+2. Tipar parámetros y resultados y extraer la coordinación de carga. Evitar que
+   respuestas antiguas sobrescriban filtros más recientes.
+3. Conservar parámetros de URL y query existentes, selección de filtros, orden
+   y rangos de fechas actuales.
+4. Identificar si el listado ya necesita cache; mantenerla solo si forma parte
+   del comportamiento actual y documentar su propietario e invalidación.
+5. Migrar el consumidor correspondiente a `modules/catalog` mediante su
+   operación y adaptador, conservando temporalmente una fachada si hace falta.
+
+**Salida:** listado y filtros dejan de depender directamente de servicios o
+stores legacy y utilizan la estructura modular de Catalog, conservando contratos
+API, URLs, query params, selección y comportamiento visual.
+
+### 3.2 — Detalle de disco
+
+**Objetivo:** migrar el detalle sin convertir `catalog` en un megamódulo.
+
+Antes de mover lógica, identificar qué responsabilidades pertenecen a
+`catalog`, `community`, `releases` e `integrations`. La pantalla puede componer
+varios módulos, pero estos conservan sus límites. No migrar Community, Releases
+ni Integrations completas dentro de este corte.
+
+Separar los datos propios del disco y los datos del artista estrictamente
+necesarios; las acciones propias de Catalog; las acciones de Community; la
+información de Releases; y las integraciones externas, como Spotify, cuando
+existan. Mantener estas dependencias detrás de contratos y adaptadores o de
+fachadas temporales para que el corte siga siendo pequeño.
+
+Definir props y eventos para la composición de presentación. El detalle no debe
+concentrar reglas de otros módulos, HTTP ni modelos externos.
+
+**Salida:** el detalle queda centrado en composición y cada responsabilidad
+permanece en su módulo propietario.
+
+### 3.3 — Calendarios de discos
+
+**Objetivo:** migrar los calendarios estándar y las variantes `babyUser`.
+
+1. Caracterizar primero las diferencias reales entre ambas variantes y sus
+   permisos y restricciones.
+2. Conservar fechas, zonas horarias, filtros y navegación actuales.
+3. Extraer únicamente el comportamiento realmente compartido. No crear un
+   calendario genérico antes de demostrar una necesidad común.
+4. Separar presentación, coordinación y reglas puras, manteniendo las
+   diferencias de autorización existentes.
+
+**Salida:** los calendarios migrados usan Catalog sin duplicar lógica
+innecesariamente ni borrar diferencias de autorización.
+
+### 3.4 — Artistas
+
+**Objetivo:** migrar progresivamente las operaciones relacionadas con artistas.
+
+Dividir el trabajo por recorrido cuando sea necesario: listado, detalle,
+edición/gestión y operaciones auxiliares. Para cada corte, mantener el patrón:
+
+```text
+presentation → application → domain
+infrastructure implementa puertos
+```
+
+Evitar mover a Catalog lógica específica de integraciones externas. Mantener
+fachadas durante la transición mientras sigan teniendo consumidores legacy.
+
+**Salida:** las operaciones de artistas migradas dejan de depender directamente
+de servicios y stores legacy.
+
+### 3.5 — Consolidación de Catalog
+
+**Objetivo:** revisar el módulo después de las migraciones anteriores, sin
+añadir nuevas funcionalidades ni hacer una limpieza global del repositorio.
+
+Comprobar la API pública del módulo; imports entre módulos y posibles ciclos;
+DTOs y mappers innecesarios; stores y composables demasiado grandes; fachadas
+legacy que ya no tengan consumidores; duplicación introducida durante la
+migración; y que Catalog no haya absorbido lógica de Community, Releases o
+Integrations.
+
+Eliminar únicamente compatibilidad legacy que ya no tenga consumidores.
+
+**Salida:** Catalog queda como un módulo coherente, con una API pública pequeña
+y sin dependencias legacy innecesarias.
 
 ## Iteración 4 — Acciones de comunidad
 
