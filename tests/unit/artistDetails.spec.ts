@@ -4,12 +4,13 @@ import { flushPromises, mount } from "@vue/test-utils";
 import ArtistDetail from "../../src/components/ArtistDetail.vue";
 import { artistDetailsApi } from "../../src/integrations/spotify/infrastructure/artistDetailsApi";
 
-const { get, token, fetchDetails } = vi.hoisted(() => ({
-  get: vi.fn(), token: vi.fn(), fetchDetails: vi.fn(),
+const { get, token, fetchDetails, fetchBiography } = vi.hoisted(() => ({
+  get: vi.fn(), token: vi.fn(), fetchDetails: vi.fn(), fetchBiography: vi.fn(),
 }));
 vi.mock("axios", () => ({ default: { get } }));
 vi.mock("@helpers/SpotifyFunctions.ts", () => ({ obtenerTokenSpotify: token }));
 vi.mock("@/app/dependencies/artistDetail", () => ({ fetchArtistDetails: fetchDetails }));
+vi.mock("@/app/dependencies/artistBiography", () => ({ fetchArtistBiography: fetchBiography }));
 
 const foundDetails = {
   artist: {
@@ -89,7 +90,7 @@ describe("ArtistDetail compatibility facade", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     fetchDetails.mockResolvedValue({ status: "found", details: foundDetails });
-    get.mockResolvedValue({ data: { artist: { bio: { summary: "Biografía Last.fm" }, tags: { tag: [{ name: "tag-rock" }] } } } });
+    fetchBiography.mockResolvedValue({ bio: { summary: "Biografía Last.fm" }, tags: { tag: [{ name: "tag-rock" }] } });
   });
 
   function render() {
@@ -101,6 +102,7 @@ describe("ArtistDetail compatibility facade", () => {
     expect(wrapper.text()).toContain("Buscando en Spotify...");
     await flushPromises();
     expect(fetchDetails).toHaveBeenCalledWith({ discName: "Disco", artistName: "Banda" });
+    expect(fetchBiography).toHaveBeenCalledWith("Banda");
     expect(wrapper.text()).toContain("Banda de Spotify");
     expect(wrapper.text()).toContain("Popularidad 85/100");
     expect(wrapper.text()).toContain("Top canciones");
@@ -111,6 +113,16 @@ describe("ArtistDetail compatibility facade", () => {
     await wrapper.find("div.fixed").trigger("click");
     await wrapper.find("button").trigger("click");
     expect(wrapper.emitted("close")).toHaveLength(2);
+    wrapper.unmount();
+  });
+
+  it("shows Spotify content when the independent Last.fm request fails", async () => {
+    fetchBiography.mockResolvedValue(null);
+    const wrapper = render();
+    await flushPromises();
+    expect(wrapper.text()).toContain("Banda de Spotify");
+    expect(wrapper.text()).toContain("Top canciones");
+    expect(wrapper.text()).not.toContain("Biografía Last.fm");
     wrapper.unmount();
   });
 

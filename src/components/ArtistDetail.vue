@@ -1,37 +1,19 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import axios from "axios";
+import type { ArtistBiography } from "@/integrations/lastfm";
+import { fetchArtistBiography } from "@/app/dependencies/artistBiography";
 import ArtistDetailSpotify from "@/app/components/ArtistDetailSpotify.vue";
 
 defineOptions({ name: "ArtistByDisc" });
 
-interface LastFmArtist {
-  bio?: { summary?: string };
-  tags?: { tag?: { name: string }[] };
-}
-
 const props = defineProps<{ discName: string; artistName: string }>();
 const emit = defineEmits<{ close: [] }>();
-const lastFmData = ref<LastFmArtist | null>(null);
+const lastFmData = ref<ArtistBiography | null>(null);
 const catalogIdentity = { discName: props.discName, artistName: props.artistName };
 
-async function fetchLastFmData(artistName: string): Promise<void> {
-  try {
-    const response = await axios.get<{ artist: LastFmArtist }>("https://ws.audioscrobbler.com/2.0/", {
-      params: {
-        method: "artist.getinfo",
-        artist: artistName,
-        api_key: "288147ee12920ea60b59f72f491ebada",
-        format: "json",
-      },
-    });
-    lastFmData.value = response.data.artist;
-  } catch (error: unknown) {
-    console.error("Error al obtener datos de Last.fm:", error);
-  }
-}
-
-onMounted(() => fetchLastFmData(props.artistName));
+onMounted(async () => {
+  lastFmData.value = await fetchArtistBiography(props.artistName);
+});
 </script>
 
 <template>
