@@ -179,3 +179,22 @@ con `-p tsconfig.app.json` falla también en HEAD inicial (149 diagnósticos, fr
 a 119 al terminar 3.3). La comparación normalizada no añade diagnósticos; los
 archivos nuevos no presentan errores. Se documenta esta limitación sin debilitar
 ni modificar las puertas durante el corte de calendarios.
+
+## Micro-PR — Puerta real de TypeScript tras 3.3
+
+Se corrige la limitación anterior: `yarn typecheck` ahora invoca vue-tsc sobre
+`tsconfig.app.json`, comprueba realmente src (incluidos scripts/templates Vue)
+y compara los resultados contra `docs/typecheck-baseline.json`. Se conservan
+todas las opciones estrictas y rutas incluidas; no se cambia código de negocio.
+
+El baseline inicial contiene los 119 diagnósticos de 3.3 en 45 archivos, no los
+149 anteriores. Cada excepción identifica archivo, código, mensaje completo,
+línea de origen y multiplicidad. Todo diagnóstico nuevo o adicional falla.
+Las entradas solo pueden reducirse respecto a HEAD local o al SHA base de la PR
+fijado por CI; el checkout dispone del historial completo. Las excepciones
+resueltas deben eliminarse con `yarn typecheck:baseline:prune`, que también rechaza
+regresiones antes de escribir. No existe regeneración que amplíe el baseline.
+
+El verde incremental significa cero regresiones, no cero deuda TypeScript.
+El inventario, mantenimiento y pruebas están en [typecheck.md](typecheck.md).
+No se continúa ninguna iteración del roadmap ni se inicia 3.4.
