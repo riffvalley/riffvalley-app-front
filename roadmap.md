@@ -471,6 +471,28 @@ la integración. Los consumidores legacy del modal conservan la fachada.
 opcionales y error de Spotify; E2E de apertura, cierre y reapertura desde los
 consumidores afectados.
 
+**Estado: completado.** Catalog publica únicamente la identidad del recorrido
+(nombre de disco y artista). `integrations/spotify` conserva la autenticación,
+los DTOs y la búsqueda por disco/artista; el adaptador toma el primer álbum y
+artista y consulta sus top tracks con `market=US`. `app` conecta esa identidad
+con la operación e integra sus estados con la presentación Spotify. La fachada
+legacy `ArtistDetail` conserva props, evento `close`, mensajes, overlay y
+secciones visibles. La petición directa y los datos de Last.fm permanecen en
+esa fachada para 3.4.7.
+
+Pruebas: ocho pruebas unitarias cubren selección, respuesta vacía, artista
+ausente, campos opcionales, errores, presentación, mensajes, Last.fm y cierre.
+Dos E2E verifican apertura, cierre y reapertura desde los calendarios normal y
+`babyUser`. `yarn verify` pasa: 70 archivos de arquitectura, 118 diagnósticos
+baseline y cero regresiones TypeScript, 134 pruebas en 17 suites y build.
+Persisten los avisos conocidos de Browserslist, `.flex-[2]` y chunk superior a
+500 kB.
+
+Deuda: Integrations sigue usando temporalmente `obtenerTokenSpotify`, con las
+credenciales de cliente expuestas en el navegador; su sustitución depende del
+contrato de autenticación de backend (Iteración 5). No se migra Last.fm ni se
+inicia 3.4.7.
+
 ### 3.4.7 — Biografía Last.fm del detalle
 
 Mover la petición directa a Last.fm de `ArtistDetail` a su integración. Mantener
