@@ -5,6 +5,8 @@ import { listDiscs } from "@/modules/catalog/application/listDiscs";
 import type { DiscListParams } from "@/modules/catalog/application/catalogPort";
 import { artistManagementApi } from "@/modules/catalog/infrastructure/artistManagementApi";
 import type { ArtistManagementParams } from "@/modules/catalog/domain/artistManagement";
+import { updateArtist as updateArtistOperation } from "@/modules/catalog/application/updateArtist";
+import type { UpdateArtistInput } from "@/modules/catalog/application/artistManagementPort";
 
 /** Minimal composition for the catalog pilot consumer. */
 export function fetchCatalog() {
@@ -17,4 +19,8 @@ export function fetchDiscList(params: DiscListParams) {
 
 export function fetchArtistManagement(params: ArtistManagementParams) {
   return artistManagementApi.getArtistsManagement(params);
+}
+
+export function saveManagedArtist(id: string, data: UpdateArtistInput) {
+  return updateArtistOperation(artistManagementApi, id, data);
 }

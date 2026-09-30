@@ -305,21 +305,201 @@ innecesariamente ni borrar diferencias de autorización.
 
 ### 3.4 — Artistas
 
-**Objetivo:** migrar progresivamente las operaciones relacionadas con artistas.
-
-Dividir el trabajo por recorrido cuando sea necesario: listado, detalle,
-edición/gestión y operaciones auxiliares. Para cada corte, mantener el patrón:
+**Objetivo:** migrar progresivamente las operaciones relacionadas con artistas,
+un recorrido por corte. Catalog posee las operaciones de artistas; Spotify y
+Last.fm permanecen en `integrations`, y `app` compone los recorridos que mezclan
+capacidades. Para cada corte, mantener el patrón:
 
 ```text
 presentation → application → domain
 infrastructure implementa puertos
 ```
 
-Evitar mover a Catalog lógica específica de integraciones externas. Mantener
+La presentación no llama a HTTP ni conoce tokens o DTOs de proveedores. Mantener
 fachadas durante la transición mientras sigan teniendo consumidores legacy.
+Conservar permisos, contratos, comportamiento y errores visibles del flujo.
+Los endpoints actuales de Last.fm se conservan; no se unifican en esta iteración.
+`searchArtists` y `deleteOrphanArtists` no generan recorridos nuevos: evaluar su
+retirada en 3.5.
 
-**Salida:** las operaciones de artistas migradas dejan de depender directamente
-de servicios y stores legacy.
+Cada corte termina con `yarn verify` y las pruebas relevantes. No continuar
+automáticamente al siguiente corte.
+
+### 3.4.1 — Listado y filtros
+
+Migrar la carga paginada de artistas, filtros y búsqueda con debounce. Conservar
+el límite de página, los filtros de género, país y revisión, el orden de países
+y géneros, y los estados de carga y error. Extraer el listado sin migrar las
+acciones de gestión que aún permanezcan en la vista legacy.
+
+**Cierre:** pruebas de carga, filtros, cambio de página, búsqueda, respuesta
+vacía y error; se conserva la selección y el comportamiento visible actual.
+
+**Estado: completado** en `9cc3440` (`feat(catalog): migrate artist listing and filters`).
+Catalog posee la operación de `/artists/management` y la coordinación reactiva
+de filtros y paginación; la vista legacy ensambla el listado con las acciones
+que siguen pendientes. Se conservan páginas de 30, búsqueda con debounce de
+400 ms, filtros de género/país/`needsReview`, selección y orden alfabético de
+las opciones cargadas desde `/catalog`. Los errores mantienen el aviso visible
+actual y se ignoran respuestas de solicitudes superadas.
+
+**Validación:** cinco pruebas unitarias cubren parámetros y carga, estado de
+loading, filtros, paginación, debounce, respuesta vacía y error. `yarn verify`
+pasó: 58 archivos bajo la puerta de arquitectura, 108 pruebas, TypeScript con
+cero regresiones respecto al baseline y build. `git diff --check` pasó.
+Continúan los avisos previos de Browserslist, `.flex-[2]` y tamaño de chunk.
+`getArtistsManagement` permanece en el servicio legacy para el rellenado masivo
+de imágenes, pendiente de su corte; no se inicia 3.4.2.
+
+### 3.4.2 — Edición desde gestión
+
+Migrar el formulario de edición y la operación de actualización del artista.
+Conservar los campos opcionales y su semántica para valores vacíos, la
+actualización local del artista y su retirada del filtro cuando deja de cumplir
+`needsReview`.
+
+**Dependencias:** 3.4.1 para integrar la edición con el listado migrado. La
+búsqueda de imágenes de Spotify se mantiene como dependencia hasta 3.4.8.
+
+**Cierre:** pruebas de apertura, guardado, error y actualización del listado;
+la fachada legacy permanece mientras tenga consumidores.
+
+**Estado: completado.** El formulario ahora es `app/components/ArtistEditForm.vue`;
+Catalog ejecuta el PATCH mediante su puerto de aplicación y adaptador de
+infraestructura. Se conservan el PATCH con campos opcionales, los valores vacíos
+omitidos, la actualización local y la retirada/decremento al editar desde
+`needsReview=true`. El selector y la búsqueda de imágenes siguen conectados a
+sus piezas legacy para respetar el alcance de 3.4.8.
+
+**Validación:** cinco pruebas unitarias cubren render/acciones del formulario,
+delegación y error del guardado, actualización local y retirada de la fila.
+`yarn verify` pasó con 61 archivos de arquitectura, 113 pruebas, cero
+regresiones TypeScript y build. `git diff --check` pasó. Persisten los avisos
+previos de Browserslist, `.flex-[2]` y tamaño de chunk. No se inicia 3.4.3.
+
+### 3.4.3 — Borrado individual
+
+Migrar la confirmación y el borrado individual. Conservar la condición visible
+actual: solo se permite borrar artistas sin discos, novedades nacionales ni
+playlists, además de los mensajes de éxito y error.
+
+**Dependencias:** 3.4.1 para actualizar el listado y su contador.
+
+**Cierre:** probar confirmación, cancelación, éxito y error, incluidos el
+contador y la fila eliminada.
+
+### 3.4.4 — Nombre y país desde calendario
+
+Migrar desde la tarjeta del calendario el cambio de nombre y país del artista,
+incluida la alternancia entre los dos países configurados actualmente. Conservar
+los permisos, mensajes y eventos que actualizan el calendario.
+
+**Dependencias:** mantener la composición desde `app` con Catalog y el calendario
+migrado; no trasladar estas operaciones a las tarjetas legacy ni ampliar
+excepciones arquitectónicas.
+
+**Cierre:** pruebas de actualización correcta y error; los datos y eventos del
+calendario reflejan la respuesta sin cambiar el comportamiento de autorización.
+
+### 3.4.5 — Crear artista y asociarlo al disco
+
+Migrar la creación desde el calendario y su asociación al disco existente:
+crear artista y después actualizar el disco con su ID. Conservar el evento
+`artist-created` y los mensajes actuales. No añadir rollback si falla la segunda
+operación.
+
+**Dependencias:** 3.4.4 para mantener coherente la composición de operaciones de
+artista y calendario. La escritura del disco sigue perteneciendo a Catalog.
+
+**Cierre:** probar creación y asociación, error en cada operación y estado
+visible tras un fallo parcial; no se cambian contratos de API.
+
+### 3.4.6 — Detalle Spotify del artista
+
+Migrar la consulta que parte del nombre de disco y artista, busca álbumes en
+Spotify y muestra los datos del artista y sus canciones principales. Conservar
+la elección del primer álbum y artista, `market=US`, estados, enlaces y previews.
+Mantener `ArtistDetail` como fachada con las mismas props y el evento `close`.
+
+**Dependencias:** la búsqueda y los DTOs de Spotify pertenecen a
+`integrations/spotify`; `app` conecta la entrada de Catalog con el contenido de
+la integración. Los consumidores legacy del modal conservan la fachada.
+
+**Cierre:** pruebas de respuesta vacía, selección del primer resultado, datos
+opcionales y error de Spotify; E2E de apertura, cierre y reapertura desde los
+consumidores afectados.
+
+### 3.4.7 — Biografía Last.fm del detalle
+
+Mover la petición directa a Last.fm de `ArtistDetail` a su integración. Mantener
+la carga independiente de Spotify y tolerar el error de Last.fm sin bloquear el
+detalle, conservando la biografía y etiquetas visibles.
+
+**Dependencias:** 3.4.6 y su fachada. Conservar el endpoint Last.fm usado por el
+detalle, sin unificarlo con el endpoint de gestión.
+
+**Cierre:** probar datos, datos opcionales y error; Spotify sigue mostrándose
+aunque falle Last.fm.
+
+### 3.4.8 — Imagen individual desde Spotify
+
+Migrar la búsqueda de imagen desde el formulario de edición y el fallback que
+usa el modal Last.fm de gestión. Conservar sus límites actuales de resultados
+(cinco en el editor y uno en el fallback), la preferencia por imagen de 640 px y
+la selección manual cuando haya varias opciones.
+
+**Dependencias:** el adaptador de Spotify vive en `integrations/spotify`; el
+formulario de gestión y el modal consumen sus operaciones mediante Catalog y la
+composición de `app`. No exponer tokens ni DTOs del proveedor a presentación.
+
+**Cierre:** probar resultados sin imagen, selección, ausencia de resultados y
+error de proveedor; actualizar el artista solo cuando corresponda.
+
+### 3.4.9 — Modal Last.fm de gestión
+
+Migrar la consulta y navegación del modal de Last.fm: cache local, artistas
+similares, búsqueda coincidente en Catalog, discos asociados y apertura de disco.
+Conservar las respuestas parciales y los mensajes visibles cuando falle una
+fuente.
+
+**Dependencias:** Catalog para buscar artistas; `integrations/lastfm` para los
+datos externos; 3.4.8 para la imagen de fallback. `app` compone el recorrido.
+Las valoraciones y la apertura de discos siguen en sus recorridos actuales; no
+se trasladan a Catalog.
+
+**Cierre:** probar cache, artista similar, coincidencia y ausencia en base de
+datos, errores parciales y apertura de disco sin alterar permisos.
+
+### 3.4.10 — Rellenado masivo de imágenes
+
+Migrar la operación de gestión que recorre los artistas sin imagen y actualiza
+sus imágenes desde Spotify. Conservar paginación en lotes de 200, ejecución
+secuencial, pausa de 150 ms, progreso, actualización de resultados visibles y
+tolerancia a fallos individuales.
+
+**Dependencias:** 3.4.1 para consultar artistas y 3.4.8 para búsqueda de imágenes
+y actualización. La autenticación y los DTOs de Spotify quedan en su integración.
+
+**Cierre:** probar lista vacía, varias páginas, progreso, errores individuales y
+error general; mantener el comportamiento de confirmación y notificación.
+
+### 3.4.11 — Botón de enlace Spotify
+
+Migrar la búsqueda del enlace de Spotify usada por `SpotifyArtistButton`.
+Conservar la elección del primer resultado, la apertura en otra pestaña y los
+mensajes de ausencia o error. Mantener una fachada mientras existan
+consumidores legacy.
+
+**Dependencias:** la búsqueda pertenece a `integrations/spotify`; el componente
+consume la operación sin conocer token, HTTP ni DTOs del proveedor.
+
+**Cierre:** probar enlace encontrado, resultado vacío y error; verificar los
+consumidores actuales del botón.
+
+**Salida de 3.4:** las operaciones migradas de artistas siguen
+`presentation → application → domain`, con adaptadores en infraestructura y
+proveedores en `integrations`. Las fachadas solo se retiran cuando no tengan
+consumidores; su limpieza se revisa en 3.5.
 
 ### 3.5 — Consolidación de Catalog
 
