@@ -1,23 +1,10 @@
-import api from "@services/api/api.ts";
+import { catalogApi } from "@/modules/catalog/infrastructure/catalogApi";
+import type { Catalog, Country, Genre } from "@/modules/catalog/domain/catalog";
 
-export interface Genre {
-  id: string;
-  name: string;
-  color: string;
-}
+export type { Country, Genre };
+export type CatalogResponse = Catalog;
 
-export interface Country {
-  id: string;
-  name: string;
-  isoCode: string;
-}
-
-export interface CatalogResponse {
-  genres: Genre[];
-  countries: Country[];
-}
-
-export async function getCatalog(): Promise<CatalogResponse> {
-  const response = await api.get<CatalogResponse>("/catalog");
-  return response.data;
+/** Legacy facade retained for consumers not yet migrated to the catalog module. */
+export function getCatalog(): Promise<CatalogResponse> {
+  return catalogApi.getCatalog();
 }

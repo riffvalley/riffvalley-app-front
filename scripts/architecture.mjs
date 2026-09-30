@@ -146,7 +146,7 @@ export function analyzeFiles(files) {
         (targetModule || resolvedTarget?.startsWith("src/app/"))) {
         add(imported.node, "shared no puede depender de un módulo ni de app");
       }
-      if (targetModule && owner?.module !== targetModule) {
+      if (targetModule && owner?.module !== targetModule && !isApp) {
         const publicEntry = new RegExp(`^(?:(?:@/|@)?modules/)${targetModule}(?:/index(?:\\.[cm]?[jt]sx?)?)?$`).test(imported.specifier);
         if (!publicEntry) add(imported.node, `importa internals del módulo ${targetModule}`);
         if (owner && ["domain", "application"].includes(owner.layer)) {

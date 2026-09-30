@@ -224,7 +224,8 @@ import { fetchManualData } from '@services/imports/imports';
 import type { AlbumEntry, ManualImportResponse, DiscImportResultItem } from '@services/imports/imports';
 import { updateDisc } from '@services/discs/discs';
 import { obtenerTokenSpotify } from '@helpers/SpotifyFunctions.ts';
-import { useCatalogStore } from '@stores/catalog/catalog';
+import { fetchCatalog } from '@/app/dependencies/catalog';
+import { useCatalogStore } from '@/modules/catalog/presentation/catalogStore';
 import SearchableSelect from '@components/SearchableSelect.vue';
 import SwalService from '@services/swal/SwalService';
 
@@ -251,7 +252,7 @@ export default defineComponent({
     const genres   = computed(() => catalogStore.genres);
     const countries = computed(() => catalogStore.countries);
 
-    onMounted(() => { catalogStore.fetchCatalog(); });
+    onMounted(() => { fetchCatalog(); });
 
     const displayDate = computed(() => {
       if (!selectedDate.value) return '';
