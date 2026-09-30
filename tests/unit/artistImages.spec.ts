@@ -40,4 +40,19 @@ describe("Spotify artist image integration", () => {
     get.mockRejectedValue(new Error("provider down"));
     await expect(artistImagesApi.searchArtistImages({ name: "Banda", limit: 1 })).rejects.toThrow("provider down");
   });
+
+  it("uses one Spotify token for every lookup in a search session", async () => {
+    get.mockResolvedValue({ data: { artists: { items: [{ name: "Banda", images: [{ url: "band.jpg" }] }] } } });
+    const search = await artistImagesApi.createSearchSession();
+
+    await search({ name: "Banda", limit: 1 });
+    await search({ name: "Otra banda", limit: 1 });
+
+    expect(token).toHaveBeenCalledOnce();
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(get).toHaveBeenNthCalledWith(2, "https://api.spotify.com/v1/search", {
+      headers: { Authorization: "Bearer spotify-token" },
+      params: { q: "Otra banda", type: "artist", limit: 1 },
+    });
+  });
 });

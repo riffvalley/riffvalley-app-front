@@ -514,22 +514,16 @@ import {
   onMounted,
   onUnmounted,
 } from "vue";
-import {
-  getArtistsManagement,
-  updateArtist,
-} from "@services/artist/artist";
 import type {
   ArtistManagementItem,
   ArtistManagementDisc,
 } from "@/modules/catalog/domain/artistManagement";
-import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
-import axios from "axios";
 import { useAuthStore } from "@stores/auth/auth";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import DiscDetail from "@components/DiscDetail.vue";
 import DiscCardComponent from "@components/DiscCardComponent.vue";
 import Swal from "sweetalert2";
-import { fetchArtistManagement, fetchCatalog } from "@/app/dependencies/catalog";
+import { fetchArtistManagement, fetchCatalog, fillManagedArtistImages } from "@/app/dependencies/catalog";
 import { useArtistManagementList } from "@/modules/catalog/presentation/composables/useArtistManagementList";
 import { useCatalogStore } from "@/modules/catalog/presentation/catalogStore";
 import ArtistEditForm from "@/app/components/ArtistEditForm.vue";
@@ -758,27 +752,18 @@ export default defineComponent({
       fillTotal.value = 0;
 
       try {
-        // Recopilar todos los artistas sin imagen paginando
-        const toFill: ArtistManagementItem[] = [];
-        let batchOffset = 0;
-        const batchLimit = 200;
-        let more = true;
+        const result = await fillManagedArtistImages({
+          onProgress: ({ processed, total }) => {
+            fillProgress.value = processed;
+            fillTotal.value = total;
+          },
+          onArtistUpdated: (artistId, image) => {
+            const localArtist = artists.value.find((artist) => artist.id === artistId);
+            if (localArtist) localArtist.image = image;
+          },
+        });
 
-        while (more) {
-          const res = await getArtistsManagement({
-            limit: batchLimit,
-            offset: batchOffset,
-          });
-          res.data.forEach((a: ArtistManagementItem) => {
-            if (!a.image) toFill.push(a);
-          });
-          batchOffset += batchLimit;
-          more = batchOffset < res.totalItems;
-        }
-
-        fillTotal.value = toFill.length;
-
-        if (toFill.length === 0) {
+        if (result.total === 0) {
           Swal.fire({
             icon: "info",
             title: "Todos los artistas ya tienen imagen",
@@ -790,39 +775,10 @@ export default defineComponent({
           return;
         }
 
-        const token = await obtenerTokenSpotify();
-        if (!token) throw new Error("No se pudo obtener el token de Spotify");
-
-        let updated = 0;
-
-        for (const artist of toFill) {
-          try {
-            const res = await axios.get("https://api.spotify.com/v1/search", {
-              headers: { Authorization: `Bearer ${token}` },
-              params: { q: artist.name, type: "artist", limit: 1 },
-            });
-            const first = res.data.artists?.items?.find(
-              (a: any) => a.images?.length > 0,
-            );
-            if (first) {
-              const img640 = first.images.find((img: any) => img.width === 640);
-              const imageUrl = (img640 ?? first.images[0]).url;
-              await updateArtist(artist.id, { image: imageUrl });
-              const localArtist = artists.value.find((a) => a.id === artist.id);
-              if (localArtist) localArtist.image = imageUrl;
-              updated++;
-            }
-          } catch {
-            /* ignorar errores individuales */
-          }
-          fillProgress.value++;
-          await new Promise((r) => setTimeout(r, 150));
-        }
-
         Swal.fire({
           icon: "success",
-          title: `${updated} imágenes añadidas`,
-          text: `Se procesaron ${toFill.length} artistas sin foto.`,
+          title: `${result.updated} imágenes añadidas`,
+          text: `Se procesaron ${result.total} artistas sin foto.`,
           timer: 4000,
           showConfirmButton: false,
           toast: true,

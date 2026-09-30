@@ -10,6 +10,9 @@ import type { UpdateArtistInput } from "@/modules/catalog/application/artistMana
 import { deleteArtist as deleteArtistOperation } from "@/modules/catalog/application/deleteArtist";
 import { createCalendarArtist as createCalendarArtistOperation } from "@/modules/catalog/application/createCalendarArtist";
 import { calendarArtistCreationApi } from "@/modules/catalog/infrastructure/calendarArtistCreationApi";
+import { fillMissingArtistImages } from "@/modules/catalog/application/fillMissingArtistImages";
+import type { FillMissingArtistImagesCallbacks } from "@/modules/catalog/application/fillMissingArtistImages";
+import { createBulkArtistImageSearchSession } from "@/app/dependencies/artistImages";
 
 /** Minimal composition for the catalog pilot consumer. */
 export function fetchCatalog() {
@@ -39,4 +42,12 @@ export function createAndAssociateCalendarArtist(discId: string, name: string) {
 
 export function deleteManagedArtist(id: string) {
   return deleteArtistOperation(artistManagementApi, id);
+}
+
+export function fillManagedArtistImages(callbacks: FillMissingArtistImagesCallbacks = {}) {
+  return fillMissingArtistImages(
+    artistManagementApi,
+    { createSearchSession: createBulkArtistImageSearchSession },
+    callbacks,
+  );
 }
