@@ -312,6 +312,7 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref, onMounted } from 'vue';
+import { useWorkspaceStore } from "@/app/dependencies/workspace";
 import { useAuthStore } from '@stores/auth/auth.ts';
 import { getLatestPublicVersion } from '@services/versions/versions';
 import { getAllRequests } from '@services/requests/requests';
@@ -349,6 +350,7 @@ props: {
 emits: ['close-menu', 'toggle-theme'],
   setup(_, { emit }) {
     const authStore = useAuthStore();
+    const workspaceStore = useWorkspaceStore();
     const supportStore = useSupportStore();
     const petitionsStore = usePetitionsStore();
     const allRoutes = routesData as AppRoute[];
@@ -400,7 +402,7 @@ emits: ['close-menu', 'toggle-theme'],
     const canSeeRiffValleyArea = computed(() => authStore.hasRole('riffValley'));
     const canSeeManagementArea = computed(() => authStore.hasRole('superUser'));
     const showAreaSelector = computed(() => canSeeRiffValleyArea.value || canSeeManagementArea.value);
-    const showAllAreas = computed(() => !authStore.dashboardButtonsEnabled);
+    const showAllAreas = computed(() => !workspaceStore.dashboardButtonsEnabled);
 
     // Nuevos Discos vive en la pestaña Gestión: los riffValley sin superUser
     // solo verán ahí los discos nuevos (el resto de Gestión se filtra por rol).

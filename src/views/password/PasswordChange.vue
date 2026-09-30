@@ -122,12 +122,12 @@
             class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200
                    border border-rv-purple/30 dark:border-rv-purple/50
                    disabled:cursor-not-allowed disabled:opacity-60"
-            :class="authStore.dashboardButtonsEnabled
+            :class="workspaceStore.dashboardButtonsEnabled
               ? 'bg-rv-purple text-white hover:bg-rv-purple/90'
               : 'bg-rv-purple/10 text-rv-purple dark:bg-rv-purple/20 dark:text-white hover:bg-rv-purple/20'"
           >
-            <i :class="authStore.dashboardButtonsEnabled ? 'fa-solid fa-table-cells-large' : 'fa-solid fa-list'"></i>
-            {{ authStore.dashboardButtonsEnabled ? 'Botones del menú activados' : 'Activar botones del menú' }}
+            <i :class="workspaceStore.dashboardButtonsEnabled ? 'fa-solid fa-table-cells-large' : 'fa-solid fa-list'"></i>
+            {{ workspaceStore.dashboardButtonsEnabled ? 'Botones del menú activados' : 'Activar botones del menú' }}
           </button>
         </div>
       </section>
@@ -372,7 +372,8 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import SwalService from "@services/swal/SwalService";
 import { useUserStore } from "@stores/user/users";
-import { useAuthStore } from "@stores/auth/auth";
+import { useWorkspaceStore } from "@/app/dependencies/workspace";
+import { useAuthStore, readPersistedAvatar } from "@stores/auth/auth";
 import DashboardBuilder from "./components/DashboardBuilder.vue";
 
 export default {
@@ -381,6 +382,7 @@ export default {
   setup() {
     const userStore = useUserStore();
     const authStore = useAuthStore();
+    const workspaceStore = useWorkspaceStore();
 
     const ready = ref(false);
     const showDashboardModal = ref(false);
@@ -481,7 +483,7 @@ export default {
 
     const loadAvatars = () => {
       avatars.value = allAvatars.value;
-      const saved = authStore.avatarUrl || localStorage.getItem("image");
+      const saved = authStore.avatarUrl || readPersistedAvatar();
       selectedAvatar.value = (saved && saved.length) ? saved : (avatars.value[0] || "");
 
       // Abrir la pestaña que contiene el avatar actual
@@ -515,12 +517,12 @@ export default {
     };
 
     const toggleDashboardButtons = async () => {
-      const enabled = !authStore.dashboardButtonsEnabled;
+      const enabled = !workspaceStore.dashboardButtonsEnabled;
       dashboardButtonsSaving.value = true;
 
       try {
         await userStore.updateUserStore({ dashboardButtonsEnabled: enabled });
-        authStore.setDashboardButtonsEnabled(enabled);
+        workspaceStore.setDashboardButtonsEnabled(enabled);
         SwalService.success(enabled ? 'Botones del menú activados' : 'Botones del menú desactivados');
       } catch (error) {
         const msg = error?.response?.data?.message || 'No se pudo actualizar los botones del menú';
@@ -558,6 +560,7 @@ export default {
       showDashboardModal,
       canConfigureDashboardButtons, dashboardButtonsSaving, toggleDashboardButtons,
       authStore,
+      workspaceStore,
     };
   },
 };

@@ -309,6 +309,7 @@
 </template>
 
 <script lang="ts">
+import { readLegacyRolesRaw } from "@stores/auth/auth";
 import { defineComponent, ref, computed, watchEffect, watch, nextTick, onUnmounted, type PropType } from "vue";
 import { obtenerTrackMasPopularAlbum } from "@helpers/SpotifyFunctions";
 import defaultImage from "/src/assets/disco.png";
@@ -415,7 +416,7 @@ export default defineComponent({
     };
 
     const canModerate = computed(() => {
-      const raw = localStorage.getItem("roles");
+      const raw = readLegacyRolesRaw();
       if (!raw) return false;
 
       let roles: any = raw;

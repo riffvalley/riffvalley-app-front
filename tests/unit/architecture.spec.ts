@@ -60,4 +60,15 @@ describe("guard de arquitectura", () => {
 
     expect(diagnostics.join("\n")).toContain("no puede realizar HTTP directamente");
   });
+  it("permite publicar la API propia sin permitir internals de otro módulo", () => {
+    expect(analyzeFiles({
+      "src/modules/identity/index.ts": 'export { store } from "./presentation/store";',
+      "src/modules/identity/presentation/store.ts": 'export const store = true;',
+      "src/modules/workspace/presentation/consumer.ts": 'import { store } from "@/modules/identity"; export { store };',
+    })).toEqual([]);
+    expect(analyzeFiles({
+      "src/modules/workspace/index.ts": 'export { store } from "@/modules/identity/presentation/store";',
+    }).join("\n")).toContain("importa internals del módulo identity");
+  });
+
 });

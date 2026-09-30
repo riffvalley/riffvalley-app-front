@@ -1,21 +1,8 @@
 import api from "@services/api/api.ts";
 
-export interface LoginPayload {
-  username: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  id: string;
-  password: string;
-  username: string;
-  token: string;
-  roles?: string[];
-  image?: string | null;
-  dashboardButtonsEnabled?: boolean;
-  dashboardConfig?: { id: string; enabled: boolean }[] | null;
-  mobileDashboardConfig?: { id: string; enabled: boolean }[] | null;
-}
+export { login } from "../../modules/identity/infrastructure/loginApi";
+export type { LoginResponse } from "../../modules/identity/infrastructure/loginApi";
+export type { LoginPayload } from "../../modules/identity/application/session";
 
 export interface Superuser {
   id: string;
@@ -23,11 +10,6 @@ export interface Superuser {
   username: string;
   roles: string[];
   image: string;
-}
-
-export async function login(payload: LoginPayload): Promise<LoginResponse> {
-  const response = await api.post<LoginResponse>("/auth/login", payload);
-  return response.data; // La respuesta ya incluye `token`, `username`, etc.
 }
 
 export async function getSuperusers(): Promise<Superuser[]> {

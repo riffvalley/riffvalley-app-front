@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
-import { useAuthStore, type DashboardModuleConfig } from '@stores/auth/auth';
+import { useWorkspaceStore } from '@/app/dependencies/workspace';
+import type { DashboardModuleConfig } from '@/modules/workspace';
 import { useUserStore } from '@stores/user/users';
 import SwalService from '@services/swal/SwalService';
 
@@ -55,7 +56,7 @@ function mergeWithDefaults(saved: DashboardModuleConfig[] | null): DashboardModu
 export type DashboardConfigTarget = 'desktop' | 'mobile';
 
 export function useDashboardConfig(target: DashboardConfigTarget = 'desktop') {
-  const authStore = useAuthStore();
+  const workspaceStore = useWorkspaceStore();
   const userStore = useUserStore();
   const isMobile = target === 'mobile';
 
@@ -65,19 +66,19 @@ export function useDashboardConfig(target: DashboardConfigTarget = 'desktop') {
   function persist(successMessage?: string, payloadOverride?: DashboardModuleConfig[]) {
     const payload = payloadOverride ?? modules.value.map(m => ({ id: m.id, enabled: m.enabled }));
     if (isMobile) {
-      authStore.setMobileDashboardConfig(payload);
+      workspaceStore.setMobileDashboardConfig(payload);
       userStore.updateUserStore({ mobileDashboardConfig: payload })
         .then(() => { if (successMessage) SwalService.success(successMessage); })
         .catch(() => { SwalService.error('No se pudo guardar el cambio del dashboard'); });
     } else {
-      authStore.setDashboardConfig(payload);
+      workspaceStore.setDashboardConfig(payload);
       userStore.updateUserStore({ dashboardConfig: payload })
         .then(() => { if (successMessage) SwalService.success(successMessage); })
         .catch(() => { SwalService.error('No se pudo guardar el cambio del dashboard'); });
     }
   }
 
-  let initial = isMobile ? authStore.mobileDashboardConfig : authStore.dashboardConfig;
+  let initial = isMobile ? workspaceStore.mobileDashboardConfig : workspaceStore.dashboardConfig;
   // La migración de la config antigua (localStorage previo al backend) solo
   // aplica al dashboard de escritorio: el móvil nunca tuvo esa versión legacy.
   let migrateLegacy = false;
