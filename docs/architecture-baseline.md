@@ -150,3 +150,32 @@ Validación de 3.2: `yarn verify` pasa (lint, arquitectura en 35 archivos,
 typecheck, 59 tests en 11 suites y build). Los dos E2E de detalle pasan en
 Chromium. `git diff --check` pasa. Persisten los avisos de build ya registrados:
 Browserslist desactualizado, selector `.flex-[2]` y chunk superior a 500 kB.
+
+## Subiteración 3.3 — Calendarios de discos
+
+Los calendarios estándar y babyUser se ensamblan desde app con dos vistas de
+Catalog independientes. Comparten paginador, reglas de fechas/agrupación y scroll,
+sin crear una vista genérica ni mezclar sus filtros o capacidades. Catalog posee
+GET `/discs/date`, exportación HTML y el puerto de actualización de álbum;
+los adaptadores acotados de Spotify/Last.fm son Integrations y se componen en app.
+Las vistas no importan HTTP, DTOs ni proveedores. Fachadas, rutas diferidas,
+permisos, fechas UTC/local, modo embebido y UI se conservan.
+
+Las tarjetas mixtas de calendario conservan sus implementaciones legacy de
+edición de artistas y acciones de Community/Releases; app las introduce mediante
+slots tipados. Solo cambia el contrato de datos que reciben. El catálogo de
+opciones mantiene la cache legacy del shell. No se amplían excepciones ni se
+migran artistas; no se inicia 3.4. El inventario, decisiones, archivos, diferencias
+y pruebas se detallan en [catalog-calendars-3.3.md](catalog-calendars-3.3.md).
+
+Validación: `yarn verify` pasa (53 archivos de arquitectura, 89 tests/13 suites y
+build), 5 E2E de calendario/detalle pasan y `git diff --check` pasa. Se acotan
+carreras, reintentos infinitos tras errores y limpieza de observers, conservando
+el mensaje visible y datos parciales. Los avisos de build previos persisten.
+
+Deuda de tooling detectada: `yarn typecheck` invoca `vue-tsc --noEmit` sobre un
+root con `files: []` y referencias sin modo build. Una comprobación explícita
+con `-p tsconfig.app.json` falla también en HEAD inicial (149 diagnósticos, frente
+a 119 al terminar 3.3). La comparación normalizada no añade diagnósticos; los
+archivos nuevos no presentan errores. Se documenta esta limitación sin debilitar
+ni modificar las puertas durante el corte de calendarios.

@@ -120,6 +120,7 @@
 <script lang="ts">
 import { computed, defineComponent, ref } from "vue";
 import type { PropType } from "vue";
+import type { CalendarDisc } from "@/modules/catalog";
 import Swal from "sweetalert2";
 import SwalService from "@services/swal/SwalService";
 
@@ -133,19 +134,7 @@ export default defineComponent({
   components: { SpotifyArtistButton, DiscDetail, ArtistDetail },
   props: {
     disc: {
-      type: Object as PropType<{
-        id: string;
-        name: string;
-        artist: { name: string };
-        genreId: string;
-        genre?: { name?: string; color?: string };
-        link: string | null;
-        image: string | null;
-        ep: boolean;
-        debut: boolean;
-        releaseDate: Date;
-        pendingId: string | null;
-      }>,
+      type: Object as PropType<CalendarDisc>,
       required: true,
     },
     artistCountry: {

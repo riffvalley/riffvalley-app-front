@@ -231,6 +231,7 @@ import {
   nextTick,
 } from "vue";
 import type { PropType } from "vue";
+import type { CalendarDisc } from "@/modules/catalog";
 import { updateDisc, deleteDisc } from "@services/discs/discs";
 import { createNationalReleaseFromDisc } from "@services/national-releases/nationalReleases";
 import { updateArtist, postArtist } from "@services/artist/artist";
@@ -258,21 +259,7 @@ export default defineComponent({
   },
   props: {
     disc: {
-      type: Object as PropType<{
-        id: string;
-        name: string;
-        artist: { id: string; name: string; countryId: string };
-        genreId: string;
-        link: string | null;
-        image: string | null;
-        ep: boolean;
-        debut: boolean;
-        verified: boolean;
-        pinned: boolean;
-        releaseDate: Date;
-        pendingId: string | null;
-        nationalReleaseId: string | null;
-      }>,
+      type: Object as PropType<CalendarDisc>,
       required: true,
     },
 
@@ -518,7 +505,7 @@ export default defineComponent({
       }
     };
 
-    const getGenreColor = (genreId: string) => {
+    const getGenreColor = (genreId?: string) => {
       const id = String(genreId || editedData.genreId || "");
       const genre = props.genres.find((g) => String(g.id) === id);
       return genre?.color || "transparent";
