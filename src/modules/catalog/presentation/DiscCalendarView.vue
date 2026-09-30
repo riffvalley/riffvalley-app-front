@@ -4,7 +4,7 @@ import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
 import { MONTHS, getYearOptions } from "@helpers/dateConstants";
 import type { Country, Genre } from "../domain/catalog";
-import { filterStandardCalendar, sameLocalCalendarDay, type CalendarDisc, type CalendarGroup } from "../domain/discCalendar";
+import { applyCalendarArtistUpdate as applyArtistUpdateToGroups, filterStandardCalendar, sameLocalCalendarDay, type CalendarDisc, type CalendarGroup } from "../domain/discCalendar";
 import { initializeStandardCalendarGroups, type DiscCalendarPort } from "../application/discCalendar";
 import { useCalendarPages } from "./composables/useCalendarPages";
 import { useCalendarScroll } from "./composables/useCalendarScroll";
@@ -17,7 +17,12 @@ const props = withDefaults(defineProps<{
 }>(), { embedded: false, initialDate: "", focusDiscId: "" });
 const emit = defineEmits<{ 'load-error': [] }>();
 defineSlots<{
-  disc(props: { disc: CalendarDisc; removeDisc: (id: string) => void; dateChanged: (id: string, date: string) => void }): unknown;
+  disc(props: {
+    disc: CalendarDisc;
+    removeDisc: (id: string) => void;
+    dateChanged: (id: string, date: string) => void;
+    applyArtistUpdate: (artistId: string, update: { name?: string; countryId?: string | null }) => void;
+  }): unknown;
   'group-tools'(props: { group: CalendarGroup }): unknown;
 }>();
 const months = MONTHS;
@@ -43,6 +48,9 @@ const genreOptions = computed(() => props.genres.filter((genre) => genre && genr
 const toggleGroup = (index: number) => { groupState[index] = !groupState[index]; };
 // A changed date removes the card until the next fetch, rather than moving it locally.
 const handleDateChange = (id: string, _date: string) => removeDisc(id);
+function applyArtistUpdate(artistId: string, update: { name?: string; countryId?: string | null }) {
+  groupedDiscs.value = applyArtistUpdateToGroups(groupedDiscs.value, artistId, update);
+}
 let focusGeneration = 0;
 onUnmounted(() => { focusGeneration++; });
 async function focusInitialGroup(scroll: boolean) {
@@ -148,7 +156,8 @@ onMounted(() => { void selectMonth(initial.value ? initial.value.getMonth() : ne
               <ul class="w-full mt-3 flex flex-col gap-3">
                 <li v-for="disc in group.discs" :key="disc.id">
                   <div :id="`disc-${disc.id}`">
-                    <slot name="disc" :disc="disc" :remove-disc="removeDisc" :date-changed="handleDateChange" />
+                    <slot name="disc" :disc="disc" :remove-disc="removeDisc" :date-changed="handleDateChange"
+                      :apply-artist-update="applyArtistUpdate" />
                   </div>
                 </li>
               </ul>

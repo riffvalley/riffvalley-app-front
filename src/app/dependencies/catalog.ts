@@ -26,6 +26,11 @@ export function saveManagedArtist(id: string, data: UpdateArtistInput) {
   return updateArtistOperation(artistManagementApi, id, data);
 }
 
+/** Update an artist from a Catalog-owned consumer such as the disc calendar. */
+export function updateCalendarArtist(id: string, data: Pick<UpdateArtistInput, "name" | "countryId">) {
+  return updateArtistOperation(artistManagementApi, id, data);
+}
+
 export function deleteManagedArtist(id: string) {
   return deleteArtistOperation(artistManagementApi, id);
 }

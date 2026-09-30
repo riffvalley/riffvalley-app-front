@@ -53,7 +53,7 @@ export async function updateArtist(
   id: string,
   data: {
     name?: string;
-    countryId?: string;
+    countryId?: string | null;
     image?: string;
     description?: string;
   },

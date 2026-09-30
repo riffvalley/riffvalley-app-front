@@ -14,7 +14,7 @@ export interface ArtistDeletePort {
 
 export interface UpdateArtistInput {
   name?: string;
-  countryId?: string;
+  countryId?: string | null;
   image?: string;
   description?: string;
 }

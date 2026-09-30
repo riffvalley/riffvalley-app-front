@@ -197,4 +197,26 @@ regresiones antes de escribir. No existe regeneración que amplíe el baseline.
 
 El verde incremental significa cero regresiones, no cero deuda TypeScript.
 El inventario, mantenimiento y pruebas están en [typecheck.md](typecheck.md).
-No se continúa ninguna iteración del roadmap ni se inicia 3.4.
+
+## Subiteración 3.4.4 — Nombre y país desde calendario
+
+Catalog ejecuta las actualizaciones de nombre y país mediante el puerto de
+`updateArtist`; `app` proporciona la operación al calendario estándar. La vista
+de Catalog conserva la propiedad de los grupos y reemplaza inmutablemente el
+nombre/país en todas las tarjetas asociadas al artista solo después del PATCH.
+La tarjeta conserva los mensajes y el evento `update-artist`; los flujos
+migrados no mutan los datos recibidos por props. La alternancia usa los dos IDs
+ya existentes.
+
+Compatibilidad legacy: la tarjeta estándar sigue conteniendo las demás acciones
+legacy. El alta y asociación de artista, las acciones de discos y los calendarios
+babyUser no se migran en este corte. La creación mantiene su mutación legacy de
+props, pendiente de 3.4.5; la fachada conserva su fallback para consumidores
+fuera de la composición migrada.
+
+Validación: `yarn verify` pasa (62 archivos de arquitectura, 122 pruebas/16
+suites, 118 diagnósticos baseline y cero regresiones TypeScript, build) y
+`git diff --check` pasa. El baseline se redujo de 119 a 118 entradas mediante
+`yarn typecheck:baseline:prune`, que eliminó una excepción ya resuelta por el
+cambio. Persisten los avisos de Browserslist, `.flex-[2]` y chunk superior a
+500 kB. No se inicia 3.4.5.

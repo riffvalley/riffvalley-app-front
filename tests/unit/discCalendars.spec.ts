@@ -8,11 +8,11 @@ import DiscCalendarBaby from "../../src/views/discsCalendarBaby/DiscCalendarBaby
 import { useCatalogStore } from "@stores/catalog/catalog";
 import { useAuthStore } from "@stores/auth/auth";
 
-const { apiGet, errorToast } = vi.hoisted(() => ({ apiGet: vi.fn(), errorToast: vi.fn() }));
+const { apiGet, apiPatch, errorToast } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPatch: vi.fn(), errorToast: vi.fn() }));
 vi.mock("@/shared/ui/errorToast", () => ({ showErrorToast: errorToast }));
 
 vi.mock("@services/api/api.ts", () => ({
-  default: { get: apiGet },
+  default: { get: apiGet, patch: apiPatch },
 }));
 
 class PassiveIntersectionObserver implements IntersectionObserver {
@@ -55,7 +55,7 @@ const SimpleSelectStub = defineComponent({
 
 const DiscStub = defineComponent({
   name: "Disc",
-  props: { disc: Object, genres: Array, countries: Array, focusDiscId: String },
+  props: { disc: Object, genres: Array, countries: Array, focusDiscId: String, persistArtistUpdate: Function },
   emits: ["disc-deleted", "date-changed"],
   template: '<article data-testid="disc-card" :data-id="disc?.id" />',
 });
@@ -70,7 +70,7 @@ interface DiscFixture {
   id: string;
   name: string;
   releaseDate: string;
-  artist: { name: string; country?: { id: string } };
+  artist: { id: string; name: string; country?: { id: string } };
   genre?: { id: string | number; name?: string };
 }
 
@@ -88,7 +88,7 @@ function disc(id: string, name: string, genreId: string | number, releaseDate = 
     id,
     name,
     releaseDate,
-    artist: { name: "Banda" },
+    artist: { id: "artist", name: "Banda" },
     genre: { id: genreId, name: "Rock" },
   };
 }
@@ -154,6 +154,7 @@ describe("disc calendar legacy contracts", () => {
     vi.setSystemTime(new Date("2026-09-15T12:00:00.000Z"));
     vi.stubGlobal("IntersectionObserver", PassiveIntersectionObserver);
     apiGet.mockResolvedValue(response([]));
+    apiPatch.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -252,6 +253,34 @@ describe("disc calendar legacy contracts", () => {
         countryId: "ES",
       },
     });
+    wrapper.unmount();
+  });
+
+  it("persists a calendar artist edit through Catalog and updates its owning calendar data only after success", async () => {
+    const releaseDate = "2026-09-18T00:00:00.000Z";
+    apiGet.mockResolvedValue(response([{ releaseDate, discs: [disc("artist-disc", "Disco", "7", releaseDate)] }]));
+    const { wrapper } = mountCalendar(DiscCalendar, "standard");
+    await flushPromises();
+    const card = wrapper.findComponent(DiscStub);
+
+    await card.props("persistArtistUpdate")("artist", { name: "Nuevo nombre", countryId: "fr" });
+    await nextTick();
+
+    expect(apiPatch).toHaveBeenCalledWith("/artists/artist", { name: "Nuevo nombre", countryId: "fr" });
+    expect(card.props("disc")).toMatchObject({ artist: { id: "artist", name: "Nuevo nombre", countryId: "fr" } });
+    wrapper.unmount();
+  });
+
+  it("leaves calendar artist data unchanged when its Catalog update fails", async () => {
+    const releaseDate = "2026-09-18T00:00:00.000Z";
+    apiGet.mockResolvedValue(response([{ releaseDate, discs: [disc("artist-disc", "Disco", "7", releaseDate)] }]));
+    apiPatch.mockRejectedValue(new Error("update failed"));
+    const { wrapper } = mountCalendar(DiscCalendar, "standard");
+    await flushPromises();
+    const card = wrapper.findComponent(DiscStub);
+
+    await expect(card.props("persistArtistUpdate")("artist", { name: "Nombre fallido" })).rejects.toThrow("update failed");
+    expect(card.props("disc")).toMatchObject({ artist: { name: "Banda" } });
     wrapper.unmount();
   });
 

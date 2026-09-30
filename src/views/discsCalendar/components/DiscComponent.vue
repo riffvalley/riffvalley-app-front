@@ -93,6 +93,11 @@
         all-label="Todos los países" :max="300"
         class="w-full rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 dark:border-white/10 shadow-sm ring-0 focus:ring-0 focus:outline-none"
         @update:modelValue="saveCountry" />
+      <button @click="updateCountryId"
+              class="self-start px-3 py-1 rounded-full text-xs font-semibold text-rv-navy dark:text-white
+                     bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 transition-colors">
+        Alternar país
+      </button>
 
       <!-- Todos los botones de acción en una sola fila con wrap -->
       <div class="flex flex-wrap gap-2 items-center">
@@ -232,6 +237,8 @@ import {
 } from "vue";
 import type { PropType } from "vue";
 import type { CalendarDisc } from "@/modules/catalog";
+import type { UpdateArtistInput } from "@/modules/catalog/application/artistManagementPort";
+import { alternateCalendarCountryId } from "@/modules/catalog/domain/artistManagement";
 import { updateDisc, deleteDisc } from "@services/discs/discs";
 import { createNationalReleaseFromDisc } from "@services/national-releases/nationalReleases";
 import { updateArtist, postArtist } from "@services/artist/artist";
@@ -264,6 +271,10 @@ export default defineComponent({
     },
 
     focusDiscId: { type: String, default: "" }, // ✅ AQUÍ
+    persistArtistUpdate: {
+      type: Function as PropType<(artistId: string, update: Pick<UpdateArtistInput, "name" | "countryId">) => Promise<void>>,
+      default: undefined,
+    },
 
     genres: {
       type: Array as PropType<{ id: string; name: string; color?: string }[]>,
@@ -312,6 +323,10 @@ export default defineComponent({
     const editedArtist = reactive({
       countryId: props.disc.artist.countryId ?? null,
     });
+    watch(
+      () => props.disc.artist.countryId,
+      (countryId) => { editedArtist.countryId = countryId ?? null; },
+    );
 
     const linkButtonData = computed(() => {
       const link = props.disc.link || "";
@@ -356,8 +371,9 @@ export default defineComponent({
 
     const saveCountry = async () => {
       try {
-        await updateArtist(props.disc.artist.id, { countryId: editedArtist.countryId });
-        props.disc.artist.countryId = editedArtist.countryId as any;
+        const update = { countryId: editedArtist.countryId };
+        if (props.persistArtistUpdate) await props.persistArtistUpdate(props.disc.artist.id, update);
+        else await updateArtist(props.disc.artist.id, update);
         SwalService.success('País actualizado correctamente');
       } catch (e) {
         SwalService.error('No se pudo actualizar el país');
@@ -738,8 +754,9 @@ export default defineComponent({
           emit("artist-created", newArtist.id, newArtist.name);
           Swal.fire("¡Éxito!", "Nuevo artista creado correctamente.", "success");
         } else {
-          await updateArtist(props.disc.artist.id, { name: newArtistName.value });
-          props.disc.artist.name = newArtistName.value;
+          const update = { name: newArtistName.value };
+          if (props.persistArtistUpdate) await props.persistArtistUpdate(props.disc.artist.id, update);
+          else await updateArtist(props.disc.artist.id, update);
           emit("update-artist", props.disc.artist.id, newArtistName.value);
           Swal.fire("¡Éxito!", "El nombre del artista se ha actualizado correctamente.", "success");
         }
@@ -749,15 +766,12 @@ export default defineComponent({
       }
     };
 
-    const COUNTRY_ID = "4108d9b0-a44e-4877-a839-a5541eac852d";
-    const ALT_COUNTRY_ID = "a121dfc4-7ee8-4435-ab26-1db8e4071dde";
-
     const updateCountryId = async () => {
       const currentId = props.disc.artist.countryId;
-      const newId = currentId === COUNTRY_ID ? ALT_COUNTRY_ID : COUNTRY_ID;
+      const newId = alternateCalendarCountryId(currentId);
       try {
-        await updateArtist(props.disc.artist.id, { countryId: newId });
-        props.disc.artist.countryId = newId as any;
+        if (props.persistArtistUpdate) await props.persistArtistUpdate(props.disc.artist.id, { countryId: newId });
+        else await updateArtist(props.disc.artist.id, { countryId: newId });
         Swal.fire({
           title: "¡Éxito!",
           text: `El país se ha cambiado correctamente.`,
@@ -858,7 +872,6 @@ export default defineComponent({
       closeDiscDetail,
       closeArtistDetail,
       updateCountryId,
-      COUNTRY_ID,
       saveCountry,
       editedArtist,
       creatingNewArtist,

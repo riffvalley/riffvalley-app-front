@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { calendarMonthRange, removeCalendarDisc, sameLocalCalendarDay, type CalendarDisc, type CalendarGroup } from "../../src/modules/catalog/domain/discCalendar";
+import { applyCalendarArtistUpdate, calendarMonthRange, removeCalendarDisc, sameLocalCalendarDay, type CalendarDisc, type CalendarGroup } from "../../src/modules/catalog/domain/discCalendar";
 import { createCalendarPager, type CalendarLoadState, type CalendarPage } from "../../src/modules/catalog/application/discCalendar";
 import { exportCalendarHtml } from "../../src/modules/catalog/application/calendarTools";
 import { discCalendarApi } from "../../src/modules/catalog/infrastructure/discCalendarApi";
@@ -35,6 +35,25 @@ function harness(getPage = vi.fn()) {
 afterEach(() => { vi.restoreAllMocks(); vi.clearAllMocks(); vi.unstubAllEnvs(); });
 
 describe("calendar rules and loading", () => {
+  it("updates the calendar projection for every disc belonging to the artist", () => {
+    const first = { ...disc("first"), artist: { id: "artist", name: "Banda" } };
+    const other = { ...disc("other"), artist: { id: "other-artist", name: "Otra banda" } };
+    const source = [
+      { releaseDate: "2026-09-18", discs: [first, other] },
+      { releaseDate: "2026-09-25", discs: [{ ...disc("third"), artist: { id: "artist", name: "Banda" } }] },
+    ];
+
+    const updated = applyCalendarArtistUpdate(source, "artist", { name: "Nombre nuevo", countryId: "fr" });
+
+    expect(updated.flatMap((item) => item.discs).filter((item) => item.artist.id === "artist")
+      .map((item) => item.artist)).toEqual([
+      { id: "artist", name: "Nombre nuevo", countryId: "fr" },
+      { id: "artist", name: "Nombre nuevo", countryId: "fr" },
+    ]);
+    expect(updated[0].discs[1].artist.name).toBe("Otra banda");
+    expect(source[0].discs[0].artist.name).toBe("Banda");
+  });
+
   it.each([
     ["UTC", 2, "2026-03-31T23:59:59.999Z"],
     ["Europe/Madrid", 2, "2026-03-31T21:59:59.999Z"],

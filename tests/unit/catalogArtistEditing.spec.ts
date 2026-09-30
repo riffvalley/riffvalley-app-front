@@ -9,6 +9,7 @@ import { deleteArtist } from "../../src/modules/catalog/application/deleteArtist
 import type { ArtistDeletePort } from "../../src/modules/catalog/application/artistManagementPort";
 import ArtistEditForm from "../../src/app/components/ArtistEditForm.vue";
 import type { ArtistManagementItem } from "../../src/modules/catalog/domain/artistManagement";
+import { alternateCalendarCountryId } from "../../src/modules/catalog/domain/artistManagement";
 
 const artist: ArtistManagementItem = {
   id: "a1", name: "Old name", description: "Old bio", image: "old.jpg",
@@ -17,6 +18,14 @@ const artist: ArtistManagementItem = {
 };
 
 describe("Catalog artist editing", () => {
+  it("alternates between the two configured calendar countries", () => {
+    const firstCountry = "4108d9b0-a44e-4877-a839-a5541eac852d";
+    const secondCountry = "a121dfc4-7ee8-4435-ab26-1db8e4071dde";
+    expect(alternateCalendarCountryId(firstCountry)).toBe(secondCountry);
+    expect(alternateCalendarCountryId(secondCountry)).toBe(firstCountry);
+    expect(alternateCalendarCountryId(null)).toBe(firstCountry);
+  });
+
   it("sends optional edit fields without converting empty values into clears", async () => {
     const updateArtistPort = vi.fn().mockResolvedValue(undefined);
     const port: ArtistUpdatePort = { updateArtist: updateArtistPort };
@@ -29,6 +38,19 @@ describe("Catalog artist editing", () => {
     const error = new Error("failed");
     const port: ArtistUpdatePort = { updateArtist: vi.fn().mockRejectedValue(error) };
     await expect(updateArtist(port, "a1", { name: "New name" })).rejects.toBe(error);
+  });
+
+  it("keeps the calendar artist update contract limited to name and country", async () => {
+    const updateArtistPort = vi.fn().mockResolvedValue(undefined);
+    const port: ArtistUpdatePort = { updateArtist: updateArtistPort };
+    await updateArtist(port, "a1", { name: "Calendar name", countryId: "fr" });
+    expect(updateArtistPort).toHaveBeenCalledWith("a1", { name: "Calendar name", countryId: "fr" });
+  });
+
+  it("propagates a calendar artist update error without converting it to success", async () => {
+    const failure = new Error("calendar update failed");
+    const port: ArtistUpdatePort = { updateArtist: vi.fn().mockRejectedValue(failure) };
+    await expect(updateArtist(port, "a1", { countryId: "fr" })).rejects.toBe(failure);
   });
 
   it("opens the edit fields and emits save/cancel without owning transport", async () => {

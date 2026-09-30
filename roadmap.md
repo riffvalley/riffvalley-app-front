@@ -414,6 +414,20 @@ excepciones arquitectónicas.
 **Cierre:** pruebas de actualización correcta y error; los datos y eventos del
 calendario reflejan la respuesta sin cambiar el comportamiento de autorización.
 
+**Estado: completado.** El calendario estándar compone el PATCH de artista desde
+`app` con Catalog. La tarjeta conserva el selector, los mensajes y el evento
+`update-artist`; tras éxito, el propietario del calendario reemplaza de forma
+inmutable nombre/país en todas las tarjetas del artista. Los errores no cambian
+los datos. La alternancia conserva los dos IDs configurados y ahora está
+conectada a un control visible. Se mantienen permisos y las acciones restantes
+en legacy; la creación/asociación de artista no se migra.
+
+**Validación:** pruebas de persistencia correcta/error, actualización del estado
+propietario y alternancia; `yarn verify` pasa con 62 archivos de arquitectura,
+122 pruebas/16 suites, 118 diagnósticos baseline sin regresiones y build.
+`git diff --check` pasa. Persisten los avisos previos de Browserslist,
+`.flex-[2]` y tamaño de chunk. No se inicia 3.4.5.
+
 ### 3.4.5 — Crear artista y asociarlo al disco
 
 Migrar la creación desde el calendario y su asociación al disco existente:

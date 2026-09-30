@@ -50,6 +50,19 @@ export function removeCalendarDisc(groups: CalendarGroup[], id: string): Calenda
   return result;
 }
 
+export function applyCalendarArtistUpdate(
+  groups: CalendarGroup[],
+  artistId: string,
+  update: { name?: string; countryId?: string | null },
+): CalendarGroup[] {
+  return groups.map((group) => ({
+    ...group,
+    discs: group.discs.map((disc) => disc.artist.id === artistId
+      ? { ...disc, artist: { ...disc.artist, ...update } }
+      : disc),
+  }));
+}
+
 function normalizeSearch(value: string) {
   return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/\s+/g, " ").trim();
 }
