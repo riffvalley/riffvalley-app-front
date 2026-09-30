@@ -4,7 +4,7 @@ import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
 import { MONTHS, getYearOptions } from "@helpers/dateConstants";
 import type { Country, Genre } from "../domain/catalog";
-import { applyCalendarArtistUpdate as applyArtistUpdateToGroups, filterStandardCalendar, sameLocalCalendarDay, type CalendarDisc, type CalendarGroup } from "../domain/discCalendar";
+import { applyCalendarDiscArtistCreation as applyArtistCreationToGroups, applyCalendarArtistUpdate as applyArtistUpdateToGroups, filterStandardCalendar, sameLocalCalendarDay, type CalendarDisc, type CalendarGroup } from "../domain/discCalendar";
 import { initializeStandardCalendarGroups, type DiscCalendarPort } from "../application/discCalendar";
 import { useCalendarPages } from "./composables/useCalendarPages";
 import { useCalendarScroll } from "./composables/useCalendarScroll";
@@ -22,6 +22,7 @@ defineSlots<{
     removeDisc: (id: string) => void;
     dateChanged: (id: string, date: string) => void;
     applyArtistUpdate: (artistId: string, update: { name?: string; countryId?: string | null }) => void;
+    applyArtistCreation: (discId: string, artist: { id: string; name: string }) => void;
   }): unknown;
   'group-tools'(props: { group: CalendarGroup }): unknown;
 }>();
@@ -50,6 +51,9 @@ const toggleGroup = (index: number) => { groupState[index] = !groupState[index];
 const handleDateChange = (id: string, _date: string) => removeDisc(id);
 function applyArtistUpdate(artistId: string, update: { name?: string; countryId?: string | null }) {
   groupedDiscs.value = applyArtistUpdateToGroups(groupedDiscs.value, artistId, update);
+}
+function applyArtistCreation(discId: string, artist: { id: string; name: string }) {
+  groupedDiscs.value = applyArtistCreationToGroups(groupedDiscs.value, discId, artist);
 }
 let focusGeneration = 0;
 onUnmounted(() => { focusGeneration++; });
@@ -157,7 +161,7 @@ onMounted(() => { void selectMonth(initial.value ? initial.value.getMonth() : ne
                 <li v-for="disc in group.discs" :key="disc.id">
                   <div :id="`disc-${disc.id}`">
                     <slot name="disc" :disc="disc" :remove-disc="removeDisc" :date-changed="handleDateChange"
-                      :apply-artist-update="applyArtistUpdate" />
+                      :apply-artist-update="applyArtistUpdate" :apply-artist-creation="applyArtistCreation" />
                   </div>
                 </li>
               </ul>

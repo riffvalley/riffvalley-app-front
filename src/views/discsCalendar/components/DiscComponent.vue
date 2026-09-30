@@ -275,6 +275,10 @@ export default defineComponent({
       type: Function as PropType<(artistId: string, update: Pick<UpdateArtistInput, "name" | "countryId">) => Promise<void>>,
       default: undefined,
     },
+    persistArtistCreation: {
+      type: Function as PropType<(discId: string, name: string) => Promise<{ id: string; name: string }>>,
+      default: undefined,
+    },
 
     genres: {
       type: Array as PropType<{ id: string; name: string; color?: string }[]>,
@@ -747,10 +751,13 @@ export default defineComponent({
     const handleArtistUpdate = async () => {
       try {
         if (creatingNewArtist.value) {
-          const newArtist = await postArtist({ name: newArtistName.value });
-          // actualiza artista en el disco
-          props.disc.artist = newArtist as any;
-          await updateDisc(props.disc.id, { artistId: newArtist.id });
+          const newArtist = props.persistArtistCreation
+            ? await props.persistArtistCreation(props.disc.id, newArtistName.value)
+            : await (async () => {
+              const artist = await postArtist({ name: newArtistName.value });
+              await updateDisc(props.disc.id, { artistId: artist.id });
+              return artist;
+            })();
           emit("artist-created", newArtist.id, newArtist.name);
           Swal.fire("¡Éxito!", "Nuevo artista creado correctamente.", "success");
         } else {

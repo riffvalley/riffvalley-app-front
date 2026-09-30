@@ -63,6 +63,19 @@ export function applyCalendarArtistUpdate(
   }));
 }
 
+export function applyCalendarDiscArtistCreation(
+  groups: CalendarGroup[],
+  discId: string,
+  artist: { id: string; name: string },
+): CalendarGroup[] {
+  return groups.map((group) => ({
+    ...group,
+    discs: group.discs.map((disc) => disc.id === discId
+      ? { ...disc, artist: { ...disc.artist, ...artist } }
+      : disc),
+  }));
+}
+
 function normalizeSearch(value: string) {
   return value.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().replace(/\s+/g, " ").trim();
 }

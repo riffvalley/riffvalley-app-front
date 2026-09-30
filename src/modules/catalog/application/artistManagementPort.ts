@@ -12,6 +12,11 @@ export interface ArtistDeletePort {
   deleteArtist(id: string): Promise<void>;
 }
 
+export interface CalendarArtistCreationPort {
+  createArtist(name: string): Promise<{ id: string; name: string }>;
+  associateArtistToDisc(discId: string, artistId: string): Promise<void>;
+}
+
 export interface UpdateArtistInput {
   name?: string;
   countryId?: string | null;

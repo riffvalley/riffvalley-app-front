@@ -441,6 +441,21 @@ artista y calendario. La escritura del disco sigue perteneciendo a Catalog.
 **Cierre:** probar creación y asociación, error en cada operación y estado
 visible tras un fallo parcial; no se cambian contratos de API.
 
+**Estado: completado.** Catalog crea el artista y después actualiza el disco
+mediante operaciones y adaptador propios. La tarjeta conserva el modal, el
+evento `artist-created`, los mensajes y el fallback de compatibilidad legacy;
+ya no modifica `props.disc`. La vista propietaria sustituye inmutablemente el
+artista del disco solo cuando ambas operaciones terminan correctamente. Si la
+creación funciona y la asociación falla, se muestra el error actual, no se emite
+el evento ni cambia el estado visible; el artista creado permanece en backend,
+sin rollback.
+
+**Validación:** pruebas de secuencia, error en creación, error de asociación y
+actualización inmutable del disco. `yarn verify` pasa (64 archivos de
+arquitectura, 126 pruebas/16 suites, 118 diagnósticos baseline y cero regresiones
+TypeScript, build); `git diff --check` pasa. Persisten los avisos previos de
+Browserslist, `.flex-[2]` y tamaño de chunk. No se inicia 3.4.6.
+
 ### 3.4.6 — Detalle Spotify del artista
 
 Migrar la consulta que parte del nombre de disco y artista, busca álbumes en

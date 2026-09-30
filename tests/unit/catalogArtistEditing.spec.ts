@@ -10,6 +10,10 @@ import type { ArtistDeletePort } from "../../src/modules/catalog/application/art
 import ArtistEditForm from "../../src/app/components/ArtistEditForm.vue";
 import type { ArtistManagementItem } from "../../src/modules/catalog/domain/artistManagement";
 import { alternateCalendarCountryId } from "../../src/modules/catalog/domain/artistManagement";
+import { createCalendarArtist } from "../../src/modules/catalog/application/createCalendarArtist";
+import type { CalendarArtistCreationPort } from "../../src/modules/catalog/application/artistManagementPort";
+import { applyCalendarDiscArtistCreation } from "../../src/modules/catalog/domain/discCalendar";
+import type { CalendarGroup } from "../../src/modules/catalog/domain/discCalendar";
 
 const artist: ArtistManagementItem = {
   id: "a1", name: "Old name", description: "Old bio", image: "old.jpg",
@@ -51,6 +55,51 @@ describe("Catalog artist editing", () => {
     const failure = new Error("calendar update failed");
     const port: ArtistUpdatePort = { updateArtist: vi.fn().mockRejectedValue(failure) };
     await expect(updateArtist(port, "a1", { countryId: "fr" })).rejects.toBe(failure);
+  });
+
+  it("creates the artist before associating it to the disc", async () => {
+    const port: CalendarArtistCreationPort = {
+      createArtist: vi.fn().mockResolvedValue({ id: "new", name: "New band" }),
+      associateArtistToDisc: vi.fn().mockResolvedValue(undefined),
+    };
+    await expect(createCalendarArtist(port, "disc-1", "New band"))
+      .resolves.toEqual({ id: "new", name: "New band" });
+    expect(port.createArtist).toHaveBeenCalledWith("New band");
+    expect(port.associateArtistToDisc).toHaveBeenCalledWith("disc-1", "new");
+    expect(vi.mocked(port.createArtist).mock.invocationCallOrder[0])
+      .toBeLessThan(vi.mocked(port.associateArtistToDisc).mock.invocationCallOrder[0]);
+  });
+
+  it("propagates artist creation failure without attempting disc association", async () => {
+    const failure = new Error("artist creation failed");
+    const port: CalendarArtistCreationPort = {
+      createArtist: vi.fn().mockRejectedValue(failure),
+      associateArtistToDisc: vi.fn(),
+    };
+    await expect(createCalendarArtist(port, "disc-1", "New band")).rejects.toBe(failure);
+    expect(port.associateArtistToDisc).not.toHaveBeenCalled();
+  });
+
+  it("propagates association failure after creation without trying rollback", async () => {
+    const failure = new Error("disc association failed");
+    const port: CalendarArtistCreationPort = {
+      createArtist: vi.fn().mockResolvedValue({ id: "new", name: "New band" }),
+      associateArtistToDisc: vi.fn().mockRejectedValue(failure),
+    };
+    await expect(createCalendarArtist(port, "disc-1", "New band")).rejects.toBe(failure);
+    expect(port.createArtist).toHaveBeenCalledOnce();
+    expect(port.associateArtistToDisc).toHaveBeenCalledWith("disc-1", "new");
+  });
+
+  it("replaces only the selected calendar disc artist after successful association", () => {
+    const groups = [{ releaseDate: "2026-09-18", discs: [
+      { id: "disc-1", artist: { id: "old", name: "Old band", countryId: "es" } },
+      { id: "disc-2", artist: { id: "old", name: "Old band", countryId: "es" } },
+    ] }] as unknown as CalendarGroup[];
+    const changed = applyCalendarDiscArtistCreation(groups, "disc-1", { id: "new", name: "New band" });
+    expect(changed[0].discs[0].artist).toEqual({ id: "new", name: "New band", countryId: "es" });
+    expect(changed[0].discs[1].artist).toEqual({ id: "old", name: "Old band", countryId: "es" });
+    expect(groups[0].discs[0].artist.id).toBe("old");
   });
 
   it("opens the edit fields and emits save/cancel without owning transport", async () => {

@@ -5,7 +5,7 @@ import DiscComponent from "@views/discsCalendar/components/DiscComponent.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";
 import { useAuthStore } from "@stores/auth/auth";
 import { calendarPort, enrichCalendarDiscs, searchCalendarImages } from "../dependencies/discCalendar";
-import { updateCalendarArtist } from "../dependencies/catalog";
+import { createAndAssociateCalendarArtist, updateCalendarArtist } from "../dependencies/catalog";
 import type { UpdateArtistInput } from "@/modules/catalog/application/artistManagementPort";
 import { showErrorToast } from "@/shared/ui/errorToast";
 
@@ -36,15 +36,25 @@ async function persistCalendarArtistUpdate(
   await updateCalendarArtist(artistId, update);
   applyArtistUpdate(artistId, update);
 }
+function applyCalendarArtistCreation(
+  discId: string,
+  artistId: string,
+  artistName: string,
+  applyArtistCreation: (id: string, artist: { id: string; name: string }) => void,
+) {
+  applyArtistCreation(discId, { id: artistId, name: artistName });
+}
 </script>
 
 <template>
   <DiscCalendarView :calendar-port="calendarPort" :genres="catalog.genres" :countries="catalog.countries"
     :options-ready="catalog.loaded" :embedded="embedded" :initial-date="initialDate" :focus-disc-id="focusDiscId"
     @load-error="loadError">
-    <template #disc="{ disc, removeDisc, dateChanged, applyArtistUpdate }">
+    <template #disc="{ disc, removeDisc, dateChanged, applyArtistUpdate, applyArtistCreation }">
       <DiscComponent :disc="disc" :genres="catalog.genres" :countries="catalog.countries" :focus-disc-id="focusDiscId"
         :persist-artist-update="(artistId, update) => persistCalendarArtistUpdate(artistId, update, applyArtistUpdate)"
+        :persist-artist-creation="(discId, name) => createAndAssociateCalendarArtist(discId, name)"
+        @artist-created="(artistId, artistName) => applyCalendarArtistCreation(disc.id, artistId, artistName, applyArtistCreation)"
         @disc-deleted="removeDisc" @date-changed="dateChanged" />
     </template>
     <template #group-tools="{ group }">
