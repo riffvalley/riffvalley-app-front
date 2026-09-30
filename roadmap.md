@@ -388,6 +388,19 @@ playlists, además de los mensajes de éxito y error.
 **Cierre:** probar confirmación, cancelación, éxito y error, incluidos el
 contador y la fila eliminada.
 
+**Estado: completado.** La confirmación y los mensajes siguen en la vista de
+gestión; Catalog ejecuta el DELETE `/artists/:id` mediante su puerto y adaptador.
+La lista elimina la fila y decrementa el contador solo tras éxito. Cancelar no
+llama al puerto; un error conserva la fila y el contador. El backend mantiene
+la condición de borrado que ya aplica a artistas sin discos, novedades
+nacionales ni playlists.
+
+**Validación:** tres pruebas cubren cancelación, éxito con fila/contador y error;
+`yarn verify` pasa con 62 archivos de arquitectura, 116 pruebas, cero
+regresiones TypeScript y build. `git diff --check` pasa. Continúan los avisos
+previos de Browserslist, `.flex-[2]` y tamaño de chunk. La vista de gestión y sus
+otras acciones siguen siendo legacy; no se inicia 3.4.4.
+
 ### 3.4.4 — Nombre y país desde calendario
 
 Migrar desde la tarjeta del calendario el cambio de nombre y país del artista,

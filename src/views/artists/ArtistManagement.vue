@@ -726,7 +726,6 @@ import {
 } from "vue";
 import {
   getArtistsManagement,
-  deleteArtist,
   updateArtist,
   searchArtistsByName,
 } from "@services/artist/artist";
@@ -747,8 +746,8 @@ import { fetchArtistManagement, fetchCatalog } from "@/app/dependencies/catalog"
 import { useArtistManagementList } from "@/modules/catalog/presentation/composables/useArtistManagementList";
 import { useCatalogStore } from "@/modules/catalog/presentation/catalogStore";
 import ArtistEditForm from "@/app/components/ArtistEditForm.vue";
-import { saveManagedArtist } from "@/app/dependencies/catalog";
-import { applyArtistEditLocally } from "@/modules/catalog/presentation/artistManagementEditing";
+import { deleteManagedArtist, saveManagedArtist } from "@/app/dependencies/catalog";
+import { applyArtistEditLocally, confirmAndDeleteArtist, removeArtistLocally } from "@/modules/catalog/presentation/artistManagementEditing";
 
 export default defineComponent({
   name: "ArtistManagement",
@@ -954,21 +953,27 @@ export default defineComponent({
     };
 
     const confirmDelete = async (artist: ArtistManagementItem) => {
-      const result = await Swal.fire({
-        title: `¿Borrar "${artist.name}"?`,
-        text: "Este artista no tiene discos ni novedades nacionales. Esta acción no se puede deshacer.",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#ef4444",
-        cancelButtonColor: "#6b7280",
-        confirmButtonText: "Sí, borrar",
-        cancelButtonText: "Cancelar",
-      });
-      if (!result.isConfirmed) return;
-      try {
-        await deleteArtist(artist.id);
-        artists.value = artists.value.filter((a) => a.id !== artist.id);
-        totalItems.value--;
+      const result = await confirmAndDeleteArtist(
+        async () => {
+          const confirmation = await Swal.fire({
+            title: `¿Borrar "${artist.name}"?`,
+            text: "Este artista no tiene discos ni novedades nacionales. Esta acción no se puede deshacer.",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#ef4444",
+            cancelButtonColor: "#6b7280",
+            confirmButtonText: "Sí, borrar",
+            cancelButtonText: "Cancelar",
+          });
+          return confirmation.isConfirmed;
+        },
+        () => deleteManagedArtist(artist.id),
+      );
+      if (result === "cancelled") return;
+      if (result === "deleted") {
+        const localResult = removeArtistLocally(artists.value, totalItems.value, artist.id);
+        artists.value = localResult.artists;
+        totalItems.value = localResult.totalItems;
         Swal.fire({
           icon: "success",
           title: "Artista eliminado",
@@ -977,7 +982,7 @@ export default defineComponent({
           toast: true,
           position: "top-end",
         });
-      } catch {
+      } else {
         Swal.fire({
           icon: "error",
           title: "No se pudo eliminar el artista",

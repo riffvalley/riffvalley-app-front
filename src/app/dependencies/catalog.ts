@@ -7,6 +7,7 @@ import { artistManagementApi } from "@/modules/catalog/infrastructure/artistMana
 import type { ArtistManagementParams } from "@/modules/catalog/domain/artistManagement";
 import { updateArtist as updateArtistOperation } from "@/modules/catalog/application/updateArtist";
 import type { UpdateArtistInput } from "@/modules/catalog/application/artistManagementPort";
+import { deleteArtist as deleteArtistOperation } from "@/modules/catalog/application/deleteArtist";
 
 /** Minimal composition for the catalog pilot consumer. */
 export function fetchCatalog() {
@@ -23,4 +24,8 @@ export function fetchArtistManagement(params: ArtistManagementParams) {
 
 export function saveManagedArtist(id: string, data: UpdateArtistInput) {
   return updateArtistOperation(artistManagementApi, id, data);
+}
+
+export function deleteManagedArtist(id: string) {
+  return deleteArtistOperation(artistManagementApi, id);
 }

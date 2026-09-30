@@ -4,6 +4,9 @@ import { mount } from "@vue/test-utils";
 import { updateArtist } from "../../src/modules/catalog/application/updateArtist";
 import type { ArtistUpdatePort } from "../../src/modules/catalog/application/artistManagementPort";
 import { applyArtistEditLocally } from "../../src/modules/catalog/presentation/artistManagementEditing";
+import { confirmAndDeleteArtist, removeArtistLocally } from "../../src/modules/catalog/presentation/artistManagementEditing";
+import { deleteArtist } from "../../src/modules/catalog/application/deleteArtist";
+import type { ArtistDeletePort } from "../../src/modules/catalog/application/artistManagementPort";
 import ArtistEditForm from "../../src/app/components/ArtistEditForm.vue";
 import type { ArtistManagementItem } from "../../src/modules/catalog/domain/artistManagement";
 
@@ -58,5 +61,37 @@ describe("Catalog artist editing", () => {
     expect(result.artists).toHaveLength(1);
     expect(result.totalItems).toBe(1);
     expect(result.artists[0]).toMatchObject({ name: "New", country: null, image: null, description: null });
+  });
+
+  it("does not call delete or change local state when confirmation is cancelled", async () => {
+    const confirm = vi.fn().mockResolvedValue(false);
+    const remove = vi.fn();
+    const rows = [artist];
+    const result = await confirmAndDeleteArtist(confirm, remove);
+    expect(result).toBe("cancelled");
+    expect(remove).not.toHaveBeenCalled();
+    expect(rows).toEqual([artist]);
+  });
+
+  it("deletes through the port and removes the row while decrementing the total", async () => {
+    const deletePort = vi.fn().mockResolvedValue(undefined);
+    const port: ArtistDeletePort = { deleteArtist: deletePort };
+    const result = await confirmAndDeleteArtist(
+      async () => true,
+      () => deleteArtist(port, "a1"),
+    );
+    const local = removeArtistLocally([artist], 1, "a1");
+    expect(result).toBe("deleted");
+    expect(deletePort).toHaveBeenCalledWith("a1");
+    expect(local).toEqual({ artists: [], totalItems: 0 });
+  });
+
+  it("preserves the row and total when deletion fails", async () => {
+    const failure = new Error("delete failed");
+    const remove = vi.fn().mockRejectedValue(failure);
+    const rows = [artist];
+    const result = await confirmAndDeleteArtist(async () => true, remove);
+    expect(result).toBe("failed");
+    expect(rows).toEqual([artist]);
   });
 });
