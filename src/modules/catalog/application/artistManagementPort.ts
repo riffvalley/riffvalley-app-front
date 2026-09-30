@@ -1,7 +1,11 @@
-import type { ArtistManagementParams, ArtistManagementResponse } from "../domain/artistManagement";
+import type { ArtistManagementMatch, ArtistManagementParams, ArtistManagementResponse } from "../domain/artistManagement";
 
 export interface ArtistManagementPort {
   getArtistsManagement(params: ArtistManagementParams): Promise<ArtistManagementResponse>;
+}
+
+export interface ArtistSearchPort {
+  searchArtistsByName(name: string): Promise<ArtistManagementMatch[]>;
 }
 
 export interface ArtistUpdatePort {

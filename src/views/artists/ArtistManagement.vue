@@ -447,226 +447,16 @@
     </div>
   </Teleport>
 
-  <!-- Modal Last.fm -->
-  <Teleport to="body">
-    <div
-      v-if="lastFmModalShow"
-      class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-40"
-      @click.self="lastFmModalShow = false"
-    >
-      <div
-        class="bg-white dark:bg-rv-darkBg rounded-2xl shadow-xl text-rv-navy dark:text-white w-full max-w-3xl max-h-[92vh] overflow-y-auto relative"
-      >
-        <button
-          @click="lastFmModalShow = false"
-          class="absolute top-3 right-3 text-white bg-black/30 hover:bg-black/50 rounded-full w-8 h-8 flex items-center justify-center z-10 text-base"
-        >
-          &times;
-        </button>
-
-        <!-- Cabecera con imagen del artista -->
-        <div
-          class="relative h-72 bg-gray-100 dark:bg-white/10 overflow-hidden rounded-t-2xl"
-        >
-          <img
-            v-if="lastFmModalArtistImage"
-            :src="lastFmModalArtistImage"
-            class="absolute inset-0 w-full h-full object-cover"
-            style="object-position: center 30%"
-          />
-          <div
-            v-else
-            class="absolute inset-0 bg-gradient-to-br from-rv-pink to-rv-purple"
-          ></div>
-          <div
-            class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"
-          ></div>
-          <div class="absolute bottom-4 left-4 right-12 flex flex-col gap-1.5">
-            <div class="flex items-center gap-2 flex-wrap">
-              <i class="fa-brands fa-lastfm text-red-400 text-xl"></i>
-              <span class="text-white font-bold text-xl leading-tight">{{
-                lastFmModalArtistName
-              }}</span>
-              <span
-                v-if="lastFmModalData?.ontour === '1'"
-                class="text-[10px] font-bold bg-green-500 text-white px-2 py-0.5 rounded-full uppercase tracking-wide"
-                >En gira</span
-              >
-            </div>
-            <a
-              v-if="lastFmModalData?.url"
-              :href="lastFmModalData.url"
-              target="_blank"
-              rel="noopener"
-              class="text-xs text-white/70 hover:text-white underline w-fit"
-              >Ver en Last.fm</a
-            >
-          </div>
-        </div>
-
-        <div
-          v-if="!lastFmModalData"
-          class="p-8 text-center text-gray-400 dark:text-gray-400 text-sm"
-        >
-          <i class="fa-brands fa-lastfm text-2xl text-red-400 mb-2 block"></i>
-          Cargando...
-        </div>
-
-        <div v-else class="p-5 flex flex-col gap-4">
-          <!-- Stats -->
-          <div v-if="lastFmModalData?.stats" class="flex gap-3">
-            <div
-              class="flex-1 bg-gray-50 dark:bg-white/10 rounded-xl p-3 text-center"
-            >
-              <p class="text-lg font-bold text-rv-navy dark:text-white">
-                {{
-                  Number(lastFmModalData.stats.listeners).toLocaleString(
-                    "es-ES",
-                  )
-                }}
-              </p>
-              <p
-                class="text-xs text-gray-400 dark:text-gray-300 uppercase tracking-wide"
-              >
-                Oyentes
-              </p>
-            </div>
-            <div
-              class="flex-1 bg-gray-50 dark:bg-white/10 rounded-xl p-3 text-center"
-            >
-              <p class="text-lg font-bold text-rv-navy dark:text-white">
-                {{
-                  Number(lastFmModalData.stats.playcount).toLocaleString(
-                    "es-ES",
-                  )
-                }}
-              </p>
-              <p
-                class="text-xs text-gray-400 dark:text-gray-300 uppercase tracking-wide"
-              >
-                Reproducciones
-              </p>
-            </div>
-          </div>
-
-          <!-- Tags -->
-          <div v-if="lastFmModalData?.tags?.tag?.length">
-            <p
-              class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-2"
-            >
-              Etiquetas
-            </p>
-            <div class="flex flex-wrap gap-1.5">
-              <a
-                v-for="tag in lastFmModalData.tags.tag"
-                :key="tag.name"
-                :href="tag.url"
-                target="_blank"
-                rel="noopener"
-                class="px-2.5 py-0.5 bg-rv-pink rounded-full text-white text-xs font-semibold hover:opacity-80 transition-opacity"
-                >{{ tag.name }}</a
-              >
-            </div>
-          </div>
-
-          <!-- Biografía -->
-          <div v-if="lastFmModalData?.bio?.content">
-            <p
-              class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-2"
-            >
-              Biografía
-            </p>
-            <div
-              class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed"
-              v-html="cleanBio(lastFmModalData.bio.content)"
-            ></div>
-            <p
-              v-if="lastFmModalData.bio.published"
-              class="text-xs text-gray-400 dark:text-gray-400 mt-2"
-            >
-              Publicado: {{ lastFmModalData.bio.published }}
-            </p>
-          </div>
-
-          <!-- Discos en la app (si el artista existe en BD) -->
-          <div v-if="lastFmModalDbArtist?.discs?.length">
-            <p
-              class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-2"
-            >
-              Discos en la app
-            </p>
-            <div class="flex flex-col gap-1.5">
-              <div
-                v-for="disc in lastFmModalDbArtist.discs"
-                :key="disc.id"
-                class="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-200 cursor-pointer hover:bg-gray-50 rounded-xl p-1 -mx-1 transition-colors"
-                @click="openDbDisc(disc)"
-              >
-                <img
-                  v-if="disc.image"
-                  :src="disc.image"
-                  class="w-10 h-10 rounded-lg object-cover flex-shrink-0"
-                />
-                <div
-                  v-else
-                  class="w-10 h-10 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-gray-300 flex-shrink-0"
-                >
-                  <i class="fa-solid fa-compact-disc text-sm"></i>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <span
-                    class="font-medium truncate text-rv-navy dark:text-white dark:text-white block hover:underline"
-                    >{{ disc.name }}</span
-                  >
-                  <span class="text-xs text-gray-400 dark:text-gray-400">{{
-                    formatDate(disc.releaseDate)
-                  }}</span>
-                  <span
-                    v-if="disc.genre"
-                    class="text-xs ml-2"
-                    :style="{ color: disc.genre.color }"
-                    >{{ disc.genre.name }}</span
-                  >
-                </div>
-                <div
-                  class="flex flex-col items-center w-12 text-center flex-shrink-0"
-                >
-                  <span class="text-sm font-bold text-blue-600">{{
-                    disc.rateCount > 0 ? disc.averageRate.toFixed(1) : "-"
-                  }}</span>
-                  <span class="text-[10px] text-gray-400 dark:text-gray-400">{{
-                    disc.rateCount > 0 ? `(${disc.rateCount})` : "Sin votos"
-                  }}</span>
-                </div>
-                <i
-                  class="fa-solid fa-chevron-right text-xs text-gray-300 flex-shrink-0"
-                ></i>
-              </div>
-            </div>
-          </div>
-
-          <!-- Artistas similares -->
-          <div v-if="lastFmModalData?.similar?.artist?.length">
-            <p
-              class="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase tracking-wide mb-2"
-            >
-              Artistas similares
-            </p>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="sim in lastFmModalData.similar.artist"
-                :key="sim.name"
-                @click="loadSimilarArtist(sim.name)"
-                class="px-2.5 py-1 bg-gray-100 dark:bg-white/10 hover:bg-rv-pink hover:text-white rounded-full text-xs text-rv-navy dark:text-white font-medium transition-colors"
-              >
-                {{ sim.name }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </Teleport>
+  <LastFmManagementModal
+    :show="lastFm.visible.value"
+    :artist-name="lastFm.artistName.value"
+    :artist-image="lastFm.artistImage.value"
+    :profile="lastFm.profile.value"
+    :catalog-artist="lastFm.catalogArtist.value"
+    @close="lastFm.close"
+    @navigate-similar="lastFm.navigateToSimilar"
+    @open-disc="openLastFmDisc"
+  />
 
   <ArtistEditForm
     v-if="editModal.show"
@@ -727,14 +517,11 @@ import {
 import {
   getArtistsManagement,
   updateArtist,
-  searchArtistsByName,
 } from "@services/artist/artist";
-import { getArtistInfo } from "@services/lastfm/lastfm";
 import type {
   ArtistManagementItem,
   ArtistManagementDisc,
 } from "@/modules/catalog/domain/artistManagement";
-import { getDiscRates } from "@services/rates/rates";
 import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
 import axios from "axios";
 import { useAuthStore } from "@stores/auth/auth";
@@ -749,10 +536,14 @@ import ArtistEditForm from "@/app/components/ArtistEditForm.vue";
 import { deleteManagedArtist, saveManagedArtist } from "@/app/dependencies/catalog";
 import { applyArtistEditLocally, confirmAndDeleteArtist, removeArtistLocally } from "@/modules/catalog/presentation/artistManagementEditing";
 import { findArtistImages } from "@/app/dependencies/artistImages";
+import LastFmManagementModal from "@/modules/catalog/presentation/LastFmManagementModal.vue";
+import { useLastFmManagement } from "@/modules/catalog/presentation/composables/useLastFmManagement";
+import { lastFmManagementDependencies } from "@/app/dependencies/lastFmManagement";
+import { loadLegacyDiscCard } from "@/app/bridges/artistManagementCommunity";
 
 export default defineComponent({
   name: "ArtistManagement",
-  components: { SearchableSelect, DiscDetail, DiscCardComponent, ArtistEditForm },
+  components: { SearchableSelect, DiscDetail, DiscCardComponent, ArtistEditForm, LastFmManagementModal },
   setup() {
     const catalogStore = useCatalogStore();
     const countries = computed(() => catalogStore.countries);
@@ -802,69 +593,18 @@ export default defineComponent({
 
     const openDiscCard = async (
       disc: ArtistManagementDisc,
-      artist: ArtistManagementItem,
+      artist: Pick<ArtistManagementItem, "name">,
     ) => {
       selectedDiscCard.value = null;
       discCardLoading.value = true;
       try {
-        const authStore = useAuthStore();
-        const rates = await getDiscRates(disc.id);
-        const myRate = rates.find((r) => r.user.id === authStore.userId);
-        selectedDiscCard.value = {
-          ...disc,
-          artistName: artist.name,
-          userDiscRate: myRate?.id ?? null,
-          rate: myRate ? Number(myRate.rate) : null,
-          cover: myRate ? Number(myRate.cover) : null,
-        };
-      } catch {
-        selectedDiscCard.value = {
-          ...disc,
-          artistName: artist.name,
-          userDiscRate: null,
-          rate: null,
-          cover: null,
-        };
+        selectedDiscCard.value = await loadLegacyDiscCard(disc, artist.name, authStore.userId ?? "");
       } finally {
         discCardLoading.value = false;
       }
     };
 
-    const lastFmCache = reactive<Record<string, any>>({});
-    const lastFmLoading = reactive<Record<string, boolean>>({});
-    const lastFmModalShow = ref(false);
-    const lastFmModalArtistName = ref("");
-    const lastFmModalArtistImage = ref<string | null>(null);
-    const lastFmModalData = ref<any>(null);
-    const lastFmModalDbArtist = ref<any>(null);
-
-    const toggleLastFm = async (artist: ArtistManagementItem) => {
-      lastFmModalArtistName.value = artist.name;
-      lastFmModalArtistImage.value = artist.image ?? null;
-      lastFmModalData.value = null;
-      lastFmModalDbArtist.value = artist;
-      lastFmModalShow.value = true;
-      if (lastFmCache[artist.id]) {
-        lastFmModalData.value = lastFmCache[artist.id];
-        if (!lastFmModalArtistImage.value) {
-          lastFmModalArtistImage.value = await fetchSpotifyArtistImage(
-            artist.name,
-          );
-        }
-        return;
-      }
-      lastFmLoading[artist.id] = true;
-      try {
-        const [data, spotifyImage] = await Promise.all([
-          getArtistInfo(artist.name),
-          artist.image
-            ? Promise.resolve(null)
-            : fetchSpotifyArtistImage(artist.name),
-        ]);
-        lastFmCache[artist.id] = data;
-        lastFmModalData.value = data;
-        if (spotifyImage) lastFmModalArtistImage.value = spotifyImage;
-      } catch {
+    const lastFm = useLastFmManagement(lastFmManagementDependencies, () => {
         Swal.fire({
           icon: "error",
           title: "No se encontró info en Last.fm",
@@ -873,9 +613,14 @@ export default defineComponent({
           toast: true,
           position: "top-end",
         });
-      } finally {
-        delete lastFmLoading[artist.id];
-      }
+    });
+
+    const toggleLastFm = (artist: ArtistManagementItem) => lastFm.open(artist);
+
+    const openLastFmDisc = (disc: ArtistManagementDisc) => {
+      openDiscCard(disc, {
+        name: lastFm.artistName.value,
+      });
     };
 
     const isEmpty = (artist: ArtistManagementItem) =>
@@ -1147,67 +892,8 @@ export default defineComponent({
       spotifyImageOptions.value = [];
     };
 
-    const fetchSpotifyArtistImage = async (
-      name: string,
-    ): Promise<string | null> => {
-      try {
-        return (await findArtistImages(name, 1))[0]?.image ?? null;
-      } catch {
-        return null;
-      }
-    };
-
-    const openDbDisc = (disc: any) => {
-      openDiscCard(disc, {
-        name: lastFmModalArtistName.value,
-      } as ArtistManagementItem);
-    };
-
-    const loadSimilarArtist = async (name: string) => {
-      lastFmModalArtistName.value = name;
-      lastFmModalArtistImage.value = null;
-      lastFmModalData.value = null;
-      lastFmModalDbArtist.value = null;
-
-      const [data, dbResults] = await Promise.all([
-        getArtistInfo(name).catch(() => null),
-        searchArtistsByName(name).catch(() => []),
-      ]);
-
-      if (!data) {
-        Swal.fire({
-          icon: "error",
-          title: "No se encontró info en Last.fm",
-          timer: 2000,
-          showConfirmButton: false,
-          toast: true,
-          position: "top-end",
-        });
-        return;
-      }
-
-      const dbArtist =
-        dbResults.find(
-          (a: any) => a.name.toLowerCase() === name.toLowerCase(),
-        ) ??
-        dbResults[0] ??
-        null;
-      lastFmCache[name] = data;
-      lastFmModalData.value = data;
-      lastFmModalDbArtist.value = dbArtist;
-      lastFmModalArtistImage.value =
-        dbArtist?.image ?? (await fetchSpotifyArtistImage(name));
-    };
-
     const openArtistImage = (url: string) => {
       if (url) window.open(url, "_blank", "noopener");
-    };
-
-    const cleanBio = (content: string) => {
-      return content
-        .split("User-contributed")[0]
-        .replace(/<a[^>]*>[\s\S]*?<\/a>/gi, "")
-        .trim();
     };
 
     const getLinkStyle = (link: string) => {
@@ -1293,13 +979,9 @@ export default defineComponent({
       selectedDiscCard,
       discCardLoading,
       openDiscCard,
-      lastFmLoading,
-      lastFmModalShow,
-      lastFmModalArtistName,
-      lastFmModalArtistImage,
-      lastFmModalData,
-      lastFmModalDbArtist,
+      lastFm,
       toggleLastFm,
+      openLastFmDisc,
       isEmpty,
       extraReleases,
       uniqueGenres,
@@ -1308,9 +990,6 @@ export default defineComponent({
       saveEdit,
       confirmDelete,
       formatDate,
-      openDbDisc,
-      loadSimilarArtist,
-      cleanBio,
       getLinkStyle,
       openArtistImage,
       fetchSpotifyImage,

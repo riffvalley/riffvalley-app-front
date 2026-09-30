@@ -41,6 +41,14 @@ export interface ArtistManagementItem {
   spotifyPlaylists: ArtistManagementSpotifyPlaylist[];
 }
 
+/** Fields consumed from GET /artists/search/by-name by the management modal. */
+export interface ArtistManagementMatch {
+  id: string;
+  name: string;
+  image: string | null;
+  discs: ArtistManagementDisc[];
+}
+
 export interface ArtistManagementResponse {
   totalItems: number;
   totalPages: number;
