@@ -1,0 +1,762 @@
+{
+  "version": 1,
+  "project": "tsconfig.app.json",
+  "diagnostics": [
+    {
+      "file": "src/app/bootstrap/index.ts",
+      "code": 7016,
+      "message": "Could not find a declaration file for module 'vue-circle-flags'. '<repo>/node_modules/vue-circle-flags/dist/vue-circle-flags.es.js' implicitly has an 'any' type.\n  There are types at '<repo>/node_modules/vue-circle-flags/dist/components/main.d.ts', but this result could not be resolved when respecting package.json \"exports\". The 'vue-circle-flags' library may need to update its package.json or typings.",
+      "source": "import CircleFlags from \"vue-circle-flags\";",
+      "count": 1
+    },
+    {
+      "file": "src/app/layouts/AppShell.vue",
+      "code": 2345,
+      "message": "Argument of type '{ class: string; menuVisible: boolean; onCloseMenu: any; }' is not assignable to parameter of type 'Partial<{}> & Omit<{ readonly menuVisible: boolean; readonly isDark: boolean; readonly \"onClose-menu\"?: ((...args: any[]) => any) | undefined; readonly \"onToggle-theme\"?: ((...args: any[]) => any) | undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, never> & Record<string, unknown>'.\n  Property 'isDark' is missing in type '{ class: string; menuVisible: boolean; onCloseMenu: any; }' but required in type 'Omit<{ readonly menuVisible: boolean; readonly isDark: boolean; readonly \"onClose-menu\"?: ((...args: any[]) => any) | undefined; readonly \"onToggle-theme\"?: ((...args: any[]) => any) | undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, never>'.",
+      "source": "<SidebarMenu v-if=\"!isLoginPage\" :menuVisible=\"menuVisible\" @close-menu=\"closeMenuHandler\" class=\"z-20\" />",
+      "count": 1
+    },
+    {
+      "file": "src/app/router/index.ts",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@views/help/HowToUse.vue'. '<repo>/src/views/help/HowToUse.vue' implicitly has an 'any' type.",
+      "source": "component: () => import(\"@views/help/HowToUse.vue\"),",
+      "count": 1
+    },
+    {
+      "file": "src/app/router/index.ts",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@views/password/PasswordChange.vue'. '<repo>/src/views/password/PasswordChange.vue' implicitly has an 'any' type.",
+      "source": "component: () => import(\"@views/password/PasswordChange.vue\"),",
+      "count": 1
+    },
+    {
+      "file": "src/app/router/index.ts",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@views/reunions/EditReunion.vue'. '<repo>/src/views/reunions/EditReunion.vue' implicitly has an 'any' type.",
+      "source": "component: () => import(\"@views/reunions/EditReunion.vue\"),",
+      "count": 1
+    },
+    {
+      "file": "src/app/router/index.ts",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@views/reunions/ListReunion.vue'. '<repo>/src/views/reunions/ListReunion.vue' implicitly has an 'any' type.",
+      "source": "component: () => import(\"@views/reunions/ListReunion.vue\"),",
+      "count": 1
+    },
+    {
+      "file": "src/app/router/sessionGuard.ts",
+      "code": 2345,
+      "message": "Argument of type '{}' is not assignable to parameter of type 'string'.",
+      "source": "!authStore.roles.includes(to.meta.requiresRole)",
+      "count": 1
+    },
+    {
+      "file": "src/components/ComentsModal.vue",
+      "code": 2698,
+      "message": "Spread types may only be created from object types.",
+      "source": "comments.value.push({ ...newComment, replies: [] });",
+      "count": 1
+    },
+    {
+      "file": "src/components/ComentsModal.vue",
+      "code": 6133,
+      "message": "'emit' is declared but its value is never read.",
+      "source": "setup(props, { emit }) {",
+      "count": 1
+    },
+    {
+      "file": "src/components/CommentItem.vue",
+      "code": 2339,
+      "message": "Property 'user' does not exist on type 'never'.",
+      "source": "if (!newReply.user.avatarUrl && !newReply.user.image && authStore.avatarUrl) {",
+      "count": 2
+    },
+    {
+      "file": "src/components/CommentItem.vue",
+      "code": 2339,
+      "message": "Property 'user' does not exist on type 'never'.",
+      "source": "if (newReply?.user?.id && user.value?.id && newReply.user.id === user.value.id) {",
+      "count": 2
+    },
+    {
+      "file": "src/components/CommentItem.vue",
+      "code": 2339,
+      "message": "Property 'user' does not exist on type 'never'.",
+      "source": "newReply.user.avatarUrl = authStore.avatarUrl;",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiscCardComponent.vue",
+      "code": 2322,
+      "message": "Type 'DiscRate[]' is not assignable to type 'Vote[] | { id: string; user: { id: string; username: string; }; rate: number; cover: number; }[]'.\n  Type 'DiscRate[]' is not assignable to type 'Vote[]'.\n    Type 'DiscRate' is not assignable to type 'Vote'.\n      Types of property 'rate' are incompatible.\n        Type 'string' is not assignable to type 'number'.",
+      "source": "votes.value = await getDiscRates(props.id);",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiscCardComponent.vue",
+      "code": 2322,
+      "message": "Type 'null' is not assignable to type 'string | undefined'.",
+      "source": "favoriteId.value = null;",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiscCardComponent.vue",
+      "code": 2322,
+      "message": "Type 'null' is not assignable to type 'string | undefined'.",
+      "source": "pendingId.value = null;",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiscCardComponent.vue",
+      "code": 2339,
+      "message": "Property 'id' does not exist on type 'void'.",
+      "source": "favoriteId.value = favorite.id;",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiscCardComponent.vue",
+      "code": 2339,
+      "message": "Property 'id' does not exist on type 'void'.",
+      "source": "pendingId.value = pending.id;",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiscCardComponent.vue",
+      "code": 2339,
+      "message": "Property 'id' does not exist on type 'void'.",
+      "source": "userDiscRateId.value = response.id;",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiscCardComponent.vue",
+      "code": 6133,
+      "message": "'nextTick' is declared but its value is never read.",
+      "source": "import { defineComponent, ref, computed, watchEffect, watch, nextTick, onUnmounted, type PropType } from \"vue\";",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiscFilters.vue",
+      "code": 6133,
+      "message": "'today' is declared but its value is never read.",
+      "source": "const today = new Date();",
+      "count": 1
+    },
+    {
+      "file": "src/components/DiscFilters.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@components/SearchableSelect.vue'. '<repo>/src/components/SearchableSelect.vue' implicitly has an 'any' type.",
+      "source": "import SearchableSelect from \"@components/SearchableSelect.vue\";",
+      "count": 1
+    },
+    {
+      "file": "src/components/SimpleSelect.vue",
+      "code": 2339,
+      "message": "Property 'icon' does not exist on type 'Opt'.",
+      "source": "<span v-if=\"opt.icon\" class=\"ss-inline-icon\" aria-hidden=\"true\">",
+      "count": 1
+    },
+    {
+      "file": "src/components/SimpleSelect.vue",
+      "code": 2339,
+      "message": "Property 'icon' does not exist on type 'Opt'.",
+      "source": "<svg v-else-if=\"opt.icon === 'down'\" viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\"",
+      "count": 1
+    },
+    {
+      "file": "src/components/SimpleSelect.vue",
+      "code": 2339,
+      "message": "Property 'icon' does not exist on type 'Opt'.",
+      "source": "<svg v-if=\"opt.icon === 'up'\" viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\"",
+      "count": 1
+    },
+    {
+      "file": "src/components/SimpleSelect.vue",
+      "code": 2339,
+      "message": "Property 'icon' does not exist on type 'Opt'.",
+      "source": "return found?.icon as ('up' | 'down' | undefined);",
+      "count": 1
+    },
+    {
+      "file": "src/layouts/default/DefaultLayout.vue",
+      "code": 6133,
+      "message": "'html' is declared but its value is never read.",
+      "source": "const html = document.documentElement;",
+      "count": 1
+    },
+    {
+      "file": "src/services/countries/countries.ts",
+      "code": 6133,
+      "message": "'limit' is declared but its value is never read.",
+      "source": "limit: number,",
+      "count": 1
+    },
+    {
+      "file": "src/services/swal/SwalService.ts",
+      "code": 6196,
+      "message": "'ConfirmOptions' is declared but never used.",
+      "source": "interface ConfirmOptions {",
+      "count": 1
+    },
+    {
+      "file": "src/services/swal/SwalService.ts",
+      "code": 6196,
+      "message": "'SweetAlertOptions' is declared but never used.",
+      "source": "import type { SweetAlertOptions, SweetAlertResult } from \"sweetalert2\";",
+      "count": 1
+    },
+    {
+      "file": "src/services/swal/SwalService.ts",
+      "code": 7053,
+      "message": "Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{ \"0\": { titles: string[]; messages: string[]; }; \"1\": { titles: string[]; messages: string[]; }; \"2\": { titles: string[]; messages: string[]; }; \"3\": { titles: string[]; messages: string[]; }; \"4\": { titles: string[]; messages: string[]; }; \"5\": { titles: string[]; messages: string[]; }; \"6\": { titles: string[]; messages: string[]; }; \"7\": { titles: string[]; messages: string[]; }; \"8\": { titles: string[]; messages: string[]; }; \"9\": { titles: string[]; messages: string[]; }; \"10\": { titles: string[]; messages: string[]; }; }'.\n  No index signature with a parameter of type 'number' was found on type '{ \"0\": { titles: string[]; messages: string[]; }; \"1\": { titles: string[]; messages: string[]; }; \"2\": { titles: string[]; messages: string[]; }; \"3\": { titles: string[]; messages: string[]; }; \"4\": { titles: string[]; messages: string[]; }; \"5\": { titles: string[]; messages: string[]; }; \"6\": { titles: string[]; messages: string[]; }; \"7\": { titles: string[]; messages: string[]; }; \"8\": { titles: string[]; messages: string[]; }; \"9\": { titles: string[]; messages: string[]; }; \"10\": { titles: string[]; messages: string[]; }; }'.",
+      "source": "const categoryMessages = messagesData[category];",
+      "count": 1
+    },
+    {
+      "file": "src/services/swal/SwalService.ts",
+      "code": 7053,
+      "message": "Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{ 1: string[]; 2: string[]; 3: string[]; 4: string[]; 5: string[]; 6: string[]; 7: string[]; 8: string[]; 9: string[]; 10: string[]; }'.\n  No index signature with a parameter of type 'number' was found on type '{ 1: string[]; 2: string[]; 3: string[]; 4: string[]; 5: string[]; 6: string[]; 7: string[]; 8: string[]; 9: string[]; 10: string[]; }'.",
+      "source": "if (!images[category]) {",
+      "count": 1
+    },
+    {
+      "file": "src/services/swal/SwalService.ts",
+      "code": 7053,
+      "message": "Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{ 1: string[]; 2: string[]; 3: string[]; 4: string[]; 5: string[]; 6: string[]; 7: string[]; 8: string[]; 9: string[]; 10: string[]; }'.\n  No index signature with a parameter of type 'number' was found on type '{ 1: string[]; 2: string[]; 3: string[]; 4: string[]; 5: string[]; 6: string[]; 7: string[]; 8: string[]; 9: string[]; 10: string[]; }'.",
+      "source": "images[category][Math.floor(Math.random() * images[category].length)];",
+      "count": 2
+    },
+    {
+      "file": "src/stores/asignation/asignation.ts",
+      "code": 2339,
+      "message": "Property 'data' does not exist on type 'void'.",
+      "source": "this.asignations = response.data;",
+      "count": 1
+    },
+    {
+      "file": "src/views/artists/ArtistManagement.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@components/SearchableSelect.vue'. '<repo>/src/components/SearchableSelect.vue' implicitly has an 'any' type.",
+      "source": "import SearchableSelect from \"@components/SearchableSelect.vue\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/contentCalendar/ContentCalendar.vue",
+      "code": 2322,
+      "message": "Type '\"short\" | \"narrow\"' is not assignable to type '\"short\"'.\n  Type '\"narrow\"' is not assignable to type '\"short\"'.",
+      "source": "calendarOptions.value.dayHeaderFormat = { weekday: isMobile.value ? 'narrow' : 'short' };",
+      "count": 1
+    },
+    {
+      "file": "src/views/contentCalendar/ContentCalendar.vue",
+      "code": 2322,
+      "message": "Type '\"short\" | \"narrow\"' is not assignable to type '\"short\"'.\n  Type '\"narrow\"' is not assignable to type '\"short\"'.",
+      "source": "calendarOptions.value.dayHeaderFormat = { weekday: mobile ? 'narrow' : 'short' };",
+      "count": 1
+    },
+    {
+      "file": "src/views/contentCalendar/ContentCalendar.vue",
+      "code": 2345,
+      "message": "Argument of type 'Element' is not assignable to parameter of type 'HTMLElement'.\n  Type 'Element' is missing the following properties from type 'HTMLElement': accessKey, accessKeyLabel, autocapitalize, dir, and 125 more.",
+      "source": "new Draggable(container, {",
+      "count": 1
+    },
+    {
+      "file": "src/views/contentCalendar/ContentCalendar.vue",
+      "code": 2531,
+      "message": "Object is possibly 'null'.",
+      "source": "const backlogRect = backlogPanelRef.value?.$el.querySelector('.flex-1').getBoundingClientRect();",
+      "count": 2
+    },
+    {
+      "file": "src/views/dashboard/DashboardPage.vue",
+      "code": 2339,
+      "message": "Property 'data' does not exist on type 'DiscRate[]'.",
+      "source": "for (const rate of response.data as any[]) {",
+      "count": 2
+    },
+    {
+      "file": "src/views/discsCalendar/components/DiscComponent.vue",
+      "code": 2322,
+      "message": "Type 'string | null' is not assignable to type 'string | undefined'.\n  Type 'null' is not assignable to type 'string | undefined'.",
+      "source": "<a v-if=\"linkButtonData.visible\" @click.prevent=\"handleListenClick\" :href=\"disc.link\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsCalendar/components/DiscComponent.vue",
+      "code": 2322,
+      "message": "Type 'string | null' is not assignable to type 'string | undefined'.\n  Type 'null' is not assignable to type 'string | undefined'.",
+      "source": "await updateArtist(props.disc.artist.id, { countryId: editedArtist.countryId });",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsCalendar/components/DiscComponent.vue",
+      "code": 2339,
+      "message": "Property 'id' does not exist on type 'void'.",
+      "source": "pendingId.value = pending.id;",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsCalendar/components/DiscComponent.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@components/SearchableSelect.vue'. '<repo>/src/components/SearchableSelect.vue' implicitly has an 'any' type.",
+      "source": "import SearchableSelect from \"@components/SearchableSelect.vue\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsCalendarBaby/components/DiscComponentBaby.vue",
+      "code": 2322,
+      "message": "Type 'string | null' is not assignable to type 'string | undefined'.\n  Type 'null' is not assignable to type 'string | undefined'.",
+      "source": "<a v-if=\"linkButtonData.visible\" :href=\"disc.link\" target=\"_blank\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsCalendarBaby/components/DiscComponentBaby.vue",
+      "code": 2339,
+      "message": "Property 'id' does not exist on type 'void'.",
+      "source": "pendingId.value = pending.id;",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsCalendarBaby/components/DiscComponentBaby.vue",
+      "code": 6133,
+      "message": "'Swal' is declared but its value is never read.",
+      "source": "import Swal from \"sweetalert2\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 2322,
+      "message": "Type 'null' is not assignable to type 'unknown[] | undefined'.",
+      "source": "<DiscFilters :searchQuery=\"searchQuery\" :selectedGenre=\"selectedGenre\" :selectedWeek=\"selectedWeek\" :genres=\"genres\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 2322,
+      "message": "Type 'number' is not assignable to type 'string'.",
+      "source": "totalDisc.value = response.totalItems;",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 2339,
+      "message": "Property 'data' does not exist on type 'any[]'.",
+      "source": "...response.data.map((favorite) => ({",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 2339,
+      "message": "Property 'data' does not exist on type 'any[]'.",
+      "source": "...response.data.map((pending) => ({",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 2339,
+      "message": "Property 'data' does not exist on type 'DiscRate[]'.",
+      "source": "...response.data.map((rate) => ({",
+      "count": 2
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 2339,
+      "message": "Property 'getBoundingClientRect' does not exist on type 'never'.",
+      "source": "const rect = loadMore.value.getBoundingClientRect();",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 2339,
+      "message": "Property 'totalItems' does not exist on type 'any[]'.",
+      "source": "totalFavorites.value = response.totalItems;",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 2339,
+      "message": "Property 'totalItems' does not exist on type 'any[]'.",
+      "source": "totalPendings.value = response.totalItems;",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 2339,
+      "message": "Property 'totalItems' does not exist on type 'DiscRate[]'.",
+      "source": "totalCovers.value = response.totalItems;",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 2339,
+      "message": "Property 'totalItems' does not exist on type 'DiscRate[]'.",
+      "source": "totalRates.value = response.totalItems;",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 7006,
+      "message": "Parameter 'favorite' implicitly has an 'any' type.",
+      "source": "...response.data.map((favorite) => ({",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 7006,
+      "message": "Parameter 'pending' implicitly has an 'any' type.",
+      "source": "...response.data.map((pending) => ({",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 7006,
+      "message": "Parameter 'rate' implicitly has an 'any' type.",
+      "source": "...response.data.map((rate) => ({",
+      "count": 2
+    },
+    {
+      "file": "src/views/discsList/DiscList.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@components/SearchableSelect.vue'. '<repo>/src/components/SearchableSelect.vue' implicitly has an 'any' type.",
+      "source": "import SearchableSelect from \"@components/SearchableSelect.vue\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/discsList/DiscListError.vue",
+      "code": 2322,
+      "message": "Type 'null' is not assignable to type 'unknown[] | undefined'.",
+      "source": ":selectedWeek=\"selectedWeek\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/homePage/components/NewsFeed.vue",
+      "code": 6133,
+      "message": "'sourceAccentBar' is declared but its value is never read.",
+      "source": "function sourceAccentBar(source: string) {",
+      "count": 1
+    },
+    {
+      "file": "src/views/homePage/components/NewsFeed.vue",
+      "code": 6133,
+      "message": "'sourceAccentGlow' is declared but its value is never read.",
+      "source": "function sourceAccentGlow(source: string) {",
+      "count": 1
+    },
+    {
+      "file": "src/views/homePage/HomePage.vue",
+      "code": 2307,
+      "message": "Cannot find module '@services/discs/disc' or its corresponding type declarations.",
+      "source": "import type { Disc } from \"@services/discs/disc\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/homePage/HomePage.vue",
+      "code": 2322,
+      "message": "Type 'null' is not assignable to type 'unknown[] | undefined'.",
+      "source": "<DiscFilters :selectedGenre=\"selectedGenre\" :selectedCountry=\"selectedCountry\" :selectedWeek=\"null\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/homePage/HomePage.vue",
+      "code": 2339,
+      "message": "Property 'averageRate' does not exist on type 'Disc'.",
+      "source": ".filter(disc => disc.averageRate != null)",
+      "count": 1
+    },
+    {
+      "file": "src/views/homePage/HomePage.vue",
+      "code": 2339,
+      "message": "Property 'country' does not exist on type 'Artist'.",
+      "source": "artist: { ...disc.artist, country: disc.artist?.country ?? null },",
+      "count": 1
+    },
+    {
+      "file": "src/views/importPage/ImportDiscs.vue",
+      "code": 6133,
+      "message": "'computed' is declared but its value is never read.",
+      "source": "import { defineComponent, ref, computed } from 'vue';",
+      "count": 1
+    },
+    {
+      "file": "src/views/importPage/ImportPage.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@components/SearchableSelect.vue'. '<repo>/src/components/SearchableSelect.vue' implicitly has an 'any' type.",
+      "source": "import SearchableSelect from '@components/SearchableSelect.vue';",
+      "count": 1
+    },
+    {
+      "file": "src/views/importPage/SuggestPage.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@components/SearchableSelect.vue'. '<repo>/src/components/SearchableSelect.vue' implicitly has an 'any' type.",
+      "source": "import SearchableSelect from '@components/SearchableSelect.vue';",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/AsignationList.vue",
+      "code": 6133,
+      "message": "'CircleFlags' is declared but its value is never read.",
+      "source": "import CircleFlags from \"vue-circle-flags\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/AsignationList.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module 'vue-circle-flags'. '<repo>/node_modules/vue-circle-flags/dist/vue-circle-flags.es.js' implicitly has an 'any' type.\n  There are types at '<repo>/node_modules/vue-circle-flags/dist/components/main.d.ts', but this result could not be resolved when respecting package.json \"exports\". The 'vue-circle-flags' library may need to update its package.json or typings.",
+      "source": "import CircleFlags from \"vue-circle-flags\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/DiscByDate.vue",
+      "code": 2304,
+      "message": "Cannot find name 'PropType'.",
+      "source": "type: Object as PropType<{ id: string; name: string; isoCode: string }>,",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/DiscByDate.vue",
+      "code": 6133,
+      "message": "'obtenerEnlaceArtistaSpotify' is declared but its value is never read.",
+      "source": "import { obtenerEnlaceArtistaSpotify } from \"@helpers/SpotifyFunctions\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/DiscByDate.vue",
+      "code": 6133,
+      "message": "'updateAsignationService' is declared but its value is never read.",
+      "source": "import { updateAsignationService } from \"@services/asignation/asignation\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/DiscByDate.vue",
+      "code": 7006,
+      "message": "Parameter 'a' implicitly has an 'any' type.",
+      "source": "users.value = usersResponse.sort((a, b) =>",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/DiscByDate.vue",
+      "code": 7006,
+      "message": "Parameter 'b' implicitly has an 'any' type.",
+      "source": "users.value = usersResponse.sort((a, b) =>",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/DiscByDate.vue",
+      "code": 7006,
+      "message": "Parameter 'disc' implicitly has an 'any' type.",
+      "source": "discs: group.discs.filter(disc => {",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/DiscByDate.vue",
+      "code": 7053,
+      "message": "Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{}'.\n  No index signature with a parameter of type 'number' was found on type '{}'.",
+      "source": "<div v-if=\"groupState[index]\" class=\"mt-4\">",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/DiscByDate.vue",
+      "code": 7053,
+      "message": "Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{}'.\n  No index signature with a parameter of type 'number' was found on type '{}'.",
+      "source": "<i :class=\"groupState[index] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/DiscByDate.vue",
+      "code": 7053,
+      "message": "Element implicitly has an 'any' type because expression of type 'number' can't be used to index type '{}'.\n  No index signature with a parameter of type 'number' was found on type '{}'.",
+      "source": "groupState[index] = !groupState[index];",
+      "count": 2
+    },
+    {
+      "file": "src/views/list/components/MejoresAsignationList.vue",
+      "code": 6133,
+      "message": "'CircleFlags' is declared but its value is never read.",
+      "source": "import CircleFlags from \"vue-circle-flags\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/MejoresAsignationList.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module 'vue-circle-flags'. '<repo>/node_modules/vue-circle-flags/dist/vue-circle-flags.es.js' implicitly has an 'any' type.\n  There are types at '<repo>/node_modules/vue-circle-flags/dist/components/main.d.ts', but this result could not be resolved when respecting package.json \"exports\". The 'vue-circle-flags' library may need to update its package.json or typings.",
+      "source": "import CircleFlags from \"vue-circle-flags\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/components/MisVotosMes.vue",
+      "code": 2339,
+      "message": "Property 'data' does not exist on type 'DiscRate[]'.",
+      "source": "votes.value = (response.data ?? []).filter((vote: any) => !vote.disc?.ep);",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/CreateList.vue",
+      "code": 6133,
+      "message": "'response' is declared but its value is never read.",
+      "source": "const response = await postList({",
+      "count": 1
+    },
+    {
+      "file": "src/views/list/EditList.vue",
+      "code": 2345,
+      "message": "Argument of type '{ type: string; }' is not assignable to parameter of type 'Partial<{ wpWeeklyPosts: any[]; }> & Omit<{ readonly type: string; readonly listId: string; readonly wpWeeklyPosts: any[]; readonly \"onWp-published\"?: ((...args: any[]) => any) | undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, \"wpWeeklyPosts\"> & Record<string, unknown>'.\n  Property 'listId' is missing in type '{ type: string; }' but required in type 'Omit<{ readonly type: string; readonly listId: string; readonly wpWeeklyPosts: any[]; readonly \"onWp-published\"?: ((...args: any[]) => any) | undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, \"wpWeeklyPosts\">'.",
+      "source": "<AsignationList v-if=\"form.type !== ListType.SPECIAL\" :type=\"form.type\" />",
+      "count": 1
+    },
+    {
+      "file": "src/views/loginPage/LoginPage.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@/components/HowToUseModal.vue'. '<repo>/src/components/HowToUseModal.vue' implicitly has an 'any' type.",
+      "source": "import HowToUseModal from '@/components/HowToUseModal.vue';",
+      "count": 1
+    },
+    {
+      "file": "src/views/nationalReleases/components/CreateDiscForm.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@components/SearchableSelect.vue'. '<repo>/src/components/SearchableSelect.vue' implicitly has an 'any' type.",
+      "source": "import SearchableSelect from '@components/SearchableSelect.vue';",
+      "count": 1
+    },
+    {
+      "file": "src/views/news/ManageNews.vue",
+      "code": 2322,
+      "message": "Type '(form: { title: string; body: string; type: NewsType; image: string | null; publishDate: string | null; status: NewsStatus; }) => Promise<void>' is not assignable to type '(form: { title: string; body: string; type: NewsType; publishDate: string | null; status: NewsStatus; }) => any'.\n  Types of parameters 'form' and 'form' are incompatible.\n    Property 'image' is missing in type '{ title: string; body: string; type: NewsType; publishDate: string | null; status: NewsStatus; }' but required in type '{ title: string; body: string; type: NewsType; image: string | null; publishDate: string | null; status: NewsStatus; }'.",
+      "source": "@submit=\"handleSubmit\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/password/components/DashboardBuilder.vue",
+      "code": 2339,
+      "message": "Property 'id' does not exist on type '{ kind: \"module\"; id: string; } | { kind: \"row\"; ids: string[]; }'.\n  Property 'id' does not exist on type '{ kind: \"row\"; ids: string[]; }'.",
+      "source": "const fromTray = desktopDisabled.value.some(m => m.id === dragging.value!.id);",
+      "count": 1
+    },
+    {
+      "file": "src/views/petitions/PetitionsPage.vue",
+      "code": 2339,
+      "message": "Property 'user' does not exist on type '{ id: string; discName: string; artistName: string; releaseDate: string | null; ep: boolean; debut: boolean; status: \"pending\" | \"approved\" | \"rejected\"; adminNotes: string | null; createdAt: string; genre: { id: string; name: string; } | null; country: { id: string; name: string; } | null; }'.",
+      "source": "{{ req.user.username || req.user.name || req.user.email || req.user.id }}",
+      "count": 4
+    },
+    {
+      "file": "src/views/petitions/PetitionsPage.vue",
+      "code": 2339,
+      "message": "Property 'user' does not exist on type '{ id: string; discName: string; artistName: string; releaseDate: string | null; ep: boolean; debut: boolean; status: \"pending\" | \"approved\" | \"rejected\"; adminNotes: string | null; createdAt: string; genre: { id: string; name: string; } | null; country: { id: string; name: string; } | null; }'.",
+      "source": "<span v-if=\"req.user\">",
+      "count": 1
+    },
+    {
+      "file": "src/views/petitions/PetitionsPage.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@components/SearchableSelect.vue'. '<repo>/src/components/SearchableSelect.vue' implicitly has an 'any' type.",
+      "source": "import SearchableSelect from '@components/SearchableSelect.vue';",
+      "count": 1
+    },
+    {
+      "file": "src/views/spotify/components/GenrePlaylistManager.vue",
+      "code": 7016,
+      "message": "Could not find a declaration file for module '@components/SearchableSelect.vue'. '<repo>/src/components/SearchableSelect.vue' implicitly has an 'any' type.",
+      "source": "import SearchableSelect from \"@components/SearchableSelect.vue\";",
+      "count": 1
+    },
+    {
+      "file": "src/views/spotify/SpotifyFestivalsKanban.vue",
+      "code": 2345,
+      "message": "Argument of type 'SyncedFestivalPlaylist' is not assignable to parameter of type '{ id: string; name: string; status: SpotifyStatus; link: string; type: SpotifyTipo; updateDate: string; createdAt: string; updatedAt: string; user?: { id: string; username: string; image?: string | undefined; } | undefined; userId?: string | undefined; description?: string | null | undefined; spotifyPlaylistId?: string | null | undefined; imageUrl?: string | null | undefined; isPublic?: boolean | undefined; playlistArtists?: { id: string; }[] | undefined; playlistArtistsCount?: number | undefined; content: { id: string; type: ContentType; name: string; publicationDate: string | null; backlog: boolean; ready?: boolean | undefined; notes?: string | null | undefined; closeDate?: string | null | undefined; author?: { id: string; username: string; isActive: boolean; image?: string | null | undefined; } | undefined; } | null; }'.\n  Property 'content' is missing in type 'SyncedFestivalPlaylist' but required in type '{ id: string; name: string; status: SpotifyStatus; link: string; type: SpotifyTipo; updateDate: string; createdAt: string; updatedAt: string; user?: { id: string; username: string; image?: string | undefined; } | undefined; userId?: string | undefined; description?: string | null | undefined; spotifyPlaylistId?: string | null | undefined; imageUrl?: string | null | undefined; isPublic?: boolean | undefined; playlistArtists?: { id: string; }[] | undefined; playlistArtistsCount?: number | undefined; content: { id: string; type: ContentType; name: string; publicationDate: string | null; backlog: boolean; ready?: boolean | undefined; notes?: string | null | undefined; closeDate?: string | null | undefined; author?: { id: string; username: string; isActive: boolean; image?: string | null | undefined; } | undefined; } | null; }'.",
+      "source": "items.value.push(created);",
+      "count": 1
+    },
+    {
+      "file": "src/views/spotify/SpotifyFestivalsKanban.vue",
+      "code": 2741,
+      "message": "Property 'content' is missing in type 'SyncedFestivalPlaylist' but required in type '{ id: string; name: string; status: SpotifyStatus; link: string; type: SpotifyTipo; updateDate: string; createdAt: string; updatedAt: string; user?: { id: string; username: string; image?: string | undefined; } | undefined; userId?: string | undefined; description?: string | null | undefined; spotifyPlaylistId?: string | null | undefined; imageUrl?: string | null | undefined; isPublic?: boolean | undefined; playlistArtists?: { id: string; }[] | undefined; playlistArtistsCount?: number | undefined; content: { id: string; type: ContentType; name: string; publicationDate: string | null; backlog: boolean; ready?: boolean | undefined; notes?: string | null | undefined; closeDate?: string | null | undefined; author?: { id: string; username: string; isActive: boolean; image?: string | null | undefined; } | undefined; } | null; }'.",
+      "source": "if (index !== -1) items.value[index] = updated;",
+      "count": 1
+    },
+    {
+      "file": "src/views/spotify/SpotifyGenresKanban.vue",
+      "code": 2345,
+      "message": "Argument of type 'SyncedGenrePlaylist' is not assignable to parameter of type '{ id: string; name: string; status: SpotifyStatus; link: string; type: SpotifyTipo; updateDate: string; createdAt: string; updatedAt: string; user?: { id: string; username: string; image?: string | undefined; } | undefined; userId?: string | undefined; description?: string | null | undefined; spotifyPlaylistId?: string | null | undefined; imageUrl?: string | null | undefined; isPublic?: boolean | undefined; playlistArtists?: { id: string; }[] | undefined; playlistArtistsCount?: number | undefined; content: { id: string; type: ContentType; name: string; publicationDate: string | null; backlog: boolean; ready?: boolean | undefined; notes?: string | null | undefined; closeDate?: string | null | undefined; author?: { id: string; username: string; isActive: boolean; image?: string | null | undefined; } | undefined; } | null; }'.\n  Property 'content' is missing in type 'SyncedGenrePlaylist' but required in type '{ id: string; name: string; status: SpotifyStatus; link: string; type: SpotifyTipo; updateDate: string; createdAt: string; updatedAt: string; user?: { id: string; username: string; image?: string | undefined; } | undefined; userId?: string | undefined; description?: string | null | undefined; spotifyPlaylistId?: string | null | undefined; imageUrl?: string | null | undefined; isPublic?: boolean | undefined; playlistArtists?: { id: string; }[] | undefined; playlistArtistsCount?: number | undefined; content: { id: string; type: ContentType; name: string; publicationDate: string | null; backlog: boolean; ready?: boolean | undefined; notes?: string | null | undefined; closeDate?: string | null | undefined; author?: { id: string; username: string; isActive: boolean; image?: string | null | undefined; } | undefined; } | null; }'.",
+      "source": "items.value.push(created);",
+      "count": 1
+    },
+    {
+      "file": "src/views/spotify/SpotifyGenresKanban.vue",
+      "code": 2741,
+      "message": "Property 'content' is missing in type 'SyncedGenrePlaylist' but required in type '{ id: string; name: string; status: SpotifyStatus; link: string; type: SpotifyTipo; updateDate: string; createdAt: string; updatedAt: string; user?: { id: string; username: string; image?: string | undefined; } | undefined; userId?: string | undefined; description?: string | null | undefined; spotifyPlaylistId?: string | null | undefined; imageUrl?: string | null | undefined; isPublic?: boolean | undefined; playlistArtists?: { id: string; }[] | undefined; playlistArtistsCount?: number | undefined; content: { id: string; type: ContentType; name: string; publicationDate: string | null; backlog: boolean; ready?: boolean | undefined; notes?: string | null | undefined; closeDate?: string | null | undefined; author?: { id: string; username: string; isActive: boolean; image?: string | null | undefined; } | undefined; } | null; }'.",
+      "source": "function applySyncedPlaylist(updated: SyncedGenrePlaylist) { const index = items.value.findIndex((item) => item.id === updated.id); if (index !== -1) items.value[index] = updated; if (managedPlaylist.value?.id === updated.id) managedPlaylist.value = items.value[index] || updated; }",
+      "count": 1
+    },
+    {
+      "file": "src/views/statistics/components/MonthlyVotesChart.vue",
+      "code": 2345,
+      "message": "Argument of type '{ key: string; data: any; options: _DeepPartialObject<CoreChartOptions<\"bar\"> & ElementChartOptions<\"bar\"> & PluginChartOptions<\"bar\"> & DatasetChartOptions<\"bar\"> & ScaleChartOptions<\"bar\"> & BarControllerChartOptions> | _DeepPartialObject<CoreChartOptions<\"line\"> & ElementChartOptions<\"line\"> & PluginChartOptions<\"line\"> & DatasetChartOptions<\"line\"> & ScaleChartOptions<\"line\"> & LineControllerChartOptions>; }' is not assignable to parameter of type '((Partial<{}> & Omit<{ readonly data: ChartData<\"bar\", (number | [number, number] | null)[] | ExtendedDataPoint[], unknown>; readonly options?: _DeepPartialObject<CoreChartOptions<\"bar\"> & ElementChartOptions<\"bar\"> & PluginChartOptions<\"bar\"> & DatasetChartOptions<\"bar\"> & ScaleChartOptions<\"bar\"> & BarControllerChartOptions> | undefined; readonly plugins?: Plugin<\"bar\", AnyObject>[] | undefined; readonly datasetIdKey?: string | undefined; readonly updateMode?: \"reset\" | \"none\" | \"default\" | \"resize\" | \"hide\" | \"show\" | \"active\" | undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, undefined>) | (Partial<{}> & Omit<{ readonly data: ChartData<\"line\", (number | Point | null)[], unknown>; readonly options?: _DeepPartialObject<CoreChartOptions<\"line\"> & ElementChartOptions<\"line\"> & PluginChartOptions<\"line\"> & DatasetChartOptions<\"line\"> & ScaleChartOptions<\"line\"> & LineControllerChartOptions> | undefined; readonly plugins?: Plugin<\"line\", AnyObject>[] | undefined; readonly datasetIdKey?: string | undefined; readonly updateMode?: \"reset\" | \"none\" | \"default\" | \"resize\" | \"hide\" | \"show\" | \"active\" | undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, undefined>)) & Record<string, unknown>'.\n  Type '{ key: string; data: any; options: _DeepPartialObject<CoreChartOptions<\"bar\"> & ElementChartOptions<\"bar\"> & PluginChartOptions<\"bar\"> & DatasetChartOptions<\"bar\"> & ScaleChartOptions<\"bar\"> & BarControllerChartOptions> | _DeepPartialObject<CoreChartOptions<\"line\"> & ElementChartOptions<\"line\"> & PluginChartOptions<\"line\"> & DatasetChartOptions<\"line\"> & ScaleChartOptions<\"line\"> & LineControllerChartOptions>; }' is not assignable to type 'Partial<{}> & Omit<{ readonly data: ChartData<\"line\", (number | Point | null)[], unknown>; readonly options?: _DeepPartialObject<CoreChartOptions<\"line\"> & ElementChartOptions<\"line\"> & PluginChartOptions<\"line\"> & DatasetChartOptions<\"line\"> & ScaleChartOptions<\"line\"> & LineControllerChartOptions> | undefined; readonly plugins?: Plugin<\"line\", AnyObject>[] | undefined; readonly datasetIdKey?: string | undefined; readonly updateMode?: \"reset\" | \"none\" | \"default\" | \"resize\" | \"hide\" | \"show\" | \"active\" | undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, undefined> & Record<string, unknown>'.\n    Type '{ key: string; data: any; options: _DeepPartialObject<CoreChartOptions<\"bar\"> & ElementChartOptions<\"bar\"> & PluginChartOptions<\"bar\"> & DatasetChartOptions<\"bar\"> & ScaleChartOptions<\"bar\"> & BarControllerChartOptions> | _DeepPartialObject<CoreChartOptions<\"line\"> & ElementChartOptions<\"line\"> & PluginChartOptions<\"line\"> & DatasetChartOptions<\"line\"> & ScaleChartOptions<\"line\"> & LineControllerChartOptions>; }' is not assignable to type 'Omit<{ readonly data: ChartData<\"line\", (number | Point | null)[], unknown>; readonly options?: _DeepPartialObject<CoreChartOptions<\"line\"> & ElementChartOptions<\"line\"> & PluginChartOptions<\"line\"> & DatasetChartOptions<\"line\"> & ScaleChartOptions<\"line\"> & LineControllerChartOptions> | undefined; readonly plugins?: Plugin<\"line\", AnyObject>[] | undefined; readonly datasetIdKey?: string | undefined; readonly updateMode?: \"reset\" | \"none\" | \"default\" | \"resize\" | \"hide\" | \"show\" | \"active\" | undefined; } & VNodeProps & AllowedComponentProps & ComponentCustomProps, undefined>'.\n      Types of property 'options' are incompatible.\n        Type '_DeepPartialObject<CoreChartOptions<\"bar\"> & ElementChartOptions<\"bar\"> & PluginChartOptions<\"bar\"> & DatasetChartOptions<\"bar\"> & ScaleChartOptions<\"bar\"> & BarControllerChartOptions> | _DeepPartialObject<CoreChartOptions<\"line\"> & ElementChartOptions<\"line\"> & PluginChartOptions<\"line\"> & DatasetChartOptions<\"line\"> & ScaleChartOptions<\"line\"> & LineControllerChartOptions>' is not assignable to type '_DeepPartialObject<CoreChartOptions<\"line\"> & ElementChartOptions<\"line\"> & PluginChartOptions<\"line\"> & DatasetChartOptions<\"line\"> & ScaleChartOptions<\"line\"> & LineControllerChartOptions> | undefined'.\n          Type '_DeepPartialObject<CoreChartOptions<\"bar\"> & ElementChartOptions<\"bar\"> & PluginChartOptions<\"bar\"> & DatasetChartOptions<\"bar\"> & ScaleChartOptions<\"bar\"> & BarControllerChartOptions>' is not assignable to type '_DeepPartialObject<CoreChartOptions<\"line\"> & ElementChartOptions<\"line\"> & PluginChartOptions<\"line\"> & DatasetChartOptions<\"line\"> & ScaleChartOptions<\"line\"> & LineControllerChartOptions>'.\n            Types of property 'animation' are incompatible.\n              Type 'false | _DeepPartialObject<AnimationSpec<\"bar\"> & { onProgress?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; onComplete?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; }> | undefined' is not assignable to type 'false | _DeepPartialObject<AnimationSpec<\"line\"> & { onProgress?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; onComplete?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; }> | undefined'.\n                Type '_DeepPartialObject<AnimationSpec<\"bar\"> & { onProgress?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; onComplete?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; }>' is not assignable to type 'false | _DeepPartialObject<AnimationSpec<\"line\"> & { onProgress?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; onComplete?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; }> | undefined'.\n                  Type '_DeepPartialObject<AnimationSpec<\"bar\"> & { onProgress?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; onComplete?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; }>' is not assignable to type '_DeepPartialObject<AnimationSpec<\"line\"> & { onProgress?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; onComplete?: ((this: Chart<keyof ChartTypeRegistry, (number | [number, number] | Point | BubbleDataPoint | null)[], unknown>, event: AnimationEvent) => void) | undefined; }>'.\n                    Types of property 'duration' are incompatible.\n                      Type 'number | ((ctx: ScriptableContext<\"bar\">, options: AnyObject) => number | undefined) | undefined' is not assignable to type 'number | ((ctx: ScriptableContext<\"line\">, options: AnyObject) => number | undefined) | undefined'.\n                        Type '(ctx: ScriptableContext<\"bar\">, options: AnyObject) => number | undefined' is not assignable to type 'number | ((ctx: ScriptableContext<\"line\">, options: AnyObject) => number | undefined) | undefined'.\n                          Type '(ctx: ScriptableContext<\"bar\">, options: AnyObject) => number | undefined' is not assignable to type '(ctx: ScriptableContext<\"line\">, options: AnyObject) => number | undefined'.\n                            Types of parameters 'ctx' and 'ctx' are incompatible.\n                              Type 'ScriptableContext<\"line\">' is not assignable to type 'ScriptableContext<\"bar\">'.\n                                Type '\"line\"' is not assignable to type '\"bar\"'.",
+      "source": "<component v-if=\"loaded\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/suggestions/SuggestionsManagement.vue",
+      "code": 2322,
+      "message": "Type 'string' is not assignable to type 'SuggestionPriority'.",
+      "source": "@click=\"createModal.form.priority = p.value\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/suggestions/SuggestionsManagement.vue",
+      "code": 2322,
+      "message": "Type 'string' is not assignable to type 'SuggestionType'.",
+      "source": "@click=\"createModal.form.type = t.value\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/suggestions/SuggestionsPage.vue",
+      "code": 2322,
+      "message": "Type 'string' is not assignable to type 'SuggestionType'.",
+      "source": "@click=\"form.type = t.value\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/users/UserActivity.vue",
+      "code": 6133,
+      "message": "'i' is declared but its value is never read.",
+      "source": "<div v-for=\"(login, i) in userData.logins\" :key=\"login.date\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/users/UserActivity.vue",
+      "code": 6133,
+      "message": "'i' is declared but its value is never read.",
+      "source": "<div v-for=\"(vote, i) in globalVotes\" :key=\"vote.id\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/users/UserActivity.vue",
+      "code": 6133,
+      "message": "'i' is declared but its value is never read.",
+      "source": "<div v-for=\"(vote, i) in userData.votes\" :key=\"vote.id\"",
+      "count": 1
+    },
+    {
+      "file": "src/views/versions/ManageVersions.vue",
+      "code": 6133,
+      "message": "'reload' is declared but its value is never read.",
+      "source": "async function reload() {",
+      "count": 1
+    },
+    {
+      "file": "src/views/weekRecap/components/WeekLists.vue",
+      "code": 6133,
+      "message": "'assignment' is declared but its value is never read.",
+      "source": "const handleCheck = (userId: string, assignment: any) => {",
+      "count": 1
+    },
+    {
+      "file": "src/views/weekRecap/components/WeekLists.vue",
+      "code": 6133,
+      "message": "'userId' is declared but its value is never read.",
+      "source": "const handleCheck = (userId: string, assignment: any) => {",
+      "count": 1
+    }
+  ]
+}

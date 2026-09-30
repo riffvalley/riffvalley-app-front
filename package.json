@@ -7,13 +7,14 @@
     "dev": "vite",
     "lint": "node scripts/lint.mjs",
     "architecture": "node scripts/architecture.mjs",
-    "typecheck": "vue-tsc --noEmit",
+    "typecheck": "node scripts/typecheck.mjs",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "verify": "yarn lint && yarn architecture && yarn typecheck && yarn test && yarn build",
     "build": "yarn vite build",
     "preview": "vite preview",
-    "prepare": "husky"
+    "prepare": "husky",
+    "typecheck:baseline:prune": "node scripts/typecheck.mjs --prune-baseline"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.7.2",
