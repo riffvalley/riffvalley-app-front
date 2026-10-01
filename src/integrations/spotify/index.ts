@@ -4,6 +4,8 @@ export type { AlbumQuery, AlbumDetails, AlbumDetailsResult } from "./application
 export { loadArtistDetails } from "./application/artistDetails";
 export { loadArtistProfile } from "./application/artistProfile";
 export type { ArtistProfileQuery, ArtistProfile, ArtistProfileResult, ArtistProfilePort } from "./application/artistProfile";
+export { loadMostPopularTrackId } from "./application/mostPopularTrack";
+export type { MostPopularTrackQuery, MostPopularTrackPort } from "./application/mostPopularTrack";
 export { searchArtistImages } from "./application/artistImages";
 export { createArtistImageSearchSession } from "./application/artistImages";
 export type { ArtistImageQuery, ArtistImageOption, ArtistImagesPort, ArtistImageSearchSession, ArtistImageSearchSessionPort } from "./application/artistImages";

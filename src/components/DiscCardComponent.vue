@@ -314,7 +314,7 @@
 <script lang="ts">
 import { readLegacyRolesRaw } from "@stores/auth/auth";
 import { defineComponent, ref, computed, watch, onUnmounted, type PropType } from "vue";
-import { obtenerTrackMasPopularAlbum } from "@helpers/SpotifyFunctions";
+import { fetchMostPopularTrackId } from "@/app/dependencies/mostPopularTrack";
 import defaultImage from "/src/assets/disco.png";
 import DiscDetail from "./DiscDetail.vue";
 import ArtistDetail from "./ArtistDetail.vue";
@@ -728,8 +728,13 @@ export default defineComponent({
       const spotifyMatch = url.match(/spotify\.com\/album\/([a-zA-Z0-9]+)/);
       if (!spotifyMatch) return; // no es Spotify, no hace falta
       isLoadingTrack.value = true;
-      topTrackId.value = (await obtenerTrackMasPopularAlbum(spotifyMatch[1])) ?? null;
-      isLoadingTrack.value = false;
+      try {
+        topTrackId.value = await fetchMostPopularTrackId(spotifyMatch[1]);
+      } catch {
+        topTrackId.value = null;
+      } finally {
+        isLoadingTrack.value = false;
+      }
     });
 
     // Detectar dark mode (clase 'dark' en <html>)
