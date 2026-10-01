@@ -20,10 +20,10 @@
                  text-gray-800 dark:text-white
                  focus:outline-none focus:border-rv-navy dark:focus:border-rv-purple" />
         <div class="flex gap-4 mt-2">
-          <button @click="submitEdit" type="button"
+          <button @click="submitEdit" type="button" :disabled="isEditSubmitting"
             class="text-xs font-semibold text-rv-blue hover:text-rv-blue/70 transition-colors
                    bg-transparent border-0 p-0 focus:outline-none">Guardar</button>
-          <button @click="cancelEdit" type="button"
+          <button @click="cancelEdit" type="button" :disabled="isEditSubmitting"
             class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors
                    bg-transparent border-0 p-0 focus:outline-none">Cancelar</button>
         </div>
@@ -155,9 +155,10 @@
         :comment="reply" :disc-id="discId" :depth="depth + 1" :avatar-size="avatarSize"
         :current-user="currentUser" :session-avatar="sessionAvatar"
         :submitting-reply-ids="submittingReplyIds"
+        :editing-comment-ids="editingCommentIds"
         :submit-reply="submitReply"
+        :submit-edit="submitEditComment"
         @deleted="$emit('deleted', $event)"
-        @comment-updated="$emit('comment-updated', $event)"
         @open-user="$emit('open-user', $event)" />
     </div>
 
@@ -166,7 +167,7 @@
 
 <script lang="ts">
 import { computed, defineComponent, ref, nextTick, type PropType } from "vue";
-import { updateCommentService, deleteCommentService } from "@services/comments/comments";
+import { deleteCommentService } from "@services/comments/comments";
 import SwalService from "@services/swal/SwalService";
 import type { DiscComment } from "@/modules/community";
 
@@ -186,8 +187,10 @@ export default defineComponent({
     sessionAvatar: { type: String, default: "" },
     submittingReplyIds: { type: Object as PropType<Set<string>>, required: true },
     submitReply: { type: Function as PropType<(parentId: string, text: string) => Promise<void>>, required: true },
+    editingCommentIds: { type: Object as PropType<Set<string>>, required: true },
+    submitEdit: { type: Function as PropType<(id: string, text: string) => Promise<void>>, required: true },
   },
-  emits: ["deleted", "comment-updated", "open-user"],
+  emits: ["deleted", "open-user"],
   setup(props, { emit }) {
     const localComment = computed(() => props.comment);
 
@@ -227,6 +230,7 @@ export default defineComponent({
 
     const user = computed(() => props.currentUser);
     const isReplySubmitting = computed(() => props.submittingReplyIds.has(localComment.value.id));
+    const isEditSubmitting = computed(() => props.editingCommentIds.has(localComment.value.id));
     const isOwnComment = computed(() => localComment.value.user.id === user.value.id);
 
     // Solo mostrar "(editado)" si editedAt es al menos 10 segundos posterior a createdAt.
@@ -268,18 +272,18 @@ export default defineComponent({
     const cancelEdit = () => { showEditForm.value = false; editText.value = localComment.value.comment; };
 
     const submitEdit = async () => {
+      if (isEditSubmitting.value) return;
       if (!editText.value.trim()) { SwalService.error("El comentario no puede estar vacío."); return; }
       try {
-        const updated = await updateCommentService(localComment.value.id, { comment: editText.value });
-        localComment.value.comment  = updated.comment;
-        localComment.value.editedAt = updated.editedAt;
+        await props.submitEdit(localComment.value.id, editText.value);
         showEditForm.value = false;
         SwalService.success("Comentario actualizado");
-        emit("comment-updated", updated);
       } catch {
         SwalService.error("Error al actualizar el comentario.");
       }
     };
+
+    const submitEditComment = (id: string, text: string) => props.submitEdit(id, text);
 
     const deleteComment = async () => {
       if (localComment.value.isDeleted) return;
@@ -317,6 +321,7 @@ export default defineComponent({
       showReplyEmojiPicker, activeReplyEmojiCategory, emojiCategories, currentReplyEmojis, insertReplyEmoji,
       toggleReplyForm, submitReply,
       showEditForm, editText, startEdit, cancelEdit, submitEdit,
+      isEditSubmitting, submitEditComment,
       deleteComment, timeAgo, user, displayedAvatar, isReplySubmitting,
     };
   },

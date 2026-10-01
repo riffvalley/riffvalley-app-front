@@ -6,11 +6,13 @@ export function useDiscConversation(
   loadConversation: (discId: string) => Promise<DiscComment[]>,
   createRootComment: (discId: string, text: string) => Promise<DiscComment>,
   createReplyComment: (discId: string, parentId: string, text: string) => Promise<DiscComment>,
+  updateComment: (id: string, text: string) => Promise<{ id: string; comment: string; editedAt?: string | null }>,
 ) {
   const comments = ref<DiscComment[]>([]);
   const isLoading = ref(false);
   const isSubmitting = ref(false);
   const submittingReplyIds = ref(new Set<string>());
+  const editingCommentIds = ref(new Set<string>());
   const totalComments = computed(() => countComments(comments.value));
 
   async function load() {
@@ -70,5 +72,33 @@ export function useDiscConversation(
     }
   }
 
-  return { comments, totalComments, isLoading, isSubmitting, submittingReplyIds, load, addRootComment, addReply };
+  function replaceComment(updated: { id: string; comment: string; editedAt?: string | null }, tree: DiscComment[]): DiscComment[] {
+    let changed = false;
+    const result = tree.map((node) => {
+      if (node.id === updated.id) {
+        changed = true;
+        return { ...node, comment: updated.comment, editedAt: updated.editedAt };
+      }
+      const replies = replaceComment(updated, node.replies);
+      if (replies === node.replies) return node;
+      changed = true;
+      return { ...node, replies };
+    });
+    return changed ? result : tree;
+  }
+
+  async function editComment(id: string, text: string): Promise<void> {
+    if (editingCommentIds.value.has(id)) return;
+    editingCommentIds.value = new Set(editingCommentIds.value).add(id);
+    try {
+      const updated = await updateComment(id, text);
+      comments.value = replaceComment({ ...updated, id }, comments.value);
+    } finally {
+      const pending = new Set(editingCommentIds.value);
+      pending.delete(id);
+      editingCommentIds.value = pending;
+    }
+  }
+
+  return { comments, totalComments, isLoading, isSubmitting, submittingReplyIds, editingCommentIds, load, addRootComment, addReply, editComment };
 }

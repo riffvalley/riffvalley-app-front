@@ -8,20 +8,23 @@ import { createReplyComment as createCommunityReplyComment } from "../../src/mod
 import type { FlatDiscComment } from "../../src/modules/community";
 import type { CommentPort } from "../../src/modules/community";
 
-const { loadConversation, createRootComment, createReplyComment, showError } = vi.hoisted(() => ({
+const { loadConversation, createRootComment, createReplyComment, updateCommunityComment, showError, showSuccess } = vi.hoisted(() => ({
   loadConversation: vi.fn(),
   createRootComment: vi.fn(),
   createReplyComment: vi.fn(),
+  updateCommunityComment: vi.fn(),
   showError: vi.fn(),
+  showSuccess: vi.fn(),
 }));
 
 vi.mock("@/app/dependencies/communityConversation", () => ({
   loadCommunityConversation: loadConversation,
   createCommunityRootComment: createRootComment,
   createCommunityReply: createReplyComment,
+  updateCommunityComment,
   getCommunityCommentIdentity: () => ({ user: { id: "user-1", username: "Ana" }, avatar: "session.png" }),
 }));
-vi.mock("@services/swal/SwalService", () => ({ default: { error: showError, success: vi.fn() } }));
+vi.mock("@services/swal/SwalService", () => ({ default: { error: showError, success: showSuccess } }));
 vi.mock("@services/comments/comments", () => ({
   updateCommentService: vi.fn(),
   deleteCommentService: vi.fn(),
@@ -74,7 +77,7 @@ describe("Community disc conversation loading", () => {
 
   it("creates a reply through the comment port with its parent and a normalized tree node", async () => {
     const create = vi.fn().mockResolvedValue(comment("reply", "parent"));
-    const port: CommentPort = { listByDisc: vi.fn(), create };
+    const port: CommentPort = { listByDisc: vi.fn(), create, update: vi.fn() };
 
     const reply = await createCommunityReplyComment(port, "disc-1", "parent", "Respuesta");
 
@@ -234,6 +237,78 @@ describe("Community disc conversation loading", () => {
     await firstSubmit;
     await flushPromises();
     expect(wrapper.get('[data-comment-id="parent"] .comment-replies [data-comment-id="reply"]').exists()).toBe(true);
+    wrapper.unmount();
+  });
+
+  it("updates the selected node only after success and preserves children and position", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([comment("before"), comment("target"), comment("after"), comment("child", "target")]));
+    updateCommunityComment.mockResolvedValueOnce({ id: "target", comment: "Editado confirmado", editedAt: "2026-09-30T12:01:00.000Z" });
+    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    await flushPromises();
+    const target = wrapper.get('[data-comment-id="target"]');
+    await findButton(target, "Editar").trigger("click");
+    await target.get("input").setValue("Editado confirmado");
+    await findButton(target, "Guardar").trigger("click");
+    await flushPromises();
+    expect(updateCommunityComment).toHaveBeenCalledWith("target", "Editado confirmado");
+    expect(wrapper.findAll(".comment-item").map((node) => node.attributes("data-comment-id"))).toEqual(["before", "target", "child", "after"]);
+    expect(target.get(".comment-replies [data-comment-id='child']").exists()).toBe(true);
+    expect(target.text()).toContain("Editado confirmado");
+    wrapper.unmount();
+  });
+
+  it("keeps confirmed text and edit draft after failure, then allows retry", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([comment("target")]));
+    updateCommunityComment.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ id: "target", comment: "Reintento", editedAt: "2026-09-30T12:01:00.000Z" });
+    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    await flushPromises();
+    const target = wrapper.get('[data-comment-id="target"]');
+    await findButton(target, "Editar").trigger("click");
+    await target.get("input").setValue("Reintento");
+    await findButton(target, "Guardar").trigger("click");
+    await flushPromises();
+    expect(wrapper.findAllComponents(CommentItem).find((item) => item.props("comment").id === "target")?.props("comment").comment).toBe("Comentario target");
+    expect(target.get("input").element.value).toBe("Reintento");
+    expect(showError).toHaveBeenCalledWith("Error al actualizar el comentario.");
+    await findButton(target, "Guardar").trigger("click");
+    await flushPromises();
+    expect(updateCommunityComment).toHaveBeenCalledTimes(2);
+    expect(target.text()).toContain("Reintento");
+    wrapper.unmount();
+  });
+
+  it("coordinates double submissions per comment", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([comment("target")]));
+    let resolveUpdate: (value: { id: string; comment: string; editedAt: string }) => void = () => {};
+    updateCommunityComment.mockReturnValueOnce(new Promise((resolve) => { resolveUpdate = resolve; }));
+    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    await flushPromises();
+    const target = wrapper.get('[data-comment-id="target"]');
+    await findButton(target, "Editar").trigger("click");
+    await target.get("input").setValue("Una edición");
+    const first = findButton(target, "Guardar").trigger("click");
+    await flushPromises();
+    expect(target.findAll("button").find((button) => button.text().trim() === "Guardar")?.attributes("disabled")).toBeDefined();
+    await findButton(target, "Guardar").trigger("click");
+    expect(updateCommunityComment).toHaveBeenCalledTimes(1);
+    resolveUpdate({ id: "target", comment: "Una edición", editedAt: "2026-09-30T12:01:00.000Z" });
+    await first;
+    await flushPromises();
+    expect(target.text()).toContain("Una edición");
+    wrapper.unmount();
+  });
+
+  it("cancels editing without writing or changing the tree", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([comment("target"), comment("child", "target")]));
+    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    await flushPromises();
+    const target = wrapper.get('[data-comment-id="target"]');
+    await findButton(target, "Editar").trigger("click");
+    await target.get("input").setValue("Cancelado");
+    await findButton(target, "Cancelar").trigger("click");
+    expect(updateCommunityComment).not.toHaveBeenCalled();
+    expect(target.text()).toContain("Comentario target");
+    expect(target.get(".comment-replies [data-comment-id='child']").exists()).toBe(true);
     wrapper.unmount();
   });
 });

@@ -49,9 +49,10 @@
               :comment="comment" :disc-id="discId" :depth="0"
               :current-user="currentUser" :session-avatar="sessionAvatar"
               :submitting-reply-ids="submittingReplyIds"
+              :editing-comment-ids="editingCommentIds"
               :submit-reply="submitReply"
+              :submit-edit="editComment"
               @deleted="handleCommentDeleted"
-              @comment-updated="handleCommentUpdated"
               @open-user="openUserModal($event.username, $event.id, $event.avatar)" />
           </div>
 
@@ -126,7 +127,7 @@ import CommentItem from "./CommentItem.vue";
 import SwalService from "@services/swal/SwalService";
 import UserModal from '@/components/UserModal.vue';
 import { useDiscConversation, type DiscComment } from "@/modules/community";
-import { createCommunityReply, createCommunityRootComment, getCommunityCommentIdentity, loadCommunityConversation } from "@/app/dependencies/communityConversation";
+import { createCommunityReply, createCommunityRootComment, getCommunityCommentIdentity, loadCommunityConversation, updateCommunityComment } from "@/app/dependencies/communityConversation";
 
 function markCommentAsDeleted(comments: DiscComment[], commentId: string): DiscComment[] {
   comments.forEach((comment) => {
@@ -141,17 +142,6 @@ function markCommentAsDeleted(comments: DiscComment[], commentId: string): DiscC
   return comments;
 }
 
-function updateCommentInTree(commentList: DiscComment[], updated: Pick<DiscComment, "id" | "comment" | "editedAt">) {
-  commentList.forEach((c) => {
-    if (c.id === updated.id) {
-      c.comment  = updated.comment;
-      c.editedAt = updated.editedAt;
-    } else if (c.replies?.length) {
-      updateCommentInTree(c.replies, updated);
-    }
-  });
-}
-
 export default defineComponent({
   name: "ComentsModal",
   components: { CommentItem, UserModal },
@@ -163,9 +153,10 @@ export default defineComponent({
   emits: ["close"],
   setup(props, { emit }) {
     const conversation = useDiscConversation(props.discId, loadCommunityConversation, createCommunityRootComment,
-      (discId, parentId, text) => createCommunityReply(discId, parentId, text));
+      (discId, parentId, text) => createCommunityReply(discId, parentId, text), updateCommunityComment);
     const comments = conversation.comments;
     const submittingReplyIds = conversation.submittingReplyIds;
+    const editingCommentIds = conversation.editingCommentIds;
     const topCommentText = ref("");
     const inputRef       = ref<HTMLInputElement | null>(null);
 
@@ -246,9 +237,7 @@ export default defineComponent({
       comments.value = markCommentAsDeleted(comments.value, commentId);
     };
 
-    const handleCommentUpdated = (updated: Pick<DiscComment, "id" | "comment" | "editedAt">) => {
-      updateCommentInTree(comments.value, updated);
-    };
+    const editComment = conversation.editComment;
 
     onMounted(() => { fetchComments(); });
 
@@ -267,7 +256,8 @@ export default defineComponent({
       submitTopComment,
       submitReply,
       handleCommentDeleted,
-      handleCommentUpdated,
+      editingCommentIds,
+      editComment,
       artistName,
       albumName,
       discId,

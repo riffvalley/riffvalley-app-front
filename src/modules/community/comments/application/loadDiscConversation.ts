@@ -20,3 +20,7 @@ export async function createReplyComment(
   const created = await port.create(discId, comment, parentId);
   return { ...created, parentId, replies: [] };
 }
+
+export async function updateComment(port: CommentPort, id: string, comment: string) {
+  return port.update(id, comment);
+}
