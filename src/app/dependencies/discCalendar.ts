@@ -25,7 +25,7 @@ export const calendarPort = {
 export const searchCalendarImages = (date: string) => fillCalendarImages(calendarImagesApi, date);
 export async function enrichCalendarDiscs(discs: CalendarDisc[]) {
   const session = await albumLinksApi.openSession();
-  if (!session) { console.error("No se pudo obtener el token de Spotify"); return; }
+  if (!session) { console.error("No se pudo iniciar la búsqueda de álbumes de Spotify"); return; }
   for (const disc of discs) {
     const result = await session.findAlbum({ albumName: disc.name, artistName: disc.artist.name });
     if (result.status === "not-found") disc.link = "No se encontró el álbum";

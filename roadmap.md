@@ -1139,20 +1139,392 @@ a proveedores bajo Integrations.
 
 ## Iteración 5 — Integraciones del navegador
 
-1. Extraer primero una capacidad de Spotify usada por un detalle o formulario.
-   Reutilizar helpers existentes donde tenga sentido y centralizar DTOs,
-   errores y autenticación del proveedor en su adaptador.
-2. Sustituir llamadas directas a medida que se migren sus consumidores.
-   Repetir después con Last.fm y LanguageTool.
-3. El módulo consumidor define el contrato que necesita. Ninguna pieza de
-   presentación conoce tokens ni payloads específicos del proveedor.
-4. Inventariar variables `VITE_*` y uso de credenciales. Si una capacidad
-   requiere un secreto confidencial, documentar su dependencia de un endpoint
-   backend y dejar ese corte pendiente hasta disponer de él. Mover código
-   dentro del frontend no vuelve secreto un valor enviado al navegador.
+**Estado: planificada; no iniciada.** Ninguna subtarea está completada.
 
-**Salida:** capacidad piloto probada con respuestas simuladas, comportamiento
-conservado y peticiones fuera de toda la presentación migrada.
+**Alcance:** retirar las llamadas directas a Spotify del navegador y asignar a
+`integrations/spotify` la frontera funcional y de transporte hacia la API de
+Riff Valley (`/api/...`). `app` compone los adaptadores para los consumidores;
+las vistas no realizan HTTP de Spotify. El backend actual cubre resolución y
+detalle de álbum, perfiles y búsqueda múltiple de artistas, géneros, enlaces,
+imágenes candidatas, top tracks, track más popular y tracks de discos
+existentes. No se crea un endpoint de token y no se conservan credenciales
+Spotify en el frontend.
+
+Esta iteración cubre Spotify exclusivamente. Los flujos OAuth de playlists no
+se alteran. Last.fm y LanguageTool quedan planificados como trabajo posterior
+a la Iteración 5 en la sección independiente que sigue a esta iteración.
+
+### 5.1 — Adaptar `albumDetailsApi` a la API de Riff Valley (S)
+
+**Objetivo:** conservar el contrato de detalle de álbum usando únicamente
+endpoints de la aplicación.
+
+**Cambio exacto:** resolver el álbum por artista y nombre con
+`GET /api/discs/spotify/album`; consultar su detalle y tracklist mediante
+`GET /api/discs/spotify/album/:spotifyAlbumId`; mapear la respuesta al contrato
+de aplicación actual y retirar token/HTTP de Spotify del adaptador.
+
+**Qué no cambia:** el contrato neutral consumido por el modal, su contenido,
+estados de carga/error ni el orden y formato visible de los tracks.
+
+**Archivos probables:** `src/integrations/spotify/infrastructure/albumDetailsApi.ts`,
+pruebas unitarias del adaptador; sin cambios esperados en
+`src/app/components/DiscDetailModal.vue`.
+
+**Dependencia previa:** ninguna.
+
+**Terminado cuando:** resolución y detalle salen de `/api/...`, el mapeo
+conserva los campos requeridos y no hay referencia a Spotify ni al token en
+este adaptador.
+
+**Verificación:** pruebas del adaptador para éxito, no encontrado y error;
+pruebas de aplicación existentes; lint y typecheck.
+
+### 5.2 — Adaptar `albumLinksApi` a la API de Riff Valley (S)
+
+**Objetivo:** resolver enlace y portada de álbum desde backend conservando el
+puerto de búsqueda por sesión.
+
+**Cambio exacto:** sustituir la búsqueda directa por
+`GET /api/discs/spotify/album?albumName=…&artistName=…`; convertir la sesión en
+una fachada sin token y mapear `listenUrl`/`coverUrl` a `link`/`image`.
+
+**Qué no cambia:** `AlbumLinksPort`, el resultado de enriquecimiento y el
+comportamiento de omitir discos que ya tienen enlace.
+
+**Archivos probables:** `src/integrations/spotify/infrastructure/albumLinksApi.ts`,
+pruebas del adaptador y, solo si lo requiere el mapeo, tipos privados de esa
+infraestructura.
+
+**Dependencia previa:** ninguna.
+
+**Terminado cuando:** la sesión no solicita token, cada resolución usa la API
+de Riff Valley y el puerto conserva su resultado neutral.
+
+**Verificación:** pruebas de resultado encontrado, no encontrado y error;
+lint y typecheck.
+
+### 5.3 — Adaptar `artistDetailsApi` a perfil y top tracks backend (S)
+
+**Objetivo:** mantener la información del modal de artista usando el perfil y
+las canciones principales servidas por Riff Valley.
+
+**Cambio exacto:** buscar el artista con
+`GET /api/spotify/artists/search?artistName=…` y consultar
+`GET /api/spotify/artists/:spotifyId/top-tracks`, que actualmente devuelve
+resultados con `market=ES`; mapear perfil, géneros, followers, popularity y
+top tracks con álbum, imagen y duración al contrato de aplicación. Aceptar
+`market=ES` como decisión funcional consciente, en sustitución del `market=US`
+que usaba el frontend anterior; no se considera una regresión accidental.
+
+**Qué no cambia:** el contrato que consume `ArtistDetailSpotify.vue`, la
+presentación de perfil/canciones ni enlaces de escucha. No añadir DTOs del
+proveedor de Spotify.
+
+**Archivos probables:** `src/integrations/spotify/infrastructure/artistDetailsApi.ts`,
+pruebas del adaptador y sus tipos privados de transporte.
+
+**Dependencia previa:** ninguna; el endpoint backend actual ya sirve los top
+tracks con `market=ES`.
+
+**Terminado cuando:** todos los campos visibles se mapean desde `/api/...`,
+incluidos followers, popularity y metadatos de top tracks, y el adaptador no
+importa el helper ni llama a Spotify.
+
+**Verificación:** pruebas de perfil completo, campos opcionales, artista no
+encontrado y error; typecheck y prueba del componente si cambia el mapeo.
+
+### 5.4 — Adaptar `artistImagesApi` a búsqueda múltiple e imágenes candidatas (S)
+
+**Objetivo:** conservar la selección de imágenes y la búsqueda masiva con los
+endpoints de artistas de Riff Valley.
+
+**Cambio exacto:** usar `GET /api/spotify/artists/search/multiple?artistName=…`
+para candidatos de artista y `GET /api/spotify/artists/:spotifyId/images` para
+las imágenes candidatas de cada artista; mapearlos al contrato neutral actual
+de opciones y conservar una sesión reutilizable sin token.
+
+**Qué no cambia:** la elección manual del modal, el relleno masivo de imágenes
+ni los puertos de aplicación de imágenes.
+
+**Archivos probables:** `src/integrations/spotify/infrastructure/artistImagesApi.ts`,
+`src/app/dependencies/artistImages.ts` solo si requiere composición adicional,
+y pruebas del adaptador.
+
+**Dependencia previa:** ninguna.
+
+**Terminado cuando:** búsqueda múltiple e imágenes candidatas provienen de la
+API de Riff Valley, los nombres se conservan junto a cada opción y no hay
+token ni petición directa a Spotify.
+
+**Verificación:** pruebas con varios artistas, varias imágenes por artista,
+resultado vacío y fallo aislado; lint y typecheck.
+
+### 5.5 — Adaptar `artistLinkApi` al perfil backend (XS)
+
+**Objetivo:** obtener el enlace de Spotify del artista a través de la API de
+Riff Valley.
+
+**Cambio exacto:** sustituir búsqueda directa por
+`GET /api/spotify/artists/search?artistName=…` y mapear `listenUrl` al
+resultado actual del puerto.
+
+**Qué no cambia:** la acción ni los mensajes de `SpotifyArtistButton.vue`, que
+ya accede a la operación mediante la fachada de Integrations.
+
+**Archivos probables:** `src/integrations/spotify/infrastructure/artistLinkApi.ts`,
+pruebas del adaptador.
+
+**Dependencia previa:** ninguna.
+
+**Terminado cuando:** el adaptador devuelve el enlace del primer resultado o
+ningún resultado con el comportamiento de error actual, sin token ni HTTP a
+Spotify.
+
+**Verificación:** pruebas de encontrado, vacío y error; lint y typecheck.
+
+### 5.6 — Migrar `ImportPage.vue` a la resolución compuesta de álbum (S)
+
+**Objetivo:** retirar la búsqueda directa de álbumes de la vista de
+importación.
+
+**Cambio exacto:** ofrecer desde `app` una operación basada en
+`albumLinksApi`/resolución de álbum y usarla desde `ImportPage.vue` para obtener
+enlace e imagen; conservar el guardado por disco y los estados de resultado.
+
+**Qué no cambia:** contratos de importación, permisos, persistencia ni el
+contenido que recibe `updateDisc`.
+
+**Archivos probables:** `src/app/dependencies/` para la composición,
+`src/views/importPage/ImportPage.vue` y pruebas de consumidor/composición.
+
+**Dependencia previa:** 5.2.
+
+**Terminado cuando:** la vista no solicita token ni llama a `api.spotify.com`,
+y sigue actualizando cada disco importado con el enlace y la imagen
+resueltos.
+
+**Verificación:** prueba de consumidor para éxito, álbum ausente y fallo sin
+impedir el resto de la importación; typecheck y lint.
+
+### 5.7 — Migrar los géneros de `DiscComponent.vue` (S)
+
+**Objetivo:** obtener géneros del artista desde backend y retirar ambas
+peticiones directas de la acción del calendario.
+
+**Cambio exacto:** componer en `app` una consulta de perfil usando
+`GET /api/spotify/artists/search?artistName=…`; hacer que el componente use
+esa operación y retirar la comprobación adicional de álbumes recientes, que
+no aporta datos visibles y no tiene endpoint equivalente.
+
+**Qué no cambia:** acción del usuario, permisos, actualización del género,
+avisos de éxito/sin géneros/error y catálogo local.
+
+**Archivos probables:** `src/app/dependencies/`,
+`src/views/discsCalendar/components/DiscComponent.vue` y pruebas enfocadas de
+la operación/consumidor.
+
+**Dependencia previa:** ninguna; reutilizar `artistDetailsApi` de 5.3 solo si
+la composición permite compartir la búsqueda sin acoplar contratos.
+
+**Terminado cuando:** el calendario lee géneros mediante la API de Riff Valley,
+ya no consulta Spotify ni la lista de álbumes del artista, y conserva sus
+estados visibles.
+
+**Verificación:** prueba de géneros presentes/vacíos, fallo backend y
+actualización del disco; lint y typecheck.
+
+### 5.8 — Migrar el track más popular de `DiscCardComponent.vue` (S)
+
+**Objetivo:** retirar de la tarjeta la consulta de tracks y popularidad a
+Spotify.
+
+**Cambio exacto:** definir el puerto neutral mínimo si aún no existe,
+implementar su adaptador en `integrations/spotify` contra
+`GET /api/spotify/albums/:spotifyAlbumId/most-popular-track`, componerlo en
+`app` y sustituir el uso de `obtenerTrackMasPopularAlbum`.
+
+**Qué no cambia:** carga diferida al abrir el reproductor, ID del track,
+fallback vacío y renderizado del reproductor.
+
+**Archivos probables:** `src/integrations/spotify/application/`,
+`src/integrations/spotify/infrastructure/`, `src/app/dependencies/`,
+`src/components/DiscCardComponent.vue` y pruebas del adaptador/consumidor.
+
+**Dependencia previa:** ninguna.
+
+**Terminado cuando:** la tarjeta consulta solo la composición de `app`, y el
+resultado vacío o el error conservan el fallback actual.
+
+**Verificación:** pruebas de ID devuelto, track inexistente y error; lint y
+typecheck.
+
+### 5.9 — Retirar el import Spotify sin uso de `DiscByDate.vue` (XS)
+
+**Objetivo:** eliminar el último vínculo nominal de esa vista con el helper.
+
+**Cambio exacto:** borrar el import sin uso de `obtenerEnlaceArtistaSpotify`;
+los botones de artista siguen usando `SpotifyArtistButton` y su operación de
+Integrations.
+
+**Qué no cambia:** la vista, los enlaces visibles ni el comportamiento del
+botón de Spotify.
+
+**Archivos probables:** `src/views/list/components/DiscByDate.vue`.
+
+**Dependencia previa:** ninguna.
+
+**Terminado cuando:** la vista no importa `SpotifyFunctions.ts` y sus botones
+continúan resueltos por el componente compartido.
+
+**Verificación:** búsqueda de imports y typecheck.
+
+### 5.10 — Eliminar DTOs privados del proveedor que queden obsoletos (XS)
+
+**Objetivo:** retirar modelos que representen respuestas directas de Spotify
+cuando los adaptadores consuman el contrato de Riff Valley.
+
+**Cambio exacto:** eliminar interfaces privadas de búsqueda, álbum, artista,
+imágenes y tracks que hayan dejado de usarse; mantener tipos mínimos de
+respuesta de `/api/...` junto a cada adaptador si el tipado los necesita.
+
+**Qué no cambia:** contratos de aplicación/presentación útiles ni DTOs del
+backend.
+
+**Archivos probables:** adaptadores bajo
+`src/integrations/spotify/infrastructure/` y sus pruebas.
+
+**Dependencia previa:** 5.1–5.5.
+
+**Terminado cuando:** no quedan DTOs del protocolo Spotify en frontend sin
+consumidores y se conservan los tipos neutrales utilizados por las vistas.
+
+**Verificación:** búsqueda de referencias, typecheck, lint y arquitectura.
+
+### 5.11 — Retirar `SpotifyFunctions.ts` (XS)
+
+**Objetivo:** eliminar el helper legacy una vez migradas todas sus llamadas.
+
+**Cambio exacto:** borrar `src/helpers/SpotifyFunctions.ts` y cualquier
+reexport/import residual, incluida la función legacy de track popular después
+de 5.8.
+
+**Qué no cambia:** contratos de Integrations ni las funciones visibles que ya
+consumen las composiciones de `app`.
+
+**Archivos probables:** `src/helpers/SpotifyFunctions.ts`, cualquier import
+residual y pruebas que aún simulen ese helper.
+
+**Dependencia previa:** 5.1–5.9.
+
+**Terminado cuando:** una búsqueda del repositorio no encuentra imports,
+llamadas o referencias de ejecución a `SpotifyFunctions.ts` ni
+`obtenerTokenSpotify`.
+
+**Verificación:** búsqueda global de referencias, pruebas enfocadas, lint,
+typecheck y arquitectura.
+
+### 5.12 — Eliminar credenciales Spotify del frontend (XS)
+
+**Objetivo:** dejar de exponer configuración de cliente Spotify en el bundle.
+
+**Cambio exacto:** retirar `VITE_CLIENT_ID` y `VITE_CLIENT_SECRET` de los
+archivos de entorno/documentación frontend y de sus declaraciones de tipos si
+existen; conservar las credenciales exclusivamente en configuración de
+servidor/backend.
+
+**Qué no cambia:** configuración `SPOTIFY_CLIENT_ID`/`SPOTIFY_CLIENT_SECRET`
+del backend ni OAuth de playlists.
+
+**Archivos probables:** `.env.example`/documentación de entorno frontend y
+declaraciones de `ImportMetaEnv` si contienen esos nombres; revisar `.env`
+local sin divulgar valores ni incorporarlos al diff.
+
+**Dependencia previa:** 5.11.
+
+**Terminado cuando:** no hay referencias a las variables Spotify en fuentes,
+tipos ni plantillas de entorno frontend; el build ya no las necesita.
+
+**Verificación:** búsqueda por nombre de variable sin mostrar valores,
+typecheck y build.
+
+### 5.13 — Auditoría final de Spotify (XS)
+
+**Objetivo:** demostrar que la migración Spotify del frontend ha quedado
+completamente cerrada después de 5.1–5.12.
+
+**Comprobaciones:** ausencia de `api.spotify.com`, `accounts.spotify.com`,
+`SpotifyFunctions.ts`, `obtenerTokenSpotify`, `VITE_CLIENT_ID` y
+`VITE_CLIENT_SECRET`; ausencia de imports muertos relacionados con Spotify;
+todos los consumidores pasan por `integrations/spotify` y la API de Riff
+Valley; no quedan DTOs crudos del proveedor sin necesidad real ni llamadas
+directas a Spotify desde vistas/componentes.
+
+**Alcance:** auditoría de cierre sin funcionalidad nueva. Si aparecen residuos
+pequeños causados directamente por la migración, documentar su limpieza dentro
+de 5.13; no abrir refactors ni cambios funcionales nuevos.
+
+**Dependencia previa:** 5.12 completada.
+
+**Estado:** planificada; no iniciada.
+
+**Verificación:** búsquedas de las referencias indicadas, revisión de imports
+muertos y consumidores, `yarn verify` y `git diff --check`.
+
+### Orden recomendado
+
+1. Adaptadores independientes: 5.1–5.5.
+2. Consumidores que hoy llaman directamente: 5.6 `ImportPage.vue`, 5.7
+   `DiscComponent.vue` y 5.8 `DiscCardComponent.vue`.
+3. Limpieza de import residual y DTOs: 5.9–5.10.
+4. Retirar helper y credenciales: 5.11–5.12.
+5. Cerrar la iteración con la auditoría 5.13: comprobar las referencias,
+   consumidores, DTOs e imports de Spotify, y ejecutar `yarn verify` y
+   `git diff --check`.
+
+### Riesgos / diferencias a vigilar
+
+- **Mercado de top tracks:** 5.3 acepta `market=ES`, que es el comportamiento
+  actual del backend. Cambiar desde `market=US`, usado por el frontend
+  anterior, es una decisión funcional consciente de esta migración y no una
+  regresión accidental.
+- La búsqueda de perfil usa el primer resultado backend; la búsqueda múltiple
+  debe preservar la elección entre artistas homónimos en el modal de imágenes.
+- Las imágenes de artista se componen desde los candidatos de artista y las
+  imágenes de cada perfil; conservar nombres y alternativas en la selección.
+- La resolución de álbum y su detalle son dos operaciones: manejar álbum
+  ausente, errores de red y campos opcionales sin perder el resultado por
+  disco de calendario/importación.
+- En `DiscComponent.vue` se retira la consulta de álbumes recientes. Su
+  respuesta solo actúa como condición para aplicar géneros; el perfil backend
+  ya devuelve los géneros y no debe añadirse un endpoint para esa comprobación.
+- No mover OAuth de playlists ni alterar Last.fm o LanguageTool en esta
+  migración.
+
+**Salida:** todos los consumidores de Spotify usan `integrations/spotify`
+contra `/api/...`, las composiciones de `app` coordinan a las vistas, no queda
+token ni secreto Spotify en el navegador y los contratos útiles de aplicación
+y presentación se conservan.
+
+## Trabajo posterior a Iteración 5 — Integraciones de Last.fm y LanguageTool
+
+**Estado: planificado; no iniciado.** Este trabajo queda separado de la
+migración Spotify y no forma parte de la Iteración 5 ni de la Iteración 6.
+Se calendarizará en una futura iteración de Integrations, manteniendo estas
+capacidades como destino explícito del roadmap.
+
+- **Last.fm — consolidar biografía de artista en su integración:** conservar
+  la carga independiente respecto a Spotify, los campos opcionales, errores y
+  fallback; mantener los DTOs y el transporte dentro de
+  `integrations/lastfm`. No cambiar la clave ni el contrato del servicio
+  externo en esta planificación.
+- **LanguageTool — migrar la comprobación editorial fuera del servicio
+  legacy:** definir el contrato neutral mínimo, implementar su adaptador y
+  composición, migrar el modal conservando offsets, sugerencias, resaltado y
+  estados de error, y retirar el servicio legacy cuando no tenga consumidores.
+- La futura iteración deberá definir pruebas enfocadas y revisar el manejo del
+  texto enviado al proveedor. No incluye cambios de Spotify ni OAuth de
+  playlists.
 
 ## Iteración 6 — Editorial
 

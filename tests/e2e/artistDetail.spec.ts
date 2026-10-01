@@ -17,23 +17,18 @@ for (const { path, role } of [
         verified: false, pinned: false, pendingId: null, nationalReleaseId: null,
       }] }] }),
     }));
-    await page.route("https://accounts.spotify.com/api/token", (route) => route.fulfill({
-      contentType: "application/json", body: JSON.stringify({ access_token: "spotify-test-token" }),
-    }));
-    await page.route("https://api.spotify.com/v1/search?**", (route) => route.fulfill({
-      contentType: "application/json", body: JSON.stringify({ albums: { items: [{ artists: [{ id: "artist-spotify-1" }] }] } }),
-    }));
-    await page.route("https://api.spotify.com/v1/artists/artist-spotify-1", (route) => route.fulfill({
+    await page.route((url) => url.pathname.endsWith("/spotify/artists/search"), (route) => route.fulfill({
       contentType: "application/json", body: JSON.stringify({
-        name: "Banda de prueba en Spotify", images: [], genres: ["rock"], followers: { total: 125 },
-        popularity: 77, external_urls: { spotify: "https://open.spotify.com/artist/artist-spotify-1" },
+        spotifyId: "artist-spotify-1", name: "Banda de prueba en Spotify", imageUrl: null,
+        genres: ["rock"], followers: 125, popularity: 77,
+        listenUrl: "https://open.spotify.com/artist/artist-spotify-1",
       }),
     }));
-    await page.route("https://api.spotify.com/v1/artists/artist-spotify-1/top-tracks?market=US", (route) => route.fulfill({
-      contentType: "application/json", body: JSON.stringify({ tracks: [{
-        id: "track-1", name: "Canción de prueba", album: { name: "Disco de prueba", images: [] },
-        preview_url: null, external_urls: { spotify: "https://open.spotify.com/track/track-1" }, duration_ms: 61000,
-      }] }),
+    await page.route((url) => url.pathname.endsWith("/spotify/artists/artist-spotify-1/top-tracks"), (route) => route.fulfill({
+      contentType: "application/json", body: JSON.stringify([{
+        id: "track-1", name: "Canción de prueba", albumName: "Disco de prueba", albumImageUrl: null,
+        previewUrl: null, listenUrl: "https://open.spotify.com/track/track-1", durationMs: 61000,
+      }]),
     }));
     await page.route("https://ws.audioscrobbler.com/**", (route) => route.fulfill({
       contentType: "application/json", body: JSON.stringify({ artist: { bio: { summary: "Biografía Last.fm" }, tags: { tag: [] } } }),
