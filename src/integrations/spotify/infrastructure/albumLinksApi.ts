@@ -1,22 +1,32 @@
-import axios from "axios";
-import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
+import api from "@/shared/infrastructure/http/client";
 import type { AlbumLinksPort } from "../application/albumLinks";
-interface AlbumLinksSearchDto { albums: { items: { external_urls: { spotify: string }; images?: { url: string }[] }[] } }
+
+interface AlbumLinkDto {
+  listenUrl?: string | null;
+  coverUrl?: string | null;
+}
+
+function isNotFoundError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("response" in error)) return false;
+  const response = error.response;
+  return typeof response === "object" && response !== null && "status" in response && response.status === 404;
+}
 
 export const albumLinksApi: AlbumLinksPort = {
   async openSession() {
-    const token = await obtenerTokenSpotify();
-    if (!token) return null;
     return {
       async findAlbum({ albumName, artistName }) {
         try {
-          const query = encodeURIComponent(`album:${albumName} artist:${artistName}`);
-          const { data } = await axios.get<AlbumLinksSearchDto>(`https://api.spotify.com/v1/search?q=${query}&type=album&limit=1`, {
-            headers: { Authorization: `Bearer ${token}` },
+          const { data } = await api.get<AlbumLinkDto>("/discs/spotify/album", {
+            params: { albumName, artistName },
           });
-          const album = data.albums.items[0];
-          return album ? { status: "found", link: album.external_urls.spotify, image: album.images?.[0]?.url || null } : { status: "not-found" };
+          return {
+            status: "found",
+            link: data.listenUrl ?? "",
+            image: data.coverUrl ?? null,
+          };
         } catch (error: unknown) {
+          if (isNotFoundError(error)) return { status: "not-found" };
           console.error(`Error al buscar el álbum ${albumName}:`, error);
           return { status: "failed" };
         }

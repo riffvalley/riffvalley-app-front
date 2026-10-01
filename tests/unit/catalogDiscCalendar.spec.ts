@@ -5,12 +5,10 @@ import { exportCalendarHtml } from "../../src/modules/catalog/discs/calendars/ap
 import { discCalendarApi, getPageWithPendingProjection } from "../../src/modules/catalog/discs/calendars/infrastructure/discCalendarApi";
 import { enrichCalendarDiscs, searchCalendarImages } from "../../src/app/dependencies/discCalendar";
 
-const { get, patch, post, providerGet, token } = vi.hoisted(() => ({
-  get: vi.fn(), patch: vi.fn(), post: vi.fn(), providerGet: vi.fn(), token: vi.fn(),
+const { get, patch, post } = vi.hoisted(() => ({
+  get: vi.fn(), patch: vi.fn(), post: vi.fn(),
 }));
 vi.mock("@/shared/infrastructure/http/client", () => ({ default: { get, patch, post } }));
-vi.mock("axios", () => ({ default: { get: providerGet } }));
-vi.mock("@helpers/SpotifyFunctions.ts", () => ({ obtenerTokenSpotify: token }));
 
 const disc = (id: string): CalendarDisc => ({
   id, name: `Álbum ${id}`, releaseDate: "2026-09-18", artist: { id: "artist", name: "Banda" },
@@ -183,29 +181,36 @@ describe("calendar infrastructure and tool composition", () => {
     expect(result.pendings).toEqual([{ discId: "disc-1", pendingId: "pending-1" }]);
   });
 
-  it("searches sequentially with one token and keeps patch payloads and failure labels", async () => {
-    token.mockResolvedValueOnce("token");
-    providerGet.mockResolvedValueOnce({ data: { albums: { items: [{ external_urls: { spotify: "https://spotify.test" }, images: [{ url: "cover" }] }] } } })
-      .mockResolvedValueOnce({ data: { albums: { items: [] } } }).mockRejectedValueOnce(new Error("provider failure"))
-      .mockResolvedValueOnce({ data: { albums: { items: [{ external_urls: { spotify: "https://patch-fails.test" } }] } } });
+  it("searches sequentially through the backend and keeps patch payloads and failure labels", async () => {
+    get.mockResolvedValueOnce({ data: { listenUrl: "https://spotify.test", coverUrl: "cover" } })
+      .mockRejectedValueOnce({ response: { status: 404 } })
+      .mockRejectedValueOnce(new Error("backend failure"))
+      .mockResolvedValueOnce({ data: { listenUrl: "https://patch-fails.test" } });
     patch.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("patch failed"));
     vi.spyOn(console, "error").mockImplementation(() => {});
     const discs = [disc("one"), disc("two"), disc("three"), disc("four")];
     await enrichCalendarDiscs(discs);
-    expect(token).toHaveBeenCalledTimes(1);
-    expect(providerGet).toHaveBeenCalledTimes(4);
+    expect(get.mock.calls).toEqual([
+      ["/discs/spotify/album", { params: { albumName: "Álbum one", artistName: "Banda" } }],
+      ["/discs/spotify/album", { params: { albumName: "Álbum two", artistName: "Banda" } }],
+      ["/discs/spotify/album", { params: { albumName: "Álbum three", artistName: "Banda" } }],
+      ["/discs/spotify/album", { params: { albumName: "Álbum four", artistName: "Banda" } }],
+    ]);
     expect(patch).toHaveBeenNthCalledWith(1, "/discs/one", { link: "https://spotify.test", image: "cover", verified: true, genreId: "rock" });
     expect(discs.map((item) => item.link)).toEqual(["https://spotify.test", "No se encontró el álbum", "Error al realizar la búsqueda", "Error al realizar la búsqueda"]);
     expect(discs[0].verified).toBe(false); // original UI changed link/image, not verified flag
     expect(discs[3].image).toBe(null);
   });
 
-  it("does not search or patch when a token is unavailable", async () => {
-    token.mockResolvedValueOnce(null);
-    vi.spyOn(console, "error").mockImplementation(() => {});
+  it("uses the backend session facade without a Spotify token", async () => {
+    get.mockResolvedValueOnce({ data: { listenUrl: "https://listen.test" } });
     await enrichCalendarDiscs([disc("a")]);
-    expect(providerGet).not.toHaveBeenCalled();
-    expect(patch).not.toHaveBeenCalled();
+    expect(get).toHaveBeenCalledWith("/discs/spotify/album", {
+      params: { albumName: "Álbum a", artistName: "Banda" },
+    });
+    expect(patch).toHaveBeenCalledWith("/discs/a", {
+      link: "https://listen.test", image: null, verified: true, genreId: "rock",
+    });
   });
 
   it("retains local Last.fm month/year and the day-of-month week calculation", async () => {
