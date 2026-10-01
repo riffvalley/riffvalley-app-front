@@ -8,11 +8,13 @@ import { createReplyComment as createCommunityReplyComment } from "../../src/mod
 import type { FlatDiscComment } from "../../src/modules/community";
 import type { CommentPort } from "../../src/modules/community";
 
-const { loadConversation, createRootComment, createReplyComment, updateCommunityComment, showError, showSuccess } = vi.hoisted(() => ({
+const { loadConversation, createRootComment, createReplyComment, updateCommunityComment, deleteCommunityComment, confirm, showError, showSuccess } = vi.hoisted(() => ({
   loadConversation: vi.fn(),
   createRootComment: vi.fn(),
   createReplyComment: vi.fn(),
   updateCommunityComment: vi.fn(),
+  deleteCommunityComment: vi.fn(),
+  confirm: vi.fn(),
   showError: vi.fn(),
   showSuccess: vi.fn(),
 }));
@@ -22,9 +24,10 @@ vi.mock("@/app/dependencies/communityConversation", () => ({
   createCommunityRootComment: createRootComment,
   createCommunityReply: createReplyComment,
   updateCommunityComment,
+  deleteCommunityComment,
   getCommunityCommentIdentity: () => ({ user: { id: "user-1", username: "Ana" }, avatar: "session.png" }),
 }));
-vi.mock("@services/swal/SwalService", () => ({ default: { error: showError, success: showSuccess } }));
+vi.mock("@services/swal/SwalService", () => ({ default: { confirm, error: showError, success: showSuccess } }));
 vi.mock("@services/comments/comments", () => ({
   updateCommentService: vi.fn(),
   deleteCommentService: vi.fn(),
@@ -58,6 +61,8 @@ function findReplyForm(wrapper: ReturnType<typeof mount>) {
 describe("Community disc conversation loading", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    confirm.mockResolvedValue({ isConfirmed: true });
+    deleteCommunityComment.mockResolvedValue(undefined);
   });
 
   it("preserves order, parent/child hierarchy, deleted nodes, and derives the recursive count", () => {
@@ -77,7 +82,7 @@ describe("Community disc conversation loading", () => {
 
   it("creates a reply through the comment port with its parent and a normalized tree node", async () => {
     const create = vi.fn().mockResolvedValue(comment("reply", "parent"));
-    const port: CommentPort = { listByDisc: vi.fn(), create, update: vi.fn() };
+    const port: CommentPort = { listByDisc: vi.fn(), create, update: vi.fn(), delete: vi.fn() };
 
     const reply = await createCommunityReplyComment(port, "disc-1", "parent", "Respuesta");
 
@@ -309,6 +314,97 @@ describe("Community disc conversation loading", () => {
     expect(updateCommunityComment).not.toHaveBeenCalled();
     expect(target.text()).toContain("Comentario target");
     expect(target.get(".comment-replies [data-comment-id='child']").exists()).toBe(true);
+    wrapper.unmount();
+  });
+
+  it("deletes through Community after confirmation and keeps the node, children, position, and modal count", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([
+      comment("before"), comment("target"), { ...comment("child", "target"), user: { id: "user-2", username: "Pablo" } }, comment("after"),
+    ]));
+    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    await flushPromises();
+
+    await findButton(wrapper.get('[data-comment-id="target"]'), "Borrar").trigger("click");
+    await flushPromises();
+
+    expect(confirm).toHaveBeenCalledWith("¿Borrar comentario?", "Esta acción no se puede deshacer.", "Sí, borrar", "Cancelar");
+    expect(deleteCommunityComment).toHaveBeenCalledTimes(1);
+    expect(deleteCommunityComment).toHaveBeenCalledWith("target");
+    expect(wrapper.findAll(".comment-item").map((node) => node.attributes("data-comment-id")))
+      .toEqual(["before", "target", "child", "after"]);
+    const deleted = wrapper.get('[data-comment-id="target"]');
+    expect(deleted.text()).toContain("Comentario eliminado.");
+    expect(deleted.text()).not.toContain("Ana");
+    expect(deleted.get(".comment-item > .flex").findAll("button")).toHaveLength(0);
+    expect(deleted.get(".comment-replies [data-comment-id='child']").exists()).toBe(true);
+    expect(wrapper.text()).toContain("4 comentarios");
+    expect(showSuccess).toHaveBeenCalledWith("Comentario borrado");
+    wrapper.unmount();
+  });
+
+  it("keeps the confirmed tree intact on delete failure and allows retry", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([comment("target"), comment("child", "target")]));
+    deleteCommunityComment.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(undefined);
+    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    await flushPromises();
+    const target = wrapper.get('[data-comment-id="target"]');
+
+    await findButton(target, "Borrar").trigger("click");
+    await flushPromises();
+    expect(target.text()).toContain("Comentario target");
+    expect(target.get(".comment-replies [data-comment-id='child']").exists()).toBe(true);
+    expect(wrapper.text()).toContain("2 comentarios");
+    expect(showError).toHaveBeenCalledWith("Error al borrar el comentario.");
+
+    await findButton(target, "Borrar").trigger("click");
+    await flushPromises();
+    expect(deleteCommunityComment).toHaveBeenCalledTimes(2);
+    expect(target.text()).toContain("Comentario eliminado.");
+    expect(target.get(".comment-replies [data-comment-id='child']").exists()).toBe(true);
+    wrapper.unmount();
+  });
+
+  it("does not write or change the conversation when delete confirmation is cancelled", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([comment("target"), comment("child", "target")]));
+    confirm.mockResolvedValueOnce({ isConfirmed: false });
+    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    await flushPromises();
+    const target = wrapper.get('[data-comment-id="target"]');
+    const before = wrapper.text();
+
+    await findButton(target, "Borrar").trigger("click");
+    await flushPromises();
+
+    expect(deleteCommunityComment).not.toHaveBeenCalled();
+    expect(wrapper.text()).toBe(before);
+    expect(target.get(".comment-replies [data-comment-id='child']").exists()).toBe(true);
+    wrapper.unmount();
+  });
+
+  it("coordinates repeated delete clicks while confirmation and backend request are pending", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([comment("target")]));
+    let resolveConfirmation: (value: { isConfirmed: boolean }) => void = () => {};
+    confirm.mockReturnValueOnce(new Promise((resolve) => { resolveConfirmation = resolve; }));
+    let resolveDelete: () => void = () => {};
+    deleteCommunityComment.mockReturnValueOnce(new Promise<void>((resolve) => { resolveDelete = resolve; }));
+    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    await flushPromises();
+    const target = wrapper.get('[data-comment-id="target"]');
+    const firstClick = findButton(target, "Borrar").trigger("click");
+    await flushPromises();
+    expect(findButton(target, "Borrar").attributes("disabled")).toBeDefined();
+    await findButton(target, "Borrar").trigger("click");
+    expect(confirm).toHaveBeenCalledTimes(1);
+
+    resolveConfirmation({ isConfirmed: true });
+    await flushPromises();
+    expect(deleteCommunityComment).toHaveBeenCalledTimes(1);
+    await findButton(target, "Borrar").trigger("click");
+    expect(deleteCommunityComment).toHaveBeenCalledTimes(1);
+    resolveDelete();
+    await firstClick;
+    await flushPromises();
+    expect(target.text()).toContain("Comentario eliminado.");
     wrapper.unmount();
   });
 });

@@ -88,7 +88,7 @@
                    transition-colors flex items-center gap-1 bg-transparent border-0 p-0 focus:outline-none">
             <i class="fa-solid fa-pen-to-square text-[10px]"></i> Editar
           </button>
-          <button v-if="localComment.user.id === user.id" type="button" @click="deleteComment"
+          <button v-if="localComment.user.id === user.id" type="button" @click="deleteComment" :disabled="isDeleteSubmitting || isDeleteConfirming"
             class="text-xs text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400
                    transition-colors flex items-center gap-1 bg-transparent border-0 p-0 focus:outline-none">
             <i class="fa-solid fa-trash-can text-[10px]"></i> Borrar
@@ -156,9 +156,10 @@
         :current-user="currentUser" :session-avatar="sessionAvatar"
         :submitting-reply-ids="submittingReplyIds"
         :editing-comment-ids="editingCommentIds"
+        :deleting-comment-ids="deletingCommentIds"
         :submit-reply="submitReply"
         :submit-edit="submitEditComment"
-        @deleted="$emit('deleted', $event)"
+        :submit-delete="submitDeleteComment"
         @open-user="$emit('open-user', $event)" />
     </div>
 
@@ -167,7 +168,6 @@
 
 <script lang="ts">
 import { computed, defineComponent, ref, nextTick, type PropType } from "vue";
-import { deleteCommentService } from "@services/comments/comments";
 import SwalService from "@services/swal/SwalService";
 import type { DiscComment } from "@/modules/community";
 
@@ -189,9 +189,11 @@ export default defineComponent({
     submitReply: { type: Function as PropType<(parentId: string, text: string) => Promise<void>>, required: true },
     editingCommentIds: { type: Object as PropType<Set<string>>, required: true },
     submitEdit: { type: Function as PropType<(id: string, text: string) => Promise<void>>, required: true },
+    deletingCommentIds: { type: Object as PropType<Set<string>>, required: true },
+    submitDelete: { type: Function as PropType<(id: string) => Promise<void>>, required: true },
   },
-  emits: ["deleted", "open-user"],
-  setup(props, { emit }) {
+  emits: ["open-user"],
+  setup(props) {
     const localComment = computed(() => props.comment);
 
     const avatarSizePx = computed(() => props.depth === 0 ? 34 : 28);
@@ -201,6 +203,7 @@ export default defineComponent({
     const replyInputRef = ref<HTMLInputElement | null>(null);
     const showEditForm  = ref(false);
     const editText      = ref(localComment.value.comment);
+    const isDeleteConfirming = ref(false);
 
     const showReplyEmojiPicker     = ref(false);
     const activeReplyEmojiCategory = ref('Reacciones');
@@ -231,6 +234,7 @@ export default defineComponent({
     const user = computed(() => props.currentUser);
     const isReplySubmitting = computed(() => props.submittingReplyIds.has(localComment.value.id));
     const isEditSubmitting = computed(() => props.editingCommentIds.has(localComment.value.id));
+    const isDeleteSubmitting = computed(() => props.deletingCommentIds.has(localComment.value.id));
     const isOwnComment = computed(() => localComment.value.user.id === user.value.id);
 
     // Solo mostrar "(editado)" si editedAt es al menos 10 segundos posterior a createdAt.
@@ -284,17 +288,20 @@ export default defineComponent({
     };
 
     const submitEditComment = (id: string, text: string) => props.submitEdit(id, text);
+    const submitDeleteComment = (id: string) => props.submitDelete(id);
 
     const deleteComment = async () => {
-      if (localComment.value.isDeleted) return;
-      const result = await SwalService.confirm('¿Borrar comentario?', 'Esta acción no se puede deshacer.', 'Sí, borrar', 'Cancelar');
-      if (!result.isConfirmed) return;
+      if (localComment.value.isDeleted || isDeleteSubmitting.value || isDeleteConfirming.value) return;
+      isDeleteConfirming.value = true;
       try {
-        await deleteCommentService(localComment.value.id);
-        emit("deleted", localComment.value.id);
+        const result = await SwalService.confirm('¿Borrar comentario?', 'Esta acción no se puede deshacer.', 'Sí, borrar', 'Cancelar');
+        if (!result.isConfirmed) return;
+        await props.submitDelete(localComment.value.id);
         SwalService.success("Comentario borrado");
       } catch {
         SwalService.error("Error al borrar el comentario.");
+      } finally {
+        isDeleteConfirming.value = false;
       }
     };
 
@@ -322,6 +329,7 @@ export default defineComponent({
       toggleReplyForm, submitReply,
       showEditForm, editText, startEdit, cancelEdit, submitEdit,
       isEditSubmitting, submitEditComment,
+      isDeleteSubmitting, isDeleteConfirming, submitDeleteComment,
       deleteComment, timeAgo, user, displayedAvatar, isReplySubmitting,
     };
   },

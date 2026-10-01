@@ -7,12 +7,14 @@ export function useDiscConversation(
   createRootComment: (discId: string, text: string) => Promise<DiscComment>,
   createReplyComment: (discId: string, parentId: string, text: string) => Promise<DiscComment>,
   updateComment: (id: string, text: string) => Promise<{ id: string; comment: string; editedAt?: string | null }>,
+  deleteComment: (id: string) => Promise<void>,
 ) {
   const comments = ref<DiscComment[]>([]);
   const isLoading = ref(false);
   const isSubmitting = ref(false);
   const submittingReplyIds = ref(new Set<string>());
   const editingCommentIds = ref(new Set<string>());
+  const deletingCommentIds = ref(new Set<string>());
   const totalComments = computed(() => countComments(comments.value));
 
   async function load() {
@@ -100,5 +102,34 @@ export function useDiscConversation(
     }
   }
 
-  return { comments, totalComments, isLoading, isSubmitting, submittingReplyIds, editingCommentIds, load, addRootComment, addReply, editComment };
+  function markDeleted(id: string, tree: DiscComment[]): DiscComment[] {
+    let changed = false;
+    const result = tree.map((node) => {
+      if (node.id === id) {
+        if (node.isDeleted && node.comment === "Comentario eliminado") return node;
+        changed = true;
+        return { ...node, isDeleted: true, comment: "Comentario eliminado" };
+      }
+      const replies = markDeleted(id, node.replies);
+      if (replies === node.replies) return node;
+      changed = true;
+      return { ...node, replies };
+    });
+    return changed ? result : tree;
+  }
+
+  async function removeComment(id: string): Promise<void> {
+    if (deletingCommentIds.value.has(id)) return;
+    deletingCommentIds.value = new Set(deletingCommentIds.value).add(id);
+    try {
+      await deleteComment(id);
+      comments.value = markDeleted(id, comments.value);
+    } finally {
+      const pending = new Set(deletingCommentIds.value);
+      pending.delete(id);
+      deletingCommentIds.value = pending;
+    }
+  }
+
+  return { comments, totalComments, isLoading, isSubmitting, submittingReplyIds, editingCommentIds, deletingCommentIds, load, addRootComment, addReply, editComment, removeComment };
 }

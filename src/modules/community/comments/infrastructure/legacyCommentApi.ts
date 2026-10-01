@@ -1,4 +1,4 @@
-import { getDisccomments, postcommentService, updateCommentService } from "@services/comments/comments";
+import { deleteCommentService, getDisccomments, postcommentService, updateCommentService } from "@services/comments/comments";
 import type { CommentPort } from "../application/commentPort";
 import type { FlatDiscComment, CommentUser } from "../domain/comment";
 
@@ -51,5 +51,8 @@ export const legacyCommentApi: CommentPort = {
       throw new Error("La respuesta de comentarios no tiene el formato esperado.");
     }
     return { id: response.id, comment: response.comment, editedAt: optionalString(response.editedAt) };
+  },
+  async delete(id) {
+    await deleteCommentService(id);
   },
 };

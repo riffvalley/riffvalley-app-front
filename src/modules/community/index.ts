@@ -11,4 +11,5 @@ export { loadDiscConversation } from "./comments/application/loadDiscConversatio
 export { createRootComment } from "./comments/application/loadDiscConversation";
 export { createReplyComment } from "./comments/application/loadDiscConversation";
 export { updateComment } from "./comments/application/loadDiscConversation";
+export { deleteComment } from "./comments/application/loadDiscConversation";
 export { useDiscConversation } from "./comments/presentation/useDiscConversation";

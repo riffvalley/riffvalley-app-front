@@ -24,3 +24,7 @@ export async function createReplyComment(
 export async function updateComment(port: CommentPort, id: string, comment: string) {
   return port.update(id, comment);
 }
+
+export async function deleteComment(port: CommentPort, id: string): Promise<void> {
+  await port.delete(id);
+}

@@ -50,9 +50,10 @@
               :current-user="currentUser" :session-avatar="sessionAvatar"
               :submitting-reply-ids="submittingReplyIds"
               :editing-comment-ids="editingCommentIds"
+              :deleting-comment-ids="deletingCommentIds"
               :submit-reply="submitReply"
               :submit-edit="editComment"
-              @deleted="handleCommentDeleted"
+              :submit-delete="removeComment"
               @open-user="openUserModal($event.username, $event.id, $event.avatar)" />
           </div>
 
@@ -126,21 +127,8 @@ import { defineComponent, ref, computed, onMounted, toRefs, nextTick } from "vue
 import CommentItem from "./CommentItem.vue";
 import SwalService from "@services/swal/SwalService";
 import UserModal from '@/components/UserModal.vue';
-import { useDiscConversation, type DiscComment } from "@/modules/community";
-import { createCommunityReply, createCommunityRootComment, getCommunityCommentIdentity, loadCommunityConversation, updateCommunityComment } from "@/app/dependencies/communityConversation";
-
-function markCommentAsDeleted(comments: DiscComment[], commentId: string): DiscComment[] {
-  comments.forEach((comment) => {
-    if (comment.id === commentId) {
-      comment.isDeleted = true;
-      comment.comment = "Comentario eliminado";
-    }
-    if (comment.replies?.length) {
-      markCommentAsDeleted(comment.replies, commentId);
-    }
-  });
-  return comments;
-}
+import { useDiscConversation } from "@/modules/community";
+import { createCommunityReply, createCommunityRootComment, deleteCommunityComment, getCommunityCommentIdentity, loadCommunityConversation, updateCommunityComment } from "@/app/dependencies/communityConversation";
 
 export default defineComponent({
   name: "ComentsModal",
@@ -153,10 +141,11 @@ export default defineComponent({
   emits: ["close"],
   setup(props, { emit }) {
     const conversation = useDiscConversation(props.discId, loadCommunityConversation, createCommunityRootComment,
-      (discId, parentId, text) => createCommunityReply(discId, parentId, text), updateCommunityComment);
+      (discId, parentId, text) => createCommunityReply(discId, parentId, text), updateCommunityComment, deleteCommunityComment);
     const comments = conversation.comments;
     const submittingReplyIds = conversation.submittingReplyIds;
     const editingCommentIds = conversation.editingCommentIds;
+    const deletingCommentIds = conversation.deletingCommentIds;
     const topCommentText = ref("");
     const inputRef       = ref<HTMLInputElement | null>(null);
 
@@ -233,11 +222,8 @@ export default defineComponent({
       avatar: sessionAvatar,
     });
 
-    const handleCommentDeleted = (commentId: string) => {
-      comments.value = markCommentAsDeleted(comments.value, commentId);
-    };
-
     const editComment = conversation.editComment;
+    const removeComment = conversation.removeComment;
 
     onMounted(() => { fetchComments(); });
 
@@ -255,8 +241,9 @@ export default defineComponent({
       insertEmoji,
       submitTopComment,
       submitReply,
-      handleCommentDeleted,
+      removeComment,
       editingCommentIds,
+      deletingCommentIds,
       editComment,
       artistName,
       albumName,
