@@ -1,5 +1,12 @@
 # 🎵 Spam Music Front
 
+## Arquitectura
+
+Consulta la [guía de carpetas y «Dónde busco algo»](docs/architecture-folders.md)
+para orientarte en los módulos, las capas y la presentación. El
+[roadmap](roadmap.md) y el [baseline arquitectónico](docs/architecture-baseline.md)
+recogen el plan de migración y los límites actuales.
+
 ## OAuth de Spotify para playlists de festivales
 
 El callback del backend debe volver a la vista de festivales. En producción se configura en el backend (no como variable `VITE_`) con:
