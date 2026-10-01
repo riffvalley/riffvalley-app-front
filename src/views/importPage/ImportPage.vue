@@ -219,12 +219,11 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from 'vue';
-import axios from 'axios';
 import { fetchManualData } from '@services/imports/imports';
 import type { AlbumEntry, ManualImportResponse, DiscImportResultItem } from '@services/imports/imports';
 import { updateDisc } from '@services/discs/discs';
-import { obtenerTokenSpotify } from '@helpers/SpotifyFunctions.ts';
 import { fetchCatalog } from '@/app/dependencies/catalog';
+import { createImportAlbumResolver } from '@/app/dependencies/importAlbumLinks';
 import { useCatalogStore } from '@/modules/catalog';
 import SearchableSelect from '@components/SearchableSelect.vue';
 import SwalService from '@services/swal/SwalService';
@@ -316,27 +315,13 @@ export default defineComponent({
       searchingSpotify.value = true;
       spotifyFound.value = {};
       try {
-        const token = await obtenerTokenSpotify();
-        if (!token) {
-          SwalService.error('No se pudo obtener el token de Spotify.');
-          return;
-        }
-
+        const resolveAlbum = await createImportAlbumResolver();
         let foundCount = 0;
         for (const item of importedDiscsParsed.value) {
           try {
-            const query = encodeURIComponent(`album:${item.disc} artist:${item.artist}`);
-            const response = await axios.get(
-              `https://api.spotify.com/v1/search?q=${query}&type=album&limit=1`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            const album = response.data.albums.items[0];
-            if (album) {
-              await updateDisc(item.discId, {
-                link: album.external_urls.spotify,
-                image: album.images?.[0]?.url,
-                verified: true,
-              });
+            const result = await resolveAlbum({ albumName: item.disc, artistName: item.artist });
+            if (result.status === 'found') {
+              await updateDisc(item.discId, { link: result.link, image: result.image ?? undefined, verified: true });
               spotifyFound.value[item.discId] = true;
               foundCount++;
             } else {
