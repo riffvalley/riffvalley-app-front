@@ -1,5 +1,6 @@
 import { createAuthStore, createSessionPersistence, readLegacySessionValue, login } from "@/modules/identity";
 import { useWorkspaceStore } from "./workspace";
+import { useCommunityRatingStore } from "@/modules/community";
 export const useAuthStore = createAuthStore({
   persistence: createSessionPersistence(() => localStorage),
   async login(payload) {
@@ -12,7 +13,10 @@ export const useAuthStore = createAuthStore({
     return { token: response.token, username: response.username, userId: response.id,
       image: response.image || null, roles: response.roles || [] };
   },
-  onLogout: () => useWorkspaceStore().clear(),
+  onLogout: () => {
+    useWorkspaceStore().clear();
+    useCommunityRatingStore().clear();
+  },
 });
 
 export const readLegacyRolesRaw = () => readLegacySessionValue(() => localStorage, "roles");

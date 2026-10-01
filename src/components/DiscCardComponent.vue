@@ -319,10 +319,12 @@ import VotesModal from "./VotesModal.vue";
 import ComentsModal from "./ComentsModal.vue";
 import DiscCalendar from "@views/discsCalendar/DiscCalendar.vue"; // o la ruta real si no está en @views
 import {
-  getDiscRates,
-  postRateService,
-  updateRateService,
-} from "@services/rates/rates.ts";
+  getCommunityRating,
+  loadCommunityVotes,
+  saveCommunityRating,
+  seedCommunityRating,
+} from "@/app/bridges/communityRatings";
+import { useCommunityRatingStore } from "@/modules/community";
 import {
   postFavoriteService,
   deleteFavoriteService,
@@ -333,16 +335,6 @@ import {
 } from "@services/pendings/pendings";
 import Swal from "sweetalert2";
 import SwalService from "@services/swal/SwalService";
-
-interface Vote {
-  id: string;
-  user: {
-    id: string;
-    username: string;
-  };
-  rate: number;
-  cover: number;
-}
 
 export default defineComponent({
   components: { DiscDetail, ArtistDetail, ComentsModal, VotesModal, DiscCalendar }, // Add VotesModal
@@ -375,29 +367,38 @@ export default defineComponent({
     debut: { type: Boolean, required: false, default: false },
   },
   setup(props) {
-    const localRating = ref({ rate: props.rate, cover: props.cover });
+    const localRating = ref<{ rate: number | null; cover: number | null }>({
+      rate: props.rate, cover: props.cover,
+    });
     const showVotes = ref(false);
-    const votes = ref<Vote[]>([]);
     const isEP = computed(() => props.ep);
-    const hasVoted = ref(!!props.userDiscRate);
-    const hasVotedDisc = ref(props.rate !== null && (props.rate as number) > 0);
-    const hasVotedCover = ref(props.cover !== null && (props.cover as number) > 0);
-    const userDiscRateId = ref(props.userDiscRate);
+    const communityUserId = localStorage.getItem("userId") ?? "";
+    const communityRatings = useCommunityRatingStore();
+    seedCommunityRating(communityUserId, props.id, {
+      ratingId: props.userDiscRate ?? null,
+      rate: props.rate,
+      cover: props.cover,
+      averageRate: props.averageRate,
+      averageCover: props.averageCover,
+      voteCount: props.rateCount,
+      summaryLoaded: false,
+    });
+    const communityRating = computed(() => getCommunityRating(communityUserId, props.id));
+    const votes = computed(() => communityRatings.getVotes(communityUserId, props.id));
+    const hasVoted = computed(() => !!communityRating.value.ratingId);
+    const hasVotedDisc = computed(() => communityRating.value.rate !== null && communityRating.value.rate > 0);
+    const hasVotedCover = computed(() => communityRating.value.cover !== null && communityRating.value.cover > 0);
     const commentCount = ref(props.commentCount);
-    const rateCount = ref(props.rateCount);
-    const localAverageRate = ref<number | null>(props.averageRate ?? null);
-    const localAverageCover = ref<number | null>(props.averageCover ?? null);
-
-    const refreshAverages = async () => {
-      try {
-        const updatedVotes = await getDiscRates(props.id);
-        const rates = updatedVotes.map((v: any) => Number(v.rate)).filter((r: number) => r > 0);
-        const covers = updatedVotes.map((v: any) => Number(v.cover)).filter((c: number) => c > 0);
-        if (rates.length) localAverageRate.value = rates.reduce((a: number, b: number) => a + b, 0) / rates.length;
-        if (covers.length) localAverageCover.value = covers.reduce((a: number, b: number) => a + b, 0) / covers.length;
-        rateCount.value = rates.length; // solo votos a disco (rate > 0)
-      } catch { /* silently ignore, los valores anteriores se mantienen */ }
-    };
+    const rateCount = computed(() => communityRating.value.summaryLoaded
+      ? communityRating.value.voteCount : communityRating.value.voteCount ?? props.rateCount);
+    const localAverageRate = computed(() => communityRating.value.summaryLoaded
+      ? communityRating.value.averageRate : communityRating.value.averageRate ?? props.averageRate ?? null);
+    const localAverageCover = computed(() => communityRating.value.summaryLoaded
+      ? communityRating.value.averageCover : communityRating.value.averageCover ?? props.averageCover ?? null);
+    const isSubmittingRating = computed(() => communityRatings.isSubmitting(communityUserId, props.id));
+    watch(communityRating, (rating) => {
+      localRating.value = { rate: rating.rate, cover: rating.cover };
+    });
     const formattedDate = computed(() => {
       const date = new Date(props.releaseDate);
       return date.toLocaleDateString("es-ES", {
@@ -577,9 +578,7 @@ export default defineComponent({
       showVotes.value = !showVotes.value;
       try {
         if (!showVotes.value) return; // si se está cerrando, no pida nada
-        votes.value = await getDiscRates(props.id);
-        // Corregir el contador para contar solo votos a disco (rate > 0)
-        rateCount.value = votes.value.filter((v: any) => Number(v.rate) > 0).length;
+        await loadCommunityVotes(communityUserId, props.id);
       } catch (error) {
         console.error("Error fetching votes:", error);
         Swal.fire({
@@ -594,8 +593,6 @@ export default defineComponent({
         });
       }
     };
-    const isSubmittingRating = ref(false);
-
     const disableSubmitButton = computed(() => {
       // Si se está enviando la petición, deshabilitamos
       if (isSubmittingRating.value) return true;
@@ -615,8 +612,6 @@ export default defineComponent({
       if (isSubmittingRating.value) return;
 
       // Activamos "modo envío"
-      isSubmittingRating.value = true;
-
       const payload = {
         discId: props.id,
         rate: Number(localRating.value.rate) || null,
@@ -625,23 +620,16 @@ export default defineComponent({
       try {
         if (payload.rate === 0) payload.rate = null;
         if (payload.cover === 0) payload.cover = null;
-        if (!hasVoted.value) {
-          const response = await postRateService(payload);
-          userDiscRateId.value = response.id;
-          hasVoted.value = true;
-        } else {
-          await updateRateService(userDiscRateId.value, payload);
-        }
-        hasVotedDisc.value = payload.rate !== null && payload.rate > 0;
-        hasVotedCover.value = payload.cover !== null && payload.cover > 0;
+        const saved = await saveCommunityRating({
+          userId: communityUserId,
+          discId: props.id,
+          rate: payload.rate,
+          cover: payload.cover,
+        });
+        if (!saved) return;
         if (payload.rate && payload.rate > 0)
           SwalService.successImage(payload.rate);
         else SwalService.success("Votación enviada con éxito");
-        try {
-          await refreshAverages(); // actualiza medias y contador en tiempo real
-        } catch {
-          // el voto ya se guardó; el refresco de medias es no crítico
-        }
       } catch (error) {
         console.error("Error submitting rating:", error);
         Swal.fire({
@@ -654,8 +642,6 @@ export default defineComponent({
           showConfirmButton: false,
           toast: true,
         });
-      } finally {
-        isSubmittingRating.value = false;
       }
     };
 

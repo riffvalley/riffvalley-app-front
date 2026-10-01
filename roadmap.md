@@ -613,19 +613,311 @@ TS2345 ya existente de MonthlyVotesChart. HEAD y el resultado tienen los mismos
 118 diagnósticos salvo ese orden; no se amplía el baseline ni se toca el gráfico.
 
 
-## Iteración 4 — Acciones de comunidad
+## Iteración 4 — Community
 
-Migrar primero valoraciones; después comentarios, favoritos y pendientes,
-cada uno con sus contratos, operación y coordinación de UI.
+Community posee las valoraciones de disco y portada, los comentarios, los
+favoritos y la relación personal de discos pendientes. No existe aún
+`src/modules/community` ni un store de Community: el estado está en las
+tarjetas, las vistas de listado, los modales de comentarios y las tarjetas de
+calendario. No convertir esta migración en una reescritura del componente de
+disco ni de las pantallas que lo consumen.
 
-- Definir la fuente de verdad de cada dato y qué cache se actualiza tras una
-  mutación; evitar copias divergentes entre tarjetas, detalle y calendario.
-- Conservar validaciones, permisos y comportamiento ante errores. Probar
-  dobles envíos y rollback si ya existen actualizaciones optimistas.
-- Extraer UI común solo después de comprobar su uso en varios flujos.
+### Fronteras, estado y cache
 
-**Salida:** las acciones tienen contratos tipados y actualizan coherentemente
-sus consumidores sin introducir lógica de negocio en las tarjetas.
+- **Catalog** posee la ficha del disco y la carga, paginación y cache de
+  listados y calendarios. Sus respuestas actuales (`/discs`,
+  `/discs/date` y gestión de artistas) incluyen proyecciones comunitarias como
+  `userRate`, medias/recuentos, `favoriteId`, `pendingId` y
+  `commentCount`. Mantener el contrato HTTP durante estos cortes, pero separar
+  esos campos en adaptadores o en la composición explícita de `app`; no
+  almacenar estado comunitario en Catalog ni importar Community desde Catalog.
+- **Community** posee el estado compartido de relación y resumen por disco,
+  indexado por usuario y disco cuando aplique. Pinia puede coordinar y cachear
+  este estado en memoria; limpiarlo al cerrar sesión. Las páginas filtradas
+  pertenecen a la consulta de la capacidad que las carga y se invalidan tras
+  una mutación. No persistir claves nuevas en localStorage.
+- Los comentarios se cargan al abrir la conversación. Su árbol pertenece a
+  Community mientras esa conversación está activa; no se persiste entre
+  aperturas. Al cambiar comentarios, actualizar o invalidar el recuento
+  comunitario del disco.
+- Las mutaciones existentes son pesimistas: la UI cambia después de recibir
+  éxito, por lo que no requieren rollback. Mantener ese comportamiento y no
+  añadir optimismo. Centralizar o coordinar los bloqueos de petición por
+  usuario/disco/capacidad: el bloqueo actual de votos y algunos botones es
+  local a una instancia; los calendarios no bloquean envíos y los comentarios
+  no impiden dobles envíos.
+- **Identity** aporta identidad, avatar y roles mediante contratos públicos o
+  composición de `app`; Community no importa el store legacy de auth. La
+  autorización efectiva continúa en backend.
+- **Analytics** posee gráficas, estadísticas, tendencias, rankings e historial
+  de actividad como proyecciones. Community ofrece los datos de valoración que
+  necesiten mediante su API pública; los informes y sus caches no se duplican
+  en Community. Las pantallas de informes que sigan en legacy se migran en la
+  Iteración 8.
+- **Editorial** mantiene asignaciones y reuniones. `MisVotosMes` consume votos
+  de Community, pero asignar el disco sigue siendo Editorial. Los puntos de
+  agenda de reuniones y el servicio `services/points/point.ts` pertenecen a
+  Editorial, no a Community.
+- **Releases** mantiene lanzamientos nacionales, peticiones e importación. Sus
+  estados llamados “pendiente” son distintos de los discos que una persona
+  quiere escuchar después.
+- **Integrations** mantiene acceso y DTOs de Spotify, Last.fm y otros
+  proveedores. Las partes de detalle Spotify, artista y calendario que
+  conviven en `DiscCardComponent` permanecen en sus propietarios y no se
+  trasladan con las acciones comunitarias.
+
+### 4.1 — Votar desde las tarjetas de disco
+
+**Alcance:** crear y editar valoraciones de disco/portada en
+`DiscCardComponent`; cargar votos para `VotesModal`; actualizar el voto
+propio, las medias y los recuentos. Componer el estado comunitario de las
+tarjetas compartidas por listado, inicio, dashboard, aventura y gestión de
+artistas. Usar el puente existente de gestión de artistas como límite explícito.
+
+**Fuera de alcance:** el voto de portada del día en Dashboard, los listados
+personales de votos, los informes de Analytics y las acciones de comentarios,
+favoritos y pendientes del mismo componente.
+
+**Ownership/cache:** Community posee el voto propio y el resumen por disco; el
+listado de votos se carga al abrir el modal como estado de la capacidad.
+Catalog conserva disco y página. La composición de `app` separa las
+proyecciones mixtas recibidas por HTTP y entrega el estado de Community sin
+añadir esos campos a los modelos públicos de Catalog.
+
+**Criterio de cierre:** crear y editar conservan validaciones y compatibilidad;
+el estado cambia solo tras éxito y el resumen se refresca. Si falla ese
+refresco, el voto guardado se conserva y el resumen queda pendiente de recarga.
+
+**Riesgos:** `DiscCardComponent` mezcla varias responsabilidades y tiene muchos
+consumidores. Mantener su fachada y migrar únicamente la capacidad de voto.
+
+**Tests:** caracterizar voto nuevo y edición, voto parcial, valores vacíos,
+errores, reintento, doble envío desde dos tarjetas del mismo disco y refresco
+de medias/recuentos; E2E del voto desde listado.
+
+**Modelo recomendado:** Luna HyperHigh.
+
+### 4.2 — Consultar votos y portadas propias
+
+**Alcance:** migrar los modos “Mis votos” y “Mis portadas” de
+`DiscList.vue` y publicar la consulta necesaria para `MisVotosMes.vue`.
+Conservar filtros, orden y paginación. La composición con la vista editorial
+puede consumir votos de Community.
+
+**Fuera de alcance:** escritura de votos, asignación editorial de discos,
+comentarios, favoritos, pendientes y estadísticas agregadas.
+
+**Ownership/cache:** Community posee el resultado de la consulta de votos y su
+estado de carga/error. La ficha del disco sigue siendo de Catalog; si la
+respuesta de Community trae un disco anidado, separar esa proyección en el
+adaptador o en `app`. Mantener la paginación en el consumidor mientras no
+haya otro lector compartido; no crear una cache global de listas.
+
+**Criterio de cierre:** parámetros, resultados y DTOs quedan tipados tras el
+adaptador de Community; `MisVotosMes` recibe los votos sin apropiarse de las
+asignaciones, y `DiscList` conserva la conducta visible.
+
+**Riesgos:** `DiscList` coordina varios modos y descarta respuestas antiguas.
+El corte debe conservar la versión de petición, los filtros y el orden actuales.
+
+**Tests:** parámetros de búsqueda, rango de fechas, género, país y orden;
+paginación, carga, vacío, error y descarte de respuestas obsoletas; comprobar
+que la asignación editorial no cambia.
+
+**Modelo recomendado:** Luna HyperHigh.
+
+### 4.3 — Voto de portada del día en Dashboard
+
+**Alcance:** trasladar la lectura del voto propio y el envío de portada que hoy
+hace `DashboardPage.vue`. Catalog continúa seleccionando y cargando el disco
+del día.
+
+**Fuera de alcance:** racha de votos, votos recientes, rankings, gráficas y
+otras lecturas del dashboard.
+
+**Ownership/cache:** Catalog posee el disco seleccionado. Community posee la
+valoración propia por disco, compartida con el estado definido en 4.1; no se
+crea un segundo voto local en Dashboard.
+
+**Criterio de cierre:** se crea un voto si aún no existe y se actualiza si ya
+existe; el doble envío queda bloqueado y la UI refleja el último resultado
+confirmado.
+
+**Riesgos:** el dashboard recibe actualmente el voto propio dentro de la
+proyección de disco de Catalog; debe consumir la separación de estado acordada
+en 4.1 sin cambiar la selección diaria.
+
+**Tests:** disco con y sin voto previo, valores válidos, alta, actualización,
+error, doble envío y coherencia tras recargar.
+
+**Modelo recomendado:** Luna High.
+
+### 4.4 — Conversación de comentarios en un disco
+
+**Alcance:** migrar `ComentsModal.vue` y `CommentItem.vue`: cargar el árbol,
+crear comentarios raíz y respuestas, editar y borrar. Conservar el evento de
+abrir usuario para que `app` componga el modal de usuario actual.
+
+**Fuera de alcance:** el modo “Mis comentarios” de `DiscList.vue`, el historial
+de votos del modal de usuario y la gestión de sesión/permisos de Identity.
+
+**Ownership/cache:** Community posee el árbol mientras la conversación está
+abierta y el recuento del disco; cargar al abrir y no persistir entre aperturas.
+Identity aporta usuario/avatar/roles por contrato público. Actualizar el árbol
+y el resumen solo después de éxito.
+
+**Criterio de cierre:** las respuestas conservan su relación con el padre y las
+ediciones y borrados actualizan la conversación tras confirmación del backend.
+Se conserva el marcador de comentario eliminado y la conducta de moderación.
+
+**Riesgos:** el árbol es recursivo; el componente importa hoy el store legacy de
+auth. Los servicios contienen dos funciones de actualización equivalentes.
+Evitar que Community absorba el modal de historial de Analytics o reglas de
+autorización.
+
+**Tests:** árbol raíz/respuestas, edición, borrado lógico visible, permisos de
+autor/moderación, avatar, recuento, fallos sin mutación local y doble envío en
+comentario y respuesta.
+
+**Modelo recomendado:** Luna HyperHigh.
+
+### 4.5 — Lista de comentarios propios
+
+**Alcance:** migrar el modo “Mis comentarios” de `DiscList.vue` y la consulta
+filtrada/paginada de comentarios del usuario.
+
+**Fuera de alcance:** la conversación de un disco y las mutaciones de
+comentario, ya tratadas en 4.4; también quedan fuera los demás modos del listado.
+
+**Ownership/cache:** Community posee la operación de consulta y los comentarios
+devueltos. La ficha anidada del disco se separa en el límite de composición y
+Catalog conserva sus datos. La página y sus filtros permanecen en el consumidor,
+sin cache global.
+
+**Criterio de cierre:** búsqueda, rango, género, país, orden, total y
+paginación conservan el contrato y comportamiento actuales.
+
+**Riesgos:** la vista reúne todos los modos y su coordinación de carga. Limitar
+los cambios a la rama de comentarios y preservar la protección contra respuestas
+fuera de orden.
+
+**Tests:** parámetros, paginación, vacío, error y cambio rápido de filtros;
+verificar que las otras pestañas no cambian.
+
+**Modelo recomendado:** Luna High.
+
+### 4.6 — Favoritos
+
+**Alcance:** añadir/quitar favorito desde la tarjeta y migrar el modo
+“Favoritos” de `DiscList.vue`.
+
+**Fuera de alcance:** pendientes, otras pestañas del listado y datos propios de
+Catalog.
+
+**Ownership/cache:** Community posee la relación favorita y su ID por usuario y
+disco, compartida entre tarjetas. La consulta paginada permanece en el
+consumidor y se actualiza o invalida después de quitar un favorito. No usar
+`favoriteId` de Catalog como estado editable.
+
+**Criterio de cierre:** alta y baja se reflejan solo tras éxito; la lista activa
+no conserva entradas obsoletas y dos consumidores del mismo disco convergen al
+mismo estado.
+
+**Riesgos:** el bloqueo actual es local a cada tarjeta y la sincronización de la
+prop de favorito no se comparte entre instancias.
+
+**Tests:** alta/baja, error sin cambio, peticiones concurrentes desde tarjetas
+duplicadas, actualización de la lista, filtros y paginación.
+
+**Modelo recomendado:** Luna High.
+
+### 4.7 — Pendientes desde tarjeta y listado
+
+**Alcance:** añadir/quitar “escuchar después” en `DiscCardComponent` y migrar
+el modo “Pendientes” de `DiscList.vue`.
+
+**Fuera de alcance:** acciones de calendario, estados de peticiones/sugerencias
+de Releases y notificaciones pendientes de soporte.
+
+**Ownership/cache:** Community posee la relación pendiente y su ID por usuario
+y disco. La lista paginada permanece en su consumidor y se invalida o actualiza
+tras una mutación. Catalog conserva exclusivamente la ficha y página de discos.
+
+**Criterio de cierre:** tarjeta y listado reflejan el mismo estado confirmado;
+quitar un disco actualiza la lista activa sin modificar filtros ni orden.
+
+**Riesgos:** el ID se mantiene localmente en la tarjeta y no se sincroniza como
+la prop de favorito. “Pendiente” en Releases y soporte tiene otros propietarios.
+
+**Tests:** alta/baja, error sin cambio, envío repetido desde tarjetas
+simultáneas, actualización de la lista y aislamiento de los otros estados
+llamados pendientes.
+
+**Modelo recomendado:** Luna High.
+
+### 4.8 — Pendientes en calendarios estándar y babyUser
+
+**Alcance:** migrar la acción de pendiente de las tarjetas de calendario
+estándar y babyUser mediante composición de `app` con Community y Catalog.
+Retirar `pendingId` de la proyección de dominio de calendario cuando el
+consumidor ya use la API de Community.
+
+**Fuera de alcance:** carga, agrupación, fechas y filtros de Catalog; edición de
+discos/artistas; lanzamientos nacionales y otras acciones de Releases.
+
+**Ownership/cache:** Catalog mantiene grupos y páginas del calendario.
+Community mantiene el estado pendiente compartido con tarjetas y listado; no
+duplicar su ID dentro del cache de Catalog.
+
+**Criterio de cierre:** ambas variantes conservan permisos y comportamiento
+visual, comparten el estado confirmado con el resto de consumidores y no llaman
+a servicios HTTP desde las tarjetas.
+
+**Riesgos:** ambos componentes hacen hoy peticiones directas y carecen de un
+bloqueo común de envíos; el contrato del calendario mezcla estado de Community
+con datos de Catalog.
+
+**Tests:** alternancia y error en ambas variantes, permisos por rol, doble
+envío, coherencia al volver a la vista y E2E de los dos calendarios.
+
+**Modelo recomendado:** Luna High.
+
+### 4.9 — Consolidación de Community
+
+**Alcance:** revisar estructura por capacidades, API pública, fachadas y
+servicios legacy, propiedad e invalidación de caches, ciclos e imports.
+Comprobar que las proyecciones comunitarias no forman parte de la API pública
+de Catalog y que los puentes con otros módulos sean explícitos.
+
+**Fuera de alcance:** nuevas funciones de producto, limpieza global de legacy y
+migración completa de pantallas de Analytics o Editorial.
+
+**Ownership/cache:** verificar que Catalog solo cachea datos y páginas de
+discos/calendarios; Community mantiene relaciones y resúmenes comunitarios en
+memoria y los limpia al cerrar sesión; las consultas de Analytics conservan su
+propio modelo y cache. Eliminar fachadas solo cuando no queden consumidores.
+
+**Criterio de cierre:** cada capacidad tiene dueño y API pública pequeña;
+Community no importa internals de otros módulos; no quedan ciclos ni imports
+legacy sin consumidor, y las compatibilidades pendientes están identificadas.
+
+**Riesgos:** `/discs`, `/discs/date` y gestión de artistas siguen devolviendo
+proyecciones mixtas; estadísticas, historial de usuario y partes del dashboard
+tienen consumidores legacy.
+
+**Tests:** pruebas arquitectónicas de límites, imports y ciclos; suites unitarias
+de las capacidades migradas; regresión de listados y calendarios; ejecutar
+`yarn verify`.
+
+**Modelo recomendado:** Luna Max.
+
+**Salida de Iteración 4:** valoraciones, comentarios, favoritos y pendientes
+tienen contratos tipados y estado/cache con propietario explícito; sus
+consumidores comparten el estado confirmado sin trasladar reglas comunitarias a
+Catalog ni dependencias de otros módulos a Community. Las estadísticas,
+tendencias, rankings e historial de actividad siguen bajo Analytics, los puntos
+de reunión bajo Editorial, los estados de Releases bajo Releases y las llamadas
+a proveedores bajo Integrations.
 
 ## Iteración 5 — Integraciones del navegador
 

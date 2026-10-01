@@ -48,10 +48,16 @@ columna se conservan al informar una regresión, pero no identifican la excepci�
 añadir líneas en blanco o mover código dentro del archivo no amplía la deuda.
 No hay patrones de carpetas ni permisos globales por código TS.
 
-Un mensaje, código, archivo o fragmento distinto falla. También falla una
-aparición adicional de una firma existente. Resolver un error no compensa
-introducir otro. Los errores del compilador/configuración, resultados incompletos
-y formatos desconocidos fallan; no se aceptan por quedar fuera del parser.
+Al comparar mensajes, solo se canonicaliza el orden de miembros en una secuencia
+de literales de cadena entre comillas separados por el símbolo |, una
+representación que TypeScript puede imprimir en órdenes distintos para la misma
+unión. No se reordena otro texto ni se normalizan uniones de otros tipos.
+Archivo, código, línea de origen y multiplicidad siguen identificando cada
+excepción. Un mensaje con cualquier otra diferencia, código, archivo o fragmento
+distinto falla. También falla una aparición adicional de una firma existente.
+Resolver un error no compensa introducir otro. Los errores del compilador/
+configuración, resultados incompletos y formatos desconocidos fallan; no se
+aceptan por quedar fuera del parser.
 
 El baseline actual debe ser un subconjunto multiconjunto del baseline de Git:
 

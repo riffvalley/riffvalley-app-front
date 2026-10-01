@@ -8,8 +8,24 @@ import { pathToFileURL } from "node:url";
 export const BASELINE_PATH = "docs/typecheck-baseline.json";
 const PROJECT = "tsconfig.app.json";
 
+/** Canonicalize only runs of string-literal union members in TypeScript messages. */
+function normalizeUnionMemberOrder(message) {
+  const stringLiteral = "(?:\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*')";
+  const literalUnion = new RegExp(stringLiteral + "(?:\\s*\\|\\s*" + stringLiteral + ")+", "g");
+  const stringMember = new RegExp(stringLiteral, "g");
+  return message.replace(literalUnion, (union) =>
+    (union.match(stringMember) ?? [])
+      .sort((left, right) => left < right ? -1 : left > right ? 1 : 0)
+      .join(" | "));
+}
+
 function signature(diagnostic) {
-  return JSON.stringify([diagnostic.file, diagnostic.code, diagnostic.message, diagnostic.source]);
+  return JSON.stringify([
+    diagnostic.file,
+    diagnostic.code,
+    normalizeUnionMemberOrder(diagnostic.message),
+    diagnostic.source,
+  ]);
 }
 
 function normalizeMessage(message, root) {
@@ -36,13 +52,16 @@ export function parseDiagnostics(output, root) {
       current.message += `\n${line}`;
     }
   }
-  return entries.map((entry) => ({ ...entry, message: normalizeMessage(entry.message, root) }));
+  return entries.map((entry) => ({
+    ...entry,
+    message: normalizeUnionMemberOrder(normalizeMessage(entry.message, root)),
+  }));
 }
 
 export function baselineFrom(diagnostics) {
   const grouped = new Map();
   for (const { file, code, message, source } of diagnostics) {
-    const entry = { file, code, message, source, count: 1 };
+    const entry = { file, code, message: normalizeUnionMemberOrder(message), source, count: 1 };
     const key = signature(entry);
     const previous = grouped.get(key);
     if (previous) previous.count++;

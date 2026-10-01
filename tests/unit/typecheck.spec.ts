@@ -40,6 +40,38 @@ describe("TypeScript diagnostic baseline", () => {
     expect(compareDiagnostics([{ ...diagnostic, line: 100, column: 4 }], baselineFrom([diagnostic])).added).toEqual([]);
   });
 
+  it("treats reordered string-literal union members as the same diagnostic", () => {
+    const baselineDiagnostic = {
+      ...diagnostic,
+      message: 'Argument type includes updateMode: "reset" | "none" | "default" | "resize" | "hide" | "show" | "active".',
+    };
+    const reorderedDiagnostic = {
+      ...baselineDiagnostic,
+      message: 'Argument type includes updateMode: "active" | "show" | "hide" | "resize" | "default" | "none" | "reset".',
+    };
+
+    expect(compareDiagnostics(
+      [reorderedDiagnostic],
+      baselineFrom([baselineDiagnostic]),
+    )).toMatchObject({ added: [], resolved: [] });
+  });
+
+  it("still rejects a string-literal union with a different member", () => {
+    const baselineDiagnostic = {
+      ...diagnostic,
+      message: 'Argument type includes updateMode: "reset" | "none" | "default".',
+    };
+    const changedDiagnostic = {
+      ...baselineDiagnostic,
+      message: 'Argument type includes updateMode: "reset" | "none" | "idle".',
+    };
+
+    expect(compareDiagnostics(
+      [changedDiagnostic],
+      baselineFrom([baselineDiagnostic]),
+    ).added).toHaveLength(1);
+  });
+
   it.each([
     { ...diagnostic, file: "src/modules/new/example.ts" },
     { ...diagnostic, code: 2345 },
@@ -49,12 +81,18 @@ describe("TypeScript diagnostic baseline", () => {
     expect(compareDiagnostics([changed], baselineFrom([diagnostic])).added).toHaveLength(1);
   });
 
-  it("does not let a fixed error offset a new one or an extra identical occurrence", () => {
+  it("rejects a new diagnostic even if another one is fixed", () => {
     const baseline = baselineFrom([diagnostic]);
-    expect(compareDiagnostics([diagnostic, diagnostic], baseline).added).toHaveLength(1);
     expect(compareDiagnostics([{ ...diagnostic, code: 2345 }], baseline)).toMatchObject({
       added: [expect.objectContaining({ code: 2345 })], resolved: [expect.objectContaining({ code: 2322 })],
     });
+  });
+
+  it("rejects an increase in the multiplicity of an identical diagnostic", () => {
+    const baseline = baselineFrom([diagnostic]);
+    expect(compareDiagnostics([diagnostic, diagnostic], baseline).added).toEqual([
+      expect.objectContaining({ file: diagnostic.file, code: diagnostic.code, count: 2 }),
+    ]);
   });
 
   it("reports stale exceptions and permits only a subset of the committed baseline", () => {
