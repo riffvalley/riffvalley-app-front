@@ -33,7 +33,10 @@ function setup(primary: typeof DiscComponent | typeof DiscComponentBaby, port: P
   communityPendingState.clear();
   const userId = "user-1";
   const discId = calendarDisc.id;
-  const standardProps = { genres: [{ id: "rock", name: "Rock", color: "#123456" }], countries: [], focusDiscId: "" };
+  const standardProps = {
+    genres: [{ id: "rock", name: "Rock", color: "#123456" }], countries: [], focusDiscId: "",
+    fetchArtistProfile: vi.fn().mockResolvedValue({ status: "failed" }),
+  };
   const babyProps = { genres: [{ id: "rock", name: "Rock", color: "#123456" }], artistCountry: null };
   const other = primary === DiscComponent ? DiscComponentBaby : DiscComponent;
   const Harness = defineComponent({

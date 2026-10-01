@@ -246,9 +246,8 @@ import { createNationalReleaseFromDisc } from "@services/national-releases/natio
 import { updateArtist, postArtist } from "@services/artist/artist";
 import Swal from "sweetalert2";
 import SwalService from "@services/swal/SwalService";
-import axios from "axios";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
-import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
+import type { ArtistProfileResult } from "@/integrations/spotify/application/artistProfile";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import EditModal from "./EditModal.vue";
 
@@ -290,6 +289,10 @@ export default defineComponent({
     persistArtistCreation: {
       type: Function as PropType<(discId: string, name: string) => Promise<{ id: string; name: string }>>,
       default: undefined,
+    },
+    fetchArtistProfile: {
+      type: Function as PropType<(artistName: string) => Promise<ArtistProfileResult>>,
+      required: true,
     },
 
     genres: {
@@ -670,54 +673,27 @@ export default defineComponent({
       isNarrow.value = window.innerWidth < 768;
     };
 
-    const buscarGeneroSpotify = async (disc: any) => {
-      const token = await obtenerTokenSpotify();
-      if (!token) {
-        console.error("No se pudo obtener el token de Spotify");
-        return;
-      }
+    const buscarGeneroSpotify = async (disc: CalendarDisc & { genero?: string }) => {
       try {
-        const query = encodeURIComponent(`artist:${disc.artist.name}`);
-        const response = await axios.get(`https://api.spotify.com/v1/search?q=${query}&type=artist&limit=1`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.data.artists.items.length > 0) {
-          const artist = response.data.artists.items[0];
-          const artistId = artist.id;
-          const albumsResponse = await axios.get(`https://api.spotify.com/v1/artists/${artistId}/albums`, {
-            headers: { Authorization: `Bearer ${token}` },
-            params: { include_groups: "album,single", limit: 1 },
-          });
-          if (albumsResponse.data.items.length > 0) {
-            const genres = artist.genres;
-            if (genres.length > 0) {
-              disc.genero = genres.join(", ");
-              Swal.fire({
-                title: "¡Éxito!",
-                text: `El género del último track: ${disc.genero}`,
-                icon: "success",
-                position: "top-end",
-                timer: 6000,
-                timerProgressBar: true,
-                showConfirmButton: false,
-                toast: true,
-              });
-            } else {
-              Swal.fire({
-                title: "Sin géneros",
-                text: `No se encontraron géneros asociados al artista "${disc.artist.name}".`,
-                icon: "warning",
-                position: "top-end",
-                timer: 3000,
-                timerProgressBar: true,
-                showConfirmButton: false,
-                toast: true,
-              });
-            }
+        const result = await props.fetchArtistProfile(disc.artist.name);
+        if (result.status === "found") {
+          const genres = result.profile.genres;
+          if (genres.length > 0) {
+            disc.genero = genres.join(", ");
+            Swal.fire({
+              title: "¡Éxito!",
+              text: `El género del último track: ${disc.genero}`,
+              icon: "success",
+              position: "top-end",
+              timer: 6000,
+              timerProgressBar: true,
+              showConfirmButton: false,
+              toast: true,
+            });
           } else {
             Swal.fire({
-              title: "No se encontraron lanzamientos",
-              text: `No se encontraron tracks recientes para el artista "${disc.artist.name}".`,
+              title: "Sin géneros",
+              text: `No se encontraron géneros asociados al artista "${disc.artist.name}".`,
               icon: "warning",
               position: "top-end",
               timer: 3000,
@@ -726,7 +702,7 @@ export default defineComponent({
               toast: true,
             });
           }
-        } else {
+        } else if (result.status === "not-found") {
           Swal.fire({
             title: "Artista no encontrado",
             text: `No se encontró información para el artista "${disc.artist.name}" en Spotify.`,
@@ -737,6 +713,8 @@ export default defineComponent({
             showConfirmButton: false,
             toast: true,
           });
+        } else {
+          throw new Error("Artist profile request failed");
         }
       } catch (error) {
         console.error("Error al buscar el género por último track:", error);

@@ -6,6 +6,7 @@ import { useCatalogStore } from "@stores/catalog/catalog";
 import { useAuthStore } from "@stores/auth/auth";
 import { calendarPort, enrichCalendarDiscs, searchCalendarImages } from "../dependencies/discCalendar";
 import { createAndAssociateCalendarArtist, updateCalendarArtist } from "../dependencies/catalog";
+import { fetchArtistProfile } from "../dependencies/artistProfile";
 import type { UpdateArtistInput } from "@/modules/catalog/artists/application/artistManagementPort";
 import { showErrorToast } from "@/shared/ui/errorToast";
 import { getCommunityPending, isCommunityPendingSubmitting, seedCommunityPending, toggleCommunityPending } from "@/app/bridges/communityPendings";
@@ -72,6 +73,7 @@ function applyCalendarArtistCreation(
     @load-error="loadError">
     <template #disc="{ disc, removeDisc, dateChanged, applyArtistUpdate, applyArtistCreation }">
       <DiscComponent :disc="disc" :genres="catalog.genres" :countries="catalog.countries" :focus-disc-id="focusDiscId"
+        :fetch-artist-profile="fetchArtistProfile"
         :pending-user-id="pendingUserId" :pending-state="communityPending(disc.id)"
         :pending-submitting="communityPendingSubmitting(pendingUserId, disc.id)"
         :initialize-pending="initializePending" :toggle-pending="togglePending"
