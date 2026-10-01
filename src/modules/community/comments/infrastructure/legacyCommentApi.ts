@@ -41,8 +41,8 @@ export const legacyCommentApi: CommentPort = {
     if (!Array.isArray(response)) throw new Error("La respuesta de comentarios no es una lista.");
     return response.map(toComment);
   },
-  async createRoot(discId, comment) {
-    const response: unknown = await postcommentService({ discId, comment });
+  async create(discId, comment, parentId) {
+    const response: unknown = await postcommentService({ discId, comment, ...(parentId ? { parentId } : {}) });
     return toComment(response);
   },
 };

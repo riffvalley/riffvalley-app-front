@@ -1,5 +1,5 @@
 <template>
-  <div :class="depth > 0
+  <div class="comment-item" :data-comment-id="comment.id" :class="depth > 0
     ? 'ml-10 pl-4 border-l-2 border-gray-200 dark:border-white/10'
     : 'border-b border-gray-50 dark:border-white/5 last:border-0'">
 
@@ -132,7 +132,7 @@
                  bg-white dark:bg-rv-darkSurface shadow-sm"
           :class="showReplyEmojiPicker ? 'scale-110' : 'opacity-70 hover:opacity-100 hover:scale-110'"
           title="Emojis">😊</button>
-        <input ref="replyInputRef" v-model="replyText" type="text"
+        <input ref="replyInputRef" v-model="replyText" type="text" :disabled="isReplySubmitting"
           placeholder="Escribe tu respuesta..."
           class="flex-1 text-sm rounded-full px-4 py-1.5
                  border border-gray-200 dark:border-white/10
@@ -140,7 +140,7 @@
                  text-gray-800 dark:text-white
                  placeholder:text-gray-400 dark:placeholder:text-gray-500
                  focus:outline-none focus:border-rv-navy dark:focus:border-rv-purple" />
-        <button type="submit"
+        <button type="submit" :disabled="isReplySubmitting"
           class="text-sm font-semibold text-white bg-rv-pink hover:bg-rv-pink/80
                  px-4 py-1.5 rounded-full transition-colors shrink-0 focus:outline-none border-0">
           Enviar
@@ -149,12 +149,13 @@
     </div>
 
     <!-- ── Respuestas anidadas ────────────────────────── -->
-    <div v-if="localComment.replies?.length">
+    <div v-if="localComment.replies?.length" class="comment-replies">
       <CommentItem
         v-for="reply in localComment.replies" :key="reply.id"
         :comment="reply" :disc-id="discId" :depth="depth + 1" :avatar-size="avatarSize"
         :current-user="currentUser" :session-avatar="sessionAvatar"
-        @reply-added="$emit('reply-added', $event)"
+        :submitting-reply-ids="submittingReplyIds"
+        :submit-reply="submitReply"
         @deleted="$emit('deleted', $event)"
         @comment-updated="$emit('comment-updated', $event)"
         @open-user="$emit('open-user', $event)" />
@@ -165,7 +166,7 @@
 
 <script lang="ts">
 import { computed, defineComponent, ref, nextTick, type PropType } from "vue";
-import { postcommentService, updateCommentService, deleteCommentService } from "@services/comments/comments";
+import { updateCommentService, deleteCommentService } from "@services/comments/comments";
 import SwalService from "@services/swal/SwalService";
 import type { DiscComment } from "@/modules/community";
 
@@ -183,8 +184,10 @@ export default defineComponent({
     avatarSize: { type: Number, default: 36 },
     currentUser: { type: Object as PropType<CurrentCommentUser>, required: true },
     sessionAvatar: { type: String, default: "" },
+    submittingReplyIds: { type: Object as PropType<Set<string>>, required: true },
+    submitReply: { type: Function as PropType<(parentId: string, text: string) => Promise<void>>, required: true },
   },
-  emits: ["reply-added", "deleted", "comment-updated", "open-user"],
+  emits: ["deleted", "comment-updated", "open-user"],
   setup(props, { emit }) {
     const localComment = computed(() => props.comment);
 
@@ -223,6 +226,7 @@ export default defineComponent({
     };
 
     const user = computed(() => props.currentUser);
+    const isReplySubmitting = computed(() => props.submittingReplyIds.has(localComment.value.id));
     const isOwnComment = computed(() => localComment.value.user.id === user.value.id);
 
     // Solo mostrar "(editado)" si editedAt es al menos 10 segundos posterior a createdAt.
@@ -248,23 +252,11 @@ export default defineComponent({
     };
 
     const submitReply = async () => {
+      if (isReplySubmitting.value) return;
       if (!replyText.value.trim()) { SwalService.error("La respuesta no puede estar vacía."); return; }
       try {
-        const createdReply = await postcommentService({
-          discId:   props.discId,
-          comment:  replyText.value,
-          parentId: localComment.value.id,
-        }) as unknown as Omit<DiscComment, "replies">;
-        const newReply: DiscComment = { ...createdReply, replies: [] };
-        if (!localComment.value.replies) localComment.value.replies = [];
-        if (newReply?.user?.id && user.value?.id && newReply.user.id === user.value.id) {
-          if (!newReply.user.avatarUrl && !newReply.user.image && props.sessionAvatar) {
-            newReply.user.avatarUrl = props.sessionAvatar;
-          }
-        }
-        localComment.value.replies.push(newReply);
+        await props.submitReply(localComment.value.id, replyText.value);
         SwalService.success("Respuesta añadida");
-        emit("reply-added", { parentId: localComment.value.id, reply: newReply });
         replyText.value     = "";
         showReplyForm.value = false;
       } catch {
@@ -325,7 +317,7 @@ export default defineComponent({
       showReplyEmojiPicker, activeReplyEmojiCategory, emojiCategories, currentReplyEmojis, insertReplyEmoji,
       toggleReplyForm, submitReply,
       showEditForm, editText, startEdit, cancelEdit, submitEdit,
-      deleteComment, timeAgo, user, displayedAvatar,
+      deleteComment, timeAgo, user, displayedAvatar, isReplySubmitting,
     };
   },
 });

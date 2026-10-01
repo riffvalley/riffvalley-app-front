@@ -7,6 +7,16 @@ export async function loadDiscConversation(port: CommentPort, discId: string): P
 }
 
 export async function createRootComment(port: CommentPort, discId: string, comment: string): Promise<DiscComment> {
-  const created = await port.createRoot(discId, comment);
+  const created = await port.create(discId, comment);
   return { ...created, parentId: null, replies: [] };
+}
+
+export async function createReplyComment(
+  port: CommentPort,
+  discId: string,
+  parentId: string,
+  comment: string,
+): Promise<DiscComment> {
+  const created = await port.create(discId, comment, parentId);
+  return { ...created, parentId, replies: [] };
 }

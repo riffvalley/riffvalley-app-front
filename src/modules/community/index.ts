@@ -9,4 +9,5 @@ export { buildCommentTree, countComments } from "./comments/domain/comment";
 export type { CommentPort } from "./comments/application/commentPort";
 export { loadDiscConversation } from "./comments/application/loadDiscConversation";
 export { createRootComment } from "./comments/application/loadDiscConversation";
+export { createReplyComment } from "./comments/application/loadDiscConversation";
 export { useDiscConversation } from "./comments/presentation/useDiscConversation";

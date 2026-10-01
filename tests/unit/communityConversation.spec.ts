@@ -2,22 +2,30 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import ComentsModal from "../../src/components/ComentsModal.vue";
+import CommentItem from "../../src/components/CommentItem.vue";
 import { buildCommentTree, countComments } from "../../src/modules/community";
+import { createReplyComment as createCommunityReplyComment } from "../../src/modules/community";
 import type { FlatDiscComment } from "../../src/modules/community";
+import type { CommentPort } from "../../src/modules/community";
 
-const { loadConversation, createRootComment, showError } = vi.hoisted(() => ({
+const { loadConversation, createRootComment, createReplyComment, showError } = vi.hoisted(() => ({
   loadConversation: vi.fn(),
   createRootComment: vi.fn(),
+  createReplyComment: vi.fn(),
   showError: vi.fn(),
 }));
 
 vi.mock("@/app/dependencies/communityConversation", () => ({
   loadCommunityConversation: loadConversation,
   createCommunityRootComment: createRootComment,
+  createCommunityReply: createReplyComment,
   getCommunityCommentIdentity: () => ({ user: { id: "user-1", username: "Ana" }, avatar: "session.png" }),
 }));
 vi.mock("@services/swal/SwalService", () => ({ default: { error: showError, success: vi.fn() } }));
-vi.mock("../../src/components/CommentItem.vue", () => ({ default: { template: "<div class='comment-item' />" } }));
+vi.mock("@services/comments/comments", () => ({
+  updateCommentService: vi.fn(),
+  deleteCommentService: vi.fn(),
+}));
 vi.mock("../../src/components/UserModal.vue", () => ({ default: { template: "<div />" } }));
 
 const comment = (id: string, parentId?: string): FlatDiscComment => ({
@@ -31,6 +39,18 @@ const comment = (id: string, parentId?: string): FlatDiscComment => ({
 });
 
 const createdComment = (id: string): FlatDiscComment & { replies: [] } => ({ ...comment(id), replies: [] });
+const createdReply = (id: string, parentId: string): FlatDiscComment & { replies: [] } => ({ ...comment(id, parentId), replies: [] });
+
+function findButton(wrapper: ReturnType<typeof mount>, label: string, occurrence = 0) {
+  const buttons = wrapper.findAll("button").filter((button) => button.text().trim() === label);
+  return buttons[occurrence];
+}
+
+function findReplyForm(wrapper: ReturnType<typeof mount>) {
+  return wrapper.findAll("form").find((form) =>
+    form.get("input").attributes("placeholder") === "Escribe tu respuesta...",
+  );
+}
 
 describe("Community disc conversation loading", () => {
   beforeEach(() => {
@@ -50,6 +70,16 @@ describe("Community disc conversation loading", () => {
     expect(tree[1].replies.map(({ id }) => id)).toEqual(["reply-2", "reply-1"]);
     expect(tree[1].replies[0].replies[0]).toMatchObject({ id: "deleted", isDeleted: true });
     expect(countComments(tree)).toBe(5);
+  });
+
+  it("creates a reply through the comment port with its parent and a normalized tree node", async () => {
+    const create = vi.fn().mockResolvedValue(comment("reply", "parent"));
+    const port: CommentPort = { listByDisc: vi.fn(), create };
+
+    const reply = await createCommunityReplyComment(port, "disc-1", "parent", "Respuesta");
+
+    expect(create).toHaveBeenCalledWith("disc-1", "Respuesta", "parent");
+    expect(reply).toMatchObject({ id: "reply", parentId: "parent", replies: [] });
   });
 
   it("loads comments when opened and starts a fresh empty conversation after reopening", async () => {
@@ -136,6 +166,74 @@ describe("Community disc conversation loading", () => {
     await firstSubmit;
     await flushPromises();
     expect(wrapper.findAll(".comment-item")).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it("adds a confirmed reply exactly once beneath its parent and keeps the session avatar", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([comment("first"), comment("target")]));
+    createReplyComment.mockResolvedValueOnce(createdReply("reply", "target"));
+    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    await flushPromises();
+
+    await findButton(wrapper, "Responder", 1).trigger("click");
+    const replyForm = findReplyForm(wrapper)!;
+    await replyForm.get("input").setValue("Respuesta");
+    await replyForm.trigger("submit");
+    await flushPromises();
+
+    expect(createReplyComment).toHaveBeenCalledWith("disc-1", "target", "Respuesta");
+    expect(wrapper.get('[data-comment-id="target"] .comment-replies [data-comment-id="reply"]').exists()).toBe(true);
+    expect(wrapper.get('[data-comment-id="target"] .comment-replies [data-comment-id="reply"] img').attributes("src")).toBe("session.png");
+    expect(wrapper.find('[data-comment-id="first"] .comment-replies').exists()).toBe(false);
+    expect(wrapper.text()).toContain("3 comentarios");
+    expect(wrapper.findComponent(CommentItem).exists()).toBe(true);
+    expect(wrapper.findAll("form")).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it("preserves the reply tree and draft after an error, then allows retry", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([comment("parent")]));
+    createReplyComment.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(createdReply("reply", "parent"));
+    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    await flushPromises();
+    await findButton(wrapper, "Responder").trigger("click");
+    const replyForm = findReplyForm(wrapper)!;
+    await replyForm.get("input").setValue("Pendiente");
+    await replyForm.trigger("submit");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("1 comentario");
+    expect(wrapper.find('[data-comment-id="parent"] .comment-replies').exists()).toBe(false);
+    expect(replyForm.get("input").element.value).toBe("Pendiente");
+    expect(showError).toHaveBeenCalledWith("Error al enviar la respuesta.");
+
+    await replyForm.trigger("submit");
+    await flushPromises();
+    expect(createReplyComment).toHaveBeenCalledTimes(2);
+    expect(wrapper.get('[data-comment-id="parent"] .comment-replies [data-comment-id="reply"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain("2 comentarios");
+    wrapper.unmount();
+  });
+
+  it("coordinates concurrent submits for the same comment", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([comment("parent")]));
+    let resolveCreate: (value: FlatDiscComment) => void = () => {};
+    createReplyComment.mockReturnValueOnce(new Promise((resolve) => { resolveCreate = resolve; }));
+    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    await flushPromises();
+    await findButton(wrapper, "Responder").trigger("click");
+    const replyForm = findReplyForm(wrapper)!;
+    await replyForm.get("input").setValue("Una vez");
+    const firstSubmit = replyForm.trigger("submit");
+    await flushPromises();
+
+    expect(replyForm.get("input").attributes("disabled")).toBeDefined();
+    await replyForm.trigger("submit");
+    expect(createReplyComment).toHaveBeenCalledTimes(1);
+    resolveCreate(createdReply("reply", "parent"));
+    await firstSubmit;
+    await flushPromises();
+    expect(wrapper.get('[data-comment-id="parent"] .comment-replies [data-comment-id="reply"]').exists()).toBe(true);
     wrapper.unmount();
   });
 });

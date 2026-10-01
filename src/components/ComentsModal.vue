@@ -48,7 +48,8 @@
               v-for="comment in comments" :key="comment.id"
               :comment="comment" :disc-id="discId" :depth="0"
               :current-user="currentUser" :session-avatar="sessionAvatar"
-              @reply-added="onReplyAdded"
+              :submitting-reply-ids="submittingReplyIds"
+              :submit-reply="submitReply"
               @deleted="handleCommentDeleted"
               @comment-updated="handleCommentUpdated"
               @open-user="openUserModal($event.username, $event.id, $event.avatar)" />
@@ -125,7 +126,7 @@ import CommentItem from "./CommentItem.vue";
 import SwalService from "@services/swal/SwalService";
 import UserModal from '@/components/UserModal.vue';
 import { useDiscConversation, type DiscComment } from "@/modules/community";
-import { createCommunityRootComment, getCommunityCommentIdentity, loadCommunityConversation } from "@/app/dependencies/communityConversation";
+import { createCommunityReply, createCommunityRootComment, getCommunityCommentIdentity, loadCommunityConversation } from "@/app/dependencies/communityConversation";
 
 function markCommentAsDeleted(comments: DiscComment[], commentId: string): DiscComment[] {
   comments.forEach((comment) => {
@@ -161,8 +162,10 @@ export default defineComponent({
   },
   emits: ["close"],
   setup(props, { emit }) {
-    const conversation = useDiscConversation(props.discId, loadCommunityConversation, createCommunityRootComment);
+    const conversation = useDiscConversation(props.discId, loadCommunityConversation, createCommunityRootComment,
+      (discId, parentId, text) => createCommunityReply(discId, parentId, text));
     const comments = conversation.comments;
+    const submittingReplyIds = conversation.submittingReplyIds;
     const topCommentText = ref("");
     const inputRef       = ref<HTMLInputElement | null>(null);
 
@@ -234,7 +237,10 @@ export default defineComponent({
       }
     };
 
-    const onReplyAdded = (_payload: { parentId: string; reply: DiscComment }) => {};
+    const submitReply = (parentId: string, text: string) => conversation.addReply(parentId, text, {
+      userId: currentUser?.id ?? null,
+      avatar: sessionAvatar,
+    });
 
     const handleCommentDeleted = (commentId: string) => {
       comments.value = markCommentAsDeleted(comments.value, commentId);
@@ -248,6 +254,7 @@ export default defineComponent({
 
     return {
       comments,
+      submittingReplyIds,
       topCommentText,
       inputRef,
       totalComments,
@@ -258,7 +265,7 @@ export default defineComponent({
       currentEmojis,
       insertEmoji,
       submitTopComment,
-      onReplyAdded,
+      submitReply,
       handleCommentDeleted,
       handleCommentUpdated,
       artistName,
