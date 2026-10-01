@@ -316,7 +316,7 @@ import defaultImage from "/src/assets/disco.png";
 import DiscDetail from "./DiscDetail.vue";
 import ArtistDetail from "./ArtistDetail.vue";
 import VotesModal from "./VotesModal.vue";
-import ComentsModal from "./ComentsModal.vue";
+import ComentsModal from "@/app/components/CommunityCommentsModal.vue";
 import DiscCalendar from "@views/discsCalendar/DiscCalendar.vue"; // o la ruta real si no está en @views
 import {
   getCommunityRating,

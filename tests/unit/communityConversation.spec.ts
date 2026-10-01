@@ -58,6 +58,13 @@ function findReplyForm(wrapper: ReturnType<typeof mount>) {
   );
 }
 
+function mountConversation() {
+  return mount(ComentsModal, { props: {
+    discId: "disc-1", artistName: "Banda", albumName: "Disco",
+    currentUser: { id: "user-1", username: "Ana" }, sessionAvatar: "session.png",
+  } });
+}
+
 describe("Community disc conversation loading", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -94,14 +101,14 @@ describe("Community disc conversation loading", () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([comment("root")]))
       .mockResolvedValueOnce([]);
 
-    const first = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const first = mountConversation();
     await flushPromises();
     expect(first.text()).toContain("1 comentario");
     expect(first.findAll(".comment-item")).toHaveLength(1);
     expect(loadConversation).toHaveBeenNthCalledWith(1, "disc-1");
     first.unmount();
 
-    const reopened = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const reopened = mountConversation();
     await flushPromises();
     expect(reopened.text()).toContain("0 comentarios");
     expect(reopened.findAll(".comment-item")).toHaveLength(0);
@@ -111,7 +118,7 @@ describe("Community disc conversation loading", () => {
 
   it("shows the existing loading error and leaves the conversation empty on failure", async () => {
     loadConversation.mockRejectedValueOnce(new Error("offline"));
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
 
     await flushPromises();
 
@@ -124,7 +131,7 @@ describe("Community disc conversation loading", () => {
   it("adds a confirmed root after success and preserves the session avatar integration", async () => {
     loadConversation.mockResolvedValueOnce([]);
     createRootComment.mockResolvedValueOnce({ ...createdComment("created"), comment: "Hola", user: { id: "user-1", username: "Ana", image: null, avatarUrl: null } });
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     await wrapper.get("input").setValue("Hola");
     await wrapper.get("form").trigger("submit");
@@ -140,7 +147,7 @@ describe("Community disc conversation loading", () => {
   it("keeps confirmed state after a failed create and allows retry", async () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([comment("confirmed")]));
     createRootComment.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(createdComment("created"));
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     await wrapper.get("input").setValue("Nuevo");
     await wrapper.get("form").trigger("submit");
@@ -162,7 +169,7 @@ describe("Community disc conversation loading", () => {
     loadConversation.mockResolvedValueOnce([]);
     let resolveCreate: (value: FlatDiscComment) => void = () => {};
     createRootComment.mockReturnValueOnce(new Promise((resolve) => { resolveCreate = resolve; }));
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     await wrapper.get("input").setValue("Único");
     const firstSubmit = wrapper.get("form").trigger("submit");
@@ -180,7 +187,7 @@ describe("Community disc conversation loading", () => {
   it("adds a confirmed reply exactly once beneath its parent and keeps the session avatar", async () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([comment("first"), comment("target")]));
     createReplyComment.mockResolvedValueOnce(createdReply("reply", "target"));
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
 
     await findButton(wrapper, "Responder", 1).trigger("click");
@@ -202,7 +209,7 @@ describe("Community disc conversation loading", () => {
   it("preserves the reply tree and draft after an error, then allows retry", async () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([comment("parent")]));
     createReplyComment.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(createdReply("reply", "parent"));
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     await findButton(wrapper, "Responder").trigger("click");
     const replyForm = findReplyForm(wrapper)!;
@@ -227,7 +234,7 @@ describe("Community disc conversation loading", () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([comment("parent")]));
     let resolveCreate: (value: FlatDiscComment) => void = () => {};
     createReplyComment.mockReturnValueOnce(new Promise((resolve) => { resolveCreate = resolve; }));
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     await findButton(wrapper, "Responder").trigger("click");
     const replyForm = findReplyForm(wrapper)!;
@@ -248,7 +255,7 @@ describe("Community disc conversation loading", () => {
   it("updates the selected node only after success and preserves children and position", async () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([comment("before"), comment("target"), comment("after"), comment("child", "target")]));
     updateCommunityComment.mockResolvedValueOnce({ id: "target", comment: "Editado confirmado", editedAt: "2026-09-30T12:01:00.000Z" });
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     const target = wrapper.get('[data-comment-id="target"]');
     await findButton(target, "Editar").trigger("click");
@@ -265,7 +272,7 @@ describe("Community disc conversation loading", () => {
   it("keeps confirmed text and edit draft after failure, then allows retry", async () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([comment("target")]));
     updateCommunityComment.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce({ id: "target", comment: "Reintento", editedAt: "2026-09-30T12:01:00.000Z" });
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     const target = wrapper.get('[data-comment-id="target"]');
     await findButton(target, "Editar").trigger("click");
@@ -286,7 +293,7 @@ describe("Community disc conversation loading", () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([comment("target")]));
     let resolveUpdate: (value: { id: string; comment: string; editedAt: string }) => void = () => {};
     updateCommunityComment.mockReturnValueOnce(new Promise((resolve) => { resolveUpdate = resolve; }));
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     const target = wrapper.get('[data-comment-id="target"]');
     await findButton(target, "Editar").trigger("click");
@@ -305,7 +312,7 @@ describe("Community disc conversation loading", () => {
 
   it("cancels editing without writing or changing the tree", async () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([comment("target"), comment("child", "target")]));
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     const target = wrapper.get('[data-comment-id="target"]');
     await findButton(target, "Editar").trigger("click");
@@ -321,7 +328,7 @@ describe("Community disc conversation loading", () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([
       comment("before"), comment("target"), { ...comment("child", "target"), user: { id: "user-2", username: "Pablo" } }, comment("after"),
     ]));
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
 
     await findButton(wrapper.get('[data-comment-id="target"]'), "Borrar").trigger("click");
@@ -345,7 +352,7 @@ describe("Community disc conversation loading", () => {
   it("keeps the confirmed tree intact on delete failure and allows retry", async () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([comment("target"), comment("child", "target")]));
     deleteCommunityComment.mockRejectedValueOnce(new Error("offline")).mockResolvedValueOnce(undefined);
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     const target = wrapper.get('[data-comment-id="target"]');
 
@@ -367,7 +374,7 @@ describe("Community disc conversation loading", () => {
   it("does not write or change the conversation when delete confirmation is cancelled", async () => {
     loadConversation.mockResolvedValueOnce(buildCommentTree([comment("target"), comment("child", "target")]));
     confirm.mockResolvedValueOnce({ isConfirmed: false });
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     const target = wrapper.get('[data-comment-id="target"]');
     const before = wrapper.text();
@@ -387,7 +394,7 @@ describe("Community disc conversation loading", () => {
     confirm.mockReturnValueOnce(new Promise((resolve) => { resolveConfirmation = resolve; }));
     let resolveDelete: () => void = () => {};
     deleteCommunityComment.mockReturnValueOnce(new Promise<void>((resolve) => { resolveDelete = resolve; }));
-    const wrapper = mount(ComentsModal, { props: { discId: "disc-1", artistName: "Banda", albumName: "Disco" } });
+    const wrapper = mountConversation();
     await flushPromises();
     const target = wrapper.get('[data-comment-id="target"]');
     const firstClick = findButton(target, "Borrar").trigger("click");

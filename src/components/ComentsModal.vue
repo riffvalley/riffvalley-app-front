@@ -54,7 +54,7 @@
               :submit-reply="submitReply"
               :submit-edit="editComment"
               :submit-delete="removeComment"
-              @open-user="openUserModal($event.username, $event.id, $event.avatar)" />
+              @open-user="openUserModal" />
           </div>
 
           <!-- ── Footer: input ─────────────────────────────── -->
@@ -112,10 +112,6 @@
             </form>
           </div>
 
-          <!-- UserModal -->
-          <UserModal v-if="showUserModal" :username="selectedUserName" :user-id="selectedUserId"
-            :avatar-src="selectedUserAvatar" @close="showUserModal = false" />
-
         </div>
       </transition>
     </div>
@@ -124,21 +120,25 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, toRefs, nextTick } from "vue";
+import type { PropType } from "vue";
 import CommentItem from "./CommentItem.vue";
 import SwalService from "@services/swal/SwalService";
-import UserModal from '@/components/UserModal.vue';
 import { useDiscConversation } from "@/modules/community";
-import { createCommunityReply, createCommunityRootComment, deleteCommunityComment, getCommunityCommentIdentity, loadCommunityConversation, updateCommunityComment } from "@/app/dependencies/communityConversation";
+import { createCommunityReply, createCommunityRootComment, deleteCommunityComment, loadCommunityConversation, updateCommunityComment } from "@/app/dependencies/communityConversation";
+
+interface CurrentCommentUser { id: string | null; username: string | null }
 
 export default defineComponent({
   name: "ComentsModal",
-  components: { CommentItem, UserModal },
+  components: { CommentItem },
   props: {
     discId:     { type: String, required: true },
     artistName: { type: String, required: true },
     albumName:  { type: String, required: true },
+    currentUser: { type: Object as PropType<CurrentCommentUser>, required: true },
+    sessionAvatar: { type: String, default: "" },
   },
-  emits: ["close"],
+  emits: ["close", "open-user"],
   setup(props, { emit }) {
     const conversation = useDiscConversation(props.discId, loadCommunityConversation, createCommunityRootComment,
       (discId, parentId, text) => createCommunityReply(discId, parentId, text), updateCommunityComment, deleteCommunityComment);
@@ -181,19 +181,9 @@ export default defineComponent({
     };
 
     const { artistName, albumName, discId } = toRefs(props);
-    const { user: currentUser, avatar: sessionAvatar } = getCommunityCommentIdentity();
-
-    const showUserModal      = ref(false);
-    const selectedUserName   = ref('');
-    const selectedUserId     = ref('');
-    const selectedUserAvatar = ref('');
-
-    const openUserModal = (username: string, id: string, avatar?: string) => {
-      selectedUserName.value   = username;
-      selectedUserId.value     = id;
-      selectedUserAvatar.value = avatar ?? '';
-      showUserModal.value      = true;
-    };
+    const currentUser = props.currentUser;
+    const sessionAvatar = props.sessionAvatar;
+    const openUserModal = (user: { username: string; id: string; avatar: string }) => emit("open-user", user);
 
     const fetchComments = async () => {
       try {
@@ -250,10 +240,6 @@ export default defineComponent({
       discId,
       currentUser,
       sessionAvatar,
-      showUserModal,
-      selectedUserName,
-      selectedUserId,
-      selectedUserAvatar,
       openUserModal,
     };
   },
