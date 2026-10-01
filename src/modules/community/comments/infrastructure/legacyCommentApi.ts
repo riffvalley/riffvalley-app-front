@@ -1,4 +1,4 @@
-import { getDisccomments } from "@services/comments/comments";
+import { getDisccomments, postcommentService } from "@services/comments/comments";
 import type { CommentPort } from "../application/commentPort";
 import type { FlatDiscComment, CommentUser } from "../domain/comment";
 
@@ -40,5 +40,9 @@ export const legacyCommentApi: CommentPort = {
     const response: unknown = await getDisccomments(discId);
     if (!Array.isArray(response)) throw new Error("La respuesta de comentarios no es una lista.");
     return response.map(toComment);
+  },
+  async createRoot(discId, comment) {
+    const response: unknown = await postcommentService({ discId, comment });
+    return toComment(response);
   },
 };

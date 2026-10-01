@@ -92,6 +92,7 @@
                 😊
               </button>
               <input ref="inputRef" v-model="topCommentText" type="text"
+                :disabled="isSubmitting"
                 placeholder="Añade un comentario..."
                 class="flex-1 rounded-full px-4 py-2 text-sm
                        border border-gray-200 dark:border-white/10
@@ -99,7 +100,7 @@
                        text-gray-800 dark:text-white
                        placeholder:text-gray-400 dark:placeholder:text-gray-500
                        outline-none focus:outline-none focus:border-rv-navy dark:focus:border-rv-purple" />
-              <button type="submit"
+              <button type="submit" :disabled="isSubmitting"
                 class="bg-rv-pink text-white font-semibold text-sm px-4 py-2 rounded-full
                        hover:bg-rv-pink/90 transition-all shrink-0
                        focus:outline-none border-0">
@@ -121,11 +122,10 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, toRefs, nextTick } from "vue";
 import CommentItem from "./CommentItem.vue";
-import { postcommentService } from "@services/comments/comments";
 import SwalService from "@services/swal/SwalService";
 import UserModal from '@/components/UserModal.vue';
 import { useDiscConversation, type DiscComment } from "@/modules/community";
-import { getCommunityCommentIdentity, loadCommunityConversation } from "@/app/dependencies/communityConversation";
+import { createCommunityRootComment, getCommunityCommentIdentity, loadCommunityConversation } from "@/app/dependencies/communityConversation";
 
 function markCommentAsDeleted(comments: DiscComment[], commentId: string): DiscComment[] {
   comments.forEach((comment) => {
@@ -161,12 +161,13 @@ export default defineComponent({
   },
   emits: ["close"],
   setup(props, { emit }) {
-    const conversation = useDiscConversation(props.discId, loadCommunityConversation);
+    const conversation = useDiscConversation(props.discId, loadCommunityConversation, createCommunityRootComment);
     const comments = conversation.comments;
     const topCommentText = ref("");
     const inputRef       = ref<HTMLInputElement | null>(null);
 
     const totalComments = conversation.totalComments;
+    const isSubmitting = conversation.isSubmitting;
 
     // --- Emoji picker ---
     const showEmojiPicker       = ref(false);
@@ -225,11 +226,7 @@ export default defineComponent({
         return;
       }
       try {
-        const newComment = await postcommentService({
-          discId:  props.discId,
-          comment: topCommentText.value,
-        });
-        comments.value.push({ ...newComment, replies: [] });
+        await conversation.addRootComment(topCommentText.value);
         topCommentText.value = "";
         SwalService.success("Comentario añadido");
       } catch (error) {
@@ -254,6 +251,7 @@ export default defineComponent({
       topCommentText,
       inputRef,
       totalComments,
+      isSubmitting,
       showEmojiPicker,
       activeEmojiCategory,
       emojiCategories,

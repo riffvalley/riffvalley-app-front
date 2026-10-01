@@ -1,6 +1,6 @@
 import api from "@services/api/api.ts";
 
-export async function postcommentService(payload: any): Promise<void> {
+export async function postcommentService(payload: { discId: string; comment: string; parentId?: string }): Promise<unknown> {
   const response = await api.post("/comments", payload);
   return response.data;
 }

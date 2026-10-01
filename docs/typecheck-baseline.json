@@ -53,13 +53,6 @@
     },
     {
       "file": "src/components/ComentsModal.vue",
-      "code": 2698,
-      "message": "Spread types may only be created from object types.",
-      "source": "comments.value.push({ ...newComment, replies: [] });",
-      "count": 1
-    },
-    {
-      "file": "src/components/ComentsModal.vue",
       "code": 6133,
       "message": "'emit' is declared but its value is never read.",
       "source": "setup(props, { emit }) {",
