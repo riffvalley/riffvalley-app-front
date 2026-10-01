@@ -1,5 +1,6 @@
 export type { DiscDetailIdentity } from "./discs/detail/domain/discDetail";
 export type { CommentDisc } from "./discs/domain/commentDisc";
+export type { DiscListItem } from "./discs/listing/application/discListPort";
 export type { ArtistDetailIdentity } from "./artists/detail/domain/artistDetail";
 export type { CalendarDisc, CalendarGroup } from "./discs/calendars/domain/discCalendar";
 export type { ArtistManagementItem, ArtistManagementDisc } from "./artists/domain/artistManagement";

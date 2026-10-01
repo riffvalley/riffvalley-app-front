@@ -953,6 +953,25 @@ duplicadas, actualización de la lista, filtros y paginación.
 
 **Modelo recomendado:** Luna High.
 
+**Estado: completado.** Community posee el ID/estado de favorito y las
+mutaciones, compartidos en memoria por usuario y disco. `app` conecta el
+adaptador HTTP y aporta el usuario activo desde Identity; Catalog conserva la
+ficha. Las tarjetas consumen el mismo estado confirmado y bloquean envíos
+duplicados; altas/bajas son pesimistas y los errores conservan el último estado.
+El modo “Favoritos” de `DiscList.vue` consulta Community con sus filtros,
+orden y paginación; al quitar un disco elimina la fila confirmada y ajusta el
+offset. Sus respuestas obsoletas siguen descartándose. Se eliminó
+`services/favorites/favorites.ts` al quedar sin consumidores. Pendientes y sus
+servicios permanecen para 4.7.
+
+Pruebas: siete pruebas cubren lectura/listado y proyección de disco, alta, baja,
+errores y reintentos de ambas mutaciones, bloqueo concurrente, estado compartido
+y actualización paginada de la lista. `yarn verify` pasa: arquitectura en 125
+archivos, 96 diagnósticos baseline sin regresiones, 210 pruebas y build.
+`git diff --check` pasa. El baseline se redujo al podar seis diagnósticos de
+favoritos/listado ya resueltos. Persisten los avisos conocidos de Browserslist,
+`.flex-[2]` y tamaño de chunk superior a 500 kB. No se inicia 4.7.
+
 ### 4.7 — Pendientes desde tarjeta y listado
 
 **Alcance:** añadir/quitar “escuchar después” en `DiscCardComponent` y migrar

@@ -226,26 +226,28 @@
 
     <!-- Reproductor desplegable -->
     <Transition name="player-slide">
-      <div v-if="showPlayer && link" class="mt-2 w-full overflow-x-hidden rounded-xl">
-        <!-- Cargando track más popular -->
-        <div v-if="isLoadingTrack"
-          class="flex items-center justify-center gap-2 bg-gray-100 dark:bg-rv-darkSurface rounded-xl"
-          style="height:80px">
-          <i class="fa-solid fa-spinner animate-spin text-rv-pink text-sm"></i>
-          <span class="text-xs text-gray-400 dark:text-gray-500">Cargando...</span>
+      <div v-if="showPlayer && link" class="player-slide mt-2 w-full overflow-x-hidden rounded-xl">
+        <div class="player-slide__content">
+          <!-- Cargando track más popular -->
+          <div v-if="isLoadingTrack"
+            class="flex items-center justify-center gap-2 bg-gray-100 dark:bg-rv-darkSurface rounded-xl"
+            style="height:80px">
+            <i class="fa-solid fa-spinner animate-spin text-rv-pink text-sm"></i>
+            <span class="text-xs text-gray-400 dark:text-gray-500">Cargando...</span>
+          </div>
+          <!-- Iframe listo -->
+          <iframe v-else-if="embedUrl"
+            :src="embedUrl"
+            :height="embedHeight"
+            width="100%"
+            frameborder="0"
+            scrolling="no"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+            class="block rounded-xl"
+            style="max-width:100%; overflow:hidden;"
+          ></iframe>
         </div>
-        <!-- Iframe listo -->
-        <iframe v-else-if="embedUrl"
-          :src="embedUrl"
-          :height="embedHeight"
-          width="100%"
-          frameborder="0"
-          scrolling="no"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
-          class="block rounded-xl"
-          style="max-width:100%; overflow:hidden;"
-        ></iframe>
       </div>
     </Transition>
 
@@ -311,7 +313,7 @@
 
 <script lang="ts">
 import { readLegacyRolesRaw } from "@stores/auth/auth";
-import { defineComponent, ref, computed, watchEffect, watch, nextTick, onUnmounted, type PropType } from "vue";
+import { defineComponent, ref, computed, watch, onUnmounted, type PropType } from "vue";
 import { obtenerTrackMasPopularAlbum } from "@helpers/SpotifyFunctions";
 import defaultImage from "/src/assets/disco.png";
 import DiscDetail from "./DiscDetail.vue";
@@ -325,11 +327,14 @@ import {
   saveCommunityRating,
   seedCommunityRating,
 } from "@/app/bridges/communityRatings";
-import { useCommunityRatingStore } from "@/modules/community";
 import {
-  postFavoriteService,
-  deleteFavoriteService,
-} from "@services/favorites/favorites.ts";
+  getActiveCommunityUserId,
+  getCommunityFavorite,
+  isCommunityFavoriteSubmitting,
+  seedCommunityFavorite,
+  toggleCommunityFavorite,
+} from "@/app/bridges/communityFavorites";
+import { useCommunityRatingStore } from "@/modules/community";
 import {
   postPendingService,
   deletePendingService,
@@ -339,6 +344,7 @@ import SwalService from "@services/swal/SwalService";
 
 export default defineComponent({
   components: { DiscDetail, ArtistDetail, ComentsModal, VotesModal, DiscCalendar }, // Add VotesModal
+  emits: { "favorite-changed": (_favoriteId: string | null) => true },
   props: {
     id: { type: String, required: true },
     image: { type: String, required: true },
@@ -367,7 +373,7 @@ export default defineComponent({
     rateCount: { type: Number, required: false, default: null },
     debut: { type: Boolean, required: false, default: false },
   },
-  setup(props) {
+  setup(props, { emit }) {
     const localRating = ref<{ rate: number | null; cover: number | null }>({
       rate: props.rate, cover: props.cover,
     });
@@ -494,16 +500,19 @@ export default defineComponent({
       if (!url) return;
       window.open(url, "_blank", "noopener");
     };
-    const favoriteId = ref(props.favoriteId);
     const pendingId = ref(props.pendingId);
     const heartAnimating = ref(false);
     const bookmarkAnimating = ref(false);
-    const isTogglingHeart = ref(false);
+    const communityFavoriteUserId = getActiveCommunityUserId();
+    if (communityFavoriteUserId) seedCommunityFavorite(communityFavoriteUserId, props.id, props.favoriteId ?? null);
+    const communityFavorite = computed(() => communityFavoriteUserId
+      ? getCommunityFavorite(communityFavoriteUserId, props.id)
+      : { favoriteId: props.favoriteId ?? null, loaded: false });
+    const favoriteId = computed(() => communityFavorite.value.loaded
+      ? communityFavorite.value.favoriteId : props.favoriteId ?? null);
+    const isTogglingHeart = computed(() => !!communityFavoriteUserId
+      && isCommunityFavoriteSubmitting(communityFavoriteUserId, props.id));
     const isTogglingBookmark = ref(false);
-
-    watchEffect(() => {
-      favoriteId.value = props.favoriteId;
-    });
 
     const triggerHeartAnim = () => {
       heartAnimating.value = true;
@@ -515,18 +524,11 @@ export default defineComponent({
     };
 
     const toggleHeart = async () => {
-      if (isTogglingHeart.value) return;
-      isTogglingHeart.value = true;
       try {
-        if (favoriteId.value) {
-          await deleteFavoriteService(favoriteId.value);
-          favoriteId.value = null;
-          SwalService.success("Eliminado de Favoritos");
-        } else {
-          const favorite = await postFavoriteService({ discId: props.id });
-          favoriteId.value = favorite.id;
-          SwalService.success("Añadido a Favoritos");
-        }
+        const result = await toggleCommunityFavorite(communityFavoriteUserId, props.id);
+        if (result === false) return;
+        SwalService.success(result ? "Añadido a Favoritos" : "Eliminado de Favoritos");
+        emit("favorite-changed", result);
         triggerHeartAnim();
       } catch (error) {
         console.error("Error al cambiar el estado de favorito:", error);
@@ -540,8 +542,6 @@ export default defineComponent({
           showConfirmButton: false,
           toast: true,
         });
-      } finally {
-        isTogglingHeart.value = false;
       }
     };
 
@@ -1262,13 +1262,20 @@ ctx.textBaseline = "alphabetic";
 
 .player-slide-enter-active,
 .player-slide-leave-active {
-  transition: max-height 0.3s ease, opacity 0.25s ease;
-  max-height: 130px;
+  transition: grid-template-rows 0.3s ease, opacity 0.25s ease;
+  overflow: hidden;
+}
+.player-slide {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.player-slide__content {
+  min-height: 0;
   overflow: hidden;
 }
 .player-slide-enter-from,
 .player-slide-leave-to {
-  max-height: 0;
+  grid-template-rows: 0fr;
   opacity: 0;
 }
 </style>

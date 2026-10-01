@@ -182,6 +182,7 @@
     :isNew="!disc.userRate"
     :userDiscRate="disc.userRate?.id"
     :favoriteId="disc.favoriteId"
+    @favorite-changed="handleFavoriteChanged(disc.id, $event)"
     :pendingId="disc.pendingId"
     :comment-count="disc.commentCount"
     :rateCount="disc.voteCount"
@@ -226,13 +227,13 @@ import { defineComponent, ref, onMounted, onUnmounted, watch, nextTick, computed
 import DiscCard from "@components/DiscCardComponent.vue";
 import Datepicker from "@vuepic/vue-datepicker";
 import { useCatalogStore } from "@stores/catalog/catalog";
-import { getFavoritesByUser } from "@services/favorites/favorites";
 import { getPendingsByUser } from "@services/pendings/pendings";
 import DiscFilters from "@components/DiscFilters.vue";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
 import { fetchDiscList } from "@/app/dependencies/catalog";
-import { fetchUserComments, fetchUserRatings } from "@/app/dependencies/community";
+import { fetchUserComments, fetchUserFavorites, fetchUserRatings } from "@/app/dependencies/community";
+import { removeFavoriteFromList } from "./favoriteList";
 
 export default defineComponent({
   components: {
@@ -405,36 +406,22 @@ response = await fetchUserComments({
   userComments.value.push(...response.data);
 
         } else if (viewMode.value === "favorites") {
-          response = await getFavoritesByUser(
-            limit.value,
-            requestOffset,
-            searchQuery.value,
-            selectedWeek.value,
-            selectedGenre.value,
-            selectedCountry.value,
+          response = await fetchUserFavorites({
+            limit: limit.value,
+            offset: requestOffset,
+            query: searchQuery.value,
+            dateRange: selectedWeek.value,
+            genre: selectedGenre.value,
+            country: selectedCountry.value,
             type,
-            orderBy.value
-          );
+            orderBy: orderBy.value,
+          });
           if (version !== requestVersion) return;
-          totalFavorites.value = response.totalItems;
+          totalFavorites.value = String(response.totalItems);
           discs.value.push(
             ...response.data.map((favorite) => ({
               ...favorite.disc,
-              artist: {
-                ...favorite.disc.artist,
-                country: favorite.disc.artist?.country ?? null,
-              },
               favoriteId: favorite.id,
-              pendingId: favorite.disc.userPending
-                ? favorite.disc.userPending.id
-                : null,
-              userRate: favorite.disc.userRate
-                ? {
-                  id: favorite.disc.userRate.id,
-                  rate: favorite.disc.userRate.rate != null ? parseFloat(favorite.disc.userRate.rate) : null,
-                  cover: favorite.disc.userRate.cover != null ? parseFloat(favorite.disc.userRate.cover) : null,
-                }
-                : null,
               commentCount: favorite.disc.commentCount,
               voteCount: favorite.disc.voteCount,
             }))
@@ -612,6 +599,17 @@ response = await fetchUserComments({
       fetchData(true);
     };
 
+    const handleFavoriteChanged = (discId: string, favoriteId: string | null) => {
+      if (viewMode.value !== "favorites" || favoriteId !== null) return;
+      const next = removeFavoriteFromList(discs.value, discId, offset.value, totalItems.value, totalFavorites.value);
+      if (!next) return;
+      discs.value = next.discs;
+      offset.value = next.offset;
+      totalItems.value = next.totalItems;
+      totalFavorites.value = next.totalFavorites;
+      hasMore.value = next.hasMore;
+    };
+
     return {
       discs,
       loading,
@@ -631,6 +629,7 @@ response = await fetchUserComments({
       totalPendings,
       totalComments,
       resetAndFetch,
+      handleFavoriteChanged,
       handleGenreChange,
       orderBy,
       orderOptions,

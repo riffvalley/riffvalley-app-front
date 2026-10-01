@@ -1,11 +1,12 @@
-import { loadDiscVotes, listUserRatings, saveDiscRating, useCommunityRatingStore } from "@/modules/community";
-import type { DiscRatingState, UserRatingsQuery } from "@/modules/community";
+import { loadDiscVotes, listUserFavorites, listUserRatings, saveDiscRating, toggleUserFavorite, useCommunityFavoriteStore, useCommunityRatingStore } from "@/modules/community";
+import type { DiscRatingState, UserFavoritesQuery, UserRatingsQuery } from "@/modules/community";
 import { legacyRatingApi } from "@/modules/community/ratings/infrastructure/legacyRatingApi";
 import { userRatingsApi } from "@/modules/community/ratings/infrastructure/userRatingsApi";
 import { listUserComments } from "@/modules/community";
 import type { UserCommentsQuery, UserCommentsResult } from "@/modules/community";
-import type { CommentDisc } from "@/modules/catalog";
+import type { CommentDisc, DiscListItem } from "@/modules/catalog";
 import { userCommentsApi } from "@/modules/community/comments/infrastructure/userCommentsApi";
+import { favoriteApi } from "@/modules/community/favorites/infrastructure/favoriteApi";
 import { useAuthStore } from "./identity";
 
 export interface ListedUserComment {
@@ -17,6 +18,16 @@ export interface ListedUserComment {
 
 export interface ListedUserCommentsResult extends Omit<UserCommentsResult, "data"> {
   data: ListedUserComment[];
+}
+
+export interface ListedUserFavorite {
+  id: string;
+  disc: DiscListItem;
+}
+
+export interface ListedUserFavoritesResult {
+  totalItems: number;
+  data: ListedUserFavorite[];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -58,6 +69,26 @@ function toCommentDisc(value: unknown): CommentDisc | null {
   };
 }
 
+function toFavoriteDisc(value: unknown): DiscListItem {
+  if (!isRecord(value) || typeof value.id !== "string" || typeof value.name !== "string") {
+    throw new Error("La ficha del disco en los favoritos no tiene el formato esperado.");
+  }
+  const artist = isRecord(value.artist)
+    ? { ...value.artist, country: isRecord(value.artist.country) ? value.artist.country : null }
+    : null;
+  const userRate = isRecord(value.userRate)
+    ? {
+      ...value.userRate,
+      id: typeof value.userRate.id === "string" ? value.userRate.id : undefined,
+      rate: value.userRate.rate == null ? null : Number(value.userRate.rate),
+      cover: value.userRate.cover == null ? null : Number(value.userRate.cover),
+    }
+    : null;
+  const pendingId = isRecord(value.userPending) && typeof value.userPending.id === "string"
+    ? value.userPending.id : null;
+  return { ...value, id: value.id, name: value.name, artist, userRate, pendingId } as DiscListItem;
+}
+
 export async function fetchUserComments(query: UserCommentsQuery): Promise<ListedUserCommentsResult> {
   const activeUser = useAuthStore().loggedUser;
   if (!activeUser.id) throw new Error("No hay una sesión activa para consultar los comentarios.");
@@ -71,6 +102,43 @@ export async function fetchUserComments(query: UserCommentsQuery): Promise<Liste
       disc: toCommentDisc(comment.disc),
     })),
   };
+}
+
+export async function fetchUserFavorites(query: UserFavoritesQuery): Promise<ListedUserFavoritesResult> {
+  const userId = useAuthStore().loggedUser.id;
+  if (!userId) throw new Error("No hay una sesión activa para consultar los favoritos.");
+  const result = await listUserFavorites(favoriteApi, query);
+  const favoriteStore = useCommunityFavoriteStore();
+  const data = result.data.map((favorite) => {
+    const disc = toFavoriteDisc(favorite.disc);
+    favoriteStore.seed(userId, disc.id, favorite.id);
+    return { id: favorite.id, disc };
+  });
+  return {
+    totalItems: result.totalItems,
+    data,
+  };
+}
+
+export function getActiveCommunityUserId(): string {
+  return useAuthStore().loggedUser.id ?? "";
+}
+
+export function getCommunityFavorite(userId: string, discId: string) {
+  return useCommunityFavoriteStore().get(userId, discId);
+}
+
+export function seedCommunityFavorite(userId: string, discId: string, favoriteId: string | null) {
+  useCommunityFavoriteStore().seed(userId, discId, favoriteId);
+}
+
+export function isCommunityFavoriteSubmitting(userId: string, discId: string): boolean {
+  return useCommunityFavoriteStore().isSubmitting(userId, discId);
+}
+
+export function toggleCommunityFavorite(userId: string, discId: string) {
+  if (!userId) throw new Error("No hay una sesión activa para cambiar el favorito.");
+  return toggleUserFavorite(useCommunityFavoriteStore(), favoriteApi, userId, discId);
 }
 
 export interface SaveCommunityRatingInput {

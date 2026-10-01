@@ -21,8 +21,8 @@ export interface DiscListResult {
 export interface DiscListItem {
   id: string;
   name: string;
-  releaseDate: string;
-  image: string | null;
+  releaseDate?: string;
+  image?: string | null;
   userRate?: { rate: number | string | null; cover: number | string | null; [key: string]: unknown } | null;
   [key: string]: unknown;
 }

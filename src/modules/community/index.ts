@@ -11,3 +11,7 @@ export type { CommentConversationFeedback } from "./comments/application/comment
 export { createCommentConversationOperations } from "./comments/application/loadDiscConversation";
 export { listUserComments } from "./comments/application/listUserComments";
 export { default as CommentConversationModal } from "./comments/presentation/components/CommentConversationModal.vue";
+export type { FavoriteState, UserFavoritesQuery, UserFavorite, UserFavoritesResult } from "./favorites/domain/favorite";
+export type { FavoritePort } from "./favorites/application/favoritePort";
+export { listUserFavorites, toggleUserFavorite } from "./favorites/application/favoriteActions";
+export { useCommunityFavoriteStore } from "./favorites/presentation/favoriteStore";
