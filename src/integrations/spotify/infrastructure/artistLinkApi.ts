@@ -1,28 +1,17 @@
-import axios from "axios";
-import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
+import api from "@/shared/infrastructure/http/client";
 import type { ArtistLinkPort } from "../application/artistLink";
 
-interface ArtistSearchDto {
-  artists?: {
-    items?: { external_urls?: { spotify?: string } }[];
-  };
+interface ArtistProfileDto {
+  listenUrl?: string | null;
 }
 
 export const artistLinkApi: ArtistLinkPort = {
   async findArtistLink(artistName) {
     try {
-      const token = await obtenerTokenSpotify();
-      if (!token) {
-        console.error("No se pudo obtener el token de Spotify.");
-        return undefined;
-      }
-
-      const response = await axios.get<ArtistSearchDto>("https://api.spotify.com/v1/search", {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { q: artistName, type: "artist", limit: 1 },
+      const { data: artist } = await api.get<ArtistProfileDto | null>("/spotify/artists/search", {
+        params: { artistName },
       });
-      const artist = response.data.artists?.items?.[0];
-      if (artist) return artist.external_urls?.spotify;
+      if (artist?.listenUrl) return artist.listenUrl;
 
       console.warn("Artista no encontrado en Spotify.");
       return undefined;
