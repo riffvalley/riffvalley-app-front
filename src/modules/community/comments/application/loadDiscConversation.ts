@@ -1,6 +1,7 @@
 import { buildCommentTree } from "../domain/comment";
 import type { DiscComment } from "../domain/comment";
 import type { CommentPort } from "./commentPort";
+import type { CommentConversationOperations } from "./commentPort";
 
 export async function loadDiscConversation(port: CommentPort, discId: string): Promise<DiscComment[]> {
   return buildCommentTree(await port.listByDisc(discId));
@@ -27,4 +28,14 @@ export async function updateComment(port: CommentPort, id: string, comment: stri
 
 export async function deleteComment(port: CommentPort, id: string): Promise<void> {
   await port.delete(id);
+}
+
+export function createCommentConversationOperations(port: CommentPort): CommentConversationOperations {
+  return {
+    load: (discId) => loadDiscConversation(port, discId),
+    createRoot: (discId, comment) => createRootComment(port, discId, comment),
+    createReply: (discId, parentId, comment) => createReplyComment(port, discId, parentId, comment),
+    update: (id, comment) => updateComment(port, id, comment),
+    delete: (id) => deleteComment(port, id),
+  };
 }

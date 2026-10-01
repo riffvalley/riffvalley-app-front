@@ -4,12 +4,8 @@ export { loadDiscVotes, saveDiscRating } from "./ratings/application/ratingActio
 export { useCommunityRatingStore } from "./ratings/presentation/ratingStore";
 export type { UserRatingsQuery, UserRatingsResult, UserRating } from "./ratings/domain/userRatings";
 export { listUserRatings } from "./ratings/application/listUserRatings";
-export type { CommentUser, DiscComment, FlatDiscComment } from "./comments/domain/comment";
-export { buildCommentTree, countComments } from "./comments/domain/comment";
-export type { CommentPort } from "./comments/application/commentPort";
-export { loadDiscConversation } from "./comments/application/loadDiscConversation";
-export { createRootComment } from "./comments/application/loadDiscConversation";
-export { createReplyComment } from "./comments/application/loadDiscConversation";
-export { updateComment } from "./comments/application/loadDiscConversation";
-export { deleteComment } from "./comments/application/loadDiscConversation";
-export { useDiscConversation } from "./comments/presentation/useDiscConversation";
+export type { CommentUser, DiscComment } from "./comments/domain/comment";
+export type { CommentConversationOperations } from "./comments/application/commentPort";
+export type { CommentConversationFeedback } from "./comments/application/commentFeedbackPort";
+export { createCommentConversationOperations } from "./comments/application/loadDiscConversation";
+export { default as CommentConversationModal } from "./comments/presentation/components/CommentConversationModal.vue";

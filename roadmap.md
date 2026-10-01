@@ -873,6 +873,20 @@ debe integrar el evento/estado compartido antes de cerrar el flujo.
 
 **Modelo recomendado:** Luna HyperHigh.
 
+**Estado: completado.** La conversación tiene un único árbol local en Community;
+el barrel público expone el modal, el contrato de operaciones y su factory. `app`
+compone API, feedback legacy e Identity; `UserModal` e historial permanecen fuera
+de Community. La tarjeta recibe el recuento derivado del árbol al abrir y tras
+mutaciones confirmadas. El borrado conserva marcador, respuestas y recuento.
+No hay cache entre aperturas ni cambio de API, permisos o rutas. Se retiraron las
+operaciones duplicadas/directas de `services/comments`; `getCommentsByUser`
+permanece para 4.5.
+
+Pruebas: 23 tests enfocados y 200 en total pasan. `yarn verify` y
+`git diff --check` pasan; arquitectura verifica 114 archivos y TypeScript no
+añade regresiones al baseline de 102 diagnósticos. El build mantiene los avisos
+previos de Browserslist, `.flex-[2]` y tamaño del chunk. No se inicia 4.5.
+
 ### 4.5 — Lista de comentarios propios
 
 **Alcance:** migrar el modo “Mis comentarios” de `DiscList.vue` y la consulta

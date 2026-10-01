@@ -3,24 +3,26 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import CommunityCommentsModal from "@/app/components/CommunityCommentsModal.vue";
-import CommentItem from "@/components/CommentItem.vue";
+import CommentItem from "@/modules/community/comments/presentation/components/CommentItem.vue";
 import { useAuthStore } from "@/app/dependencies/identity";
 import type { DiscComment } from "@/modules/community";
-
-vi.mock("@/components/ComentsModal.vue", () => ({
-  default: {
-    name: "ComentsModal",
-    props: ["discId", "artistName", "albumName", "currentUser", "sessionAvatar"],
-    emits: ["close", "open-user"],
-    template: '<button class="open-user" @click="$emit(\'open-user\', { username: \'listener\', id: \'user-2\', avatar: \'comment-avatar\' })">open</button>',
-  },
-}));
 
 vi.mock("@/components/UserModal.vue", () => ({
   default: {
     name: "UserModal",
     props: ["username", "userId", "avatarSrc"],
     template: '<div class="user-modal">{{ username }}|{{ userId }}|{{ avatarSrc }}</div>',
+  },
+}));
+
+vi.mock("@/modules/community", () => ({
+  createCommentConversationOperations: () => ({}),
+  useCommunityRatingStore: () => ({ clear: vi.fn() }),
+  CommentConversationModal: {
+    name: "CommentConversationModal",
+    props: ["discId", "artistName", "albumName", "currentUser", "sessionAvatar", "operations", "feedback"],
+    emits: ["close", "open-user", "comment-count-change"],
+    template: '<button class="open-user" @click="$emit(\'open-user\', { username: \'listener\', id: \'user-2\', avatar: \'comment-avatar\' })">open</button>',
   },
 }));
 
@@ -41,6 +43,7 @@ const baseProps = {
   submitReply: vi.fn(),
   submitEdit: vi.fn(),
   submitDelete: vi.fn(),
+  feedback: { error: vi.fn(), success: vi.fn(), confirm: vi.fn().mockResolvedValue({ isConfirmed: false }) },
 };
 
 describe("Community comment identity composition", () => {
@@ -50,12 +53,14 @@ describe("Community comment identity composition", () => {
     setActivePinia(createPinia());
     useAuthStore().$patch({ userId: "active-1", username: "active-user", image: "identity-avatar" });
     const modal = mount(CommunityCommentsModal, { props: { discId: "disc-1", artistName: "Band", albumName: "Record" } });
-    const conversation = modal.findComponent({ name: "ComentsModal" });
+    const conversation = modal.findComponent({ name: "CommentConversationModal" });
 
     expect(conversation.props("currentUser")).toEqual({ id: "active-1", username: "active-user" });
     expect(conversation.props("sessionAvatar")).toBe("identity-avatar");
     await modal.find(".open-user").trigger("click");
     expect(modal.find(".user-modal").text()).toBe("listener|user-2|comment-avatar");
+    await modal.findComponent({ name: "CommentConversationModal" }).vm.$emit("comment-count-change", 7);
+    expect(modal.emitted("comment-count-change")?.[0]).toEqual([7]);
     await modal.findComponent({ name: "UserModal" }).vm.$emit("close");
     expect(modal.find(".user-modal").exists()).toBe(false);
   });

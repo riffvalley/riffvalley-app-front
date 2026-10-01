@@ -1,26 +1,10 @@
-import { createReplyComment, createRootComment, deleteComment, loadDiscConversation, updateComment } from "@/modules/community";
-import { legacyCommentApi } from "@/modules/community/comments/infrastructure/legacyCommentApi";
+import { createCommentConversationOperations } from "@/modules/community";
+import { commentApi } from "@/modules/community/comments/infrastructure/commentApi";
+import { commentFeedback } from "@/modules/community/comments/infrastructure/commentFeedback";
 import { useAuthStore } from "./identity";
 
-export function loadCommunityConversation(discId: string) {
-  return loadDiscConversation(legacyCommentApi, discId);
-}
-
-export function createCommunityRootComment(discId: string, comment: string) {
-  return createRootComment(legacyCommentApi, discId, comment);
-}
-
-export function createCommunityReply(discId: string, parentId: string, comment: string) {
-  return createReplyComment(legacyCommentApi, discId, parentId, comment);
-}
-
-export function updateCommunityComment(id: string, comment: string) {
-  return updateComment(legacyCommentApi, id, comment);
-}
-
-export function deleteCommunityComment(id: string) {
-  return deleteComment(legacyCommentApi, id);
-}
+export const communityCommentOperations = createCommentConversationOperations(commentApi);
+export const communityCommentFeedback = commentFeedback;
 
 export function getCommunityCommentIdentity() {
   const auth = useAuthStore();

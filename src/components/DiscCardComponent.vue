@@ -279,7 +279,8 @@
 
   <div v-if="showComentsModal" class="fixed inset-0 flex items-center justify-center bg-rv-navy bg-opacity-50 z-50">
     <div class="p-4 relative max-w-3xl w-full">
-      <ComentsModal :disc-id="discData.id" :artist-name="artistName" :album-name="name" @close="closeComentsModal" />
+      <ComentsModal :disc-id="discData.id" :artist-name="artistName" :album-name="name"
+        @close="closeComentsModal" @comment-count-change="commentCount = $event" />
     </div>
   </div>
 
@@ -389,6 +390,7 @@ export default defineComponent({
     const hasVotedDisc = computed(() => communityRating.value.rate !== null && communityRating.value.rate > 0);
     const hasVotedCover = computed(() => communityRating.value.cover !== null && communityRating.value.cover > 0);
     const commentCount = ref(props.commentCount);
+    watch(() => props.commentCount, (count) => { commentCount.value = count; });
     const rateCount = computed(() => communityRating.value.summaryLoaded
       ? communityRating.value.voteCount : communityRating.value.voteCount ?? props.rateCount);
     const localAverageRate = computed(() => communityRating.value.summaryLoaded

@@ -54,6 +54,7 @@
               :submit-reply="submitReply"
               :submit-edit="editComment"
               :submit-delete="removeComment"
+              :feedback="feedback"
               @open-user="openUserModal" />
           </div>
 
@@ -122,9 +123,9 @@
 import { defineComponent, ref, computed, onMounted, toRefs, nextTick } from "vue";
 import type { PropType } from "vue";
 import CommentItem from "./CommentItem.vue";
-import SwalService from "@services/swal/SwalService";
-import { useDiscConversation } from "@/modules/community";
-import { createCommunityReply, createCommunityRootComment, deleteCommunityComment, loadCommunityConversation, updateCommunityComment } from "@/app/dependencies/communityConversation";
+import { useDiscConversation } from "../useDiscConversation";
+import type { CommentConversationOperations } from "../../application/commentPort";
+import type { CommentConversationFeedback } from "../../application/commentFeedbackPort";
 
 interface CurrentCommentUser { id: string | null; username: string | null }
 
@@ -137,11 +138,12 @@ export default defineComponent({
     albumName:  { type: String, required: true },
     currentUser: { type: Object as PropType<CurrentCommentUser>, required: true },
     sessionAvatar: { type: String, default: "" },
+    operations: { type: Object as PropType<CommentConversationOperations>, required: true },
+    feedback: { type: Object as PropType<CommentConversationFeedback>, required: true },
   },
-  emits: ["close", "open-user"],
+  emits: ["close", "open-user", "comment-count-change"],
   setup(props, { emit }) {
-    const conversation = useDiscConversation(props.discId, loadCommunityConversation, createCommunityRootComment,
-      (discId, parentId, text) => createCommunityReply(discId, parentId, text), updateCommunityComment, deleteCommunityComment);
+    const conversation = useDiscConversation(props.discId, props.operations);
     const comments = conversation.comments;
     const submittingReplyIds = conversation.submittingReplyIds;
     const editingCommentIds = conversation.editingCommentIds;
@@ -188,32 +190,44 @@ export default defineComponent({
     const fetchComments = async () => {
       try {
         await conversation.load();
+        emit("comment-count-change", conversation.totalComments.value);
       } catch {
-        SwalService.error("Error al cargar los comentarios.");
+        props.feedback.error("Error al cargar los comentarios.");
       }
     };
 
     const submitTopComment = async () => {
       if (!topCommentText.value.trim()) {
-        SwalService.error("El comentario no puede estar vacío.");
+        props.feedback.error("El comentario no puede estar vacío.");
         return;
       }
       try {
         await conversation.addRootComment(topCommentText.value);
+        emit("comment-count-change", conversation.totalComments.value);
         topCommentText.value = "";
-        SwalService.success("Comentario añadido");
+        props.feedback.success("Comentario añadido");
       } catch (error) {
-        SwalService.error("Error al enviar el comentario.");
+        props.feedback.error("Error al enviar el comentario.");
       }
     };
 
-    const submitReply = (parentId: string, text: string) => conversation.addReply(parentId, text, {
-      userId: currentUser?.id ?? null,
-      avatar: sessionAvatar,
-    });
+    const submitReply = async (parentId: string, text: string) => {
+      await conversation.addReply(parentId, text, {
+        userId: currentUser?.id ?? null,
+        avatar: sessionAvatar,
+      });
+      emit("comment-count-change", conversation.totalComments.value);
+    };
 
-    const editComment = conversation.editComment;
-    const removeComment = conversation.removeComment;
+    const editComment = async (id: string, text: string) => {
+      await conversation.editComment(id, text);
+      emit("comment-count-change", conversation.totalComments.value);
+    };
+
+    const removeComment = async (id: string) => {
+      await conversation.removeComment(id);
+      emit("comment-count-change", conversation.totalComments.value);
+    };
 
     onMounted(() => { fetchComments(); });
 

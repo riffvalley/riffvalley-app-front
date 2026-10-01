@@ -1,12 +1,11 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
-import ComentsModal from "../../src/components/ComentsModal.vue";
-import CommentItem from "../../src/components/CommentItem.vue";
-import { buildCommentTree, countComments } from "../../src/modules/community";
-import { createReplyComment as createCommunityReplyComment } from "../../src/modules/community";
-import type { FlatDiscComment } from "../../src/modules/community";
-import type { CommentPort } from "../../src/modules/community";
+import CommentConversationModal from "../../src/modules/community/comments/presentation/components/CommentConversationModal.vue";
+import CommentItem from "../../src/modules/community/comments/presentation/components/CommentItem.vue";
+import { buildCommentTree, countComments, type FlatDiscComment } from "../../src/modules/community/comments/domain/comment";
+import { createReplyComment as createCommunityReplyComment } from "../../src/modules/community/comments/application/loadDiscConversation";
+import type { CommentPort } from "../../src/modules/community/comments/application/commentPort";
 
 const { loadConversation, createRootComment, createReplyComment, updateCommunityComment, deleteCommunityComment, confirm, showError, showSuccess } = vi.hoisted(() => ({
   loadConversation: vi.fn(),
@@ -20,18 +19,16 @@ const { loadConversation, createRootComment, createReplyComment, updateCommunity
 }));
 
 vi.mock("@/app/dependencies/communityConversation", () => ({
-  loadCommunityConversation: loadConversation,
-  createCommunityRootComment: createRootComment,
-  createCommunityReply: createReplyComment,
-  updateCommunityComment,
-  deleteCommunityComment,
+  communityCommentOperations: {
+    load: loadConversation,
+    createRoot: createRootComment,
+    createReply: createReplyComment,
+    update: updateCommunityComment,
+    delete: deleteCommunityComment,
+  },
   getCommunityCommentIdentity: () => ({ user: { id: "user-1", username: "Ana" }, avatar: "session.png" }),
 }));
 vi.mock("@services/swal/SwalService", () => ({ default: { confirm, error: showError, success: showSuccess } }));
-vi.mock("@services/comments/comments", () => ({
-  updateCommentService: vi.fn(),
-  deleteCommentService: vi.fn(),
-}));
 vi.mock("../../src/components/UserModal.vue", () => ({ default: { template: "<div />" } }));
 
 const comment = (id: string, parentId?: string): FlatDiscComment => ({
@@ -59,9 +56,17 @@ function findReplyForm(wrapper: ReturnType<typeof mount>) {
 }
 
 function mountConversation() {
-  return mount(ComentsModal, { props: {
+  return mount(CommentConversationModal, { props: {
     discId: "disc-1", artistName: "Banda", albumName: "Disco",
     currentUser: { id: "user-1", username: "Ana" }, sessionAvatar: "session.png",
+    operations: {
+      load: loadConversation,
+      createRoot: createRootComment,
+      createReply: createReplyComment,
+      update: updateCommunityComment,
+      delete: deleteCommunityComment,
+    },
+    feedback: { confirm, error: showError, success: showSuccess },
   } });
 }
 
@@ -141,6 +146,42 @@ describe("Community disc conversation loading", () => {
     expect(wrapper.text()).toContain("1 comentario");
     expect(wrapper.findAll(".comment-item")).toHaveLength(1);
     expect(wrapper.get("input").element.value).toBe("");
+    wrapper.unmount();
+  });
+
+  it("emits the tree summary to the card after loading and confirmed mutations, keeping tombstones counted", async () => {
+    loadConversation.mockResolvedValueOnce(buildCommentTree([comment("root"), comment("deleted")]));
+    createRootComment.mockResolvedValueOnce(createdComment("new-root"));
+    createReplyComment.mockResolvedValueOnce(createdReply("reply", "root"));
+    updateCommunityComment.mockResolvedValueOnce({ id: "root", comment: "Editado", editedAt: "2026-09-30T12:01:00.000Z" });
+    const wrapper = mountConversation();
+    await flushPromises();
+    expect(wrapper.emitted("comment-count-change")?.[0]).toEqual([2]);
+
+    await wrapper.get("input").setValue("Otro raíz");
+    await wrapper.get("form").trigger("submit");
+    await flushPromises();
+    expect(wrapper.emitted("comment-count-change")?.at(-1)).toEqual([3]);
+
+    await findButton(wrapper, "Responder").trigger("click");
+    const replyForm = findReplyForm(wrapper)!;
+    await replyForm.get("input").setValue("Respuesta");
+    await replyForm.trigger("submit");
+    await flushPromises();
+    expect(wrapper.emitted("comment-count-change")?.at(-1)).toEqual([4]);
+
+    const root = wrapper.get('[data-comment-id="root"]');
+    await findButton(root, "Editar").trigger("click");
+    await root.get("input").setValue("Editado");
+    await findButton(root, "Guardar").trigger("click");
+    await flushPromises();
+    expect(wrapper.emitted("comment-count-change")?.at(-1)).toEqual([4]);
+
+    await findButton(root, "Borrar").trigger("click");
+    await flushPromises();
+    expect(wrapper.emitted("comment-count-change")?.at(-1)).toEqual([4]);
+    expect(root.text()).toContain("Comentario eliminado.");
+    expect(wrapper.text()).toContain("4 comentarios");
     wrapper.unmount();
   });
 

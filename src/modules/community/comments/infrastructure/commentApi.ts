@@ -1,4 +1,4 @@
-import { deleteCommentService, getDisccomments, postcommentService, updateCommentService } from "@services/comments/comments";
+import api from "@services/api/api";
 import type { CommentPort } from "../application/commentPort";
 import type { FlatDiscComment, CommentUser } from "../domain/comment";
 
@@ -35,24 +35,24 @@ function toComment(value: unknown): FlatDiscComment {
   };
 }
 
-export const legacyCommentApi: CommentPort = {
+export const commentApi: CommentPort = {
   async listByDisc(discId) {
-    const response: unknown = await getDisccomments(discId);
+    const response = (await api.get<unknown>(`/comments/disc/${discId}`)).data;
     if (!Array.isArray(response)) throw new Error("La respuesta de comentarios no es una lista.");
     return response.map(toComment);
   },
   async create(discId, comment, parentId) {
-    const response: unknown = await postcommentService({ discId, comment, ...(parentId ? { parentId } : {}) });
+    const response = (await api.post<unknown>("/comments", { discId, comment, ...(parentId ? { parentId } : {}) })).data;
     return toComment(response);
   },
   async update(id, comment) {
-    const response: unknown = await updateCommentService(id, { comment });
+    const response = (await api.patch<unknown>(`/comments/${id}`, { comment })).data;
     if (!isRecord(response) || typeof response.id !== "string" || typeof response.comment !== "string") {
       throw new Error("La respuesta de comentarios no tiene el formato esperado.");
     }
     return { id: response.id, comment: response.comment, editedAt: optionalString(response.editedAt) };
   },
   async delete(id) {
-    await deleteCommentService(id);
+    await api.delete(`/comments/${id}`);
   },
 };

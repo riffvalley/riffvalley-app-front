@@ -1,14 +1,8 @@
 import { computed, ref } from "vue";
 import { countComments, type DiscComment } from "../domain/comment";
+import type { CommentConversationOperations } from "../application/commentPort";
 
-export function useDiscConversation(
-  discId: string,
-  loadConversation: (discId: string) => Promise<DiscComment[]>,
-  createRootComment: (discId: string, text: string) => Promise<DiscComment>,
-  createReplyComment: (discId: string, parentId: string, text: string) => Promise<DiscComment>,
-  updateComment: (id: string, text: string) => Promise<{ id: string; comment: string; editedAt?: string | null }>,
-  deleteComment: (id: string) => Promise<void>,
-) {
+export function useDiscConversation(discId: string, operations: CommentConversationOperations) {
   const comments = ref<DiscComment[]>([]);
   const isLoading = ref(false);
   const isSubmitting = ref(false);
@@ -21,7 +15,7 @@ export function useDiscConversation(
     comments.value = [];
     isLoading.value = true;
     try {
-      comments.value = await loadConversation(discId);
+      comments.value = await operations.load(discId);
     } finally {
       isLoading.value = false;
     }
@@ -31,7 +25,7 @@ export function useDiscConversation(
     if (isSubmitting.value) return;
     isSubmitting.value = true;
     try {
-      const created = await createRootComment(discId, text);
+      const created = await operations.createRoot(discId, text);
       comments.value = [...comments.value, created];
     } finally {
       isSubmitting.value = false;
@@ -62,7 +56,7 @@ export function useDiscConversation(
     if (submittingReplyIds.value.has(parentId)) return;
     submittingReplyIds.value = new Set(submittingReplyIds.value).add(parentId);
     try {
-      const created = await createReplyComment(discId, parentId, text);
+      const created = await operations.createReply(discId, parentId, text);
       if (created.user.id === identity.userId && !created.user.avatarUrl && !created.user.image && identity.avatar) {
         created.user.avatarUrl = identity.avatar;
       }
@@ -93,7 +87,7 @@ export function useDiscConversation(
     if (editingCommentIds.value.has(id)) return;
     editingCommentIds.value = new Set(editingCommentIds.value).add(id);
     try {
-      const updated = await updateComment(id, text);
+      const updated = await operations.update(id, text);
       comments.value = replaceComment({ ...updated, id }, comments.value);
     } finally {
       const pending = new Set(editingCommentIds.value);
@@ -122,7 +116,7 @@ export function useDiscConversation(
     if (deletingCommentIds.value.has(id)) return;
     deletingCommentIds.value = new Set(deletingCommentIds.value).add(id);
     try {
-      await deleteComment(id);
+      await operations.delete(id);
       comments.value = markDeleted(id, comments.value);
     } finally {
       const pending = new Set(deletingCommentIds.value);
