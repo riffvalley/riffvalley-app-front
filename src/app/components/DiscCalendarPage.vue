@@ -8,6 +8,8 @@ import { calendarPort, enrichCalendarDiscs, searchCalendarImages } from "../depe
 import { createAndAssociateCalendarArtist, updateCalendarArtist } from "../dependencies/catalog";
 import type { UpdateArtistInput } from "@/modules/catalog/artists/application/artistManagementPort";
 import { showErrorToast } from "@/shared/ui/errorToast";
+import { getCommunityPending, isCommunityPendingSubmitting, seedCommunityPending, toggleCommunityPending } from "@/app/bridges/communityPendings";
+import type { PendingState } from "@/modules/community";
 
 withDefaults(defineProps<{ embedded?: boolean; initialDate?: string; focusDiscId?: string }>(), {
   embedded: false, initialDate: "", focusDiscId: "",
@@ -16,10 +18,21 @@ defineEmits<{ close: [] }>();
 // Preserve the existing app-shell-owned catalog cache during this vertical cut.
 const catalog = useCatalogStore();
 const auth = useAuthStore();
+const pendingUserId = computed(() => auth.loggedUser.id ?? "");
 const isSuperUser = computed(() => auth.hasRole("superUser"));
 const buscarEnlacesSpotify = enrichCalendarDiscs;
 const buscarImagenesLastFm = searchCalendarImages;
 const loadError = () => showErrorToast("Error al cargar los discos");
+const emptyPendingState: PendingState = { pendingId: null, loaded: false };
+function communityPending(discId: string): PendingState {
+  return pendingUserId.value ? getCommunityPending(pendingUserId.value, discId) : emptyPendingState;
+}
+function initializePending(userId: string, discId: string, pendingId: string | null) {
+  if (userId) seedCommunityPending(userId, discId, pendingId);
+}
+function togglePending(userId: string, discId: string) {
+  return toggleCommunityPending(userId, discId);
+}
 function exportarHtml(group: CalendarGroup) {
   const blob = new Blob([exportCalendarHtml(group, catalog.genres)], { type: "text/html" });
   const link = document.createElement("a");
@@ -52,6 +65,9 @@ function applyCalendarArtistCreation(
     @load-error="loadError">
     <template #disc="{ disc, removeDisc, dateChanged, applyArtistUpdate, applyArtistCreation }">
       <DiscComponent :disc="disc" :genres="catalog.genres" :countries="catalog.countries" :focus-disc-id="focusDiscId"
+        :pending-user-id="pendingUserId" :pending-state="communityPending(disc.id)"
+        :pending-submitting="isCommunityPendingSubmitting(pendingUserId, disc.id)"
+        :initialize-pending="initializePending" :toggle-pending="togglePending"
         :persist-artist-update="(artistId, update) => persistCalendarArtistUpdate(artistId, update, applyArtistUpdate)"
         :persist-artist-creation="(discId, name) => createAndAssociateCalendarArtist(discId, name)"
         @artist-created="(artistId, artistName) => applyCalendarArtistCreation(disc.id, artistId, artistName, applyArtistCreation)"

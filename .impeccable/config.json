@@ -23,6 +23,15 @@
         "value": "dice-wobble",
         "createdAt": "2026-10-01T08:35:45.291Z",
         "reason": "Dashboard dice wobble is intentional: adjacent CSS comment explains the dice should feel shaken rather than blink, and the animation is limited to hover."
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "src/views/discsCalendarBaby/components/DiscComponentBaby.vue"
+        ],
+        "createdAt": "2026-10-01T10:31:40.411Z",
+        "reason": "Agent: conditional class uses gray text only on neutral card background; colored genre backgrounds use white text"
       }
     ]
   }

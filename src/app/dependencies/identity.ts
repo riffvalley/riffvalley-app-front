@@ -1,6 +1,6 @@
 import { createAuthStore, createSessionPersistence, readLegacySessionValue, login } from "@/modules/identity";
 import { useWorkspaceStore } from "./workspace";
-import { useCommunityFavoriteStore, useCommunityRatingStore } from "@/modules/community";
+import { useCommunityFavoriteStore, useCommunityPendingStore, useCommunityRatingStore } from "@/modules/community";
 export const useAuthStore = createAuthStore({
   persistence: createSessionPersistence(() => localStorage),
   async login(payload) {
@@ -17,6 +17,7 @@ export const useAuthStore = createAuthStore({
     useWorkspaceStore().clear();
     useCommunityRatingStore().clear();
     useCommunityFavoriteStore().clear();
+    useCommunityPendingStore().clear();
   },
 });
 

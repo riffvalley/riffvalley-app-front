@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyCalendarArtistUpdate, calendarMonthRange, removeCalendarDisc, sameLocalCalendarDay, type CalendarDisc, type CalendarGroup } from "../../src/modules/catalog/discs/calendars/domain/discCalendar";
 import { createCalendarPager, type CalendarLoadState, type CalendarPage } from "../../src/modules/catalog/discs/calendars/application/discCalendar";
 import { exportCalendarHtml } from "../../src/modules/catalog/discs/calendars/application/calendarTools";
-import { discCalendarApi } from "../../src/modules/catalog/discs/calendars/infrastructure/discCalendarApi";
+import { discCalendarApi, getPageWithPendingProjection } from "../../src/modules/catalog/discs/calendars/infrastructure/discCalendarApi";
 import { enrichCalendarDiscs, searchCalendarImages } from "../../src/app/dependencies/discCalendar";
 
 const { get, patch, post, providerGet, token } = vi.hoisted(() => ({
@@ -15,7 +15,7 @@ vi.mock("@helpers/SpotifyFunctions.ts", () => ({ obtenerTokenSpotify: token }));
 const disc = (id: string): CalendarDisc => ({
   id, name: `Álbum ${id}`, releaseDate: "2026-09-18", artist: { id: "artist", name: "Banda" },
   genre: { id: "rock", name: "Rock", color: "#123456" }, image: null, link: null,
-  ep: false, debut: false, verified: false, pinned: false, pendingId: null, nationalReleaseId: null,
+  ep: false, debut: false, verified: false, pinned: false, nationalReleaseId: null,
 });
 const group = (...ids: string[]): CalendarGroup => ({ releaseDate: "2026-09-18", discs: ids.map(disc) });
 const page = (...ids: string[]): CalendarPage => ({ data: [group(...ids)], totalItems: ids.length });
@@ -172,6 +172,15 @@ describe("calendar infrastructure and tool composition", () => {
     await discCalendarApi.getPage(query);
     expect(get).toHaveBeenLastCalledWith("/discs/date", { params: query });
     await expect(discCalendarApi.getPage(query)).rejects.toThrow("calendar-load-failed");
+  });
+
+  it("keeps pending IDs out of Catalog calendar data and exposes them only as composition metadata", async () => {
+    get.mockResolvedValueOnce({ data: { ...page("disc-1"), data: [{ ...group("disc-1"), discs: [{
+      ...disc("disc-1"), pendingId: "pending-1",
+    }] }] } });
+    const result = await getPageWithPendingProjection({ limit: 200, offset: 0, dateRange: ["start", "end"] });
+    expect(result.page.data[0].discs[0]).not.toHaveProperty("pendingId");
+    expect(result.pendings).toEqual([{ discId: "disc-1", pendingId: "pending-1" }]);
   });
 
   it("searches sequentially with one token and keeps patch payloads and failure labels", async () => {

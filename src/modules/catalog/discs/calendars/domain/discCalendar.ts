@@ -1,6 +1,6 @@
 import type { Country, Genre } from "../../../reference-data/domain/catalog";
 
-/** Calendar projection, including fields consumed by the legacy cards. */
+/** Catalog-owned calendar projection. Community state is composed separately. */
 export interface CalendarDisc {
   id: string;
   name: string;
@@ -14,7 +14,6 @@ export interface CalendarDisc {
   debut: boolean;
   verified: boolean;
   pinned: boolean;
-  pendingId: string | null;
   nationalReleaseId: string | null;
 }
 export interface CalendarGroup { releaseDate: string; discs: CalendarDisc[] }

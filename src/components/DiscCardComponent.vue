@@ -334,17 +334,22 @@ import {
   seedCommunityFavorite,
   toggleCommunityFavorite,
 } from "@/app/bridges/communityFavorites";
-import { useCommunityRatingStore } from "@/modules/community";
 import {
-  postPendingService,
-  deletePendingService,
-} from "@services/pendings/pendings";
+  getCommunityPending,
+  isCommunityPendingSubmitting,
+  seedCommunityPending,
+  toggleCommunityPending,
+} from "@/app/bridges/communityPendings";
+import { useCommunityRatingStore } from "@/modules/community";
 import Swal from "sweetalert2";
 import SwalService from "@services/swal/SwalService";
 
 export default defineComponent({
   components: { DiscDetail, ArtistDetail, ComentsModal, VotesModal, DiscCalendar }, // Add VotesModal
-  emits: { "favorite-changed": (_favoriteId: string | null) => true },
+  emits: {
+    "favorite-changed": (_favoriteId: string | null) => true,
+    "pending-changed": (_pendingId: string | null) => true,
+  },
   props: {
     id: { type: String, required: true },
     image: { type: String, required: true },
@@ -500,10 +505,17 @@ export default defineComponent({
       if (!url) return;
       window.open(url, "_blank", "noopener");
     };
-    const pendingId = ref(props.pendingId);
     const heartAnimating = ref(false);
     const bookmarkAnimating = ref(false);
     const communityFavoriteUserId = getActiveCommunityUserId();
+    if (communityFavoriteUserId) seedCommunityPending(communityFavoriteUserId, props.id, props.pendingId ?? null);
+    const communityPending = computed(() => communityFavoriteUserId
+      ? getCommunityPending(communityFavoriteUserId, props.id)
+      : { pendingId: props.pendingId ?? null, loaded: false });
+    const pendingId = computed(() => communityPending.value.loaded
+      ? communityPending.value.pendingId : props.pendingId ?? null);
+    const isTogglingBookmark = computed(() => !!communityFavoriteUserId
+      && isCommunityPendingSubmitting(communityFavoriteUserId, props.id));
     if (communityFavoriteUserId) seedCommunityFavorite(communityFavoriteUserId, props.id, props.favoriteId ?? null);
     const communityFavorite = computed(() => communityFavoriteUserId
       ? getCommunityFavorite(communityFavoriteUserId, props.id)
@@ -512,7 +524,6 @@ export default defineComponent({
       ? communityFavorite.value.favoriteId : props.favoriteId ?? null);
     const isTogglingHeart = computed(() => !!communityFavoriteUserId
       && isCommunityFavoriteSubmitting(communityFavoriteUserId, props.id));
-    const isTogglingBookmark = ref(false);
 
     const triggerHeartAnim = () => {
       heartAnimating.value = true;
@@ -546,18 +557,15 @@ export default defineComponent({
     };
 
     const toggleBookmark = async () => {
-      if (isTogglingBookmark.value) return;
-      isTogglingBookmark.value = true;
       try {
-        if (pendingId.value) {
-          await deletePendingService(pendingId.value);
-          pendingId.value = null;
+        const result = await toggleCommunityPending(communityFavoriteUserId, props.id);
+        if (result === false) return;
+        if (result === null) {
           SwalService.success("Eliminado de Pendientes");
         } else {
-          const pending = await postPendingService({ discId: props.id });
-          pendingId.value = pending.id;
           SwalService.success("Añadido a Pendientes");
         }
+        emit("pending-changed", result);
         triggerBookmarkAnim();
       } catch (error) {
         console.error("Error al cambiar el estado de pendiente:", error);
@@ -571,8 +579,6 @@ export default defineComponent({
           showConfirmButton: false,
           toast: true,
         });
-      } finally {
-        isTogglingBookmark.value = false;
       }
     };
 

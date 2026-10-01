@@ -184,6 +184,7 @@
     :favoriteId="disc.favoriteId"
     @favorite-changed="handleFavoriteChanged(disc.id, $event)"
     :pendingId="disc.pendingId"
+    @pending-changed="handlePendingChanged(disc.id, $event)"
     :comment-count="disc.commentCount"
     :rateCount="disc.voteCount"
     :debut="disc.debut"
@@ -227,13 +228,13 @@ import { defineComponent, ref, onMounted, onUnmounted, watch, nextTick, computed
 import DiscCard from "@components/DiscCardComponent.vue";
 import Datepicker from "@vuepic/vue-datepicker";
 import { useCatalogStore } from "@stores/catalog/catalog";
-import { getPendingsByUser } from "@services/pendings/pendings";
 import DiscFilters from "@components/DiscFilters.vue";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
 import { fetchDiscList } from "@/app/dependencies/catalog";
-import { fetchUserComments, fetchUserFavorites, fetchUserRatings } from "@/app/dependencies/community";
+import { fetchUserComments, fetchUserFavorites, fetchUserPendings, fetchUserRatings } from "@/app/dependencies/community";
 import { removeFavoriteFromList } from "./favoriteList";
+import { isCurrentPendingListResponse, removePendingFromList } from "./pendingList";
 
 export default defineComponent({
   components: {
@@ -427,16 +428,16 @@ response = await fetchUserComments({
             }))
           );
         } else if (viewMode.value === "pendientes") {
-          response = await getPendingsByUser(
-            limit.value,
-            requestOffset,
-            searchQuery.value,
-            selectedWeek.value,
-            selectedGenre.value,
-            selectedCountry.value
-          );
-          if (version !== requestVersion) return;
-          totalPendings.value = response.totalItems;
+          response = await fetchUserPendings({
+            limit: limit.value,
+            offset: requestOffset,
+            query: searchQuery.value,
+            dateRange: selectedWeek.value,
+            genre: selectedGenre.value,
+            country: selectedCountry.value,
+          });
+          if (!isCurrentPendingListResponse(version, requestVersion)) return;
+          totalPendings.value = String(response.totalItems);
           discs.value.push(
             ...response.data.map((pending) => ({
               ...pending.disc,
@@ -448,8 +449,8 @@ response = await fetchUserComments({
               userRate: pending.disc.userRate
                 ? {
                   id: pending.disc.userRate.id,
-                  rate: pending.disc.userRate.rate != null ? parseFloat(pending.disc.userRate.rate) : null,
-                  cover: pending.disc.userRate.cover != null ? parseFloat(pending.disc.userRate.cover) : null,
+                  rate: pending.disc.userRate.rate != null ? parseFloat(String(pending.disc.userRate.rate)) : null,
+                  cover: pending.disc.userRate.cover != null ? parseFloat(String(pending.disc.userRate.cover)) : null,
                 }
                 : null,
               commentCount: pending.disc.commentCount,
@@ -610,6 +611,17 @@ response = await fetchUserComments({
       hasMore.value = next.hasMore;
     };
 
+    const handlePendingChanged = (discId: string, pendingId: string | null) => {
+      if (viewMode.value !== "pendientes" || pendingId !== null) return;
+      const next = removePendingFromList(discs.value, discId, offset.value, totalItems.value, totalPendings.value);
+      if (!next) return;
+      discs.value = next.discs;
+      offset.value = next.offset;
+      totalItems.value = next.totalItems;
+      totalPendings.value = next.totalPendings;
+      hasMore.value = next.hasMore;
+    };
+
     return {
       discs,
       loading,
@@ -630,6 +642,7 @@ response = await fetchUserComments({
       totalComments,
       resetAndFetch,
       handleFavoriteChanged,
+      handlePendingChanged,
       handleGenreChange,
       orderBy,
       orderOptions,

@@ -46,6 +46,29 @@ for (const { path, role } of [
     await page.getByPlaceholder("Buscar álbum o artista...").fill("album");
     await expect(page.locator("h3")).toHaveCount(role === "user" ? 1 : 0);
     await page.getByPlaceholder("Buscar álbum o artista...").fill("");
+    await page.route((url) => url.pathname.endsWith("/pendings"), async (route) => {
+      if (route.request().method() === "POST") {
+        await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ id: "pending-1" }) });
+      } else {
+        await route.continue();
+      }
+    });
+    await page.route((url) => url.pathname.endsWith("/pendings/pending-1"), async (route) => {
+      await route.fulfill({ status: 204, body: "" });
+    });
+    await page.getByRole("button", { name: "Septiembre", exact: true }).click();
+    await page.locator("h3").click();
+    const card = path === "/calendar"
+      ? page.locator("#disc-disc-0")
+      : page.locator("li").filter({ hasText: "Álbum Único" }).first();
+    const bookmark = card.getByRole("button", { name: "Pendiente", exact: true });
+    await expect(bookmark).toBeVisible();
+    await bookmark.click();
+    const savedBookmark = card.getByRole("button", { name: "¡Añadido!", exact: true });
+    await expect(savedBookmark).toBeVisible();
+    await page.clock.runFor(1600);
+    await card.getByRole("button", { name: "Guardado", exact: true }).click();
+    await expect(card.getByRole("button", { name: "Pendiente", exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Octubre", exact: true }).click();
     await expect(page.locator("h3")).toContainText("15/10/2026");
     await expect(page.getByRole("button", { name: "Octubre", exact: true })).toHaveClass(/bg-rv-navy/);

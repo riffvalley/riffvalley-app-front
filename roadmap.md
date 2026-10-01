@@ -996,6 +996,27 @@ llamados pendientes.
 
 **Modelo recomendado:** Luna High.
 
+**Estado: completado.** Community posee la consulta, las mutaciones y el ID
+confirmado de `pending` en memoria, indexado por usuario y disco. `app` obtiene
+la sesión desde Identity y compone el adaptador; Catalog conserva la ficha.
+Tarjetas y modo “Pendientes” leen el mismo estado Pinia; alta y baja son
+pesimistas, bloquean envíos simultáneos y conservan el último estado confirmado
+si falla la petición. La baja confirmada elimina la fila activa sin alterar el
+orden, conserva filtros y corrige contador y paginación. Las respuestas del
+listado se descartan al cambiar filtros o página. Releases mantiene sus
+peticiones, importaciones y sugerencias fuera de este flujo.
+
+Se retiró `getPendingsByUser` del servicio legacy al quedar sin consumidores.
+`postPendingService` y `deletePendingService` se mantienen únicamente para las
+tarjetas de calendario estándar y babyUser de 4.8. No se migran calendarios.
+
+Pruebas: siete casos cubren lectura y proyección, alta, baja, errores y
+reintentos, bloqueo concurrente, sincronización entre consumidores, listado,
+actualización de fila y respuesta obsoleta. `yarn verify` pasa: arquitectura en
+130 archivos, 91 diagnósticos baseline sin regresiones, 217 pruebas y build.
+`git diff --check` pasa. Persisten los avisos conocidos de Browserslist,
+`.flex-[2]` y tamaño de chunk superior a 500 kB. No se inicia 4.8.
+
 ### 4.8 — Pendientes en calendarios estándar y babyUser
 
 **Alcance:** migrar la acción de pendiente de las tarjetas de calendario
@@ -1022,6 +1043,28 @@ con datos de Catalog.
 envío, coherencia al volver a la vista y E2E de los dos calendarios.
 
 **Modelo recomendado:** Luna High.
+
+**Estado: completado.** Community conserva el `pendingId` confirmado por usuario
+y disco en el store compartido con tarjeta y listado. El adaptador de Catalog
+separa el ID que llega en la respuesta de calendario como metadato de transporte;
+`app` lo siembra con la sesión activa de Identity antes de entregar la página.
+El modelo de calendario de Catalog ya no contiene `pendingId`; Catalog sigue
+poseyendo consultas, grupos y páginas. Las dos tarjetas llaman a Community desde
+la composición de app y actualizan su estado solo tras el éxito del backend,
+con bloqueo común por usuario/disco y sin optimismo. Se retiraron
+`postPendingService` y `deletePendingService` al quedar sin consumidores.
+
+Se preservan las diferencias existentes: la tarjeta estándar conserva sus
+controles de gestión y estilo horizontal, sus mensajes SweetAlert y feedback de
+alta; babyUser conserva la tarjeta compacta, su paleta por género, sus mensajes
+`SwalService` y la ruta con permisos restringidos. Exportación, herramientas de
+grupo, filtros, búsqueda, país, carga y paginación no cambian.
+
+Pruebas: altas/bajas, fallos y reintentos en ambas variantes; bloqueo de doble
+envío y sincronización estándar/babyUser sobre el mismo estado Community; el
+adaptador separa `pendingId` del modelo Catalog. E2E de ambas rutas comprueba
+alta/baja y la suite mantiene las restricciones por rol. La verificación final
+se registra en `docs/architecture-baseline.md`. No se inicia 4.9.
 
 ### 4.9 — Consolidación de Community
 

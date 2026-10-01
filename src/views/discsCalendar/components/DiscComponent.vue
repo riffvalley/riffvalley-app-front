@@ -143,6 +143,7 @@
           {{ disc.pinned ? '★ Destacado' : '☆ Destacar' }}
         </button>
         <button @click="toggleBookmark()"
+                :disabled="pendingSubmitting"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap
                        text-xs font-semibold text-white shadow-sm
                        transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.97]"
@@ -237,12 +238,12 @@ import {
 } from "vue";
 import type { PropType } from "vue";
 import type { CalendarDisc } from "@/modules/catalog";
+import type { PendingState } from "@/modules/community";
 import type { UpdateArtistInput } from "@/modules/catalog";
 import { alternateCalendarCountryId } from "@/modules/catalog";
 import { updateDisc, deleteDisc } from "@services/discs/discs";
 import { createNationalReleaseFromDisc } from "@services/national-releases/nationalReleases";
 import { updateArtist, postArtist } from "@services/artist/artist";
-import { postPendingService, deletePendingService } from "@services/pendings/pendings";
 import Swal from "sweetalert2";
 import SwalService from "@services/swal/SwalService";
 import axios from "axios";
@@ -274,6 +275,17 @@ export default defineComponent({
     persistArtistUpdate: {
       type: Function as PropType<(artistId: string, update: Pick<UpdateArtistInput, "name" | "countryId">) => Promise<void>>,
       default: undefined,
+    },
+    pendingUserId: { type: String, required: true },
+    pendingState: { type: Object as PropType<PendingState>, required: true },
+    pendingSubmitting: { type: Boolean, required: true },
+    initializePending: {
+      type: Function as PropType<(userId: string, discId: string, pendingId: string | null) => void>,
+      required: true,
+    },
+    togglePending: {
+      type: Function as PropType<(userId: string, discId: string) => Promise<string | null | false>>,
+      required: true,
     },
     persistArtistCreation: {
       type: Function as PropType<(discId: string, name: string) => Promise<{ id: string; name: string }>>,
@@ -446,18 +458,22 @@ export default defineComponent({
       }
     };
 
-    const pendingId = ref(props.disc.pendingId);
+    const pendingId = computed(() => props.pendingState.pendingId);
     const justAdded = ref(false);
+
+    watch(
+      () => [props.pendingUserId, props.disc.id] as const,
+      ([userId, discId]) => props.initializePending(userId, discId, null),
+      { immediate: true },
+    );
 
     const toggleBookmark = async () => {
       try {
-        if (pendingId.value) {
-          await deletePendingService(pendingId.value);
-          pendingId.value = null;
+        const result = await props.togglePending(props.pendingUserId, props.disc.id);
+        if (result === false) return;
+        if (result === null) {
           SwalService.success('Eliminado de pendientes');
         } else {
-          const pending = await postPendingService({ discId: props.disc.id });
-          pendingId.value = pending.id;
           justAdded.value = true;
           setTimeout(() => { justAdded.value = false; }, 1500);
         }
@@ -848,6 +864,7 @@ export default defineComponent({
       confirmDelete,
       getGenreColor,
       linkButtonData,
+      pendingSubmitting: computed(() => props.pendingSubmitting),
       showImageModal,
       newImageUrl,
       openImageModal,

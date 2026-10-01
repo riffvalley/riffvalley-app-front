@@ -1,12 +1,24 @@
-import { discCalendarApi } from "@/modules/catalog/discs/calendars/infrastructure/discCalendarApi";
+import { getPageWithPendingProjection } from "@/modules/catalog/discs/calendars/infrastructure/discCalendarApi";
+import type { CalendarPageQuery } from "@/modules/catalog/discs/calendars/application/discCalendar";
 import { calendarToolsApi } from "@/modules/catalog/discs/calendars/infrastructure/calendarToolsApi";
 import { attachCalendarAlbum } from "@/modules/catalog/discs/calendars/application/calendarTools";
 import type { CalendarDisc } from "@/modules/catalog";
 import { albumLinksApi } from "@/integrations/spotify/infrastructure/albumLinksApi";
 import { calendarImagesApi } from "@/integrations/lastfm/infrastructure/calendarImagesApi";
 import { fillCalendarImages } from "@/integrations/lastfm/application/calendarImages";
+import { seedCommunityPending } from "@/app/bridges/communityPendings";
+import { useAuthStore } from "./identity";
 
-export const calendarPort = discCalendarApi;
+export const calendarPort = {
+  async getPage(query: CalendarPageQuery) {
+    const { page, pendings } = await getPageWithPendingProjection(query);
+    const userId = useAuthStore().loggedUser.id ?? "";
+    if (userId) {
+      for (const pending of pendings) seedCommunityPending(userId, pending.discId, pending.pendingId);
+    }
+    return page;
+  },
+};
 export const searchCalendarImages = (date: string) => fillCalendarImages(calendarImagesApi, date);
 export async function enrichCalendarDiscs(discs: CalendarDisc[]) {
   const session = await albumLinksApi.openSession();

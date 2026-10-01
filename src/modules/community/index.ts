@@ -15,3 +15,7 @@ export type { FavoriteState, UserFavoritesQuery, UserFavorite, UserFavoritesResu
 export type { FavoritePort } from "./favorites/application/favoritePort";
 export { listUserFavorites, toggleUserFavorite } from "./favorites/application/favoriteActions";
 export { useCommunityFavoriteStore } from "./favorites/presentation/favoriteStore";
+export type { PendingState, UserPendingsQuery, UserPending, UserPendingsResult } from "./pendings/domain/pending";
+export type { PendingPort } from "./pendings/application/pendingPort";
+export { listUserPendings, toggleUserPending } from "./pendings/application/pendingActions";
+export { useCommunityPendingStore } from "./pendings/presentation/pendingStore";

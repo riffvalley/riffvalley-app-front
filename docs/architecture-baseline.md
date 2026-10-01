@@ -260,3 +260,37 @@ Validación: `yarn verify` pasa (119 archivos de arquitectura, 102 diagnósticos
 baseline sin regresiones, 203 pruebas y build); `git diff --check` pasa. Se
 conservan los avisos conocidos de Browserslist, `.flex-[2]` y chunk superior a
 500 kB. No se inicia 4.6.
+
+## Subiteración 4.8 — Pendientes en los calendarios
+
+Community conserva el ID y estado confirmado por usuario/disco en el mismo
+store que utilizan `DiscCardComponent` y `DiscList`. Las tarjetas estándar y
+babyUser reciben desde `app` la sesión de Identity y operaciones pequeñas para
+leer, inicializar y alternar ese estado. Las mutaciones son pesimistas, comparten
+el bloqueo por usuario/disco y no cambian el estado confirmado en caso de error;
+los mensajes y la animación de alta existentes se mantienen en cada tarjeta.
+
+Catalog sigue siendo propietario de la consulta, los grupos y las páginas. El
+adaptador conserva `pendingId` únicamente como dato del transporte, lo extrae
+del modelo `CalendarDisc` y entrega los IDs a `app` para inicializar Community.
+Así no se añade Community al dominio/cache de Catalog ni se cambia el endpoint,
+la paginación, los filtros, la búsqueda, el país o la exportación. `app` compone
+Catalog, Community e Identity; Releases queda fuera.
+
+La tarjeta estándar conserva el diseño horizontal, los controles administrativos,
+las herramientas de grupo condicionadas por rol/fecha y sus mensajes SweetAlert.
+`babyUser` conserva la tarjeta compacta con color por género, las restricciones
+de ruta y sus mensajes `SwalService`; tampoco recibe los controles exclusivos del
+calendario estándar. Solo el botón de pendiente usa el estado compartido. Se
+retiraron `postPendingService`, `deletePendingService` y
+`src/services/pendings/pendings.ts` al quedar sin consumidores.
+
+Pruebas: cuatro pruebas de componente ejercitan ambas variantes en conjunto para
+alta, baja, errores, reintentos, no optimismo, doble envío y sincronización entre
+calendarios. La prueba del adaptador verifica que `pendingId` no forma parte de
+la proyección Catalog. Tres E2E de Chromium pasan: alta/baja en ambas rutas y
+restricciones por rol. `yarn verify` pasa: lint, arquitectura en 131 archivos,
+89 diagnósticos de TypeScript baseline sin regresiones, 222 pruebas en 34 suites
+y build. La poda validada eliminó dos excepciones TypeScript ya resueltas.
+`git diff --check` pasa. Persisten los avisos previos de Browserslist, `.flex-[2]`
+y chunk superior a 500 kB. No se inicia 4.9.
