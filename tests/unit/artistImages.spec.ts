@@ -2,57 +2,95 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { artistImagesApi } from "../../src/integrations/spotify/infrastructure/artistImagesApi";
 import { searchArtistImages } from "../../src/integrations/spotify";
 
-const { get, token } = vi.hoisted(() => ({ get: vi.fn(), token: vi.fn() }));
-vi.mock("axios", () => ({ default: { get } }));
-vi.mock("@helpers/SpotifyFunctions.ts", () => ({ obtenerTokenSpotify: token }));
+const { get } = vi.hoisted(() => ({ get: vi.fn() }));
+vi.mock("@/shared/infrastructure/http/client", () => ({ default: { get } }));
 
-describe("Spotify artist image integration", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    token.mockResolvedValue("spotify-token");
-  });
+describe("artist image API adapter", () => {
+  beforeEach(() => vi.clearAllMocks());
 
-  it.each([1, 5] as const)("searches at the requested %i result limit and prefers 640 px images", async (limit) => {
-    get.mockResolvedValue({ data: { artists: { items: [
-      { name: "Banda", images: [{ url: "small.jpg", width: 300 }, { url: "large.jpg", width: 640 }] },
-      { name: "Sin foto", images: [] },
-      { name: "Otra banda", images: [{ url: "fallback.jpg", width: 300 }] },
-    ] } } });
+  it("maps several artists and their candidate images, keeping artist names and homonyms distinct", async () => {
+    get.mockResolvedValueOnce({ data: [
+      { spotifyId: "artist-1", name: "Banda" },
+      { spotifyId: "artist-2", name: "Banda" },
+      { spotifyId: "artist-3", name: "Otra banda" },
+    ] })
+      .mockResolvedValueOnce({ data: [{ url: "band-a-1.jpg" }, { url: "band-a-2.jpg" }] })
+      .mockResolvedValueOnce({ data: [{ url: "band-b-1.jpg" }, { url: "band-b-2.jpg" }] })
+      .mockResolvedValueOnce({ data: [{ url: "other-1.jpg" }] });
 
-    await expect(searchArtistImages(artistImagesApi, { name: "Banda", limit })).resolves.toEqual([
-      { name: "Banda", image: "large.jpg" },
-      { name: "Otra banda", image: "fallback.jpg" },
+    await expect(searchArtistImages(artistImagesApi, { name: "Banda", limit: 5 })).resolves.toEqual([
+      { name: "Banda", image: "band-a-1.jpg" },
+      { name: "Banda", image: "band-b-1.jpg" },
+      { name: "Otra banda", image: "other-1.jpg" },
+      { name: "Banda", image: "band-a-2.jpg" },
+      { name: "Banda", image: "band-b-2.jpg" },
     ]);
-    expect(get).toHaveBeenCalledWith("https://api.spotify.com/v1/search", {
-      headers: { Authorization: "Bearer spotify-token" },
-      params: { q: "Banda", type: "artist", limit },
-    });
+    expect(get.mock.calls).toEqual([
+      ["/spotify/artists/search/multiple", { params: { artistName: "Banda" } }],
+      ["/spotify/artists/artist-1/images"],
+      ["/spotify/artists/artist-2/images"],
+      ["/spotify/artists/artist-3/images"],
+    ]);
   });
 
-  it("returns no options when the search has no image and reports token/provider failures", async () => {
-    get.mockResolvedValue({ data: { artists: { items: [{ name: "Sin foto", images: [] }] } } });
+  it("supports a single artist and returns its available images up to the requested limit", async () => {
+    get.mockResolvedValueOnce({ data: [{ spotifyId: "artist-1", name: "Banda" }] })
+      .mockResolvedValueOnce({ data: { images: ["one.jpg", { imageUrl: "two.jpg" }] } });
+
+    await expect(artistImagesApi.searchArtistImages({ name: "Banda", limit: 5 })).resolves.toEqual([
+      { name: "Banda", image: "one.jpg" },
+      { name: "Banda", image: "two.jpg" },
+    ]);
+  });
+
+  it("returns an empty list when the search has no candidates", async () => {
+    get.mockResolvedValueOnce({ data: [] });
+
+    await expect(artistImagesApi.searchArtistImages({ name: "Ausente", limit: 5 })).resolves.toEqual([]);
+    expect(get).toHaveBeenCalledOnce();
+  });
+
+  it("returns an empty list when candidates have no usable image URLs", async () => {
+    get.mockResolvedValueOnce({ data: [{ spotifyId: "artist-1", name: "Sin foto" }] })
+      .mockResolvedValueOnce({ data: [{}, { url: null }, { imageUrl: "" }] });
+
     await expect(artistImagesApi.searchArtistImages({ name: "Sin foto", limit: 5 })).resolves.toEqual([]);
-
-    token.mockResolvedValueOnce(null);
-    await expect(artistImagesApi.searchArtistImages({ name: "Banda", limit: 1 })).rejects.toThrow("Spotify token unavailable");
-    expect(get).toHaveBeenCalledTimes(1);
-
-    get.mockRejectedValue(new Error("provider down"));
-    await expect(artistImagesApi.searchArtistImages({ name: "Banda", limit: 1 })).rejects.toThrow("provider down");
   });
 
-  it("uses one Spotify token for every lookup in a search session", async () => {
-    get.mockResolvedValue({ data: { artists: { items: [{ name: "Banda", images: [{ url: "band.jpg" }] }] } } });
+  it("skips incomplete artist and image fields without changing the neutral option shape", async () => {
+    get.mockResolvedValueOnce({ data: [
+      { name: "Sin ID" },
+      { spotifyId: "artist-2" },
+      { spotifyId: "artist-3", name: "Banda" },
+    ] }).mockResolvedValueOnce({ data: [{ imageUrl: "band.jpg" }] });
+
+    await expect(artistImagesApi.searchArtistImages({ name: "Banda", limit: 5 })).resolves.toEqual([
+      { name: "Banda", image: "band.jpg" },
+    ]);
+    expect(get).toHaveBeenCalledTimes(2);
+    expect(get).toHaveBeenNthCalledWith(2, "/spotify/artists/artist-3/images");
+  });
+
+  it("propagates backend failures", async () => {
+    get.mockRejectedValueOnce(new Error("backend unavailable"));
+
+    await expect(artistImagesApi.searchArtistImages({ name: "Banda", limit: 1 }))
+      .rejects.toThrow("backend unavailable");
+  });
+
+  it("reuses a session without requesting a Spotify token", async () => {
+    get.mockResolvedValue({ data: [{ spotifyId: "artist-1", name: "Banda" }] });
     const search = await artistImagesApi.createSearchSession();
 
     await search({ name: "Banda", limit: 1 });
     await search({ name: "Otra banda", limit: 1 });
 
-    expect(token).toHaveBeenCalledOnce();
-    expect(get).toHaveBeenCalledTimes(2);
-    expect(get).toHaveBeenNthCalledWith(2, "https://api.spotify.com/v1/search", {
-      headers: { Authorization: "Bearer spotify-token" },
-      params: { q: "Otra banda", type: "artist", limit: 1 },
+    expect(get).toHaveBeenCalledTimes(4);
+    expect(get).toHaveBeenNthCalledWith(1, "/spotify/artists/search/multiple", {
+      params: { artistName: "Banda" },
+    });
+    expect(get).toHaveBeenNthCalledWith(3, "/spotify/artists/search/multiple", {
+      params: { artistName: "Otra banda" },
     });
   });
 });
