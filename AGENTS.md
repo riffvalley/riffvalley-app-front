@@ -144,13 +144,14 @@ Use mappers only when transport and application/domain models actually differ.
 Business-specific composables belong to their module, for example:
 
 ```text
-modules/catalog/presentation/composables/
 modules/editorial/presentation/composables/
 ```
 
 Only genuinely transversal composables belong in shared.
 
 Do not move logic from a component into a composable if the composable then becomes a new god-object.
+
+Catalog presentation files must be grouped by kind inside each feature; see [docs/catalog-structure.md](docs/catalog-structure.md) for the folder rule and navigation guide.
 
 ---
 

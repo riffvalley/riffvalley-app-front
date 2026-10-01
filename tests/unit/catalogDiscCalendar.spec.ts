@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { applyCalendarArtistUpdate, calendarMonthRange, removeCalendarDisc, sameLocalCalendarDay, type CalendarDisc, type CalendarGroup } from "../../src/modules/catalog/domain/discCalendar";
-import { createCalendarPager, type CalendarLoadState, type CalendarPage } from "../../src/modules/catalog/application/discCalendar";
-import { exportCalendarHtml } from "../../src/modules/catalog/application/calendarTools";
-import { discCalendarApi } from "../../src/modules/catalog/infrastructure/discCalendarApi";
+import { applyCalendarArtistUpdate, calendarMonthRange, removeCalendarDisc, sameLocalCalendarDay, type CalendarDisc, type CalendarGroup } from "../../src/modules/catalog/discs/calendars/domain/discCalendar";
+import { createCalendarPager, type CalendarLoadState, type CalendarPage } from "../../src/modules/catalog/discs/calendars/application/discCalendar";
+import { exportCalendarHtml } from "../../src/modules/catalog/discs/calendars/application/calendarTools";
+import { discCalendarApi } from "../../src/modules/catalog/discs/calendars/infrastructure/discCalendarApi";
 import { enrichCalendarDiscs, searchCalendarImages } from "../../src/app/dependencies/discCalendar";
 
 const { get, patch, post, providerGet, token } = vi.hoisted(() => ({
   get: vi.fn(), patch: vi.fn(), post: vi.fn(), providerGet: vi.fn(), token: vi.fn(),
 }));
-vi.mock("@services/api/api.ts", () => ({ default: { get, patch, post } }));
+vi.mock("@/shared/infrastructure/http/client", () => ({ default: { get, patch, post } }));
 vi.mock("axios", () => ({ default: { get: providerGet } }));
 vi.mock("@helpers/SpotifyFunctions.ts", () => ({ obtenerTokenSpotify: token }));
 

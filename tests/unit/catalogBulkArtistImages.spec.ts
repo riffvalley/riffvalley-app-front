@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ArtistManagementItem, ArtistManagementResponse } from "../../src/modules/catalog/domain/artistManagement";
-import { fillMissingArtistImages } from "../../src/modules/catalog/application/fillMissingArtistImages";
-import type { ArtistManagementPort, ArtistUpdatePort } from "../../src/modules/catalog/application/artistManagementPort";
-import type { ArtistImageSearchSessionPort } from "../../src/modules/catalog/application/fillMissingArtistImages";
+import type { ArtistManagementItem, ArtistManagementResponse } from "../../src/modules/catalog/artists/domain/artistManagement";
+import { fillMissingArtistImages } from "../../src/modules/catalog/artists/images/application/fillMissingArtistImages";
+import type { ArtistManagementPort, ArtistUpdatePort } from "../../src/modules/catalog/artists/application/artistManagementPort";
+import type { ArtistImageSearchSessionPort } from "../../src/modules/catalog/artists/images/application/fillMissingArtistImages";
 
 function artist(id: string, image: string | null = null): ArtistManagementItem {
   return {

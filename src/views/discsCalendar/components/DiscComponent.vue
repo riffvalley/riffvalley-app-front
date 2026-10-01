@@ -237,8 +237,8 @@ import {
 } from "vue";
 import type { PropType } from "vue";
 import type { CalendarDisc } from "@/modules/catalog";
-import type { UpdateArtistInput } from "@/modules/catalog/application/artistManagementPort";
-import { alternateCalendarCountryId } from "@/modules/catalog/domain/artistManagement";
+import type { UpdateArtistInput } from "@/modules/catalog";
+import { alternateCalendarCountryId } from "@/modules/catalog";
 import { updateDisc, deleteDisc } from "@services/discs/discs";
 import { createNationalReleaseFromDisc } from "@services/national-releases/nationalReleases";
 import { updateArtist, postArtist } from "@services/artist/artist";

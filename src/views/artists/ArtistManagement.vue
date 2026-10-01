@@ -514,24 +514,23 @@ import {
   onMounted,
   onUnmounted,
 } from "vue";
+import {
+  useArtistManagementList, useCatalogStore, applyArtistEditLocally,
+  confirmAndDeleteArtist, removeArtistLocally, LastFmManagementModal, useLastFmManagement,
+} from "@/modules/catalog";
 import type {
   ArtistManagementItem,
   ArtistManagementDisc,
-} from "@/modules/catalog/domain/artistManagement";
+} from "@/modules/catalog";
 import { useAuthStore } from "@stores/auth/auth";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import DiscDetail from "@components/DiscDetail.vue";
 import DiscCardComponent from "@components/DiscCardComponent.vue";
 import Swal from "sweetalert2";
 import { fetchArtistManagement, fetchCatalog, fillManagedArtistImages } from "@/app/dependencies/catalog";
-import { useArtistManagementList } from "@/modules/catalog/presentation/composables/useArtistManagementList";
-import { useCatalogStore } from "@/modules/catalog/presentation/catalogStore";
 import ArtistEditForm from "@/app/components/ArtistEditForm.vue";
 import { deleteManagedArtist, saveManagedArtist } from "@/app/dependencies/catalog";
-import { applyArtistEditLocally, confirmAndDeleteArtist, removeArtistLocally } from "@/modules/catalog/presentation/artistManagementEditing";
 import { findArtistImages } from "@/app/dependencies/artistImages";
-import LastFmManagementModal from "@/modules/catalog/presentation/LastFmManagementModal.vue";
-import { useLastFmManagement } from "@/modules/catalog/presentation/composables/useLastFmManagement";
 import { lastFmManagementDependencies } from "@/app/dependencies/lastFmManagement";
 import { loadLegacyDiscCard } from "@/app/bridges/artistManagementCommunity";
 

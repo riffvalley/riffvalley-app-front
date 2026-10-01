@@ -1,17 +1,17 @@
-import { catalogApi } from "@/modules/catalog/infrastructure/catalogApi";
-import { useCatalogStore } from "@/modules/catalog/presentation/catalogStore";
-import { discListApi } from "@/modules/catalog/infrastructure/discListApi";
-import { listDiscs } from "@/modules/catalog/application/listDiscs";
-import type { DiscListParams } from "@/modules/catalog/application/catalogPort";
-import { artistManagementApi } from "@/modules/catalog/infrastructure/artistManagementApi";
-import type { ArtistManagementParams } from "@/modules/catalog/domain/artistManagement";
-import { updateArtist as updateArtistOperation } from "@/modules/catalog/application/updateArtist";
-import type { UpdateArtistInput } from "@/modules/catalog/application/artistManagementPort";
-import { deleteArtist as deleteArtistOperation } from "@/modules/catalog/application/deleteArtist";
-import { createCalendarArtist as createCalendarArtistOperation } from "@/modules/catalog/application/createCalendarArtist";
-import { calendarArtistCreationApi } from "@/modules/catalog/infrastructure/calendarArtistCreationApi";
-import { fillMissingArtistImages } from "@/modules/catalog/application/fillMissingArtistImages";
-import type { FillMissingArtistImagesCallbacks } from "@/modules/catalog/application/fillMissingArtistImages";
+import { catalogApi } from "@/modules/catalog/reference-data/infrastructure/catalogApi";
+import { useCatalogStore } from "@/modules/catalog/reference-data/presentation/stores/catalogStore";
+import { discListApi } from "@/modules/catalog/discs/listing/infrastructure/discListApi";
+import { listDiscs } from "@/modules/catalog/discs/listing/application/listDiscs";
+import type { DiscListParams } from "@/modules/catalog/discs/listing/application/discListPort";
+import { artistManagementApi } from "@/modules/catalog/artists/infrastructure/artistManagementApi";
+import type { ArtistManagementParams } from "@/modules/catalog/artists/domain/artistManagement";
+import { updateArtist as updateArtistOperation } from "@/modules/catalog/artists/editing/application/updateArtist";
+import type { UpdateArtistInput } from "@/modules/catalog/artists/application/artistManagementPort";
+import { deleteArtist as deleteArtistOperation } from "@/modules/catalog/artists/deletion/application/deleteArtist";
+import { createCalendarArtist as createCalendarArtistOperation } from "@/modules/catalog/artists/creation/application/createCalendarArtist";
+import { calendarArtistCreationApi } from "@/modules/catalog/artists/creation/infrastructure/calendarArtistCreationApi";
+import { fillMissingArtistImages } from "@/modules/catalog/artists/images/application/fillMissingArtistImages";
+import type { FillMissingArtistImagesCallbacks } from "@/modules/catalog/artists/images/application/fillMissingArtistImages";
 import { createBulkArtistImageSearchSession } from "@/app/dependencies/artistImages";
 
 /** Minimal composition for the catalog pilot consumer. */

@@ -2,11 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 
 const getCatalog = vi.hoisted(() => vi.fn());
-vi.mock("../../src/modules/catalog/infrastructure/catalogApi", () => ({
-  catalogApi: { getCatalog },
-}));
-
-import { useCatalogStore } from "../../src/modules/catalog/presentation/catalogStore";
+import { useCatalogStore } from "../../src/modules/catalog/reference-data/presentation/stores/catalogStore.ts";
 
 describe("catalog pilot store", () => {
   beforeEach(() => {

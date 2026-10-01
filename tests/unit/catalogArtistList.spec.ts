@@ -2,10 +2,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defineComponent, nextTick } from "vue";
 import { mount } from "@vue/test-utils";
-import { listArtists, ARTISTS_PAGE_SIZE } from "../../src/modules/catalog/application/listArtists";
-import type { ArtistManagementPort } from "../../src/modules/catalog/application/artistManagementPort";
-import type { ArtistManagementResponse } from "../../src/modules/catalog/domain/artistManagement";
-import { useArtistManagementList } from "../../src/modules/catalog/presentation/composables/useArtistManagementList";
+import { listArtists, ARTISTS_PAGE_SIZE } from "../../src/modules/catalog/artists/listing/application/listArtists";
+import type { ArtistManagementPort } from "../../src/modules/catalog/artists/application/artistManagementPort";
+import type { ArtistManagementResponse } from "../../src/modules/catalog/artists/domain/artistManagement";
+import { useArtistManagementList } from "../../src/modules/catalog/artists/listing/presentation/composables/useArtistManagementList.ts";
 
 const result = (page = 1, data: ArtistManagementResponse["data"] = []): ArtistManagementResponse => ({
   totalItems: data.length, totalPages: 3, currentPage: page, limit: 30,

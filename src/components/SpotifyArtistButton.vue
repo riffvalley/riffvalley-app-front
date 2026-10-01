@@ -10,7 +10,7 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import SwalService from "@services/swal/SwalService";
-import { obtenerEnlaceArtistaSpotify } from "@helpers/SpotifyFunctions";
+import { findArtistLink } from "@/integrations/spotify";
 
 export default defineComponent({
   name: "SpotifyArtistButton",
@@ -23,7 +23,7 @@ export default defineComponent({
   methods: {
     async openArtistLink() {
       try {
-        const link = await obtenerEnlaceArtistaSpotify(this.artistName);
+        const link = await findArtistLink(this.artistName);
         if (link) {
           window.open(link, "_blank");
         } else {
@@ -39,5 +39,4 @@ export default defineComponent({
   },
 });
 </script>
-
 

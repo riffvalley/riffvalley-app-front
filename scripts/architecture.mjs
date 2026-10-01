@@ -40,7 +40,7 @@ function sourceFor(filePath, text) {
 
 function moduleAndLayer(filePath) {
   const normalized = filePath.replaceAll(path.sep, "/");
-  const match = normalized.match(/^src\/modules\/([^/]+)\/(presentation|application|domain|infrastructure)\//);
+  const match = normalized.match(/^src\/modules\/([^/]+)\/(?:[^/]+\/)*?(presentation|application|domain|infrastructure)\//);
   return match ? { module: match[1], layer: match[2] } : null;
 }
 
@@ -138,6 +138,8 @@ export function analyzeFiles(files) {
       const targetLayer = resolvedTarget ? layerOf(resolvedTarget) : null;
       const isLegacyHttpService = HTTP_IMPORT.test(imported.specifier) ||
         resolvedTarget?.startsWith("src/services/");
+      const isSharedHttpTransport = resolvedTarget?.startsWith("src/shared/infrastructure/http/") ||
+        /^(?:@\/shared|@shared)\/infrastructure\/http\//.test(imported.specifier);
 
       if (owner && resolvedTarget?.startsWith("src/app/")) {
         add(imported.node, "un módulo no puede depender del composition root app");
@@ -167,7 +169,8 @@ export function analyzeFiles(files) {
         }
       }
 
-      if (isArchitectureCode && !allowsInfrastructure && isLegacyHttpService) {
+      if (isArchitectureCode && !allowsInfrastructure &&
+        (isLegacyHttpService || (isSharedHttpTransport && !isApp))) {
         add(imported.node, "HTTP y servicios legacy solo se permiten detrás de infrastructure");
       }
 

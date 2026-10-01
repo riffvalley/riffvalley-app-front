@@ -71,7 +71,7 @@ src/
 ```
 
 Solo se crean carpetas cuando tengan archivos necesarios. Cada módulo puede
-tener `presentation` (vistas, componentes, composables y stores),
+tener `presentation` (vistas, componentes, composables, helpers y stores),
 `application` (operaciones y puertos), `domain` (tipos y reglas propias) e
 `infrastructure` (adaptadores de API y persistencia). Una funcionalidad sencilla
 no necesita clases, entidades ricas ni un caso de uso ceremonial por cada GET.
@@ -79,7 +79,7 @@ La complejidad debe responder a una necesidad real, sin abstracciones por
 anticipado ni tipos idénticos duplicados sin motivo.
 
 Los composables de negocio pertenecen a la presentación del módulo propietario:
-`modules/catalog/presentation/composables/`,
+`modules/catalog/<feature>/presentation/composables/`,
 `modules/editorial/presentation/composables/` o
 `modules/community/presentation/composables/`. Solo composables transversales
 y sin dependencia de dominio, como `useDebounce`, `useMediaQuery` o
@@ -599,6 +599,19 @@ Eliminar únicamente compatibilidad legacy que ya no tenga consumidores.
 
 **Salida:** Catalog queda como un módulo coherente, con una API pública pequeña
 y sin dependencias legacy innecesarias.
+
+**Estado: implementado**, sin iniciar la Iteración 4. Estructura por capacidades
+y recorridos, API explícita, adaptadores sobre el transporte compartido y retirada
+de compatibilidad sin consumidores. Se preservan stores/fachadas con consumidores
+y proyecciones de pantallas mixtas. Inventario y decisiones en
+[docs/catalog-consolidation-3.5.md](docs/catalog-consolidation-3.5.md).
+
+**Validación:** lint, arquitectura, 164 pruebas unitarias, 7 E2E, build y
+`git diff --check` pasan. `yarn verify` se ejecuta pero no queda verde: el
+baseline textual rechaza un cambio en el orden impreso de una unión dentro del
+TS2345 ya existente de MonthlyVotesChart. HEAD y el resultado tienen los mismos
+118 diagnósticos salvo ese orden; no se amplía el baseline ni se toca el gráfico.
+
 
 ## Iteración 4 — Acciones de comunidad
 

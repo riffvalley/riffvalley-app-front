@@ -220,3 +220,27 @@ suites, 118 diagnósticos baseline y cero regresiones TypeScript, build) y
 `yarn typecheck:baseline:prune`, que eliminó una excepción ya resuelta por el
 cambio. Persisten los avisos de Browserslist, `.flex-[2]` y chunk superior a
 500 kB. No se inicia 3.4.5.
+
+## Subiteración 3.5 — Consolidación de Catalog
+
+Catalog se organiza por capacidades y recorridos: discs (listing/detail/calendars),
+artists (listing/editing/deletion/creation/detail/discovery/images) y reference-data.
+App conserva la composición; los consumidores de presentación usan la API
+explícita de Catalog. Sus adaptadores usan directamente el transporte compartido;
+se retiran cinco operaciones legacy de artistas sin consumidores, sus tipos
+huérfanos/reexports y el alias CalendarPageDto. Los dos stores de opciones y
+las fachadas con consumidores permanecen por compatibilidad.
+
+El guard reconoce capas anidadas y rechaza HTTP compartido fuera de infraestructura
+o composición. No se amplían excepciones arquitectónicas ni de TypeScript.
+Lint, arquitectura (91 archivos), 164 pruebas unitarias, 7 E2E de Chromium,
+build y diff --check pasan. verify se detiene en la comparación textual del
+error TS2345 preexistente de MonthlyVotesChart: HEAD y el resultado conservan
+118 diagnósticos; solo cambia el orden impreso de literales de updateMode.
+No se modifica el gráfico ni se debilita el baseline para ocultar esta limitación.
+Inventario, API, legacy pendiente, pruebas y deuda en
+[catalog-consolidation-3.5.md](catalog-consolidation-3.5.md). No se inicia Community.
+
+La presentación de Catalog se organiza por capacidad y tipo de UI; no hay
+archivos directamente bajo `presentation/`. La guía de capas y la navegación
+«Dónde busco algo» están en [catalog-structure.md](catalog-structure.md).

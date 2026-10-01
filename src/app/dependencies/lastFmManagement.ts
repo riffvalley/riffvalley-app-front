@@ -1,6 +1,6 @@
 import type { LastFmManagementDependencies } from "@/modules/catalog";
-import { searchCatalogArtists } from "@/modules/catalog/application/artistExternalProfile";
-import { artistManagementApi } from "@/modules/catalog/infrastructure/artistManagementApi";
+import { searchCatalogArtists } from "@/modules/catalog/artists/discovery/application/artistExternalProfile";
+import { artistManagementApi } from "@/modules/catalog/artists/infrastructure/artistManagementApi";
 import { loadLastFmManagementArtist } from "@/integrations/lastfm";
 import { managementArtistApi } from "@/integrations/lastfm/infrastructure/managementArtistApi";
 import { findArtistImages } from "./artistImages";

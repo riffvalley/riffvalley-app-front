@@ -8,6 +8,15 @@
         "value": "animate-bounce",
         "createdAt": "2026-09-30T18:50:11.485Z",
         "reason": "Intentional brief success feedback for the bookmark state labeled ¡Añadido!"
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "src/views/importPage/ImportPage.vue"
+        ],
+        "createdAt": "2026-09-30T20:03:08.967Z",
+        "reason": "Codex: falso positivo en el botón de borrar; text-gray-400 solo se aplica al estado sin fondo coloreado y hover:text-red-500 acompaña a hover:bg-red-50. Se conserva la UI exigida por 3.5."
       }
     ]
   }

@@ -1,19 +1,19 @@
 // @vitest-environment happy-dom
 import { describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
-import { updateArtist } from "../../src/modules/catalog/application/updateArtist";
-import type { ArtistUpdatePort } from "../../src/modules/catalog/application/artistManagementPort";
-import { applyArtistEditLocally } from "../../src/modules/catalog/presentation/artistManagementEditing";
-import { confirmAndDeleteArtist, removeArtistLocally } from "../../src/modules/catalog/presentation/artistManagementEditing";
-import { deleteArtist } from "../../src/modules/catalog/application/deleteArtist";
-import type { ArtistDeletePort } from "../../src/modules/catalog/application/artistManagementPort";
+import { updateArtist } from "../../src/modules/catalog/artists/editing/application/updateArtist";
+import type { ArtistUpdatePort } from "../../src/modules/catalog/artists/application/artistManagementPort";
+import { applyArtistEditLocally } from "../../src/modules/catalog/artists/editing/presentation/composables/artistManagementEditing.ts";
+import { confirmAndDeleteArtist, removeArtistLocally } from "../../src/modules/catalog/artists/deletion/presentation/composables/artistManagementDeletion.ts";
+import { deleteArtist } from "../../src/modules/catalog/artists/deletion/application/deleteArtist";
+import type { ArtistDeletePort } from "../../src/modules/catalog/artists/application/artistManagementPort";
 import ArtistEditForm from "../../src/app/components/ArtistEditForm.vue";
-import type { ArtistManagementItem } from "../../src/modules/catalog/domain/artistManagement";
-import { alternateCalendarCountryId } from "../../src/modules/catalog/domain/artistManagement";
-import { createCalendarArtist } from "../../src/modules/catalog/application/createCalendarArtist";
-import type { CalendarArtistCreationPort } from "../../src/modules/catalog/application/artistManagementPort";
-import { applyCalendarDiscArtistCreation } from "../../src/modules/catalog/domain/discCalendar";
-import type { CalendarGroup } from "../../src/modules/catalog/domain/discCalendar";
+import type { ArtistManagementItem } from "../../src/modules/catalog/artists/domain/artistManagement";
+import { alternateCalendarCountryId } from "../../src/modules/catalog/artists/editing/domain/calendarCountry";
+import { createCalendarArtist } from "../../src/modules/catalog/artists/creation/application/createCalendarArtist";
+import type { CalendarArtistCreationPort } from "../../src/modules/catalog/artists/application/artistManagementPort";
+import { applyCalendarDiscArtistCreation } from "../../src/modules/catalog/discs/calendars/domain/discCalendar";
+import type { CalendarGroup } from "../../src/modules/catalog/discs/calendars/domain/discCalendar";
 
 const artist: ArtistManagementItem = {
   id: "a1", name: "Old name", description: "Old bio", image: "old.jpg",

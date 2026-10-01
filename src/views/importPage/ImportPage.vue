@@ -225,7 +225,7 @@ import type { AlbumEntry, ManualImportResponse, DiscImportResultItem } from '@se
 import { updateDisc } from '@services/discs/discs';
 import { obtenerTokenSpotify } from '@helpers/SpotifyFunctions.ts';
 import { fetchCatalog } from '@/app/dependencies/catalog';
-import { useCatalogStore } from '@/modules/catalog/presentation/catalogStore';
+import { useCatalogStore } from '@/modules/catalog';
 import SearchableSelect from '@components/SearchableSelect.vue';
 import SwalService from '@services/swal/SwalService';
 

@@ -132,11 +132,11 @@ No se migran artistas ni se inicia 3.4.
 - `src/modules/catalog/index.ts`
 - `src/modules/catalog/infrastructure/calendarToolsApi.ts`
 - `src/modules/catalog/infrastructure/discCalendarApi.ts`
-- `src/modules/catalog/presentation/BabyDiscCalendarView.vue`
-- `src/modules/catalog/presentation/DiscCalendarView.vue`
-- `src/modules/catalog/presentation/calendarDate.ts`
-- `src/modules/catalog/presentation/composables/useCalendarPages.ts`
-- `src/modules/catalog/presentation/composables/useCalendarScroll.ts`
+- `src/modules/catalog/discs/calendars/presentation/views/BabyDiscCalendarView.vue`
+- `src/modules/catalog/discs/calendars/presentation/views/DiscCalendarView.vue`
+- `src/modules/catalog/discs/calendars/presentation/helpers/calendarDate.ts`
+- `src/modules/catalog/discs/calendars/presentation/composables/useCalendarPages.ts`
+- `src/modules/catalog/discs/calendars/presentation/composables/useCalendarScroll.ts`
 - `src/services/swal/SwalService.ts`
 - `src/shared/ui/errorToast.ts`
 - `src/views/discsCalendar/DiscCalendar.vue`

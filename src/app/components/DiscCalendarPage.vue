@@ -6,7 +6,7 @@ import { useCatalogStore } from "@stores/catalog/catalog";
 import { useAuthStore } from "@stores/auth/auth";
 import { calendarPort, enrichCalendarDiscs, searchCalendarImages } from "../dependencies/discCalendar";
 import { createAndAssociateCalendarArtist, updateCalendarArtist } from "../dependencies/catalog";
-import type { UpdateArtistInput } from "@/modules/catalog/application/artistManagementPort";
+import type { UpdateArtistInput } from "@/modules/catalog/artists/application/artistManagementPort";
 import { showErrorToast } from "@/shared/ui/errorToast";
 
 withDefaults(defineProps<{ embedded?: boolean; initialDate?: string; focusDiscId?: string }>(), {

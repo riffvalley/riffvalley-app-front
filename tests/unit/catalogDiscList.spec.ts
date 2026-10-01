@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { listDiscs } from "../../src/modules/catalog/application/listDiscs";
-import type { DiscListPort, DiscListResult } from "../../src/modules/catalog/application/catalogPort";
+import { listDiscs } from "../../src/modules/catalog/discs/listing/application/listDiscs";
+import type { DiscListPort, DiscListResult } from "../../src/modules/catalog/discs/listing/application/discListPort";
 
 describe("Catalog disc listing", () => {
   it("preserves pagination and filter parameters and normalizes user scores", async () => {

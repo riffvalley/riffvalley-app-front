@@ -2,10 +2,10 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent } from "vue";
 import { describe, expect, it, vi } from "vitest";
-import type { ArtistManagementItem } from "../../src/modules/catalog/domain/artistManagement";
-import type { LastFmManagementDependencies } from "../../src/modules/catalog/application/artistExternalProfile";
-import { useLastFmManagement } from "../../src/modules/catalog/presentation/composables/useLastFmManagement";
-import LastFmManagementModal from "../../src/modules/catalog/presentation/LastFmManagementModal.vue";
+import type { ArtistManagementItem } from "../../src/modules/catalog/artists/domain/artistManagement";
+import type { LastFmManagementDependencies } from "../../src/modules/catalog/artists/discovery/application/artistExternalProfile";
+import { useLastFmManagement } from "../../src/modules/catalog/artists/discovery/presentation/composables/useLastFmManagement.ts";
+import LastFmManagementModal from "../../src/modules/catalog/artists/discovery/presentation/components/LastFmManagementModal.vue";
 import router from "../../src/app/router";
 
 const disc = {

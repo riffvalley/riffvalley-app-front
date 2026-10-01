@@ -71,4 +71,50 @@ describe("guard de arquitectura", () => {
     }).join("\n")).toContain("importa internals del módulo identity");
   });
 
+  it("aplica los límites de capas dentro de capacidades y funcionalidades", () => {
+    const diagnostics = analyzeFiles({
+      "src/modules/catalog/artists/listing/application/read.ts":
+        'import { view } from "../presentation/view"; import { ref } from "vue"; export const read = () => { ref(window.location); return view; };',
+      "src/modules/catalog/artists/listing/presentation/view.ts":
+        'import api from "@/shared/infrastructure/http/client"; export const view = api;',
+      "src/shared/infrastructure/http/client.ts": "export default {};",
+    });
+    expect(diagnostics.join("\n")).toContain("la capa application no puede depender de presentation");
+    expect(diagnostics.join("\n")).toContain("la capa application no puede importar Vue");
+    expect(diagnostics.join("\n")).toContain("APIs del navegador (window)");
+    expect(diagnostics.join("\n")).toContain("HTTP y servicios legacy solo se permiten detrás de infrastructure");
+  });
+
+  it("reconoce adaptadores y contratos anidados sin relajar los límites entre módulos", () => {
+    const files = {
+      "src/modules/catalog/discs/calendars/infrastructure/api.ts":
+        'import api from "@services/api/api.ts"; import type { Page } from "../application/port"; export const load = (): Promise<Page> => api.get("/discs/date");',
+      "src/modules/catalog/discs/calendars/application/port.ts": "export interface Page { total: number }",
+    };
+    expect(analyzeFiles(files)).toEqual([]);
+    expect(analyzeFiles({
+      ...files,
+      "src/modules/community/ratings/presentation/card.ts":
+        'import { load } from "@/modules/catalog/discs/calendars/infrastructure/api"; export { load };',
+      "src/modules/catalog/artists/listing/application/read.ts":
+        'import { rating } from "@/modules/community"; export { rating };',
+    }).join("\n")).toContain("importa internals del módulo catalog");
+    expect(analyzeFiles({
+      "src/modules/catalog/artists/listing/application/read.ts":
+        'import { rating } from "@/modules/community"; export { rating };',
+    }).join("\n")).toContain("la capa application no puede depender de otro módulo (community)");
+  });
+
+  it("detecta ciclos entre funcionalidades y rechaza dependencias hacia app", () => {
+    const diagnostics = analyzeFiles({
+      "src/modules/catalog/artists/listing/application/read.ts":
+        'import { edit } from "../../editing/application/edit"; export const read = edit;',
+      "src/modules/catalog/artists/editing/application/edit.ts":
+        'import { read } from "../../listing/application/read"; import { compose } from "@/app/dependencies/catalog"; export const edit = () => { compose(); return read; };',
+      "src/app/dependencies/catalog.ts": "export const compose = () => {};",
+    });
+    expect(diagnostics.join("\n")).toContain("ciclo relevante");
+    expect(diagnostics.join("\n")).toContain("un módulo no puede depender del composition root app");
+  });
+
 });

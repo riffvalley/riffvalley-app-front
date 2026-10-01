@@ -11,7 +11,7 @@ import { useAuthStore } from "@stores/auth/auth";
 const { apiGet, apiPatch, errorToast } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPatch: vi.fn(), errorToast: vi.fn() }));
 vi.mock("@/shared/ui/errorToast", () => ({ showErrorToast: errorToast }));
 
-vi.mock("@services/api/api.ts", () => ({
+vi.mock("@/shared/infrastructure/http/client", () => ({
   default: { get: apiGet, patch: apiPatch },
 }));
 

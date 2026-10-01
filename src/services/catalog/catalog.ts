@@ -1,5 +1,5 @@
-import { catalogApi } from "@/modules/catalog/infrastructure/catalogApi";
-import type { Catalog, Country, Genre } from "@/modules/catalog/domain/catalog";
+import { catalogApi } from "@/modules/catalog/reference-data/infrastructure/catalogApi";
+import type { Catalog, Country, Genre } from "@/modules/catalog";
 
 export type { Country, Genre };
 export type CatalogResponse = Catalog;

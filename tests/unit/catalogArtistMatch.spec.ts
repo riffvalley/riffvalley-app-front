@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { artistManagementApi } from "../../src/modules/catalog/infrastructure/artistManagementApi";
+import { artistManagementApi } from "../../src/modules/catalog/artists/infrastructure/artistManagementApi";
 
 const { get } = vi.hoisted(() => ({ get: vi.fn() }));
-vi.mock("@services/api/api.ts", () => ({ default: { get } }));
+vi.mock("@/shared/infrastructure/http/client", () => ({ default: { get } }));
 
 describe("Catalog artist matching", () => {
   beforeEach(() => vi.clearAllMocks());

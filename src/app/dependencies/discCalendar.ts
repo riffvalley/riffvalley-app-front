@@ -1,6 +1,6 @@
-import { discCalendarApi } from "@/modules/catalog/infrastructure/discCalendarApi";
-import { calendarToolsApi } from "@/modules/catalog/infrastructure/calendarToolsApi";
-import { attachCalendarAlbum } from "@/modules/catalog/application/calendarTools";
+import { discCalendarApi } from "@/modules/catalog/discs/calendars/infrastructure/discCalendarApi";
+import { calendarToolsApi } from "@/modules/catalog/discs/calendars/infrastructure/calendarToolsApi";
+import { attachCalendarAlbum } from "@/modules/catalog/discs/calendars/application/calendarTools";
 import type { CalendarDisc } from "@/modules/catalog";
 import { albumLinksApi } from "@/integrations/spotify/infrastructure/albumLinksApi";
 import { calendarImagesApi } from "@/integrations/lastfm/infrastructure/calendarImagesApi";
