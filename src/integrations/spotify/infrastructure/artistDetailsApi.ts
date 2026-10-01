@@ -1,80 +1,69 @@
-import axios from "axios";
-import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
+import api from "@/shared/infrastructure/http/client";
 import type { ArtistDetailsPort } from "../application/artistDetails";
 
-interface SearchDto {
-  albums?: { items?: { artists?: { id: string }[] }[] };
-}
-
-interface ArtistDto {
+interface ArtistProfileDto {
+  spotifyId: string;
   name: string;
-  images?: { url: string }[];
-  genres?: string[];
-  followers?: { total?: number };
-  popularity?: number;
-  external_urls?: { spotify?: string };
+  imageUrl?: string | null;
+  genres?: string[] | null;
+  followers?: number | null;
+  popularity?: number | null;
+  listenUrl?: string | null;
 }
 
-interface TopTracksDto {
-  tracks?: {
-    id: string;
-    name: string;
-    album?: { name?: string; images?: { url: string }[] };
-    preview_url?: string | null;
-    external_urls?: { spotify?: string };
-    duration_ms: number;
-  }[];
+interface TopTrackDto {
+  id: string;
+  name: string;
+  albumName?: string | null;
+  albumImageUrl?: string | null;
+  previewUrl?: string | null;
+  listenUrl?: string | null;
+  durationMs?: number | null;
+}
+
+function isNotFoundError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("response" in error)) return false;
+  const response = error.response;
+  return typeof response === "object" && response !== null && "status" in response && response.status === 404;
 }
 
 export const artistDetailsApi: ArtistDetailsPort = {
-  async findArtistDetails({ discName, artistName }) {
+  async findArtistDetails({ artistName }) {
     try {
-      const token = await obtenerTokenSpotify();
-      if (!token) return { status: "token-unavailable" };
-      const headers = { Authorization: `Bearer ${token}` };
-      const query = encodeURIComponent(`album:${discName} artist:${artistName}`);
-      const search = await axios.get<SearchDto>(
-        `https://api.spotify.com/v1/search?q=${query}&type=album&limit=5`, { headers },
-      );
-      const firstAlbum = search.data.albums?.items?.[0];
-      if (!firstAlbum) return { status: "not-found" };
-      const firstArtist = firstAlbum.artists?.[0];
-      if (!firstArtist) return { status: "artist-not-found" };
+      const { data: artist } = await api.get<ArtistProfileDto | null>("/spotify/artists/search", {
+        params: { artistName },
+      });
+      if (!artist) return { status: "not-found" };
 
-      const artistResponse = await axios.get<ArtistDto>(
-        `https://api.spotify.com/v1/artists/${firstArtist.id}`, { headers },
+      const { data: tracks } = await api.get<TopTrackDto[]>(
+        `/spotify/artists/${encodeURIComponent(artist.spotifyId)}/top-tracks`,
       );
-      const tracksResponse = await axios.get<TopTracksDto>(
-        `https://api.spotify.com/v1/artists/${firstArtist.id}/top-tracks?market=US`, { headers },
-      );
-      const artist = artistResponse.data;
+
       return {
         status: "found",
         details: {
           artist: {
             name: artist.name,
-            imageUrl: artist.images?.[0]?.url,
+            imageUrl: artist.imageUrl ?? undefined,
             genres: artist.genres ?? [],
-            followers: artist.followers?.total,
-            popularity: artist.popularity,
-            spotifyUrl: artist.external_urls?.spotify,
+            followers: artist.followers ?? undefined,
+            popularity: artist.popularity ?? undefined,
+            spotifyUrl: artist.listenUrl ?? undefined,
           },
-          topTracks: (tracksResponse.data.tracks ?? []).map((track) => {
-            const albumImages = track.album?.images ?? [];
-            return {
-              id: track.id,
-              name: track.name,
-              albumName: track.album?.name,
-              albumImageUrl: albumImages.length ? albumImages[albumImages.length - 1]?.url : undefined,
-              previewUrl: track.preview_url ?? undefined,
-              spotifyUrl: track.external_urls?.spotify,
-              durationMs: track.duration_ms,
-            };
-          }),
+          topTracks: (Array.isArray(tracks) ? tracks : []).map((track) => ({
+            id: track.id,
+            name: track.name,
+            albumName: track.albumName ?? undefined,
+            albumImageUrl: track.albumImageUrl ?? undefined,
+            previewUrl: track.previewUrl ?? undefined,
+            spotifyUrl: track.listenUrl ?? undefined,
+            durationMs: track.durationMs ?? 0,
+          })),
         },
       };
     } catch (error: unknown) {
-      console.error("Error al buscar el artista en Spotify:", error);
+      if (isNotFoundError(error)) return { status: "not-found" };
+      console.error("Error al buscar el artista en Riff Valley:", error);
       return { status: "failed" };
     }
   },

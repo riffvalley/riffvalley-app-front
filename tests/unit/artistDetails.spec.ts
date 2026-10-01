@@ -4,11 +4,10 @@ import { flushPromises, mount } from "@vue/test-utils";
 import ArtistDetail from "../../src/components/ArtistDetail.vue";
 import { artistDetailsApi } from "../../src/integrations/spotify/infrastructure/artistDetailsApi";
 
-const { get, token, fetchDetails, fetchBiography } = vi.hoisted(() => ({
-  get: vi.fn(), token: vi.fn(), fetchDetails: vi.fn(), fetchBiography: vi.fn(),
+const { get, fetchDetails, fetchBiography } = vi.hoisted(() => ({
+  get: vi.fn(), fetchDetails: vi.fn(), fetchBiography: vi.fn(),
 }));
-vi.mock("axios", () => ({ default: { get } }));
-vi.mock("@helpers/SpotifyFunctions.ts", () => ({ obtenerTokenSpotify: token }));
+vi.mock("@/shared/infrastructure/http/client", () => ({ default: { get } }));
 vi.mock("@/app/dependencies/artistDetail", () => ({ fetchArtistDetails: fetchDetails }));
 vi.mock("@/app/dependencies/artistBiography", () => ({ fetchArtistBiography: fetchBiography }));
 
@@ -26,50 +25,41 @@ const foundDetails = {
 describe("Spotify artist detail integration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    token.mockResolvedValue("spotify-token");
   });
 
-  it("searches by disc and artist, uses the first album and artist, then fetches US top tracks", async () => {
-    get.mockResolvedValueOnce({ data: { albums: { items: [
-      { artists: [{ id: "first-artist" }] }, { artists: [{ id: "ignored-artist" }] },
-    ] } } }).mockResolvedValueOnce({ data: {
-      name: "Banda", images: [{ url: "https://images.test/artist.jpg" }], genres: ["rock"],
-      followers: { total: 1200 }, popularity: 85, external_urls: { spotify: "https://open.spotify.com/artist/first-artist" },
-    } }).mockResolvedValueOnce({ data: { tracks: [{
-      id: "track-1", name: "Canción", album: { name: "Disco", images: [{ url: "https://images.test/album.jpg" }] },
-      preview_url: "https://preview.test/track.mp3", external_urls: { spotify: "https://open.spotify.com/track/track-1" }, duration_ms: 61000,
-    }] } });
+  it("maps a complete profile and top tracks from the Riff Valley API", async () => {
+    get.mockResolvedValueOnce({ data: {
+      spotifyId: "artist-1", name: "Banda", imageUrl: "https://images.test/artist.jpg", genres: ["rock"],
+      followers: 1200, popularity: 85, listenUrl: "https://open.spotify.com/artist/artist-1",
+    } }).mockResolvedValueOnce({ data: [{
+      id: "track-1", name: "Canción", albumName: "Disco", albumImageUrl: "https://images.test/album.jpg",
+      previewUrl: "https://preview.test/track.mp3", listenUrl: "https://open.spotify.com/track/track-1", durationMs: 61000,
+    }] });
 
     await expect(artistDetailsApi.findArtistDetails({ discName: "Disco Uno", artistName: "Artista Uno" }))
       .resolves.toEqual({ status: "found", details: {
         artist: { name: "Banda", imageUrl: "https://images.test/artist.jpg", genres: ["rock"], followers: 1200,
-          popularity: 85, spotifyUrl: "https://open.spotify.com/artist/first-artist" },
+          popularity: 85, spotifyUrl: "https://open.spotify.com/artist/artist-1" },
         topTracks: [{ id: "track-1", name: "Canción", albumName: "Disco",
           albumImageUrl: "https://images.test/album.jpg", previewUrl: "https://preview.test/track.mp3",
           spotifyUrl: "https://open.spotify.com/track/track-1", durationMs: 61000 }],
       } });
-    expect(get.mock.calls.map(([url]) => url)).toEqual([
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent("album:Disco Uno artist:Artista Uno")}&type=album&limit=5`,
-      "https://api.spotify.com/v1/artists/first-artist",
-      "https://api.spotify.com/v1/artists/first-artist/top-tracks?market=US",
+    expect(get.mock.calls).toEqual([
+      ["/spotify/artists/search", { params: { artistName: "Artista Uno" } }],
+      ["/spotify/artists/artist-1/top-tracks"],
     ]);
-    expect(get.mock.calls[0][1]).toEqual({ headers: { Authorization: "Bearer spotify-token" } });
   });
 
-  it("reports an empty search and an album without artists without requesting artist details", async () => {
-    get.mockResolvedValueOnce({ data: { albums: { items: [] } } });
+  it("reports an artist not found without requesting top tracks", async () => {
+    get.mockResolvedValueOnce({ data: null });
     await expect(artistDetailsApi.findArtistDetails({ discName: "Missing", artistName: "Band" }))
       .resolves.toEqual({ status: "not-found" });
-    get.mockResolvedValueOnce({ data: { albums: { items: [{ artists: [] }] } } });
-    await expect(artistDetailsApi.findArtistDetails({ discName: "No artist", artistName: "Band" }))
-      .resolves.toEqual({ status: "artist-not-found" });
-    expect(get).toHaveBeenCalledTimes(2);
+    expect(get).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps optional Spotify fields optional and reports provider errors", async () => {
-    get.mockResolvedValueOnce({ data: { albums: { items: [{ artists: [{ id: "artist-1" }] }] } } })
-      .mockResolvedValueOnce({ data: { name: "Banda" } })
-      .mockResolvedValueOnce({ data: { tracks: [{ id: "track-1", name: "Sin extras", duration_ms: 0 }] } });
+  it("keeps absent optional fields optional and normalizes a missing duration", async () => {
+    get.mockResolvedValueOnce({ data: { spotifyId: "artist-1", name: "Banda" } })
+      .mockResolvedValueOnce({ data: [{ id: "track-1", name: "Sin extras", durationMs: null }] });
     await expect(artistDetailsApi.findArtistDetails({ discName: "Disco", artistName: "Banda" }))
       .resolves.toEqual({ status: "found", details: {
         artist: { name: "Banda", genres: [], imageUrl: undefined, followers: undefined,
@@ -77,7 +67,20 @@ describe("Spotify artist detail integration", () => {
         topTracks: [{ id: "track-1", name: "Sin extras", albumName: undefined,
           albumImageUrl: undefined, previewUrl: undefined, spotifyUrl: undefined, durationMs: 0 }],
       } });
+  });
 
+  it("returns an empty top tracks list when the backend has no tracks", async () => {
+    get.mockResolvedValueOnce({ data: { spotifyId: "artist-1", name: "Banda" } })
+      .mockResolvedValueOnce({ data: [] });
+    await expect(artistDetailsApi.findArtistDetails({ discName: "Disco", artistName: "Banda" }))
+      .resolves.toEqual({ status: "found", details: {
+        artist: { name: "Banda", imageUrl: undefined, genres: [], followers: undefined,
+          popularity: undefined, spotifyUrl: undefined },
+        topTracks: [],
+      } });
+  });
+
+  it("maps backend errors to failed", async () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     get.mockRejectedValue(new Error("provider down"));
     await expect(artistDetailsApi.findArtistDetails({ discName: "Disco", artistName: "Banda" }))
