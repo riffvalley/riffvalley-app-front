@@ -754,30 +754,122 @@ error, doble envío y coherencia tras recargar.
 
 ### 4.4 — Conversación de comentarios en un disco
 
-**Alcance:** migrar `ComentsModal.vue` y `CommentItem.vue`: cargar el árbol,
-crear comentarios raíz y respuestas, editar y borrar. Conservar el evento de
-abrir usuario para que `app` componga el modal de usuario actual.
+Migrar `ComentsModal.vue` y `CommentItem.vue` en cortes revisables. El flujo
+actual carga al abrir, arma en cliente un árbol desde una respuesta plana y
+mantiene ese árbol en el modal. El endpoint de creación sirve tanto para raíz
+como para respuesta (`parentId` opcional); editar y borrar usan endpoints
+propios. No hay cache compartida entre aperturas.
 
-**Fuera de alcance:** el modo “Mis comentarios” de `DiscList.vue`, el historial
-de votos del modal de usuario y la gestión de sesión/permisos de Identity.
+#### 4.4.1 — Carga, árbol y recuento
 
-**Ownership/cache:** Community posee el árbol mientras la conversación está
-abierta y el recuento del disco; cargar al abrir y no persistir entre aperturas.
-Identity aporta usuario/avatar/roles por contrato público. Actualizar el árbol
-y el resumen solo después de éxito.
+**Alcance:** lectura de comentarios del disco, tipado del DTO/modelo necesario,
+construcción del árbol y su recuento en la conversación activa. Conservar
+comentarios huérfanos como raíces como hace el código actual.
 
-**Criterio de cierre:** las respuestas conservan su relación con el padre y las
-ediciones y borrados actualizan la conversación tras confirmación del backend.
-Se conserva el marcador de comentario eliminado y la conducta de moderación.
+**Dependencias:** ninguna dentro de 4.4. La carga ocurre al abrir; descartar o
+reiniciar estado al cerrar y reabrir. El contador visible dentro del modal se
+deriva recursivamente del árbol. Al migrar el componente, establecer desde el
+principio una entrada/puente de composición para usuario actual y avatar desde
+`app`; no llevar el import legacy de auth a Community mientras se esperan los
+cortes de Identity de 4.4.6.
 
-**Riesgos:** el árbol es recursivo; el componente importa hoy el store legacy de
-auth. Los servicios contienen dos funciones de actualización equivalentes.
-Evitar que Community absorba el modal de historial de Analytics o reglas de
-autorización.
+**Fuera de alcance:** comentario propio paginado de `DiscList.vue` y el
+`commentCount` que llega en la proyección de disco de Catalog; este último no se
+actualiza hoy al mutar el modal y su coherencia queda para 4.4.7/consolidación.
 
-**Tests:** árbol raíz/respuestas, edición, borrado lógico visible, permisos de
-autor/moderación, avatar, recuento, fallos sin mutación local y doble envío en
-comentario y respuesta.
+#### 4.4.2 — Crear comentario raíz
+
+**Alcance:** envío desde el campo del pie, validación de texto no vacío y
+agregado al árbol solo después del éxito del backend.
+
+**Dependencias:** 4.4.1 para árbol y recuento. Mantener el endpoint y payload
+actuales sin `parentId`.
+
+**Riesgo:** no hay bloqueo de petición en curso; doble clic/Enter puede emitir
+duplicados. Añadir coordinación de envío por conversación y conservar el
+comportamiento pesimista.
+
+#### 4.4.3 — Responder comentario
+
+**Alcance:** formulario recursivo, envío con `parentId` y agregado bajo el
+padre correcto tras éxito.
+
+**Dependencias:** 4.4.1 y la operación de creación introducida en 4.4.2; ambos
+tipos usan el mismo endpoint, pero el estado de texto/bloqueo es por formulario
+de respuesta. Conservar la posibilidad actual de responder a cualquier
+comentario no eliminado.
+
+**Riesgo:** tampoco se bloquea el doble envío. La mutación local del hijo y el
+árbol raíz deben reflejar una única respuesta confirmada.
+
+#### 4.4.4 — Editar comentario
+
+**Alcance:** editar contenido y `editedAt` en el árbol tras respuesta exitosa.
+Conservar la marca “editado” con su umbral actual mientras el backend entregue
+`editedAt` igual a `createdAt` al crear.
+
+**Dependencias:** 4.4.1 para localizar y actualizar cualquier nodo. La
+visibilidad actual de editar depende de que el autor coincida con el usuario
+activo; es una regla de presentación, no autorización efectiva.
+
+#### 4.4.5 — Borrar comentario
+
+**Alcance:** confirmación, borrado backend y marcador local “Comentario
+eliminado”; no quitar físicamente el nodo ni sus respuestas. Después de borrar,
+ocultar autor, acciones y formulario de respuesta como ahora.
+
+**Dependencias:** 4.4.1 para actualizar el árbol; mantener el marcador solo tras
+éxito. La UI actual solo ofrece borrar al autor y no muestra una acción de
+moderación. La autorización definitiva corresponde al backend: no inventar ni
+retirar permisos de moderación sin verificar el contrato real.
+
+#### 4.4.6 — Identity, avatar y apertura de usuario
+
+**Alcance:** completar la integración pública con Identity iniciada en 4.4.1 y
+la composición de apertura/cierre del modal de usuario desde `app`. Mantener el
+fallback entre `avatarUrl`, `image` y avatar de la sesión.
+
+**Dependencias:** las operaciones anteriores ya reciben el usuario actual por
+la entrada pública establecida en 4.4.1; no importar `modules/identity`
+internals desde Community. `UserModal.vue` muestra historial
+de votos (Analytics/proyección de actividad) y depende de servicios legacy, por
+lo que permanece en app/legacy, no pasa a Community ni se migra aquí. Roles se
+exponen solo si la UI ya los necesita; la autorización permanece en backend.
+
+#### 4.4.7 — Consolidación de la conversación
+
+**Alcance:** revisar API pública, árbol único compartido por todas las
+mutaciones, bloqueos de doble envío, errores, permisos visibles y compatibilidad
+de los componentes. Resolver expresamente la coherencia de `commentCount` de la
+tarjeta, que hoy no recibe cambios al crear/borrar aunque el recuento del modal
+sí se deriva del árbol. No crear una cache persistente: la conversación es
+estado local al modal.
+
+**Fuera de alcance de 4.4:** modo “Mis comentarios” y su consulta
+filtrada/paginada de `DiscList.vue` (4.5), reglas de sesión/permisos de
+Identity, modal e historial de usuario, y autorización backend.
+
+**Criterio de cierre:** raíces, respuestas, edición y marcador de borrado
+conservan el comportamiento tras confirmación; recuentos coherentes dentro de
+la conversación y contrato explícito para actualizar/inutilizar el resumen del
+disco; ningún doble envío de la misma instancia; Community no importa el store
+legacy de auth ni el modal de historial.
+
+**Riesgos observados:** árbol recursivo duplicado entre `ComentsModal` y el
+estado local de cada `CommentItem`; mutaciones actualmente llaman HTTP desde
+componentes; las acciones no bloquean envíos; el contador de la tarjeta queda
+desfasado tras mutaciones. El servicio contiene dos funciones de actualización
+equivalentes, que se consolidan al migrar sin ampliar el contrato.
+
+**Tests:** caracterizar carga/árbol, huérfanos, recuento, autoría, respuesta a
+comentario eliminado, edición, marcador y respuestas conservadas al borrar,
+fallos sin cambio local, avatar, apertura de usuario, envíos repetidos y
+coherencia del contador de tarjeta. Cubrir autorización efectiva solo mediante
+el contrato/backend simulado; el guard de UI no demuestra permisos.
+
+**Orden recomendado:** 4.4.1 → 4.4.2 → 4.4.3 → 4.4.4 → 4.4.5 → 4.4.6 → 4.4.7.
+Los cortes 4.4.2–4.4.5 son separables tras establecer el árbol; la consolidación
+debe integrar el evento/estado compartido antes de cerrar el flujo.
 
 **Modelo recomendado:** Luna HyperHigh.
 

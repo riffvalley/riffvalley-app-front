@@ -4,3 +4,8 @@ export { loadDiscVotes, saveDiscRating } from "./ratings/application/ratingActio
 export { useCommunityRatingStore } from "./ratings/presentation/ratingStore";
 export type { UserRatingsQuery, UserRatingsResult, UserRating } from "./ratings/domain/userRatings";
 export { listUserRatings } from "./ratings/application/listUserRatings";
+export type { CommentUser, DiscComment, FlatDiscComment } from "./comments/domain/comment";
+export { buildCommentTree, countComments } from "./comments/domain/comment";
+export type { CommentPort } from "./comments/application/commentPort";
+export { loadDiscConversation } from "./comments/application/loadDiscConversation";
+export { useDiscConversation } from "./comments/presentation/useDiscConversation";

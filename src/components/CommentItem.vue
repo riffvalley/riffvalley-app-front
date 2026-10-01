@@ -101,25 +101,26 @@
     <div v-if="showReplyForm && !localComment.isDeleted" class="pb-3 pl-12">
 
       <Transition name="emoji-slide">
-        <div v-if="showReplyEmojiPicker"
-          class="mb-1 bg-white dark:bg-rv-darkCard rounded-xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden">
-          <div class="flex border-b border-gray-100 dark:border-white/10">
-            <button v-for="cat in emojiCategories" :key="cat.name" type="button"
-              @click="activeReplyEmojiCategory = cat.name"
-              class="flex-1 py-1.5 text-sm bg-transparent border-0 outline-none focus:outline-none transition-colors"
-              :class="activeReplyEmojiCategory === cat.name
-                ? 'bg-gray-100 dark:bg-rv-darkSurface'
-                : 'hover:bg-gray-50 dark:hover:bg-rv-darkSurface/60'">
-              {{ cat.label }}
-            </button>
-          </div>
-          <div class="grid grid-cols-9 gap-0.5 p-2 max-h-28 overflow-y-auto">
-            <button v-for="emoji in currentReplyEmojis" :key="emoji" type="button"
-              @click="insertReplyEmoji(emoji)"
-              class="text-base p-1 rounded-lg bg-transparent border-0 outline-none focus:outline-none
-                     hover:bg-gray-100 dark:hover:bg-white/10 transition-colors leading-none">
-              {{ emoji }}
-            </button>
+        <div v-if="showReplyEmojiPicker" class="emoji-slide-grid mb-1">
+          <div class="emoji-slide-content bg-white dark:bg-rv-darkCard rounded-xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden">
+            <div class="flex border-b border-gray-100 dark:border-white/10">
+              <button v-for="cat in emojiCategories" :key="cat.name" type="button"
+                @click="activeReplyEmojiCategory = cat.name"
+                class="flex-1 py-1.5 text-sm bg-transparent border-0 outline-none focus:outline-none transition-colors"
+                :class="activeReplyEmojiCategory === cat.name
+                  ? 'bg-gray-100 dark:bg-rv-darkSurface'
+                  : 'hover:bg-gray-50 dark:hover:bg-rv-darkSurface/60'">
+                {{ cat.label }}
+              </button>
+            </div>
+            <div class="grid grid-cols-9 gap-0.5 p-2 max-h-28 overflow-y-auto">
+              <button v-for="emoji in currentReplyEmojis" :key="emoji" type="button"
+                @click="insertReplyEmoji(emoji)"
+                class="text-base p-1 rounded-lg bg-transparent border-0 outline-none focus:outline-none
+                       hover:bg-gray-100 dark:hover:bg-white/10 transition-colors leading-none">
+                {{ emoji }}
+              </button>
+            </div>
           </div>
         </div>
       </Transition>
@@ -152,6 +153,7 @@
       <CommentItem
         v-for="reply in localComment.replies" :key="reply.id"
         :comment="reply" :disc-id="discId" :depth="depth + 1" :avatar-size="avatarSize"
+        :current-user="currentUser" :session-avatar="sessionAvatar"
         @reply-added="$emit('reply-added', $event)"
         @deleted="$emit('deleted', $event)"
         @comment-updated="$emit('comment-updated', $event)"
@@ -162,28 +164,29 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, watch, nextTick } from "vue";
+import { computed, defineComponent, ref, nextTick, type PropType } from "vue";
 import { postcommentService, updateCommentService, deleteCommentService } from "@services/comments/comments";
-import { useAuthStore } from "@stores/auth/auth.ts";
 import SwalService from "@services/swal/SwalService";
+import type { DiscComment } from "@/modules/community";
+
+interface CurrentCommentUser {
+  id: string | null;
+  username: string | null;
+}
 
 export default defineComponent({
   name: "CommentItem",
   props: {
-    comment:    { type: Object, required: true },
+    comment:    { type: Object as PropType<DiscComment>, required: true },
     discId:     { type: String, required: true },
     depth:      { type: Number, default: 0 },
     avatarSize: { type: Number, default: 36 },
+    currentUser: { type: Object as PropType<CurrentCommentUser>, required: true },
+    sessionAvatar: { type: String, default: "" },
   },
   emits: ["reply-added", "deleted", "comment-updated", "open-user"],
   setup(props, { emit }) {
-    const localComment = ref({ ...props.comment });
-
-    watch(
-      () => props.comment,
-      (newVal) => { localComment.value = { ...newVal }; },
-      { deep: true, immediate: true }
-    );
+    const localComment = computed(() => props.comment);
 
     const avatarSizePx = computed(() => props.depth === 0 ? 34 : 28);
 
@@ -219,9 +222,8 @@ export default defineComponent({
       });
     };
 
-    const authStore      = useAuthStore();
-    const user           = computed(() => authStore.loggedUser);
-    const isOwnComment   = computed(() => localComment.value?.user?.id === user.value?.id);
+    const user = computed(() => props.currentUser);
+    const isOwnComment = computed(() => localComment.value.user.id === user.value.id);
 
     // Solo mostrar "(editado)" si editedAt es al menos 10 segundos posterior a createdAt.
     // El backend guarda editedAt = createdAt por defecto (bug de TypeORM @UpdateDateColumn),
@@ -237,7 +239,7 @@ export default defineComponent({
       const u = localComment.value?.user || {};
       if (u.avatarUrl && typeof u.avatarUrl === "string" && u.avatarUrl.length) return u.avatarUrl;
       if (u.image    && typeof u.image    === "string" && u.image.length)    return u.image;
-      if (u.id && user.value?.id && u.id === user.value.id && authStore.avatarUrl) return authStore.avatarUrl;
+      if (u.id && user.value?.id && u.id === user.value.id && props.sessionAvatar) return props.sessionAvatar;
       return null;
     });
 
@@ -248,15 +250,16 @@ export default defineComponent({
     const submitReply = async () => {
       if (!replyText.value.trim()) { SwalService.error("La respuesta no puede estar vacía."); return; }
       try {
-        const newReply = await postcommentService({
+        const createdReply = await postcommentService({
           discId:   props.discId,
           comment:  replyText.value,
           parentId: localComment.value.id,
-        });
+        }) as unknown as Omit<DiscComment, "replies">;
+        const newReply: DiscComment = { ...createdReply, replies: [] };
         if (!localComment.value.replies) localComment.value.replies = [];
         if (newReply?.user?.id && user.value?.id && newReply.user.id === user.value.id) {
-          if (!newReply.user.avatarUrl && !newReply.user.image && authStore.avatarUrl) {
-            newReply.user.avatarUrl = authStore.avatarUrl;
+          if (!newReply.user.avatarUrl && !newReply.user.image && props.sessionAvatar) {
+            newReply.user.avatarUrl = props.sessionAvatar;
           }
         }
         localComment.value.replies.push(newReply);
@@ -330,12 +333,12 @@ export default defineComponent({
 
 <style scoped>
 .emoji-slide-enter-active, .emoji-slide-leave-active {
-  transition: max-height 0.25s ease, opacity 0.2s ease;
-  max-height: 200px;
-  overflow: hidden;
+  transition: grid-template-rows 0.25s ease, opacity 0.2s ease;
 }
+.emoji-slide-grid { display: grid; grid-template-rows: 1fr; }
+.emoji-slide-content { min-height: 0; }
 .emoji-slide-enter-from, .emoji-slide-leave-to {
-  max-height: 0;
+  grid-template-rows: 0fr;
   opacity: 0;
 }
 </style>

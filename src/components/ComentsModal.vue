@@ -47,6 +47,7 @@
             <CommentItem
               v-for="comment in comments" :key="comment.id"
               :comment="comment" :disc-id="discId" :depth="0"
+              :current-user="currentUser" :session-avatar="sessionAvatar"
               @reply-added="onReplyAdded"
               @deleted="handleCommentDeleted"
               @comment-updated="handleCommentUpdated"
@@ -58,24 +59,25 @@
 
             <!-- Emoji picker -->
             <Transition name="emoji-slide">
-              <div v-if="showEmojiPicker"
-                class="mb-2 bg-white dark:bg-rv-darkCard rounded-xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden">
-                <div class="flex border-b border-gray-100 dark:border-white/10">
-                  <button v-for="cat in emojiCategories" :key="cat.name" type="button"
-                    @click="activeEmojiCategory = cat.name"
-                    class="flex-1 py-1.5 text-base transition-colors bg-transparent border-0 outline-none focus:outline-none"
-                    :class="activeEmojiCategory === cat.name
-                      ? 'bg-gray-100 dark:bg-rv-darkSurface'
-                      : 'hover:bg-gray-50 dark:hover:bg-rv-darkSurface/60'">
-                    {{ cat.label }}
-                  </button>
-                </div>
-                <div class="grid grid-cols-9 gap-0.5 p-2 max-h-32 overflow-y-auto">
-                  <button v-for="emoji in currentEmojis" :key="emoji" type="button"
-                    @click="insertEmoji(emoji)"
-                    class="text-lg p-1 rounded-lg bg-transparent border-0 outline-none focus:outline-none hover:bg-gray-100 dark:hover:bg-white/10 transition-colors leading-none">
-                    {{ emoji }}
-                  </button>
+              <div v-if="showEmojiPicker" class="emoji-slide-grid mb-2">
+                <div class="emoji-slide-content bg-white dark:bg-rv-darkCard rounded-xl border border-gray-200 dark:border-white/10 shadow-xl overflow-hidden">
+                  <div class="flex border-b border-gray-100 dark:border-white/10">
+                    <button v-for="cat in emojiCategories" :key="cat.name" type="button"
+                      @click="activeEmojiCategory = cat.name"
+                      class="flex-1 py-1.5 text-base transition-colors bg-transparent border-0 outline-none focus:outline-none"
+                      :class="activeEmojiCategory === cat.name
+                        ? 'bg-gray-100 dark:bg-rv-darkSurface'
+                        : 'hover:bg-gray-50 dark:hover:bg-rv-darkSurface/60'">
+                      {{ cat.label }}
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-9 gap-0.5 p-2 max-h-32 overflow-y-auto">
+                    <button v-for="emoji in currentEmojis" :key="emoji" type="button"
+                      @click="insertEmoji(emoji)"
+                      class="text-lg p-1 rounded-lg bg-transparent border-0 outline-none focus:outline-none hover:bg-gray-100 dark:hover:bg-white/10 transition-colors leading-none">
+                      {{ emoji }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </Transition>
@@ -119,35 +121,13 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, toRefs, nextTick } from "vue";
 import CommentItem from "./CommentItem.vue";
-import { getDisccomments, postcommentService } from "@services/comments/comments";
+import { postcommentService } from "@services/comments/comments";
 import SwalService from "@services/swal/SwalService";
 import UserModal from '@/components/UserModal.vue';
+import { useDiscConversation, type DiscComment } from "@/modules/community";
+import { getCommunityCommentIdentity, loadCommunityConversation } from "@/app/dependencies/communityConversation";
 
-function buildCommentTree(flatComments: any[]): any[] {
-  const commentMap: Record<string, any> = {};
-  flatComments.forEach((c) => {
-    commentMap[c.id] = { ...c, replies: [] };
-  });
-  const rootComments: any[] = [];
-  flatComments.forEach((c) => {
-    if (c.parentId) {
-      if (commentMap[c.parentId]) {
-        commentMap[c.parentId].replies.push(commentMap[c.id]);
-      } else {
-        rootComments.push(commentMap[c.id]);
-      }
-    } else {
-      rootComments.push(commentMap[c.id]);
-    }
-  });
-  return rootComments;
-}
-
-function countComments(list: any[]): number {
-  return list.reduce((acc, c) => acc + 1 + countComments(c.replies ?? []), 0);
-}
-
-function markCommentAsDeleted(comments: any[], commentId: string): any[] {
+function markCommentAsDeleted(comments: DiscComment[], commentId: string): DiscComment[] {
   comments.forEach((comment) => {
     if (comment.id === commentId) {
       comment.isDeleted = true;
@@ -160,7 +140,7 @@ function markCommentAsDeleted(comments: any[], commentId: string): any[] {
   return comments;
 }
 
-function updateCommentInTree(commentList: any[], updated: any) {
+function updateCommentInTree(commentList: DiscComment[], updated: Pick<DiscComment, "id" | "comment" | "editedAt">) {
   commentList.forEach((c) => {
     if (c.id === updated.id) {
       c.comment  = updated.comment;
@@ -181,11 +161,12 @@ export default defineComponent({
   },
   emits: ["close"],
   setup(props, { emit }) {
-    const comments       = ref<any[]>([]);
+    const conversation = useDiscConversation(props.discId, loadCommunityConversation);
+    const comments = conversation.comments;
     const topCommentText = ref("");
     const inputRef       = ref<HTMLInputElement | null>(null);
 
-    const totalComments = computed(() => countComments(comments.value));
+    const totalComments = conversation.totalComments;
 
     // --- Emoji picker ---
     const showEmojiPicker       = ref(false);
@@ -216,6 +197,7 @@ export default defineComponent({
     };
 
     const { artistName, albumName, discId } = toRefs(props);
+    const { user: currentUser, avatar: sessionAvatar } = getCommunityCommentIdentity();
 
     const showUserModal      = ref(false);
     const selectedUserName   = ref('');
@@ -231,9 +213,8 @@ export default defineComponent({
 
     const fetchComments = async () => {
       try {
-        const fetched  = await getDisccomments(discId.value);
-        comments.value = buildCommentTree(fetched);
-      } catch (error) {
+        await conversation.load();
+      } catch {
         SwalService.error("Error al cargar los comentarios.");
       }
     };
@@ -256,13 +237,13 @@ export default defineComponent({
       }
     };
 
-    const onReplyAdded = (_payload: { parentId: string; reply: any }) => {};
+    const onReplyAdded = (_payload: { parentId: string; reply: DiscComment }) => {};
 
     const handleCommentDeleted = (commentId: string) => {
       comments.value = markCommentAsDeleted(comments.value, commentId);
     };
 
-    const handleCommentUpdated = (updated: any) => {
+    const handleCommentUpdated = (updated: Pick<DiscComment, "id" | "comment" | "editedAt">) => {
       updateCommentInTree(comments.value, updated);
     };
 
@@ -285,6 +266,8 @@ export default defineComponent({
       artistName,
       albumName,
       discId,
+      currentUser,
+      sessionAvatar,
       showUserModal,
       selectedUserName,
       selectedUserId,
@@ -293,6 +276,7 @@ export default defineComponent({
     };
   },
 });
+
 </script>
 
 <style scoped>
@@ -308,12 +292,12 @@ export default defineComponent({
 }
 
 .emoji-slide-enter-active, .emoji-slide-leave-active {
-  transition: max-height 0.25s ease, opacity 0.2s ease;
-  max-height: 200px;
-  overflow: hidden;
+  transition: grid-template-rows 0.25s ease, opacity 0.2s ease;
 }
+.emoji-slide-grid { display: grid; grid-template-rows: 1fr; }
+.emoji-slide-content { min-height: 0; }
 .emoji-slide-enter-from, .emoji-slide-leave-to {
-  max-height: 0;
+  grid-template-rows: 0fr;
   opacity: 0;
 }
 </style>
