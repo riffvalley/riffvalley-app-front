@@ -116,7 +116,6 @@ import { getDiscsDated, updateDisc } from "@services/discs/discs";
 import { getRvUsers } from "@services/users/users";
 import { getGenres } from "@services/genres/genres"; // Importa getGenres
 import SwalService from "@services/swal/SwalService";
-import { obtenerEnlaceArtistaSpotify } from "@helpers/SpotifyFunctions";
 import { postAsignationService } from "@services/asignation/asignation";
 import { useAsignationStore } from "@stores/asignation/asignation";
 import { updateAsignationService } from "@services/asignation/asignation";
