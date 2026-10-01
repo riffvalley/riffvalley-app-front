@@ -1,6 +1,7 @@
-import { loadDiscVotes, saveDiscRating, useCommunityRatingStore } from "@/modules/community";
-import type { DiscRatingState } from "@/modules/community";
+import { loadDiscVotes, listUserRatings, saveDiscRating, useCommunityRatingStore } from "@/modules/community";
+import type { DiscRatingState, UserRatingsQuery } from "@/modules/community";
 import { legacyRatingApi } from "@/modules/community/ratings/infrastructure/legacyRatingApi";
+import { userRatingsApi } from "@/modules/community/ratings/infrastructure/userRatingsApi";
 
 export interface SaveCommunityRatingInput {
   userId: string;
@@ -60,4 +61,8 @@ export async function saveCommunityRating(input: SaveCommunityRatingInput): Prom
   } finally {
     store.finishSubmit(input.userId, input.discId);
   }
+}
+
+export function fetchUserRatings(params: UserRatingsQuery) {
+  return listUserRatings(userRatingsApi, params);
 }

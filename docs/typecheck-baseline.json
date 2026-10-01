@@ -334,13 +334,6 @@
     {
       "file": "src/views/discsList/DiscList.vue",
       "code": 2339,
-      "message": "Property 'data' does not exist on type 'DiscRate[]'.",
-      "source": "...response.data.map((rate) => ({",
-      "count": 2
-    },
-    {
-      "file": "src/views/discsList/DiscList.vue",
-      "code": 2339,
       "message": "Property 'getBoundingClientRect' does not exist on type 'never'.",
       "source": "const rect = loadMore.value.getBoundingClientRect();",
       "count": 1
@@ -361,20 +354,6 @@
     },
     {
       "file": "src/views/discsList/DiscList.vue",
-      "code": 2339,
-      "message": "Property 'totalItems' does not exist on type 'DiscRate[]'.",
-      "source": "totalCovers.value = response.totalItems;",
-      "count": 1
-    },
-    {
-      "file": "src/views/discsList/DiscList.vue",
-      "code": 2339,
-      "message": "Property 'totalItems' does not exist on type 'DiscRate[]'.",
-      "source": "totalRates.value = response.totalItems;",
-      "count": 1
-    },
-    {
-      "file": "src/views/discsList/DiscList.vue",
       "code": 7006,
       "message": "Parameter 'favorite' implicitly has an 'any' type.",
       "source": "...response.data.map((favorite) => ({",
@@ -386,13 +365,6 @@
       "message": "Parameter 'pending' implicitly has an 'any' type.",
       "source": "...response.data.map((pending) => ({",
       "count": 1
-    },
-    {
-      "file": "src/views/discsList/DiscList.vue",
-      "code": 7006,
-      "message": "Parameter 'rate' implicitly has an 'any' type.",
-      "source": "...response.data.map((rate) => ({",
-      "count": 2
     },
     {
       "file": "src/views/discsList/DiscList.vue",
@@ -560,13 +532,6 @@
       "code": 7016,
       "message": "Could not find a declaration file for module 'vue-circle-flags'. '<repo>/node_modules/vue-circle-flags/dist/vue-circle-flags.es.js' implicitly has an 'any' type.\n  There are types at '<repo>/node_modules/vue-circle-flags/dist/components/main.d.ts', but this result could not be resolved when respecting package.json \"exports\". The 'vue-circle-flags' library may need to update its package.json or typings.",
       "source": "import CircleFlags from \"vue-circle-flags\";",
-      "count": 1
-    },
-    {
-      "file": "src/views/list/components/MisVotosMes.vue",
-      "code": 2339,
-      "message": "Property 'data' does not exist on type 'DiscRate[]'.",
-      "source": "votes.value = (response.data ?? []).filter((vote: any) => !vote.disc?.ep);",
       "count": 1
     },
     {

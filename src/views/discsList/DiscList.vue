@@ -225,7 +225,6 @@
 import { defineComponent, ref, onMounted, onUnmounted, watch, nextTick, computed } from "vue";
 import DiscCard from "@components/DiscCardComponent.vue";
 import Datepicker from "@vuepic/vue-datepicker";
-import { getRatesByUser } from "@services/rates/rates";
 import { useCatalogStore } from "@stores/catalog/catalog";
 import { getFavoritesByUser } from "@services/favorites/favorites";
 import { getPendingsByUser } from "@services/pendings/pendings";
@@ -234,6 +233,7 @@ import SearchableSelect from "@components/SearchableSelect.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
 import { getCommentsByUser } from "@services/comments/comments";
 import { fetchDiscList } from "@/app/dependencies/catalog";
+import { fetchUserRatings } from "@/app/dependencies/community";
 
 export default defineComponent({
   components: {
@@ -331,19 +331,18 @@ export default defineComponent({
 
         let response;
         if (viewMode.value === "rates") {
-          type = "rate";
-          response = await getRatesByUser(
-            limit.value,
-            requestOffset,
-            searchQuery.value,
-            selectedWeek.value,
-            selectedGenre.value,
-            selectedCountry.value,
-            type,
-            orderBy.value
-          );
+          response = await fetchUserRatings({
+            limit: limit.value,
+            offset: requestOffset,
+            query: searchQuery.value,
+            dateRange: selectedWeek.value,
+            genre: selectedGenre.value,
+            country: selectedCountry.value,
+            type: "rate",
+            orderBy: orderBy.value,
+          });
           if (version !== requestVersion) return;
-          totalRates.value = response.totalItems;
+          totalRates.value = String(response.totalItems);
           discs.value.push(
             ...response.data.map((rate) => ({
               ...rate.disc,
@@ -352,8 +351,8 @@ export default defineComponent({
                 country: rate.disc.artist?.country ?? null,
               },
               userRate: {
-                rate: rate.rate != null ? parseFloat(rate.rate) : null,
-                cover: rate.cover != null ? parseFloat(rate.cover) : null,
+                rate: rate.rate != null ? parseFloat(String(rate.rate)) : null,
+                cover: rate.cover != null ? parseFloat(String(rate.cover)) : null,
                 id: rate.id,
               },
               commentCount: rate.disc.commentCount,
@@ -361,19 +360,18 @@ export default defineComponent({
             }))
           );
         } else if (viewMode.value === "covers") {
-          type = "cover";
-          response = await getRatesByUser(
-            limit.value,
-            requestOffset,
-            searchQuery.value,
-            selectedWeek.value,
-            selectedGenre.value,
-            selectedCountry.value,
-            type,
-            orderBy.value
-          );
+          response = await fetchUserRatings({
+            limit: limit.value,
+            offset: requestOffset,
+            query: searchQuery.value,
+            dateRange: selectedWeek.value,
+            genre: selectedGenre.value,
+            country: selectedCountry.value,
+            type: "cover",
+            orderBy: orderBy.value,
+          });
           if (version !== requestVersion) return;
-          totalCovers.value = response.totalItems;
+          totalCovers.value = String(response.totalItems);
           discs.value.push(
             ...response.data.map((rate) => ({
               ...rate.disc,
@@ -382,8 +380,8 @@ export default defineComponent({
                 country: rate.disc.artist?.country ?? null,
               },
               userRate: {
-                rate: rate.rate != null ? parseFloat(rate.rate) : null,
-                cover: rate.cover != null ? parseFloat(rate.cover) : null,
+                rate: rate.rate != null ? parseFloat(String(rate.rate)) : null,
+                cover: rate.cover != null ? parseFloat(String(rate.cover)) : null,
                 id: rate.id,
               },
               commentCount: rate.disc.commentCount,

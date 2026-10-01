@@ -77,7 +77,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
-import { getRatesByUser } from '@services/rates/rates';
+import { fetchUserRatings } from '@/app/dependencies/community';
 import { postAsignationService } from '@services/asignation/asignation';
 import SwalService from '@services/swal/SwalService';
 import { useAsignationStore } from '@stores/asignation/asignation';
@@ -129,18 +129,15 @@ async function loadVotes() {
   errorMessage.value = '';
   try {
     const { start, end } = monthRange.value;
-    const response = await getRatesByUser(
-      500,
-      0,
-      undefined,
-      [start.toISOString(), end.toISOString()],
-      undefined,
-      undefined,
-      'rate',
-      'rate.rate:DESC,artist.name:ASC'
-    );
+    const response = await fetchUserRatings({
+      limit: 500,
+      offset: 0,
+      dateRange: [start.toISOString(), end.toISOString()],
+      type: 'rate',
+      orderBy: 'rate.rate:DESC,artist.name:ASC',
+    });
     // Los EPs no entran en Mejores del Mes.
-    votes.value = (response.data ?? []).filter((vote: any) => !vote.disc?.ep);
+    votes.value = (response.data ?? []).filter(vote => !vote.disc?.ep);
   } catch {
     votes.value = [];
     errorMessage.value = 'No se pudieron cargar tus votos';
