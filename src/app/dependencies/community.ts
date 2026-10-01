@@ -14,8 +14,39 @@ export function getCommunityRating(userId: string, discId: string): DiscRatingSt
   return useCommunityRatingStore().get(userId, discId);
 }
 
+export function isCommunityRatingSubmitting(userId: string, discId: string): boolean {
+  return useCommunityRatingStore().isSubmitting(userId, discId);
+}
+
 export function seedCommunityRating(userId: string, discId: string, value: DiscRatingState) {
   useCommunityRatingStore().seed(userId, discId, value);
+}
+
+export async function loadCommunityRating(userId: string, discId: string) {
+  const votes = await loadCommunityVotes(userId, discId);
+  const store = useCommunityRatingStore();
+  const ownVote = votes.find((vote) => vote.user.id === userId);
+  const current = store.get(userId, discId);
+  store.set(userId, discId, {
+    ...current,
+    ratingId: ownVote?.id ?? null,
+    rate: ownVote?.rate ?? null,
+    cover: ownVote?.cover ?? null,
+  });
+  return store.get(userId, discId);
+}
+
+export async function saveCommunityCoverVote(input: { userId: string; discId: string; cover: number }): Promise<boolean> {
+  if (!Number.isFinite(input.cover) || input.cover < 1 || input.cover > 10 || input.cover * 2 % 1 !== 0) {
+    return false;
+  }
+  const current = useCommunityRatingStore().get(input.userId, input.discId);
+  return saveCommunityRating({
+    userId: input.userId,
+    discId: input.discId,
+    rate: current.rate,
+    cover: input.cover,
+  });
 }
 
 export async function loadCommunityVotes(userId: string, discId: string) {

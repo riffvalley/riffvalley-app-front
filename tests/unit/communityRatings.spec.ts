@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
-import { saveCommunityRating } from "../../src/app/dependencies/community";
+import { loadCommunityRating, saveCommunityCoverVote, saveCommunityRating } from "../../src/app/dependencies/community";
 import { useCommunityRatingStore } from "../../src/modules/community";
 
 const { listByDisc, create, update } = vi.hoisted(() => ({
@@ -51,6 +51,32 @@ describe("Community disc ratings", () => {
     });
     expect(useCommunityRatingStore().get("user-1", "disc-1").rate).toBe(null);
     expect(useCommunityRatingStore().get("user-1", "disc-1").cover).toBe(9);
+  });
+
+  it("loads the signed-in user's vote into Community state", async () => {
+    await expect(loadCommunityRating("user-1", "disc-1")).resolves.toMatchObject({
+      ratingId: "rate-1", rate: 8, cover: 0, averageRate: 7, averageCover: 9,
+    });
+    expect(listByDisc).toHaveBeenCalledWith("disc-1");
+  });
+
+  it("creates or updates the cover vote while preserving the existing disc rating", async () => {
+    await saveCommunityCoverVote({ userId: "user-1", discId: "disc-1", cover: 8.5 });
+    expect(create).toHaveBeenCalledWith({ discId: "disc-1", ratingId: null, rate: null, cover: 8.5 });
+
+    useCommunityRatingStore().set("user-1", "disc-1", {
+      ratingId: "rate-1", rate: 7, cover: 5, averageRate: 7, averageCover: 5,
+      voteCount: 1, summaryLoaded: false,
+    });
+    await saveCommunityCoverVote({ userId: "user-1", discId: "disc-1", cover: 9 });
+    expect(update).toHaveBeenCalledWith({ discId: "disc-1", ratingId: "rate-1", rate: 7, cover: 9 });
+  });
+
+  it("rejects cover values outside the supported range or half-point increments", async () => {
+    await expect(saveCommunityCoverVote({ userId: "user-1", discId: "disc-1", cover: 10.5 })).resolves.toBe(false);
+    await expect(saveCommunityCoverVote({ userId: "user-1", discId: "disc-1", cover: 7.2 })).resolves.toBe(false);
+    expect(create).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("keeps UI state unchanged after a write failure and permits retry", async () => {

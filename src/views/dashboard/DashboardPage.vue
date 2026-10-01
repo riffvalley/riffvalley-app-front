@@ -351,7 +351,7 @@
                 <i class="fa-solid fa-circle-check text-green-500"></i>
                 Portada votada con <span class="font-bold text-rv-purple ml-1">{{ coverVoteValue }}</span>
               </div>
-              <button @click="coverVoted = false"
+              <button @click="coverEditing = true"
                 class="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full
                        bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400
                        hover:bg-gray-200 dark:hover:bg-white/20 hover:text-gray-700 dark:hover:text-gray-200
@@ -618,8 +618,8 @@ import DiscCard from "@components/DiscCardComponent.vue";
 import NewsFeed from "@views/homePage/components/NewsFeed.vue";
 import AdventureModule from "@views/dashboard/components/AdventureModule.vue";
 import { getAvailableYears } from "@helpers/dateConstants";
-import { postRateService, updateRateService } from "@services/rates/rates";
 import SwalService from "@services/swal/SwalService";
+import { getCommunityRating, isCommunityRatingSubmitting, loadCommunityRating, saveCommunityCoverVote } from "@/app/bridges/communityRatings";
 
 const DICE_FACES = ['fa-dice-one','fa-dice-two','fa-dice-three','fa-dice-four','fa-dice-five','fa-dice-six'];
 const DICE_PHRASES = [
@@ -854,7 +854,13 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
     const coverOfDayLoading   = ref(true);
     const coverVoteValue      = ref<number | null>(null);
     const coverVoteSubmitting = ref(false);
-    const coverVoted          = ref(false);
+    const coverEditing        = ref(false);
+    const coverVoted = computed(() => {
+      const userId = authStore.userId;
+      const discId = coverOfDay.value?.id;
+      if (!userId || !discId) return false;
+      return getCommunityRating(userId, discId).cover != null && !coverEditing.value;
+    });
 
     // ── Computed ──────────────────────────────────────────
     const username = computed(() => authStore.username ?? "");
@@ -999,9 +1005,12 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
         if (Array.isArray(data) && data.length > 0) {
           const disc = transformDisc(data[0]);
           coverOfDay.value = disc;
-          if (disc.userRate?.cover) {
-            coverVoteValue.value = disc.userRate.cover;
-            coverVoted.value = true;
+          const userId = authStore.userId;
+          if (userId) {
+            const rating = await loadCommunityRating(userId, disc.id);
+            if (rating.cover != null) {
+              coverVoteValue.value = rating.cover;
+            }
           }
         }
       } catch { /* silently */ } finally {
@@ -1010,21 +1019,18 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
     };
 
     const submitCoverVote = async () => {
-      if (!coverOfDay.value || !coverVoteValue.value) return;
+      const cover = coverVoteValue.value;
+      const userId = authStore.userId;
+      if (!coverOfDay.value || !userId || cover == null || !Number.isFinite(cover)
+        || cover < 1 || cover > 10 || cover * 2 % 1 !== 0 || coverVoteSubmitting.value
+        || isCommunityRatingSubmitting(userId, coverOfDay.value.id)) return;
       coverVoteSubmitting.value = true;
       try {
-        const payload = {
-          discId: coverOfDay.value.id,
-          rate: coverOfDay.value.userRate?.rate ?? null,
-          cover: Number(coverVoteValue.value),
-        };
-        if (coverOfDay.value.userRate?.id) {
-          await updateRateService(coverOfDay.value.userRate.id, payload);
-        } else {
-          await postRateService(payload);
+        const saved = await saveCommunityCoverVote({ userId, discId: coverOfDay.value.id, cover });
+        if (saved) {
+          coverEditing.value = false;
+          SwalService.success('¡Portada votada con éxito!');
         }
-        coverVoted.value = true;
-        SwalService.success('¡Portada votada con éxito!');
       } catch { /* silently */ } finally {
         coverVoteSubmitting.value = false;
       }
@@ -1093,7 +1099,7 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
       loadingTopDiscs, topWeekDiscs, topMonthDiscs,
       diceRolled, diceRolling, randomDisc, currentDiceFace, currentDiceFace2, dicePhrase,
       diceHovering, startDiceHover, stopDiceHover,
-      coverOfDay, coverOfDayLoading, coverVoteValue, coverVoteSubmitting, coverVoted, submitCoverVote,
+      coverOfDay, coverOfDayLoading, coverVoteValue, coverVoteSubmitting, coverEditing, coverVoted, submitCoverVote,
       cemeteryDiscs, cemeteryLoading, cemeteryRolling, fetchCemeteryDiscs,
       topArtists, topArtistsLoading,
       musicMapData, musicMapLoading,

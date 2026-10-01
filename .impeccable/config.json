@@ -17,6 +17,12 @@
         ],
         "createdAt": "2026-09-30T20:03:08.967Z",
         "reason": "Codex: falso positivo en el botón de borrar; text-gray-400 solo se aplica al estado sin fondo coloreado y hover:text-red-500 acompaña a hover:bg-red-50. Se conserva la UI exigida por 3.5."
+      },
+      {
+        "rule": "bounce-easing",
+        "value": "dice-wobble",
+        "createdAt": "2026-10-01T08:35:45.291Z",
+        "reason": "Dashboard dice wobble is intentional: adjacent CSS comment explains the dice should feel shaken rather than blink, and the animation is limited to hover."
       }
     ]
   }
