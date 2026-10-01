@@ -244,3 +244,19 @@ Inventario, API, legacy pendiente, pruebas y deuda en
 La presentación de Catalog se organiza por capacidad y tipo de UI; no hay
 archivos directamente bajo `presentation/`. La guía de capas y la navegación
 «Dónde busco algo» están en [catalog-structure.md](catalog-structure.md).
+
+## Subiteración 4.5 — Lista de comentarios propios
+
+Community posee la operación paginada y los tipos propios del comentario.
+`app/dependencies/community.ts` compone la operación con la sesión activa de
+Identity y valida/proyecta la ficha anidada al tipo `CommentDisc` de Catalog;
+Catalog conserva así la propiedad de esos datos. La vista conserva endpoint,
+filtros, orden, paginación, estados y presentación, sin importar servicios
+legacy de comentarios ni auth. Al quedar sin consumidores, se retiró
+`getCommentsByUser` y el archivo `services/comments/comments.ts`. No se migran
+favoritos, pendientes ni otros modos del listado.
+
+Validación: `yarn verify` pasa (119 archivos de arquitectura, 102 diagnósticos
+baseline sin regresiones, 203 pruebas y build); `git diff --check` pasa. Se
+conservan los avisos conocidos de Browserslist, `.flex-[2]` y chunk superior a
+500 kB. No se inicia 4.6.

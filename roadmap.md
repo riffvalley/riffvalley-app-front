@@ -912,6 +912,22 @@ verificar que las otras pestañas no cambian.
 
 **Modelo recomendado:** Luna High.
 
+**Estado: completado.** La rama “Mis comentarios” de `DiscList.vue` consulta
+Community mediante composición en `app`. Community posee la operación y los
+tipos del comentario; Identity aporta la sesión activa en composición y Catalog
+publica el tipo de la ficha anidada del disco. Se conserva `/comments`, sus
+parámetros, orden, paginación, filtros y presentación. Se retiró
+`getCommentsByUser` de `services/comments/comments.ts` al no quedar consumidores;
+no se modificaron los otros modos del listado ni se inició 4.6.
+
+Pruebas: parámetros/endpoint, datos con ficha de disco, página vacía, error de
+transporte y respuestas incompatibles. `yarn verify` pasa (119 archivos de
+arquitectura, 102 diagnósticos baseline sin regresiones, 203 pruebas y build);
+`git diff --check` pasa. Persisten los avisos conocidos de Browserslist, selector
+`.flex-[2]` y chunk superior a 500 kB. La conversación y mutaciones de comentarios
+mantienen el ownership/documentación de 4.4; los demás modos de `DiscList.vue`
+y los servicios legacy de favoritos y pendientes quedan pendientes.
+
 ### 4.6 — Favoritos
 
 **Alcance:** añadir/quitar favorito desde la tarjeta y migrar el modo

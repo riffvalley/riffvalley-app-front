@@ -231,9 +231,8 @@ import { getPendingsByUser } from "@services/pendings/pendings";
 import DiscFilters from "@components/DiscFilters.vue";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
-import { getCommentsByUser } from "@services/comments/comments";
 import { fetchDiscList } from "@/app/dependencies/catalog";
-import { fetchUserRatings } from "@/app/dependencies/community";
+import { fetchUserComments, fetchUserRatings } from "@/app/dependencies/community";
 
 export default defineComponent({
   components: {
@@ -390,18 +389,18 @@ export default defineComponent({
           );
 
           } else if (viewMode.value === "comments") {
-response = await getCommentsByUser(
-  limit.value,
-  requestOffset,
-  searchQuery.value,
-  selectedWeek.value,
-  selectedGenre.value,
-  selectedCountry.value,
-  orderBy.value
-);
+response = await fetchUserComments({
+  limit: limit.value,
+  offset: requestOffset,
+  query: searchQuery.value,
+  dateRange: selectedWeek.value,
+  genre: selectedGenre.value,
+  country: selectedCountry.value,
+  orderBy: orderBy.value,
+});
   if (version !== requestVersion) return;
 
-  totalComments.value = response.totalItems;
+  totalComments.value = String(response.totalItems);
 
   userComments.value.push(...response.data);
 
@@ -499,7 +498,7 @@ response = await getCommentsByUser(
 
         if (version !== requestVersion) return;
 
-        totalItems.value = response.totalItems;
+        if (!Array.isArray(response)) totalItems.value = response.totalItems;
         offset.value += limit.value;
         hasMore.value = offset.value < totalItems.value;
       } catch (error) {
