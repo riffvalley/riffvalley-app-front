@@ -1,6 +1,6 @@
 import { computed, ref } from "vue";
-import { countComments, type DiscComment } from "../domain/comment";
-import type { CommentConversationOperations } from "../application/commentPort";
+import { countComments, type DiscComment } from "../../domain/comment";
+import type { CommentConversationOperations } from "../../application/commentPort";
 
 export function useDiscConversation(discId: string, operations: CommentConversationOperations) {
   const comments = ref<DiscComment[]>([]);

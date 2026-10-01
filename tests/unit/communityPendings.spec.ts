@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createPinia, setActivePinia } from "pinia";
 import {
   fetchUserPendings,
   getCommunityPending,
@@ -7,7 +6,7 @@ import {
   seedCommunityPending,
   toggleCommunityPending,
 } from "../../src/app/dependencies/community";
-import { useCommunityPendingStore } from "../../src/modules/community";
+import { communityPendingState } from "../../src/modules/community/pendings/application/pendingState";
 import { isCurrentPendingListResponse, removePendingFromList } from "../../src/views/discsList/pendingList";
 
 const { get, post, deleteRequest } = vi.hoisted(() => ({
@@ -31,13 +30,13 @@ const disc = {
 describe("Community pendings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    setActivePinia(createPinia());
+    communityPendingState.clear();
     post.mockResolvedValue({ data: { id: "pending-1" } });
     deleteRequest.mockResolvedValue({ data: undefined });
     get.mockResolvedValue({ data: { totalItems: 1, data: [{ id: "pending-1", disc }] } });
   });
 
-  it("loads the user's filtered page and shares its confirmed relation with cards", async () => {
+  it("loads the user's filtered page without mutating the shared relation store", async () => {
     const dateRange: [string, string] = ["2026-01-01", "2026-01-31"];
     const result = await fetchUserPendings({
       limit: 20, offset: 40, query: "album", dateRange, genre: "rock", country: "es",
@@ -49,7 +48,7 @@ describe("Community pendings", () => {
     expect(result).toMatchObject({ totalItems: 1, data: [{
       id: "pending-1", disc: { id: "disc-1", pendingId: "pending-1", userRate: { rate: 8.5, cover: 9 } },
     }] });
-    expect(getCommunityPending("user-1", "disc-1")).toEqual({ pendingId: "pending-1", loaded: true });
+    expect(getCommunityPending("user-1", "disc-1")).toEqual({ pendingId: null, loaded: false });
   });
 
   it("adds only after backend success and keeps the previous state while saving", async () => {
@@ -81,7 +80,7 @@ describe("Community pendings", () => {
   });
 
   it("keeps confirmed state on errors and allows retries for both directions", async () => {
-    const store = useCommunityPendingStore();
+    const store = communityPendingState;
     store.seed("user-1", "disc-1", null);
     post.mockRejectedValueOnce(new Error("offline"));
     await expect(toggleCommunityPending("user-1", "disc-1")).rejects.toThrow("offline");
@@ -107,7 +106,21 @@ describe("Community pendings", () => {
     await firstCard;
 
     expect(getCommunityPending("user-1", "disc-1").pendingId).toBe("pending-1");
-    expect(useCommunityPendingStore().get("user-1", "disc-1").pendingId).toBe("pending-1");
+    expect(communityPendingState.get("user-1", "disc-1").pendingId).toBe("pending-1");
+  });
+
+  it("does not restore a relation when an in-flight mutation completes after session cleanup", async () => {
+    const store = communityPendingState;
+    store.seed("user-1", "disc-1", null);
+    let complete!: (value: { data: { id: string } }) => void;
+    post.mockImplementationOnce(() => new Promise((resolve) => { complete = resolve; }));
+    const mutation = toggleCommunityPending("user-1", "disc-1");
+
+    store.clear();
+    complete({ data: { id: "pending-1" } });
+
+    await expect(mutation).resolves.toBe(false);
+    expect(store.get("user-1", "disc-1")).toEqual({ pendingId: null, loaded: false });
   });
 
   it("rejects malformed pages and ignores responses after filters or page change", async () => {

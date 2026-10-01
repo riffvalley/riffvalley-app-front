@@ -6,12 +6,15 @@
       {
         "rule": "bounce-easing",
         "value": "animate-bounce",
+        "files": [
+          "src/views/discsCalendarBaby/components/DiscComponentBaby.vue"
+        ],
         "createdAt": "2026-09-30T18:50:11.485Z",
         "reason": "Intentional brief success feedback for the bookmark state labeled ¡Añadido!"
       },
       {
         "rule": "gray-on-color",
-        "value": "*",
+        "value": "text-gray-400",
         "files": [
           "src/views/importPage/ImportPage.vue"
         ],
@@ -21,12 +24,15 @@
       {
         "rule": "bounce-easing",
         "value": "dice-wobble",
+        "files": [
+          "src/views/dashboard/DashboardPage.vue"
+        ],
         "createdAt": "2026-10-01T08:35:45.291Z",
         "reason": "Dashboard dice wobble is intentional: adjacent CSS comment explains the dice should feel shaken rather than blink, and the animation is limited to hover."
       },
       {
         "rule": "gray-on-color",
-        "value": "*",
+        "value": "text-gray-400",
         "files": [
           "src/views/discsCalendarBaby/components/DiscComponentBaby.vue"
         ],

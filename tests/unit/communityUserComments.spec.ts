@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fetchUserComments } from "../../src/app/dependencies/community";
 
 const { get } = vi.hoisted(() => ({ get: vi.fn() }));
-vi.mock("@services/api/api", () => ({ default: { get } }));
+vi.mock("@/shared/infrastructure/http/client", () => ({ default: { get } }));
 vi.mock("../../src/app/dependencies/identity", () => ({
   useAuthStore: () => ({ loggedUser: { id: "user-1", username: "tester" } }),
 }));

@@ -1,6 +1,9 @@
-import { listUserPendings, loadDiscVotes, listUserFavorites, listUserRatings, saveDiscRating, toggleUserFavorite, toggleUserPending, useCommunityFavoriteStore, useCommunityPendingStore, useCommunityRatingStore } from "@/modules/community";
-import type { DiscRatingState, UserFavoritesQuery, UserPendingsQuery, UserRatingsQuery } from "@/modules/community";
-import { legacyRatingApi } from "@/modules/community/ratings/infrastructure/legacyRatingApi";
+import { listUserPendings, loadDiscVotes, listUserFavorites, listUserRatings, saveDiscRating, toggleUserFavorite, toggleUserPending } from "@/modules/community";
+import type { DiscRatingState, UserFavoritesQuery, UserPendingsQuery, UserRatingsQuery, UserRatingsResult } from "@/modules/community";
+import { communityFavoriteState } from "@/modules/community/favorites/application/favoriteState";
+import { communityPendingState } from "@/modules/community/pendings/application/pendingState";
+import { communityRatingState } from "@/modules/community/ratings/application/ratingState";
+import { ratingApi } from "@/modules/community/ratings/infrastructure/ratingApi";
 import { userRatingsApi } from "@/modules/community/ratings/infrastructure/userRatingsApi";
 import { listUserComments } from "@/modules/community";
 import type { UserCommentsQuery, UserCommentsResult } from "@/modules/community";
@@ -9,6 +12,8 @@ import { userCommentsApi } from "@/modules/community/comments/infrastructure/use
 import { favoriteApi } from "@/modules/community/favorites/infrastructure/favoriteApi";
 import { pendingApi } from "@/modules/community/pendings/infrastructure/pendingApi";
 import { useAuthStore } from "./identity";
+import { fetchDiscList } from "./catalog";
+import type { DiscListParams } from "@/modules/catalog/discs/listing/application/discListPort";
 
 export interface ListedUserComment {
   id: string;
@@ -23,7 +28,7 @@ export interface ListedUserCommentsResult extends Omit<UserCommentsResult, "data
 
 export interface ListedUserFavorite {
   id: string;
-  disc: DiscListItem;
+  disc: ListedCommunityDisc;
 }
 
 export interface ListedUserFavoritesResult {
@@ -33,15 +38,23 @@ export interface ListedUserFavoritesResult {
 
 export interface ListedUserPendingsResult {
   totalItems: number;
-  data: Array<{ id: string; disc: ListedUserPendingDisc }>;
+  data: Array<{ id: string; disc: ListedCommunityDisc }>;
 }
 
-interface ListedUserPendingDisc extends DiscListItem {
+export interface ListedUserRating extends Omit<UserRatingsResult["data"][number], "disc"> {
+  disc: ListedCommunityDisc;
+}
+
+export interface ListedUserRatingsResult extends Omit<UserRatingsResult, "data"> {
+  data: ListedUserRating[];
+}
+
+interface ListedCommunityDisc extends DiscListItem {
   artist?: (Record<string, unknown> & { country?: unknown }) | null;
   userRate?: { id?: string; rate: number | string | null; cover: number | string | null } | null;
   commentCount?: number;
   voteCount?: number;
-  pendingId?: string;
+  pendingId?: string | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -83,7 +96,7 @@ function toCommentDisc(value: unknown): CommentDisc | null {
   };
 }
 
-function toCommunityListDisc(value: unknown): DiscListItem {
+function toCommunityListDisc(value: unknown): ListedCommunityDisc {
   if (!isRecord(value) || typeof value.id !== "string" || typeof value.name !== "string") {
     throw new Error("La ficha del disco en la relación comunitaria no tiene el formato esperado.");
   }
@@ -99,8 +112,14 @@ function toCommunityListDisc(value: unknown): DiscListItem {
     }
     : null;
   const pendingId = isRecord(value.userPending) && typeof value.userPending.id === "string"
-    ? value.userPending.id : null;
-  return { ...value, id: value.id, name: value.name, artist, userRate, pendingId } as DiscListItem;
+    ? value.userPending.id : typeof value.pendingId === "string" ? value.pendingId : null;
+  return { ...value, id: value.id, name: value.name, artist, userRate, pendingId };
+}
+
+/** App composition restores the Community fields needed by the legacy card from Catalog's mixed endpoint. */
+export async function fetchCommunityDiscList(params: DiscListParams) {
+  const result = await fetchDiscList(params);
+  return { ...result, data: result.data.map((disc) => toCommunityListDisc(disc)) };
 }
 
 export async function fetchUserComments(query: UserCommentsQuery): Promise<ListedUserCommentsResult> {
@@ -122,10 +141,8 @@ export async function fetchUserFavorites(query: UserFavoritesQuery): Promise<Lis
   const userId = useAuthStore().loggedUser.id;
   if (!userId) throw new Error("No hay una sesión activa para consultar los favoritos.");
   const result = await listUserFavorites(favoriteApi, query);
-  const favoriteStore = useCommunityFavoriteStore();
   const data = result.data.map((favorite) => {
     const disc = toCommunityListDisc(favorite.disc);
-    favoriteStore.seed(userId, disc.id, favorite.id);
     return { id: favorite.id, disc };
   });
   return {
@@ -138,51 +155,45 @@ export async function fetchUserPendings(query: UserPendingsQuery): Promise<Liste
   const userId = useAuthStore().loggedUser.id;
   if (!userId) throw new Error("No hay una sesión activa para consultar los pendientes.");
   const result = await listUserPendings(pendingApi, query);
-  const pendingStore = useCommunityPendingStore();
   const data = result.data.map((pending) => {
     const disc = toCommunityListDisc(pending.disc);
-    pendingStore.seed(userId, disc.id, pending.id);
-    return { id: pending.id, disc: { ...disc, pendingId: pending.id } as ListedUserPendingDisc };
+    return { id: pending.id, disc: { ...disc, pendingId: pending.id } };
   });
   return { totalItems: result.totalItems, data };
 }
 
-export function getActiveCommunityUserId(): string {
-  return useAuthStore().loggedUser.id ?? "";
-}
-
 export function getCommunityFavorite(userId: string, discId: string) {
-  return useCommunityFavoriteStore().get(userId, discId);
+  return communityFavoriteState.get(userId, discId);
 }
 
 export function seedCommunityFavorite(userId: string, discId: string, favoriteId: string | null) {
-  useCommunityFavoriteStore().seed(userId, discId, favoriteId);
+  communityFavoriteState.seed(userId, discId, favoriteId);
 }
 
 export function isCommunityFavoriteSubmitting(userId: string, discId: string): boolean {
-  return useCommunityFavoriteStore().isSubmitting(userId, discId);
+  return communityFavoriteState.isSubmitting(userId, discId);
 }
 
 export function toggleCommunityFavorite(userId: string, discId: string) {
   if (!userId) throw new Error("No hay una sesión activa para cambiar el favorito.");
-  return toggleUserFavorite(useCommunityFavoriteStore(), favoriteApi, userId, discId);
+  return toggleUserFavorite(communityFavoriteState, favoriteApi, userId, discId);
 }
 
 export function getCommunityPending(userId: string, discId: string) {
-  return useCommunityPendingStore().get(userId, discId);
+  return communityPendingState.get(userId, discId);
 }
 
 export function seedCommunityPending(userId: string, discId: string, pendingId: string | null) {
-  useCommunityPendingStore().seed(userId, discId, pendingId);
+  communityPendingState.seed(userId, discId, pendingId);
 }
 
 export function isCommunityPendingSubmitting(userId: string, discId: string): boolean {
-  return useCommunityPendingStore().isSubmitting(userId, discId);
+  return communityPendingState.isSubmitting(userId, discId);
 }
 
 export function toggleCommunityPending(userId: string, discId: string) {
   if (!userId) throw new Error("No hay una sesión activa para cambiar el pendiente.");
-  return toggleUserPending(useCommunityPendingStore(), pendingApi, userId, discId);
+  return toggleUserPending(communityPendingState, pendingApi, userId, discId);
 }
 
 export interface SaveCommunityRatingInput {
@@ -193,20 +204,26 @@ export interface SaveCommunityRatingInput {
 }
 
 export function getCommunityRating(userId: string, discId: string): DiscRatingState {
-  return useCommunityRatingStore().get(userId, discId);
+  return communityRatingState.get(userId, discId);
 }
 
 export function isCommunityRatingSubmitting(userId: string, discId: string): boolean {
-  return useCommunityRatingStore().isSubmitting(userId, discId);
+  return communityRatingState.isSubmitting(userId, discId);
+}
+
+export function getCommunityRatingVotes(userId: string, discId: string) {
+  return communityRatingState.getVotes(userId, discId);
 }
 
 export function seedCommunityRating(userId: string, discId: string, value: DiscRatingState) {
-  useCommunityRatingStore().seed(userId, discId, value);
+  communityRatingState.seed(userId, discId, value);
 }
 
 export async function loadCommunityRating(userId: string, discId: string) {
+  const store = communityRatingState;
+  const sessionGeneration = store.getSessionGeneration();
   const votes = await loadCommunityVotes(userId, discId);
-  const store = useCommunityRatingStore();
+  if (store.getSessionGeneration() !== sessionGeneration) return store.get(userId, discId);
   const ownVote = votes.find((vote) => vote.user.id === userId);
   const current = store.get(userId, discId);
   store.set(userId, discId, {
@@ -222,7 +239,7 @@ export async function saveCommunityCoverVote(input: { userId: string; discId: st
   if (!Number.isFinite(input.cover) || input.cover < 1 || input.cover > 10 || input.cover * 2 % 1 !== 0) {
     return false;
   }
-  const current = useCommunityRatingStore().get(input.userId, input.discId);
+  const current = communityRatingState.get(input.userId, input.discId);
   return saveCommunityRating({
     userId: input.userId,
     discId: input.discId,
@@ -232,8 +249,10 @@ export async function saveCommunityCoverVote(input: { userId: string; discId: st
 }
 
 export async function loadCommunityVotes(userId: string, discId: string) {
-  const votes = await loadDiscVotes(legacyRatingApi, discId);
-  const store = useCommunityRatingStore();
+  const store = communityRatingState;
+  const sessionGeneration = store.getSessionGeneration();
+  const votes = await loadDiscVotes(ratingApi, discId);
+  if (store.getSessionGeneration() !== sessionGeneration) return votes;
   store.setVotes(userId, discId, votes);
   const rates = votes.map((vote) => vote.rate).filter((value) => value > 0);
   const covers = votes.map((vote) => vote.cover).filter((value) => value > 0);
@@ -248,16 +267,18 @@ export async function loadCommunityVotes(userId: string, discId: string) {
 }
 
 export async function saveCommunityRating(input: SaveCommunityRatingInput): Promise<boolean> {
-  const store = useCommunityRatingStore();
+  const store = communityRatingState;
+  const sessionGeneration = store.getSessionGeneration();
   if (!store.beginSubmit(input.userId, input.discId)) return false;
   const previous = store.get(input.userId, input.discId);
   try {
-    const ratingId = await saveDiscRating(legacyRatingApi, {
+    const ratingId = await saveDiscRating(ratingApi, {
       discId: input.discId,
       ratingId: previous.ratingId,
       rate: input.rate,
       cover: input.cover,
     });
+    if (store.getSessionGeneration() !== sessionGeneration) return false;
     store.set(input.userId, input.discId, {
       ...previous,
       ratingId,
@@ -272,10 +293,11 @@ export async function saveCommunityRating(input: SaveCommunityRatingInput): Prom
     }
     return true;
   } finally {
-    store.finishSubmit(input.userId, input.discId);
+    if (store.getSessionGeneration() === sessionGeneration) store.finishSubmit(input.userId, input.discId);
   }
 }
 
-export function fetchUserRatings(params: UserRatingsQuery) {
-  return listUserRatings(userRatingsApi, params);
+export async function fetchUserRatings(params: UserRatingsQuery): Promise<ListedUserRatingsResult> {
+  const result = await listUserRatings(userRatingsApi, params);
+  return { ...result, data: result.data.map((rating) => ({ ...rating, disc: toCommunityListDisc(rating.disc) })) };
 }

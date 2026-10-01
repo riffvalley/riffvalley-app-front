@@ -17,7 +17,6 @@ vi.mock("@/components/UserModal.vue", () => ({
 
 vi.mock("@/modules/community", () => ({
   createCommentConversationOperations: () => ({}),
-  useCommunityRatingStore: () => ({ clear: vi.fn() }),
   CommentConversationModal: {
     name: "CommentConversationModal",
     props: ["discId", "artistName", "albumName", "currentUser", "sessionAvatar", "operations", "feedback"],

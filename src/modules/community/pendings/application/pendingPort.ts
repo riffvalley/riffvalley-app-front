@@ -8,6 +8,7 @@ export interface PendingPort {
 
 export interface PendingStatePort {
   get(userId: string, discId: string): { pendingId: string | null; loaded: boolean };
+  getSessionGeneration(): number;
   beginSubmit(userId: string, discId: string): boolean;
   set(userId: string, discId: string, pendingId: string | null): void;
   finishSubmit(userId: string, discId: string): void;

@@ -10,7 +10,7 @@ import router from "../../src/app/router";
 
 const disc = {
   id: "disc-1", name: "First album", releaseDate: "2026-09-30", ep: false, debut: true,
-  image: null, link: null, genre: null, rateCount: 2, averageRate: 8,
+  image: null, link: null, genre: null,
 };
 
 const artist = (overrides: Partial<ArtistManagementItem> = {}): ArtistManagementItem => ({

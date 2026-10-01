@@ -303,13 +303,13 @@
                   <p
                     class="text-sm font-bold text-rv-navy dark:text-rv-pink leading-none"
                   >
-                    {{ disc.rateCount > 0 ? disc.averageRate.toFixed(2) : "-" }}
+                    {{ disc.communityRating.rateCount > 0 ? disc.communityRating.averageRate.toFixed(2) : "-" }}
                   </p>
                   <p
                     class="text-[10px] text-rv-navy dark:text-gray-300 leading-none mt-0.5"
                   >
                     {{
-                      disc.rateCount > 0 ? `(${disc.rateCount})` : "Sin votos"
+                      disc.communityRating.rateCount > 0 ? `(${disc.communityRating.rateCount})` : "Sin votos"
                     }}
                   </p>
                 </button>
@@ -456,7 +456,14 @@
     @close="lastFm.close"
     @navigate-similar="lastFm.navigateToSimilar"
     @open-disc="openLastFmDisc"
-  />
+  >
+    <template #disc-extra="{ disc }">
+      <div class="flex flex-col items-center w-12 text-center flex-shrink-0">
+        <span class="text-sm font-bold text-blue-600">{{ lastFmCommunityRatings[disc.id]?.rateCount ? lastFmCommunityRatings[disc.id].averageRate.toFixed(1) : "-" }}</span>
+        <span class="text-[10px] text-gray-400 dark:text-gray-400">{{ lastFmCommunityRatings[disc.id]?.rateCount ? `(${lastFmCommunityRatings[disc.id].rateCount})` : "Sin votos" }}</span>
+      </div>
+    </template>
+  </LastFmManagementModal>
 
   <ArtistEditForm
     v-if="editModal.show"
@@ -519,9 +526,12 @@ import {
   confirmAndDeleteArtist, removeArtistLocally, LastFmManagementModal, useLastFmManagement,
 } from "@/modules/catalog";
 import type {
-  ArtistManagementItem,
   ArtistManagementDisc,
 } from "@/modules/catalog";
+import type {
+  CommunityArtistManagementDisc,
+  CommunityArtistManagementItem,
+} from "@/app/dependencies/communityArtistManagement";
 import { useAuthStore } from "@stores/auth/auth";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import DiscDetail from "@components/DiscDetail.vue";
@@ -576,7 +586,7 @@ export default defineComponent({
 
     const openDiscDetail = (
       disc: ArtistManagementDisc,
-      artist: ArtistManagementItem,
+      artist: CommunityArtistManagementItem,
     ) => {
       selectedDisc.value = {
         ...disc,
@@ -585,8 +595,8 @@ export default defineComponent({
     };
 
     const openDiscCard = async (
-      disc: ArtistManagementDisc,
-      artist: Pick<ArtistManagementItem, "name">,
+      disc: CommunityArtistManagementDisc,
+      artist: Pick<CommunityArtistManagementItem, "name">,
     ) => {
       selectedDiscCard.value = null;
       discCardLoading.value = true;
@@ -608,25 +618,31 @@ export default defineComponent({
         });
     });
 
-    const toggleLastFm = (artist: ArtistManagementItem) => lastFm.open(artist);
+    const toggleLastFm = (artist: CommunityArtistManagementItem) => lastFm.open(artist);
 
     const openLastFmDisc = (disc: ArtistManagementDisc) => {
-      openDiscCard(disc, {
+      const communityDisc = lastFm.catalogArtist.value?.discs.find((item) => item.id === disc.id);
+      if (!communityDisc) return;
+      openDiscCard(communityDisc, {
         name: lastFm.artistName.value,
       });
     };
 
-    const isEmpty = (artist: ArtistManagementItem) =>
+    const lastFmCommunityRatings = computed(() => Object.fromEntries(
+      (lastFm.catalogArtist.value?.discs ?? []).map((disc) => [disc.id, disc.communityRating]),
+    ));
+
+    const isEmpty = (artist: CommunityArtistManagementItem) =>
       artist.discs.length === 0 &&
       artist.nationalReleases.length === 0 &&
       (artist.spotifyPlaylists?.length ?? 0) === 0;
 
-    const extraReleases = (artist: ArtistManagementItem) => {
+    const extraReleases = (artist: CommunityArtistManagementItem) => {
       const discIds = new Set(artist.discs.map((d) => d.id));
       return artist.nationalReleases.filter((nr) => !discIds.has(nr.discId));
     };
 
-    const uniqueGenres = (artist: ArtistManagementItem) => {
+    const uniqueGenres = (artist: CommunityArtistManagementItem) => {
       const seen = new Set<string>();
       return artist.discs
         .map((d) => d.genre)
@@ -636,7 +652,7 @@ export default defineComponent({
         );
     };
 
-    const openEditModal = (artist: ArtistManagementItem) => {
+    const openEditModal = (artist: CommunityArtistManagementItem) => {
       editModal.artistId = artist.id;
       editModal.name = artist.name;
       editModal.countryId = artist.country?.id ?? "";
@@ -691,7 +707,7 @@ export default defineComponent({
       }
     };
 
-    const confirmDelete = async (artist: ArtistManagementItem) => {
+    const confirmDelete = async (artist: CommunityArtistManagementItem) => {
       const result = await confirmAndDeleteArtist(
         async () => {
           const confirmation = await Swal.fire({
@@ -935,6 +951,7 @@ export default defineComponent({
       discCardLoading,
       openDiscCard,
       lastFm,
+      lastFmCommunityRatings,
       toggleLastFm,
       openLastFmDisc,
       isEmpty,

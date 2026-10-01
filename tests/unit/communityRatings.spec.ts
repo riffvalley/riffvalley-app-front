@@ -1,13 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createPinia, setActivePinia } from "pinia";
 import { loadCommunityRating, saveCommunityCoverVote, saveCommunityRating } from "../../src/app/dependencies/community";
-import { useCommunityRatingStore } from "../../src/modules/community";
+import { communityRatingState } from "../../src/modules/community/ratings/application/ratingState";
 
 const { listByDisc, create, update } = vi.hoisted(() => ({
   listByDisc: vi.fn(), create: vi.fn(), update: vi.fn(),
 }));
-vi.mock("@/modules/community/ratings/infrastructure/legacyRatingApi", () => ({
-  legacyRatingApi: { listByDisc, create, update },
+vi.mock("@/modules/community/ratings/infrastructure/ratingApi", () => ({
+  ratingApi: { listByDisc, create, update },
 }));
 
 const input = { userId: "user-1", discId: "disc-1", rate: 8, cover: null };
@@ -16,7 +15,7 @@ const ownVote = { id: "rate-1", user: { id: "user-1", username: "ana" }, rate: 8
 describe("Community disc ratings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    setActivePinia(createPinia());
+    communityRatingState.clear();
     create.mockResolvedValue("rate-1");
     update.mockResolvedValue(undefined);
     listByDisc.mockResolvedValue([ownVote, {
@@ -31,14 +30,14 @@ describe("Community disc ratings", () => {
       discId: "disc-1", ratingId: null, rate: 8, cover: null,
     });
     expect(update).not.toHaveBeenCalled();
-    expect(useCommunityRatingStore().get("user-1", "disc-1")).toEqual({
+    expect(communityRatingState.get("user-1", "disc-1")).toEqual({
       ratingId: "rate-1", rate: 8, cover: null, averageRate: 7, averageCover: 9,
       voteCount: 2, summaryLoaded: true,
     });
   });
 
   it("edits the existing vote using its rating ID", async () => {
-    useCommunityRatingStore().seed("user-1", "disc-1", {
+    communityRatingState.seed("user-1", "disc-1", {
       ratingId: "rate-1", rate: 7, cover: 5, averageRate: 7, averageCover: 5,
       voteCount: 1, summaryLoaded: false,
     });
@@ -49,8 +48,8 @@ describe("Community disc ratings", () => {
     expect(update).toHaveBeenCalledWith({
       discId: "disc-1", ratingId: "rate-1", rate: null, cover: 9,
     });
-    expect(useCommunityRatingStore().get("user-1", "disc-1").rate).toBe(null);
-    expect(useCommunityRatingStore().get("user-1", "disc-1").cover).toBe(9);
+    expect(communityRatingState.get("user-1", "disc-1").rate).toBe(null);
+    expect(communityRatingState.get("user-1", "disc-1").cover).toBe(9);
   });
 
   it("loads the signed-in user's vote into Community state", async () => {
@@ -64,7 +63,7 @@ describe("Community disc ratings", () => {
     await saveCommunityCoverVote({ userId: "user-1", discId: "disc-1", cover: 8.5 });
     expect(create).toHaveBeenCalledWith({ discId: "disc-1", ratingId: null, rate: null, cover: 8.5 });
 
-    useCommunityRatingStore().set("user-1", "disc-1", {
+    communityRatingState.set("user-1", "disc-1", {
       ratingId: "rate-1", rate: 7, cover: 5, averageRate: 7, averageCover: 5,
       voteCount: 1, summaryLoaded: false,
     });
@@ -80,7 +79,7 @@ describe("Community disc ratings", () => {
   });
 
   it("keeps UI state unchanged after a write failure and permits retry", async () => {
-    const store = useCommunityRatingStore();
+    const store = communityRatingState;
     store.seed("user-1", "disc-1", {
       ratingId: null, rate: null, cover: null, averageRate: 6, averageCover: 7,
       voteCount: 3, summaryLoaded: false,
@@ -102,13 +101,13 @@ describe("Community disc ratings", () => {
     const firstCard = saveCommunityRating(input);
     const secondCard = saveCommunityRating(input);
     expect(create).toHaveBeenCalledTimes(1);
-    expect(useCommunityRatingStore().isSubmitting("user-1", "disc-1")).toBe(true);
+    expect(communityRatingState.isSubmitting("user-1", "disc-1")).toBe(true);
 
     resolveCreate("rate-1");
     await expect(firstCard).resolves.toBe(true);
     await expect(secondCard).resolves.toBe(false);
     expect(create).toHaveBeenCalledTimes(1);
-    expect(useCommunityRatingStore().isSubmitting("user-1", "disc-1")).toBe(false);
+    expect(communityRatingState.isSubmitting("user-1", "disc-1")).toBe(false);
   });
 
   it("keeps a saved vote when loading the refreshed summary fails", async () => {
@@ -116,8 +115,24 @@ describe("Community disc ratings", () => {
 
     await saveCommunityRating(input);
 
-    expect(useCommunityRatingStore().get("user-1", "disc-1")).toMatchObject({
+    expect(communityRatingState.get("user-1", "disc-1")).toMatchObject({
       ratingId: "rate-1", rate: 8, cover: null, summaryLoaded: false,
+    });
+  });
+
+  it("does not restore a vote when a write completes after session cleanup", async () => {
+    const store = communityRatingState;
+    let complete!: (id: string) => void;
+    create.mockImplementationOnce(() => new Promise<string>((resolve) => { complete = resolve; }));
+    const mutation = saveCommunityRating(input);
+
+    store.clear();
+    complete("rate-1");
+
+    await expect(mutation).resolves.toBe(false);
+    expect(store.get("user-1", "disc-1")).toEqual({
+      ratingId: null, rate: null, cover: null, averageRate: null, averageCover: null,
+      voteCount: null, summaryLoaded: false,
     });
   });
 });

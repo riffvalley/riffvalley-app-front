@@ -9,13 +9,13 @@ export interface ArtistEditValues {
   description: string;
 }
 
-export function applyArtistEditLocally(
-  artists: ArtistManagementItem[],
+export function applyArtistEditLocally<TArtist extends ArtistManagementItem>(
+  artists: TArtist[],
   totalItems: number,
   values: ArtistEditValues,
   countries: Country[],
   needsReview: boolean | null,
-): { artists: ArtistManagementItem[]; totalItems: number } {
+): { artists: TArtist[]; totalItems: number } {
   const artist = artists.find((item) => item.id === values.id);
   if (artist) {
     artist.name = values.name;

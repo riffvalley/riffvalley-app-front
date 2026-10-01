@@ -294,3 +294,91 @@ restricciones por rol. `yarn verify` pasa: lint, arquitectura en 131 archivos,
 y build. La poda validada eliminó dos excepciones TypeScript ya resueltas.
 `git diff --check` pasa. Persisten los avisos previos de Browserslist, `.flex-[2]`
 y chunk superior a 500 kB. No se inicia 4.9.
+
+## Iteración 4.9 — Consolidación de Community
+
+La estructura final agrupa cada capacidad bajo `src/modules/community`: ratings,
+comments, favorites y pendings tienen sus contratos y operaciones propios; las
+capas de infraestructura adaptan HTTP y presentation contiene la conversación
+Vue y proyecciones reactivas para las vistas. `shared` dentro de Community
+contiene la clave canónica usuario/disco, la primitiva framework-free de estado
+por usuario/disco y el parser común del sobre HTTP de favoritos/pendientes.
+Domain y application siguen independientes de Vue, Pinia, HTTP y otros módulos.
+
+La API de `src/modules/community/index.ts` expone las operaciones consumidas, sus
+tipos de query/resultado/estado y el modal de conversación. `app` compone los
+puertos, adaptadores y servicios de estado por sus rutas internas; no forman
+parte del barrel público. La composición vive en `app/dependencies` y `app/bridges`.
+Community no importa Catalog, Identity, Releases, Editorial ni Analytics, y la
+puerta de arquitectura no detecta ciclos.
+
+**Ownership definitivo**
+
+- Catalog posee fichas, artistas, listados, calendarios, páginas y su manejo de
+  respuestas obsoletas. Conserva `pendingId` fuera de `CalendarDisc`; `app`
+  extrae esos IDs y combina datos mixtos de otros endpoints con modelos de
+  Community para sus consumidores legacy.
+- Community posee las valoraciones (incluidos resúmenes), favoritos, pendientes
+  de escucha y el árbol de comentarios mientras una conversación está abierta.
+- Identity posee sesión/roles; `app` entrega su identidad a Community y limpia
+  su estado de aplicación después de login/cambio de cuenta y logout. Los
+  servicios de estado incrementan una generación para descartar respuestas tardías.
+- Releases conserva requests, imports y sugerencias. Editorial conserva
+  asignaciones y reuniones. Analytics conserva estadísticas, tendencias,
+  rankings e historial. Integrations conserva APIs y DTOs de proveedores.
+
+**Estado y sincronización**
+
+Ratings, favorites y pendings usan un servicio de estado de aplicación en memoria
+por capacidad, con claves JSON estables de `[userId, discId]`. No depende de
+Pinia/Vue. Las listas paginadas no inicializan ese estado: cada tarjeta siembra
+la relación confirmada y los consumidores del mismo disco comparten el resultado.
+Los calendarios siembran pendientes desde `app`, con comprobación de
+cuenta/generación tras la consulta. Los composables de presentación derivan
+snapshots y señales reactivas para la vista, sin ser fuente de verdad. No hay
+persistencia ni una cache global adicional. El estado de comentarios se crea al
+abrir la conversación y se descarta al cerrarla.
+
+Las mutaciones mantienen comportamiento pesimista. Ratings y relaciones bloquean
+el doble envío por usuario/disco, aplican cambios tras el éxito y conservan el
+estado confirmado ante fallo; ratings vuelven a cargar el resumen tras guardar,
+sin invalidar el voto si esa recarga falla. Comentarios bloquean envío raíz,
+respuesta por comentario y edición/borrado por ID. Los fallos dejan habilitado el
+reintento. Las páginas y queries permanecen en su consumidor y conservan el
+control de respuestas obsoletas.
+
+**Legacy y excepciones**
+
+Se retiraron `legacyRatingApi.ts`, `getDiscRates`, `postRateService`,
+`updateRateService` y el bridge `views/artists/artistManagementCommunityBridge.ts`,
+todos sin consumidores después de esta integración. La escritura de comentarios
+feedback salió de infraestructura de Community y ahora pertenece a presentación.
+`services/rates/rates.ts` permanece con `getRatesByUser`, `getUserHistoryService`
+y `getRatesStats`, usados por Dashboard, UserModal y Statistics mientras Analytics
+y esas pantallas no se migren. `app/bridges/communityRatings.ts`,
+`communityFavorites.ts` y `communityPendings.ts` se conservan por sus
+consumidores legacy: `DiscCardComponent`, calendarios y Dashboard. También queda
+la composición de `app/dependencies/community.ts` para adaptar respuestas
+anidadas y mixtas de las vistas actuales.
+
+No se añadieron excepciones de arquitectura. Las excepciones de Impeccable que
+intersectan la iteración están acotadas a los archivos y clases concretas que las
+necesitan; no hay comodines globales.
+
+**Validación y deuda**
+
+`yarn verify` pasa: lint, arquitectura en 139 archivos, 89 diagnósticos
+TypeScript baseline sin regresiones, 229 pruebas en 37 suites y build. E2E de
+rating, calendarios estándar/babyUser y sesión/logout pasan 15/15 en serial. La
+ejecución paralela tuvo un fallo transitorio de permisos de calendario; pasó al
+repetirlo aislado y en serial. `git diff --check` pasa. El build mantiene avisos
+conocidos de Browserslist desactualizado, `.flex-[2]` en CSS y el chunk de entrada
+por encima de 500 kB.
+
+Deuda pendiente: algunos endpoints de Catalog todavía transportan proyecciones
+mixtas; `app` las estrecha mientras el contrato de API no se pueda separar.
+Dashboard, UserModal y Statistics siguen dependiendo de consultas legacy de
+valoraciones hasta la Iteración 8. Los bridges se retiran cuando sus consumidores
+legacy se migren. Las proyecciones Vue quedan dentro de presentation; el estado
+confirmado y los locks se mantienen en application. La Iteración 4 queda cerrada;
+no se inicia la Iteración 5.

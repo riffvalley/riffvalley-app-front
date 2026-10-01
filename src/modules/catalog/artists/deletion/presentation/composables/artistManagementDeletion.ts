@@ -1,10 +1,10 @@
 import type { ArtistManagementItem } from "../../../domain/artistManagement";
 
-export function removeArtistLocally(
-  artists: ArtistManagementItem[],
+export function removeArtistLocally<TArtist extends ArtistManagementItem>(
+  artists: TArtist[],
   totalItems: number,
   artistId: string,
-): { artists: ArtistManagementItem[]; totalItems: number } {
+): { artists: TArtist[]; totalItems: number } {
   const exists = artists.some((artist) => artist.id === artistId);
   return {
     artists: artists.filter((artist) => artist.id !== artistId),

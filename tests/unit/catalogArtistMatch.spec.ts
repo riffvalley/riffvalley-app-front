@@ -14,7 +14,7 @@ describe("Catalog artist matching", () => {
       image: "artist.jpg",
       discs: [{
         id: "disc-1", name: "Album", releaseDate: "2026-09-30", ep: false, debut: false,
-        image: null, link: null, genre: null, rateCount: 0, averageRate: 0,
+        image: null, link: null, genre: null,
       }],
     };
     get.mockResolvedValue({ data: [match] });

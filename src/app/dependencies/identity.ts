@@ -1,10 +1,20 @@
 import { createAuthStore, createSessionPersistence, readLegacySessionValue, login } from "@/modules/identity";
 import { useWorkspaceStore } from "./workspace";
-import { useCommunityFavoriteStore, useCommunityPendingStore, useCommunityRatingStore } from "@/modules/community";
+import { communityFavoriteState } from "@/modules/community/favorites/application/favoriteState";
+import { communityPendingState } from "@/modules/community/pendings/application/pendingState";
+import { communityRatingState } from "@/modules/community/ratings/application/ratingState";
+
+function clearCommunitySessionState() {
+  communityRatingState.clear();
+  communityFavoriteState.clear();
+  communityPendingState.clear();
+}
+
 export const useAuthStore = createAuthStore({
   persistence: createSessionPersistence(() => localStorage),
   async login(payload) {
     const response = await login(payload);
+    clearCommunitySessionState();
     useWorkspaceStore().initialize({
       dashboardButtonsEnabled: response.dashboardButtonsEnabled === true,
       dashboardConfig: response.dashboardConfig ?? null,
@@ -15,9 +25,7 @@ export const useAuthStore = createAuthStore({
   },
   onLogout: () => {
     useWorkspaceStore().clear();
-    useCommunityRatingStore().clear();
-    useCommunityFavoriteStore().clear();
-    useCommunityPendingStore().clear();
+    clearCommunitySessionState();
   },
 });
 

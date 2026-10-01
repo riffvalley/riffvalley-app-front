@@ -616,11 +616,13 @@ TS2345 ya existente de MonthlyVotesChart. HEAD y el resultado tienen los mismos
 ## Iteración 4 — Community
 
 Community posee las valoraciones de disco y portada, los comentarios, los
-favoritos y la relación personal de discos pendientes. No existe aún
-`src/modules/community` ni un store de Community: el estado está en las
+favoritos y la relación personal de discos pendientes. Al inicio de 4.1 no
+existían `src/modules/community` ni stores de Community: el estado estaba en las
 tarjetas, las vistas de listado, los modales de comentarios y las tarjetas de
-calendario. No convertir esta migración en una reescritura del componente de
-disco ni de las pantallas que lo consumen.
+calendario. La migración se hizo de forma vertical, sin reescribir el componente
+de disco ni las pantallas que lo consumen. La Iteración 4 se cerró en 4.9; el
+estado final y la deuda restante están registrados en
+[`docs/architecture-baseline.md`](docs/architecture-baseline.md).
 
 ### Fronteras, estado y cache
 
@@ -632,10 +634,11 @@ disco ni de las pantallas que lo consumen.
   esos campos en adaptadores o en la composición explícita de `app`; no
   almacenar estado comunitario en Catalog ni importar Community desde Catalog.
 - **Community** posee el estado compartido de relación y resumen por disco,
-  indexado por usuario y disco cuando aplique. Pinia puede coordinar y cachear
-  este estado en memoria; limpiarlo al cerrar sesión. Las páginas filtradas
-  pertenecen a la consulta de la capacidad que las carga y se invalidan tras
-  una mutación. No persistir claves nuevas en localStorage.
+  indexado por usuario y disco cuando aplique. El estado confirmado vive en
+  servicios framework-free de application; presentation lo proyecta
+  reactivamente y Identity/`app` lo limpia al cambiar o cerrar sesión. Las
+  páginas filtradas pertenecen a la consulta de la capacidad que las carga y se
+  invalidan tras una mutación. No persistir claves nuevas en localStorage.
 - Los comentarios se cargan al abrir la conversación. Su árbol pertenece a
   Community mientras esa conversación está activa; no se persiste entre
   aperturas. Al cambiar comentarios, actualizar o invalidar el recuento
@@ -1068,30 +1071,61 @@ se registra en `docs/architecture-baseline.md`. No se inicia 4.9.
 
 ### 4.9 — Consolidación de Community
 
-**Alcance:** revisar estructura por capacidades, API pública, fachadas y
-servicios legacy, propiedad e invalidación de caches, ciclos e imports.
-Comprobar que las proyecciones comunitarias no forman parte de la API pública
-de Catalog y que los puentes con otros módulos sean explícitos.
+**Estado: completado.** Revisada la estructura por capacidades, la API pública,
+las fachadas y servicios legacy, la propiedad de estado/cache, los ciclos e
+imports. Las proyecciones comunitarias quedan en composición de `app`; no forman
+parte de los modelos explícitos de Catalog.
 
 **Fuera de alcance:** nuevas funciones de producto, limpieza global de legacy y
 migración completa de pantallas de Analytics o Editorial.
 
-**Ownership/cache:** verificar que Catalog solo cachea datos y páginas de
-discos/calendarios; Community mantiene relaciones y resúmenes comunitarios en
-memoria y los limpia al cerrar sesión; las consultas de Analytics conservan su
-propio modelo y cache. Eliminar fachadas solo cuando no queden consumidores.
+**Ownership/cache:** Catalog conserva los discos, artistas, calendarios y sus
+consultas/páginas. Community mantiene valoraciones, favoritos y pendientes en
+servicios de estado de aplicación framework-free, indexados por usuario/disco,
+y los limpia tras login, cambio de cuenta y logout. Los composables Vue en
+presentation son proyecciones reactivas, no fuente de verdad. Las conversaciones
+de comentarios viven solo durante la apertura. Los listados y sus versiones para
+descartar respuestas obsoletas siguen en cada consumidor; montar una tarjeta
+inicializa el estado compartido, no la respuesta paginada, y no se añade una
+cache global.
 
-**Criterio de cierre:** cada capacidad tiene dueño y API pública pequeña;
-Community no importa internals de otros módulos; no quedan ciclos ni imports
-legacy sin consumidor, y las compatibilidades pendientes están identificadas.
+**API y composición:** `src/modules/community/index.ts` publica operaciones,
+tipos consumidos y el modal de conversación. Servicios de estado, puertos y adaptadores se
+componen desde `app` y no se exportan como API del módulo. `Community` no importa
+Catalog, Identity, Releases, Editorial ni Analytics. `app` compone Identity y
+Community, y adapta allí las proyecciones mixtas que aún devuelven los endpoints
+de Catalog.
+
+**Legacy:** se eliminaron el adaptador de valoraciones sin consumidores, los
+métodos de escritura y detalle de disco ya sustituidos en `services/rates/rates.ts`,
+y el bridge de gestión de artistas que solo servía a un consumidor retirado.
+`services/rates/rates.ts` permanece para historial, estadísticas y datos por
+usuario usados por Dashboard, Statistics y UserModal. Los puentes de Community
+en `app/bridges` permanecen mientras los componentes legacy de disco,
+calendarios y Dashboard los consuman.
+
+**Criterio de cierre:** cumplido. Cada capacidad tiene dueño y API pública
+pequeña; no se detectan ciclos ni dependencias de Community hacia otros módulos.
+Los servicios y bridges retirados no tenían consumidores; los restantes y sus
+consumidores están identificados arriba y en el baseline.
 
 **Riesgos:** `/discs`, `/discs/date` y gestión de artistas siguen devolviendo
 proyecciones mixtas; estadísticas, historial de usuario y partes del dashboard
 tienen consumidores legacy.
 
-**Tests:** pruebas arquitectónicas de límites, imports y ciclos; suites unitarias
-de las capacidades migradas; regresión de listados y calendarios; ejecutar
-`yarn verify`.
+**Tests y verificación:** `yarn verify` pasa: lint, arquitectura (133 archivos),
+TypeScript (89 diagnósticos baseline, 0 regresiones), 228 pruebas en 36 suites
+y build. E2E de rating en listado, calendarios estándar/babyUser con pendientes y
+sesión/logout pasan (15/15 en ejecución serial; la ejecución paralela tuvo un
+fallo transitorio de permisos de calendario, que pasó al repetirla).
+`git diff --check` pasa. Persisten avisos conocidos de Browserslist, la clase
+`.flex-[2]` y un chunk por encima de 500 kB.
+
+**Deuda real:** `/discs`, `/discs/date` y gestión de artistas todavía mezclan en
+el transporte algunos campos comunitarios. Se proyectan en `app` hasta poder
+cambiar esos contratos. Las lecturas de historial, estadísticas y actividad
+siguen en servicios legacy hasta Iteración 8; los componentes legacy aún usan
+puentes de Community. No se inicia la Iteración 5.
 
 **Modelo recomendado:** Luna Max.
 

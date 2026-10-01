@@ -1,7 +1,6 @@
 import { catalogApi } from "@/modules/catalog/reference-data/infrastructure/catalogApi";
 import { useCatalogStore } from "@/modules/catalog/reference-data/presentation/stores/catalogStore";
 import { discListApi } from "@/modules/catalog/discs/listing/infrastructure/discListApi";
-import { listDiscs } from "@/modules/catalog/discs/listing/application/listDiscs";
 import type { DiscListParams } from "@/modules/catalog/discs/listing/application/discListPort";
 import { artistManagementApi } from "@/modules/catalog/artists/infrastructure/artistManagementApi";
 import type { ArtistManagementParams } from "@/modules/catalog/artists/domain/artistManagement";
@@ -13,6 +12,7 @@ import { calendarArtistCreationApi } from "@/modules/catalog/artists/creation/in
 import { fillMissingArtistImages } from "@/modules/catalog/artists/images/application/fillMissingArtistImages";
 import type { FillMissingArtistImagesCallbacks } from "@/modules/catalog/artists/images/application/fillMissingArtistImages";
 import { createBulkArtistImageSearchSession } from "@/app/dependencies/artistImages";
+import { addCommunityRatingSummary, type CommunityArtistManagementItem } from "@/app/dependencies/communityArtistManagement";
 
 /** Minimal composition for the catalog pilot consumer. */
 export function fetchCatalog() {
@@ -20,11 +20,15 @@ export function fetchCatalog() {
 }
 
 export function fetchDiscList(params: DiscListParams) {
-  return listDiscs(discListApi, params);
+  return discListApi.getDiscs(params);
 }
 
-export function fetchArtistManagement(params: ArtistManagementParams) {
-  return artistManagementApi.getArtistsManagement(params);
+export async function fetchArtistManagement(params: ArtistManagementParams) {
+  const result = await artistManagementApi.getArtistsManagement(params);
+  return {
+    ...result,
+    data: result.data.map((artist) => addCommunityRatingSummary(artist)) as CommunityArtistManagementItem[],
+  };
 }
 
 export function saveManagedArtist(id: string, data: UpdateArtistInput) {

@@ -322,25 +322,22 @@ import VotesModal from "./VotesModal.vue";
 import ComentsModal from "@/app/components/CommunityCommentsModal.vue";
 import DiscCalendar from "@views/discsCalendar/DiscCalendar.vue"; // o la ruta real si no está en @views
 import {
-  getCommunityRating,
   loadCommunityVotes,
   saveCommunityRating,
   seedCommunityRating,
+  useCommunityRatingState,
 } from "@/app/bridges/communityRatings";
 import {
-  getActiveCommunityUserId,
-  getCommunityFavorite,
-  isCommunityFavoriteSubmitting,
   seedCommunityFavorite,
   toggleCommunityFavorite,
+  useCommunityFavoriteState,
 } from "@/app/bridges/communityFavorites";
 import {
-  getCommunityPending,
-  isCommunityPendingSubmitting,
   seedCommunityPending,
   toggleCommunityPending,
+  useCommunityPendingState,
 } from "@/app/bridges/communityPendings";
-import { useCommunityRatingStore } from "@/modules/community";
+import { useAuthStore } from "@/app/dependencies/identity";
 import Swal from "sweetalert2";
 import SwalService from "@services/swal/SwalService";
 
@@ -384,8 +381,7 @@ export default defineComponent({
     });
     const showVotes = ref(false);
     const isEP = computed(() => props.ep);
-    const communityUserId = localStorage.getItem("userId") ?? "";
-    const communityRatings = useCommunityRatingStore();
+    const communityUserId = useAuthStore().loggedUser.id ?? "";
     seedCommunityRating(communityUserId, props.id, {
       ratingId: props.userDiscRate ?? null,
       rate: props.rate,
@@ -395,8 +391,9 @@ export default defineComponent({
       voteCount: props.rateCount,
       summaryLoaded: false,
     });
-    const communityRating = computed(() => getCommunityRating(communityUserId, props.id));
-    const votes = computed(() => communityRatings.getVotes(communityUserId, props.id));
+    const communityRatingState = useCommunityRatingState(communityUserId, props.id);
+    const communityRating = communityRatingState.state;
+    const votes = communityRatingState.votes;
     const hasVoted = computed(() => !!communityRating.value.ratingId);
     const hasVotedDisc = computed(() => communityRating.value.rate !== null && communityRating.value.rate > 0);
     const hasVotedCover = computed(() => communityRating.value.cover !== null && communityRating.value.cover > 0);
@@ -408,7 +405,7 @@ export default defineComponent({
       ? communityRating.value.averageRate : communityRating.value.averageRate ?? props.averageRate ?? null);
     const localAverageCover = computed(() => communityRating.value.summaryLoaded
       ? communityRating.value.averageCover : communityRating.value.averageCover ?? props.averageCover ?? null);
-    const isSubmittingRating = computed(() => communityRatings.isSubmitting(communityUserId, props.id));
+    const isSubmittingRating = communityRatingState.isSubmitting;
     watch(communityRating, (rating) => {
       localRating.value = { rate: rating.rate, cover: rating.cover };
     });
@@ -507,23 +504,21 @@ export default defineComponent({
     };
     const heartAnimating = ref(false);
     const bookmarkAnimating = ref(false);
-    const communityFavoriteUserId = getActiveCommunityUserId();
+    const communityFavoriteUserId = communityUserId;
     if (communityFavoriteUserId) seedCommunityPending(communityFavoriteUserId, props.id, props.pendingId ?? null);
-    const communityPending = computed(() => communityFavoriteUserId
-      ? getCommunityPending(communityFavoriteUserId, props.id)
-      : { pendingId: props.pendingId ?? null, loaded: false });
+    const communityPendingState = useCommunityPendingState(communityFavoriteUserId, props.id);
+    const communityPending = communityPendingState.state;
     const pendingId = computed(() => communityPending.value.loaded
       ? communityPending.value.pendingId : props.pendingId ?? null);
     const isTogglingBookmark = computed(() => !!communityFavoriteUserId
-      && isCommunityPendingSubmitting(communityFavoriteUserId, props.id));
+      && communityPendingState.isSubmitting.value);
     if (communityFavoriteUserId) seedCommunityFavorite(communityFavoriteUserId, props.id, props.favoriteId ?? null);
-    const communityFavorite = computed(() => communityFavoriteUserId
-      ? getCommunityFavorite(communityFavoriteUserId, props.id)
-      : { favoriteId: props.favoriteId ?? null, loaded: false });
+    const communityFavoriteState = useCommunityFavoriteState(communityFavoriteUserId, props.id);
+    const communityFavorite = communityFavoriteState.state;
     const favoriteId = computed(() => communityFavorite.value.loaded
       ? communityFavorite.value.favoriteId : props.favoriteId ?? null);
     const isTogglingHeart = computed(() => !!communityFavoriteUserId
-      && isCommunityFavoriteSubmitting(communityFavoriteUserId, props.id));
+      && communityFavoriteState.isSubmitting.value);
 
     const triggerHeartAnim = () => {
       heartAnimating.value = true;

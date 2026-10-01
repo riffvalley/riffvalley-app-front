@@ -123,7 +123,7 @@
 import { defineComponent, ref, computed, onMounted, toRefs, nextTick } from "vue";
 import type { PropType } from "vue";
 import CommentItem from "./CommentItem.vue";
-import { useDiscConversation } from "../useDiscConversation";
+import { useDiscConversation } from "../composables/useDiscConversation";
 import type { CommentConversationOperations } from "../../application/commentPort";
 import type { CommentConversationFeedback } from "../../application/commentFeedbackPort";
 

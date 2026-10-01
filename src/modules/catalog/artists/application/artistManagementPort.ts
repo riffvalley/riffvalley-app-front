@@ -1,11 +1,17 @@
-import type { ArtistManagementMatch, ArtistManagementParams, ArtistManagementResponse } from "../domain/artistManagement";
+import type {
+  ArtistManagementDisc,
+  ArtistManagementItem,
+  ArtistManagementMatch,
+  ArtistManagementParams,
+  ArtistManagementResponse,
+} from "../domain/artistManagement";
 
-export interface ArtistManagementPort {
-  getArtistsManagement(params: ArtistManagementParams): Promise<ArtistManagementResponse>;
+export interface ArtistManagementPort<TArtist extends ArtistManagementItem = ArtistManagementItem> {
+  getArtistsManagement(params: ArtistManagementParams): Promise<ArtistManagementResponse<TArtist>>;
 }
 
-export interface ArtistSearchPort {
-  searchArtistsByName(name: string): Promise<ArtistManagementMatch[]>;
+export interface ArtistSearchPort<TDisc extends ArtistManagementDisc = ArtistManagementDisc> {
+  searchArtistsByName(name: string): Promise<ArtistManagementMatch<TDisc>[]>;
 }
 
 export interface ArtistUpdatePort {

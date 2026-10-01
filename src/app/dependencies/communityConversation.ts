@@ -1,10 +1,11 @@
 import { createCommentConversationOperations } from "@/modules/community";
 import { commentApi } from "@/modules/community/comments/infrastructure/commentApi";
-import { commentFeedback } from "@/modules/community/comments/infrastructure/commentFeedback";
+import type { CommentConversationFeedback } from "@/modules/community";
+import { communityCommentFeedback as commentFeedback } from "@/modules/community/comments/presentation/helpers/commentFeedback";
 import { useAuthStore } from "./identity";
 
 export const communityCommentOperations = createCommentConversationOperations(commentApi);
-export const communityCommentFeedback = commentFeedback;
+export const communityCommentFeedback: CommentConversationFeedback = commentFeedback;
 
 export function getCommunityCommentIdentity() {
   const auth = useAuthStore();

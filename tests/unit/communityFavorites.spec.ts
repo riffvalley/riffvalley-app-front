@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createPinia, setActivePinia } from "pinia";
 import {
   fetchUserFavorites,
   getCommunityFavorite,
@@ -7,7 +6,7 @@ import {
   seedCommunityFavorite,
   toggleCommunityFavorite,
 } from "../../src/app/dependencies/community";
-import { useCommunityFavoriteStore } from "../../src/modules/community";
+import { communityFavoriteState } from "../../src/modules/community/favorites/application/favoriteState";
 import { removeFavoriteFromList } from "../../src/views/discsList/favoriteList";
 
 const { get, post, deleteRequest } = vi.hoisted(() => ({
@@ -31,13 +30,13 @@ const disc = {
 describe("Community favorites", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    setActivePinia(createPinia());
+    communityFavoriteState.clear();
     post.mockResolvedValue({ data: { id: "favorite-1" } });
     deleteRequest.mockResolvedValue({ data: undefined });
     get.mockResolvedValue({ data: { totalItems: 1, data: [{ id: "favorite-1", disc }] } });
   });
 
-  it("loads the user's favorites with filters, order and pagination, and seeds the shared relation", async () => {
+  it("loads the user's filtered page without taking ownership of its query cache", async () => {
     const dateRange: [string, string] = ["2026-01-01", "2026-01-31"];
     const result = await fetchUserFavorites({
       limit: 20, offset: 40, query: "album", dateRange, genre: "rock", country: "es",
@@ -52,7 +51,7 @@ describe("Community favorites", () => {
       id: "favorite-1", disc: { id: "disc-1", artist: { country: { isoCode: "es" } },
         userRate: { rate: 8.5, cover: 9 }, pendingId: "pending-1" },
     }] });
-    expect(getCommunityFavorite("user-1", "disc-1")).toEqual({ favoriteId: "favorite-1", loaded: true });
+    expect(getCommunityFavorite("user-1", "disc-1")).toEqual({ favoriteId: null, loaded: false });
   });
 
   it("adds a favorite only after the backend confirms success", async () => {
@@ -84,7 +83,7 @@ describe("Community favorites", () => {
   });
 
   it("preserves the last confirmed state after errors and permits retries for add and remove", async () => {
-    const store = useCommunityFavoriteStore();
+    const store = communityFavoriteState;
     store.seed("user-1", "disc-1", null);
     post.mockRejectedValueOnce(new Error("offline"));
     await expect(toggleCommunityFavorite("user-1", "disc-1")).rejects.toThrow("offline");
@@ -110,7 +109,21 @@ describe("Community favorites", () => {
     await firstConsumer;
 
     expect(getCommunityFavorite("user-1", "disc-1").favoriteId).toBe("favorite-1");
-    expect(useCommunityFavoriteStore().get("user-1", "disc-1").favoriteId).toBe("favorite-1");
+    expect(communityFavoriteState.get("user-1", "disc-1").favoriteId).toBe("favorite-1");
+  });
+
+  it("does not restore a relation when an in-flight mutation completes after session cleanup", async () => {
+    const store = communityFavoriteState;
+    store.seed("user-1", "disc-1", null);
+    let complete!: (value: { data: { id: string } }) => void;
+    post.mockImplementationOnce(() => new Promise((resolve) => { complete = resolve; }));
+    const mutation = toggleCommunityFavorite("user-1", "disc-1");
+
+    store.clear();
+    complete({ data: { id: "favorite-1" } });
+
+    await expect(mutation).resolves.toBe(false);
+    expect(store.get("user-1", "disc-1")).toEqual({ favoriteId: null, loaded: false });
   });
 
   it("rejects an incompatible list response", async () => {

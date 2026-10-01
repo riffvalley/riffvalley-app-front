@@ -231,8 +231,7 @@ import { useCatalogStore } from "@stores/catalog/catalog";
 import DiscFilters from "@components/DiscFilters.vue";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
-import { fetchDiscList } from "@/app/dependencies/catalog";
-import { fetchUserComments, fetchUserFavorites, fetchUserPendings, fetchUserRatings } from "@/app/dependencies/community";
+import { fetchCommunityDiscList, fetchUserComments, fetchUserFavorites, fetchUserPendings, fetchUserRatings } from "@/app/dependencies/community";
 import { removeFavoriteFromList } from "./favoriteList";
 import { isCurrentPendingListResponse, removePendingFromList } from "./pendingList";
 
@@ -468,7 +467,7 @@ response = await fetchUserComments({
             actualOrderBy = "disc.releaseDate:DESC,artist.name:ASC";
           }
 
-          response = await fetchDiscList({
+          response = await fetchCommunityDiscList({
             limit: limit.value,
             offset: requestOffset,
             query: searchQuery.value,

@@ -7,13 +7,16 @@ import { albumLinksApi } from "@/integrations/spotify/infrastructure/albumLinksA
 import { calendarImagesApi } from "@/integrations/lastfm/infrastructure/calendarImagesApi";
 import { fillCalendarImages } from "@/integrations/lastfm/application/calendarImages";
 import { seedCommunityPending } from "@/app/bridges/communityPendings";
+import { communityPendingState } from "@/modules/community/pendings/application/pendingState";
 import { useAuthStore } from "./identity";
 
 export const calendarPort = {
   async getPage(query: CalendarPageQuery) {
-    const { page, pendings } = await getPageWithPendingProjection(query);
     const userId = useAuthStore().loggedUser.id ?? "";
-    if (userId) {
+    const sessionGeneration = communityPendingState.getSessionGeneration();
+    const { page, pendings } = await getPageWithPendingProjection(query);
+    if (userId && communityPendingState.getSessionGeneration() === sessionGeneration &&
+      useAuthStore().loggedUser.id === userId) {
       for (const pending of pendings) seedCommunityPending(userId, pending.discId, pending.pendingId);
     }
     return page;

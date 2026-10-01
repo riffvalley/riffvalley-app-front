@@ -23,7 +23,7 @@ export interface DiscListItem {
   name: string;
   releaseDate?: string;
   image?: string | null;
-  userRate?: { rate: number | string | null; cover: number | string | null; [key: string]: unknown } | null;
+  /** Opaque transport extensions are interpreted at app composition, never as Catalog domain fields. */
   [key: string]: unknown;
 }
 

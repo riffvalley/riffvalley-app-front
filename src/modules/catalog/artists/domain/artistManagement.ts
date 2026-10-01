@@ -7,8 +7,6 @@ export interface ArtistManagementDisc {
   image: string | null;
   link: string | null;
   genre: { id: string; name: string; color: string } | null;
-  rateCount: number;
-  averageRate: number;
 }
 
 export interface ArtistManagementNationalRelease {
@@ -30,32 +28,32 @@ export interface ArtistManagementSpotifyPlaylist {
   imageUrl: string | null;
 }
 
-export interface ArtistManagementItem {
+export interface ArtistManagementItem<TDisc extends ArtistManagementDisc = ArtistManagementDisc> {
   id: string;
   name: string;
   description: string | null;
   image: string | null;
   country: { id: string; name: string; isoCode: string } | null;
-  discs: ArtistManagementDisc[];
+  discs: TDisc[];
   nationalReleases: ArtistManagementNationalRelease[];
   spotifyPlaylists: ArtistManagementSpotifyPlaylist[];
 }
 
 /** Fields consumed from GET /artists/search/by-name by the management modal. */
-export interface ArtistManagementMatch {
+export interface ArtistManagementMatch<TDisc extends ArtistManagementDisc = ArtistManagementDisc> {
   id: string;
   name: string;
   image: string | null;
-  discs: ArtistManagementDisc[];
+  discs: TDisc[];
 }
 
-export interface ArtistManagementResponse {
+export interface ArtistManagementResponse<TArtist extends ArtistManagementItem = ArtistManagementItem> {
   totalItems: number;
   totalPages: number;
   currentPage: number;
   limit: number;
   orphanCount: number;
-  data: ArtistManagementItem[];
+  data: TArtist[];
 }
 
 export interface ArtistManagementParams {

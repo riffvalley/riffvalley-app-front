@@ -1,12 +1,13 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { computed, defineComponent, h } from "vue";
+import { defineComponent, h } from "vue";
 import { flushPromises, mount } from "@vue/test-utils";
-import { createPinia, setActivePinia } from "pinia";
 import DiscComponent from "../../src/views/discsCalendar/components/DiscComponent.vue";
 import DiscComponentBaby from "../../src/views/discsCalendarBaby/components/DiscComponentBaby.vue";
 import { toggleUserPending } from "../../src/modules/community/pendings/application/pendingActions";
-import { useCommunityPendingStore } from "../../src/modules/community/pendings/presentation/pendingStore";
+import { communityPendingState } from "../../src/modules/community/pendings/application/pendingState";
+import { useCommunityPendingState } from "../../src/modules/community/pendings/presentation/composables/useCommunityPendingState";
+import { seedCommunityPending } from "../../src/app/dependencies/community";
 import type { PendingPort } from "../../src/modules/community/pendings/application/pendingPort";
 import type { CalendarDisc } from "../../src/modules/catalog/discs/calendars/domain/discCalendar";
 
@@ -26,47 +27,46 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+const mountedWrappers: Array<{ unmount: () => void }> = [];
+
 function setup(primary: typeof DiscComponent | typeof DiscComponentBaby, port: PendingPort) {
-  const pinia = createPinia();
-  setActivePinia(pinia);
-  const store = useCommunityPendingStore(pinia);
+  communityPendingState.clear();
   const userId = "user-1";
   const discId = calendarDisc.id;
-  const state = computed(() => store.get(userId, discId));
-  const submitting = computed(() => store.isSubmitting(userId, discId));
-  const initialize = (id: string, currentDiscId: string, pendingId: string | null) => store.seed(id, currentDiscId, pendingId);
-  const toggle = (id: string, currentDiscId: string) => toggleUserPending(store, port, id, currentDiscId);
-  const pendingProps = {
-    disc: calendarDisc,
-    pendingUserId: userId,
-    pendingState: state.value,
-    pendingSubmitting: submitting.value,
-    initializePending: initialize,
-    togglePending: toggle,
-  };
   const standardProps = { genres: [{ id: "rock", name: "Rock", color: "#123456" }], countries: [], focusDiscId: "" };
   const babyProps = { genres: [{ id: "rock", name: "Rock", color: "#123456" }], artistCountry: null };
-  const propsFor = (card: typeof DiscComponent | typeof DiscComponentBaby) => ({
-    ...pendingProps,
-    ...(card === DiscComponent ? standardProps : babyProps),
-  });
   const other = primary === DiscComponent ? DiscComponentBaby : DiscComponent;
   const Harness = defineComponent({
     setup() {
+      const pendingView = useCommunityPendingState(userId, discId);
+      const initialize = (id: string, currentDiscId: string, pendingId: string | null) =>
+        seedCommunityPending(id, currentDiscId, pendingId);
+      const toggle = (id: string, currentDiscId: string) =>
+        toggleUserPending(communityPendingState, port, id, currentDiscId);
+      const propsFor = (card: typeof DiscComponent | typeof DiscComponentBaby) => ({
+        disc: calendarDisc,
+        pendingUserId: userId,
+        pendingState: pendingView.state.value,
+        pendingSubmitting: pendingView.isSubmitting.value,
+        initializePending: initialize,
+        togglePending: toggle,
+        ...(card === DiscComponent ? standardProps : babyProps),
+      });
       return () => h("div", [
-        h("div", { "data-testid": "primary" }, [h(primary, { ...propsFor(primary), pendingState: state.value, pendingSubmitting: submitting.value })]),
-        h("div", { "data-testid": "other" }, [h(other, { ...propsFor(other), pendingState: state.value, pendingSubmitting: submitting.value })]),
+        h("div", { "data-testid": "primary" }, [h(primary, propsFor(primary))]),
+        h("div", { "data-testid": "other" }, [h(other, propsFor(other))]),
       ]);
     },
   });
   const wrapper = mount(Harness, {
     attachTo: document.body,
-    global: { plugins: [pinia], stubs: {
+    global: { stubs: {
       SearchableSelect: true, EditModal: true, DiscDetail: true, ArtistDetail: true,
       SpotifyArtistButton: true, CircleFlags: true,
     } },
   });
-  return { wrapper, store, userId, discId };
+  mountedWrappers.push(wrapper);
+  return { wrapper, store: communityPendingState, userId, discId };
 }
 
 function pendingButton(wrapper: ReturnType<typeof setup>["wrapper"], testId: string) {
@@ -76,6 +76,7 @@ function pendingButton(wrapper: ReturnType<typeof setup>["wrapper"], testId: str
 }
 
 afterEach(() => {
+  mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount());
   document.body.innerHTML = "";
   vi.clearAllMocks();
 });

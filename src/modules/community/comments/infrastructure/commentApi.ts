@@ -1,4 +1,4 @@
-import api from "@services/api/api";
+import api from "@/shared/infrastructure/http/client";
 import type { CommentPort } from "../application/commentPort";
 import type { FlatDiscComment, CommentUser } from "../domain/comment";
 

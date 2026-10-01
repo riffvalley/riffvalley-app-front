@@ -1,10 +1,13 @@
 import { onUnmounted, ref, watch } from "vue";
 import type { ArtistManagementPort } from "../../../application/artistManagementPort";
 import { ARTISTS_PAGE_SIZE, listArtists } from "../../application/listArtists";
-import type { ArtistManagementItem } from "../../../domain/artistManagement";
+import type { ArtistManagementDisc, ArtistManagementItem } from "../../../domain/artistManagement";
 
-export function useArtistManagementList(port: ArtistManagementPort, onError: (error: unknown) => void) {
-  const artists = ref<ArtistManagementItem[]>([]);
+export function useArtistManagementList<TDisc extends ArtistManagementDisc, TArtist extends ArtistManagementItem<TDisc>>(
+  port: ArtistManagementPort<TArtist>,
+  onError: (error: unknown) => void,
+) {
+  const artists = ref<TArtist[]>([]);
   const totalItems = ref(0);
   const totalPages = ref(1);
   const currentPage = ref(1);

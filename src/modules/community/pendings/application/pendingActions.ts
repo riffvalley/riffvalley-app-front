@@ -7,19 +7,22 @@ export async function toggleUserPending(
   userId: string,
   discId: string,
 ): Promise<string | null | false> {
+  const generation = state.getSessionGeneration();
   if (!state.beginSubmit(userId, discId)) return false;
   const current = state.get(userId, discId);
   try {
     if (current.pendingId) {
       await port.remove(current.pendingId);
+      if (generation !== state.getSessionGeneration()) return false;
       state.set(userId, discId, null);
       return null;
     }
     const pendingId = await port.create(discId);
+    if (generation !== state.getSessionGeneration()) return false;
     state.set(userId, discId, pendingId);
     return pendingId;
   } finally {
-    state.finishSubmit(userId, discId);
+    if (generation === state.getSessionGeneration()) state.finishSubmit(userId, discId);
   }
 }
 

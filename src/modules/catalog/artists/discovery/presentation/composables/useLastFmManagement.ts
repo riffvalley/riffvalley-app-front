@@ -1,13 +1,13 @@
 import { ref, shallowReadonly, shallowRef } from "vue";
-import type { ArtistManagementItem, ArtistManagementMatch } from "../../../domain/artistManagement";
+import type { ArtistManagementDisc, ArtistManagementItem, ArtistManagementMatch } from "../../../domain/artistManagement";
 import type {
   LastFmManagementDependencies,
   LastFmManagementProfile,
 } from "../../application/artistExternalProfile";
 import { selectCatalogArtist } from "../../application/artistExternalProfile";
 
-export function useLastFmManagement(
-  dependencies: LastFmManagementDependencies,
+export function useLastFmManagement<TDisc extends ArtistManagementDisc = ArtistManagementDisc>(
+  dependencies: LastFmManagementDependencies<TDisc>,
   onProfileError: () => void,
 ) {
   const cache = new Map<string, LastFmManagementProfile>();
@@ -15,7 +15,7 @@ export function useLastFmManagement(
   const artistName = ref("");
   const artistImage = shallowRef<string | null>(null);
   const profile = shallowRef<LastFmManagementProfile | null>(null);
-  const catalogArtist = shallowRef<ArtistManagementMatch | null>(null);
+  const catalogArtist = shallowRef<ArtistManagementMatch<TDisc> | null>(null);
   let requestVersion = 0;
 
   const cacheKey = (name: string) => name.trim().toLocaleLowerCase();
@@ -43,7 +43,7 @@ export function useLastFmManagement(
     }
   }
 
-  async function open(artist: ArtistManagementItem) {
+  async function open(artist: ArtistManagementItem<TDisc>) {
     const version = ++requestVersion;
     artistName.value = artist.name;
     artistImage.value = artist.image;

@@ -1,4 +1,4 @@
-import api from "@services/api/api";
+import api from "@/shared/infrastructure/http/client";
 import type { UserCommentsPort } from "../application/userCommentsPort";
 import type { UserComment, UserCommentsQuery, UserCommentsResult } from "../domain/userComments";
 

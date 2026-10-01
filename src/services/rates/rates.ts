@@ -1,12 +1,6 @@
 import api from "@services/api/api.ts";
 import type { Disc } from "@services/discs/discs";
 
-export interface RatePayload {
-  discId: string;
-  rate: number;
-  cover: number;
-}
-
 export interface User {
   id: string;
   email: string;
@@ -79,16 +73,6 @@ const toYMD = (d: Date) => {
 };
 
 
-export async function postRateService(payload: any): Promise<void> {
-  const response = await api.post("/rates", payload);
-  return response.data;
-}
-
-export async function updateRateService(ratingId: string, updateRateDto: any) {
-  // PATCH /rates/:id
-  return api.patch(`/rates/${ratingId}`, updateRateDto);
-}
-
 export async function getRatesByUser(
   limit: number,
   offset: number,
@@ -111,12 +95,6 @@ export async function getRatesByUser(
       orderBy,
     },
   });
-  return response.data;
-}
-
-export async function getDiscRates(discId: string): Promise<DiscRate[]> {
-  const response = await api.get<DiscRate[]>(`/rates/disc/${discId}`);
-
   return response.data;
 }
 

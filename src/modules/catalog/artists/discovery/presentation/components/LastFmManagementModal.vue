@@ -9,6 +9,9 @@ defineProps<{
   profile: LastFmManagementProfile | null;
   catalogArtist: ArtistManagementMatch | null;
 }>();
+defineSlots<{
+  "disc-extra"?(props: { disc: ArtistManagementDisc }): unknown;
+}>();
 
 const emit = defineEmits<{
   close: [];
@@ -137,10 +140,7 @@ const formatDate = (date: string) => new Date(date).toLocaleDateString("es-ES", 
                   <span class="text-xs text-gray-400 dark:text-gray-400">{{ formatDate(disc.releaseDate) }}</span>
                   <span v-if="disc.genre" class="text-xs ml-2" :style="{ color: disc.genre.color }">{{ disc.genre.name }}</span>
                 </div>
-                <div class="flex flex-col items-center w-12 text-center flex-shrink-0">
-                  <span class="text-sm font-bold text-blue-600">{{ disc.rateCount > 0 ? disc.averageRate.toFixed(1) : "-" }}</span>
-                  <span class="text-[10px] text-gray-400 dark:text-gray-400">{{ disc.rateCount > 0 ? `(${disc.rateCount})` : "Sin votos" }}</span>
-                </div>
+                <slot name="disc-extra" :disc="disc" />
                 <i class="fa-solid fa-chevron-right text-xs text-gray-300 flex-shrink-0"></i>
               </div>
             </div>

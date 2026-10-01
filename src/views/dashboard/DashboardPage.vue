@@ -619,7 +619,7 @@ import NewsFeed from "@views/homePage/components/NewsFeed.vue";
 import AdventureModule from "@views/dashboard/components/AdventureModule.vue";
 import { getAvailableYears } from "@helpers/dateConstants";
 import SwalService from "@services/swal/SwalService";
-import { getCommunityRating, isCommunityRatingSubmitting, loadCommunityRating, saveCommunityCoverVote } from "@/app/bridges/communityRatings";
+import { getCommunityRating, isCommunityRatingSubmitting, loadCommunityRating, saveCommunityCoverVote, useCommunityRatingRevision } from "@/app/bridges/communityRatings";
 
 const DICE_FACES = ['fa-dice-one','fa-dice-two','fa-dice-three','fa-dice-four','fa-dice-five','fa-dice-six'];
 const DICE_PHRASES = [
@@ -855,7 +855,9 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
     const coverVoteValue      = ref<number | null>(null);
     const coverVoteSubmitting = ref(false);
     const coverEditing        = ref(false);
+    const communityRatingRevision = useCommunityRatingRevision();
     const coverVoted = computed(() => {
+      communityRatingRevision.value;
       const userId = authStore.userId;
       const discId = coverOfDay.value?.id;
       if (!userId || !discId) return false;
