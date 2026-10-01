@@ -21,17 +21,14 @@ for (const { path, role } of [
         }],
       }] }),
     }));
-    await page.route("https://accounts.spotify.com/api/token", (route) => route.fulfill({
-      contentType: "application/json", body: JSON.stringify({ access_token: "spotify-test-token" }),
+    await page.route((url) => url.pathname.endsWith("/api/discs/spotify/album"), (route) => route.fulfill({
+      contentType: "application/json", body: JSON.stringify({ spotifyId: "1", name: "Álbum de Spotify" }),
     }));
-    await page.route("https://api.spotify.com/v1/search?**", (route) => route.fulfill({
-      contentType: "application/json", body: JSON.stringify({ albums: { items: [{ id: "1" }] } }),
-    }));
-    await page.route("https://api.spotify.com/v1/albums/1", (route) => route.fulfill({
+    await page.route((url) => url.pathname.endsWith("/api/discs/spotify/album/1"), (route) => route.fulfill({
       contentType: "application/json", body: JSON.stringify({
-        name: "Álbum de Spotify", artists: [{ name: "Banda de prueba" }], images: [],
-        release_date: "2026-09-30", total_tracks: 1, external_urls: { spotify: "https://open.spotify.com/album/1" },
-        tracks: { items: [{ id: "track-1", name: "Canción de prueba", track_number: 1, duration_ms: 61000, preview_url: null }] },
+        name: "Álbum de Spotify", artistNames: ["Banda de prueba"], coverUrl: null,
+        releaseDate: "2026-09-30", totalTracks: 1, listenUrl: "https://open.spotify.com/album/1",
+        tracks: [{ id: "track-1", name: "Canción de prueba", number: 1, durationMs: 61000, previewUrl: null }],
       }),
     }));
     await page.goto(path);

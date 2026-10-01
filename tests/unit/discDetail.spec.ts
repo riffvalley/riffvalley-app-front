@@ -3,9 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { mount as mountComponent, flushPromises } from "@vue/test-utils";
 import DiscDetail from "../../src/components/DiscDetail.vue";
 
-const { get, token } = vi.hoisted(() => ({ get: vi.fn(), token: vi.fn() }));
-vi.mock("axios", () => ({ default: { get } }));
-vi.mock("@helpers/SpotifyFunctions.ts", () => ({ obtenerTokenSpotify: token }));
+const { get } = vi.hoisted(() => ({ get: vi.fn() }));
+vi.mock("@/shared/infrastructure/http/client", () => ({ default: { get } }));
 
 async function settle() { await flushPromises(); }
 function mount() {
@@ -16,33 +15,31 @@ function mount() {
 }
 
 const album = {
-  name: "Álbum", artists: [{ name: "Banda" }, { name: "Invitado" }],
-  images: [{ url: "https://cover.test/image" }], release_date: "2026-09-30",
-  total_tracks: 2, external_urls: { spotify: "https://open.spotify.com/album/1" },
-  tracks: { items: [
-    { id: "1", name: "Primera", track_number: 1, duration_ms: 61000, preview_url: "https://preview.test/1" },
-    { id: "2", name: "Segunda", track_number: 2, duration_ms: 3600000, preview_url: null },
-  ] },
+  name: "Álbum", artistNames: ["Banda", "Invitado"],
+  coverUrl: "https://cover.test/image", releaseDate: "2026-09-30",
+  totalTracks: 2, listenUrl: "https://open.spotify.com/album/1",
+  tracks: [
+    { id: "1", name: "Primera", number: 1, durationMs: 61000, previewUrl: "https://preview.test/1" },
+    { id: "2", name: "Segunda", number: 2, durationMs: 3600000, previewUrl: null },
+  ],
 };
 
 describe("disc detail legacy contract", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     get.mockReset();
-    token.mockResolvedValue("token");
   });
 
-  it("loads the first Spotify match and keeps text, track order, previews and links", async () => {
-    get.mockResolvedValueOnce({ data: { albums: { items: [{ id: "1" }, { id: "ignored" }] } } })
+  it("loads the resolved album and keeps text, track order, previews and links", async () => {
+    get.mockResolvedValueOnce({ data: { spotifyId: "1" } })
       .mockResolvedValueOnce({ data: album });
     const { wrapper } = mount();
     expect(wrapper.text()).toContain("Buscando en Spotify...");
     await settle();
-    expect(get).toHaveBeenNthCalledWith(1,
-      `https://api.spotify.com/v1/search?q=${encodeURIComponent("album:Álbum & Uno artist:Banda")}&type=album&limit=1`,
-      { headers: { Authorization: "Bearer token" } });
-    expect(get).toHaveBeenNthCalledWith(2, "https://api.spotify.com/v1/albums/1",
-      { headers: { Authorization: "Bearer token" } });
+    expect(get).toHaveBeenNthCalledWith(1, "/discs/spotify/album", {
+      params: { albumName: "Álbum & Uno", artistName: "Banda" },
+    });
+    expect(get).toHaveBeenNthCalledWith(2, "/discs/spotify/album/1");
     expect(wrapper.text()).toContain("Banda, Invitado");
     expect(wrapper.text()).toContain("2026-09-30");
     expect(wrapper.text()).toContain("2 canciones");
@@ -57,13 +54,11 @@ describe("disc detail legacy contract", () => {
   });
 
   it.each([
-    ["token", "No se pudo obtener el token de Spotify"],
-    ["empty", "Álbum no encontrado en Spotify"],
-    ["network", "Error al buscar el álbum en Spotify"],
-  ])("keeps the %s error and lets users close the overlay or button", async (failure, message) => {
-    if (failure === "token") token.mockResolvedValue(undefined);
-    if (failure === "empty") get.mockResolvedValue({ data: { albums: { items: [] } } });
-    if (failure === "network") get.mockRejectedValue(new Error("offline"));
+    ["not-found", "Álbum no encontrado en Spotify"],
+    ["backend error", "Error al buscar el álbum en Spotify"],
+  ])("keeps the %s message and lets users close the overlay or button", async (failure, message) => {
+    if (failure === "not-found") get.mockRejectedValue({ response: { status: 404 } });
+    if (failure === "backend error") get.mockRejectedValue(new Error("offline"));
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const { wrapper } = mount();
     await settle();
@@ -72,17 +67,16 @@ describe("disc detail legacy contract", () => {
     await wrapper.find("div.fixed").trigger("click");
     await wrapper.find("button").trigger("click");
     expect(wrapper.emitted("close")).toHaveLength(2);
-    if (failure === "token") expect(get).not.toHaveBeenCalled();
-    if (failure === "empty") expect(get).toHaveBeenCalledTimes(1);
+    if (failure === "not-found") expect(get).toHaveBeenCalledTimes(1);
     wrapper.unmount();
     log.mockRestore();
   });
 
   it("keeps albums without images, external links or previews usable, and searches again on reopen", async () => {
-    get.mockImplementation(async (url: string) => ({ data: url.includes("/search?")
-      ? { albums: { items: [{ id: "1" }] } }
-      : { ...album, images: undefined, external_urls: undefined,
-        tracks: { items: [{ ...album.tracks.items[0], preview_url: null }] } },
+    get.mockImplementation(async (url: string) => ({ data: url.endsWith("/album")
+      ? { spotifyId: "1" }
+      : { ...album, coverUrl: undefined, listenUrl: undefined,
+        tracks: [{ ...album.tracks[0], previewUrl: null }] },
     }));
     const first = mount().wrapper;
     await settle();
@@ -95,13 +89,12 @@ describe("disc detail legacy contract", () => {
     first.unmount();
     const second = mount().wrapper;
     await settle();
-    expect(token).toHaveBeenCalledTimes(2);
     expect(get).toHaveBeenCalledTimes(4);
     second.unmount();
   });
 
   it("translates album detail HTTP errors rather than exposing provider payloads", async () => {
-    get.mockResolvedValueOnce({ data: { albums: { items: [{ id: "1" }] } } })
+    get.mockResolvedValueOnce({ data: { spotifyId: "1" } })
       .mockRejectedValueOnce({ response: { status: 429, data: { error: "provider message" } } });
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const { wrapper } = mount();
