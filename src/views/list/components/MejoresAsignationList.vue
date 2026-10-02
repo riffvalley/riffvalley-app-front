@@ -131,19 +131,23 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch, computed, nextTick } from "vue";
+import { defineComponent, ref, watch, computed, nextTick, inject } from "vue";
 import { useAsignationStore } from "@stores/asignation/asignation";
 import { useUserStore } from "@stores/user/users";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import DiscDescriptionModal from "./DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
 import CircleFlags from "vue-circle-flags";
+import { asignationTextUpdateKey } from "@/modules/editorial/presentation/asignationTextUpdateKey";
+import type { AsignationTextUpdate } from "@/modules/editorial/domain/asignationTextUpdate";
 
 export default defineComponent({
     name: "MejoresAsignationList",
     components: { SpotifyArtistButton, DiscDescriptionModal },
     setup() {
         const asignationStore = useAsignationStore();
+        const asignationTextUpdate = inject(asignationTextUpdateKey);
+        if (!asignationTextUpdate) throw new Error("Asignation text update port was not provided");
         const userStore = useUserStore();
         const asignations = ref<any[]>([]);
 
@@ -218,11 +222,12 @@ export default defineComponent({
             editingAsignation.value = asignation;
         };
 
-        const handleSaveDescription = async (payload: { description: string; similarBands: string; spotifyTrackId: string }) => {
+        const handleSaveDescription = async (payload: AsignationTextUpdate) => {
             const asignation = editingAsignation.value;
             savingDescription.value = true;
             try {
-                await asignationStore.updateAsignationStore({ ...asignation, ...payload });
+                await asignationTextUpdate.updateAsignationText(asignation.id, payload);
+                asignationStore.applyAsignationUpdateLocally({ id: asignation.id, ...payload });
                 const idx = asignations.value.findIndex(a => a.id === asignation.id);
                 if (idx !== -1) asignations.value[idx] = { ...asignations.value[idx], ...payload };
                 SwalService.success('Disco actualizado');

@@ -25,6 +25,19 @@ export const useAsignationStore = defineStore("asignation", {
       this.asignations.push(asignation);
     },
 
+    applyAsignationUpdateLocally(updatedAsignation: {
+      id: string;
+      description?: string;
+      similarBands?: string;
+      spotifyTrackId?: string;
+      genre?: string;
+    }) {
+      const index = this.asignations.findIndex((a) => a.id === updatedAsignation.id);
+      if (index !== -1) {
+        this.asignations[index] = { ...this.asignations[index], ...updatedAsignation };
+      }
+    },
+
     async updateAsignationStore(updatedAsignation: any) {
       try {
         const data = {

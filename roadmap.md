@@ -1528,22 +1528,912 @@ capacidades como destino explícito del roadmap.
 
 ## Iteración 6 — Editorial
 
-Migrar un recorrido por PR, con orden sugerido:
+**Objetivo:** migrar progresivamente las capacidades editoriales seleccionadas
+hacia modules/editorial, manteniendo comportamiento, contratos backend,
+permisos y límites arquitectónicos existentes.
+Sugerencias, peticiones, importación y lanzamientos nacionales quedan fuera de
+Iteración 6 y corresponden a Iteración 7 — Releases.
 
-1. Edición de una asignación y su texto.
-2. Consulta/edición de una lista y reuniones.
-3. Un cambio de estado en artículos o vídeos y después sus Kanban.
-4. Una operación del calendario editorial.
-5. Gestión de playlists por operación.
+### Reglas de la iteración
 
-Separar formularios, tableros y modales por responsabilidad. Extraer reglas
-de transición y validación a funciones comprobables sin Vue cuando sean propias
-del frontend. Conservar las restricciones devueltas por la API y caracterizar
-fechas y zonas horarias en calendarios. No crear un motor Kanban o formularios
-genérico antes de demostrar necesidades compartidas.
+- Migrar por verticales funcionales pequeñas, no por vistas completas.
+- Conservar rutas, roles, validaciones, estados de carga/error, confirmaciones,
+  payloads y reglas de fecha salvo decisión funcional explícita.
+- No eliminar servicios, stores o fachadas legacy mientras existan consumidores.
+- No unificar modelos o recursos ambiguos sin evidencia suficiente del backend.
+- domain y application no deben depender de Vue, Pinia ni HTTP.
+- infrastructure implementa el acceso externo.
+- app realiza la composición.
+- presentation consume únicamente APIs públicas/composición.
+- Añadir caracterización antes de cambiar comportamientos delicados.
+- Ejecutar yarn verify al cerrar cada bloque o corte implementado.
+- Si Impeccable detecta hallazgos preexistentes, de atribución desconocida o
+  fuera del alcance de la tarea actual:
+  - no corregirlos;
+  - no suprimirlos;
+  - no modificar .impeccable/config.json;
+  - no cambiar estilos ni comportamiento para satisfacer el hook;
+  - corregir únicamente hallazgos demostrablemente introducidos por la tarea
+    actual;
+  - reportar los demás.
 
-**Salida:** los flujos migrados dejan de depender de servicios y stores legacy
-mediante imports directos, conservando permisos, estados y comportamiento.
+### 6.A — Asignaciones
+
+**Resumen del bloque**
+
+- **Objetivo funcional:** editar el texto asociado a una asignación desde su
+  flujo actual.
+- **Incluye:** contrato, acceso HTTP, composición y migración del guardado del
+  editor de texto.
+- **Queda fuera:** migrar LanguageTool, la búsqueda de pistas de Spotify u
+  otras operaciones de asignaciones; retirar servicios legacy con consumidores.
+- **Dependencias:** cliente HTTP/composición existente y caracterización del
+  payload y del comportamiento actual.
+- **Riesgos/decisiones pendientes:** el servicio legacy puede tener consumidores
+  fuera de Editorial; el contrato backend no está completamente documentado.
+- **Orden recomendado:** 6.1, 6.2, 6.3.
+
+#### 6.1 — Contrato para editar texto de asignación (XS)
+
+- **Objetivo y cambio exacto:** definir en Editorial la operación tipada mínima
+  para guardar el texto de una asignación, incluyendo identificador, entrada y
+  resultado/error necesarios para conservar la respuesta actual.
+- **Qué NO cambia:** endpoint, método, payload, validaciones, interfaz del
+  editor, LanguageTool y búsqueda de pistas.
+- **Archivos/zonas probables:** modules/editorial/domain y
+  modules/editorial/application; tipos del servicio legacy de asignaciones
+  como evidencia de comportamiento.
+- **Dependencia previa:** ninguna; confirmar el uso actual del endpoint y su
+  payload antes de fijar el contrato.
+- **Criterio de terminado:** el contrato no importa Vue, Pinia ni HTTP y
+  representa solo los datos que requiere el guardado.
+- **Verificación:** pruebas unitarias del contrato/operación si contiene lógica;
+  yarn architecture y yarn typecheck.
+
+#### 6.2 — Adaptador HTTP de edición de asignación (XS)
+
+- **Objetivo y cambio exacto:** implementar en infraestructura de Editorial el
+  puerto de guardado y mapear la petición/respuesta al endpoint existente.
+- **Qué NO cambia:** URL, método, autenticación, payload ni comportamiento de
+  errores del endpoint.
+- **Archivos/zonas probables:** modules/editorial/infrastructure y
+  composición HTTP ya establecida en app.
+- **Dependencia previa:** 6.1 y cliente HTTP compuesto disponible.
+- **Criterio de terminado:** presentación y aplicación pueden invocar la
+  operación sin importar el servicio legacy ni el cliente HTTP.
+- **Verificación:** prueba del adaptador con cliente HTTP simulado, más
+  yarn architecture y yarn typecheck.
+
+#### 6.3 — Componer y migrar el guardado del editor de texto (S)
+
+- **Objetivo y cambio exacto:** componer el adaptador en app y migrar el
+  guardado de DiscDescriptionModal/AsignationList a la API pública de Editorial.
+- **Qué NO cambia:** edición visible, confirmaciones, validaciones, mensajes,
+  formato de texto, LanguageTool, Spotify ni carga de asignaciones.
+- **Archivos/zonas probables:** composición de app, vistas/componentes del
+  editor y consumidores actuales del store de asignaciones.
+- **Dependencia previa:** 6.1 y 6.2; identificar consumidores antes de cambiar
+  el acceso de la vista.
+- **Criterio de terminado:** el guardado migrado conserva sus estados y no hace
+  HTTP desde presentación; el servicio legacy permanece si aún tiene
+  consumidores.
+- **Verificación:** caracterización del guardado y estados de error/carga;
+  prueba focalizada del consumidor, yarn verify.
+
+### 6.B — Listas
+
+**Resumen del bloque**
+
+- **Objetivo funcional:** migrar las operaciones editoriales de consulta,
+  edición, creación y publicación de listas por recorrido.
+- **Incluye:** detalle/actualización, listas especiales, creación
+  semanal/mensual y publicación a WordPress.
+- **Queda fuera:** retiradas generales del servicio de listas, operaciones de
+  playlists y cambios en los consumidores de listas ajenos a Editorial.
+- **Dependencias:** APIs públicas de Editorial y composición de HTTP; localizar
+  consumidores del servicio legacy antes de cada migración.
+- **Riesgos/decisiones pendientes:** el servicio de listas tiene consumidores
+  fuera de Editorial; la construcción actual de HTML para WordPress es un
+  riesgo conocido y no se corrige en este bloque.
+- **Orden recomendado:** 6.4–6.6 para la ficha; después 6.7, 6.8 y 6.9 como
+  recorridos independientes.
+
+#### 6.4 — Contrato de listas (XS)
+
+- **Objetivo y cambio exacto:** definir los tipos y operaciones mínimos que
+  necesita la ficha de lista para consultar y actualizar sus datos.
+- **Qué NO cambia:** DTO/backend, URL, forma de guardar, campos editables ni
+  operaciones de publicación.
+- **Archivos/zonas probables:** modules/editorial/domain y
+  modules/editorial/application; tipos hoy usados por EditList.
+- **Dependencia previa:** ninguna; contrastar tipos y payloads del consumidor
+  con el servicio actual.
+- **Criterio de terminado:** el contrato cubre solo lectura/detalle y
+  actualización de ficha, sin acoplarse a infraestructura.
+- **Verificación:** yarn architecture y yarn typecheck; pruebas unitarias si
+  se añaden reglas o mapeos de aplicación.
+
+#### 6.5 — Adaptador de detalle y actualización de lista (S)
+
+- **Objetivo y cambio exacto:** adaptar las llamadas actuales de lectura y
+  actualización de una lista al puerto definido en 6.4.
+- **Qué NO cambia:** rutas API, parámetros, payload, permisos ni respuesta
+  observable del backend.
+- **Archivos/zonas probables:** infraestructura de Editorial y servicio legacy
+  de listas como referencia del transporte.
+- **Dependencia previa:** 6.4 y cliente HTTP/composición disponibles.
+- **Criterio de terminado:** el adaptador cubre las dos operaciones de la ficha
+  y mantiene explícitos los errores devueltos por API.
+- **Verificación:** pruebas focalizadas del adaptador para lectura, actualización
+  y error; yarn architecture y yarn typecheck.
+
+#### 6.6 — Composición y migración de la ficha de lista (S)
+
+- **Objetivo y cambio exacto:** componer las operaciones de 6.5 en app y
+  migrar EditList para consumir la API pública.
+- **Qué NO cambia:** navegación, campos, validaciones, permisos, guardado,
+  notificaciones ni consumidores no editoriales del servicio.
+- **Archivos/zonas probables:** composición de app, vista EditList y
+  presentación de Editorial.
+- **Dependencia previa:** 6.4 y 6.5; caracterizar el guardado y los estados
+  actuales de la ficha.
+- **Criterio de terminado:** la ficha ya no importa el servicio HTTP legacy y
+  conserva el comportamiento observable; servicio legacy sigue disponible para
+  otros consumidores.
+- **Verificación:** prueba focalizada de carga/edición/error y yarn verify.
+
+#### 6.7 — Migrar consulta y CRUD de listas especiales (S)
+
+- **Objetivo y cambio exacto:** migrar el listado y las operaciones de creación,
+  edición y borrado de listas especiales al módulo Editorial, conservando cada
+  endpoint y su payload actual.
+- **Qué NO cambia:** reglas funcionales de listas especiales, permisos,
+  confirmaciones ni consumidores de listas de otros módulos.
+- **Archivos/zonas probables:** ListsList, store/servicio legacy de listas y
+  APIs públicas de Editorial.
+- **Dependencia previa:** contratos/adaptadores para las operaciones afectadas;
+  6.4–6.6 solo si se demuestra que comparten el mismo contrato de lista.
+- **Criterio de terminado:** consulta y CRUD de este recorrido usan composición
+  de Editorial, con carga/error y confirmaciones preservados.
+- **Verificación:** pruebas focalizadas de consulta y CRUD, incluida cancelación
+  del borrado; yarn verify.
+
+#### 6.8 — Migrar formulario de creación de listas semanales/mensuales (XS)
+
+- **Objetivo y cambio exacto:** sustituir el acceso legacy del formulario
+  CreateList por la operación pública de Editorial que crea listas semanales o
+  mensuales.
+- **Qué NO cambia:** campos, validaciones, reglas de periodo, endpoint,
+  navegación ni forma de presentar el resultado.
+- **Archivos/zonas probables:** CreateList, contrato/adaptador de creación y
+  composición de app.
+- **Dependencia previa:** contrato y adaptador de creación definidos; separar
+  esta operación de la ficha si sus payloads difieren.
+- **Criterio de terminado:** formulario usa la composición, preserva validación
+  y errores y no incorpora nuevas reglas de periodo.
+- **Verificación:** prueba focalizada de validación y envío/error; yarn verify.
+
+#### 6.9 — Migrar publicación de listas a WordPress (S)
+
+- **Objetivo y cambio exacto:** llevar la operación de publicación de listas al
+  adaptador/composición de Editorial y migrar su consumidor.
+- **Qué NO cambia:** contrato de WordPress, datos publicados, confirmaciones,
+  permisos ni el HTML que actualmente se construye a partir de la respuesta.
+- **Archivos/zonas probables:** consumidor de publicación de listas, servicio
+  legacy correspondiente, infraestructura y composición de Editorial.
+- **Dependencia previa:** confirmar endpoint y payload existentes; crear una
+  operación separada si WordPress no comparte el contrato de listas internas.
+- **Criterio de terminado:** la vista no realiza HTTP directo y mantiene
+  mensajes/estados actuales; el riesgo de HTML queda documentado, no corregido
+  por este cambio.
+- **Verificación:** prueba del adaptador y prueba focalizada de confirmación,
+  éxito y error; yarn verify.
+
+### 6.C — Reuniones
+
+**Resumen del bloque**
+
+- **Objetivo funcional:** desacoplar los recorridos de lista, puntos, edición y
+  detalle de reunión.
+- **Incluye:** contratos, adaptador y migración separada de tabla/listado, modal
+  y detalle.
+- **Queda fuera:** unificar reuniones con contenido de calendario o cambiar el
+  formato/rendereo de texto.
+- **Dependencias:** definir los modelos que realmente necesita cada operación y
+  adaptar el endpoint existente sin inferir entidades.
+- **Riesgos/decisiones pendientes:** no asumir que /reunions y
+  Content(type="reunion") representan la misma entidad o ciclo de vida.
+  Documentar el v-html actual en reunión como riesgo existente.
+- **Orden recomendado:** 6.10, 6.11; luego 6.12–6.14 como consumidores
+  separables.
+
+#### 6.10 — Contrato de reuniones y puntos (S)
+
+- **Objetivo y cambio exacto:** establecer tipos y operaciones de aplicación
+  mínimos para las reuniones y sus puntos, separando los datos parciales hoy
+  tipados de los campos que cruzan como any.
+- **Qué NO cambia:** modelo backend, endpoint, relación con Content, contenido
+  HTML ni permisos.
+- **Archivos/zonas probables:** dominio/aplicación de Editorial y tipos/modelos
+  actualmente usados por lista, modal y detalle.
+- **Dependencia previa:** inspeccionar las respuestas y payloads actuales por
+  operación; no colapsar recursos con nombre parecido.
+- **Criterio de terminado:** los casos de uso del bloque tienen contratos
+  explícitos sin dependencias de Vue/Pinia/HTTP y sin introducir tipos
+  duplicados ceremoniales.
+- **Verificación:** pruebas unitarias de mapeos/reglas añadidas,
+  yarn architecture y yarn typecheck.
+
+#### 6.11 — Adaptador de reuniones y puntos (S)
+
+- **Objetivo y cambio exacto:** implementar los puertos de lectura/actualización
+  de reunión y gestión de puntos usados por estos consumidores, con DTOs junto
+  al adaptador.
+- **Qué NO cambia:** rutas existentes, payloads, estructura de respuestas,
+  permisos ni ciclo de vida backend.
+- **Archivos/zonas probables:** infraestructura Editorial y servicios legacy de
+  reuniones/contenidos usados por cada operación.
+- **Dependencia previa:** 6.10; verificar si cada endpoint pertenece a
+  /reunions o a Content antes de mapearlo.
+- **Criterio de terminado:** el adaptador implementa solo operaciones
+  confirmadas y conserva respuestas/errores sin suponer equivalencias.
+- **Verificación:** pruebas de transporte por endpoint, incluido error; yarn
+  architecture y yarn typecheck.
+
+#### 6.12 — Migrar lista de reuniones y tabla de puntos (S)
+
+- **Objetivo y cambio exacto:** migrar la consulta del listado de reuniones y
+  carga/operaciones de la tabla de puntos a la API pública de Editorial.
+- **Qué NO cambia:** orden, columnas, paginación/filtros existentes, roles ni
+  contenido mostrado.
+- **Archivos/zonas probables:** lista de reuniones, tabla de puntos y
+  presentación/composición de Editorial.
+- **Dependencia previa:** 6.10 y 6.11; caracterizar por separado las consultas
+  y mutaciones de puntos.
+- **Criterio de terminado:** estos consumidores no llaman HTTP ni importan el
+  servicio legacy directamente; los demás recorridos no migrados siguen
+  funcionando.
+- **Verificación:** pruebas focalizadas de carga, error y operación de puntos;
+  yarn verify.
+
+#### 6.13 — Migrar el modal de edición de reunión (S)
+
+- **Objetivo y cambio exacto:** cambiar el acceso de datos del modal de edición
+  para usar composición/API pública de Editorial.
+- **Qué NO cambia:** campos, validaciones, submit, permisos, confirmación,
+  contenido del texto ni el uso actual de HTML.
+- **Archivos/zonas probables:** modal de reunión, operación de actualización y
+  presentación Editorial.
+- **Dependencia previa:** 6.10–6.11; mantener explícita cualquier diferencia
+  entre el recurso del modal y el de la lista.
+- **Criterio de terminado:** modal conserva carga, guardado y error y deja de
+  importar la ruta HTTP legacy.
+- **Verificación:** prueba focalizada de inicialización, validación, guardado y
+  error; yarn verify.
+
+#### 6.14 — Migrar la vista de detalle de reunión (S)
+
+- **Objetivo y cambio exacto:** migrar la carga del detalle y las operaciones
+  existentes de esa vista a la API pública de Editorial.
+- **Qué NO cambia:** URL/ruta, roles, contenido, tratamiento actual de saltos
+  de línea/HTML, ni semántica del endpoint.
+- **Archivos/zonas probables:** vista de detalle de reunión y sus consumidores
+  del servicio legacy.
+- **Dependencia previa:** 6.10–6.11; confirmar el recurso usado por el detalle
+  sin inferir que coincide con Content(type="reunion").
+- **Criterio de terminado:** consulta compuesta desde app, presentación sin
+  HTTP y comportamiento visible preservado.
+- **Verificación:** prueba focalizada de carga/vacío/error y yarn verify.
+
+### 6.D — Artículos
+
+**Resumen del bloque**
+
+- **Objetivo funcional:** migrar de forma incremental las operaciones del
+  Kanban y formularios de artículos.
+- **Incluye:** contrato, adaptador/composición, cambio de estado, consulta y
+  filtro, formulario/borrado, asignaciones y altas/ediciones desde calendario.
+- **Queda fuera:** cambios de producto al flujo, rediseño del Kanban o lógica de
+  vídeo/calendario no necesaria para estos recorridos.
+- **Dependencias:** conservar endpoints, restricciones API y consumidor del
+  calendario; caracterizar el cambio optimista de estado y su reversión.
+- **Riesgos/decisiones pendientes:** artículos tiene consumidores en el
+  calendario; las rutas actuales requieren el rol riffValley.
+- **Orden recomendado:** 6.15–6.17, cambio de estado 6.18; luego 6.19–6.23
+  como operaciones separables.
+
+#### 6.15 — Contrato de artículos (XS)
+
+- **Objetivo y cambio exacto:** definir el contrato mínimo para listar, cambiar
+  estado y ejecutar las operaciones de artículo que consumen Kanban y
+  formularios.
+- **Qué NO cambia:** DTO backend, estados permitidos, permisos, orden o
+  presentación.
+- **Archivos/zonas probables:** dominio/aplicación de Editorial y tipos del
+  servicio de artículos existente.
+- **Dependencia previa:** ninguna; inventariar los métodos usados por Kanban y
+  calendario antes de fijar el alcance de cada operación.
+- **Criterio de terminado:** tipos explícitos cubren operaciones seleccionadas
+  sin importar framework ni transporte.
+- **Verificación:** yarn architecture y yarn typecheck; pruebas unitarias para
+  reglas de estado si se extraen.
+
+#### 6.16 — Adaptador HTTP de artículos (S)
+
+- **Objetivo y cambio exacto:** implementar en infraestructura las operaciones
+  tipadas de artículos sobre los endpoints existentes.
+- **Qué NO cambia:** URL, payload, autenticación, errores del servidor ni
+  validaciones backend.
+- **Archivos/zonas probables:** infraestructura Editorial, DTOs junto al
+  adaptador y servicio legacy como referencia.
+- **Dependencia previa:** 6.15 y composición HTTP disponible.
+- **Criterio de terminado:** adaptador probado para las operaciones consumidas;
+  no se retira el servicio legacy mientras lo usen calendario u otros módulos.
+- **Verificación:** pruebas del adaptador para éxito/error por operación;
+  yarn architecture y yarn typecheck.
+
+#### 6.17 — Componer operaciones de artículos en app (XS)
+
+- **Objetivo y cambio exacto:** enlazar puertos/adaptadores de artículos con la
+  composición de app y exponer API pública para presentación.
+- **Qué NO cambia:** vistas, endpoints, permisos ni comportamiento.
+- **Archivos/zonas probables:** composición app y exports públicos de
+  modules/editorial.
+- **Dependencia previa:** 6.15 y 6.16.
+- **Criterio de terminado:** las vistas reciben operaciones compuestas sin
+  construir adaptadores ni importar internals de Editorial.
+- **Verificación:** prueba de composición si hay selección/configuración;
+  yarn architecture y yarn typecheck.
+
+#### 6.18 — Migrar cambio de estado del Kanban de artículos (S)
+
+- **Objetivo y cambio exacto:** migrar la mutación de estado de la tarjeta al
+  caso de uso/API pública de Editorial y conservar la actualización optimista y
+  rollback ante error.
+- **Qué NO cambia:** estados permitidos, bloqueo de published, permisos,
+  interacción visual ni semántica del endpoint.
+- **Archivos/zonas probables:** Kanban de artículos y su integración con la
+  operación compuesta.
+- **Dependencia previa:** 6.15–6.17; caracterizar transición, estado optimista y
+  reversión antes del cambio.
+- **Criterio de terminado:** mutación pasa por Editorial y en fallo se restaura
+  el estado previo como hoy.
+- **Verificación:** prueba focalizada de éxito, bloqueo y error/rollback;
+  yarn verify.
+
+#### 6.19 — Migrar consulta y filtro del Kanban de artículos (S)
+
+- **Objetivo y cambio exacto:** trasladar carga de tarjetas y aplicación de los
+  filtros existentes al flujo compuesto de Editorial.
+- **Qué NO cambia:** filtros, orden, columnas, roles ni datos mostrados.
+- **Archivos/zonas probables:** Kanban de artículos y consulta de artículos en
+  Editorial.
+- **Dependencia previa:** 6.15–6.17; puede ejecutarse separadamente de 6.18 una
+  vez disponible la composición.
+- **Criterio de terminado:** carga y filtros no acceden al servicio legacy
+  directamente y mantienen estados vacío/error.
+- **Verificación:** pruebas focalizadas de filtro y carga/error; yarn verify.
+
+#### 6.20 — Migrar formulario y borrado de artículos (S)
+
+- **Objetivo y cambio exacto:** migrar las operaciones de alta/edición y borrado
+  usadas por el formulario al contrato y composición de Editorial.
+- **Qué NO cambia:** campos, reglas, confirmación, permisos, payload ni
+  comportamiento de éxito/error.
+- **Archivos/zonas probables:** formulario/modal de artículos, operación
+  Editorial y consumidor del Kanban.
+- **Dependencia previa:** 6.15–6.17; confirmar qué operación comparte endpoint
+  antes de reutilizarla.
+- **Criterio de terminado:** el formulario y borrado usan API pública y
+  conservan validaciones y confirmación.
+- **Verificación:** pruebas focalizadas de validación, guardado, cancelación y
+  error de borrado; yarn verify.
+
+#### 6.21 — Migrar asignaciones de artículos (S)
+
+- **Objetivo y cambio exacto:** migrar la consulta y modificación de usuarios
+  asignados a un artículo a la operación compuesta correspondiente.
+- **Qué NO cambia:** selección disponible, permisos, nombres de campos ni
+  reglas de asignación.
+- **Archivos/zonas probables:** formulario/detalle de artículos, servicio de
+  usuarios si el flujo lo necesita y composición Editorial.
+- **Dependencia previa:** 6.15–6.17 y confirmar propietario de la consulta de
+  usuarios; no mover operaciones generales de usuarios sin consumidores
+  editoriales identificados.
+- **Criterio de terminado:** cambios de asignación usan la API pública
+  correspondiente y estados de guardado/error permanecen.
+- **Verificación:** pruebas focalizadas de carga y guardado/error; yarn verify.
+
+#### 6.22 — Migrar alta de artículo al calendario (S)
+
+- **Objetivo y cambio exacto:** migrar la creación de artículo iniciada desde
+  ContentCalendar al caso de uso público de Editorial.
+- **Qué NO cambia:** calendario, fecha seleccionada, reglas UTC/local,
+  estructura del contenido ni permisos.
+- **Archivos/zonas probables:** alta de artículo desde calendario, ContentCalendar
+  y composición compartida de Editorial.
+- **Dependencia previa:** 6.15–6.17; coordinar sin extraer del calendario
+  operaciones no incluidas.
+- **Criterio de terminado:** alta usa API compuesta y mantiene fecha/payload
+  actuales; otras llamadas del calendario pueden seguir legacy.
+- **Verificación:** prueba focalizada de payload/fecha/error y yarn verify.
+
+#### 6.23 — Migrar edición de artículo desde el calendario (S)
+
+- **Objetivo y cambio exacto:** llevar la edición de artículo iniciada desde
+  ContentCalendar a la API pública de Editorial.
+- **Qué NO cambia:** apertura, formulario, fecha, comportamiento del calendario,
+  permisos o contrato backend.
+- **Archivos/zonas probables:** editor de artículo desde calendario,
+  ContentCalendar y composición de Editorial.
+- **Dependencia previa:** 6.15–6.17; 6.22 solo si se descubre una operación
+  común imprescindible.
+- **Criterio de terminado:** la edición pasa por composición y conserva datos,
+  estados y validaciones del editor actual.
+- **Verificación:** prueba focalizada de carga/guardado/error y yarn verify.
+
+### 6.E — Vídeos
+
+**Resumen del bloque**
+
+- **Objetivo funcional:** migrar el Kanban y operaciones de vídeo como
+  recorridos diferenciados, sin fusionarlos con artículos.
+- **Incluye:** contrato, adaptador/composición, cambio de estado, consulta y
+  filtro, formulario/borrado, asignaciones, creación de lista y operaciones de
+  calendario.
+- **Queda fuera:** cambios de producto, migración del módulo de Spotify u
+  operaciones de artículos que no sean dependencia explícita.
+- **Dependencias:** caracterizar cambio optimista/rollback y mantener
+  compatibilidad con el uso de listas y calendario.
+- **Riesgos/decisiones pendientes:** VideoListDetalle consume listas y vídeos;
+  no retirar servicios comunes con consumidores ajenos a Editorial. La ruta de
+  vídeos requiere actualmente riffValley.
+- **Orden recomendado:** 6.24–6.26, 6.27; luego 6.28–6.33 por operación.
+
+#### 6.24 — Contrato de vídeos (XS)
+
+- **Objetivo y cambio exacto:** definir operaciones y tipos mínimos para las
+  operaciones de vídeo consumidas por Kanban, formulario y calendario.
+- **Qué NO cambia:** estados, payloads, endpoints, permisos ni forma de
+  renderizar tarjetas.
+- **Archivos/zonas probables:** dominio/aplicación Editorial y tipos usados por
+  servicio de vídeos.
+- **Dependencia previa:** ninguna; inventariar operaciones actuales y separar
+  las que pertenecen a listas.
+- **Criterio de terminado:** contratos explícitos, sin Vue/Pinia/HTTP ni
+  duplicación de DTOs sin necesidad.
+- **Verificación:** yarn architecture y yarn typecheck; pruebas unitarias
+  para reglas que se incorporen.
+
+#### 6.25 — Adaptador HTTP de vídeos (S)
+
+- **Objetivo y cambio exacto:** implementar en infraestructura los puertos de
+  vídeo sobre los endpoints actuales.
+- **Qué NO cambia:** URL, payload, autenticación, permisos o respuestas del
+  servidor.
+- **Archivos/zonas probables:** infraestructura Editorial, DTOs locales al
+  adaptador y servicios legacy de vídeo.
+- **Dependencia previa:** 6.24 y cliente HTTP/composición disponible.
+- **Criterio de terminado:** transporte tipado cubre operaciones seleccionadas
+  y no retira el servicio si siguen consumidores legacy.
+- **Verificación:** pruebas focalizadas de éxito/error de adaptador;
+  yarn architecture y yarn typecheck.
+
+#### 6.26 — Componer operaciones de vídeos en app (XS)
+
+- **Objetivo y cambio exacto:** enlazar puertos y adaptadores de vídeo en app
+  y exponer su API pública a presentación.
+- **Qué NO cambia:** rutas, servicios externos ni interfaces.
+- **Archivos/zonas probables:** composición de app y exports de Editorial.
+- **Dependencia previa:** 6.24 y 6.25.
+- **Criterio de terminado:** presentación recibe operaciones compuestas, sin
+  construir infraestructura ni acceder a internals.
+- **Verificación:** yarn architecture y yarn typecheck; prueba de composición
+  si existe selección condicional.
+
+#### 6.27 — Migrar cambio de estado del Kanban de vídeos (S)
+
+- **Objetivo y cambio exacto:** migrar la mutación de estado de tarjeta a la
+  operación de Editorial conservando actualización optimista y rollback.
+- **Qué NO cambia:** estados permitidos, restricciones del backend, permisos,
+  interacción visual ni texto de estado.
+- **Archivos/zonas probables:** Kanban de vídeos y API pública compuesta.
+- **Dependencia previa:** 6.24–6.26; caracterizar el rollback y respuestas de
+  error actuales.
+- **Criterio de terminado:** mutación va por Editorial y el estado previo se
+  restaura al fallar.
+- **Verificación:** prueba focalizada de transición y rollback; yarn verify.
+
+#### 6.28 — Migrar consulta y filtro del Kanban de vídeos (S)
+
+- **Objetivo y cambio exacto:** migrar carga y filtros actuales del Kanban de
+  vídeos a la consulta compuesta.
+- **Qué NO cambia:** filtros, columnas, orden, permisos ni contenido de las
+  tarjetas.
+- **Archivos/zonas probables:** Kanban de vídeos y consulta Editorial.
+- **Dependencia previa:** 6.24–6.26; es independiente de la mutación 6.27 tras
+  componer las operaciones.
+- **Criterio de terminado:** consulta y filtros no llaman el servicio HTTP
+  legacy desde la vista; carga/vacío/error conservados.
+- **Verificación:** pruebas focalizadas de filtro y estados de consulta;
+  yarn verify.
+
+#### 6.29 — Migrar formulario y borrado de vídeos (S)
+
+- **Objetivo y cambio exacto:** migrar alta/edición y borrado del formulario de
+  vídeo al contrato/adaptador/composición de Editorial.
+- **Qué NO cambia:** campos, validaciones, confirmación, permisos y contrato
+  backend.
+- **Archivos/zonas probables:** formulario/modal de vídeo, Kanban y API pública.
+- **Dependencia previa:** 6.24–6.26; comprobar payloads antes de compartir una
+  operación con artículos.
+- **Criterio de terminado:** formulario y borrado usan composición y conservan
+  estados de guardado, error y confirmación.
+- **Verificación:** pruebas de validación, guardado, cancelación/error de
+  borrado; yarn verify.
+
+#### 6.30 — Migrar asignaciones de vídeos (S)
+
+- **Objetivo y cambio exacto:** migrar lectura y edición de usuarios asignados a
+  vídeos al acceso público correspondiente.
+- **Qué NO cambia:** opciones de usuario, reglas, roles o persistencia.
+- **Archivos/zonas probables:** formulario/detalle de vídeo, operación Editorial
+  y consumidor del servicio de usuarios.
+- **Dependencia previa:** 6.24–6.26; confirmar el propietario de la consulta de
+  usuarios sin migrar toda la gestión de usuarios.
+- **Criterio de terminado:** asignaciones usan APIs compuestas y mantienen
+  estados actuales.
+- **Verificación:** pruebas focalizadas de carga y guardado/error; yarn verify.
+
+#### 6.31 — Migrar creación de lista de vídeo (S)
+
+- **Objetivo y cambio exacto:** migrar la operación de crear la lista vinculada
+  a vídeo mediante contrato y composición adecuados.
+- **Qué NO cambia:** recursos de lista no relacionados, endpoint, payload,
+  permisos ni comportamiento de listas.
+- **Archivos/zonas probables:** VideoListDetalle, servicio de listas/vídeos y
+  API pública de Editorial.
+- **Dependencia previa:** 6.24–6.26; confirmar si la creación corresponde al
+  contrato de listas 6.4 o tiene payload/ciclo de vida distinto.
+- **Criterio de terminado:** creación usa una operación con propietario claro y
+  conserva relación de vídeo/lista; servicios compartidos permanecen si tienen
+  consumidores.
+- **Verificación:** prueba de payload y éxito/error; yarn verify.
+
+#### 6.32 — Migrar asociación de vídeo al calendario (S)
+
+- **Objetivo y cambio exacto:** migrar la operación que asocia un vídeo con una
+  entrada/fecha del calendario usando la API pública de Editorial.
+- **Qué NO cambia:** reglas de fecha, zonas horarias, calendario ni recursos
+  ambiguos.
+- **Archivos/zonas probables:** flujo de vídeo desde ContentCalendar y
+  composición de Editorial.
+- **Dependencia previa:** 6.24–6.26; verificar endpoint y payload de asociación
+  de vídeo antes de reutilizar operación de artículo.
+- **Criterio de terminado:** asociación compuesta, fecha y payload iguales a los
+  actuales; operaciones restantes del calendario pueden seguir legacy.
+- **Verificación:** prueba focalizada de payload/fecha/error; yarn verify.
+
+#### 6.33 — Migrar edición de vídeo desde el calendario (S)
+
+- **Objetivo y cambio exacto:** migrar la edición iniciada desde calendario
+  para invocar la operación pública de Editorial.
+- **Qué NO cambia:** interfaz, fechas, permisos, validación o endpoint.
+- **Archivos/zonas probables:** editor de vídeo desde calendario,
+  ContentCalendar y API compuesta.
+- **Dependencia previa:** 6.24–6.26; 6.32 solo si ambos usan una operación
+  confirmada como común.
+- **Criterio de terminado:** edición usa composición y preserva el
+  comportamiento/estados visibles.
+- **Verificación:** prueba de carga, guardado y error; yarn verify.
+
+### 6.F — Calendario editorial
+
+**Resumen del bloque**
+
+- **Objetivo funcional:** migrar una operación acotada de calendario,
+  empezando por el movimiento de evento.
+- **Incluye:** contrato/regla de reprogramación y migración de eventDrop.
+- **Queda fuera:** migrar toda la vista monolítica, consultas de todos los tipos,
+  altas/ediciones cubiertas en los bloques de artículos y vídeos, o rediseñar
+  fechas.
+- **Dependencias:** caracterizar y retener conversión UTC/local y contrato actual
+  de actualización.
+- **Riesgos/decisiones pendientes:** ContentCalendar combina varios recursos y
+  servicios; preservar las reglas de zona horaria.
+- **Orden recomendado:** 6.34 antes de 6.35.
+
+#### 6.34 — Contrato y operación de reprogramación editorial (S)
+
+- **Objetivo y cambio exacto:** definir la operación tipada para reprogramar el
+  evento del calendario y aislar las transformaciones de fecha que sean lógica
+  propia del frontend.
+- **Qué NO cambia:** formatos enviados, semántica de fecha, endpoint, recursos
+  distintos de reprogramar ni la zona horaria observable.
+- **Archivos/zonas probables:** dominio/aplicación Editorial, tipos de
+  calendario y servicio de actualización actual.
+- **Dependencia previa:** caracterizar valores antes/después en UTC y local;
+  confirmar el payload aceptado por backend.
+- **Criterio de terminado:** contrato y regla comprobables sin Vue/HTTP
+  conservan la semántica actual.
+- **Verificación:** pruebas de fechas límite/zona UTC-local y yarn
+  architecture, yarn typecheck.
+
+#### 6.35 — Migrar eventDrop del calendario (S)
+
+- **Objetivo y cambio exacto:** hacer que eventDrop solicite reprogramación
+  mediante la API compuesta de Editorial y gestione éxito/error según el
+  comportamiento actual.
+- **Qué NO cambia:** vista completa, eventos de otros tipos, presentación,
+  restricciones de fecha ni conversión UTC/local.
+- **Archivos/zonas probables:** ContentCalendar, composición de Editorial y
+  adaptador de reprogramación.
+- **Dependencia previa:** 6.34; caracterizar cancelación/reversión si falla la
+  actualización.
+- **Criterio de terminado:** solo la operación eventDrop migrada pasa por
+  Editorial, conserva fecha e interacción y no arrastra migraciones de otros
+  recorridos.
+- **Verificación:** pruebas de conversión, movimiento y fallo/reversión;
+  yarn verify.
+
+### 6.G — Playlists de festivales
+
+**Resumen del bloque**
+
+- **Objetivo funcional:** migrar por operación la gestión de playlists de
+  festivales a Editorial y su composición.
+- **Incluye:** contrato y transporte, lectura/estado/usuario, ciclo de vida del
+  registro, metadatos/imagen y gestión de artistas/pistas.
+- **Queda fuera:** OAuth, cambios en proveedor Spotify, permisos de backend no
+  confirmados y playlist de géneros.
+- **Dependencias:** APIs backend existentes expuestas por servicios legacy;
+  separar catálogo/metadata de artistas y pistas.
+- **Riesgos/decisiones pendientes:** mantener reglas actuales de roles visibles
+  (riffValley, admin, superUser) y no retirar servicios mientras haya
+  consumidores; confirmar permisos efectivos con backend.
+- **Orden recomendado:** 6.36–6.37; después 6.38–6.40 y al final el conjunto
+  acotado de artistas/pistas en 6.41.
+
+#### 6.36 — Contrato del ciclo de playlist de festivales (XS)
+
+- **Objetivo y cambio exacto:** definir contratos separados para el registro de
+  festival y los datos de playlist que consume el tablero.
+- **Qué NO cambia:** endpoints, OAuth, modelo backend ni tipos de playlists de
+  géneros.
+- **Archivos/zonas probables:** dominio/aplicación de Editorial y tipos usados
+  por vistas/servicios legacy de festivales.
+- **Dependencia previa:** ninguna; contrastar llamadas actuales y no crear un
+  recurso unificado sin evidencia.
+- **Criterio de terminado:** operaciones/tipos cubren únicamente los datos
+  necesarios y son independientes de framework y transporte.
+- **Verificación:** yarn architecture y yarn typecheck; pruebas unitarias
+  solo para lógica contractual introducida.
+
+#### 6.37 — Adaptador y composición de playlists de festivales (S)
+
+- **Objetivo y cambio exacto:** implementar y componer transporte para las
+  operaciones confirmadas del contrato 6.36.
+- **Qué NO cambia:** endpoint, OAuth, proveedor Spotify, permiso backend ni
+  payloads.
+- **Archivos/zonas probables:** infraestructura Editorial, DTOs locales al
+  adaptador y composición app.
+- **Dependencia previa:** 6.36 y cliente HTTP disponible.
+- **Criterio de terminado:** los adaptadores manejan endpoints actuales con
+  mapeos tipados, y app expone API pública de Editorial.
+- **Verificación:** pruebas de adaptador para éxito/error y checks
+  yarn architecture, yarn typecheck.
+
+#### 6.38 — Migrar lectura, estado y usuario del tablero de festivales (S)
+
+- **Objetivo y cambio exacto:** migrar consulta del tablero, estado del registro
+  y usuario asociado a las operaciones compuestas de Editorial.
+- **Qué NO cambia:** orden/filtros visibles, roles, modelo, selección de usuario
+  o ciclo de vida.
+- **Archivos/zonas probables:** tablero de festivales, servicio legacy y
+  composición de Editorial.
+- **Dependencia previa:** 6.36–6.37; confirmar si estado y usuario usan el
+  mismo recurso backend que la consulta.
+- **Criterio de terminado:** los tres accesos migrados consumen APIs públicas,
+  conservando permisos y estados carga/vacío/error.
+- **Verificación:** pruebas focalizadas de consulta, cambio de estado y usuario;
+  yarn verify.
+
+#### 6.39 — Migrar creación, enlace y borrado de registro de festival (S)
+
+- **Objetivo y cambio exacto:** migrar el ciclo de alta, vinculación con
+  playlist y borrado del registro de festival.
+- **Qué NO cambia:** ciclo de vida backend, confirmaciones, endpoint, OAuth ni
+  orden de operaciones.
+- **Archivos/zonas probables:** formularios/acciones de festival, servicio
+  legacy y operaciones Editorial.
+- **Dependencia previa:** 6.36–6.37; identificar si crear/enlazar/borrar son
+  endpoints independientes y mantener esa secuencia.
+- **Criterio de terminado:** operaciones pasan por aplicación/adaptador y
+  mantienen confirmación, errores y vínculo actual.
+- **Verificación:** pruebas por operación, incluida cancelación/error de
+  borrado; yarn verify.
+
+#### 6.40 — Migrar metadatos e imagen de playlist de festival (S)
+
+- **Objetivo y cambio exacto:** migrar edición de metadatos e imagen del
+  recorrido de festival al acceso compuesto ya definido.
+- **Qué NO cambia:** campos visibles, tratamiento de imagen, restricciones del
+  proveedor ni OAuth.
+- **Archivos/zonas probables:** editor de playlist de festival y operaciones de
+  infraestructura/composición Editorial.
+- **Dependencia previa:** 6.36–6.37; confirmar el contrato backend de metadatos
+  e imagen antes de compartir adaptadores.
+- **Criterio de terminado:** metadatos e imagen usan APIs públicas y conservan
+  validación, carga/error y payload.
+- **Verificación:** pruebas focalizadas de guardado y error; yarn verify.
+
+#### 6.41 — Migrar artistas y pistas de festivales (M)
+
+- **Objetivo y cambio exacto:** migrar las operaciones de cargar/añadir/quitar
+  artistas y administrar pistas del festival, separándolas por contratos cuando
+  las APIs sean diferentes.
+- **Qué NO cambia:** algoritmo de selección, límites backend, OAuth, SDKs de
+  proveedor o las operaciones de playlists de géneros.
+- **Archivos/zonas probables:** componentes de artistas/pistas de festivales,
+  servicios legacy y contratos/adaptadores Editorial.
+- **Dependencia previa:** 6.36–6.37; confirmar payloads, orden y límites por
+  endpoint; subdividir en cortes de consumidor si la inspección demuestra que
+  son independientes.
+- **Criterio de terminado:** operaciones de artistas y pistas usan composición
+  explícita, conservan secuencia, errores y restricciones observadas.
+- **Verificación:** pruebas focalizadas por operación y errores de backend;
+  yarn verify.
+
+### 6.H — Playlists de géneros
+
+**Resumen del bloque**
+
+- **Objetivo funcional:** migrar de forma separada tablero, registro,
+  metadatos, selección y limpieza/mezcla de playlists de géneros.
+- **Incluye:** contrato, adaptador/composición y operaciones visibles de la
+  interfaz existente.
+- **Queda fuera:** migrar OAuth, playlists de festivales, cambiar permisos
+  visibles o normalizar modelos que backend aún no confirma.
+- **Dependencias:** contratos actuales de los endpoints legacy y APIs públicas
+  de Editorial; verificar qué operaciones son propias de playlists.
+- **Riesgos/decisiones pendientes:** la vista de géneros no refleja el mismo
+  control canManage visible que festivales; confirmar reglas reales backend
+  antes de alterar permisos. Servicios legacy pueden tener más consumidores.
+- **Orden recomendado:** 6.42–6.43; luego 6.44–6.46 y cerrar con selección/
+  limpieza en 6.47–6.48.
+
+#### 6.42 — Contrato de playlists de géneros (S)
+
+- **Objetivo y cambio exacto:** definir contratos para el tablero de géneros y
+  las operaciones actuales de registro, metadatos, artistas, pistas y limpieza
+  que se migren.
+- **Qué NO cambia:** permisos, endpoint, modelo backend, OAuth ni equivalencia
+  con playlist de festival.
+- **Archivos/zonas probables:** dominio/aplicación Editorial, tipos usados por
+  el tablero y servicios legacy de géneros.
+- **Dependencia previa:** revisar las operaciones usadas por cada zona del
+  tablero y separar recursos distintos.
+- **Criterio de terminado:** contratos tipados por operación con dominio neutral,
+  sin suponer modelo común con festivales.
+- **Verificación:** unit tests de reglas/mapeos que se incorporen;
+  yarn architecture y yarn typecheck.
+
+#### 6.43 — Adaptador y composición de playlists de géneros (S)
+
+- **Objetivo y cambio exacto:** implementar los adaptadores para endpoints
+  confirmados y componerlos en app para ofrecer API pública de Editorial.
+- **Qué NO cambia:** URLs, payloads, permisos, OAuth o errores backend.
+- **Archivos/zonas probables:** infraestructura Editorial, DTOs locales y
+  composición app.
+- **Dependencia previa:** 6.42 y acceso HTTP compuesto.
+- **Criterio de terminado:** las operaciones elegidas tienen transporte tipado
+  y exports de composición sin exponer infraestructura a presentación.
+- **Verificación:** pruebas de adaptador para éxito/error; yarn architecture
+  y yarn typecheck.
+
+#### 6.44 — Migrar lectura, estado y usuario del Kanban de géneros (S)
+
+- **Objetivo y cambio exacto:** migrar carga del tablero y operaciones de estado
+  y usuario asociado al flujo compuesto de Editorial.
+- **Qué NO cambia:** roles/permisos efectivos, filtros, estado disponible,
+  endpoint o usuario elegible.
+- **Archivos/zonas probables:** Kanban de géneros, store/servicio legacy y
+  API pública de Editorial.
+- **Dependencia previa:** 6.42–6.43; confirmar autorización backend antes de
+  modificar controles visibles.
+- **Criterio de terminado:** carga/estado/usuario consumen composición y
+  conservan su comportamiento y estados actuales.
+- **Verificación:** pruebas focalizadas de consulta, estado, usuario y error;
+  yarn verify.
+
+#### 6.45 — Migrar creación, enlace y borrado de registro de género (S)
+
+- **Objetivo y cambio exacto:** llevar la creación, asociación a playlist y
+  borrado del registro de género al módulo y composición de Editorial.
+- **Qué NO cambia:** ciclo backend, confirmaciones, permisos ni secuencia de
+  llamadas.
+- **Archivos/zonas probables:** formulario/acciones del Kanban de géneros,
+  servicios legacy y API pública.
+- **Dependencia previa:** 6.42–6.43; confirmar operaciones y recursos backend
+  antes de reutilizar contrato de festivales.
+- **Criterio de terminado:** registro se crea, enlaza y borra vía composición,
+  manteniendo errores y confirmaciones.
+- **Verificación:** pruebas focalizadas por operación y cancelación/error;
+  yarn verify.
+
+#### 6.46 — Migrar metadatos de playlist de género (S)
+
+- **Objetivo y cambio exacto:** migrar lectura/edición de metadatos de la
+  playlist de género a las operaciones compuestas.
+- **Qué NO cambia:** campos, validaciones, límites backend, permisos o
+  presentación.
+- **Archivos/zonas probables:** editor de metadatos de género y API Editorial.
+- **Dependencia previa:** 6.42–6.43; mantener la distinción respecto a
+  metadatos de festivales salvo contrato backend comprobado.
+- **Criterio de terminado:** lectura y guardado usan API pública; carga,
+  validación y errores siguen equivalentes.
+- **Verificación:** pruebas de carga, validación, guardado/error; yarn verify.
+
+#### 6.47 — Migrar artistas y selección de pistas de género (M)
+
+- **Objetivo y cambio exacto:** migrar carga/gestión de artistas y flujo de
+  selección de pistas, manteniendo separadas las operaciones que tengan
+  contratos diferentes.
+- **Qué NO cambia:** reglas de selección, orden, restricciones backend,
+  permisos, OAuth o SDKs.
+- **Archivos/zonas probables:** componentes de artistas/pistas de género y
+  servicios/adaptadores de Editorial.
+- **Dependencia previa:** 6.42–6.43; verificar llamadas y dividir por consumidor
+  si carga de artistas y selección de pistas resultan independientes.
+- **Criterio de terminado:** ambas capacidades pasan por APIs públicas con
+  orden, restricciones, carga y errores preservados.
+- **Verificación:** pruebas por operación, incluidos estados vacíos y errores;
+  yarn verify.
+
+#### 6.48 — Migrar operaciones de limpieza y mezcla de playlist de género (S)
+
+- **Objetivo y cambio exacto:** migrar al módulo las operaciones existentes de
+  limpieza/mezcla de playlist y sus confirmaciones.
+- **Qué NO cambia:** algoritmo backend, orden de pistas, sentido de las
+  confirmaciones, permisos o efectos externos.
+- **Archivos/zonas probables:** acciones de limpieza/mezcla, servicio legacy y
+  API pública Editorial.
+- **Dependencia previa:** 6.42–6.43; confirmar si son operaciones del mismo
+  endpoint o dos operaciones distintas.
+- **Criterio de terminado:** operación/es usan composición y mantienen payload,
+  confirmación, resultados y tratamiento de error actuales.
+- **Verificación:** pruebas focalizadas de confirmación, éxito y error;
+  yarn verify.
+
+### Riesgos y decisiones pendientes de Iteración 6
+
+- Los contratos backend actuales no están completamente documentados; el código
+  legacy sirve como evidencia de comportamiento, no como especificación
+  completa.
+- No asumir que /reunions y Content(type="reunion") representan la misma
+  entidad o ciclo de vida hasta confirmarlo con backend.
+- No alterar permisos visibles de playlists de géneros sin confirmar primero
+  las reglas reales del backend.
+- Mantener y caracterizar las reglas de fechas UTC/local del calendario
+  editorial.
+- No retirar servicios de listas o asignaciones mientras sigan teniendo
+  consumidores fuera de Editorial.
+- Documentar el uso actual de v-html en reuniones y la construcción de HTML
+  para WordPress como riesgos existentes; esta reorganización no implica una
+  corrección funcional de ninguno.
+
+### Criterio de cierre de Iteración 6
+
+La iteración se considera completada cuando:
+
+- las capacidades seleccionadas de Editorial pasan por sus módulos y
+  composición correspondientes;
+- no se han introducido cambios funcionales no previstos;
+- los servicios legacy solo permanecen donde todavía existan consumidores;
+- las ambigüedades backend están documentadas en lugar de resolverse por
+  inferencia;
+- las verificaciones correspondientes pasan;
+- Iteración 7 — Releases permanece fuera de este alcance.
 
 ## Iteración 7 — Releases
 

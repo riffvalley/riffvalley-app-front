@@ -3,6 +3,8 @@ import { createPinia } from 'pinia';
 import App from '../../App.vue';
 import router from '../router';
 import { composeSession } from './session';
+import { asignationTextUpdatePort } from '../dependencies/editorial';
+import { asignationTextUpdateKey } from '../../modules/editorial/presentation/asignationTextUpdateKey';
 
 // VueSweetalert2
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -31,6 +33,7 @@ import '../../assets/fonts.css'; // fuentes
 
 export function bootstrap() {
   const app = createApp(App);
+  app.provide(asignationTextUpdateKey, asignationTextUpdatePort);
 
   // Circle flags
   app.use(CircleFlags);
