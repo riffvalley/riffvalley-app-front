@@ -1,6 +1,6 @@
 # Guía de carpetas de la arquitectura
 
-Esta guía complementa el [roadmap](../roadmap.md) y el
+Esta guía complementa el [roadmap](../ROADMAP.md) y el
 [baseline arquitectónico](architecture-baseline.md). Explica dónde buscar y
 colocar código en la estructura modular; no cambia el estado de la migración.
 Las rutas legacy siguen conviviendo con los recorridos migrados.

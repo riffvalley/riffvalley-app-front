@@ -2467,8 +2467,23 @@ presentación; los formularios públicos mantienen acceso sin sesión.
    la frontera provisional de `workspace`; puede resolverse como app shell
    más preferencias sin necesitar dominio independiente.
 2. Migrar versiones, noticias, soporte y patch notes por operación.
-3. Extraer carga y transformación de estadísticas; los gráficos reciben datos
-   tipados y se ocupan de renderizarlos.
+3. Migrar Analytics desde el estado actual de estadísticas, preservando su
+   comportamiento y contratos:
+   - `GET /rates/stats` incluye actividad diaria, disco destacado, discos
+     polémicos, comparación interanual y el disco destacado por género y mes.
+   - `GET /rates/stats/discs?year=...` carga de forma diferida los discos
+     votados que utiliza la galaxia de géneros.
+   - `Statistics.vue` muestra el calendario de actividad, discos destacados y
+     polémicos, y la galaxia interactiva de géneros en escritorio y móvil.
+   - La traducción de nombres de mes del inglés al español forma parte del
+     comportamiento actual; decidir su ownership al migrarla.
+   - Analytics sigue consumiendo `services/rates/rates.ts` y presentación
+     legacy hasta esta iteración.
+   - Añadir cobertura focalizada para las nuevas visualizaciones y flujos;
+     todavía no hay tests específicos suficientes.
+   - Mantener la carga diferida de la galaxia, las agregaciones actuales y el
+     comportamiento móvil/escritorio. Extraer carga y transformación de
+     estadísticas con datos tipados para los gráficos.
 4. Revisar administración de usuarios y pantallas restantes de identidad.
 
 **Salida:** se reducen dependencias transversales y ninguna preferencia queda
@@ -2481,7 +2496,9 @@ legacy que quedaron fuera de alcance, junto con el mantenimiento autorizado del
 baseline TypeScript con excepciones resueltas.
 
 1. Eliminar fachadas, aliases antiguos y carpetas legacy cuando no tengan
-   consumidores; actualizar README y guía de arquitectura del repositorio.
+   consumidores; retirar también los helpers o servicios legacy de Analytics
+   que queden tras la Iteración 8 y actualizar README y guía de arquitectura
+   del repositorio.
 2. Consolidar UI, estilos y utilidades compartidas demostradas, manteniendo
    apariencia, tema, navegación por teclado y comportamiento responsive.
 3. Eliminar progresivamente las excepciones legacy de `yarn architecture` hasta

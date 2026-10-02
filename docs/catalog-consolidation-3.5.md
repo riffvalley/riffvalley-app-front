@@ -7,7 +7,7 @@ ya existían en el árbol de trabajo al comenzar.
 
 ## Auditoría previa
 
-Se leyeron AGENTS.md, roadmap.md y architecture-baseline.md y se revisaron todos
+Se leyeron AGENTS.md, ROADMAP.md y architecture-baseline.md y se revisaron todos
 los archivos de Catalog, sus imports/exports y consumidores de src/tests.
 
 - API inicial: identidades de detalle de disco/artista, proyecciones de calendario
@@ -183,7 +183,7 @@ Además de los movimientos y separaciones dentro de modules/catalog:
   catalogArtistEditing, catalogArtistList, catalogArtistMatch,
   catalogBulkArtistImages, catalogDiscCalendar, catalogDiscList, catalogStore,
   discCalendars y lastFmManagement.
-- roadmap.md y architecture-baseline.md: referencia de cierre de 3.5.
+- ROADMAP.md y architecture-baseline.md: referencia de cierre de 3.5.
   .impeccable/config.json: falso positivo visual acotado ya descrito.
 
 ## Deuda antes de Community

@@ -4,7 +4,7 @@
 
 Consulta la [guía de carpetas y «Dónde busco algo»](docs/architecture-folders.md)
 para orientarte en los módulos, las capas y la presentación. El
-[roadmap](roadmap.md) y el [baseline arquitectónico](docs/architecture-baseline.md)
+[roadmap](ROADMAP.md) y el [baseline arquitectónico](docs/architecture-baseline.md)
 recogen el plan de migración y los límites actuales.
 
 ## OAuth de Spotify para playlists de festivales
