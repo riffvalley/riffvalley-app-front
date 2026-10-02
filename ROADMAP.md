@@ -2516,6 +2516,8 @@ administración y la coordinación del badge de pendientes.
   presentación; el badge, persistencia, filtros y acciones conservan su
   comportamiento y el enlace de versión se compone por contrato público.
 
+**Estado: COMPLETADA (7.1–7.9).**
+
 #### 7.1 — Caracterizar sugerencias y acciones (S)
 
 - **Objetivo:** fijar el comportamiento actual antes de extraerlo.
@@ -2652,6 +2654,11 @@ revisión administrativa y contador compartido de pendientes.
 - **Criterio de cierre:** alta y seguimiento, moderación y badge pasan por
   Releases/composición, sin HTTP en presentación ni cambio de roles o contrato.
 
+**Estado frontend: COMPLETADA HASTA 7.15 INCLUSIVE; PAUSADA ANTES DE 7.16.**
+La pausa prioriza migrar/refactorizar el backend. Los contratos Requests del
+frontend describen el comportamiento observado antes de esa migración y son
+provisionales; no deben tomarse como contrato definitivo.
+
 #### 7.10 — Caracterizar peticiones y aprobación (S)
 
 - **Objetivo:** registrar recorrido de envío, consulta, revisión y badge.
@@ -2720,6 +2727,43 @@ revisión administrativa y contador compartido de pendientes.
   estados tras alta y feedback se conservan; vista sin servicio HTTP.
 - **Verificaciones específicas:** tests de envío/error/listado y roles; E2E de
   alta con API simulada.
+
+### Checkpoint: frontend pausado antes de 7.16
+
+El trabajo frontend de Releases queda cerrado en 7.A (7.1–7.9) y 7.B hasta
+7.15 inclusive. Las subtareas 7.16 y posteriores —incluidas 7.17, 7.C, 7.D e
+Iteración 8— quedan **PAUSADAS**.
+Primero se migrará/refactorizará el backend. Cuando ese trabajo esté completo,
+sus cambios de contratos, endpoints, permisos y comportamiento se integrarán
+primero en `main` del frontend. Después se revisarán 7.10–7.15 frente al backend
+actualizado, incluidos sus contratos, pruebas y decisiones de compatibilidad.
+La migración frontend se retomará entonces desde 7.16.
+
+Hasta completar esa resincronización, los modelos y payloads de Requests
+introducidos en 7.11–7.13, así como su composición y migración de alta en
+7.14–7.15, son provisionales y no especifican el contrato final del backend.
+Conservar [la caracterización de 7.10](docs/releases-requests-7.10.md) como
+registro del comportamiento frontend previo y cotejarla con evidencia backend,
+sin convertir las observaciones cliente en afirmaciones sobre autorización o
+efectos del servidor.
+
+Incertidumbres backend que deben resolverse en la resincronización:
+
+- **Permisos:** el router frontend exige `babyUser` para `/suggest` y
+  `riffValley` para `/petitions`. No se inspeccionó implementación backend que
+  confirme los roles requeridos por cada endpoint ni su autorización directa.
+- **Aprobación y reapertura:** el cliente actual descarta cualquier body de
+  approve y actualiza localmente el estado; no hay evidencia cliente de los
+  efectos backend (incluidos disco/artista) ni de los datos que approve pueda
+  devolver. Reopen conserva `response.data`, pero la forma y los efectos reales
+  de esa respuesta no están confirmados con backend.
+- **Rechazo:** el cliente usa `DELETE /requests/:id` con `{ adminNotes }` y
+  requiere una nota en la UI; no se confirmó en backend la semántica de DELETE,
+  la validación de la nota, los efectos ni el permiso del endpoint.
+- **Badge:** el sidebar carga `/requests` solo si `user` está presente, mientras
+  que `/petitions` requiere `riffValley`. No se confirmó que ambos roles siempre
+  coincidan ni si el backend autoriza ese GET para todos los perfiles que ven
+  Peticiones. El conteo actual proviene de solicitudes `pending`.
 
 #### 7.16 — Migrar moderación de peticiones (M)
 
