@@ -205,7 +205,7 @@
 <script>
 import { defineComponent, inject, ref, watch } from "vue";
 import SwalService from "@services/swal/SwalService";
-import { reunionsKey } from "@/modules/editorial/presentation/reunionsKey";
+import { reunionsKey } from "@/modules/editorial/reunions/presentation/reunionsKey";
 
 export default defineComponent({
     name: "ReunionEditModal",

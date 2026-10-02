@@ -388,9 +388,9 @@ import DiscDescriptionModal from "./DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
 import Swal from "sweetalert2";
 import CircleFlags from "vue-circle-flags";
-import { asignationTextUpdateKey } from "@/modules/editorial/presentation/asignationTextUpdateKey";
-import { listWordPressPublicationKey } from "@/modules/editorial/presentation/listWordPressPublicationKey";
-import type { AsignationTextUpdate } from "@/modules/editorial/domain/asignationTextUpdate";
+import { asignationTextUpdateKey } from "@/modules/editorial/asignations/presentation/asignationTextUpdateKey";
+import { listWordPressPublicationKey } from "@/modules/editorial/lists/presentation/listWordPressPublicationKey";
+import type { AsignationTextUpdate } from "@/modules/editorial/asignations/domain/asignationTextUpdate";
 
 export default defineComponent({
   name: "AsignationList",

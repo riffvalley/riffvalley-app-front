@@ -78,7 +78,7 @@
 
 <script lang="ts">
 import { defineComponent, reactive, inject } from "vue";
-import { listCreationKey } from "@/modules/editorial/presentation/listCreationKey";
+import { listCreationKey } from "@/modules/editorial/lists/presentation/listCreationKey";
 import SwalService from "@services/swal/SwalService";
 import { useRouter } from "vue-router";
 

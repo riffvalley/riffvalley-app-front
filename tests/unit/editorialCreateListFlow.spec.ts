@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import CreateList from "../../src/views/list/CreateList.vue";
-import { listCreationKey } from "../../src/modules/editorial/presentation/listCreationKey";
-import type { ListCreationPort } from "../../src/modules/editorial/application/listCreationPort";
+import { listCreationKey } from "../../src/modules/editorial/lists/presentation/listCreationKey";
+import type { ListCreationPort } from "../../src/modules/editorial/lists/application/listCreationPort";
 
 const { createList, success, error, push } = vi.hoisted(() => ({
   createList: vi.fn(), success: vi.fn(), error: vi.fn(), push: vi.fn(),

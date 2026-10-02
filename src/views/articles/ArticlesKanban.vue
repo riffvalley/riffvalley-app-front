@@ -250,17 +250,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, nextTick } from 'vue';
+import { ref, onMounted, reactive, nextTick, inject } from 'vue';
 import {
-    getArticles,
-    createArticle,
-    updateArticle,
-    deleteArticle,
-    createArticleContent,
+    articlesKey,
+    ARTICLE_TYPES,
     type Article,
     type ArticleState,
     type ArticleType,
-    ARTICLE_TYPES,
+} from '@/modules/editorial';
+import {
+    createArticleContent,
     toISO
 } from '@services/articles/articles';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
@@ -268,6 +267,7 @@ import { useAuthStore } from '@stores/auth/auth';
 import SwalService from '@services/swal/SwalService';
 
 const authStore = useAuthStore();
+const articlesPort = inject(articlesKey)!;
 
 // --- Types ---
 type ColumnId = ArticleState;
@@ -403,7 +403,7 @@ async function reload() {
         }
 
         if (selectedUserId.value) {
-            items.value = await getArticles(selectedUserId.value);
+            items.value = await articlesPort.getArticles(selectedUserId.value);
         } else {
             items.value = [];
         }
@@ -444,7 +444,7 @@ async function onDrop(targetState: ColumnId) {
     item.status = targetState;
 
     try {
-        await updateArticle(item.id, { status: targetState });
+        await articlesPort.updateArticle(item.id, { status: targetState });
     } catch (e: any) {
         console.error(e);
         item.status = originalState;
@@ -485,7 +485,7 @@ async function onUserChange(item: Article, event: Event) {
     }
 
     try {
-        await updateArticle(item.id, { userId: newUserId || undefined });
+        await articlesPort.updateArticle(item.id, { userId: newUserId || undefined });
     } catch (e) {
         console.error(e);
         item.user = oldUser;
@@ -523,7 +523,7 @@ async function onEditorChange(item: Article, event: Event) {
     }
 
     try {
-        await updateArticle(item.id, { editorId: newEditorId || undefined });
+        await articlesPort.updateArticle(item.id, { editorId: newEditorId || undefined });
     } catch (e) {
         console.error(e);
         item.editor = oldEditor;
@@ -557,7 +557,7 @@ async function onCoauthorChange(item: Article, event: Event) {
     }
 
     try {
-        await updateArticle(item.id, { coauthorId: newCoauthorId || undefined });
+        await articlesPort.updateArticle(item.id, { coauthorId: newCoauthorId || undefined });
     } catch (e) {
         console.error(e);
         item.coauthor = oldCoauthor;
@@ -599,7 +599,7 @@ async function save() {
 
     try {
         if (isEditing.value && editingId.value) {
-            const updated = await updateArticle(editingId.value, {
+            const updated = await articlesPort.updateArticle(editingId.value, {
                 name: form.name,
                 type: form.type,
                 link: form.link || undefined,
@@ -611,7 +611,7 @@ async function save() {
             await nextTick();
             SwalService.success('Artículo actualizado');
         } else {
-            const created = await createArticle({
+            const created = await articlesPort.createArticle({
                 name: form.name,
                 type: form.type,
                 link: form.link || undefined,
@@ -647,7 +647,7 @@ async function confirmDelete(item: Article) {
 
     if (result.isConfirmed) {
         try {
-            await deleteArticle(item.id);
+            await articlesPort.deleteArticle(item.id);
             items.value = items.value.filter(i => i.id !== item.id);
             SwalService.success('Artículo eliminado');
         } catch (e: any) {

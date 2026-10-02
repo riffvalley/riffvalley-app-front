@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { asignationTextUpdateApi } from "../../src/modules/editorial/infrastructure/asignationTextUpdateApi";
+import { asignationTextUpdateApi } from "../../src/modules/editorial/asignations/infrastructure/asignationTextUpdateApi";
 
 const { patch } = vi.hoisted(() => ({ patch: vi.fn() }));
 vi.mock("@/shared/infrastructure/http/client", () => ({ default: { patch } }));

@@ -109,7 +109,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, nextTick, inject } from 'vue';
+import { articlesKey } from '@/modules/editorial';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
@@ -122,7 +123,6 @@ import { updateAsignationService } from '@services/asignation/asignation';
 import { deleteList, getListDetails, updateList } from '@services/list/list';
 
 import { useRouter } from 'vue-router';
-import { updateArticle } from '@services/articles/articles';
 import { updateVideo } from '@services/videos/videos';
 
 import BacklogPanel from './components/BacklogPanel.vue';
@@ -139,6 +139,7 @@ import DeleteConfirmModal from './components/DeleteConfirmModal.vue';
 
 
 const authStore = useAuthStore();
+const articlesPort = inject(articlesKey)!;
 const showOnlyMyEvents = ref(false);
 const showBacklog = ref(window.innerWidth >= 1024);
 
@@ -564,8 +565,7 @@ async function handleCreateContent(data: any) {
 
     try {
         // Create the content directly without creating a separate reunion entity first
-        await createContentAPI({
-            type: contentData.type,
+        const contentFields = {
             name: contentData.name,
             notes: contentData.notes || undefined,
             publicationDate: contentData.publicationDate ? new Date(contentData.publicationDate).toISOString() : undefined,
@@ -573,7 +573,12 @@ async function handleCreateContent(data: any) {
             authorId: contentData.authorId,
             listDate: contentData.listDate || undefined,
             backlog: !contentData.publicationDate
-        });
+        };
+        if (contentData.type === 'article') {
+            await articlesPort.createArticleCalendarContent({ type: 'article', ...contentFields });
+        } else {
+            await createContentAPI({ type: contentData.type, ...contentFields });
+        }
 
         newContent.value = {
             type: 'article',
@@ -637,7 +642,7 @@ function goToVideosKanban() {
 
 async function handleUpdateArticle(data: any) {
     try {
-        await updateArticle(data.articleId, {
+        await articlesPort.updateArticle(data.articleId, {
             name: data.name,
             type: data.type,
             status: data.status,

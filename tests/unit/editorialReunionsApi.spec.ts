@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { reunionsApi } from "../../src/modules/editorial/infrastructure/reunionsApi";
+import { reunionsApi } from "../../src/modules/editorial/reunions/infrastructure/reunionsApi";
 
 const { get, post, patch, deleteRequest } = vi.hoisted(() => ({
   get: vi.fn(),

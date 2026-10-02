@@ -182,7 +182,7 @@ import ReunionEditModal from "./components/ReunionEditModal.vue";
 import { createContent } from "@services/contents/contents";
 import { getRvUsers } from "@services/users/users";
 import SwalService from "@services/swal/SwalService";
-import { reunionsKey } from "@/modules/editorial/presentation/reunionsKey";
+import { reunionsKey } from "@/modules/editorial/reunions/presentation/reunionsKey";
 
 export default {
   components: { ReunionTable, ReunionEditModal },

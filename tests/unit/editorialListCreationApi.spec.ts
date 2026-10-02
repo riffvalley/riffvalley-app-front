@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { listCreationApi } from "../../src/modules/editorial/infrastructure/listCreationApi";
+import { listCreationApi } from "../../src/modules/editorial/lists/infrastructure/listCreationApi";
 
 const { post } = vi.hoisted(() => ({ post: vi.fn() }));
 vi.mock("@/shared/infrastructure/http/client", () => ({ default: { post } }));

@@ -132,7 +132,7 @@
 
 <script>
 import SwalService from '@services/swal/SwalService';
-import { reunionsKey } from '@/modules/editorial/presentation/reunionsKey';
+import { reunionsKey } from '@/modules/editorial/reunions/presentation/reunionsKey';
 
 export default {
   inject: { reunionsPort: { from: reunionsKey } },

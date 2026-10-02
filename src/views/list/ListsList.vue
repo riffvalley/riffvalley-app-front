@@ -144,8 +144,8 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, inject } from "vue";
-import type { SpecialList } from "@/modules/editorial/domain/specialLists";
-import { specialListsKey } from "@/modules/editorial/presentation/specialListsKey";
+import type { SpecialList } from "@/modules/editorial/lists/domain/specialLists";
+import { specialListsKey } from "@/modules/editorial/lists/presentation/specialListsKey";
 import { useRouter } from "vue-router";
 import SwalService from "@services/swal/SwalService";
 

@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, shallowMount } from "@vue/test-utils";
 import AsignationList from "../../src/views/list/components/AsignationList.vue";
 import MejoresDetalle from "../../src/views/discos/MejoresDetalle.vue";
-import { asignationTextUpdateKey } from "../../src/modules/editorial/presentation/asignationTextUpdateKey";
-import { listWordPressPublicationKey } from "../../src/modules/editorial/presentation/listWordPressPublicationKey";
-import type { ListWordPressPublicationPort } from "../../src/modules/editorial/application/listWordPressPublicationPort";
+import { asignationTextUpdateKey } from "../../src/modules/editorial/asignations/presentation/asignationTextUpdateKey";
+import { listWordPressPublicationKey } from "../../src/modules/editorial/lists/presentation/listWordPressPublicationKey";
+import type { ListWordPressPublicationPort } from "../../src/modules/editorial/lists/application/listWordPressPublicationPort";
 
 const { publishRadarPosts, updateAsignationText, success, error, fire } = vi.hoisted(() => ({
   publishRadarPosts: vi.fn(),

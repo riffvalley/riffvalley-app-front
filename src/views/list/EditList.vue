@@ -142,8 +142,8 @@
 <script lang="ts">
 import { defineComponent, reactive, ref, onMounted, computed, inject } from "vue";
 import { useRouter } from "vue-router";
-import type { ListDetailsUpdate } from "@/modules/editorial/domain/listDetails";
-import { listDetailsKey } from "@/modules/editorial/presentation/listDetailsKey";
+import type { ListDetailsUpdate } from "@/modules/editorial/lists/domain/listDetails";
+import { listDetailsKey } from "@/modules/editorial/lists/presentation/listDetailsKey";
 import DiscsByDate from "./components/DiscByDate.vue";
 import AsignationList from "./components/AsignationList.vue";
 import SpecialAsignationList from "./components/SpecialAsignationList.vue";

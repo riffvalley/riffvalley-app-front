@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, shallowMount } from "@vue/test-utils";
 import ListsList from "../../src/views/list/ListsList.vue";
-import { specialListsKey } from "../../src/modules/editorial/presentation/specialListsKey";
-import type { SpecialListsPort } from "../../src/modules/editorial/application/specialListsPort";
+import { specialListsKey } from "../../src/modules/editorial/lists/presentation/specialListsKey";
+import type { SpecialListsPort } from "../../src/modules/editorial/lists/application/specialListsPort";
 
 const { getSpecialLists, createSpecialList, deleteSpecialList, confirm, success, error, push } = vi.hoisted(() => ({
   getSpecialLists: vi.fn(),

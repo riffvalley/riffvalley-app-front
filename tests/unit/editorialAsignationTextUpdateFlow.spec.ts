@@ -3,9 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount, shallowMount } from "@vue/test-utils";
 import DiscDescriptionModal from "../../src/views/list/components/DiscDescriptionModal.vue";
 import AsignationList from "../../src/views/list/components/AsignationList.vue";
-import { asignationTextUpdateKey } from "../../src/modules/editorial/presentation/asignationTextUpdateKey";
-import { listWordPressPublicationKey } from "../../src/modules/editorial/presentation/listWordPressPublicationKey";
-import type { AsignationTextUpdatePort } from "../../src/modules/editorial/application/asignationTextUpdatePort";
+import { asignationTextUpdateKey } from "../../src/modules/editorial/asignations/presentation/asignationTextUpdateKey";
+import { listWordPressPublicationKey } from "../../src/modules/editorial/lists/presentation/listWordPressPublicationKey";
+import type { AsignationTextUpdatePort } from "../../src/modules/editorial/asignations/application/asignationTextUpdatePort";
 
 const { updateAsignationText, store, users, success, error } = vi.hoisted(() => {
   const asignations: Array<{ id: string; [key: string]: unknown }> = [];

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { listWordPressPublicationApi } from "../../src/modules/editorial/infrastructure/listWordPressPublicationApi";
+import { listWordPressPublicationApi } from "../../src/modules/editorial/lists/infrastructure/listWordPressPublicationApi";
 
 const { post } = vi.hoisted(() => ({ post: vi.fn() }));
 vi.mock("@/shared/infrastructure/http/client", () => ({ default: { post } }));

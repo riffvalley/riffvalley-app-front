@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import EditReunion from "../../src/views/reunions/EditReunion.vue";
-import { reunionsKey } from "../../src/modules/editorial/presentation/reunionsKey";
-import type { ReunionsPort } from "../../src/modules/editorial/application/reunionsPort";
+import { reunionsKey } from "../../src/modules/editorial/reunions/presentation/reunionsKey";
+import type { ReunionsPort } from "../../src/modules/editorial/reunions/application/reunionsPort";
 
 const { getReunionDetails, updateReunion, deleteReunion, createReunionPoint,
   updateReunionPoint, deleteReunionPoint, success, error } = vi.hoisted(() => ({

@@ -1,74 +1,16 @@
 
 import api from '@services/api/api';
-import type { ContentRef } from '@services/contents/contents';
+import type { Article, CreateArticle, UpdateArticle } from '../../modules/editorial/articles/domain/articles';
 
-// =========================
-// Tipos
-// =========================
-export type ArticleState =
-    | 'not_started'
-    | 'in_progress'
-    | 'editing'
-    | 'ready'
-    | 'published';
-
-export const ARTICLE_STATES: ArticleState[] = [
-    'not_started',
-    'in_progress',
-    'editing',
-    'ready',
-    'published',
-];
-
-export type ArticleType =
-    | 'cronica'
-    | 'festival'
-    | 'review'
-    | 'entrevista'
-    | 'articulo';
-
-export const ARTICLE_TYPES: ArticleType[] = [
-    'cronica',
-    'festival',
-    'review',
-    'entrevista',
-    'articulo',
-];
-
-export interface Article {
-    id: string;
-    name: string;
-    status: ArticleState;
-    type: ArticleType;
-    link?: string; // Optional link if needed
-    updateDate: string | null; // ISO
-    createdAt: string; // ISO
-    updatedAt: string; // ISO
-    user?: { id: string; username: string; image?: string }; // Usuario asignado
-    userId?: string;
-    editor?: { id: string; username: string; image?: string }; // Editor asignado
-    editorId?: string;
-    coauthor?: { id: string; username: string; image?: string }; // Coautor
-    coauthorId?: string;
-    /** Content asociado (creación manual, sin sincronización automática). `null` si no existe. */
-    content: ContentRef | null;
-}
-
-// =========================
-// DTOs (frontend)
-// =========================
-export interface CreateArticleDto {
-    name: string;
-    status: ArticleState;
-    type: ArticleType;
-    link?: string;
-    updateDate?: string;
-    userId?: string;
-    editorId?: string;
-    coauthorId?: string;
-}
-
-export interface UpdateArticleDto extends Partial<CreateArticleDto> { }
+export type {
+    Article,
+    ArticleContentRef,
+    ArticleState,
+    ArticleType,
+} from '../../modules/editorial/articles/domain/articles';
+export { ARTICLE_STATES, ARTICLE_TYPES } from '../../modules/editorial/articles/domain/articles';
+export type CreateArticleDto = CreateArticle;
+export type UpdateArticleDto = UpdateArticle;
 
 // Utils
 export const toISO = (d: Date) => d.toISOString();

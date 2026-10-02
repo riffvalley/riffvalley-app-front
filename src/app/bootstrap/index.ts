@@ -3,13 +3,14 @@ import { createPinia } from 'pinia';
 import App from '../../App.vue';
 import router from '../router';
 import { composeSession } from './session';
-import { asignationTextUpdatePort, listDetailsPort, specialListsPort, listCreationPort, listWordPressPublicationPort, reunionsPort } from '../dependencies/editorial';
-import { asignationTextUpdateKey } from '../../modules/editorial/presentation/asignationTextUpdateKey';
-import { listDetailsKey } from '../../modules/editorial/presentation/listDetailsKey';
-import { specialListsKey } from '../../modules/editorial/presentation/specialListsKey';
-import { listCreationKey } from '../../modules/editorial/presentation/listCreationKey';
-import { listWordPressPublicationKey } from '../../modules/editorial/presentation/listWordPressPublicationKey';
-import { reunionsKey } from '../../modules/editorial/presentation/reunionsKey';
+import { asignationTextUpdatePort, listDetailsPort, specialListsPort, listCreationPort, listWordPressPublicationPort, reunionsPort, articlesPort } from '../dependencies/editorial';
+import { asignationTextUpdateKey } from '../../modules/editorial/asignations/presentation/asignationTextUpdateKey';
+import { listDetailsKey } from '../../modules/editorial/lists/presentation/listDetailsKey';
+import { specialListsKey } from '../../modules/editorial/lists/presentation/specialListsKey';
+import { listCreationKey } from '../../modules/editorial/lists/presentation/listCreationKey';
+import { listWordPressPublicationKey } from '../../modules/editorial/lists/presentation/listWordPressPublicationKey';
+import { reunionsKey } from '../../modules/editorial/reunions/presentation/reunionsKey';
+import { articlesKey } from '../../modules/editorial/articles/presentation/articlesKey';
 
 // VueSweetalert2
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -44,6 +45,7 @@ export function bootstrap() {
   app.provide(listCreationKey, listCreationPort);
   app.provide(listWordPressPublicationKey, listWordPressPublicationPort);
   app.provide(reunionsKey, reunionsPort);
+  app.provide(articlesKey, articlesPort);
 
   // Circle flags
   app.use(CircleFlags);

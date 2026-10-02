@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { specialListsApi } from "../../src/modules/editorial/infrastructure/specialListsApi";
+import { specialListsApi } from "../../src/modules/editorial/lists/infrastructure/specialListsApi";
 
 const { get, post, deleteRequest } = vi.hoisted(() => ({
   get: vi.fn(), post: vi.fn(), deleteRequest: vi.fn(),

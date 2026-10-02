@@ -159,7 +159,7 @@
 import { ref, onMounted, inject } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getListDetails, updateList } from '@services/list/list';
-import { listWordPressPublicationKey } from '@/modules/editorial/presentation/listWordPressPublicationKey';
+import { listWordPressPublicationKey } from '@/modules/editorial/lists/presentation/listWordPressPublicationKey';
 import SwalService from '@services/swal/SwalService';
 import Swal from 'sweetalert2';
 import { useAsignationStore } from '@stores/asignation/asignation';

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { listDetailsApi } from "../../src/modules/editorial/infrastructure/listDetailsApi";
+import { listDetailsApi } from "../../src/modules/editorial/lists/infrastructure/listDetailsApi";
 
 const { get, patch } = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }));
 vi.mock("@/shared/infrastructure/http/client", () => ({ default: { get, patch } }));

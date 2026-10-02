@@ -138,8 +138,8 @@ import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import DiscDescriptionModal from "./DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
 import CircleFlags from "vue-circle-flags";
-import { asignationTextUpdateKey } from "@/modules/editorial/presentation/asignationTextUpdateKey";
-import type { AsignationTextUpdate } from "@/modules/editorial/domain/asignationTextUpdate";
+import { asignationTextUpdateKey } from "@/modules/editorial/asignations/presentation/asignationTextUpdateKey";
+import type { AsignationTextUpdate } from "@/modules/editorial/asignations/domain/asignationTextUpdate";
 
 export default defineComponent({
     name: "MejoresAsignationList",

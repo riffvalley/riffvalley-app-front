@@ -2,8 +2,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, shallowMount } from "@vue/test-utils";
 import EditList from "../../src/views/list/EditList.vue";
-import { listDetailsKey } from "../../src/modules/editorial/presentation/listDetailsKey";
-import type { ListDetailsPort } from "../../src/modules/editorial/application/listDetailsPort";
+import { listDetailsKey } from "../../src/modules/editorial/lists/presentation/listDetailsKey";
+import type { ListDetailsPort } from "../../src/modules/editorial/lists/application/listDetailsPort";
 
 const { getListDetails, updateList, loadAsignations, loadRvUsers, success, error, push } = vi.hoisted(() => ({
   getListDetails: vi.fn(),

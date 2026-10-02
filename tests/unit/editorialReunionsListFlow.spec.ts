@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, shallowMount } from "@vue/test-utils";
 import ListReunion from "../../src/views/reunions/ListReunion.vue";
 import ReunionTable from "../../src/views/reunions/components/ReunionTable.vue";
-import { reunionsKey } from "../../src/modules/editorial/presentation/reunionsKey";
-import type { ReunionsPort } from "../../src/modules/editorial/application/reunionsPort";
+import { reunionsKey } from "../../src/modules/editorial/reunions/presentation/reunionsKey";
+import type { ReunionsPort } from "../../src/modules/editorial/reunions/application/reunionsPort";
 
 const {
   getReunions, getReunionDetails, updateReunionPoint, createReunionPoint,
