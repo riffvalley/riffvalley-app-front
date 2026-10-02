@@ -5,23 +5,21 @@ import type {
   FestivalPlaylistRegistrationsPort,
 } from '../application/festivalPlaylistsPort';
 import type {
+  FestivalPlaylistData,
+  FestivalPlaylistRegistration,
   CreateFestivalPlaylistInput,
   FestivalPlaylistImageUpload,
   UpdateFestivalPlaylistMetadata,
 } from '../domain/festivalPlaylists';
-import type {
-  FestivalPlaylistDataDto,
-  FestivalPlaylistRegistrationDto,
-} from './festivalPlaylistDtos';
 
 export const festivalPlaylistRegistrationsApi: FestivalPlaylistRegistrationsPort = {
   async getFestivalRegistrations() {
-    const response = await api.get<FestivalPlaylistRegistrationDto[]>('/spotify/festivals');
+    const response = await api.get<FestivalPlaylistRegistration[]>('/spotify/festivals');
     return response.data;
   },
 
   async updateFestivalRegistration(registrationId, data) {
-    const response = await api.patch<FestivalPlaylistRegistrationDto>(
+    const response = await api.patch<FestivalPlaylistRegistration>(
       `/spotify/${registrationId}`,
       data,
     );
@@ -31,21 +29,21 @@ export const festivalPlaylistRegistrationsApi: FestivalPlaylistRegistrationsPort
 
 export const festivalPlaylistDataApi: FestivalPlaylistDataPort = {
   async getFestivalPlaylistData(playlistId) {
-    const response = await api.get<FestivalPlaylistDataDto>(
+    const response = await api.get<FestivalPlaylistData>(
       `/festival-playlists/${playlistId}`,
     );
     return response.data;
   },
 
   async updateFestivalPlaylistMetadata(playlistId, data: UpdateFestivalPlaylistMetadata) {
-    await api.patch<FestivalPlaylistDataDto>(`/festival-playlists/${playlistId}`, data);
+    await api.patch<FestivalPlaylistData>(`/festival-playlists/${playlistId}`, data);
   },
 
   async updateFestivalPlaylistImage(playlistId, image: FestivalPlaylistImageUpload) {
     const formData = new FormData();
     const imageBlob = new Blob([image.bytes], { type: image.contentType });
     formData.append('image', imageBlob, image.filename);
-    const response = await api.put<FestivalPlaylistDataDto>(
+    const response = await api.put<FestivalPlaylistData>(
       `/festival-playlists/${playlistId}/image`,
       formData,
       { headers: { 'Content-Type': 'multipart/form-data' } },
@@ -56,12 +54,12 @@ export const festivalPlaylistDataApi: FestivalPlaylistDataPort = {
 
 export const festivalPlaylistLifecycleApi: FestivalPlaylistLifecyclePort = {
   async createFestivalPlaylist(data: CreateFestivalPlaylistInput) {
-    const response = await api.post<FestivalPlaylistDataDto>('/festival-playlists', data);
+    const response = await api.post<FestivalPlaylistData>('/festival-playlists', data);
     return response.data;
   },
 
   async createLinkedFestivalPlaylist(spotifyUrl) {
-    const response = await api.post<FestivalPlaylistDataDto>(
+    const response = await api.post<FestivalPlaylistData>(
       '/festival-playlists/link',
       { spotifyUrl },
     );
@@ -69,7 +67,7 @@ export const festivalPlaylistLifecycleApi: FestivalPlaylistLifecyclePort = {
   },
 
   async linkExistingFestivalPlaylist(registrationId) {
-    const response = await api.post<FestivalPlaylistDataDto>(
+    const response = await api.post<FestivalPlaylistData>(
       `/festival-playlists/${registrationId}/link`,
     );
     return response.data;

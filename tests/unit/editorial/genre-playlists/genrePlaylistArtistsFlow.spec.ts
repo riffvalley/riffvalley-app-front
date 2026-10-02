@@ -6,12 +6,14 @@ import {
   genreArtistCatalogKey,
   genrePlaylistArtistTracksKey,
   genrePlaylistDataKey,
+  genrePlaylistLifecycleKey,
   genrePlaylistMaintenanceKey,
 } from '../../../../src/modules/editorial';
 import type {
   GenreArtistCatalogPort,
   GenrePlaylistArtistTracksPort,
   GenrePlaylistDataPort,
+  GenrePlaylistLifecyclePort,
   GenrePlaylistMaintenancePort,
 } from '../../../../src/modules/editorial';
 
@@ -99,6 +101,12 @@ function mountManager(options?: {
     props: { playlistId: 'genre-1', playlistName: 'Fallback', connection },
     global: { provide: {
       [genrePlaylistDataKey as symbol]: details,
+      [genrePlaylistLifecycleKey as symbol]: {
+        createGenrePlaylist: vi.fn(),
+        createLinkedGenrePlaylist: vi.fn(),
+        linkExistingGenrePlaylist: vi.fn(),
+        deleteGenrePlaylistRegistration: vi.fn(),
+      } satisfies GenrePlaylistLifecyclePort,
       [genreArtistCatalogKey as symbol]: artists,
       [genrePlaylistArtistTracksKey as symbol]: tracks,
       [genrePlaylistMaintenanceKey as symbol]: {

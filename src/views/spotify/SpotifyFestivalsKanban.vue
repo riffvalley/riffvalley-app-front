@@ -179,7 +179,7 @@
 
 <script setup lang="ts">
 import axios from 'axios';
-import { computed, nextTick, onMounted, reactive, ref } from 'vue';
+import { computed, inject, nextTick, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
 import SwalService from '@services/swal/SwalService';
@@ -188,13 +188,13 @@ import {
   type Spotify,
   type SpotifyStatus,
 } from '@services/spotify/spotify';
-import {
-  festivalPlaylistLifecyclePort,
-  festivalPlaylistRegistrationsPort,
-} from '@/app/dependencies/editorial';
 import type {
   FestivalPlaylistData,
   FestivalPlaylistRegistration,
+} from '@/modules/editorial';
+import {
+  festivalPlaylistLifecycleKey,
+  festivalPlaylistRegistrationsKey,
 } from '@/modules/editorial';
 import {
   connectSpotify,
@@ -204,6 +204,9 @@ import {
 } from '@services/spotify/festivalPlaylists';
 import { useAuthStore } from '@stores/auth/auth';
 import FestivalPlaylistManager from './components/FestivalPlaylistManager.vue';
+
+const festivalPlaylistLifecyclePort = inject(festivalPlaylistLifecycleKey)!;
+const festivalPlaylistRegistrationsPort = inject(festivalPlaylistRegistrationsKey)!;
 
 type ColumnId = SpotifyStatus;
 interface Column { id: ColumnId; label: string; bgClass: string; borderClass: string; textClass: string; countClass: string }

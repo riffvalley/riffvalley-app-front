@@ -763,6 +763,7 @@
 import axios from "axios";
 import {
   computed,
+  inject,
   onBeforeUnmount,
   onMounted,
   reactive,
@@ -770,11 +771,6 @@ import {
   watch,
 } from "vue";
 import SwalService from "@services/swal/SwalService";
-import {
-  festivalArtistCatalogPort,
-  festivalPlaylistArtistTracksPort,
-  festivalPlaylistDataPort,
-} from "@/app/dependencies/editorial";
 import type {
   FestivalArtist,
   FestivalArtistTopSongs as TopSongsResponse,
@@ -782,6 +778,11 @@ import type {
   FestivalPlaylistArtistSyncStatus as PlaylistArtistSyncStatus,
   FestivalPlaylistData,
   FestivalPlaylistTrack as PlaylistTrack,
+} from "@/modules/editorial";
+import {
+  festivalArtistCatalogKey,
+  festivalPlaylistArtistTracksKey,
+  festivalPlaylistDataKey,
 } from "@/modules/editorial";
 import {
   deleteFestivalPlaylist,
@@ -802,6 +803,10 @@ const emit = defineEmits<{
   updated: [playlist: FestivalPlaylistData];
   deleted: [playlistId: string];
 }>();
+
+const festivalArtistCatalog = inject(festivalArtistCatalogKey)!;
+const festivalPlaylistArtistTracks = inject(festivalPlaylistArtistTracksKey)!;
+const festivalPlaylistData = inject(festivalPlaylistDataKey)!;
 
 const fallbackImage = "/LOGO-RIFF-VALLEY.svg";
 const fallbackArtist = "/LOGO-RIFF-VALLEY.svg";
@@ -884,7 +889,7 @@ function applyDetail(value: FestivalPlaylistData, syncForm = false) {
 async function loadDetail() {
   loading.value = true;
   try {
-    applyDetail(await festivalPlaylistDataPort.getFestivalPlaylistData(props.playlistId), true);
+    applyDetail(await festivalPlaylistData.getFestivalPlaylistData(props.playlistId), true);
   } catch (error) {
     SwalService.error(errorMessage(error, "No se pudo cargar la playlist"));
     emit("close");
@@ -923,7 +928,7 @@ function requestDetailSave(field: DetailField): Promise<void> {
       if (field === "public" && snapshot === detail.value.isPublic) continue;
       savingDetailFields.value = [...savingDetailFields.value, field];
       try {
-        await festivalPlaylistDataPort.updateFestivalPlaylistMetadata(playlistId, {
+        await festivalPlaylistData.updateFestivalPlaylistMetadata(playlistId, {
           ...(field === "name" ? { name: snapshot as string } : {}),
           ...(field === "description"
             ? { description: snapshot as string }
@@ -988,7 +993,7 @@ async function uploadImage(input?: HTMLInputElement) {
   savingImage.value = true;
   try {
     const image = selectedImage.value;
-    const { imageUrl } = await festivalPlaylistDataPort.updateFestivalPlaylistImage(
+    const { imageUrl } = await festivalPlaylistData.updateFestivalPlaylistImage(
       detail.value.id,
       {
         filename: image.name,
@@ -1026,7 +1031,7 @@ watch(artistQuery, (query) => {
   searching.value = true;
   searchTimer = setTimeout(async () => {
     try {
-      const response = await festivalArtistCatalogPort.searchArtists(query.trim(), 15, 0);
+      const response = await festivalArtistCatalog.searchArtists(query.trim(), 15, 0);
       if (artistQuery.value.trim() === query.trim())
         searchResults.value = response.data;
     } catch (error) {
@@ -1063,7 +1068,7 @@ async function addArtist(artistId: string) {
   syncingArtistId.value = artistId;
   try {
     applyDetail(
-      await festivalPlaylistArtistTracksPort.addArtist(detail.value.id, artistId, 10, 10),
+      await festivalPlaylistArtistTracks.addArtist(detail.value.id, artistId, 10, 10),
     );
     SwalService.success("Artista y canciones sincronizados");
   } catch (error) {
@@ -1100,7 +1105,7 @@ async function loadManualTracks(query: string) {
   const artistId = manualTrackArtist.value.artistId;
   loadingManualTracks.value = true;
   try {
-    const response = await festivalPlaylistArtistTracksPort.searchFailedArtistTracks(
+    const response = await festivalPlaylistArtistTracks.searchFailedArtistTracks(
       playlistId,
       artistId,
       query,
@@ -1162,7 +1167,7 @@ async function saveManualTracks() {
   savingManualTracks.value = true;
   try {
     applyDetail(
-      await festivalPlaylistArtistTracksPort.replaceFailedArtistTracks(
+      await festivalPlaylistArtistTracks.replaceFailedArtistTracks(
         detail.value.id,
         manualTrackArtist.value.artistId,
         selectedManualTrackIds.value,
@@ -1194,11 +1199,12 @@ async function createAndAddArtist() {
   let createdArtist: FestivalArtist | null = null;
   creatingArtist.value = true;
   try {
-    createdArtist = await festivalArtistCatalogPort.createPendingArtist(name);
+    const artist = await festivalArtistCatalog.createPendingArtist(name);
+    createdArtist = artist;
     applyDetail(
-      await festivalPlaylistArtistTracksPort.addArtist(
+      await festivalPlaylistArtistTracks.addArtist(
         detail.value.id,
-        createdArtist.id,
+        artist.id,
         10,
         20,
       ),
@@ -1206,7 +1212,7 @@ async function createAndAddArtist() {
     artistQuery.value = "";
     searchResults.value = [];
     SwalService.success(
-      `Artista “${createdArtist.name}” creado y sincronizado`,
+      `Artista “${artist.name}” creado y sincronizado`,
     );
   } catch (error) {
     if (
@@ -1240,7 +1246,7 @@ async function removeArtist(entry: PlaylistArtist) {
   syncingArtistId.value = entry.artistId;
   try {
     applyDetail(
-      await festivalPlaylistArtistTracksPort.removeArtist(detail.value.id, entry.artistId),
+      await festivalPlaylistArtistTracks.removeArtist(detail.value.id, entry.artistId),
     );
     SwalService.success("Artista eliminado de la playlist");
   } catch (error) {
@@ -1278,7 +1284,7 @@ async function confirmClearPlaylist() {
     return;
   clearingPlaylist.value = true;
   try {
-    applyDetail(await festivalPlaylistArtistTracksPort.clearPlaylistTracks(detail.value.id));
+    applyDetail(await festivalPlaylistArtistTracks.clearPlaylistTracks(detail.value.id));
     expandedArtists.value = new Set();
     showClearConfirmation.value = false;
     clearConfirmationText.value = "";
@@ -1345,7 +1351,7 @@ async function loadPreview(artist: FestivalArtist) {
   preview.value = null;
   previewArtistId.value = artist.id;
   try {
-    preview.value = await festivalArtistCatalogPort.getTopSongs(artist.name, 10, 10);
+    preview.value = await festivalArtistCatalog.getTopSongs(artist.name, 10, 10);
   } catch (error) {
     SwalService.error(
       errorMessage(error, "No se pudo calcular la vista previa"),

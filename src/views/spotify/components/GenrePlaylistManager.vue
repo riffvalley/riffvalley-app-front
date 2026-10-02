@@ -596,21 +596,18 @@ import {
   genreArtistCatalogKey,
   genrePlaylistArtistTracksKey,
   genrePlaylistDataKey,
+  genrePlaylistLifecycleKey,
   genrePlaylistMaintenanceKey,
+  type GenrePlaylist,
   type GenreArtist,
   type GenrePlaylistArtist,
   type GenrePlaylistTrackCandidate,
 } from "@/modules/editorial";
 import SwalService from "@services/swal/SwalService";
-import { removeSpotify } from "@services/spotify/spotify";
 import {
   validatePlaylistImage,
   type SpotifyConnection,
 } from "@services/spotify/festivalPlaylists";
-import {
-  updateGenrePlaylistImage,
-  type SyncedGenrePlaylist,
-} from "@services/spotify/genrePlaylists";
 import { useCatalogStore } from "@stores/catalog/catalog";
 
 const props = defineProps<{
@@ -621,17 +618,18 @@ const props = defineProps<{
 const genrePlaylistData = inject(genrePlaylistDataKey)!;
 const genreArtistCatalog = inject(genreArtistCatalogKey)!;
 const genrePlaylistArtistTracks = inject(genrePlaylistArtistTracksKey)!;
+const genrePlaylistLifecycle = inject(genrePlaylistLifecycleKey)!;
 const genrePlaylistMaintenance = inject(genrePlaylistMaintenanceKey)!;
 const emit = defineEmits<{
   close: [];
   renew: [];
-  updated: [playlist: SyncedGenrePlaylist];
+  updated: [playlist: GenrePlaylist];
   deleted: [playlistId: string];
 }>();
 const fallbackImage = "/LOGO-RIFF-VALLEY.svg";
 const fallbackArtist = "/LOGO-RIFF-VALLEY.svg";
 const catalogStore = useCatalogStore();
-const detail = ref<SyncedGenrePlaylist | null>(null);
+const detail = ref<GenrePlaylist | null>(null);
 const loading = ref(true);
 type DetailField = "name" | "description" | "public";
 const savingDetailFields = ref<DetailField[]>([]);
@@ -685,7 +683,7 @@ function errorMessage(error: unknown, fallback: string) {
     ? error.response?.data?.message || fallback
     : fallback;
 }
-function applyDetail(value: SyncedGenrePlaylist, syncForm = false) {
+function applyDetail(value: GenrePlaylist, syncForm = false) {
   detail.value = value;
   if (syncForm) {
     editForm.name = value.name;
@@ -982,9 +980,16 @@ async function uploadImage(input?: HTMLInputElement) {
   if (!detail.value || !selectedImage.value) return;
   savingImage.value = true;
   try {
-    applyDetail(
-      await updateGenrePlaylistImage(detail.value.id, selectedImage.value),
+    const image = selectedImage.value;
+    const updated = await genrePlaylistData.updateGenrePlaylistImage(
+      detail.value.id,
+      {
+        filename: image.name,
+        contentType: image.type,
+        bytes: await image.arrayBuffer(),
+      },
     );
+    applyDetail(updated);
     SwalService.success("Portada actualizada");
   } catch (error) {
     SwalService.error(errorMessage(error, "No se pudo actualizar la portada"));
@@ -1053,7 +1058,7 @@ async function deletePlaylist() {
   if (!result.isConfirmed) return;
   deleting.value = true;
   try {
-    await removeSpotify(id);
+    await genrePlaylistLifecycle.deleteGenrePlaylistRegistration(id);
     emit("deleted", id);
     emit("close");
     SwalService.success("Playlist eliminada de Riff Valley");

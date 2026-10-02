@@ -7,12 +7,13 @@ import type { Article, ArticlesPort } from '../../../../src/modules/editorial';
 
 const {
   getArticles, createArticleLegacy, updateArticleLegacy, deleteArticleLegacy,
-  getUsersRv, error, confirm, success,
+  createArticleContentLegacy, getUsersRv, error, confirm, success,
 } = vi.hoisted(() => ({
   getArticles: vi.fn(),
   createArticleLegacy: vi.fn(),
   updateArticleLegacy: vi.fn(),
   deleteArticleLegacy: vi.fn(),
+  createArticleContentLegacy: vi.fn(),
   getUsersRv: vi.fn(),
   error: vi.fn(),
   confirm: vi.fn(),
@@ -24,7 +25,7 @@ vi.mock('@services/articles/articles', () => ({
   createArticle: createArticleLegacy,
   updateArticle: updateArticleLegacy,
   deleteArticle: deleteArticleLegacy,
-  createArticleContent: vi.fn(),
+  createArticleContent: createArticleContentLegacy,
   ARTICLE_TYPES: ['cronica', 'festival', 'review', 'entrevista', 'articulo'],
   toISO: (date: Date) => date.toISOString(),
 }));
@@ -204,6 +205,34 @@ describe('Articles Kanban form and delete flow', () => {
     expect(error).toHaveBeenCalledWith('Completa los campos obligatorios');
     expect(port.createArticle).not.toHaveBeenCalled();
     expect(createArticleLegacy).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it('creates the calendar content through the Editorial port and keeps the success message', async () => {
+    getUsersRv.mockResolvedValue([{ id: 'user-1', username: 'Ana' }]);
+    const article = {
+      ...makeArticle(),
+      user: { id: 'user-1', username: 'Ana' },
+    };
+    const content = {
+      id: 'content-1', type: 'article' as const, name: article.name,
+      publicationDate: null, backlog: true,
+    };
+    const createArticleContent = vi.fn().mockResolvedValue({ ...article, content });
+    const port = basePort({
+      getArticles: vi.fn().mockResolvedValue([article]),
+      createArticleContent,
+    });
+    const view = mountKanban(port);
+    await flushPromises();
+
+    await view.get('button[title="Añadir al calendario"]').trigger('click');
+    await flushPromises();
+
+    expect(createArticleContent).toHaveBeenCalledWith('article-1');
+    expect(createArticleContentLegacy).not.toHaveBeenCalled();
+    expect(success).toHaveBeenCalledWith('Añadido al calendario');
+    expect(view.find('.fa-calendar-plus').exists()).toBe(false);
     view.unmount();
   });
 

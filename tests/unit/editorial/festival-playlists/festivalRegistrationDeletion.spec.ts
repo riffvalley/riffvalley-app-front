@@ -2,6 +2,10 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import SpotifyFestivalsKanban from '../../../../src/views/spotify/SpotifyFestivalsKanban.vue';
+import {
+  festivalPlaylistLifecycleKey,
+  festivalPlaylistRegistrationsKey,
+} from '../../../../src/modules/editorial';
 
 const mocks = vi.hoisted(() => ({
   getFestivalRegistrations: vi.fn(),
@@ -14,14 +18,6 @@ const mocks = vi.hoisted(() => ({
   hasRole: vi.fn(),
 }));
 
-vi.mock('@/app/dependencies/editorial', () => ({
-  festivalPlaylistRegistrationsPort: {
-    getFestivalRegistrations: mocks.getFestivalRegistrations,
-  },
-  festivalPlaylistLifecyclePort: {
-    deleteFestivalRegistration: mocks.deleteFestivalRegistration,
-  },
-}));
 vi.mock('@services/auth/auth', () => ({ getUsersRv: mocks.getUsersRv }));
 vi.mock('@services/swal/SwalService', () => ({
   default: { confirm: mocks.confirm, success: mocks.success, error: mocks.error },
@@ -73,7 +69,18 @@ async function mountBoard() {
     daysUntilReauthorization: null,
   });
   mocks.hasRole.mockReturnValue(true);
-  const wrapper = mount(SpotifyFestivalsKanban);
+  const wrapper = mount(SpotifyFestivalsKanban, {
+    global: {
+      provide: {
+        [festivalPlaylistRegistrationsKey as symbol]: {
+          getFestivalRegistrations: mocks.getFestivalRegistrations,
+        },
+        [festivalPlaylistLifecycleKey as symbol]: {
+          deleteFestivalRegistration: mocks.deleteFestivalRegistration,
+        },
+      },
+    },
+  });
   await flushPromises();
   return wrapper;
 }

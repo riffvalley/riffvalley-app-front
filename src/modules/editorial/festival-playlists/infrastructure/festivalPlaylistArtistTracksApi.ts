@@ -1,13 +1,13 @@
 import api from '@/shared/infrastructure/http/client';
 import type { FestivalPlaylistArtistTracksPort } from '../application/festivalPlaylistsPort';
 import type {
-  FailedFestivalArtistTrackSearchDto,
-  FestivalPlaylistArtistMutationDto,
-} from './festivalPlaylistArtistDtos';
+  FailedFestivalArtistTrackSearchResult,
+  FestivalPlaylistData,
+} from '../domain/festivalPlaylists';
 
 export const festivalPlaylistArtistTracksApi: FestivalPlaylistArtistTracksPort = {
   async addArtist(playlistId, artistId, tracksPerArtist, recentSetlists) {
-    const response = await api.post<FestivalPlaylistArtistMutationDto>(
+    const response = await api.post<FestivalPlaylistData>(
       `/festival-playlists/${playlistId}/artists`,
       { artistId, tracksPerArtist, recentSetlists },
     );
@@ -15,14 +15,14 @@ export const festivalPlaylistArtistTracksApi: FestivalPlaylistArtistTracksPort =
   },
 
   async removeArtist(playlistId, artistId) {
-    const response = await api.delete<FestivalPlaylistArtistMutationDto>(
+    const response = await api.delete<FestivalPlaylistData>(
       `/festival-playlists/${playlistId}/artists/${artistId}`,
     );
     return response.data;
   },
 
   async searchFailedArtistTracks(playlistId, artistId, query) {
-    const response = await api.get<FailedFestivalArtistTrackSearchDto>(
+    const response = await api.get<FailedFestivalArtistTrackSearchResult>(
       `/festival-playlists/${playlistId}/artists/${artistId}/tracks`,
       { params: { q: query || undefined } },
     );
@@ -30,7 +30,7 @@ export const festivalPlaylistArtistTracksApi: FestivalPlaylistArtistTracksPort =
   },
 
   async replaceFailedArtistTracks(playlistId, artistId, spotifyTrackIds) {
-    const response = await api.put<FestivalPlaylistArtistMutationDto>(
+    const response = await api.put<FestivalPlaylistData>(
       `/festival-playlists/${playlistId}/artists/${artistId}/tracks`,
       { spotifyTrackIds },
     );
@@ -38,7 +38,7 @@ export const festivalPlaylistArtistTracksApi: FestivalPlaylistArtistTracksPort =
   },
 
   async clearPlaylistTracks(playlistId) {
-    const response = await api.delete<FestivalPlaylistArtistMutationDto>(
+    const response = await api.delete<FestivalPlaylistData>(
       `/festival-playlists/${playlistId}/tracks`,
     );
     return response.data;

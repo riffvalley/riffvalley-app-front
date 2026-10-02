@@ -258,10 +258,7 @@ import {
     type ArticleState,
     type ArticleType,
 } from '@/modules/editorial';
-import {
-    createArticleContent,
-    toISO
-} from '@services/articles/articles';
+import { toISO } from '@services/articles/articles';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
 import { useAuthStore } from '@stores/auth/auth';
 import SwalService from '@services/swal/SwalService';
@@ -665,7 +662,7 @@ async function handleCreateContent(item: Article) {
     }
 
     try {
-        const updated = await createArticleContent(item.id);
+        const updated = await articlesPort.createArticleContent(item.id);
         item.content = updated.content;
         SwalService.success('Añadido al calendario');
     } catch (e: any) {

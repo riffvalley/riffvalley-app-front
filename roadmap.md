@@ -2435,6 +2435,14 @@ La iteración se considera completada cuando:
 - las verificaciones correspondientes pasan;
 - Iteración 7 — Releases permanece fuera de este alcance.
 
+**Estado: CERRADA CON DEUDA DOCUMENTADA.** Las subtareas 6.1–6.48 están
+completadas. La auditoría final no encontró hallazgos residuales dentro del
+alcance. `yarn architecture`, los tests de Editorial (157/157), `yarn build` y
+`git diff --check` pasan. `yarn verify` sigue bloqueado únicamente porque el
+baseline TypeScript contiene excepciones ya resueltas que requieren
+mantenimiento autorizado; el baseline no se modificó durante la Iteración 6.
+OAuth y determinadas operaciones Spotify legacy permanecen fuera de alcance.
+
 ## Iteración 7 — Releases
 
 Migrar un recorrido por PR, con orden sugerido:
@@ -2467,6 +2475,10 @@ presentación; los formularios públicos mantienen acceso sin sesión.
 almacenada simultáneamente en dos stores propietarios.
 
 ## Iteración 9 — Consolidación y retirada de compatibilidad
+
+**Input explícito de Iteración 6:** tratar OAuth y las operaciones Spotify
+legacy que quedaron fuera de alcance, junto con el mantenimiento autorizado del
+baseline TypeScript con excepciones resueltas.
 
 1. Eliminar fachadas, aliases antiguos y carpetas legacy cuando no tengan
    consumidores; actualizar README y guía de arquitectura del repositorio.

@@ -6,11 +6,13 @@ import {
   genreArtistCatalogKey,
   genrePlaylistArtistTracksKey,
   genrePlaylistDataKey,
+  genrePlaylistLifecycleKey,
   genrePlaylistMaintenanceKey,
 } from '../../../../src/modules/editorial';
 import type {
   GenreArtistCatalogPort,
   GenrePlaylistArtistTracksPort,
+  GenrePlaylistLifecyclePort,
   GenrePlaylistMaintenancePort,
 } from '../../../../src/modules/editorial';
 import type { GenrePlaylistDataPort } from '../../../../src/modules/editorial';
@@ -19,32 +21,26 @@ const mocks = vi.hoisted(() => ({
   getGenrePlaylistLegacy: vi.fn(),
   updateGenrePlaylistLegacy: vi.fn(),
   fetchCatalog: vi.fn(),
+  deleteGenrePlaylistRegistration: vi.fn(),
+  confirm: vi.fn(),
   error: vi.fn(),
   success: vi.fn(),
 }));
 
 vi.mock('@services/spotify/genrePlaylists', () => ({
-  addGenreArtist: vi.fn(),
-  clearGenrePlaylist: vi.fn(),
   getGenrePlaylist: mocks.getGenrePlaylistLegacy,
-  removeGenreArtist: vi.fn(),
-  replaceGenreArtistTracks: vi.fn(),
-  searchGenreArtistTracks: vi.fn(),
-  shuffleGenrePlaylist: vi.fn(),
   updateGenrePlaylist: mocks.updateGenrePlaylistLegacy,
-  updateGenrePlaylistImage: vi.fn(),
 }));
 vi.mock('@services/spotify/festivalPlaylists', () => ({
   createPendingFestivalArtist: vi.fn(),
   searchFestivalArtists: vi.fn(),
   validatePlaylistImage: vi.fn(() => null),
 }));
-vi.mock('@services/spotify/spotify', () => ({ removeSpotify: vi.fn() }));
 vi.mock('@stores/catalog/catalog', () => ({
   useCatalogStore: () => ({ fetchCatalog: mocks.fetchCatalog }),
 }));
 vi.mock('@services/swal/SwalService', () => ({
-  default: { error: mocks.error, success: mocks.success, confirm: vi.fn() },
+  default: { error: mocks.error, success: mocks.success, confirm: mocks.confirm },
 }));
 
 const playlist = () => ({
@@ -69,6 +65,12 @@ function mountManager(port: GenrePlaylistDataPort) {
     props: { playlistId: 'genre-1', playlistName: 'Fallback', connection },
     global: { provide: {
       [genrePlaylistDataKey as symbol]: port,
+      [genrePlaylistLifecycleKey as symbol]: {
+        createGenrePlaylist: vi.fn(),
+        createLinkedGenrePlaylist: vi.fn(),
+        linkExistingGenrePlaylist: vi.fn(),
+        deleteGenrePlaylistRegistration: mocks.deleteGenrePlaylistRegistration,
+      } satisfies GenrePlaylistLifecyclePort,
       [genreArtistCatalogKey as symbol]: {
         searchArtists: vi.fn(), createPendingArtist: vi.fn(),
       } satisfies GenreArtistCatalogPort,
@@ -189,6 +191,59 @@ describe('Genre playlist metadata flow', () => {
     expect(mocks.getGenrePlaylistLegacy).not.toHaveBeenCalled();
     expect(mocks.error).toHaveBeenCalledWith('No se pudo leer');
     expect(view.emitted('close')).toHaveLength(1);
+    view.unmount();
+  });
+
+  it('uploads the selected image through Editorial with the same file data', async () => {
+    const file = new File(['image-bytes'], 'cover.jpg', { type: 'image/jpeg' });
+    const updateGenrePlaylistImage = vi.fn().mockResolvedValue({
+      ...playlist(), imageUrl: 'https://example.test/cover.jpg',
+    });
+    const view = mountManager({
+      getGenrePlaylist: vi.fn().mockResolvedValue(playlist()),
+      updateGenrePlaylistMetadata: vi.fn(),
+      updateGenrePlaylistImage,
+    });
+    await flushPromises();
+    const input = view.get('input[type="file"]');
+    Object.defineProperty(input.element, 'files', { configurable: true, value: [file] });
+
+    await input.trigger('change');
+    await flushPromises();
+
+    expect(updateGenrePlaylistImage).toHaveBeenCalledTimes(1);
+    expect(updateGenrePlaylistImage).toHaveBeenCalledWith('genre-1', {
+      filename: 'cover.jpg',
+      contentType: 'image/jpeg',
+      bytes: expect.any(ArrayBuffer),
+    });
+    expect(mocks.success).toHaveBeenCalledWith('Portada actualizada');
+    expect(view.emitted('updated')?.at(-1)?.[0]).toMatchObject({
+      imageUrl: 'https://example.test/cover.jpg',
+    });
+    view.unmount();
+  });
+
+  it('deletes the local registration through Editorial and keeps confirmation and feedback', async () => {
+    const view = mountManager({
+      getGenrePlaylist: vi.fn().mockResolvedValue(playlist()),
+      updateGenrePlaylistMetadata: vi.fn(),
+      updateGenrePlaylistImage: vi.fn(),
+    });
+    await flushPromises();
+    mocks.confirm.mockResolvedValue({ isConfirmed: false });
+    await view.findAll('button').find((button) => button.text().includes('Eliminar playlist'))!.trigger('click');
+    await flushPromises();
+    expect(mocks.deleteGenrePlaylistRegistration).not.toHaveBeenCalled();
+
+    mocks.confirm.mockResolvedValue({ isConfirmed: true });
+    await view.findAll('button').find((button) => button.text().includes('Eliminar playlist'))!.trigger('click');
+    await flushPromises();
+
+    expect(mocks.deleteGenrePlaylistRegistration).toHaveBeenCalledWith('genre-1');
+    expect(view.emitted('deleted')?.[0]).toEqual(['genre-1']);
+    expect(view.emitted('close')).toHaveLength(1);
+    expect(mocks.success).toHaveBeenCalledWith('Playlist eliminada de Riff Valley');
     view.unmount();
   });
 });

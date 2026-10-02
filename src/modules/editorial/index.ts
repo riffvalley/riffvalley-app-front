@@ -90,3 +90,8 @@ export type {
   UpdateFestivalPlaylistMetadata,
   UpdateFestivalPlaylistRegistration,
 } from './festival-playlists/domain/festivalPlaylists';
+export { festivalPlaylistRegistrationsKey } from './festival-playlists/presentation/festivalPlaylistRegistrationsKey';
+export { festivalPlaylistLifecycleKey } from './festival-playlists/presentation/festivalPlaylistLifecycleKey';
+export { festivalPlaylistDataKey } from './festival-playlists/presentation/festivalPlaylistDataKey';
+export { festivalArtistCatalogKey } from './festival-playlists/presentation/festivalArtistCatalogKey';
+export { festivalPlaylistArtistTracksKey } from './festival-playlists/presentation/festivalPlaylistArtistTracksKey';
