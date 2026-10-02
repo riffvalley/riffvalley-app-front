@@ -6,6 +6,8 @@ import { listWordPressPublicationApi } from "@/modules/editorial/lists/infrastru
 import { reunionsApi } from "@/modules/editorial/reunions/infrastructure/reunionsApi";
 import { articlesApi } from "@/modules/editorial/articles/infrastructure/articlesApi";
 import { videosApi } from "@/modules/editorial/videos/infrastructure/videosApi";
+import { editorialCalendarApi } from "@/modules/editorial/calendar/infrastructure/editorialCalendarApi";
+import { rescheduleEditorialContent } from "@/modules/editorial/calendar/application/rescheduleEditorialContent";
 
 export const asignationTextUpdatePort = asignationTextUpdateApi;
 export const listDetailsPort = listDetailsApi;
@@ -15,3 +17,5 @@ export const listWordPressPublicationPort = listWordPressPublicationApi;
 export const reunionsPort = reunionsApi;
 export const articlesPort = articlesApi;
 export const videosPort = videosApi;
+export const rescheduleEditorialCalendarContent = (contentId: string, date: string | null) =>
+  rescheduleEditorialContent(editorialCalendarApi, contentId, date);

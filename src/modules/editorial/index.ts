@@ -24,3 +24,7 @@ export type {
 } from './videos/domain/videos';
 export { VIDEO_STATUSES, VIDEO_TYPES } from './videos/domain/videos';
 export { videosKey } from './videos/presentation/videosKey';
+export type { EditorialCalendarPort } from './calendar/application/calendarPort';
+export type { RescheduleEditorialContent } from './calendar/domain/rescheduleContent';
+export { createRescheduleEditorialContent, toEditorialCalendarDate } from './calendar/domain/rescheduleContent';
+export { rescheduleEditorialContent } from './calendar/application/rescheduleEditorialContent';

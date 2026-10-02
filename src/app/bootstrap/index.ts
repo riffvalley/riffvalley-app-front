@@ -3,7 +3,7 @@ import { createPinia } from 'pinia';
 import App from '../../App.vue';
 import router from '../router';
 import { composeSession } from './session';
-import { asignationTextUpdatePort, listDetailsPort, specialListsPort, listCreationPort, listWordPressPublicationPort, reunionsPort, articlesPort, videosPort } from '../dependencies/editorial';
+import { asignationTextUpdatePort, listDetailsPort, specialListsPort, listCreationPort, listWordPressPublicationPort, reunionsPort, articlesPort, videosPort, rescheduleEditorialCalendarContent } from '../dependencies/editorial';
 import { asignationTextUpdateKey } from '../../modules/editorial/asignations/presentation/asignationTextUpdateKey';
 import { listDetailsKey } from '../../modules/editorial/lists/presentation/listDetailsKey';
 import { specialListsKey } from '../../modules/editorial/lists/presentation/specialListsKey';
@@ -12,6 +12,7 @@ import { listWordPressPublicationKey } from '../../modules/editorial/lists/prese
 import { reunionsKey } from '../../modules/editorial/reunions/presentation/reunionsKey';
 import { articlesKey } from '../../modules/editorial/articles/presentation/articlesKey';
 import { videosKey } from '../../modules/editorial/videos/presentation/videosKey';
+import { rescheduleEditorialContentKey } from '../../modules/editorial/calendar/presentation/rescheduleEditorialContentKey';
 
 // VueSweetalert2
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -48,6 +49,7 @@ export function bootstrap() {
   app.provide(reunionsKey, reunionsPort);
   app.provide(articlesKey, articlesPort);
   app.provide(videosKey, videosPort);
+  app.provide(rescheduleEditorialContentKey, rescheduleEditorialCalendarContent);
 
   // Circle flags
   app.use(CircleFlags);

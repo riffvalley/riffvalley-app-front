@@ -111,6 +111,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick, inject } from 'vue';
 import { articlesKey, videosKey } from '@/modules/editorial';
+import { rescheduleEditorialContentKey } from '@/modules/editorial/calendar/presentation/rescheduleEditorialContentKey';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
@@ -140,6 +141,7 @@ import DeleteConfirmModal from './components/DeleteConfirmModal.vue';
 const authStore = useAuthStore();
 const articlesPort = inject(articlesKey)!;
 const videosPort = inject(videosKey)!;
+const rescheduleContent = inject(rescheduleEditorialContentKey)!;
 const showOnlyMyEvents = ref(false);
 const showBacklog = ref(window.innerWidth >= 1024);
 
@@ -434,7 +436,7 @@ const calendarOptions = ref({
         }
 
         try {
-            await updateContent(contentId, { publicationDate: toCalendarDate(newDate), backlog: false });
+            await rescheduleContent(contentId, newDate);
             await loadBacklogContents();
             await loadContentsByMonth(currentYear.value, currentMonth.value);
             SwalService.success('Evento reprogramado correctamente');
