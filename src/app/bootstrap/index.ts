@@ -3,7 +3,7 @@ import { createPinia } from 'pinia';
 import App from '../../App.vue';
 import router from '../router';
 import { composeSession } from './session';
-import { asignationTextUpdatePort, listDetailsPort, specialListsPort, listCreationPort, listWordPressPublicationPort, reunionsPort, articlesPort } from '../dependencies/editorial';
+import { asignationTextUpdatePort, listDetailsPort, specialListsPort, listCreationPort, listWordPressPublicationPort, reunionsPort, articlesPort, videosPort } from '../dependencies/editorial';
 import { asignationTextUpdateKey } from '../../modules/editorial/asignations/presentation/asignationTextUpdateKey';
 import { listDetailsKey } from '../../modules/editorial/lists/presentation/listDetailsKey';
 import { specialListsKey } from '../../modules/editorial/lists/presentation/specialListsKey';
@@ -11,6 +11,7 @@ import { listCreationKey } from '../../modules/editorial/lists/presentation/list
 import { listWordPressPublicationKey } from '../../modules/editorial/lists/presentation/listWordPressPublicationKey';
 import { reunionsKey } from '../../modules/editorial/reunions/presentation/reunionsKey';
 import { articlesKey } from '../../modules/editorial/articles/presentation/articlesKey';
+import { videosKey } from '../../modules/editorial/videos/presentation/videosKey';
 
 // VueSweetalert2
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -46,6 +47,7 @@ export function bootstrap() {
   app.provide(listWordPressPublicationKey, listWordPressPublicationPort);
   app.provide(reunionsKey, reunionsPort);
   app.provide(articlesKey, articlesPort);
+  app.provide(videosKey, videosPort);
 
   // Circle flags
   app.use(CircleFlags);

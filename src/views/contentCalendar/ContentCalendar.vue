@@ -110,7 +110,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick, inject } from 'vue';
-import { articlesKey } from '@/modules/editorial';
+import { articlesKey, videosKey } from '@/modules/editorial';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
@@ -123,7 +123,6 @@ import { updateAsignationService } from '@services/asignation/asignation';
 import { deleteList, getListDetails, updateList } from '@services/list/list';
 
 import { useRouter } from 'vue-router';
-import { updateVideo } from '@services/videos/videos';
 
 import BacklogPanel from './components/BacklogPanel.vue';
 import CreateContentModal from './components/CreateContentModal.vue';
@@ -140,6 +139,7 @@ import DeleteConfirmModal from './components/DeleteConfirmModal.vue';
 
 const authStore = useAuthStore();
 const articlesPort = inject(articlesKey)!;
+const videosPort = inject(videosKey)!;
 const showOnlyMyEvents = ref(false);
 const showBacklog = ref(window.innerWidth >= 1024);
 
@@ -658,7 +658,7 @@ async function handleUpdateArticle(data: any) {
 
 async function handleUpdateVideo(data: any) {
     try {
-        await updateVideo(data.videoId, {
+        await videosPort.updateVideo(data.videoId, {
             name: data.name,
             type: data.type,
             status: data.status,

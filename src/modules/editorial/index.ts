@@ -11,3 +11,16 @@ export type {
 } from './articles/domain/articles';
 export { ARTICLE_STATES, ARTICLE_TYPES } from './articles/domain/articles';
 export { articlesKey } from './articles/presentation/articlesKey';
+export type { VideosPort } from './videos/application/videosPort';
+export type {
+  CreateVideo,
+  UpdateVideo,
+  Video,
+  VideoContentRef,
+  VideoListCreationResult,
+  VideoPerson,
+  VideoStatus,
+  VideoType,
+} from './videos/domain/videos';
+export { VIDEO_STATUSES, VIDEO_TYPES } from './videos/domain/videos';
+export { videosKey } from './videos/presentation/videosKey';

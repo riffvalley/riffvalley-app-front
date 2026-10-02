@@ -4,8 +4,9 @@ import { flushPromises, shallowMount } from '@vue/test-utils';
 import ContentCalendar from '../../src/views/contentCalendar/ContentCalendar.vue';
 import CreateContentModal from '../../src/views/contentCalendar/components/CreateContentModal.vue';
 import ArticleActionsModal from '../../src/views/contentCalendar/components/ArticleActionsModal.vue';
-import { articlesKey } from '../../src/modules/editorial';
-import type { ArticlesPort } from '../../src/modules/editorial';
+import VideoActionsModal from '../../src/views/contentCalendar/components/VideoActionsModal.vue';
+import { articlesKey, videosKey } from '../../src/modules/editorial';
+import type { ArticlesPort, VideosPort } from '../../src/modules/editorial';
 
 const {
   getContents, createContentLegacy, updateContent, deleteContent, getContentsByMonth,
@@ -38,7 +39,11 @@ vi.mock('@services/articles/articles', () => ({
   ARTICLE_TYPES: ['cronica', 'festival', 'review', 'entrevista', 'articulo'],
   ARTICLE_STATES: ['not_started', 'in_progress', 'editing', 'ready', 'published'],
 }));
-vi.mock('@services/videos/videos', () => ({ updateVideo }));
+vi.mock('@services/videos/videos', () => ({
+  updateVideo,
+  VIDEO_TYPES: ['best', 'custom'],
+  VIDEO_STATUSES: ['not_started', 'in_progress', 'editing', 'ready', 'published'],
+}));
 vi.mock('@services/swal/SwalService', () => ({ default: { success, error } }));
 vi.mock('@stores/auth/auth', () => ({ useAuthStore: () => ({ userId: 'author-1' }) }));
 vi.mock('vue-router', () => ({ useRouter: () => ({ push: vi.fn() }) }));
@@ -57,9 +62,17 @@ function makePort(overrides: Partial<ArticlesPort> = {}): ArticlesPort {
   };
 }
 
-function mountCalendar(port: ArticlesPort) {
+function mountCalendar(port: ArticlesPort, videosPort?: VideosPort) {
+  const composedVideosPort: VideosPort = videosPort ?? {
+    getVideos: vi.fn().mockResolvedValue([]),
+    createVideo: vi.fn(),
+    updateVideo: vi.fn(),
+    deleteVideo: vi.fn(),
+    createVideoList: vi.fn(),
+    createVideoContent: vi.fn(),
+  };
   return shallowMount(ContentCalendar, {
-    global: { provide: { [articlesKey as symbol]: port } },
+    global: { provide: { [articlesKey as symbol]: port, [videosKey as symbol]: composedVideosPort } },
   });
 }
 
@@ -169,6 +182,57 @@ describe('Content calendar article creation', () => {
 
     expect(error).toHaveBeenCalledWith('Error al actualizar el artículo');
     expect(updateArticleLegacy).not.toHaveBeenCalled();
+    view.unmount();
+  });
+});
+
+describe('Content calendar video editor update', () => {
+  it('uses the Editorial video port with the current update payload and error message', async () => {
+    const content = {
+      id: 'content-video-1', type: 'video', name: 'Vídeo original', notes: null,
+      publicationDate: '2026-10-02T12:00:00.000Z', closeDate: null, backlog: false,
+      author: { id: 'author-1', username: 'Ana', isActive: true }, list: null, spotify: null, article: null,
+      video: {
+        id: 'video-1', name: 'Vídeo original', status: 'ready', type: 'best',
+        updateDate: null, createdAt: '2026-10-01T00:00:00.000Z',
+        updatedAt: '2026-10-01T00:00:00.000Z', content: null,
+      },
+    };
+    const updateVideoComposed = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('offline'));
+    const videosPort: VideosPort = {
+      getVideos: vi.fn(), createVideo: vi.fn(), updateVideo: updateVideoComposed,
+      deleteVideo: vi.fn(), createVideoList: vi.fn(), createVideoContent: vi.fn(),
+    };
+    getContentsByMonth.mockResolvedValue([content]);
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const view = mountCalendar(makePort(), videosPort);
+    await flushPromises();
+    const calendarOptions = view.findComponent({ name: 'FullCalendar' }).props('options') as {
+      eventClick: (info: { event: { id: string } }) => Promise<void>;
+    };
+    await calendarOptions.eventClick({ event: { id: 'content-video-1' } });
+    await flushPromises();
+
+    const videoModal = view.findComponent(VideoActionsModal);
+    expect(videoModal.exists()).toBe(true);
+    const payload = {
+      videoId: 'video-1', name: 'Vídeo editado', type: 'custom', status: 'editing',
+      link: 'https://example.test/video', userId: 'user-2', editorId: 'editor-1',
+    };
+    videoModal.vm.$emit('update-video', payload);
+    await flushPromises();
+
+    expect(updateVideoComposed).toHaveBeenCalledWith('video-1', {
+      name: 'Vídeo editado', type: 'custom', status: 'editing',
+      link: 'https://example.test/video', userId: 'user-2', editorId: 'editor-1',
+    });
+    expect(updateVideo).not.toHaveBeenCalled();
+
+    videoModal.vm.$emit('update-video', payload);
+    await flushPromises();
+    expect(error).toHaveBeenCalledWith('Error al actualizar el video');
+    expect(updateVideo).not.toHaveBeenCalled();
+    consoleError.mockRestore();
     view.unmount();
   });
 });

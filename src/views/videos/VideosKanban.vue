@@ -238,20 +238,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, nextTick } from 'vue';
+import { ref, onMounted, reactive, nextTick, inject } from 'vue';
 import {
-    getVideos,
-    createVideo,
-    updateVideo,
-    deleteVideo,
-    createVideoList,
-    createVideoContent,
-    type Video,
-    type VideoStatus,
-    type VideoType,
-    VIDEO_TYPES,
     toISO
 } from '@services/videos/videos';
+import { videosKey } from '@/modules/editorial';
+import { VIDEO_TYPES, type Video, type VideoStatus, type VideoType } from '@/modules/editorial';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
 import { useAuthStore } from '@stores/auth/auth';
 import { useRouter } from 'vue-router';
@@ -259,6 +251,7 @@ import SwalService from '@services/swal/SwalService';
 
 const authStore = useAuthStore();
 const router = useRouter();
+const videosPort = inject(videosKey)!;
 
 // --- Types ---
 type ColumnId = VideoStatus;
@@ -385,7 +378,7 @@ async function reload() {
         }
 
         if (selectedUserId.value) {
-            const videos = await getVideos(selectedUserId.value);
+            const videos = await videosPort.getVideos(selectedUserId.value);
             // Normalizar: el backend puede devolver list como objeto anidado
             videos.forEach((v: any) => {
                 if (!v.listId && v.list?.id) {
@@ -433,7 +426,7 @@ async function onDrop(targetState: ColumnId) {
     item.status = targetState;
 
     try {
-        await updateVideo(item.id, { status: targetState });
+        await videosPort.updateVideo(item.id, { status: targetState });
     } catch (e: any) {
         console.error(e);
         item.status = originalState;
@@ -480,7 +473,7 @@ async function onUserChange(item: Video, event: Event) {
     }
 
     try {
-        await updateVideo(item.id, { userId: newUserId || undefined });
+        await videosPort.updateVideo(item.id, { userId: newUserId || undefined });
     } catch (e) {
         console.error(e);
         item.user = oldUser;
@@ -524,7 +517,7 @@ async function onEditorChange(item: Video, event: Event) {
     }
 
     try {
-        await updateVideo(item.id, { editorId: newEditorId || undefined });
+        await videosPort.updateVideo(item.id, { editorId: newEditorId || undefined });
     } catch (e) {
         console.error(e);
         item.editor = oldEditor;
@@ -566,7 +559,7 @@ async function save() {
 
     try {
         if (isEditing.value && editingId.value) {
-            const updated = await updateVideo(editingId.value, {
+            const updated = await videosPort.updateVideo(editingId.value, {
                 name: form.name,
                 type: form.type,
                 link: form.link || undefined,
@@ -578,7 +571,7 @@ async function save() {
             await nextTick();
             SwalService.success('Vídeo actualizado');
         } else {
-            const created = await createVideo({
+            const created = await videosPort.createVideo({
                 name: form.name,
                 type: form.type,
                 link: form.link || undefined,
@@ -614,7 +607,7 @@ async function confirmDelete(item: Video) {
 
     if (result.isConfirmed) {
         try {
-            await deleteVideo(item.id);
+            await videosPort.deleteVideo(item.id);
             items.value = items.value.filter(i => i.id !== item.id);
             SwalService.success('Vídeo eliminado');
         } catch (e: any) {
@@ -627,7 +620,7 @@ async function confirmDelete(item: Video) {
 // --- Create Video List ---
 async function handleCreateList(item: Video) {
     try {
-        const response = await createVideoList(item.id);
+        const response = await videosPort.createVideoList(item.id);
         item.listId = response.list?.id;
         SwalService.success('Lista creada');
     } catch (e: any) {
@@ -644,7 +637,7 @@ async function handleCreateContent(item: Video) {
     }
 
     try {
-        const updated = await createVideoContent(item.id);
+        const updated = await videosPort.createVideoContent(item.id);
         item.content = updated.content;
         SwalService.success('Añadido al calendario');
     } catch (e: any) {

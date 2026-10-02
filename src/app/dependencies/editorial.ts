@@ -5,6 +5,7 @@ import { listCreationApi } from "@/modules/editorial/lists/infrastructure/listCr
 import { listWordPressPublicationApi } from "@/modules/editorial/lists/infrastructure/listWordPressPublicationApi";
 import { reunionsApi } from "@/modules/editorial/reunions/infrastructure/reunionsApi";
 import { articlesApi } from "@/modules/editorial/articles/infrastructure/articlesApi";
+import { videosApi } from "@/modules/editorial/videos/infrastructure/videosApi";
 
 export const asignationTextUpdatePort = asignationTextUpdateApi;
 export const listDetailsPort = listDetailsApi;
@@ -13,3 +14,4 @@ export const listCreationPort = listCreationApi;
 export const listWordPressPublicationPort = listWordPressPublicationApi;
 export const reunionsPort = reunionsApi;
 export const articlesPort = articlesApi;
+export const videosPort = videosApi;
