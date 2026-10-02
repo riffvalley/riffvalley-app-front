@@ -216,6 +216,12 @@ export async function listVersionItems(
   return data;
 }
 
+/** Current version items used by Releases while its external port is composed in app. */
+export async function getCurrentVersionItems(): Promise<VersionItem[]> {
+  const { data } = await api.get<VersionItem[]>('/versions/current/items');
+  return data;
+}
+
 // Crear item en una versión
 export async function createVersionItem(
   versionId: string,

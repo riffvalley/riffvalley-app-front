@@ -1,3 +1,113 @@
+<script setup lang="ts">
+import { onMounted, reactive, ref, shallowRef } from 'vue';
+import {
+  createOwnSuggestion,
+  fetchOwnSuggestions,
+  fetchSuggestionVersionOptions,
+} from '@/app/dependencies/suggestions';
+import type { SuggestionVersionOption } from '@/modules/releases/suggestions/application/suggestionVersionOptionsPort';
+import type {
+  Suggestion,
+  SuggestionStatus,
+  SuggestionType,
+} from '@/modules/releases/suggestions/domain/suggestion';
+import SwalService from '@services/swal/SwalService';
+
+interface SuggestionsPageItem extends Suggestion {
+  versionItem: SuggestionVersionOption | null;
+}
+
+const suggestions = ref<SuggestionsPageItem[]>([]);
+const counts = ref({ in_progress: 0, done: 0, rejected: 0 });
+const loading = shallowRef(false);
+const submitting = shallowRef(false);
+
+const form = reactive({
+  title: '',
+  description: '',
+  type: 'suggestion' as SuggestionType,
+});
+
+const typeOptions = [
+  { value: 'suggestion' as const, label: 'Sugerencia', icon: 'fa-solid fa-lightbulb', activeClass: 'bg-blue-500 text-white border-blue-500' },
+  { value: 'bug' as const, label: 'Bug', icon: 'fa-solid fa-bug', activeClass: 'bg-red-500 text-white border-red-500' },
+];
+
+async function fetchMine(): Promise<void> {
+  loading.value = true;
+  try {
+    const result = await fetchOwnSuggestions();
+    const versionOptions = await fetchSuggestionVersionOptions().catch(() => []);
+    suggestions.value = result.suggestions.map((suggestion) => ({
+      ...suggestion,
+      versionItem: versionOptions.find(({ id }) => id === suggestion.versionItemId) ?? null,
+    }));
+    counts.value = result.counts;
+  } catch {
+    // La carga de la lista mantiene el comportamiento silencioso existente.
+  } finally {
+    loading.value = false;
+  }
+}
+
+function createErrorMessage(error: unknown): string {
+  if (typeof error !== 'object' || error === null || !('response' in error)) {
+    return 'Error al enviar la solicitud';
+  }
+
+  const response = error.response;
+  if (typeof response !== 'object' || response === null || !('data' in response)) {
+    return 'Error al enviar la solicitud';
+  }
+
+  const data = response.data;
+  if (typeof data !== 'object' || data === null || !('message' in data)) {
+    return 'Error al enviar la solicitud';
+  }
+
+  return typeof data.message === 'string' && data.message
+    ? data.message
+    : 'Error al enviar la solicitud';
+}
+
+async function handleSubmit(): Promise<void> {
+  if (!form.title.trim() || !form.description.trim()) return;
+  submitting.value = true;
+  try {
+    await createOwnSuggestion({ ...form });
+    form.title = '';
+    form.description = '';
+    form.type = 'suggestion';
+    SwalService.success('Enviado correctamente');
+    await fetchMine();
+  } catch (error: unknown) {
+    SwalService.error(createErrorMessage(error));
+  } finally {
+    submitting.value = false;
+  }
+}
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+
+const typeLabel = (type: SuggestionType) => type === 'bug' ? 'Bug' : 'Sugerencia';
+const typeIcon = (type: SuggestionType) => type === 'bug' ? 'fa-solid fa-bug' : 'fa-solid fa-lightbulb';
+const typeClass = (type: SuggestionType) => type === 'bug'
+  ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400';
+
+const statusLabel = (status: SuggestionStatus) =>
+  ({ in_progress: 'Pendiente', done: 'Hecho', rejected: 'Rechazado' }[status] ?? status);
+const statusClass = (status: SuggestionStatus) =>
+  ({
+    in_progress: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
+    done: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    rejected: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
+  }[status] ?? '');
+
+onMounted(fetchMine);
+</script>
+
 <template>
   <div class="p-4 md:p-6">
     <div class="max-w-2xl mx-auto space-y-6">
@@ -152,91 +262,3 @@
     </div>
   </div>
 </template>
-
-<script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
-import {
-  createSuggestion,
-  getMySuggestions,
-  type Suggestion,
-  type SuggestionType,
-} from '@services/suggestions/suggestions';
-import SwalService from '@services/swal/SwalService';
-
-export default defineComponent({
-  name: 'SuggestionsPage',
-  setup() {
-    const suggestions = ref<Suggestion[]>([]);
-    const counts = ref({ in_progress: 0, done: 0, rejected: 0 });
-    const loading = ref(false);
-    const submitting = ref(false);
-
-    const form = ref({
-      title: '',
-      description: '',
-      type: 'suggestion' as SuggestionType,
-    });
-
-    const typeOptions = [
-      { value: 'suggestion', label: 'Sugerencia', icon: 'fa-solid fa-lightbulb', activeClass: 'bg-blue-500 text-white border-blue-500' },
-      { value: 'bug', label: 'Bug', icon: 'fa-solid fa-bug', activeClass: 'bg-red-500 text-white border-red-500' },
-    ];
-
-    const fetchMine = async () => {
-      loading.value = true;
-      try {
-        const result = await getMySuggestions();
-        suggestions.value = result.data;
-        counts.value = result.counts;
-      } catch {
-        // silencioso
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    const handleSubmit = async () => {
-      if (!form.value.title.trim() || !form.value.description.trim()) return;
-      submitting.value = true;
-      try {
-        await createSuggestion(form.value);
-        form.value = { title: '', description: '', type: 'suggestion' };
-        SwalService.success('Enviado correctamente');
-        await fetchMine();
-      } catch (error: any) {
-        SwalService.error(error.response?.data?.message || 'Error al enviar la solicitud');
-      } finally {
-        submitting.value = false;
-      }
-    };
-
-    const formatDate = (iso: string) =>
-      new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-
-    const typeLabel = (t: SuggestionType) => t === 'bug' ? 'Bug' : 'Sugerencia';
-    const typeIcon  = (t: SuggestionType) => t === 'bug' ? 'fa-solid fa-bug' : 'fa-solid fa-lightbulb';
-    const typeClass = (t: SuggestionType) => t === 'bug'
-      ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400';
-
-    const statusLabel = (s: string) =>
-      ({ in_progress: 'Pendiente', done: 'Hecho', rejected: 'Rechazado' }[s] ?? s);
-    const statusClass = (s: string) =>
-      ({
-        in_progress: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
-        done:        'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-        rejected:    'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-      }[s] ?? '');
-
-    onMounted(fetchMine);
-
-    return {
-      suggestions, counts, loading, submitting, form,
-      typeOptions,
-      handleSubmit, formatDate,
-      typeLabel, typeIcon, typeClass,
-      statusLabel, statusClass,
-    };
-  },
-});
-</script>

@@ -1,3 +1,267 @@
+<script setup lang="ts">
+import { onMounted, ref } from 'vue';
+import {
+  completeManagedSuggestion,
+  createManagedSuggestion,
+  deleteManagedSuggestion,
+  fetchManagedSuggestions,
+  fetchSuggestionVersionOptions,
+  isSuggestionRead,
+  markSuggestionAsRead,
+  progressManagedSuggestion,
+  rejectManagedSuggestion,
+  setPendingSuggestionIds,
+  updateManagedSuggestionPriority,
+} from '@/app/dependencies/suggestions';
+import type {
+  CreateSuggestionInput,
+  Suggestion,
+  SuggestionFilters,
+  SuggestionPriority,
+  SuggestionStatus,
+  SuggestionType,
+} from '@/modules/releases/suggestions/domain/suggestion';
+import type { SuggestionVersionOption } from '@/modules/releases/suggestions/application/suggestionVersionOptionsPort';
+import SwalService from '@services/swal/SwalService';
+
+interface ManagedSuggestion extends Suggestion {
+  versionItem: SuggestionVersionOption | null;
+}
+
+const suggestions = ref<ManagedSuggestion[]>([]);
+const loading = ref(false);
+const activeType = ref<SuggestionType | 'all'>('all');
+const activeStatus = ref<SuggestionStatus | 'all'>('in_progress');
+
+const typeTabs = [
+  { value: 'all' as const, label: 'Todas', icon: 'fa-solid fa-list', activeClass: 'bg-rv-pink text-white' },
+  { value: 'bug' as const, label: 'Bugs', icon: 'fa-solid fa-bug', activeClass: 'bg-red-500 text-white' },
+  { value: 'suggestion' as const, label: 'Sugerencias', icon: 'fa-solid fa-lightbulb', activeClass: 'bg-blue-500 text-white' },
+];
+const statusTabs = [
+  { value: 'in_progress' as const, label: 'Pendientes' },
+  { value: 'done' as const, label: 'Hechas' },
+  { value: 'rejected' as const, label: 'Rechazadas' },
+  { value: 'all' as const, label: 'Todas' },
+];
+
+const countByStatus = (status: SuggestionStatus | 'all') =>
+  status === 'all' ? suggestions.value.length : suggestions.value.filter((suggestion) => suggestion.status === status).length;
+
+const createModal = ref({
+  show: false,
+  saving: false,
+  form: { title: '', description: '', type: 'suggestion' as SuggestionType, priority: 'medium' as SuggestionPriority },
+});
+const rejectModal = ref({
+  show: false,
+  saving: false,
+  suggestion: null as Suggestion | null,
+  reason: '',
+});
+const doneModal = ref({
+  show: false,
+  saving: false,
+  loadingItems: false,
+  suggestion: null as Suggestion | null,
+  versionItems: [] as SuggestionVersionOption[],
+  versionItemId: '',
+  internal: false,
+});
+
+async function fetchAll(): Promise<void> {
+  loading.value = true;
+  try {
+    const filters: SuggestionFilters = {};
+    if (activeType.value !== 'all') filters.type = activeType.value;
+    if (activeStatus.value !== 'all') filters.status = activeStatus.value;
+    const result = await fetchManagedSuggestions(filters);
+    const linkedItemIds = new Set(result.flatMap(({ versionItemId }) => versionItemId ? [versionItemId] : []));
+    let versionItems: SuggestionVersionOption[] = [];
+    if (linkedItemIds.size > 0) {
+      try {
+        versionItems = await fetchSuggestionVersionOptions();
+      } catch {
+        versionItems = [];
+      }
+    }
+    suggestions.value = result.map((suggestion) => ({
+      ...suggestion,
+      versionItem: versionItems.find(({ id }) => id === suggestion.versionItemId) ?? null,
+    }));
+    setPendingSuggestionIds(result.filter(({ status }) => status === 'in_progress').map(({ id }) => id));
+  } finally {
+    loading.value = false;
+  }
+}
+
+function setFilter(key: 'type' | 'status', value: string): void {
+  if (key === 'type') activeType.value = value as SuggestionType | 'all';
+  if (key === 'status') activeStatus.value = value as SuggestionStatus | 'all';
+  void fetchAll();
+}
+
+function openCreateModal(): void {
+  createModal.value.form = { title: '', description: '', type: 'suggestion', priority: 'medium' };
+  createModal.value.show = true;
+}
+
+async function handleCreate(): Promise<void> {
+  const { form } = createModal.value;
+  if (!form.title.trim() || !form.description.trim()) return;
+  createModal.value.saving = true;
+  try {
+    const input: CreateSuggestionInput = { ...form };
+    await createManagedSuggestion(input);
+    createModal.value.show = false;
+    SwalService.success('Creado correctamente');
+    await fetchAll();
+  } catch {
+    SwalService.error('Error al crear');
+  } finally {
+    createModal.value.saving = false;
+  }
+}
+
+function openRejectModal(suggestion: Suggestion): void {
+  rejectModal.value.suggestion = suggestion;
+  rejectModal.value.reason = '';
+  rejectModal.value.show = true;
+}
+
+async function handleReject(): Promise<void> {
+  if (!rejectModal.value.suggestion || !rejectModal.value.reason.trim()) return;
+  rejectModal.value.saving = true;
+  try {
+    const updated = await rejectManagedSuggestion(rejectModal.value.suggestion.id, {
+      rejectionReason: rejectModal.value.reason,
+    });
+    updateInList(updated);
+    rejectModal.value.show = false;
+    SwalService.success('Rechazada');
+  } catch {
+    SwalService.error('Error al rechazar');
+  } finally {
+    rejectModal.value.saving = false;
+  }
+}
+
+async function openDoneModal(suggestion: Suggestion): Promise<void> {
+  doneModal.value.suggestion = suggestion;
+  doneModal.value.versionItemId = '';
+  doneModal.value.internal = false;
+  doneModal.value.show = true;
+  doneModal.value.loadingItems = true;
+  try {
+    doneModal.value.versionItems = await fetchSuggestionVersionOptions();
+  } catch {
+    doneModal.value.versionItems = [];
+  } finally {
+    doneModal.value.loadingItems = false;
+  }
+}
+
+async function handleDone(): Promise<void> {
+  const { suggestion, internal, versionItemId } = doneModal.value;
+  if (!suggestion || (!internal && !versionItemId)) return;
+  doneModal.value.saving = true;
+  try {
+    const updated = await completeManagedSuggestion(suggestion.id, {
+      versionItemId: internal ? undefined : versionItemId,
+    });
+    updateInList(updated);
+    doneModal.value.show = false;
+    SwalService.success('Marcada como hecha');
+  } catch {
+    SwalService.error('Error al marcar como hecha');
+  } finally {
+    doneModal.value.saving = false;
+  }
+}
+
+function handleMarkAsRead(suggestion: Suggestion): void {
+  markSuggestionAsRead(suggestion.id);
+}
+
+async function cyclePriority(suggestion: ManagedSuggestion): Promise<void> {
+  const order: SuggestionPriority[] = ['low', 'medium', 'high'];
+  const previous = suggestion.priority;
+  const next = order[(order.indexOf(previous) + 1) % order.length];
+  suggestion.priority = next;
+  try {
+    await updateManagedSuggestionPriority(suggestion.id, next);
+  } catch {
+    suggestion.priority = previous;
+    SwalService.error('Error al cambiar la prioridad');
+  }
+}
+
+async function handleProgress(suggestion: Suggestion): Promise<void> {
+  try {
+    const updated = await progressManagedSuggestion(suggestion.id);
+    updateInList(updated);
+    SwalService.success('Vuelta a pendiente');
+  } catch {
+    SwalService.error('Error');
+  }
+}
+
+async function handleDelete(suggestion: Suggestion): Promise<void> {
+  const result = await SwalService.confirm('¿Eliminar esta entrada?', 'Esta acción no se puede deshacer.', 'Sí, eliminar', 'Cancelar');
+  if (!result.isConfirmed) return;
+  try {
+    await deleteManagedSuggestion(suggestion.id);
+    suggestions.value = suggestions.value.filter(({ id }) => id !== suggestion.id);
+    SwalService.success('Eliminada');
+  } catch {
+    SwalService.error('Error al eliminar');
+  }
+}
+
+function updateInList(updated: Suggestion): void {
+  const index = suggestions.value.findIndex(({ id }) => id === updated.id);
+  if (index === -1) return;
+  const current = suggestions.value[index];
+  suggestions.value[index] = {
+    ...updated,
+    versionItem: updated.versionItemId === current.versionItemId
+      ? current.versionItem
+      : doneModal.value.versionItems.find(({ id }) => id === updated.versionItemId) ?? null,
+  };
+}
+
+const typeOptions = [
+  { value: 'suggestion' as const, label: 'Sugerencia', icon: 'fa-solid fa-lightbulb', activeClass: 'bg-blue-500 text-white' },
+  { value: 'bug' as const, label: 'Bug', icon: 'fa-solid fa-bug', activeClass: 'bg-red-500 text-white' },
+];
+const priorityOptions = [
+  { value: 'low' as const, label: 'Baja', activeClass: 'bg-green-500 text-white' },
+  { value: 'medium' as const, label: 'Media', activeClass: 'bg-amber-500 text-white' },
+  { value: 'high' as const, label: 'Alta', activeClass: 'bg-red-500 text-white' },
+];
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+const typeLabel = (type: SuggestionType) => type === 'bug' ? 'Bug' : 'Sugerencia';
+const typeIcon = (type: SuggestionType) => type === 'bug' ? 'fa-solid fa-bug' : 'fa-solid fa-lightbulb';
+const typeClass = (type: SuggestionType) => type === 'bug'
+  ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
+  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400';
+const priorityLabel = (priority: SuggestionPriority) => ({ low: 'Baja', medium: 'Media', high: 'Alta' }[priority]);
+const priorityClass = (priority: SuggestionPriority) => ({
+  low: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+  medium: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+  high: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+}[priority]);
+const statusLabel = (status: SuggestionStatus) => ({ in_progress: 'Pendiente', done: 'Hecho', rejected: 'Rechazado' }[status] ?? status);
+const statusClass = (status: SuggestionStatus) => ({
+  in_progress: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+  done: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
+  rejected: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+}[status] ?? '');
+
+onMounted(fetchAll);
+</script>
+
 <template>
   <div class="p-6 max-w-4xl mx-auto">
 
@@ -145,7 +409,7 @@
                 <i class="fa-solid fa-rotate-left mr-1"></i>Volver a pendiente
               </button>
               <button
-                v-if="s.status === 'in_progress' && !supportStore.isRead(s.id)"
+                v-if="s.status === 'in_progress' && !isSuggestionRead(s.id)"
                 @click="handleMarkAsRead(s)"
                 class="text-xs font-semibold px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
                 <i class="fa-solid fa-eye mr-1"></i>Marcar como leído
@@ -274,264 +538,3 @@
 
   </div>
 </template>
-
-<script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
-import {
-  getSuggestions,
-  createSuggestion,
-  updateSuggestion,
-  progressSuggestion,
-  rejectSuggestion,
-  doneSuggestion,
-  deleteSuggestion,
-  getCurrentVersionItems,
-  type Suggestion,
-  type SuggestionType,
-  type SuggestionPriority,
-} from '@services/suggestions/suggestions';
-import type { VersionItem } from '@services/versions/versions';
-import SwalService from '@services/swal/SwalService';
-import { useSupportStore } from '@stores/support/support';
-
-export default defineComponent({
-  name: 'SuggestionsManagement',
-  setup() {
-    const supportStore = useSupportStore();
-    const suggestions = ref<Suggestion[]>([]);
-    const loading = ref(false);
-    const activeType = ref<SuggestionType | 'all'>('all');
-    const activeStatus = ref('in_progress');
-
-    const typeTabs = [
-      { value: 'all', label: 'Todas', icon: 'fa-solid fa-list', activeClass: 'bg-rv-pink text-white' },
-      { value: 'bug', label: 'Bugs', icon: 'fa-solid fa-bug', activeClass: 'bg-red-500 text-white' },
-      { value: 'suggestion', label: 'Sugerencias', icon: 'fa-solid fa-lightbulb', activeClass: 'bg-blue-500 text-white' },
-    ];
-
-    const statusTabs = [
-      { value: 'in_progress', label: 'Pendientes' },
-      { value: 'done', label: 'Hechas' },
-      { value: 'rejected', label: 'Rechazadas' },
-      { value: 'all', label: 'Todas' },
-    ];
-
-    const countByStatus = (status: string) =>
-      status === 'all' ? suggestions.value.length : suggestions.value.filter(s => s.status === status).length;
-
-    const createModal = ref({
-      show: false,
-      saving: false,
-      form: { title: '', description: '', type: 'suggestion' as SuggestionType, priority: 'medium' as SuggestionPriority },
-    });
-
-    const rejectModal = ref({
-      show: false, saving: false,
-      suggestion: null as Suggestion | null,
-      reason: '',
-    });
-
-    const doneModal = ref({
-      show: false, saving: false, loadingItems: false,
-      suggestion: null as Suggestion | null,
-      versionItems: [] as VersionItem[],
-      versionItemId: '',
-      internal: false,
-    });
-
-    const fetchAll = async () => {
-      loading.value = true;
-      try {
-        const params: any = {};
-        if (activeType.value !== 'all') params.type = activeType.value;
-        if (activeStatus.value !== 'all') params.status = activeStatus.value;
-        const result = await getSuggestions(params);
-        suggestions.value = Array.isArray(result) ? result : ((result as any).data ?? []);
-        // Actualizar el store con los IDs pendientes para el badge del sidebar
-        const pendingIds = suggestions.value
-          .filter(s => s.status === 'in_progress')
-          .map(s => s.id);
-        supportStore.setPendingIds(pendingIds);
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    const setFilter = (key: 'type' | 'status', value: string) => {
-      if (key === 'type') activeType.value = value as SuggestionType | 'all';
-      if (key === 'status') activeStatus.value = value;
-      fetchAll();
-    };
-
-    const openCreateModal = () => {
-      createModal.value.form = { title: '', description: '', type: 'suggestion', priority: 'medium' };
-      createModal.value.show = true;
-    };
-
-    const handleCreate = async () => {
-      const { form } = createModal.value;
-      if (!form.title.trim() || !form.description.trim()) return;
-      createModal.value.saving = true;
-      try {
-        await createSuggestion(form);
-        createModal.value.show = false;
-        SwalService.success('Creado correctamente');
-        await fetchAll();
-      } catch {
-        SwalService.error('Error al crear');
-      } finally {
-        createModal.value.saving = false;
-      }
-    };
-
-    const openRejectModal = (s: Suggestion) => {
-      rejectModal.value.suggestion = s;
-      rejectModal.value.reason = '';
-      rejectModal.value.show = true;
-    };
-
-    const handleReject = async () => {
-      if (!rejectModal.value.suggestion || !rejectModal.value.reason.trim()) return;
-      rejectModal.value.saving = true;
-      try {
-        const updated = await rejectSuggestion(rejectModal.value.suggestion.id, rejectModal.value.reason);
-        updateInList(updated);
-        rejectModal.value.show = false;
-        SwalService.success('Rechazada');
-      } catch {
-        SwalService.error('Error al rechazar');
-      } finally {
-        rejectModal.value.saving = false;
-      }
-    };
-
-    const openDoneModal = async (s: Suggestion) => {
-      doneModal.value.suggestion = s;
-      doneModal.value.versionItemId = '';
-      doneModal.value.internal = false;
-      doneModal.value.show = true;
-      doneModal.value.loadingItems = true;
-      try {
-        doneModal.value.versionItems = await getCurrentVersionItems();
-      } catch {
-        doneModal.value.versionItems = [];
-      } finally {
-        doneModal.value.loadingItems = false;
-      }
-    };
-
-    const handleDone = async () => {
-      const { suggestion, internal, versionItemId } = doneModal.value;
-      if (!suggestion || (!internal && !versionItemId)) return;
-      doneModal.value.saving = true;
-      try {
-        const updated = await doneSuggestion(suggestion.id, internal ? undefined : versionItemId);
-        updateInList(updated);
-        doneModal.value.show = false;
-        SwalService.success('Marcada como hecha');
-      } catch {
-        SwalService.error('Error al marcar como hecha');
-      } finally {
-        doneModal.value.saving = false;
-      }
-    };
-
-    const handleMarkAsRead = (s: Suggestion) => {
-      supportStore.markAsRead(s.id);
-    };
-
-    const cyclePriority = async (s: Suggestion) => {
-      const order: SuggestionPriority[] = ['low', 'medium', 'high'];
-      const next = order[(order.indexOf(s.priority) + 1) % order.length];
-      const prev = s.priority;
-      s.priority = next;
-      try {
-        await updateSuggestion(s.id, { priority: next });
-      } catch {
-        s.priority = prev;
-        SwalService.error('Error al cambiar la prioridad');
-      }
-    };
-
-    const handleProgress = async (s: Suggestion) => {
-      try {
-        const updated = await progressSuggestion(s.id);
-        updateInList(updated);
-        SwalService.success('Vuelta a pendiente');
-      } catch {
-        SwalService.error('Error');
-      }
-    };
-
-    const handleDelete = async (s: Suggestion) => {
-      const result = await SwalService.confirm('¿Eliminar esta entrada?', 'Esta acción no se puede deshacer.', 'Sí, eliminar', 'Cancelar');
-      if (!result.isConfirmed) return;
-      try {
-        await deleteSuggestion(s.id);
-        suggestions.value = suggestions.value.filter(x => x.id !== s.id);
-        SwalService.success('Eliminada');
-      } catch {
-        SwalService.error('Error al eliminar');
-      }
-    };
-
-    const updateInList = (updated: Suggestion) => {
-      const idx = suggestions.value.findIndex(s => s.id === updated.id);
-      if (idx !== -1) suggestions.value[idx] = updated;
-    };
-
-    const typeOptions = [
-      { value: 'suggestion', label: 'Sugerencia', icon: 'fa-solid fa-lightbulb', activeClass: 'bg-blue-500 text-white' },
-      { value: 'bug', label: 'Bug', icon: 'fa-solid fa-bug', activeClass: 'bg-red-500 text-white' },
-    ];
-
-    const priorityOptions = [
-      { value: 'low', label: 'Baja', activeClass: 'bg-green-500 text-white' },
-      { value: 'medium', label: 'Media', activeClass: 'bg-amber-500 text-white' },
-      { value: 'high', label: 'Alta', activeClass: 'bg-red-500 text-white' },
-    ];
-
-    const formatDate = (iso: string) =>
-      new Date(iso).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
-
-    const typeLabel = (t: SuggestionType) => t === 'bug' ? 'Bug' : 'Sugerencia';
-    const typeIcon = (t: SuggestionType) => t === 'bug' ? 'fa-solid fa-bug' : 'fa-solid fa-lightbulb';
-    const typeClass = (t: SuggestionType) => t === 'bug'
-      ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-      : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400';
-
-    const priorityLabel = (p: SuggestionPriority) => ({ low: 'Baja', medium: 'Media', high: 'Alta' }[p]);
-    const priorityClass = (p: SuggestionPriority) => ({
-      low: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
-      medium: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
-      high: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
-    }[p]);
-
-    const statusLabel = (s: string) => ({ in_progress: 'Pendiente', done: 'Hecho', rejected: 'Rechazado' }[s] ?? s);
-    const statusClass = (s: string) => ({
-      in_progress: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
-      done: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400',
-      rejected: 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
-    }[s] ?? '');
-
-    onMounted(fetchAll);
-
-    return {
-      suggestions, loading, activeType, activeStatus,
-      typeTabs, statusTabs,
-      createModal, rejectModal, doneModal,
-      typeOptions, priorityOptions,
-      countByStatus, setFilter,
-      openCreateModal, handleCreate,
-      openRejectModal, handleReject,
-      openDoneModal, handleDone,
-      handleProgress, handleDelete, cyclePriority, handleMarkAsRead,
-      supportStore,
-      formatDate,
-      typeLabel, typeIcon, typeClass,
-      priorityLabel, priorityClass,
-      statusLabel, statusClass,
-    };
-  },
-});
-</script>

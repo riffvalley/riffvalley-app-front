@@ -2445,20 +2445,641 @@ OAuth y determinadas operaciones Spotify legacy permanecen fuera de alcance.
 
 ## Iteración 7 — Releases
 
-Migrar un recorrido por PR, con orden sugerido:
+**Objetivo:** migrar las capacidades de sugerencias, peticiones de discos,
+importación y lanzamientos nacionales a `modules/releases`, por recorridos
+pequeños. Cada bloque puede cerrarse independientemente y no inicia el siguiente
+automáticamente.
 
-1. Sugerencias y sus formularios públicos relacionados.
-2. Peticiones y sus formularios públicos relacionados.
-3. Importación por operación.
-4. Lanzamientos nacionales y formularios públicos relacionados.
+### Reglas de la iteración
 
-Separar coordinación de formularios, validación y adaptadores, conservando
-contratos, permisos y comportamiento ante errores. Una vista que mezcle datos
-de Releases y Editorial se compone mediante sus APIs públicas; no justifica
-unir ambos bounded contexts.
+- Antes de cada corte, caracterizar el comportamiento sensible y confirmar
+  consumidores y contratos con el código legacy; los endpoints actuales son
+  evidencia, no una especificación completa del backend.
+- Mantener dominio y aplicación en TypeScript puro. Adaptadores HTTP y
+  composición se ubican en infraestructura y `app`; presentación no importa
+  servicios, cliente HTTP, DTOs ni SDKs.
+- Crear carpetas solo cuando el corte las necesite y organizar por capacidad
+  (`suggestions`, `requests`, `imports`, `national-releases`), con capas dentro
+  de cada capacidad. Publicar una API acotada para consumidores externos.
+- No incorporar operaciones de otros propietarios a Releases: Catalog mantiene
+  discos, artistas, géneros, países y su creación/actualización; Integrations
+  mantiene búsqueda y detalle de Spotify; Product Ops mantiene versiones y
+  elementos de versión; Editorial mantiene listas, reuniones y calendario
+  editorial. `app` puede componer capacidades mediante contratos explícitos.
+- No deducir contratos, validaciones, autorización del backend ni semántica de
+  errores por intuición. Conservar la conducta observada y documentar dudas.
+- Conservar rutas, nombres, carga diferida, roles, acceso anónimo, payloads,
+  query params, estados, textos de error relevantes y comportamiento visual.
+- No retirar servicios, stores, fachadas ni DTOs legacy hasta migrar todos sus
+  consumidores. No ampliar excepciones arquitectónicas ni de typecheck.
+- En todos los bloques, si Impeccable detecta hallazgos preexistentes, de
+  atribución desconocida o fuera de alcance, no corregirlos ni suprimirlos, no
+  modificar `.impeccable/config.json` ni cambiar estilos o comportamiento para
+  satisfacer el hook. Corregir únicamente hallazgos demostrablemente introducidos
+  por la subtarea actual y reportar los demás.
+- Ejecutar `yarn verify` al cerrar cada bloque implementado y las pruebas E2E
+  relevantes para rutas, permisos o formularios públicos. Los tests unitarios
+  siguen la organización `tests/unit/releases/<capacidad>/`; E2E se organizan
+  bajo `tests/e2e/releases/` por recorrido.
+- Baseline de pruebas inspeccionado: solo se encontró la caracterización
+  `tests/unit/legacy/importPageAlbumLinks.spec.ts`; no hay suites unitarias ni
+  E2E focalizadas para Releases. Añadir cobertura por recorrido antes de
+  eliminar la prueba legacy o cambiar comportamiento delicado.
 
-**Salida:** recorridos tipados y desacoplados de servicios HTTP legacy en
-presentación; los formularios públicos mantienen acceso sin sesión.
+### 7.A — Sugerencias y bugs
+
+**Objetivo:** migrar el envío de sugerencias/bugs, la vista de usuario, su
+administración y la coordinación del badge de pendientes.
+
+- **Alcance:** `SuggestionsPage.vue` (`/suggestions`),
+  `SuggestionsManagement.vue` (`/suggestions/management`), sus operaciones de
+  creación/listado/estado/prioridad/rechazo/cierre/eliminación y el badge del
+  menú lateral. Endpoints observados: `/suggestions`, `/suggestions/my`,
+  `/suggestions/:id`, `/progress`, `/reject`, `/done`.
+- **Ownership:** Releases posee las sugerencias, sus estados y la operación que
+  las asocia a un `versionItemId`. Product Ops conserva `VersionItem` y
+  `/versions/current/items`; hasta Iteración 8 `app` compone esa consulta desde
+  la fachada legacy de versiones mediante un puerto, sin copiar su DTO a
+  Releases. El store actual de soporte contiene IDs/leídos de sugerencias; al
+  mover esa coordinación preservar `rv_support_read_ids` y su comportamiento,
+  sin trasladar el dominio de soporte de Product Ops.
+- **Rutas y dependencias:** `/suggestions` requiere sesión; la gestión requiere
+  `superUser`. El layout del sidebar consume el número de pendientes; Releases
+  no importa `layouts` ni `stores` externos. `app` conecta la consulta de
+  pendientes y el estado de lectura con presentación.
+- **Riesgos/legacy:** la respuesta de listado tiene compatibilidad de forma
+  array/`data`; el filtro activo determina qué IDs llegan al badge; marcar como
+  leída persiste IDs. El hook `done` puede guardar un elemento de Product Ops o
+  quedar como cierre interno. No mover acceso de versiones a Releases ni alterar
+  el acceso autenticado de la vista de usuario.
+- **Criterio de cierre:** ambos recorridos consumen Releases sin HTTP legacy en
+  presentación; el badge, persistencia, filtros y acciones conservan su
+  comportamiento y el enlace de versión se compone por contrato público.
+
+#### 7.1 — Caracterizar sugerencias y acciones (S)
+
+- **Objetivo:** fijar el comportamiento actual antes de extraerlo.
+- **Alcance concreto:** pruebas de `/suggestions` y `/suggestions/management`;
+  creación, filtros tipo/estado, prioridad optimista, rechazo, progresión,
+  cierre interno/con elemento de versión, eliminación, IDs leídos y badge.
+- **Dependencias:** código y rutas actuales; usar respuestas HTTP simuladas.
+- **Criterios de aceptación:** quedan documentados payloads, respuesta array o
+  `data`, mensajes, roles, loading/error/vacío y clave `rv_support_read_ids`.
+- **Verificaciones específicas:** pruebas focalizadas de presentación y
+  composición; comprobar en router `requiresAuth` y `superUser`.
+
+#### 7.2 — Definir contratos de sugerencias (XS)
+
+- **Objetivo:** tipar el modelo propio de Releases sin incorporar contratos de
+  Product Ops.
+- **Alcance concreto:** tipos puros de sugerencia, estado, prioridad, usuario,
+  entradas y filtros en `modules/releases/suggestions/domain`.
+- **Dependencias:** 7.1.
+- **Criterios de aceptación:** representa opcionales y nulos observados; no
+  importa Vue, Pinia, HTTP ni `VersionItem`.
+- **Verificaciones específicas:** pruebas de tipos/comportamiento puro si hay
+  reglas; inspección de imports de domain.
+
+#### 7.3 — Definir operaciones y puertos de sugerencias (S)
+
+- **Objetivo:** expresar los recorridos públicos y administrativos como
+  operaciones pequeñas de Releases.
+- **Alcance concreto:** puertos para enviar y consultar propias, filtrar/listar,
+  actualizar prioridad, cambiar estado, rechazar, cerrar, eliminar y obtener
+  elementos de versión a través de una dependencia externa explícita.
+- **Dependencias:** 7.2.
+- **Criterios de aceptación:** casos y puertos no conocen transporte ni
+  `VersionItem`; la asociación de versión solo recibe el identificador requerido.
+- **Verificaciones específicas:** pruebas unitarias de entradas, resultados y
+  errores propagados; revisar reglas del guard.
+
+#### 7.4 — Adaptar la API de sugerencias (S)
+
+- **Objetivo:** encapsular los endpoints de sugerencias y sus DTOs.
+- **Alcance concreto:** adaptador para `POST/GET /suggestions`, `GET
+  /suggestions/my`, `PATCH /suggestions/:id`, `PATCH .../progress`, `PATCH
+  .../reject`, `PATCH .../done` y `DELETE /suggestions/:id`.
+- **Dependencias:** 7.3 y cliente HTTP compartido.
+- **Criterios de aceptación:** métodos, query params, payloads y formas de
+  respuesta equivalen al servicio legacy; los DTOs quedan junto al adaptador.
+- **Verificaciones específicas:** tests del adaptador para cada método, query,
+  payload, retorno void y propagación de fallo.
+
+#### 7.5 — Componer Releases y Product Ops (S)
+
+- **Objetivo:** conectar Releases con sesión, badge y elementos de versión desde
+  `app` sin acoplar módulos.
+- **Alcance concreto:** composición de los puertos de sugerencias; fuente externa
+  de elementos de versión usando `services/versions` temporalmente; coordinación
+  del estado de lectura conservando `rv_support_read_ids`; exposición de la
+  operación de pendientes para el sidebar.
+- **Dependencias:** 7.3–7.4; Product Ops permanece en Iteración 8.
+- **Criterios de aceptación:** ni Releases importa Product Ops/legacy ni la
+  presentación llama servicios; el puerto de versión puede sustituirse al migrar
+  Product Ops en Iteración 8.
+- **Verificaciones específicas:** prueba de composición con adaptadores falsos
+  y comprobación de imports/ciclos.
+
+#### 7.6 — Migrar el recorrido de usuario (S)
+
+- **Objetivo:** migrar `/suggestions` manteniendo su formulario autenticado y
+  consulta de propias sugerencias.
+- **Alcance concreto:** composición de vista/presentación, estados de carga,
+  envío, errores, listado, conteos y filtros disponibles actualmente.
+- **Dependencias:** 7.1 y 7.5.
+- **Criterios de aceptación:** URL, nombre, guard, validaciones, payload,
+  contenido y estados visibles permanecen; la vista no importa servicio HTTP.
+- **Verificaciones específicas:** test de formulario y listado con API simulada;
+  E2E focalizado del envío si el runner permite interceptar esta ruta.
+
+#### 7.7 — Migrar administración y lectura (M)
+
+- **Objetivo:** migrar la gestión completa sin deshacer su coordinación de
+  sugerencias ni la relación con elementos de versión.
+- **Alcance concreto:** filtros, lista, alta, prioridad, rechazo, volver a
+  pendiente, cierre interno/asociado a versión, borrado, marcar leído y store de
+  IDs pendientes; conservar la coordinación de UI en presentación.
+- **Dependencias:** 7.1 y 7.5.
+- **Criterios de aceptación:** role guard, mensajes, actualización optimista y
+  rollback de prioridad, estado de lectura y contrato `done` permanecen; no se
+  crea un store para reglas de negocio.
+- **Verificaciones específicas:** pruebas de cada acción y errores; test de
+  persistencia legacy; E2E con rol autorizado y denegación sin rol.
+
+#### 7.8 — Migrar badge del sidebar (XS)
+
+- **Objetivo:** retirar acceso directo de layout a servicios de Releases.
+- **Alcance concreto:** carga de pendientes de sugerencias en `app` y proyección
+  al layout manteniendo el badge y su refresco según el comportamiento actual.
+- **Dependencias:** 7.5 y, para IDs actualizados durante la sesión, 7.7.
+- **Criterios de aceptación:** sidebar no importa `services/suggestions`; los
+  badges mantienen selección, conteo y límite `99+`; se conserva el tratamiento
+  de errores silenciosos del montaje salvo evidencia que requiera ajustar.
+- **Verificaciones específicas:** test del badge/puente y búsqueda de imports.
+
+#### 7.9 — Cerrar compatibilidad de sugerencias (XS)
+
+- **Objetivo:** retirar solo fachadas sin consumidores tras ambos recorridos.
+- **Alcance concreto:** borrar o adelgazar `services/suggestions/suggestions.ts`
+  y ubicar sus pruebas bajo `tests/unit/releases/suggestions/`.
+- **Dependencias:** 7.6–7.8; Product Ops puede seguir usando su propia fachada
+  de versiones.
+- **Criterios de aceptación:** búsqueda global sin consumidores de operaciones
+  legacy de sugerencias; no se elimina ni duplica `/versions/current/items`.
+- **Verificaciones específicas:** `rg` de exports/imports y tests del bloque.
+
+### 7.B — Peticiones de discos
+
+**Objetivo:** migrar la solicitud de discos del usuario autenticado, seguimiento propio,
+revisión administrativa y contador compartido de pendientes.
+
+- **Alcance:** `SuggestPage.vue` (`/suggest`), `PetitionsPage.vue`
+  (`/petitions`), sus vistas/forms y `SidebarMenu`. Endpoints: `POST
+  /requests`, `GET /requests/my`, `GET /requests`, `PATCH /requests/:id`,
+  `POST /requests/:id/approve`, `POST /requests/:id/reopen` y
+  `DELETE /requests/:id` con notas de rechazo.
+- **Ownership y dependencias:** Releases posee solicitud, estado y notas;
+  Catalog posee géneros/países y los discos/artistas creados al aprobar. La
+  pantalla consume opciones de Catalog mediante su API pública y `app` compone
+  ambas capacidades. El store `petitions` solo coordina el badge/estado visual
+  de Releases y puede reubicarse dentro de su presentación.
+- **Rutas y riesgos:** `/suggest` requiere sesión y `babyUser`; `/petitions`
+  requiere sesión y `riffValley`. Preservar el endpoint DELETE de rechazo, las
+  notas obligatorias y motivos predefinidos, el `adminNotes` editable, los
+  estados/status labels, actualización del contador y datos de catálogo. No
+  interpretar aprobación como creación perteneciente a Releases: es un efecto
+  de Catalog/backend originado por la operación existente.
+- **Criterio de cierre:** alta y seguimiento, moderación y badge pasan por
+  Releases/composición, sin HTTP en presentación ni cambio de roles o contrato.
+
+#### 7.10 — Caracterizar peticiones y aprobación (S)
+
+- **Objetivo:** registrar recorrido de envío, consulta, revisión y badge.
+- **Alcance concreto:** caracterizar campos opcionales, `genreId/countryId`,
+  fechas, EP/debut, notas, filtros, edición, aprobación/rechazo/reapertura,
+  respuesta tras aprobar y contador.
+- **Dependencias:** código actual y router.
+- **Criterios de aceptación:** documentar rutas/roles, endpoints, payloads,
+  mensajes, estados y qué devuelve cada acción; confirmar rol API con evidencia
+  disponible y dejar incertidumbre explícita.
+- **Verificaciones específicas:** pruebas de comportamiento con transporte
+  simulado; verificar `REJECT_REASONS` y `usePetitionsStore`.
+
+#### 7.11 — Definir contratos de peticiones (XS)
+
+- **Objetivo:** tipar en Releases solicitud, estado y entradas de creación/edición.
+- **Alcance concreto:** contratos puros en `modules/releases/requests/domain`.
+- **Dependencias:** 7.10.
+- **Criterios de aceptación:** los campos nulos/opcionales coinciden con el
+  código; no se apropia de tipos de Catalog para género/país más allá de
+  identificadores y proyecciones necesarias.
+- **Verificaciones específicas:** tests de tipos/reglas puras e imports de
+  domain.
+
+#### 7.12 — Definir operaciones de peticiones (S)
+
+- **Objetivo:** exponer las operaciones del solicitante y de moderación.
+- **Alcance concreto:** puertos de alta, propias, todas, edición, aprobar,
+  rechazar y reabrir; aplicar reglas puras solo si las pruebas evidencian reglas
+  de negocio frontend.
+- **Dependencias:** 7.11.
+- **Criterios de aceptación:** aplicación no contiene UI, Store, HTTP, API de
+  navegador ni lógica de Catalog.
+- **Verificaciones específicas:** tests de operaciones y errores/resultado.
+
+#### 7.13 — Adaptar endpoints de peticiones (S)
+
+- **Objetivo:** mover el acceso HTTP de `services/requests/requests.ts` a
+  infraestructura de Releases.
+- **Alcance concreto:** reproducir métodos, rutas, `adminNotes` en cuerpo DELETE,
+  payloads opcionales y datos devueltos por `approve`/`reopen`.
+- **Dependencias:** 7.12.
+- **Criterios de aceptación:** no cambia contrato ni normalización observable;
+  los DTOs quedan junto al adaptador.
+- **Verificaciones específicas:** tests por endpoint, parámetros y errores.
+
+#### 7.14 — Componer peticiones y catálogo (S)
+
+- **Objetivo:** conectar en `app` Releases con catálogos y resultado Catalog de
+  la aprobación.
+- **Alcance concreto:** proporcionar opciones de géneros/países y operación
+  pública requerida para alta/edición; mantener la aprobación del backend como
+  respuesta del puerto de Releases.
+- **Dependencias:** 7.13 y API pública actual de Catalog.
+- **Criterios de aceptación:** Releases no importa store/adaptador Catalog; no
+  duplica entidad Disc ni implementa creación de disco/artista.
+- **Verificaciones específicas:** test de composición; guard de imports/ciclos.
+
+#### 7.15 — Migrar alta y seguimiento del usuario (S)
+
+- **Objetivo:** migrar `/suggest` y los estados de solicitudes propias.
+- **Alcance concreto:** formulario, carga de géneros/países, envío y listado
+  `GET /requests/my` en `SuggestPage.vue`.
+- **Dependencias:** 7.10 y 7.14.
+- **Criterios de aceptación:** `babyUser`, validaciones, payload opcional,
+  estados tras alta y feedback se conservan; vista sin servicio HTTP.
+- **Verificaciones específicas:** tests de envío/error/listado y roles; E2E de
+  alta con API simulada.
+
+#### 7.16 — Migrar moderación de peticiones (M)
+
+- **Objetivo:** migrar `/petitions` y sus acciones sin alterar su ciclo de vida.
+- **Alcance concreto:** filtros, carga, edición de campos, aprobar, notas y
+  motivos de rechazo, reapertura, confirmaciones y actualización local.
+- **Dependencias:** 7.10 y 7.14.
+- **Criterios de aceptación:** `riffValley`, filtros, payload mínimo de edición,
+  nota obligatoria, mensajes y actualización del contador se conservan; la vista
+  no conoce HTTP ni imports internos de Catalog.
+- **Verificaciones específicas:** pruebas de todas las acciones y errores;
+  E2E autorizado/no autorizado con backend simulado.
+
+#### 7.17 — Migrar badge y limpiar fachada de peticiones (XS)
+
+- **Objetivo:** cerrar los consumidores restantes de peticiones.
+- **Alcance concreto:** conectar SidebarMenu al pending count expuesto por Releases
+  y retirar `services/requests/requests.ts`/store legacy cuando no haya imports.
+- **Dependencias:** 7.14–7.16.
+- **Criterios de aceptación:** rutas, número, actualización tras acciones y
+  ubicación visual del badge permanecen; no se modifica el sidebar fuera de su
+  integración de datos.
+- **Verificaciones específicas:** `rg` de consumidores, prueba del badge y
+  `yarn architecture`.
+
+### 7.C — Importación de discos
+
+**Objetivo:** migrar las dos operaciones de importación existentes: procesamiento
+manual por fecha y fichero, y carga/descarga Excel. No convertir Catalog ni
+Spotify en subcapacidades de Releases.
+
+- **Alcance:** `ImportPage.vue` (`/import`), `ImportDiscs.vue`
+  (`/import-discs`), `services/imports/imports.ts`, interacción del flujo manual
+  con `services/discs/discs.ts`, Catalog e Integrations.
+- **Ownership y dependencias:** Releases posee la orquestación funcional de
+  importar. Catalog mantiene géneros/países, `updateDisc` y datos de disco;
+  Integrations/Spotify mantiene búsqueda de álbum y autenticación. `app`
+  compone la operación de importación con ambos. La importación manual sigue
+  backend-driven en `/scraping/process-manual-data`; no recrear scraping en
+  cliente.
+- **Rutas y riesgos:** `/import` requiere sesión y está bloqueada a `babyUser`
+  por el guard actual; revisar `/import-discs` y su menú/rol antes de atribuir un
+  permiso. Conservar fecha ISO a etiqueta inglesa (`September 24, 1991`), línea
+  del álbum, resultados guardados/existentes, errores parciales, asociación de
+  enlace e imagen de Spotify y actualización de cada disco sin abortar el lote.
+  Excel conserva descarga blob, nombre generado, carga multipart, validación de
+  extensiones en UI y errores por fila.
+- **Criterio de cierre:** vistas consumen operación de Releases y APIs públicas
+  de Catalog/Integrations; errores parciales y resultados mantienen forma y
+  presentación actual.
+
+#### 7.18 — Caracterizar importación manual y Excel (S)
+
+- **Objetivo:** fijar transformaciones y fallos parciales antes de migrar.
+- **Alcance concreto:** caracterizar `process-manual-data`, desglose de
+  `savedDiscs/existingDiscs`, fecha, matching Spotify, PATCH de discos, fallos
+  individuales, plantilla blob, multipart y lista de errores Excel.
+- **Dependencias:** 7.C inventario existente; `/import` y `/import-discs`.
+- **Criterios de aceptación:** pruebas describen caso vacío, éxito, error HTTP,
+  red y parte del lote; permisos confirmados desde router/guard/menu.
+- **Verificaciones específicas:** reubicar/caracterizar `importPageAlbumLinks`
+  según `tests/unit/releases/imports/`; no hacer llamadas reales a servicios.
+
+#### 7.19 — Definir contratos de importación manual (XS)
+
+- **Objetivo:** expresar los datos observados de la operación manual de Releases.
+- **Alcance concreto:** entradas por fecha/línea y resultado de discos guardados,
+  existentes y mensaje, sin definir modelos de Catalog.
+- **Dependencias:** 7.18.
+- **Criterios de aceptación:** los datos de Catalog se representan por IDs y
+  proyección mínima ya devuelta; no hay dependencias de framework/HTTP.
+- **Verificaciones específicas:** tests de proyección/reglas puras e imports.
+
+#### 7.20 — Definir operación y puerto de importación manual (S)
+
+- **Objetivo:** coordinar procesamiento y complementos posteriores sin acoplar
+  el caso de uso a proveedores.
+- **Alcance concreto:** puerto para procesamiento manual y dependencias mínimas
+  para actualizar discos y resolver enlaces de álbum cuando la pantalla lo
+  solicite.
+- **Dependencias:** 7.19.
+- **Criterios de aceptación:** HTTP/Scraping, DTOs de Catalog y Spotify no entran
+  en domain/application; la carga del lote y la búsqueda posterior siguen siendo
+  acciones distinguibles.
+- **Verificaciones específicas:** tests de coordinación de éxito, ausencia de
+  resultados y fallo parcial.
+
+#### 7.21 — Adaptar procesamiento manual (S)
+
+- **Objetivo:** encapsular `POST /scraping/process-manual-data`.
+- **Alcance concreto:** enviar fecha y lista de entradas; traducir/proyectar la
+  respuesta conforme a la conducta actual del servicio, usando `unknown` y
+  narrowing donde la forma sea incierta.
+- **Dependencias:** 7.20.
+- **Criterios de aceptación:** conserva endpoint, payload y mensaje de error de
+  backend/red; no introduce `any` nuevo.
+- **Verificaciones específicas:** test de ruta/payload/respuesta y errores de
+  servidor, red y respuesta desconocida.
+
+#### 7.22 — Componer Catalog y Spotify para importación (S)
+
+- **Objetivo:** proporcionar a Releases las operaciones externas necesarias.
+- **Alcance concreto:** `app` conecta actualización de disco de Catalog y
+  `createImportAlbumResolver` de Integrations/Spotify; la vista consume contrato
+  Releases.
+- **Dependencias:** 7.20–7.21; resolver Spotify ya compuesto en
+  `app/dependencies/importAlbumLinks.ts`.
+- **Criterios de aceptación:** Releases no importa helper de Spotify ni servicio
+  de discos; la autenticación, el resultado `failed` y la respuesta de proveedor
+  siguen propiedad de Integrations.
+- **Verificaciones específicas:** test de composition que simula Spotify y
+  actualización Catalog; revisar imports entre módulos.
+
+#### 7.23 — Migrar procesamiento manual y resultados (S)
+
+- **Objetivo:** migrar la primera mitad de `ImportPage.vue` al módulo.
+- **Alcance concreto:** selección de fecha/álbumes, consulta, estado de carga,
+  respuesta, mensajes y desglose de discos importados/no importados.
+- **Dependencias:** 7.18 y 7.22.
+- **Criterios de aceptación:** mismos nombres de ruta/guard, formato de fecha,
+  payload y resultados; presentación no llama HTTP ni servicio legacy.
+- **Verificaciones específicas:** pruebas de vista/operación con resultados
+  vacíos, parciales y fallidos.
+
+#### 7.24 — Migrar matching Spotify y actualización Catalog (S)
+
+- **Objetivo:** conservar la acción posterior que completa enlaces/imágenes.
+- **Alcance concreto:** extraer resolución del álbum a operación de Integrations
+  y actualizar cada disco mediante el puerto de Catalog.
+- **Dependencias:** 7.22–7.23.
+- **Criterios de aceptación:** un error/not-found por álbum no detiene otros;
+  `listenUrl`, `coverUrl`, `verified` y notificación agregada se mantienen; UI
+  no importa cliente compartido.
+- **Verificaciones específicas:** adaptar `importPageAlbumLinks.spec.ts` y
+  cubrir fallos mixtos, orden de llamadas y resumen.
+
+#### 7.25 — Adaptar carga y descarga Excel (S)
+
+- **Objetivo:** mover transporte de plantilla y carga en lote detrás de
+  infraestructura de Releases.
+- **Alcance concreto:** `GET /excel/template/download` como blob y
+  `POST /excel/template/upload` multipart, incluyendo retorno `created/errors`.
+- **Dependencias:** caracterización 7.18 y cliente compartido.
+- **Criterios de aceptación:** headers, respuesta, errores y tipo de fichero no
+  cambian; FormData y cliente viven fuera de presentation.
+- **Verificaciones específicas:** tests de `responseType`, multipart, datos por
+  fila, error backend y error de red.
+
+#### 7.26 — Migrar pantalla Excel y cerrar compatibilidad de imports (S)
+
+- **Objetivo:** completar `/import-discs` y retirar el servicio de importación
+  sin consumidores.
+- **Alcance concreto:** descarga/nombre de archivo, selección/extensión, carga,
+  estados/mensajes, errores por fila; eliminar `services/imports/imports.ts`
+  cuando los dos consumidores ya usen Releases.
+- **Dependencias:** 7.25 y 7.23–7.24 para el cierre del servicio común.
+- **Criterios de aceptación:** se mantienen ruta y permisos comprobados,
+  validación, fecha del nombre, mensaje, tabla de errores y reset de input; no hay
+  imports legacy desde presentation.
+- **Verificaciones específicas:** pruebas de vista y búsqueda global de los
+  exports legacy; E2E de descarga/subida simuladas si se soportan en Playwright.
+
+### 7.D — Lanzamientos nacionales
+
+**Objetivo:** migrar el formulario anónimo, la gestión autenticada y la
+integración desde calendarios de Catalog de lanzamientos nacionales.
+
+- **Alcance:** `NationalReleaseForm.vue` (`/national-releases/form`),
+  `NationalReleasesAdmin.vue` (`/national-releases`), `LinkDiscModal.vue`,
+  `CreateDiscForm.vue`, `SuggestedDiscCard.vue` y la acción de calendario en
+  `DiscComponent.vue`.
+- **Ownership y dependencias:** Releases posee los lanzamientos y sus estados de
+  aprobación/enlace. Catalog posee discos, artistas y género; la creación de
+  disco/artista y opciones de género se consume desde su API pública. Editorial
+  no posee lanzamientos nacionales: su calendario y contenidos permanecen en
+  `modules/editorial`; `app` compone si alguna pantalla los necesitara juntos.
+- **Rutas y riesgos:** el formulario `/national-releases/form` no requiere
+  sesión; `/national-releases` requiere sesión y `riffValley`. Endpoints
+  observados: `POST /national-releases` (cliente público y payload objeto o
+  array), `POST /bulk`, `GET /all` con filtros, `GET /:id` público,
+  `PATCH /:id`, `DELETE /:id`, `PATCH /:id/link-disc` y
+  `POST /from-disc`. Mantener fechas/días, publicación opcional, tipos,
+  aprobación, sugerencia enlazada, filtros mensuales, entrada bulk y el flujo de
+  creación/linkado Catalog. Investigar los accesos `publicApi` y GET `/:id` antes
+  de retirarlos; no asumir que el backend acepta sesión ni que el endpoint no se
+  usa fuera del árbol rastreado.
+- **Criterio de cierre:** tres entradas (anónima, administración y calendario)
+  consumen APIs públicas/composición, con permiso y comportamiento intactos;
+  Releases no importa servicios ni DTOs de Catalog.
+
+#### 7.27 — Caracterizar lanzamientos nacionales (S)
+
+- **Objetivo:** cubrir ciclos público, administrativo y desde calendario.
+- **Alcance concreto:** formulario simple/bulk, filtros y meses pendientes,
+  edición/aprobación/borrado, enlace de disco sugerido/existente/nuevo y
+  creación desde calendario.
+- **Dependencias:** rutas, servicios y vistas actuales.
+- **Criterios de aceptación:** contratos, formas de respuesta y payloads anotados;
+  se identifican consumidores de `getNationalRelease` y las diferencias de
+  transporte autenticado/público.
+- **Verificaciones específicas:** pruebas con transporte y permisos simulados;
+  búsqueda de endpoints y uso global de cada operación.
+
+#### 7.28 — Definir contratos y operaciones de Releases nacionales (S)
+
+- **Objetivo:** crear contratos propios del ciclo nacional y sus puertos.
+- **Alcance concreto:** tipo DiscType, release, entradas bulk, filtros y
+  operaciones CRUD/enlace/creación desde un disco en
+  `modules/releases/national-releases`.
+- **Dependencias:** 7.27.
+- **Criterios de aceptación:** types de Catalog se reducen a IDs/proyecciones;
+  domain/application no importan framework, transporte ni Catalog; comportamiento
+  de aprobación separado del contenido de disco.
+- **Verificaciones específicas:** tests de tipos/reglas si aplican y guard de
+  imports.
+
+#### 7.29 — Adaptar API protegida y consultas (S)
+
+- **Objetivo:** migrar endpoints autenticados de administración.
+- **Alcance concreto:** `GET /national-releases/all`, `POST /bulk`,
+  `POST /from-disc`, `PATCH`, `DELETE` y `PATCH /:id/link-disc` en adaptador
+  de infraestructura.
+- **Dependencias:** 7.28 y cliente HTTP compartido.
+- **Criterios de aceptación:** querys de mes/año/aprobación y respuestas
+  `data/pendingMonths`, métodos, DTOs y payloads equivalentes.
+- **Verificaciones específicas:** tests endpoint/query/payload y fallos.
+
+#### 7.30 — Adaptar la entrada pública anónima (S)
+
+- **Objetivo:** mantener la creación de lanzamientos disponible sin sesión.
+- **Alcance concreto:** adaptador del `POST /national-releases` público para
+  objeto y array; aislar la configuración del cliente público en infraestructura
+  sin importar Axios en presentation.
+- **Dependencias:** 7.27–7.28; decisión de transporte documentada.
+- **Criterios de aceptación:** `/national-releases/form` sigue siendo anónimo;
+  no se añade guard ni se filtra la petición a través de un cliente que exija
+  token; no se cambia URL base, encabezado o payload.
+- **Verificaciones específicas:** test que confirma petición sin sesión, objeto
+  y array, errores y ausencia de dependencia HTTP desde presentación.
+
+#### 7.31 — Componer Releases nacionales con Catalog (S)
+
+- **Objetivo:** conectar adaptadores con las operaciones públicas de Catalog.
+- **Alcance concreto:** opciones de género y operaciones para buscar/proyectar o
+  crear/enlazar discos y artistas, según capacidades Catalog ya disponibles;
+  mantener el endpoint `link-disc` en Releases.
+- **Dependencias:** 7.29–7.30 y API pública Catalog.
+- **Criterios de aceptación:** no se duplica creación de disco/artista en
+  Releases; diferencias entre link por ID y creación de disco se declaran en
+  `app`.
+- **Verificaciones específicas:** pruebas de composición para link sugerido,
+  ID existente y datos de nuevo disco; guard de imports.
+
+#### 7.32 — Migrar formulario público (S)
+
+- **Objetivo:** migrar el formulario que recibe propuestas sin sesión.
+- **Alcance concreto:** `NationalReleaseForm.vue`, campos, validación y envío
+  simple/bulk si el formulario soporta ambos modos.
+- **Dependencias:** 7.27 y 7.30.
+- **Criterios de aceptación:** nombre/path, lazy loading, acceso anónimo,
+  payload, mensajes y manejo de éxito/error se conservan; sin servicio legacy.
+- **Verificaciones específicas:** tests de envío, datos inválidos, array/objeto;
+  E2E de formulario anónimo con API simulada.
+
+#### 7.33 — Migrar lectura y filtros de administración (S)
+
+- **Objetivo:** migrar carga/listado mensual y consulta de pendientes.
+- **Alcance concreto:** `NationalReleasesAdmin.vue`, filtros, agrupación por día,
+  meses pendientes, estados loading/error/vacío y paginado si existe.
+- **Dependencias:** 7.27, 7.29 y 7.31.
+- **Criterios de aceptación:** `riffValley`, filtros y fechas local/servidor
+  mantienen su semántica y las tarjetas conservan su presentación.
+- **Verificaciones específicas:** tests de filtros, agrupación, respuesta vacía,
+  error y consulta de pendientes; E2E con rol.
+
+#### 7.34 — Migrar mantenimiento de lanzamientos (S)
+
+- **Objetivo:** mover cambios administrativos del lanzamiento y bulk.
+- **Alcance concreto:** alta masiva, edición, aprobación y eliminación; tipar el
+  parseo bulk actualmente coercionado, sin incorporar nuevo `any`.
+- **Dependencias:** 7.29 y 7.33.
+- **Criterios de aceptación:** selección de campos, reglas de entrada, feedback,
+  actualización local y confirmación de borrado coinciden con el recorrido actual.
+- **Verificaciones específicas:** tests de parseo/validación, payload mínimo,
+  rollback/error y autorización.
+
+#### 7.35 — Migrar vínculo y alta del disco asociado (M)
+
+- **Objetivo:** aislar el flujo de vincular un lanzamiento con un disco de Catalog.
+- **Alcance concreto:** `LinkDiscModal.vue`, `SuggestedDiscCard.vue` y
+  `CreateDiscForm.vue`; link de sugerencia, selección existente y creación de
+  disco/artista con atributos de lanzamiento.
+- **Dependencias:** 7.31 y 7.33.
+- **Criterios de aceptación:** `PATCH /:id/link-disc`, IDs, artista, género,
+  fecha, EP/debut, enlace e imagen conservan su significado; Catalog ejecuta la
+  creación y Releases actualiza el vínculo; no se importan DTOs/services de
+  Catalog desde módulos hermanos.
+- **Verificaciones específicas:** tests de cada rama, errores de Catalog y
+  respuesta `NationalRelease` actualizada.
+
+#### 7.36 — Componer la acción desde calendario Catalog (S)
+
+- **Objetivo:** retirar del componente de calendario el import directo del
+  servicio nacional.
+- **Alcance concreto:** `DiscComponent.vue` usa contrato/callback proporcionado
+  por `app` para `POST /national-releases/from-disc`; Catalog conserva la
+  presentación del calendario y Releases la operación.
+- **Dependencias:** 7.28–7.29; localizar composición de la vista estándar y
+  calendario baby antes de editar consumidores.
+- **Criterios de aceptación:** la acción, mensajes, permisos y disco de entrada
+  permanecen; Catalog no importa internals ni servicio de Releases.
+- **Verificaciones específicas:** test de composición y consumidor, búsqueda de
+  import de `nationalReleases` fuera de Releases/app.
+
+#### 7.37 — Cerrar compatibilidad de lanzamientos nacionales (XS)
+
+- **Objetivo:** retirar el servicio legacy y cualquier DTO huérfano solo cuando
+  todos los consumidores hayan migrado.
+- **Alcance concreto:** eliminar/reducir `services/national-releases` y ordenar
+  tests bajo `tests/unit/releases/national-releases/`.
+- **Dependencias:** 7.32–7.36 y resultado de búsqueda del uso global de GET
+  `/:id`.
+- **Criterios de aceptación:** formularios, administración, modal y calendarios
+  no importan el servicio legacy; GET público se migra o queda anotado con
+  consumidor y propietario identificados.
+- **Verificaciones específicas:** `rg` de endpoints/servicios, arquitectura,
+  tests del bloque y E2E público/protegido.
+
+### Cierre de Iteración 7
+
+**Deuda reservada para Iteración 9:** no se planifica conservar deuda de
+Releases por defecto. Si la búsqueda global descubre consumidores que impidan
+retirar alguno de `services/suggestions/suggestions.ts`,
+`services/requests/requests.ts`, `services/imports/imports.ts` o
+`services/national-releases/nationalReleases.ts`, el bloque correspondiente
+debe anotar el símbolo y consumidor exactos, mantener una fachada mínima y
+reservar únicamente esa eliminación para Iteración 9. Lo mismo aplica a
+`stores/petitions/petitions.ts` si quedan consumidores tras trasladar su estado.
+La clave `rv_support_read_ids` se conserva donde resida la coordinación de
+lectura; no se reserva borrar datos persistidos. No trasladar a esta deuda
+`services/versions`, servicios de Catalog ni el store general de soporte: sus
+consumidores pertenecen a Product Ops, Catalog o soporte y se resuelven en sus
+iteraciones. Si el `GET /national-releases/:id` no tiene consumidores, se elimina
+en 7.37; si se descubre uno, se registra con propietario y consumidor para la
+Iteración 9.
+
+La iteración se considera cerrada cuando:
+
+- sugerencias/bugs, peticiones, importación y lanzamientos nacionales consumen
+  APIs de Releases y `app` compone las dependencias externas;
+- presentation no accede a HTTP legacy en los recorridos migrados, y ninguna
+  capacidad absorbe ownership de Catalog, Integrations, Product Ops o Editorial;
+- se preservan rutas, permisos, comportamiento de acceso anónimo, contratos y
+  errores caracterizados, con deuda y ambigüedad backend documentadas;
+- los servicios legacy solo permanecen si su consumidor restante está
+  identificado, protegido por compatibilidad y reservado explícitamente a
+  Iteración 9;
+- `yarn verify`, pruebas específicas y `git diff --check` pasan. Los hallazgos
+  Impeccable preexistentes/desconocidos/fuera de alcance se reportan; solo se
+  corrigen los demostrablemente introducidos por el cambio.
 
 ## Iteración 8 — Workspace, Product Ops y Analytics
 

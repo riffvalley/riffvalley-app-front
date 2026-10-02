@@ -109,10 +109,10 @@
               Gestión
             </div>
             <span
-              v-if="supportStore.unreadCount > 0"
+              v-if="unreadSuggestionsCount > 0"
               class="ml-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
             >
-              {{ supportStore.unreadCount > 99 ? '99+' : supportStore.unreadCount }}
+              {{ unreadSuggestionsCount > 99 ? '99+' : unreadSuggestionsCount }}
             </span>
             <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200 group-open/area:rotate-180"></i>
           </summary>
@@ -161,10 +161,10 @@
                 <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
                 {{ route.label }}
                 <span
-                  v-if="route.to === '/suggestions/management' && supportStore.unreadCount > 0"
+                  v-if="route.to === '/suggestions/management' && unreadSuggestionsCount > 0"
                   class="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
                 >
-                  {{ supportStore.unreadCount > 99 ? '99+' : supportStore.unreadCount }}
+                  {{ unreadSuggestionsCount > 99 ? '99+' : unreadSuggestionsCount }}
                 </span>
               </router-link>
 
@@ -316,8 +316,10 @@ import { useWorkspaceStore } from "@/app/dependencies/workspace";
 import { useAuthStore } from '@stores/auth/auth.ts';
 import { getLatestPublicVersion } from '@services/versions/versions';
 import { getAllRequests } from '@services/requests/requests';
-import { getSuggestions } from '@services/suggestions/suggestions';
-import { useSupportStore } from '@stores/support/support';
+import {
+  getUnreadSuggestionCount,
+  refreshPendingSuggestionIds,
+} from '@/app/dependencies/suggestions';
 import { usePetitionsStore } from '@stores/petitions/petitions';
 import routesData from './routes.json';
 
@@ -351,7 +353,6 @@ emits: ['close-menu', 'toggle-theme'],
   setup(_, { emit }) {
     const authStore = useAuthStore();
     const workspaceStore = useWorkspaceStore();
-    const supportStore = useSupportStore();
     const petitionsStore = usePetitionsStore();
     const allRoutes = routesData as AppRoute[];
     const latestVersion = ref<string | null>(null);
@@ -403,6 +404,7 @@ emits: ['close-menu', 'toggle-theme'],
     const canSeeManagementArea = computed(() => authStore.hasRole('superUser'));
     const showAreaSelector = computed(() => canSeeRiffValleyArea.value || canSeeManagementArea.value);
     const showAllAreas = computed(() => !workspaceStore.dashboardButtonsEnabled);
+    const unreadSuggestionsCount = computed(() => getUnreadSuggestionCount());
 
     // Nuevos Discos vive en la pestaña Gestión: los riffValley sin superUser
     // solo verán ahí los discos nuevos (el resto de Gestión se filtra por rol).
@@ -465,9 +467,7 @@ emits: ['close-menu', 'toggle-theme'],
 
       if (authStore.hasRole('superUser')) {
         try {
-          const result = await getSuggestions({ status: 'in_progress' });
-          const items: any[] = Array.isArray(result) ? result : ((result as any).data ?? []);
-          supportStore.setPendingIds(items.map((s: any) => s.id));
+          await refreshPendingSuggestionIds();
         } catch {}
       }
     });
@@ -480,8 +480,8 @@ emits: ['close-menu', 'toggle-theme'],
     return {
       handleLogout,
       closeMenu,
-      supportStore,
       petitionsStore,
+      unreadSuggestionsCount,
       logoutLabel: 'Cerrar sesión',
       filteredDiscAppRoutes,
       filteredNewDiscsRoutes,

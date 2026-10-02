@@ -4,14 +4,19 @@ import { nextTick } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SuggestionsPage from '../../../../src/views/suggestions/SuggestionsPage.vue';
 
-const { get, post, success, error } = vi.hoisted(() => ({
-  get: vi.fn(),
-  post: vi.fn(),
+const { create, listMine, versionOptions, success, error } = vi.hoisted(() => ({
+  create: vi.fn(),
+  listMine: vi.fn(),
+  versionOptions: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
 }));
 
-vi.mock('@services/api/api.ts', () => ({ default: { get, post } }));
+vi.mock('@/app/dependencies/suggestions', () => ({
+  createOwnSuggestion: create,
+  fetchOwnSuggestions: listMine,
+  fetchSuggestionVersionOptions: versionOptions,
+}));
 vi.mock('@services/swal/SwalService', () => ({ default: { success, error } }));
 
 const ownSuggestion = {
@@ -22,25 +27,41 @@ const ownSuggestion = {
   updatedAt: '2026-01-02T00:00:00.000Z',
 };
 
-describe('/suggestions legacy characterization', () => {
+describe('/suggestions Releases presentation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    get.mockResolvedValue({ data: { data: [ownSuggestion], counts: { in_progress: 1, done: 0, rejected: 0 } } });
-    post.mockResolvedValue({ data: ownSuggestion });
+    listMine.mockResolvedValue({ suggestions: [ownSuggestion], counts: { in_progress: 1, done: 0, rejected: 0 } });
+    versionOptions.mockResolvedValue([]);
+    create.mockResolvedValue(ownSuggestion);
   });
 
   it('loads only the authenticated user’s list and renders status counts', async () => {
-    let finish!: (value: { data: { data: typeof ownSuggestion[]; counts: { in_progress: number; done: number; rejected: number } } }) => void;
-    get.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    let finish!: (value: { suggestions: typeof ownSuggestion[]; counts: { in_progress: number; done: number; rejected: number } }) => void;
+    listMine.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
     const wrapper = mount(SuggestionsPage);
     await nextTick();
     expect(wrapper.text()).toContain('Cargando...');
-    finish({ data: { data: [ownSuggestion], counts: { in_progress: 1, done: 0, rejected: 0 } } });
+    finish({ suggestions: [ownSuggestion], counts: { in_progress: 1, done: 0, rejected: 0 } });
     await flushPromises();
 
-    expect(get).toHaveBeenCalledWith('/suggestions/my', { params: undefined });
+    expect(listMine).toHaveBeenCalledOnce();
     expect(wrapper.text()).toContain('Mejorar búsqueda');
     expect(wrapper.text()).toContain('1 pendiente');
+  });
+
+  it('resolves the linked version item from the app projection without adding it to the suggestion contract', async () => {
+    listMine.mockResolvedValueOnce({
+      suggestions: [{ ...ownSuggestion, versionItemId: 'version-item-1' }],
+      counts: { in_progress: 1, done: 0, rejected: 0 },
+    });
+    versionOptions.mockResolvedValueOnce([{
+      id: 'version-item-1', type: 'feat', description: 'Búsqueda avanzada',
+    }]);
+
+    const wrapper = mount(SuggestionsPage);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Incluido en: Búsqueda avanzada');
   });
 
   it('posts the selected type and trimmed fields, then refreshes and shows success', async () => {
@@ -52,23 +73,23 @@ describe('/suggestions legacy characterization', () => {
     await wrapper.get('form').trigger('submit');
     await flushPromises();
 
-    expect(post).toHaveBeenCalledWith('/suggestions', {
+    expect(create).toHaveBeenCalledWith({
       title: '  No carga  ', description: '  Se queda en blanco  ', type: 'bug',
     });
-    expect(get).toHaveBeenCalledTimes(2);
+    expect(listMine).toHaveBeenCalledTimes(2);
     expect(success).toHaveBeenCalledWith('Enviado correctamente');
     expect(wrapper.get('input').element.value).toBe('');
     expect(wrapper.get('textarea').element.value).toBe('');
   });
 
   it('shows an empty message for no own suggestions and keeps list-load failures silent', async () => {
-    get.mockResolvedValueOnce({ data: { data: [], counts: { in_progress: 0, done: 0, rejected: 0 } } });
+    listMine.mockResolvedValueOnce({ suggestions: [], counts: { in_progress: 0, done: 0, rejected: 0 } });
     const empty = mount(SuggestionsPage);
     await flushPromises();
     expect(empty.text()).toContain('Sin envíos todavía');
     empty.unmount();
 
-    get.mockRejectedValueOnce(new Error('offline'));
+    listMine.mockRejectedValueOnce(new Error('offline'));
     const failed = mount(SuggestionsPage);
     await flushPromises();
     expect(failed.text()).not.toContain('Cargando...');
@@ -77,7 +98,7 @@ describe('/suggestions legacy characterization', () => {
   });
 
   it('uses the API message on create failure and does not reload the list', async () => {
-    post.mockRejectedValueOnce({ response: { data: { message: 'Título duplicado' } } });
+    create.mockRejectedValueOnce({ response: { data: { message: 'Título duplicado' } } });
     const wrapper = mount(SuggestionsPage);
     await flushPromises();
     await wrapper.findAll('button')[1].trigger('click');
@@ -87,6 +108,18 @@ describe('/suggestions legacy characterization', () => {
     await flushPromises();
 
     expect(error).toHaveBeenCalledWith('Título duplicado');
-    expect(get).toHaveBeenCalledTimes(1);
+    expect(listMine).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps required-field validation before calling the Releases operation', async () => {
+    const wrapper = mount(SuggestionsPage);
+    await flushPromises();
+    await wrapper.get('input').setValue('   ');
+    await wrapper.get('textarea').setValue('Descripción');
+
+    expect((wrapper.get('button[type="submit"]').element as HTMLButtonElement).disabled).toBe(true);
+    await wrapper.get('form').trigger('submit');
+
+    expect(create).not.toHaveBeenCalled();
   });
 });

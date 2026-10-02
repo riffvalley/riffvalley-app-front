@@ -1,14 +1,22 @@
 // @vitest-environment happy-dom
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
+import { nextTick } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import router from '../../../../src/app/router';
 import { createSessionGuard } from '../../../../src/app/router/sessionGuard';
 import { useSupportStore } from '../../../../src/stores/support/support';
+import { setPendingSuggestionIds } from '../../../../src/app/dependencies/suggestions';
 import SidebarMenu from '../../../../src/layouts/default/components/SidebarMenu.vue';
 
-const { get, roleState } = vi.hoisted(() => ({ get: vi.fn(), roleState: { current: 'superUser' } }));
-vi.mock('@services/api/api.ts', () => ({ default: { get } }));
+const { refreshPending, roleState } = vi.hoisted(() => ({
+  refreshPending: vi.fn(),
+  roleState: { current: 'superUser' },
+}));
+vi.mock('@/app/dependencies/suggestions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../src/app/dependencies/suggestions')>();
+  return { ...actual, refreshPendingSuggestionIds: refreshPending };
+});
 vi.mock('@/app/dependencies/workspace', () => ({
   useWorkspaceStore: () => ({ dashboardButtonsEnabled: false }),
 }));
@@ -22,6 +30,8 @@ describe('suggestions access, read persistence, and sidebar badge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    roleState.current = 'superUser';
+    refreshPending.mockResolvedValue([]);
   });
 
   it('keeps both lazy routes authenticated and restricts management to superUser', () => {
@@ -62,10 +72,11 @@ describe('suggestions access, read persistence, and sidebar badge', () => {
     expect(restored.unreadCount).toBe(0);
   });
 
-  it('loads the badge only for superUser, derives it from pending suggestions and caps the display at 99+', async () => {
-    get.mockImplementation(async (path: string) => {
-      if (path === '/suggestions') return { data: Array.from({ length: 101 }, (_, index) => ({ id: `s-${index}`, status: 'in_progress' })) };
-      return { data: [] };
+  it('loads pending IDs through app only for superUser and keeps badge location, count, and 99+ cap', async () => {
+    const pendingIds = ['pending-1', 'pending-2', 'pending-3'];
+    refreshPending.mockImplementationOnce(async () => {
+      useSupportStore().setPendingIds(pendingIds);
+      return pendingIds;
     });
     const pinia = createPinia();
     setActivePinia(pinia);
@@ -74,8 +85,11 @@ describe('suggestions access, read persistence, and sidebar badge', () => {
       global: { plugins: [pinia], stubs: { RouterLink: { template: '<a><slot /></a>' } } },
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(get).toHaveBeenCalledWith('/suggestions', { params: { status: 'in_progress' } });
-    expect(wrapper.text()).toContain('99+');
+    expect(refreshPending).toHaveBeenCalledOnce();
+    expect(wrapper.findAll('span').filter((badge) => badge.text().trim() === '3')).toHaveLength(2);
+    setPendingSuggestionIds(Array.from({ length: 101 }, (_, index) => `session-${index}`));
+    await nextTick();
+    expect(wrapper.findAll('span').filter((badge) => badge.text().trim() === '99+')).toHaveLength(2);
 
     wrapper.unmount();
     vi.clearAllMocks();
@@ -88,7 +102,20 @@ describe('suggestions access, read persistence, and sidebar badge', () => {
       },
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(get).not.toHaveBeenCalledWith('/suggestions', expect.anything());
-    expect(userOnly.text()).not.toContain('99+');
+    expect(refreshPending).not.toHaveBeenCalled();
+    expect(userOnly.findAll('span').filter((badge) => badge.text().trim() === '99+')).toHaveLength(0);
+  });
+
+  it('keeps mount-time pending failures silent', async () => {
+    refreshPending.mockRejectedValueOnce(new Error('offline'));
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const wrapper = mount(SidebarMenu, {
+      props: { menuVisible: true, isDark: false },
+      global: { plugins: [pinia], stubs: { RouterLink: { template: '<a><slot /></a>' } } },
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(refreshPending).toHaveBeenCalledOnce();
+    expect(wrapper.text()).not.toContain('99+');
   });
 });
