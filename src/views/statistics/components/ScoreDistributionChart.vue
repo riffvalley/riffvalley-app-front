@@ -1,6 +1,6 @@
 <template>
-  <div class="w-full h-96 flex justify-center min-w-0">
-    <Pie v-if="loaded"
+  <div class="w-full h-72 sm:h-80">
+    <Bar v-if="loaded"
       :key="`score-${isDark}`"
       :data="chartData"
       :options="chartOptions" />
@@ -11,21 +11,40 @@
 <script lang="ts">
 import { defineComponent, ref, computed, watch, onMounted, onUnmounted } from "vue";
 import type { PropType } from "vue";
-import { Pie } from "vue-chartjs";
+import { Bar } from "vue-chartjs";
 import {
   Chart as ChartJS,
   Title,
   Tooltip,
-  Legend,
-  ArcElement,
+  BarElement,
+  CategoryScale,
+  LinearScale,
   type ChartOptions,
 } from "chart.js";
 
-ChartJS.register(Title, Tooltip, Legend, ArcElement);
+ChartJS.register(Title, Tooltip, BarElement, CategoryScale, LinearScale);
+
+// Degradado de marca (rv-pink -> rv-purple -> rv-blue) aplicado a la escala de notas 0-10.
+const GRADIENT_STOPS: [number, [number, number, number]][] = [
+  [0, [228, 110, 138]],   // #e46e8a
+  [0.45, [176, 102, 159]], // #b0669f
+  [1, [0, 100, 214]],      // #0064d6
+];
+
+function gradientColor(t: number): string {
+  const clamped = Math.min(1, Math.max(0, t));
+  let i = 0;
+  while (i < GRADIENT_STOPS.length - 2 && clamped > GRADIENT_STOPS[i + 1][0]) i++;
+  const [t0, c0] = GRADIENT_STOPS[i];
+  const [t1, c1] = GRADIENT_STOPS[i + 1];
+  const localT = t1 === t0 ? 0 : (clamped - t0) / (t1 - t0);
+  const [r, g, b] = c0.map((channel, idx) => Math.round(channel + (c1[idx] - channel) * localT));
+  return `rgb(${r}, ${g}, ${b})`;
+}
 
 export default defineComponent({
   name: "ScoreDistributionChart",
-  components: { Pie },
+  components: { Bar },
   props: {
     scoreDistribution: {
       type: Array as PropType<{ score: number; count: number }[]>,
@@ -36,28 +55,30 @@ export default defineComponent({
     const loaded = ref(false);
     const isDark = ref(document.documentElement.classList.contains("dark"));
 
-    const palette = [
-      "#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231",
-      "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#fabebe", "#008080",
-    ];
+    const tickColor = computed(() => isDark.value ? "white" : "#374151");
+    const gridColor = computed(() => isDark.value ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)");
 
-    const legendColor = computed(() => isDark.value ? "white" : "#374151");
-    const isMobileNow = () => window.matchMedia("(max-width: 640px)").matches;
-
-    const chartOptions = computed<ChartOptions<"pie">>(() => ({
+    const chartOptions = computed<ChartOptions<"bar">>(() => ({
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: {
-          display: true,
-          position: isMobileNow() ? "bottom" : "right",
-          labels: {
-            color: legendColor.value,
-            boxWidth: 10,
-            boxHeight: 10,
-            padding: 10,
-            font: { size: isMobileNow() ? 10 : 12 },
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => `Nota ${items[0].label}`,
+            label: (item) => `${item.formattedValue} voto${item.formattedValue === '1' ? '' : 's'}`,
           },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { color: tickColor.value, precision: 0 },
+          grid: { color: gridColor.value },
+        },
+        x: {
+          ticks: { color: tickColor.value },
+          grid: { display: false },
         },
       },
     }));
@@ -68,20 +89,25 @@ export default defineComponent({
         label: "Votos",
         backgroundColor: [] as string[],
         data: [] as number[],
-        borderWidth: 0,
+        borderRadius: 4,
+        borderSkipped: false as const,
+        maxBarThickness: 32,
       }],
     });
 
     const buildChart = (newData: { score: number; count: number }[]) => {
       if (!newData.length) return;
       const sorted = [...newData].sort((a, b) => a.score - b.score);
+      const maxScore = Math.max(10, ...sorted.map(item => item.score));
       chartData.value = {
         labels: sorted.map(item => item.score.toString()),
         datasets: [{
           label: "Votos",
-          backgroundColor: sorted.map(item => palette[item.score] || "#cccccc"),
+          backgroundColor: sorted.map(item => gradientColor(item.score / maxScore)),
           data: sorted.map(item => item.count),
-          borderWidth: 0,
+          borderRadius: 4,
+          borderSkipped: false,
+          maxBarThickness: 32,
         }],
       };
       loaded.value = true;

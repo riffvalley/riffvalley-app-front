@@ -151,6 +151,37 @@ export async function getUserHistoryService(
   return normalized;
 }
 
+export interface TopDisc {
+  id: string;
+  name: string;
+  image: string | null;
+  rate: number;
+  artist: { name: string };
+  genre: { name: string; color: string } | null;
+}
+
+export interface ControversialDisc {
+  id: string;
+  name: string;
+  image: string | null;
+  userRate: number;
+  communityAverage: number;
+  diff: number;
+  artist: { name: string };
+  genre: { name: string; color: string } | null;
+}
+
+export interface YearOverYearPeriod {
+  year: number;
+  votes: number;
+  mean: string | number;
+}
+
+export interface YearOverYear {
+  current: YearOverYearPeriod;
+  previous: YearOverYearPeriod;
+}
+
 export interface RatesStatsResponse {
   totalVotes: number;
   mean: string;
@@ -160,6 +191,7 @@ export interface RatesStatsResponse {
   votesByGenre: {
     genre: string;
     count: number;
+    topDisc: TopDisc | null;
   }[];
   votesByMonth: {
     month: string;
@@ -168,15 +200,36 @@ export interface RatesStatsResponse {
       week: string;
       count: number;
     }[];
+    topDisc: TopDisc | null;
   }[];
   votesByScore: {
     score: number;
     count: number;
   }[];
+  votesByDay: { date: string; count: number }[];
+  topDiscOverall: TopDisc | null;
+  mostControversial: ControversialDisc[];
+  yearOverYear: YearOverYear;
 }
 
 export async function getRatesStats(year?: number): Promise<RatesStatsResponse> {
   const response = await api.get<RatesStatsResponse>("/rates/stats", {
+    params: year ? { year } : undefined,
+  });
+  return response.data;
+}
+
+export interface RatedDiscItem {
+  id: string;
+  name: string;
+  rate: number;
+  artist: { name: string };
+  genre: { name: string; color: string } | null;
+}
+
+// Bajo demanda (galaxia de discos): no se pide en cada visita a Estadísticas.
+export async function getUserRatedDiscs(year?: number): Promise<RatedDiscItem[]> {
+  const response = await api.get<RatedDiscItem[]>("/rates/stats/discs", {
     params: year ? { year } : undefined,
   });
   return response.data;
