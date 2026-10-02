@@ -96,8 +96,6 @@ export function buildGalaxy(discs: RatedDiscItem[]): Galaxy {
   const cellSize = MIN_DIST;
   const grid = new Map<string, { x: number; y: number }[]>();
   const cellKey = (x: number, y: number) => `${Math.floor(x / cellSize)}:${Math.floor(y / cellSize)}`;
-  const isTooClose = (x: number, y: number) => nearestDistance(x, y) < MIN_DIST;
-
   // Distancia al punto ya colocado más cercano (Infinity si no hay ninguno en
   // las celdas vecinas). Sirve para, si ningún candidato queda lo bastante
   // libre, quedarnos con "el menos malo" en vez de rendirnos.
