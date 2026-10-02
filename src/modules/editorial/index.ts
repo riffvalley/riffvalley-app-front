@@ -29,6 +29,39 @@ export type { RescheduleEditorialContent } from './calendar/domain/rescheduleCon
 export { createRescheduleEditorialContent, toEditorialCalendarDate } from './calendar/domain/rescheduleContent';
 export { rescheduleEditorialContent } from './calendar/application/rescheduleEditorialContent';
 export type {
+  GenreArtistCatalogPort,
+  GenrePlaylistArtistTracksPort,
+  GenrePlaylistDataPort,
+  GenrePlaylistLifecyclePort,
+  GenrePlaylistMaintenancePort,
+  GenrePlaylistRegistrationsPort,
+} from './genre-playlists/application/genrePlaylistsPort';
+export type {
+  CreateGenrePlaylist,
+  DeleteGenrePlaylistRegistrationResult,
+  GenreArtist,
+  GenreArtistSearchResult,
+  GenreArtistTrackSearchResult,
+  GenrePlaylistContent,
+  GenrePlaylist,
+  GenrePlaylistArtist,
+  GenrePlaylistImageUpload,
+  GenrePlaylistRegistration,
+  GenrePlaylistStatus,
+  GenrePlaylistTrack,
+  GenrePlaylistTrackCandidate,
+  GenrePlaylistUser,
+  PendingGenreArtist,
+  UpdateGenrePlaylistMetadata,
+  UpdateGenrePlaylistRegistration,
+} from './genre-playlists/domain/genrePlaylists';
+export { genrePlaylistRegistrationsKey } from './genre-playlists/presentation/genrePlaylistRegistrationsKey';
+export { genrePlaylistLifecycleKey } from './genre-playlists/presentation/genrePlaylistLifecycleKey';
+export { genrePlaylistDataKey } from './genre-playlists/presentation/genrePlaylistDataKey';
+export { genrePlaylistArtistTracksKey } from './genre-playlists/presentation/genrePlaylistArtistTracksKey';
+export { genreArtistCatalogKey } from './genre-playlists/presentation/genreArtistCatalogKey';
+export { genrePlaylistMaintenanceKey } from './genre-playlists/presentation/genrePlaylistMaintenanceKey';
+export type {
   FestivalArtistCatalogPort,
   FestivalPlaylistArtistTracksPort,
   FestivalPlaylistDataPort,

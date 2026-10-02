@@ -224,14 +224,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, nextTick } from 'vue';
+import { ref, onMounted, reactive, nextTick, inject } from 'vue';
 import {
-    getSpotifyGenres,
+    genrePlaylistRegistrationsKey,
+    genrePlaylistLifecycleKey,
+    type GenrePlaylistStatus,
+} from '@/modules/editorial';
+import {
     updateSpotify,
-    removeSpotify,
     createSpotifyContent,
     type Spotify,
-    type SpotifyStatus,
     toISO
 } from '@services/spotify/spotify';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
@@ -245,18 +247,17 @@ import {
     type SpotifyConnection,
 } from '@services/spotify/festivalPlaylists';
 import {
-    createGenrePlaylist,
-    createLinkedGenrePlaylist,
-    linkExistingGenrePlaylist,
     type SyncedGenrePlaylist,
 } from '@services/spotify/genrePlaylists';
 
 const authStore = useAuthStore();
+const genrePlaylistRegistrations = inject(genrePlaylistRegistrationsKey)!;
+const genrePlaylistLifecycle = inject(genrePlaylistLifecycleKey)!;
 const activeTab = ref<'playlists' | 'kanban'>('playlists');
 function selectTab(tab: 'playlists' | 'kanban') { activeTab.value = tab; }
 
 // --- Types ---
-type ColumnId = SpotifyStatus;
+type ColumnId = GenrePlaylistStatus;
 
 interface Column {
     id: ColumnId;
@@ -304,7 +305,7 @@ const form = reactive({
 });
 
 // --- Getters ---
-function getItems(status: SpotifyStatus) {
+function getItems(status: GenrePlaylistStatus) {
     return items.value.filter(i => i.status === status);
 }
 
@@ -324,7 +325,7 @@ async function reload() {
         if (users.value.length === 0) {
             users.value = await getUsersRv();
         }
-        items.value = await getSpotifyGenres();
+        items.value = await genrePlaylistRegistrations.getGenrePlaylistRegistrations();
         try {
             connection.value = await getSpotifyConnection();
         } catch (connectionError) {
@@ -368,7 +369,7 @@ async function onDrop(targetState: ColumnId) {
     item.status = targetState;
 
     try {
-        await updateSpotify(item.id, { status: targetState });
+        await genrePlaylistRegistrations.updateGenrePlaylistRegistration(item.id, { status: targetState });
     } catch (e: any) {
         console.error(e);
         item.status = originalState;
@@ -415,7 +416,7 @@ async function onUserChange(item: Spotify, event: Event) {
     }
 
     try {
-        await updateSpotify(item.id, { userId: newUserId || undefined });
+        await genrePlaylistRegistrations.updateGenrePlaylistRegistration(item.id, { userId: newUserId || undefined });
     } catch (e) {
         console.error(e);
         item.user = oldUser;
@@ -470,8 +471,8 @@ async function save() {
             SwalService.success('Género actualizado');
         } else {
             const created = createMode.value === 'link'
-                ? await createLinkedGenrePlaylist(form.link)
-                : await createGenrePlaylist({ name: form.name.trim(), description: form.description, public: form.isPublic });
+                ? await genrePlaylistLifecycle.createLinkedGenrePlaylist(form.link)
+                : await genrePlaylistLifecycle.createGenrePlaylist({ name: form.name.trim(), description: form.description, public: form.isPublic });
             if (!created.user && authStore.userId) {
                 created.user = {
                     id: authStore.userId,
@@ -479,7 +480,7 @@ async function save() {
                     image: authStore.image || undefined
                 } as any;
             }
-            items.value.push(created);
+            items.value.push({ ...created, content: null });
             closeModal();
             await nextTick();
             SwalService.success('Género creado');
@@ -495,7 +496,7 @@ async function linkExisting(item: Spotify) {
     const confirmation = await SwalService.confirm('¿Vincular con Spotify?', 'Se conservarán como protegidas las canciones que ya existan en la playlist.', 'Sí, vincular', 'Cancelar');
     if (!confirmation.isConfirmed) return;
     linkingItemId.value = item.id;
-    try { applySyncedPlaylist(await linkExistingGenrePlaylist(item.id)); SwalService.success('Playlist vinculada correctamente'); }
+    try { applySyncedPlaylist(await genrePlaylistLifecycle.linkExistingGenrePlaylist(item.id)); SwalService.success('Playlist vinculada correctamente'); }
     catch (error) { SwalService.error(apiError(error, 'No se pudo vincular la playlist')); }
     finally { linkingItemId.value = null; }
 }
@@ -514,7 +515,7 @@ async function confirmDelete(item: Spotify) {
 
     if (result.isConfirmed) {
         try {
-            await removeSpotify(item.id);
+            await genrePlaylistLifecycle.deleteGenrePlaylistRegistration(item.id);
             items.value = items.value.filter(i => i.id !== item.id);
             SwalService.success('Género eliminado');
         } catch (e: any) {

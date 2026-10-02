@@ -584,6 +584,7 @@
 import axios from "axios";
 import {
   computed,
+  inject,
   onBeforeUnmount,
   onMounted,
   reactive,
@@ -591,27 +592,23 @@ import {
   watch,
 } from "vue";
 import SearchableSelect from "@components/SearchableSelect.vue";
+import {
+  genreArtistCatalogKey,
+  genrePlaylistArtistTracksKey,
+  genrePlaylistDataKey,
+  genrePlaylistMaintenanceKey,
+  type GenreArtist,
+  type GenrePlaylistArtist,
+  type GenrePlaylistTrackCandidate,
+} from "@/modules/editorial";
 import SwalService from "@services/swal/SwalService";
 import { removeSpotify } from "@services/spotify/spotify";
 import {
-  createPendingFestivalArtist,
-  searchFestivalArtists,
   validatePlaylistImage,
-  type FestivalArtist,
-  type PlaylistArtist,
   type SpotifyConnection,
 } from "@services/spotify/festivalPlaylists";
 import {
-  addGenreArtist,
-  clearGenrePlaylist,
-  getGenrePlaylist,
-  removeGenreArtist,
-  replaceGenreArtistTracks,
-  searchGenreArtistTracks,
-  shuffleGenrePlaylist,
-  updateGenrePlaylist,
   updateGenrePlaylistImage,
-  type SpotifyTrackCandidate,
   type SyncedGenrePlaylist,
 } from "@services/spotify/genrePlaylists";
 import { useCatalogStore } from "@stores/catalog/catalog";
@@ -621,6 +618,10 @@ const props = defineProps<{
   playlistName: string;
   connection: SpotifyConnection;
 }>();
+const genrePlaylistData = inject(genrePlaylistDataKey)!;
+const genreArtistCatalog = inject(genreArtistCatalogKey)!;
+const genrePlaylistArtistTracks = inject(genrePlaylistArtistTracksKey)!;
+const genrePlaylistMaintenance = inject(genrePlaylistMaintenanceKey)!;
 const emit = defineEmits<{
   close: [];
   renew: [];
@@ -643,13 +644,13 @@ const shuffling = ref(false);
 const showArtistModal = ref(false);
 const selectedGenreId = ref("");
 const artistQuery = ref("");
-const artistResults = ref<FestivalArtist[]>([]);
+const artistResults = ref<GenreArtist[]>([]);
 const searchingArtists = ref(false);
 const creatingArtist = ref(false);
-const selectedArtist = ref<FestivalArtist | null>(null);
-const editingAssociation = ref<PlaylistArtist | null>(null);
+const selectedArtist = ref<GenreArtist | null>(null);
+const editingAssociation = ref<GenrePlaylistArtist | null>(null);
 const trackQuery = ref("");
-const trackCandidates = ref<SpotifyTrackCandidate[]>([]);
+const trackCandidates = ref<GenrePlaylistTrackCandidate[]>([]);
 const selectedTrackIds = ref<string[]>([]);
 const loadingTracks = ref(false);
 const savingSelection = ref(false);
@@ -696,7 +697,7 @@ function applyDetail(value: SyncedGenrePlaylist, syncForm = false) {
 async function loadDetail() {
   loading.value = true;
   try {
-    applyDetail(await getGenrePlaylist(props.playlistId), true);
+    applyDetail(await genrePlaylistData.getGenrePlaylist(props.playlistId), true);
   } catch (error) {
     SwalService.error(errorMessage(error, "No se pudo cargar la playlist"));
     emit("close");
@@ -715,7 +716,7 @@ async function loadArtistResults() {
   searchingArtists.value = true;
   try {
     artistResults.value = (
-      await searchFestivalArtists(
+      await genreArtistCatalog.searchArtists(
         artistQuery.value.trim(),
         30,
         0,
@@ -758,7 +759,7 @@ function isArtistPresent(id: string) {
     false
   );
 }
-async function chooseArtist(artist: FestivalArtist) {
+async function chooseArtist(artist: GenreArtist) {
   const existing = detail.value?.playlistArtists.find(
     (entry) => entry.artistId === artist.id,
   );
@@ -773,7 +774,7 @@ async function createArtist() {
   if (!canCreateArtist.value) return;
   creatingArtist.value = true;
   try {
-    const artist = await createPendingFestivalArtist(artistQuery.value.trim());
+    const artist = await genreArtistCatalog.createPendingArtist(artistQuery.value.trim());
     artistResults.value.unshift(artist);
     await chooseArtist(artist);
   } catch (error) {
@@ -786,7 +787,7 @@ async function loadTracks() {
   if (!selectedArtist.value || loadingTracks.value) return;
   loadingTracks.value = true;
   try {
-    const response = await searchGenreArtistTracks(
+    const response = await genrePlaylistArtistTracks.searchArtistTracks(
       props.playlistId,
       selectedArtist.value.id,
       trackQuery.value,
@@ -803,7 +804,7 @@ async function loadTracks() {
         all.findIndex(
           (item) => item.spotifyTrackId === track.spotifyTrackId,
         ) === index,
-    ) as SpotifyTrackCandidate[];
+    ) as GenrePlaylistTrackCandidate[];
   } catch (error) {
     SwalService.error(
       errorMessage(error, "No se pudieron buscar canciones en Spotify"),
@@ -819,7 +820,7 @@ function formatDuration(durationMs: number) {
   const seconds = Math.floor(durationMs / 1000);
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
-function toggleTrack(track: SpotifyTrackCandidate) {
+function toggleTrack(track: GenrePlaylistTrackCandidate) {
   if (isTrackSelected(track.spotifyTrackId))
     selectedTrackIds.value = selectedTrackIds.value.filter(
       (id) => id !== track.spotifyTrackId,
@@ -835,7 +836,7 @@ function cancelSelection() {
   trackCandidates.value = [];
   trackQuery.value = "";
 }
-async function editArtist(entry: PlaylistArtist) {
+async function editArtist(entry: GenrePlaylistArtist) {
   showArtistModal.value = true;
   selectedArtist.value = entry.artist;
   editingAssociation.value = entry;
@@ -844,7 +845,7 @@ async function editArtist(entry: PlaylistArtist) {
   trackCandidates.value = entry.tracks.map((track) => ({
     ...track,
     artists: track.artists ?? [{ id: "", name: entry.artist.name }],
-  })) as SpotifyTrackCandidate[];
+  })) as GenrePlaylistTrackCandidate[];
   await loadTracks();
 }
 async function saveSelection() {
@@ -857,12 +858,12 @@ async function saveSelection() {
   savingSelection.value = true;
   try {
     const updated = editingAssociation.value
-      ? await replaceGenreArtistTracks(
+      ? await genrePlaylistArtistTracks.replaceArtistTracks(
           detail.value.id,
           selectedArtist.value.id,
           selectedTrackIds.value,
         )
-      : await addGenreArtist(
+      : await genrePlaylistArtistTracks.addArtist(
           detail.value.id,
           selectedArtist.value.id,
           selectedTrackIds.value,
@@ -881,7 +882,7 @@ async function saveSelection() {
     savingSelection.value = false;
   }
 }
-async function removeArtist(entry: PlaylistArtist) {
+async function removeArtist(entry: GenrePlaylistArtist) {
   if (!detail.value) return;
   const result = await SwalService.confirm(
     "¿Eliminar artista?",
@@ -891,7 +892,7 @@ async function removeArtist(entry: PlaylistArtist) {
   );
   if (!result.isConfirmed) return;
   try {
-    applyDetail(await removeGenreArtist(detail.value.id, entry.artistId));
+    applyDetail(await genrePlaylistArtistTracks.removeArtist(detail.value.id, entry.artistId));
     if (editingAssociation.value?.id === entry.id) cancelSelection();
     SwalService.success("Artista eliminado");
   } catch (error) {
@@ -928,7 +929,7 @@ function requestDetailSave(field: DetailField): Promise<void> {
       if (field === "public" && snapshot === detail.value.isPublic) continue;
       savingDetailFields.value = [...savingDetailFields.value, field];
       try {
-        await updateGenrePlaylist(playlistId, {
+        await genrePlaylistData.updateGenrePlaylistMetadata(playlistId, {
           ...(field === "name" ? { name: snapshot as string } : {}),
           ...(field === "description"
             ? { description: snapshot as string }
@@ -1012,7 +1013,7 @@ async function clearPlaylist() {
   if (!result.isConfirmed) return;
   clearing.value = true;
   try {
-    applyDetail(await clearGenrePlaylist(detail.value.id));
+    applyDetail(await genrePlaylistMaintenance.clearPlaylist(detail.value.id));
     cancelSelection();
     SwalService.success("Playlist vaciada");
   } catch (error) {
@@ -1032,7 +1033,7 @@ async function shufflePlaylist() {
   if (!result.isConfirmed) return;
   shuffling.value = true;
   try {
-    applyDetail(await shuffleGenrePlaylist(detail.value.id));
+    applyDetail(await genrePlaylistMaintenance.shufflePlaylist(detail.value.id));
     SwalService.success("Orden de la playlist mezclado");
   } catch (error) {
     SwalService.error(errorMessage(error, "No se pudo mezclar la playlist"));

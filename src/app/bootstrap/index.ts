@@ -3,7 +3,7 @@ import { createPinia } from 'pinia';
 import App from '../../App.vue';
 import router from '../router';
 import { composeSession } from './session';
-import { asignationTextUpdatePort, listDetailsPort, specialListsPort, listCreationPort, listWordPressPublicationPort, reunionsPort, articlesPort, videosPort, rescheduleEditorialCalendarContent } from '../dependencies/editorial';
+import { asignationTextUpdatePort, listDetailsPort, specialListsPort, listCreationPort, listWordPressPublicationPort, reunionsPort, articlesPort, videosPort, rescheduleEditorialCalendarContent, genrePlaylistRegistrationsPort, genrePlaylistLifecyclePort, genrePlaylistDataPort, genrePlaylistArtistTracksPort, genreArtistCatalogPort, genrePlaylistMaintenancePort } from '../dependencies/editorial';
 import { asignationTextUpdateKey } from '../../modules/editorial/asignations/presentation/asignationTextUpdateKey';
 import { listDetailsKey } from '../../modules/editorial/lists/presentation/listDetailsKey';
 import { specialListsKey } from '../../modules/editorial/lists/presentation/specialListsKey';
@@ -13,6 +13,12 @@ import { reunionsKey } from '../../modules/editorial/reunions/presentation/reuni
 import { articlesKey } from '../../modules/editorial/articles/presentation/articlesKey';
 import { videosKey } from '../../modules/editorial/videos/presentation/videosKey';
 import { rescheduleEditorialContentKey } from '../../modules/editorial/calendar/presentation/rescheduleEditorialContentKey';
+import { genrePlaylistRegistrationsKey } from '../../modules/editorial/genre-playlists/presentation/genrePlaylistRegistrationsKey';
+import { genrePlaylistLifecycleKey } from '../../modules/editorial/genre-playlists/presentation/genrePlaylistLifecycleKey';
+import { genrePlaylistDataKey } from '../../modules/editorial/genre-playlists/presentation/genrePlaylistDataKey';
+import { genrePlaylistArtistTracksKey } from '../../modules/editorial/genre-playlists/presentation/genrePlaylistArtistTracksKey';
+import { genreArtistCatalogKey } from '../../modules/editorial/genre-playlists/presentation/genreArtistCatalogKey';
+import { genrePlaylistMaintenanceKey } from '../../modules/editorial/genre-playlists/presentation/genrePlaylistMaintenanceKey';
 
 // VueSweetalert2
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -50,6 +56,12 @@ export function bootstrap() {
   app.provide(articlesKey, articlesPort);
   app.provide(videosKey, videosPort);
   app.provide(rescheduleEditorialContentKey, rescheduleEditorialCalendarContent);
+  app.provide(genrePlaylistRegistrationsKey, genrePlaylistRegistrationsPort);
+  app.provide(genrePlaylistLifecycleKey, genrePlaylistLifecyclePort);
+  app.provide(genrePlaylistDataKey, genrePlaylistDataPort);
+  app.provide(genrePlaylistArtistTracksKey, genrePlaylistArtistTracksPort);
+  app.provide(genreArtistCatalogKey, genreArtistCatalogPort);
+  app.provide(genrePlaylistMaintenanceKey, genrePlaylistMaintenancePort);
 
   // Circle flags
   app.use(CircleFlags);

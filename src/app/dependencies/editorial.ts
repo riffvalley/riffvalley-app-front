@@ -15,6 +15,12 @@ import {
   festivalPlaylistLifecycleApi,
   festivalPlaylistRegistrationsApi,
 } from "@/modules/editorial/festival-playlists/infrastructure/festivalPlaylistsApi";
+import { genrePlaylistArtistTracksApi } from "@/modules/editorial/genre-playlists/infrastructure/genrePlaylistArtistTracksApi";
+import { genreArtistCatalogApi } from "@/modules/editorial/genre-playlists/infrastructure/genreArtistCatalogApi";
+import { genrePlaylistDataApi } from "@/modules/editorial/genre-playlists/infrastructure/genrePlaylistDataApi";
+import { genrePlaylistLifecycleApi } from "@/modules/editorial/genre-playlists/infrastructure/genrePlaylistLifecycleApi";
+import { genrePlaylistMaintenanceApi } from "@/modules/editorial/genre-playlists/infrastructure/genrePlaylistMaintenanceApi";
+import { genrePlaylistRegistrationsApi } from "@/modules/editorial/genre-playlists/infrastructure/genrePlaylistRegistrationsApi";
 
 export const asignationTextUpdatePort = asignationTextUpdateApi;
 export const listDetailsPort = listDetailsApi;
@@ -29,5 +35,11 @@ export const festivalPlaylistDataPort = festivalPlaylistDataApi;
 export const festivalPlaylistLifecyclePort = festivalPlaylistLifecycleApi;
 export const festivalArtistCatalogPort = festivalArtistCatalogApi;
 export const festivalPlaylistArtistTracksPort = festivalPlaylistArtistTracksApi;
+export const genrePlaylistRegistrationsPort = genrePlaylistRegistrationsApi;
+export const genrePlaylistDataPort = genrePlaylistDataApi;
+export const genrePlaylistLifecyclePort = genrePlaylistLifecycleApi;
+export const genrePlaylistArtistTracksPort = genrePlaylistArtistTracksApi;
+export const genreArtistCatalogPort = genreArtistCatalogApi;
+export const genrePlaylistMaintenancePort = genrePlaylistMaintenanceApi;
 export const rescheduleEditorialCalendarContent = (contentId: string, date: string | null) =>
   rescheduleEditorialContent(editorialCalendarApi, contentId, date);
