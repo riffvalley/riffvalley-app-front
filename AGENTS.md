@@ -208,6 +208,8 @@ Do not weaken architecture checks or add ignore paths just to make a task pass.
 
 ## Testing
 
+Organize unit tests by module and capability, reflecting the conceptual structure of `src/modules`. Do not leave unit tests directly under `tests/unit` when a module, capability, or transversal category is identifiable. Place app composition, bridges, and coordination tests under `tests/unit/app`; Identity under `tests/unit/identity`; Workspace under `tests/unit/workspace`; shared HTTP/infrastructure under `tests/unit/infrastructure`; architecture rules under `tests/unit/architecture`; and tooling under `tests/unit/tooling`. Group tests for clearly legacy structures, temporary bridges, or code pending cleanup under `tests/unit/legacy` so that debt remains visible. Organize E2E tests by functional area or primary user journey, placing cross-capability flows under the dominant journey. Structural test refactors must not change behavior or coverage.
+
 Before changing an important legacy flow, add characterization tests for the behavior that must remain stable.
 
 Preferred levels:
