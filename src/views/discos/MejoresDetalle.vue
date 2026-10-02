@@ -156,9 +156,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, inject } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getListDetails, updateList, generateBestDiscsWpPost } from '@services/list/list';
+import { getListDetails, updateList } from '@services/list/list';
+import { listWordPressPublicationKey } from '@/modules/editorial/presentation/listWordPressPublicationKey';
 import SwalService from '@services/swal/SwalService';
 import Swal from 'sweetalert2';
 import { useAsignationStore } from '@stores/asignation/asignation';
@@ -171,6 +172,8 @@ const route = useRoute();
 const router = useRouter();
 const asignationStore = useAsignationStore();
 const userStore = useUserStore();
+const listWordPressPublication = inject(listWordPressPublicationKey)!;
+if (!listWordPressPublication) throw new Error('Editorial list WordPress publication port is not provided');
 
 const list = ref<any>(null);
 const loading = ref(true);
@@ -229,7 +232,7 @@ async function publishToWordPress() {
   if (!list.value) return;
   publishingWp.value = true;
   try {
-    const result = await generateBestDiscsWpPost(list.value.id);
+    const result = await listWordPressPublication.publishBestDiscsList(list.value.id);
     list.value.wpPostId = result.wpPostId;
     list.value.wpPostUrl = result.link;
 

@@ -140,9 +140,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, onMounted, computed } from "vue";
+import { defineComponent, reactive, ref, onMounted, computed, inject } from "vue";
 import { useRouter } from "vue-router";
-import { getListDetails, updateList } from "@services/list/list";
+import type { ListDetailsUpdate } from "@/modules/editorial/domain/listDetails";
+import { listDetailsKey } from "@/modules/editorial/presentation/listDetailsKey";
 import DiscsByDate from "./components/DiscByDate.vue";
 import AsignationList from "./components/AsignationList.vue";
 import SpecialAsignationList from "./components/SpecialAsignationList.vue";
@@ -199,15 +200,17 @@ export default defineComponent({
     });
 
     const router = useRouter();
+    const listDetails = inject(listDetailsKey);
+    if (!listDetails) throw new Error("Editorial list details dependency is not provided");
     const loading = ref(true);
     const showStatusInfo = ref(false);
     const asignationStore = useAsignationStore();
     const userStore = useUserStore();
-    const asignations = ref<any[]>([]);
+    const asignations = ref<unknown[]>([]);
 
     const loadListDetails = async () => {
       try {
-        const details: any = await getListDetails(props.id);
+        const details = await listDetails.getListDetails(props.id);
         asignations.value = details.asignations || [];
         Object.assign(form, details);
       } catch (error) {
@@ -220,7 +223,7 @@ export default defineComponent({
 
     const submitForm = async () => {
       try {
-        const payload: any = {
+        const payload: ListDetailsUpdate = {
           name: form.name,
           type: form.type,
           listDate: form.listDate || null,
@@ -230,7 +233,7 @@ export default defineComponent({
         if (form.type === ListType.SPECIAL) {
           payload.specialType = form.specialType || null;
         }
-        await updateList(props.id, payload);
+        await listDetails.updateList(props.id, payload);
         SwalService.success("Lista actualizada");
       } catch (error) {
         console.error("Error updating list:", error);

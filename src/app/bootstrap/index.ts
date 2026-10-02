@@ -3,8 +3,12 @@ import { createPinia } from 'pinia';
 import App from '../../App.vue';
 import router from '../router';
 import { composeSession } from './session';
-import { asignationTextUpdatePort } from '../dependencies/editorial';
+import { asignationTextUpdatePort, listDetailsPort, specialListsPort, listCreationPort, listWordPressPublicationPort } from '../dependencies/editorial';
 import { asignationTextUpdateKey } from '../../modules/editorial/presentation/asignationTextUpdateKey';
+import { listDetailsKey } from '../../modules/editorial/presentation/listDetailsKey';
+import { specialListsKey } from '../../modules/editorial/presentation/specialListsKey';
+import { listCreationKey } from '../../modules/editorial/presentation/listCreationKey';
+import { listWordPressPublicationKey } from '../../modules/editorial/presentation/listWordPressPublicationKey';
 
 // VueSweetalert2
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -34,6 +38,10 @@ import '../../assets/fonts.css'; // fuentes
 export function bootstrap() {
   const app = createApp(App);
   app.provide(asignationTextUpdateKey, asignationTextUpdatePort);
+  app.provide(listDetailsKey, listDetailsPort);
+  app.provide(specialListsKey, specialListsPort);
+  app.provide(listCreationKey, listCreationPort);
+  app.provide(listWordPressPublicationKey, listWordPressPublicationPort);
 
   // Circle flags
   app.use(CircleFlags);

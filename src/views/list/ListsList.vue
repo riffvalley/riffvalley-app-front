@@ -143,15 +143,18 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted } from "vue";
-import { getSpecialLists, postList, deleteList } from "@services/list/list";
+import { defineComponent, ref, computed, onMounted, inject } from "vue";
+import type { SpecialList } from "@/modules/editorial/domain/specialLists";
+import { specialListsKey } from "@/modules/editorial/presentation/specialListsKey";
 import { useRouter } from "vue-router";
 import SwalService from "@services/swal/SwalService";
 
 export default defineComponent({
   name: "SpecialLists",
   setup() {
-    const lists = ref<any[]>([]);
+    const specialLists = inject(specialListsKey);
+    if (!specialLists) throw new Error("Editorial special lists dependency is not provided");
+    const lists = ref<SpecialList[]>([]);
     const loading = ref(true);
     const router = useRouter();
     const showCreateModal = ref(false);
@@ -171,7 +174,7 @@ export default defineComponent({
 
     const defaultColors = { border: "", iconBg: "bg-indigo-50 dark:bg-indigo-900/20", iconText: "text-indigo-500 dark:text-indigo-400", badgeBg: "bg-indigo-100 dark:bg-indigo-900/30", badgeText: "text-indigo-700 dark:text-indigo-300", icon: "fa-solid fa-list-ul" };
 
-    const getTypeColors = (specialType: string) => specialTypeColors[specialType] || defaultColors;
+    const getTypeColors = (specialType?: string | null) => specialTypeColors[specialType || ""] || defaultColors;
 
     const specialTypeOptions = [
       { value: "app", label: "App" },
@@ -188,11 +191,11 @@ export default defineComponent({
 
     const filteredLists = computed(() => {
       const base = filterSpecialType.value
-        ? lists.value.filter((l: any) => l.specialType === filterSpecialType.value)
+        ? lists.value.filter((list) => list.specialType === filterSpecialType.value)
         : lists.value;
-      return [...base].sort((a: any, b: any) => {
-        const orderA = specialTypeOrder[a.specialType] ?? 99;
-        const orderB = specialTypeOrder[b.specialType] ?? 99;
+      return [...base].sort((a, b) => {
+        const orderA = specialTypeOrder[a.specialType || ""] ?? 99;
+        const orderB = specialTypeOrder[b.specialType || ""] ?? 99;
         if (orderA !== orderB) return orderA - orderB;
         return (a.name || "").localeCompare(b.name || "");
       });
@@ -201,7 +204,7 @@ export default defineComponent({
     const fetchLists = async () => {
       loading.value = true;
       try {
-        const response = await getSpecialLists();
+        const response = await specialLists.getSpecialLists();
         lists.value = Array.isArray(response) ? response : (response.data || []);
       } catch (error) {
         console.error("Error fetching special lists:", error);
@@ -222,7 +225,7 @@ export default defineComponent({
       );
       if (confirmed.isConfirmed) {
         try {
-          await deleteList(id);
+          await specialLists.deleteSpecialList(id);
           SwalService.success("Lista eliminada");
           fetchLists();
         } catch (error) {
@@ -242,7 +245,7 @@ export default defineComponent({
       if (!newListName.value) return;
       creating.value = true;
       try {
-        await postList({
+        await specialLists.createSpecialList({
           name: newListName.value,
           type: 'special',
           specialType: newListSpecialType.value

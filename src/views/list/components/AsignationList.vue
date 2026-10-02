@@ -386,10 +386,10 @@ import { useUserStore } from "@stores/user/users";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import DiscDescriptionModal from "./DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
-import { createWpPosts } from "@services/list/list";
 import Swal from "sweetalert2";
 import CircleFlags from "vue-circle-flags";
 import { asignationTextUpdateKey } from "@/modules/editorial/presentation/asignationTextUpdateKey";
+import { listWordPressPublicationKey } from "@/modules/editorial/presentation/listWordPressPublicationKey";
 import type { AsignationTextUpdate } from "@/modules/editorial/domain/asignationTextUpdate";
 
 export default defineComponent({
@@ -405,6 +405,8 @@ export default defineComponent({
     const asignationStore = useAsignationStore();
     const asignationTextUpdate = inject(asignationTextUpdateKey);
     if (!asignationTextUpdate) throw new Error("Asignation text update port was not provided");
+    const listWordPressPublication = inject(listWordPressPublicationKey);
+    if (!listWordPressPublication) throw new Error("Editorial list WordPress publication port was not provided");
     const userStore = useUserStore();
     const asignations = ref<any[]>([]);
 
@@ -586,7 +588,7 @@ export default defineComponent({
       if (publishingRadar[group]) return;
       publishingRadar[group] = true;
       try {
-        const result = await createWpPosts(props.listId, group);
+        const result = await listWordPressPublication.publishRadarPosts(props.listId, group);
         emit("wp-published", result.posts);
 
         const postsHtml = result.posts

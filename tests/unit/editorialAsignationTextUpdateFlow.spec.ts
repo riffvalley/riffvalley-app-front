@@ -4,6 +4,7 @@ import { flushPromises, mount, shallowMount } from "@vue/test-utils";
 import DiscDescriptionModal from "../../src/views/list/components/DiscDescriptionModal.vue";
 import AsignationList from "../../src/views/list/components/AsignationList.vue";
 import { asignationTextUpdateKey } from "../../src/modules/editorial/presentation/asignationTextUpdateKey";
+import { listWordPressPublicationKey } from "../../src/modules/editorial/presentation/listWordPressPublicationKey";
 import type { AsignationTextUpdatePort } from "../../src/modules/editorial/application/asignationTextUpdatePort";
 
 const { updateAsignationText, store, users, success, error } = vi.hoisted(() => {
@@ -70,7 +71,10 @@ describe("DiscDescriptionModal Editorial update flow", () => {
     updateAsignationText.mockResolvedValue(undefined);
     const host = shallowMount(AsignationList, {
       props: { type: "week", listId: "list-1" },
-      global: { provide: { [asignationTextUpdateKey as symbol]: port }, stubs: { CircleFlags: true } },
+      global: { provide: {
+        [asignationTextUpdateKey as symbol]: port,
+        [listWordPressPublicationKey as symbol]: { publishRadarPosts: vi.fn(), publishBestDiscsList: vi.fn() },
+      }, stubs: { CircleFlags: true } },
     });
     host.vm.openDescriptionModal(asignation);
     await host.vm.handleSaveDescription(payload as Parameters<AsignationTextUpdatePort["updateAsignationText"]>[1]);
@@ -90,7 +94,10 @@ describe("DiscDescriptionModal Editorial update flow", () => {
     updateAsignationText.mockRejectedValue(new Error("offline"));
     const host = shallowMount(AsignationList, {
       props: { type: "week", listId: "list-1" },
-      global: { provide: { [asignationTextUpdateKey as symbol]: port }, stubs: { CircleFlags: true } },
+      global: { provide: {
+        [asignationTextUpdateKey as symbol]: port,
+        [listWordPressPublicationKey as symbol]: { publishRadarPosts: vi.fn(), publishBestDiscsList: vi.fn() },
+      }, stubs: { CircleFlags: true } },
     });
     host.vm.openDescriptionModal(asignation);
     await host.vm.handleSaveDescription({

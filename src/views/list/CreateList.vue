@@ -77,8 +77,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive } from "vue";
-import { postList } from "@services/list/list";
+import { defineComponent, reactive, inject } from "vue";
+import { listCreationKey } from "@/modules/editorial/presentation/listCreationKey";
 import SwalService from "@services/swal/SwalService";
 import { useRouter } from "vue-router";
 
@@ -91,6 +91,8 @@ export enum ListType {
 export default defineComponent({
   name: "CreateListForm",
   setup() {
+    const listCreation = inject(listCreationKey);
+    if (!listCreation) throw new Error("Editorial list creation dependency is not provided");
     const form = reactive({
       name: "",
       type: "",
@@ -103,7 +105,7 @@ export default defineComponent({
 
     const submitForm = async () => {
       try {
-        const response = await postList({
+        await listCreation.createList({
           name: form.name,
           type: form.type,
           listDate: form.listDate ? `${form.listDate}T00:00:00.000Z` : null,
