@@ -184,22 +184,23 @@ import { useRoute, useRouter } from 'vue-router';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
 import SwalService from '@services/swal/SwalService';
 import {
-  getSpotifyFestivals,
-  removeSpotify,
-  updateSpotify,
   createSpotifyContent,
   type Spotify,
   type SpotifyStatus,
 } from '@services/spotify/spotify';
 import {
+  festivalPlaylistLifecyclePort,
+  festivalPlaylistRegistrationsPort,
+} from '@/app/dependencies/editorial';
+import type {
+  FestivalPlaylistData,
+  FestivalPlaylistRegistration,
+} from '@/modules/editorial';
+import {
   connectSpotify,
-  createFestivalPlaylist,
-  createLinkedFestivalPlaylist,
   disconnectSpotify,
   getSpotifyConnection,
-  linkExistingFestivalPlaylist,
   type SpotifyConnection,
-  type SyncedFestivalPlaylist,
 } from '@services/spotify/festivalPlaylists';
 import { useAuthStore } from '@stores/auth/auth';
 import FestivalPlaylistManager from './components/FestivalPlaylistManager.vue';
@@ -291,8 +292,8 @@ async function reload() {
   loading.value = true;
   error.value = null;
   try {
-    const requests: [Promise<Spotify[]>, Promise<Superuser[]>] = [
-      getSpotifyFestivals(),
+    const requests: [Promise<FestivalPlaylistRegistration[]>, Promise<Superuser[]>] = [
+      festivalPlaylistRegistrationsPort.getFestivalRegistrations(),
       canManage.value ? getUsersRv() : Promise.resolve([]),
     ];
     const [festivals, rvUsers] = await Promise.all(requests);
@@ -368,9 +369,9 @@ async function createPlaylist() {
   creating.value = true;
   try {
     const created = createMode.value === 'link'
-      ? await createLinkedFestivalPlaylist(createForm.spotifyUrl)
-      : await createFestivalPlaylist({ name: createForm.name.trim(), description: createForm.description, public: createForm.isPublic });
-    items.value.push(created);
+      ? await festivalPlaylistLifecyclePort.createLinkedFestivalPlaylist(createForm.spotifyUrl)
+      : await festivalPlaylistLifecyclePort.createFestivalPlaylist({ name: createForm.name.trim(), description: createForm.description, public: createForm.isPublic });
+    items.value.push({ ...created, content: null });
     showCreate.value = false;
     SwalService.success(createMode.value === 'link' ? 'Playlist vinculada correctamente' : 'Playlist creada en Spotify');
   } catch (createError) {
@@ -404,7 +405,7 @@ async function confirmLinkExisting(item: Spotify) {
   if (!result.isConfirmed) return;
   linkingItemId.value = item.id;
   try {
-    applySyncedPlaylist(await linkExistingFestivalPlaylist(item.id));
+    applySyncedPlaylist(await festivalPlaylistLifecyclePort.linkExistingFestivalPlaylist(item.id));
     SwalService.success('Playlist vinculada correctamente');
   } catch (linkError) {
     SwalService.error(errorMessage(linkError, 'No se pudo vincular la playlist'));
@@ -418,9 +419,9 @@ function openManager(item: Spotify) {
   managedPlaylist.value = item;
 }
 
-function applySyncedPlaylist(updated: SyncedFestivalPlaylist) {
+function applySyncedPlaylist(updated: FestivalPlaylistData) {
   const index = items.value.findIndex((item) => item.id === updated.id);
-  if (index !== -1) items.value[index] = updated;
+  if (index !== -1) items.value[index] = { ...updated, content: null };
   if (managedPlaylist.value?.id === updated.id) managedPlaylist.value = items.value[index] || updated;
 }
 
@@ -444,7 +445,10 @@ async function onDrop(targetStatus: ColumnId) {
   draggedItem.value = null;
   if (!item || item.status === targetStatus || targetStatus === 'published') return;
   try {
-    const updated = await updateSpotify(item.id, { status: targetStatus });
+    const updated = await festivalPlaylistRegistrationsPort.updateFestivalRegistration(
+      item.id,
+      { status: targetStatus },
+    );
     const index = items.value.findIndex((candidate) => candidate.id === item.id);
     if (index !== -1) items.value[index] = { ...items.value[index], ...updated };
   } catch (updateError) {
@@ -465,7 +469,10 @@ async function onUserChange(item: Spotify, event: Event) {
   const userId = (event.target as HTMLSelectElement).value;
   editingUserItemId.value = null;
   try {
-    const updated = await updateSpotify(item.id, { userId: userId || null });
+    const updated = await festivalPlaylistRegistrationsPort.updateFestivalRegistration(
+      item.id,
+      { userId: userId || null },
+    );
     const index = items.value.findIndex((candidate) => candidate.id === item.id);
     if (index !== -1) items.value[index] = { ...items.value[index], ...updated };
   } catch (updateError) {
@@ -478,7 +485,7 @@ async function confirmDeleteLegacy(item: Spotify) {
   const result = await SwalService.confirm('¿Eliminar registro antiguo?', `Vas a eliminar “${item.name}”.`, 'Sí, eliminar', 'Cancelar');
   if (!result.isConfirmed) return;
   try {
-    await removeSpotify(item.id);
+    await festivalPlaylistLifecyclePort.deleteFestivalRegistration(item.id);
     items.value = items.value.filter((candidate) => candidate.id !== item.id);
     SwalService.success('Festival eliminado');
   } catch (deleteError) {

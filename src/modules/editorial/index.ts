@@ -28,3 +28,32 @@ export type { EditorialCalendarPort } from './calendar/application/calendarPort'
 export type { RescheduleEditorialContent } from './calendar/domain/rescheduleContent';
 export { createRescheduleEditorialContent, toEditorialCalendarDate } from './calendar/domain/rescheduleContent';
 export { rescheduleEditorialContent } from './calendar/application/rescheduleEditorialContent';
+export type {
+  FestivalArtistCatalogPort,
+  FestivalPlaylistArtistTracksPort,
+  FestivalPlaylistDataPort,
+  FestivalPlaylistLifecyclePort,
+  FestivalPlaylistRegistrationsPort,
+} from './festival-playlists/application/festivalPlaylistsPort';
+export type {
+  FestivalPlaylistContent,
+  FestivalPlaylistData,
+  FestivalPlaylistRegistration,
+  FestivalPlaylistStatus,
+  FestivalPlaylistUser,
+  CreateFestivalPlaylistInput,
+  DeleteFestivalRegistrationResult,
+  DeleteLegacyFestivalRegistrationResult,
+  FestivalPlaylistImageUpdateResult,
+  FestivalPlaylistImageUpload,
+  FestivalArtist,
+  FestivalArtistSearchResult,
+  FestivalArtistTopSongs,
+  FailedFestivalArtistTrackSearchResult,
+  FestivalPlaylistArtist,
+  FestivalPlaylistArtistSyncStatus,
+  FestivalPlaylistTrack,
+  PendingFestivalArtist,
+  UpdateFestivalPlaylistMetadata,
+  UpdateFestivalPlaylistRegistration,
+} from './festival-playlists/domain/festivalPlaylists';
