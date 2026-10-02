@@ -203,10 +203,9 @@
 </template>
 
 <script>
-import { defineComponent, ref, watch } from "vue";
+import { defineComponent, inject, ref, watch } from "vue";
 import SwalService from "@services/swal/SwalService";
-import { getReunionDetails, updateReunion, deleteReunion } from "@services/reunions/reunions";
-import { deletePoint, updatePoint, postPoint } from "@services/points/point";
+import { reunionsKey } from "@/modules/editorial/presentation/reunionsKey";
 
 export default defineComponent({
     name: "ReunionEditModal",
@@ -216,6 +215,7 @@ export default defineComponent({
     },
     emits: ['close', 'updated', 'deleted'],
     setup(props, { emit }) {
+        const reunionsPort = inject(reunionsKey);
         const reunion = ref({ title: "", date: "" });
         const showEditReunionForm = ref(false);
         const newPoint = ref({ titulo: "", content: "" });
@@ -234,7 +234,7 @@ export default defineComponent({
         const fetchReunion = async () => {
             if (!props.reunionId) return;
             try {
-                const response = await getReunionDetails(props.reunionId);
+                const response = await reunionsPort.getReunionDetails(props.reunionId);
                 reunion.value = {
                     title: response.title,
                     date: new Date(response.date).toISOString().slice(0, 16),
@@ -252,7 +252,7 @@ export default defineComponent({
 
         const updateReunionFunction = async () => {
             try {
-                await updateReunion(props.reunionId, { title: reunion.value.title, date: reunion.value.date });
+                await reunionsPort.updateReunion(props.reunionId, { title: reunion.value.title, date: reunion.value.date });
                 SwalService.success('Reunión actualizada con éxito.');
                 showEditReunionForm.value = false;
                 emit('updated');
@@ -265,7 +265,7 @@ export default defineComponent({
 
         const addPoint = async () => {
             try {
-                const response = await postPoint({
+                const response = await reunionsPort.createReunionPoint({
                     titulo: newPoint.value.titulo,
                     content: newPoint.value.content,
                     reunionId: props.reunionId,
@@ -296,7 +296,7 @@ export default defineComponent({
 
         const updatePointReunion = async (id, index) => {
             try {
-                await updatePoint(id, { titulo: editPointData.value.titulo, content: editPointData.value.content });
+                await reunionsPort.updateReunionPoint(id, { titulo: editPointData.value.titulo, content: editPointData.value.content });
                 points.value[index].titulo = editPointData.value.titulo;
                 points.value[index].content = editPointData.value.content;
                 editingIndex.value = null;
@@ -318,7 +318,7 @@ export default defineComponent({
 
         const confirmDelete = async () => {
             try {
-                await deletePoint(pointToDelete.value.id);
+                await reunionsPort.deleteReunionPoint(pointToDelete.value.id);
                 points.value = points.value.filter((p) => p.id !== pointToDelete.value.id);
                 SwalService.success("Punto eliminado con éxito.");
                 showDeleteConfirm.value = false;
@@ -341,7 +341,7 @@ export default defineComponent({
             );
             if (result.isConfirmed) {
                 try {
-                    await deleteReunion(props.reunionId);
+                    await reunionsPort.deleteReunion(props.reunionId);
                     SwalService.success('Reunión eliminada');
                     emit('deleted', props.reunionId);
                     emit('close');
@@ -353,7 +353,7 @@ export default defineComponent({
 
         const togglePointDone = async (id, done) => {
             try {
-                await updatePoint(id, { done });
+                await reunionsPort.updateReunionPoint(id, { done });
                 const updatedPoint = points.value.find((p) => p.id === id);
                 if (updatedPoint) updatedPoint.done = done;
             } catch (error) {

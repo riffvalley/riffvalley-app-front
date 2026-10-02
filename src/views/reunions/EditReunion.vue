@@ -150,10 +150,9 @@
 </template>
 
 <script>
-import { defineComponent, ref } from "vue";
+import { defineComponent, inject, ref } from "vue";
 import SwalService from "@services/swal/SwalService";
-import { getReunionDetails, updateReunion } from "@services/reunions/reunions";
-import { deletePoint as deletePointApi, updatePoint, postPoint } from "@services/points/point";
+import { reunionsKey } from "@/modules/editorial/presentation/reunionsKey";
 
 export default defineComponent({
   name: "PointsManager",
@@ -161,6 +160,7 @@ export default defineComponent({
     id: { type: String, required: true },
   },
   setup(props) {
+    const reunionsPort = inject(reunionsKey);
     const reunion = ref({ title: "", date: "" });
     const showEditReunionForm = ref(false);
     const newPoint = ref({ titulo: "", content: "" });
@@ -176,7 +176,7 @@ export default defineComponent({
 
     const fetchReunion = async () => {
       try {
-        const response = await getReunionDetails(props.id);
+        const response = await reunionsPort.getReunionDetails(props.id);
         reunion.value = {
           title: response.title,
           date: new Date(response.date).toISOString().slice(0, 16),
@@ -189,7 +189,7 @@ export default defineComponent({
 
     const updateReunionFunction = async () => {
       try {
-        await updateReunion(props.id, { title: reunion.value.title, date: reunion.value.date });
+        await reunionsPort.updateReunion(props.id, { title: reunion.value.title, date: reunion.value.date });
         SwalService.success('Reunión actualizada con éxito.');
         showEditReunionForm.value = false;
       } catch (error) {
@@ -201,7 +201,7 @@ export default defineComponent({
 
     const addPoint = async () => {
       try {
-        const response = await postPoint({
+        const response = await reunionsPort.createReunionPoint({
           titulo: newPoint.value.titulo,
           content: newPoint.value.content,
           reunionId: props.id,
@@ -232,7 +232,7 @@ export default defineComponent({
 
     const updatePointReunion = async (id, index) => {
       try {
-        await updatePoint(id, { titulo: editPointData.value.titulo, content: editPointData.value.content });
+        await reunionsPort.updateReunionPoint(id, { titulo: editPointData.value.titulo, content: editPointData.value.content });
         points.value[index].titulo = editPointData.value.titulo;
         points.value[index].content = editPointData.value.content;
         editingIndex.value = null;
@@ -250,7 +250,7 @@ export default defineComponent({
     const deletePoint = async (id) => {
       if (!confirm("¿Estás seguro de que deseas eliminar este punto?")) return;
       try {
-        await deletePointApi(id);
+        await reunionsPort.deleteReunionPoint(id);
         points.value = points.value.filter((point) => point.id !== id);
         SwalService.success("Punto eliminado con éxito.");
       } catch (error) {
@@ -260,7 +260,7 @@ export default defineComponent({
 
     const togglePointDone = async (id, done) => {
       try {
-        await updatePoint(id, { done });
+        await reunionsPort.updateReunionPoint(id, { done });
         const updatedPoint = points.value.find((point) => point.id === id);
         if (updatedPoint) updatedPoint.done = done;
       } catch (error) {

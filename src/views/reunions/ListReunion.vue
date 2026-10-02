@@ -179,13 +179,14 @@
 <script>
 import ReunionTable from "./components/ReunionTable.vue";
 import ReunionEditModal from "./components/ReunionEditModal.vue";
-import { getReunions } from "@services/reunions/reunions";
 import { createContent } from "@services/contents/contents";
 import { getRvUsers } from "@services/users/users";
 import SwalService from "@services/swal/SwalService";
+import { reunionsKey } from "@/modules/editorial/presentation/reunionsKey";
 
 export default {
   components: { ReunionTable, ReunionEditModal },
+  inject: { reunionsPort: { from: reunionsKey } },
   data() {
     return {
       showForm: false,
@@ -299,7 +300,7 @@ export default {
     },
     async fetchReuniones() {
       try {
-        this.reuniones = await getReunions();
+        this.reuniones = await this.reunionsPort.getReunions();
         if (this.anosDisponibles.length > 0 && !this.selectedYear) {
           this.selectedYear = this.anosDisponibles[0];
         }

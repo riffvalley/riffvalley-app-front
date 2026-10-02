@@ -131,11 +131,11 @@
 </template>
 
 <script>
-import { getReunionDetails, deleteReunion } from '@services/reunions/reunions';
-import { deletePoint, postPoint, updatePoint } from '@services/points/point';
 import SwalService from '@services/swal/SwalService';
+import { reunionsKey } from '@/modules/editorial/presentation/reunionsKey';
 
 export default {
+  inject: { reunionsPort: { from: reunionsKey } },
   props: {
     title: String,
     reuniones: Array,
@@ -182,7 +182,7 @@ export default {
     },
     async togglePointDone(reunionId, point) {
       try {
-        await updatePoint(point.id, { done: !point.done });
+        await this.reunionsPort.updateReunionPoint(point.id, { done: !point.done });
         point.done = !point.done;
         SwalService.success('Estado actualizado');
       } catch (error) {
@@ -199,7 +199,7 @@ export default {
     },
     async reloadReunion(reunionId) {
       try {
-        const updatedReunion = await getReunionDetails(reunionId);
+        const updatedReunion = await this.reunionsPort.getReunionDetails(reunionId);
         this.$emit('update', updatedReunion);
         SwalService.success('Reunión actualizada');
       } catch (error) {
@@ -227,10 +227,10 @@ export default {
     async savePoint() {
       try {
         if (this.editingPoint) {
-          await updatePoint(this.editingPoint.id, this.pointForm);
+          await this.reunionsPort.updateReunionPoint(this.editingPoint.id, this.pointForm);
           SwalService.success('Punto actualizado');
         } else {
-          await postPoint({
+          await this.reunionsPort.createReunionPoint({
             titulo: this.pointForm.titulo,
             content: this.pointForm.content,
             reunionId: this.currentReunionId
@@ -251,7 +251,7 @@ export default {
       );
       if (result.isConfirmed) {
         try {
-          await deleteReunion(reunion.id);
+          await this.reunionsPort.deleteReunion(reunion.id);
           this.$emit('delete', reunion.id);
           SwalService.success('Reunión eliminada');
         } catch (error) {
@@ -266,7 +266,7 @@ export default {
       );
       if (result.isConfirmed) {
         try {
-          await deletePoint(point.id);
+          await this.reunionsPort.deleteReunionPoint(point.id);
           SwalService.success('Punto eliminado');
           await this.reloadReunion(reunionId);
         } catch (error) {
