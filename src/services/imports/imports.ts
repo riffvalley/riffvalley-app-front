@@ -24,7 +24,7 @@ export interface ManualImportResponse {
 
 export async function fetchManualData(date: string, albums: AlbumEntry[]): Promise<ManualImportResponse> {
   try {
-    const response = await api.post(`/scraping/process-manual-data`, { date, albums });
+    const response = await api.post(`/catalog/import/manual`, { date, albums });
     return response.data;
   } catch (error: any) {
     if (error.response) {
@@ -39,7 +39,7 @@ export async function fetchManualData(date: string, albums: AlbumEntry[]): Promi
  * Descarga la plantilla Excel para importar discos.
  */
 export async function downloadDiscTemplate(): Promise<Blob> {
-  const response = await api.get('/excel/template/download', {
+  const response = await api.get('/catalog/import/excel/template', {
     responseType: 'blob',
   });
   return response.data;
@@ -57,7 +57,7 @@ export async function uploadDiscFile(file: File): Promise<ImportResult> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await api.post<ImportResult>('/excel/template/upload', formData, {
+  const response = await api.post<ImportResult>('/catalog/import/excel', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
