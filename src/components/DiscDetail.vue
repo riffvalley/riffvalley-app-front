@@ -125,8 +125,10 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, computed } from "vue";
-import axios from "axios";
-import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
+import {
+  getSpotifyAlbumDetails,
+  resolveSpotifyAlbum,
+} from "@services/spotify/spotifyLookup";
 
 export default defineComponent({
   name: "SpotifyAlbumDetails",
@@ -146,44 +148,30 @@ export default defineComponent({
     // Busca el álbum en Spotify
     const searchAlbum = async () => {
       try {
-        const token = await obtenerTokenSpotify();
-        if (!token) {
-          error.value = "No se pudo obtener el token de Spotify";
-          loading.value = false;
+        const foundAlbum = await resolveSpotifyAlbum(
+          props.disc.name,
+          props.disc.artist.name,
+        );
+        if (!foundAlbum) {
+          error.value = "Álbum no encontrado en Spotify";
           return;
         }
-
-        // Construir la consulta de búsqueda (ejemplo: "album:NombreDelÁlbum artist:NombreDelArtista")
-        const query = encodeURIComponent(
-          `album:${props.disc.name} artist:${props.disc.artist.name}`
-        );
-        const searchResponse = await axios.get(
-          `https://api.spotify.com/v1/search?q=${query}&type=album&limit=1`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (searchResponse.data.albums.items.length > 0) {
-          const foundAlbum = searchResponse.data.albums.items[0];
-
-          // Obtener los detalles completos del álbum (pistas, etc.)
-          const albumResponse = await axios.get(
-            `https://api.spotify.com/v1/albums/${foundAlbum.id}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          album.value = albumResponse.data;
-          tracks.value = albumResponse.data.tracks.items;
-        } else {
-          error.value = "Álbum no encontrado en Spotify";
-        }
+        const details = await getSpotifyAlbumDetails(foundAlbum.spotifyId);
+        album.value = {
+          name: details.name,
+          images: details.coverUrl ? [{ url: details.coverUrl }] : [],
+          artists: details.artistNames.map((name) => ({ name })),
+          release_date: details.releaseDate,
+          total_tracks: details.totalTracks,
+          external_urls: { spotify: details.listenUrl },
+        };
+        tracks.value = details.tracks.map((track) => ({
+          id: track.id,
+          name: track.name,
+          track_number: track.number,
+          preview_url: track.previewUrl,
+          duration_ms: track.durationMs,
+        }));
       } catch (err: any) {
         console.error("Error al buscar el álbum en Spotify:", err);
         error.value = "Error al buscar el álbum en Spotify";
