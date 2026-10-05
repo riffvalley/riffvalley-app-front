@@ -1,9 +1,9 @@
 import api from "@services/api/api";
-import type { Spotify } from "@services/spotify/spotify";
+import type { RiffValleyPlaylist } from "@services/riff-valley-playlists/riffValleyPlaylists";
 import type { Article } from "@services/articles/articles";
 
 // Interfaces
-export type ContentType = "article" | "photos" | "spotify" | "radar" | "best" | "video" | "reunion";
+export type ContentType = "article" | "photos" | "riff_valley_playlist" | "radar" | "best" | "video" | "reunion";
 
 export interface Author {
     id: string;
@@ -44,16 +44,16 @@ export interface Content {
 
     // Relations based on type
     list: ContentList | null;
-    spotify: Spotify | null;
+    riffValleyPlaylist: RiffValleyPlaylist | null;
     article: Article | null;
 }
 
 /**
- * Content asociado embebido en la respuesta de un Video/Article/Spotify
- * (GET/POST /videos|articles|spotify[/:id][/content]).
+ * Content asociado embebido en la respuesta de un Video/Article/Riff Valley playlist
+ * (GET/POST /videos|articles|riff-valley-playlists[/:id][/content]).
  * Es una vista resumida de Content: solo garantiza los campos que el
  * backend documenta siempre presentes; el resto se trata como opcional
- * porque Video/Article/Spotify y Content son entidades desacopladas.
+ * porque Video/Article/Riff Valley playlist y Content son entidades desacopladas.
  */
 export interface ContentRef {
     id: string;
@@ -76,6 +76,7 @@ export interface CreateContentDto {
     reunionId?: string;
     authorId: string;
     listDate?: string;
+    riffValleyPlaylistId?: string;
     backlog?: boolean;
 }
 

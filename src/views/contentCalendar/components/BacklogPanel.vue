@@ -93,7 +93,7 @@ function getContentTypeClass(type: string): string {
     const classes: Record<string, string> = {
         article: 'border-blue-500',
         photos: 'border-pink-500',
-        spotify: 'border-green-500',
+        riff_valley_playlist: 'border-green-500',
         radar: 'border-orange-500',
         best: 'border-red-500',
         video: 'border-purple-500',
@@ -106,7 +106,7 @@ function getContentTypeBadge(type: string): string {
     const badges: Record<string, string> = {
         article: 'bg-blue-100 text-blue-700',
         photos: 'bg-pink-100 text-pink-700',
-        spotify: 'bg-green-100 text-green-700',
+        riff_valley_playlist: 'bg-green-100 text-green-700',
         radar: 'bg-orange-100 text-orange-700',
         best: 'bg-red-100 text-red-700',
         video: 'bg-purple-100 text-purple-700',
@@ -123,7 +123,7 @@ function getContentTypeLabel(type: string): string {
     const labels: Record<string, string> = {
         article: 'Artículo',
         photos: 'Fotos',
-        spotify: 'Spotify',
+        riff_valley_playlist: 'Playlist de Riff Valley',
         radar: 'Radar',
         best: 'Mejores del Mes',
         video: 'Video',
