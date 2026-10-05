@@ -1,3 +1,10 @@
+## <small>1.44.2 (2026-10-05)</small>
+
+* Merge pull request #178 from riffvalley/chore/refactor-integration ([96332c7](https://github.com/riffvalley/riffvalley-app-front/commit/96332c7)), closes [#178](https://github.com/riffvalley/riffvalley-app-front/issues/178)
+* perf(home): use aggregated rates insights ([7a0863b](https://github.com/riffvalley/riffvalley-app-front/commit/7a0863b))
+* fix(import): use catalog import routes ([6dd9d2a](https://github.com/riffvalley/riffvalley-app-front/commit/6dd9d2a))
+* fix(spotify): route frontend lookups through backend ([ce729d7](https://github.com/riffvalley/riffvalley-app-front/commit/ce729d7))
+
 ## <small>1.44.1 (2026-09-25)</small>
 
 * Merge pull request #174 from riffvalley/fix/sidebar-theme-toggle-alignment ([da5c2c4](https://github.com/riffvalley/riffvalley-app-front/commit/da5c2c4)), closes [#174](https://github.com/riffvalley/riffvalley-app-front/issues/174)
