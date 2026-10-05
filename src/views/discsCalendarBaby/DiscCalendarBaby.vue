@@ -103,7 +103,7 @@ import { updateDisc, deleteDisc, getDiscsDated } from "@services/discs/discs";
 import DiscComponentBaby from "./components/DiscComponentBaby.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";
 import { MONTHS, getYearOptions } from "@helpers/dateConstants";
-import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
+import { resolveSpotifyAlbum } from "@services/spotify/spotifyLookup";
 import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
 import SwalService from "@services/swal/SwalService";
@@ -328,38 +328,20 @@ export default defineComponent({
 
 
     const buscarEnlacesSpotify = async (discs: any[]) => {
-      const token = await obtenerTokenSpotify();
-      if (!token) {
-        console.error("No se pudo obtener el token de Spotify");
-        return;
-      }
-
       for (const disc of discs) {
         try {
-          const query = encodeURIComponent(
-            `album:${disc.name} artist:${disc.artist.name}`
-          );
-          const response = await axios.get(
-            `https://api.spotify.com/v1/search?q=${query}&type=album&limit=1`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          if (response.data.albums.items.length > 0) {
-            const album = response.data.albums.items[0];
-            disc.link = album.external_urls.spotify;
-            disc.image = album.images?.[0]?.url || null;
-            await updateDisc(disc.id, {
-              link: disc.link,
-              image: disc.image,
-              verified: true,
-            });
-          } else {
+          const album = await resolveSpotifyAlbum(disc.name, disc.artist.name);
+          if (!album) {
             disc.link = "No se encontró el álbum";
+            continue;
           }
+          disc.link = album.listenUrl ?? "No se encontró el álbum";
+          disc.image = album.coverUrl;
+          await updateDisc(disc.id, {
+            link: disc.link,
+            image: disc.image,
+            verified: true,
+          });
         } catch (error) {
           console.error(`Error al buscar el álbum ${disc.name}:`, error);
           disc.link = "Error al realizar la búsqueda";

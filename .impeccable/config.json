@@ -1,0 +1,20 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "bounce-easing",
+        "value": "animate-bounce",
+        "createdAt": "2026-10-05T08:23:04.788Z",
+        "reason": "Usuario confirmó conservar animate-bounce como feedback de éxito al añadir un disco"
+      },
+      {
+        "rule": "bounce-easing",
+        "value": "dice-wobble",
+        "createdAt": "2026-10-05T08:28:17.945Z",
+        "reason": "Usuario confirmó conservar dice-wobble como animación intencional del dado al pasar el cursor"
+      }
+    ]
+  }
+}

@@ -223,7 +223,7 @@ import axios from 'axios';
 import { fetchManualData } from '@services/imports/imports';
 import type { AlbumEntry, ManualImportResponse, DiscImportResultItem } from '@services/imports/imports';
 import { updateDisc } from '@services/discs/discs';
-import { obtenerTokenSpotify } from '@helpers/SpotifyFunctions.ts';
+import { resolveSpotifyAlbum } from '@services/spotify/spotifyLookup';
 import { useCatalogStore } from '@stores/catalog/catalog';
 import SearchableSelect from '@components/SearchableSelect.vue';
 import SwalService from '@services/swal/SwalService';
@@ -315,32 +315,21 @@ export default defineComponent({
       searchingSpotify.value = true;
       spotifyFound.value = {};
       try {
-        const token = await obtenerTokenSpotify();
-        if (!token) {
-          SwalService.error('No se pudo obtener el token de Spotify.');
-          return;
-        }
-
         let foundCount = 0;
         for (const item of importedDiscsParsed.value) {
           try {
-            const query = encodeURIComponent(`album:${item.disc} artist:${item.artist}`);
-            const response = await axios.get(
-              `https://api.spotify.com/v1/search?q=${query}&type=album&limit=1`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            const album = response.data.albums.items[0];
-            if (album) {
-              await updateDisc(item.discId, {
-                link: album.external_urls.spotify,
-                image: album.images?.[0]?.url,
-                verified: true,
-              });
-              spotifyFound.value[item.discId] = true;
-              foundCount++;
-            } else {
+            const album = await resolveSpotifyAlbum(item.disc, item.artist);
+            if (!album) {
               spotifyFound.value[item.discId] = false;
+              continue;
             }
+            await updateDisc(item.discId, {
+              link: album.listenUrl,
+              image: album.coverUrl,
+              verified: true,
+            });
+            spotifyFound.value[item.discId] = true;
+            foundCount++;
           } catch {
             spotifyFound.value[item.discId] = false;
           }

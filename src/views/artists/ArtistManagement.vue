@@ -840,7 +840,10 @@ import type { Country } from "@services/countries/countries";
 import { getGenres } from "@services/genres/genres";
 import type { Genre } from "@services/genres/genres";
 import { getDiscRates } from "@services/rates/rates";
-import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
+import {
+  findSpotifyArtist,
+  findSpotifyArtistCandidates,
+} from "@services/spotify/spotifyLookup";
 import axios from "axios";
 import { useAuthStore } from "@stores/auth/auth";
 import SearchableSelect from "@components/SearchableSelect.vue";
@@ -1196,23 +1199,13 @@ export default defineComponent({
           return;
         }
 
-        const token = await obtenerTokenSpotify();
-        if (!token) throw new Error("No se pudo obtener el token de Spotify");
-
         let updated = 0;
 
         for (const artist of toFill) {
           try {
-            const res = await axios.get("https://api.spotify.com/v1/search", {
-              headers: { Authorization: `Bearer ${token}` },
-              params: { q: artist.name, type: "artist", limit: 1 },
-            });
-            const first = res.data.artists?.items?.find(
-              (a: any) => a.images?.length > 0,
-            );
-            if (first) {
-              const img640 = first.images.find((img: any) => img.width === 640);
-              const imageUrl = (img640 ?? first.images[0]).url;
+            const spotifyArtist = await findSpotifyArtist(artist.name);
+            if (spotifyArtist?.imageUrl) {
+              const imageUrl = spotifyArtist.imageUrl;
               await updateArtist(artist.id, { image: imageUrl });
               const localArtist = artists.value.find((a) => a.id === artist.id);
               if (localArtist) localArtist.image = imageUrl;
@@ -1264,16 +1257,9 @@ export default defineComponent({
       fetchingSpotifyImage.value = true;
       spotifyImageOptions.value = [];
       try {
-        const token = await obtenerTokenSpotify();
-        if (!token) throw new Error("Sin token");
-        const res = await axios.get("https://api.spotify.com/v1/search", {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { q: editModal.name, type: "artist", limit: 5 },
-        });
-        const first = res.data.artists.items.find(
-          (a: any) => a.images?.length > 0,
-        );
-        if (!first) {
+        const candidates = await findSpotifyArtistCandidates(editModal.name);
+        const first = candidates.find((candidate) => candidate.imageUrl);
+        if (!first?.imageUrl) {
           Swal.fire({
             icon: "warning",
             title: "No se encontraron imágenes en Spotify",
@@ -1283,8 +1269,7 @@ export default defineComponent({
             position: "top-end",
           });
         } else {
-          const img640 = first.images.find((img: any) => img.width === 640);
-          editModal.image = (img640 ?? first.images[0]).url;
+          editModal.image = first.imageUrl;
         }
       } catch {
         Swal.fire({
@@ -1309,18 +1294,7 @@ export default defineComponent({
       name: string,
     ): Promise<string | null> => {
       try {
-        const token = await obtenerTokenSpotify();
-        if (!token) return null;
-        const res = await axios.get("https://api.spotify.com/v1/search", {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { q: name, type: "artist", limit: 1 },
-        });
-        const first = res.data.artists?.items?.find(
-          (a: any) => a.images?.length > 0,
-        );
-        if (!first) return null;
-        const img640 = first.images.find((img: any) => img.width === 640);
-        return (img640 ?? first.images[0]).url;
+        return (await findSpotifyArtist(name))?.imageUrl ?? null;
       } catch {
         return null;
       }
