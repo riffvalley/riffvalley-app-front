@@ -239,7 +239,10 @@ import Swal from "sweetalert2";
 import SwalService from "@services/swal/SwalService";
 import axios from "axios";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
-import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
+import {
+  findSpotifyArtist,
+  getSpotifyArtistAlbums,
+} from "@services/spotify/spotifyLookup";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import EditModal from "./EditModal.vue";
 
@@ -648,65 +651,53 @@ export default defineComponent({
     };
 
     const buscarGeneroSpotify = async (disc: any) => {
-      const token = await obtenerTokenSpotify();
-      if (!token) {
-        console.error("No se pudo obtener el token de Spotify");
-        return;
-      }
       try {
-        const query = encodeURIComponent(`artist:${disc.artist.name}`);
-        const response = await axios.get(`https://api.spotify.com/v1/search?q=${query}&type=artist&limit=1`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (response.data.artists.items.length > 0) {
-          const artist = response.data.artists.items[0];
-          const artistId = artist.id;
-          const albumsResponse = await axios.get(`https://api.spotify.com/v1/artists/${artistId}/albums`, {
-            headers: { Authorization: `Bearer ${token}` },
-            params: { include_groups: "album,single", limit: 1 },
-          });
-          if (albumsResponse.data.items.length > 0) {
-            const genres = artist.genres;
-            if (genres.length > 0) {
-              disc.genero = genres.join(", ");
-              Swal.fire({
-                title: "¡Éxito!",
-                text: `El género del último track: ${disc.genero}`,
-                icon: "success",
-                position: "top-end",
-                timer: 6000,
-                timerProgressBar: true,
-                showConfirmButton: false,
-                toast: true,
-              });
-            } else {
-              Swal.fire({
-                title: "Sin géneros",
-                text: `No se encontraron géneros asociados al artista "${disc.artist.name}".`,
-                icon: "warning",
-                position: "top-end",
-                timer: 3000,
-                timerProgressBar: true,
-                showConfirmButton: false,
-                toast: true,
-              });
-            }
-          } else {
-            Swal.fire({
-              title: "No se encontraron lanzamientos",
-              text: `No se encontraron tracks recientes para el artista "${disc.artist.name}".`,
-              icon: "warning",
-              position: "top-end",
-              timer: 3000,
-              timerProgressBar: true,
-              showConfirmButton: false,
-              toast: true,
-            });
-          }
-        } else {
+        const artist = await findSpotifyArtist(disc.artist.name);
+        if (!artist) {
           Swal.fire({
             title: "Artista no encontrado",
             text: `No se encontró información para el artista "${disc.artist.name}" en Spotify.`,
+            icon: "warning",
+            position: "top-end",
+            timer: 3000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            toast: true,
+          });
+          return;
+        }
+
+        const albums = await getSpotifyArtistAlbums(artist.spotifyId);
+        if (!albums.items.length) {
+          Swal.fire({
+            title: "No se encontraron lanzamientos",
+            text: `No se encontraron tracks recientes para el artista "${disc.artist.name}".`,
+            icon: "warning",
+            position: "top-end",
+            timer: 3000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            toast: true,
+          });
+          return;
+        }
+
+        if (artist.genres.length > 0) {
+          disc.genero = artist.genres.join(", ");
+          Swal.fire({
+            title: "¡Éxito!",
+            text: `El género del último track: ${disc.genero}`,
+            icon: "success",
+            position: "top-end",
+            timer: 6000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            toast: true,
+          });
+        } else {
+          Swal.fire({
+            title: "Sin géneros",
+            text: `No se encontraron géneros asociados al artista "${disc.artist.name}".`,
             icon: "warning",
             position: "top-end",
             timer: 3000,

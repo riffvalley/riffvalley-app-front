@@ -179,7 +179,11 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from "vue";
 import axios from "axios";
-import { obtenerTokenSpotify } from "@helpers/SpotifyFunctions.ts";
+import {
+  findSpotifyArtist,
+  getSpotifyArtistTopTracks,
+  resolveSpotifyAlbum,
+} from "@services/spotify/spotifyLookup";
 
 export default defineComponent({
   name: "ArtistByDisc",
@@ -218,71 +222,42 @@ export default defineComponent({
       }
     };
 
-    const fetchArtistDataFromSpotify = async (
-      artistId: string,
-      token: string
-    ) => {
-      // Obtener la información completa del artista
-      const artistResponse = await axios.get(
-        `https://api.spotify.com/v1/artists/${artistId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      artist.value = artistResponse.data;
-
-      // Obtener los Top Tracks
-      const topTracksResponse = await axios.get(
-        `https://api.spotify.com/v1/artists/${artistId}/top-tracks?market=US`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      topTracks.value = topTracksResponse.data.tracks;
-
-      // Llamada a Last.fm con el nombre real del artista
-    };
-
     const searchByAlbumAndArtist = async () => {
       try {
-        const token = await obtenerTokenSpotify();
-        if (!token) {
-          error.value = "No se pudo obtener el token de Spotify";
-          loading.value = false;
+        const matchingAlbum = await resolveSpotifyAlbum(
+          props.discName,
+          props.artistName,
+        );
+        if (!matchingAlbum) {
+          error.value = "No se encontró ningún álbum en Spotify con esos datos";
           return;
         }
-
-        // Construir la consulta: "album:DISCO artist:ARTISTA"
-        const query = encodeURIComponent(
-          `album:${props.discName} artist:${props.artistName}`
-        );
-        // Buscar álbumes
-        const searchResponse = await axios.get(
-          `https://api.spotify.com/v1/search?q=${query}&type=album&limit=5`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-
-        const albums = searchResponse.data.albums.items;
-        if (!albums || albums.length === 0) {
+        const spotifyArtist = await findSpotifyArtist(props.artistName);
+        if (!spotifyArtist) {
           error.value = "No se encontró ningún álbum en Spotify con esos datos";
           return;
         }
 
-        // Toma el primer álbum que coincida, o filtra según necesites
-        const chosenAlbum = albums[0];
-
-        // Normalmente, un álbum tiene un array de 'artists'; tomamos el primero
-        // o filtras si hubiera varios
-        const primaryArtist = chosenAlbum.artists[0];
-        if (!primaryArtist) {
-          error.value = "No se encontró un artista válido en el álbum";
-          return;
-        }
-
-        // Ahora que tenemos el artistId, obtenemos su info y top tracks
-        await fetchArtistDataFromSpotify(primaryArtist.id, token);
+        artist.value = {
+          name: spotifyArtist.name,
+          images: spotifyArtist.imageUrl ? [{ url: spotifyArtist.imageUrl }] : [],
+          genres: spotifyArtist.genres,
+          followers: { total: spotifyArtist.followers ?? 0 },
+          popularity: spotifyArtist.popularity ?? 0,
+          external_urls: { spotify: spotifyArtist.listenUrl },
+        };
+        const tracks = await getSpotifyArtistTopTracks(spotifyArtist.spotifyId);
+        topTracks.value = tracks.map((track) => ({
+          id: track.id,
+          name: track.name,
+          album: {
+            name: track.albumName,
+            images: track.albumImageUrl ? [{ url: track.albumImageUrl }] : [],
+          },
+          preview_url: track.previewUrl,
+          external_urls: { spotify: track.listenUrl },
+          duration_ms: track.durationMs ?? 0,
+        }));
       } catch (err: any) {
         console.error("Error al buscar el artista en Spotify:", err);
         error.value = "Error al buscar el artista en Spotify";
