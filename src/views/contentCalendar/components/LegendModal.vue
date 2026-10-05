@@ -15,7 +15,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <div class="w-6 h-6 rounded" style="background-color: #22c55e;"></div>
-                    <span class="font-medium text-gray-800 dark:text-gray-200">Spotify</span>
+                    <span class="font-medium text-gray-800 dark:text-gray-200">Playlist de Riff Valley</span>
                 </div>
                 <div class="flex items-center gap-3">
                     <div class="w-6 h-6 rounded" style="background-color: #f59e0b;"></div>

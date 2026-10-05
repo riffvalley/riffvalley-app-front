@@ -226,14 +226,14 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive, nextTick } from 'vue';
 import {
-    getSpotifyGenres,
-    updateSpotify,
-    removeSpotify,
-    createSpotifyContent,
-    type Spotify,
-    type SpotifyStatus,
+    getRiffValleyPlaylistGenres,
+    updateRiffValleyPlaylist,
+    removeRiffValleyPlaylist,
+    createRiffValleyPlaylistContent,
+    type RiffValleyPlaylist,
+    type RiffValleyPlaylistStatus,
     toISO
-} from '@services/spotify/spotify';
+} from '@services/riff-valley-playlists/riffValleyPlaylists';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
 import { useAuthStore } from '@stores/auth/auth';
 import SwalService from '@services/swal/SwalService';
@@ -256,7 +256,7 @@ const activeTab = ref<'playlists' | 'kanban'>('playlists');
 function selectTab(tab: 'playlists' | 'kanban') { activeTab.value = tab; }
 
 // --- Types ---
-type ColumnId = SpotifyStatus;
+type ColumnId = RiffValleyPlaylistStatus;
 
 interface Column {
     id: ColumnId;
@@ -277,12 +277,12 @@ const columns: Column[] = [
 ];
 
 // --- State ---
-const items = ref<Spotify[]>([]);
+const items = ref<RiffValleyPlaylist[]>([]);
 const users = ref<Superuser[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
-const draggedItem = ref<Spotify | null>(null);
-const managedPlaylist = ref<Spotify | null>(null);
+const draggedItem = ref<RiffValleyPlaylist | null>(null);
+const managedPlaylist = ref<RiffValleyPlaylist | null>(null);
 const linkingItemId = ref<string | null>(null);
 const createMode = ref<'new' | 'link'>('new');
 const connection = ref<SpotifyConnection>({ connected: false, spotifyUserId: null, displayName: null, canUploadImages: false, missingScopes: [], authorizationStatus: 'disconnected', reauthorizationRequired: false, reauthorizationReason: null, authorizedAt: null, refreshTokenExpiresAt: null, daysUntilReauthorization: null });
@@ -304,7 +304,7 @@ const form = reactive({
 });
 
 // --- Getters ---
-function getItems(status: SpotifyStatus) {
+function getItems(status: RiffValleyPlaylistStatus) {
     return items.value.filter(i => i.status === status);
 }
 
@@ -312,7 +312,7 @@ function fmtDate(iso: string) {
     if (!iso) return '';
     return new Date(iso).toLocaleDateString() + ' ' + new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
-function artistCount(item: Spotify) { return item.playlistArtists?.length ?? item.playlistArtistsCount ?? 0; }
+function artistCount(item: RiffValleyPlaylist) { return item.playlistArtists?.length ?? item.playlistArtistsCount ?? 0; }
 function summary(value?: string | null) { if (!value) return ''; return value.length > 110 ? `${value.slice(0, 107)}…` : value; }
 function apiError(error: unknown, fallback: string) { return axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message || fallback : fallback; }
 
@@ -324,7 +324,7 @@ async function reload() {
         if (users.value.length === 0) {
             users.value = await getUsersRv();
         }
-        items.value = await getSpotifyGenres();
+        items.value = await getRiffValleyPlaylistGenres();
         try {
             connection.value = await getSpotifyConnection();
         } catch (connectionError) {
@@ -341,7 +341,7 @@ async function reload() {
 }
 
 // --- Drag & Drop ---
-function onDragStart(item: Spotify) {
+function onDragStart(item: RiffValleyPlaylist) {
     draggedItem.value = item;
 }
 
@@ -368,7 +368,7 @@ async function onDrop(targetState: ColumnId) {
     item.status = targetState;
 
     try {
-        await updateSpotify(item.id, { status: targetState });
+        await updateRiffValleyPlaylist(item.id, { status: targetState });
     } catch (e: any) {
         console.error(e);
         item.status = originalState;
@@ -395,7 +395,7 @@ function stopEditingUser() {
     editingUserItemId.value = null;
 }
 
-async function onUserChange(item: Spotify, event: Event) {
+async function onUserChange(item: RiffValleyPlaylist, event: Event) {
     const select = event.target as HTMLSelectElement;
     const newUserId = select.value || null;
 
@@ -415,7 +415,7 @@ async function onUserChange(item: Spotify, event: Event) {
     }
 
     try {
-        await updateSpotify(item.id, { userId: newUserId || undefined });
+        await updateRiffValleyPlaylist(item.id, { userId: newUserId || undefined });
     } catch (e) {
         console.error(e);
         item.user = oldUser;
@@ -436,7 +436,7 @@ function openCreate() {
     showModal.value = true;
 }
 
-function openEdit(item: Spotify) {
+function openEdit(item: RiffValleyPlaylist) {
     isEditing.value = true;
     editingId.value = item.id;
     form.name = item.name;
@@ -458,7 +458,7 @@ async function save() {
 
     try {
         if (isEditing.value && editingId.value) {
-            const updated = await updateSpotify(editingId.value, {
+            const updated = await updateRiffValleyPlaylist(editingId.value, {
                 name: form.name,
                 link: form.link,
                 updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined
@@ -490,7 +490,7 @@ async function save() {
     }
 }
 
-async function linkExisting(item: Spotify) {
+async function linkExisting(item: RiffValleyPlaylist) {
     if (linkingItemId.value) return;
     const confirmation = await SwalService.confirm('¿Vincular con Spotify?', 'Se conservarán como protegidas las canciones que ya existan en la playlist.', 'Sí, vincular', 'Cancelar');
     if (!confirmation.isConfirmed) return;
@@ -499,13 +499,13 @@ async function linkExisting(item: Spotify) {
     catch (error) { SwalService.error(apiError(error, 'No se pudo vincular la playlist')); }
     finally { linkingItemId.value = null; }
 }
-function openManager(item: Spotify) { if (item.spotifyPlaylistId) managedPlaylist.value = item; }
+function openManager(item: RiffValleyPlaylist) { if (item.spotifyPlaylistId) managedPlaylist.value = item; }
 function applySyncedPlaylist(updated: SyncedGenrePlaylist) { const index = items.value.findIndex((item) => item.id === updated.id); if (index !== -1) items.value[index] = updated; if (managedPlaylist.value?.id === updated.id) managedPlaylist.value = items.value[index] || updated; }
 function removeDeletedPlaylist(id: string) { items.value = items.value.filter((item) => item.id !== id); managedPlaylist.value = null; }
 async function startSpotifyOAuth() { try { const { authorizationUrl } = await connectSpotify(); window.location.assign(authorizationUrl); } catch (error) { SwalService.error(apiError(error, 'No se pudo iniciar Spotify')); } }
 
 // --- Delete Item ---
-async function confirmDelete(item: Spotify) {
+async function confirmDelete(item: RiffValleyPlaylist) {
     const result = await SwalService.confirm(
         '¿Eliminar género?',
         `Vas a eliminar "${item.name}". Esta acción no se puede deshacer.`,
@@ -514,7 +514,7 @@ async function confirmDelete(item: Spotify) {
 
     if (result.isConfirmed) {
         try {
-            await removeSpotify(item.id);
+            await removeRiffValleyPlaylist(item.id);
             items.value = items.value.filter(i => i.id !== item.id);
             SwalService.success('Género eliminado');
         } catch (e: any) {
@@ -525,13 +525,13 @@ async function confirmDelete(item: Spotify) {
 }
 
 // --- Add to calendar (creates the associated Content) ---
-async function handleCreateContent(item: Spotify) {
+async function handleCreateContent(item: RiffValleyPlaylist) {
     if (!item.user) {
         SwalService.error('Asigna un usuario antes de añadirlo al calendario.');
         return;
     }
     try {
-        const updated = await createSpotifyContent(item.id);
+        const updated = await createRiffValleyPlaylistContent(item.id);
         const index = items.value.findIndex(x => x.id === item.id);
         if (index !== -1) items.value[index] = { ...items.value[index], content: updated.content };
         SwalService.success('Añadido al calendario');

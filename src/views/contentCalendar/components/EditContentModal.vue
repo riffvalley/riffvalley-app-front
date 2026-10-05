@@ -26,17 +26,17 @@
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Tipo</label>
                     <select v-model="formData.type"
                         class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30 disabled:opacity-50"
-                        :disabled="formData.type === 'spotify'">
+                        :disabled="formData.type === 'riff_valley_playlist'">
                         <option value="article">Artículo</option>
                         <option value="photos">Fotos</option>
                         <option value="radar">Radar</option>
                         <option value="best">Mejores Discos</option>
                         <option value="video">Video</option>
                         <option value="reunion">Reunión</option>
-                        <option value="spotify" v-if="formData.type === 'spotify'">Spotify</option>
+                        <option value="riff_valley_playlist" v-if="formData.type === 'riff_valley_playlist'">Playlist de Riff Valley</option>
                     </select>
-                    <p v-if="formData.type === 'spotify'" class="text-xs text-gray-400 mt-1">
-                        El tipo no se puede cambiar para listas de Spotify.
+                    <p v-if="formData.type === 'riff_valley_playlist'" class="text-xs text-gray-400 mt-1">
+                        El tipo no se puede cambiar para playlists de Riff Valley.
                     </p>
                 </div>
 
@@ -45,9 +45,9 @@
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Nombre</label>
                     <input v-model="formData.name" type="text"
                         class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30 disabled:opacity-50"
-                        :disabled="formData.type === 'spotify'" placeholder="Título del contenido" />
-                    <p v-if="formData.type === 'spotify'" class="text-xs text-gray-400 mt-1">
-                        El nombre no se puede editar para listas de Spotify.
+                        :disabled="formData.type === 'riff_valley_playlist'" placeholder="Título del contenido" />
+                    <p v-if="formData.type === 'riff_valley_playlist'" class="text-xs text-gray-400 mt-1">
+                        El nombre no se puede editar para playlists de Riff Valley.
                     </p>
                 </div>
 
@@ -148,14 +148,14 @@ const emit = defineEmits<{
 }>();
 
 const typeLabel = computed(() => ({
-    article: 'Artículo', photos: 'Fotos', spotify: 'Spotify',
+    article: 'Artículo', photos: 'Fotos', riff_valley_playlist: 'Playlist de Riff Valley',
     radar: 'Radar', best: 'Mejores del Mes', video: 'Video', reunion: 'Reunión'
 }[formData.value.type] ?? formData.value.type));
 
 const typeBadgeClass = computed(() => ({
     article:  'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
     photos:   'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300',
-    spotify:  'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
+    riff_valley_playlist:  'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
     radar:    'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300',
     best:     'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
     video:    'bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300',
