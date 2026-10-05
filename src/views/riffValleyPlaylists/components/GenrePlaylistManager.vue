@@ -592,7 +592,7 @@ import {
 } from "vue";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import SwalService from "@services/swal/SwalService";
-import { removeSpotify } from "@services/spotify/spotify";
+import { removeRiffValleyPlaylist } from "@services/riff-valley-playlists/riffValleyPlaylists";
 import {
   createPendingFestivalArtist,
   searchFestivalArtists,
@@ -1052,7 +1052,7 @@ async function deletePlaylist() {
   if (!result.isConfirmed) return;
   deleting.value = true;
   try {
-    await removeSpotify(id);
+    await removeRiffValleyPlaylist(id);
     emit("deleted", id);
     emit("close");
     SwalService.success("Playlist eliminada de Riff Valley");

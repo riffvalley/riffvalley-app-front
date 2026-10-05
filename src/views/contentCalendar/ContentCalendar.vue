@@ -494,7 +494,7 @@ function getContentTypeLabel(type: ContentType): string {
     const labels: Record<ContentType, string> = {
         article: 'Artículo',
         photos: 'Fotos',
-        spotify: 'Spotify',
+        riff_valley_playlist: 'Playlist de Riff Valley',
         radar: 'Radar',
         best: 'Mejores del Mes',
         video: 'Video',
@@ -509,7 +509,7 @@ function getContentTypeColor(type: ContentType) {
     const colors: Record<ContentType, { bg: string; border: string }> = {
         article: { bg: '#3b82f6', border: '#2563eb' },     // Azul
         photos: { bg: '#ec4899', border: '#db2777' },      // Rosa/Magenta
-        spotify: { bg: '#22c55e', border: '#16a34a' },        // Verde Lima
+        riff_valley_playlist: { bg: '#22c55e', border: '#16a34a' },        // Verde Lima
         radar: { bg: '#f59e0b', border: '#d97706' },       // Amarillo/Ámbar
         best: { bg: '#ef4444', border: '#dc2626' },        // Rojo
         video: { bg: '#8b5cf6', border: '#7c3aed' },       // Violeta
