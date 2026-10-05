@@ -138,19 +138,19 @@
     "icon": "fa-solid fa-list-check"
   },
   {
-    "label": "Spotify",
+    "label": "Playlists Riff Valley",
     "type": "riff-valley",
     "requiredRole": "riffValley",
-    "icon": "fa-brands fa-spotify text-white",
+    "icon": "fa-solid fa-music text-white",
     "children": [
       {
-        "to": "/spotify/festivales",
+        "to": "/riff-valley-playlists/festivales",
         "label": "Festivales",
         "activeClass": "bg-gray-700",
         "icon": "fa-solid fa-music"
       },
       {
-        "to": "/spotify/generos",
+        "to": "/riff-valley-playlists/generos",
         "label": "Géneros",
         "activeClass": "bg-gray-700",
         "icon": "fa-solid fa-guitar"

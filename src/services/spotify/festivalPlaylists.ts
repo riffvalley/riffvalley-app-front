@@ -43,7 +43,7 @@ export interface PendingFestivalArtist extends FestivalArtist {
 
 export interface PlaylistArtist {
   id: string;
-  spotifyId: string;
+  riffValleyPlaylistId: string;
   artistId: string;
   artist: FestivalArtist;
   status: PlaylistArtistSyncStatus;
@@ -186,7 +186,7 @@ export async function clearFestivalPlaylist(
 export async function deleteFestivalPlaylist(
   id: string,
 ): Promise<{ ok: true }> {
-  const { data } = await api.delete<{ ok: true }>(`/spotify/${id}`);
+  const { data } = await api.delete<{ ok: true }>(`/riff-valley-playlists/${id}`);
   return data;
 }
 
