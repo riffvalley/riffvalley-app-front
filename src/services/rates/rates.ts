@@ -197,6 +197,27 @@ export interface RatesStatsResponse {
   }[];
 }
 
+export interface RatesHomeInsightsResponse {
+  topArtists: {
+    id: string;
+    name: string;
+    image: string;
+    averageRate: number;
+    ratingCount: number;
+  }[];
+  countries: {
+    isoCode: string;
+    name: string;
+    count: number;
+    percentage: number;
+  }[];
+}
+
+export async function getRatesHomeInsights(): Promise<RatesHomeInsightsResponse> {
+  const response = await api.get<RatesHomeInsightsResponse>("/rates/home-insights");
+  return response.data;
+}
+
 export async function getRatesStats(year?: number): Promise<RatesStatsResponse> {
   const response = await api.get<RatesStatsResponse>("/rates/stats", {
     params: year ? { year } : undefined,
