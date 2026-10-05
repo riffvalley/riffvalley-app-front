@@ -278,7 +278,12 @@ All messages are in Spanish. The service is located at `src/services/swal/SwalSe
 
 ### Spotify Integration
 
-The app accesses Spotify through backend API clients used by `src/helpers/SpotifyFunctions.ts` and `src/services/spotify/spotifyLookup.ts`. The backend owns Spotify Client Credentials; the frontend does not request Spotify tokens directly and must not contain Spotify client secrets. The helpers search for artists/albums and return provider data through the authenticated Riff Valley API.
+The app integrates with Spotify API via helper functions in `src/helpers/SpotifyFunctions.ts`:
+
+- `obtenerTokenSpotify()` - Gets Spotify access token using client credentials flow
+- `obtenerEnlaceArtistaSpotify(artistName)` - Searches for artist and returns Spotify link
+
+These functions require Spotify API credentials (see Environment Variables section).
 
 ## Environment Variables
 
@@ -287,6 +292,10 @@ Required environment variables (create a `.env` file - not tracked in git):
 ```bash
 # Backend API
 VITE_API_BASE_URL=https://api.example.com
+
+# Spotify API (for artist enrichment)
+VITE_CLIENT_ID=your_spotify_client_id
+VITE_CLIENT_SECRET=your_spotify_client_secret
 
 # Optional: Enable maintenance mode
 VITE_MAINTENANCE_MODE=false

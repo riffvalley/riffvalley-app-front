@@ -217,16 +217,16 @@
             </div>
           </div>
 
-          <!-- Playlists de Riff Valley -->
-          <div v-if="artist.riffValleyPlaylists?.length" class="mb-3">
+          <!-- Playlists de Spotify -->
+          <div v-if="artist.spotifyPlaylists?.length" class="mb-3">
             <p
               class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-400"
             >
-              Playlists ({{ artist.riffValleyPlaylists.length }})
+              Playlists ({{ artist.spotifyPlaylists.length }})
             </p>
             <div class="flex flex-wrap gap-2">
               <a
-                v-for="playlist in artist.riffValleyPlaylists || []"
+                v-for="playlist in artist.spotifyPlaylists || []"
                 :key="playlist.id"
                 :href="playlist.link"
                 target="_blank"
@@ -1028,7 +1028,7 @@ export default defineComponent({
     const isEmpty = (artist: ArtistManagementItem) =>
       artist.discs.length === 0 &&
       artist.nationalReleases.length === 0 &&
-      (artist.riffValleyPlaylists?.length ?? 0) === 0;
+      (artist.spotifyPlaylists?.length ?? 0) === 0;
 
     const extraReleases = (artist: ArtistManagementItem) => {
       const discIds = new Set(artist.discs.map((d) => d.id));

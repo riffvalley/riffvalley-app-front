@@ -114,8 +114,8 @@ const INTERNAL_ROUTES = [
   { path: '/articles', label: 'Artículos' },
   { path: '/recap', label: 'Resumen semanal' },
   { path: '/videos', label: 'Vídeos' },
-  { path: '/riff-valley-playlists/festivales', label: 'Playlists de festivales' },
-  { path: '/riff-valley-playlists/generos', label: 'Playlists de géneros' },
+  { path: '/spotify/festivales', label: 'Spotify - Festivales' },
+  { path: '/spotify/generos', label: 'Spotify - Géneros' },
   { path: '/patch-notes', label: 'Notas de versión' },
   { path: '/how-to-use', label: 'Cómo usar' },
 ];

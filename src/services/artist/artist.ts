@@ -84,7 +84,7 @@ export interface ArtistManagementNationalRelease {
   discId: string;
 }
 
-export interface ArtistManagementRiffValleyPlaylist {
+export interface ArtistManagementSpotifyPlaylist {
   id: string;
   name: string;
   link: string;
@@ -100,7 +100,7 @@ export interface ArtistManagementItem {
   country: { id: string; name: string; isoCode: string } | null;
   discs: ArtistManagementDisc[];
   nationalReleases: ArtistManagementNationalRelease[];
-  riffValleyPlaylists: ArtistManagementRiffValleyPlaylist[];
+  spotifyPlaylists: ArtistManagementSpotifyPlaylist[];
 }
 
 export interface ArtistManagementResponse {

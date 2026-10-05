@@ -184,13 +184,13 @@ import { useRoute, useRouter } from 'vue-router';
 import { getUsersRv, type Superuser } from '@services/auth/auth';
 import SwalService from '@services/swal/SwalService';
 import {
-  getRiffValleyPlaylistFestivals,
-  removeRiffValleyPlaylist,
-  updateRiffValleyPlaylist,
-  createRiffValleyPlaylistContent,
-  type RiffValleyPlaylist,
-  type RiffValleyPlaylistStatus,
-} from '@services/riff-valley-playlists/riffValleyPlaylists';
+  getSpotifyFestivals,
+  removeSpotify,
+  updateSpotify,
+  createSpotifyContent,
+  type Spotify,
+  type SpotifyStatus,
+} from '@services/spotify/spotify';
 import {
   connectSpotify,
   createFestivalPlaylist,
@@ -204,7 +204,7 @@ import {
 import { useAuthStore } from '@stores/auth/auth';
 import FestivalPlaylistManager from './components/FestivalPlaylistManager.vue';
 
-type ColumnId = RiffValleyPlaylistStatus;
+type ColumnId = SpotifyStatus;
 interface Column { id: ColumnId; label: string; bgClass: string; borderClass: string; textClass: string; countClass: string }
 
 const columns: Column[] = [
@@ -233,7 +233,7 @@ const route = useRoute();
 const router = useRouter();
 const canManage = computed(() => ['riffValley', 'admin', 'superUser'].some((role) => authStore.hasRole(role)));
 const activeTab = ref<'playlists' | 'kanban'>('playlists');
-const items = ref<RiffValleyPlaylist[]>([]);
+const items = ref<Spotify[]>([]);
 const users = ref<Superuser[]>([]);
 const connection = ref<SpotifyConnection>({ ...emptyConnection });
 const loading = ref(false);
@@ -242,8 +242,8 @@ const connecting = ref(false);
 const creating = ref(false);
 const linkingItemId = ref<string | null>(null);
 const showCreate = ref(false);
-const managedPlaylist = ref<RiffValleyPlaylist | null>(null);
-const draggedItem = ref<RiffValleyPlaylist | null>(null);
+const managedPlaylist = ref<Spotify | null>(null);
+const draggedItem = ref<Spotify | null>(null);
 const editingUserItemId = ref<string | null>(null);
 const userSelectRef = ref<HTMLSelectElement | HTMLSelectElement[] | null>(null);
 const createMode = ref<'new' | 'link'>('new');
@@ -273,7 +273,7 @@ function formatAuthorizationDate(value: string): string {
   return new Intl.DateTimeFormat('es-ES', { dateStyle: 'long' }).format(new Date(value));
 }
 
-function artistCount(item: RiffValleyPlaylist): number {
+function artistCount(item: Spotify): number {
   return item.playlistArtists?.length ?? item.playlistArtistsCount ?? 0;
 }
 
@@ -291,8 +291,8 @@ async function reload() {
   loading.value = true;
   error.value = null;
   try {
-    const requests: [Promise<RiffValleyPlaylist[]>, Promise<Superuser[]>] = [
-      getRiffValleyPlaylistFestivals(),
+    const requests: [Promise<Spotify[]>, Promise<Superuser[]>] = [
+      getSpotifyFestivals(),
       canManage.value ? getUsersRv() : Promise.resolve([]),
     ];
     const [festivals, rvUsers] = await Promise.all(requests);
@@ -393,7 +393,7 @@ function validateSpotifyPlaylistUrl(value: string): string | null {
   }
 }
 
-async function confirmLinkExisting(item: RiffValleyPlaylist) {
+async function confirmLinkExisting(item: Spotify) {
   if (!canManage.value || !item.link || item.spotifyPlaylistId || linkingItemId.value) return;
   const result = await SwalService.confirm(
     '¿Vincular con Spotify?',
@@ -413,7 +413,7 @@ async function confirmLinkExisting(item: RiffValleyPlaylist) {
   }
 }
 
-function openManager(item: RiffValleyPlaylist) {
+function openManager(item: Spotify) {
   if (!item.spotifyPlaylistId || !canManage.value) return;
   managedPlaylist.value = item;
 }
@@ -433,9 +433,9 @@ function summary(value?: string | null) {
   if (!value) return '';
   return value.length > 110 ? `${value.slice(0, 107)}…` : value;
 }
-function getItems(status: RiffValleyPlaylistStatus) { return items.value.filter((item) => item.status === status); }
+function getItems(status: SpotifyStatus) { return items.value.filter((item) => item.status === status); }
 function fmtDate(iso: string) { return iso ? new Date(iso).toLocaleDateString() : ''; }
-function onDragStart(item: RiffValleyPlaylist) { draggedItem.value = item; }
+function onDragStart(item: Spotify) { draggedItem.value = item; }
 function onDragOver(event: DragEvent) { if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'; }
 
 async function onDrop(targetStatus: ColumnId) {
@@ -444,7 +444,7 @@ async function onDrop(targetStatus: ColumnId) {
   draggedItem.value = null;
   if (!item || item.status === targetStatus || targetStatus === 'published') return;
   try {
-    const updated = await updateRiffValleyPlaylist(item.id, { status: targetStatus });
+    const updated = await updateSpotify(item.id, { status: targetStatus });
     const index = items.value.findIndex((candidate) => candidate.id === item.id);
     if (index !== -1) items.value[index] = { ...items.value[index], ...updated };
   } catch (updateError) {
@@ -461,11 +461,11 @@ async function startEditingUser(itemId: string) {
 }
 function stopEditingUser() { editingUserItemId.value = null; }
 
-async function onUserChange(item: RiffValleyPlaylist, event: Event) {
+async function onUserChange(item: Spotify, event: Event) {
   const userId = (event.target as HTMLSelectElement).value;
   editingUserItemId.value = null;
   try {
-    const updated = await updateRiffValleyPlaylist(item.id, { userId: userId || null });
+    const updated = await updateSpotify(item.id, { userId: userId || null });
     const index = items.value.findIndex((candidate) => candidate.id === item.id);
     if (index !== -1) items.value[index] = { ...items.value[index], ...updated };
   } catch (updateError) {
@@ -473,12 +473,12 @@ async function onUserChange(item: RiffValleyPlaylist, event: Event) {
   }
 }
 
-async function confirmDeleteLegacy(item: RiffValleyPlaylist) {
+async function confirmDeleteLegacy(item: Spotify) {
   if (item.spotifyPlaylistId) return;
   const result = await SwalService.confirm('¿Eliminar registro antiguo?', `Vas a eliminar “${item.name}”.`, 'Sí, eliminar', 'Cancelar');
   if (!result.isConfirmed) return;
   try {
-    await removeRiffValleyPlaylist(item.id);
+    await removeSpotify(item.id);
     items.value = items.value.filter((candidate) => candidate.id !== item.id);
     SwalService.success('Festival eliminado');
   } catch (deleteError) {
@@ -486,14 +486,14 @@ async function confirmDeleteLegacy(item: RiffValleyPlaylist) {
   }
 }
 
-async function handleCreateContent(item: RiffValleyPlaylist) {
+async function handleCreateContent(item: Spotify) {
   if (!canManage.value) return;
   if (!item.user) {
     SwalService.error('Asigna un usuario antes de añadirlo al calendario.');
     return;
   }
   try {
-    const updated = await createRiffValleyPlaylistContent(item.id);
+    const updated = await createSpotifyContent(item.id);
     const index = items.value.findIndex((candidate) => candidate.id === item.id);
     if (index !== -1) items.value[index] = { ...items.value[index], content: updated.content };
     SwalService.success('Añadido al calendario');

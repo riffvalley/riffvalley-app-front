@@ -5,7 +5,7 @@
 El callback del backend debe volver a la vista de festivales. En producción se configura en el backend (no como variable `VITE_`) con:
 
 ```text
-SPOTIFY_FRONTEND_REDIRECT_URL=https://app.riffvalley.es/riff-valley-playlists/festivales
+SPOTIFY_FRONTEND_REDIRECT_URL=https://app.riffvalley.es/spotify/festivales
 ```
 
 La gestión de playlists usa exclusivamente OAuth a través del backend. No deben añadirse secretos de Spotify al bundle del frontend.
