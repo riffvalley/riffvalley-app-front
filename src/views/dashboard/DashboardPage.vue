@@ -610,7 +610,11 @@
 import { defineComponent, ref, computed, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "@stores/auth/auth";
 import { getTopRatedOrFeaturedAndStats, getDiscs } from "@services/discs/discs";
-import { getRatesByUser, getUserHistoryService } from "@services/rates/rates";
+import {
+  getRatesByUser,
+  getRatesHomeInsights,
+  getUserHistoryService,
+} from "@services/rates/rates";
 import { useDashboardConfig } from "@/composables/useDashboardConfig";
 import { useIsMobileViewport } from "@/composables/useIsMobileViewport";
 import StatsModal from "@components/StatsModal.vue";
@@ -742,34 +746,6 @@ export default defineComponent({
     const topArtists        = ref<ArtistEntry[]>([]);
     const topArtistsLoading = ref(true);
 
-    const fetchTopArtists = async () => {
-      try {
-        const response = await getRatesByUser(1000, 0, undefined, undefined, undefined, undefined, 'rate');
-const map: Record<string, { name: string; image: string; sum: number; count: number }> = {};
-        for (const rate of response.data as any[]) {
-          const r = parseFloat(rate.rate);
-          if (isNaN(r)) continue;
-          const a = rate.disc?.artist;
-          if (!a) continue;
-          const key = a.id ?? a.name;
-          if (!key) continue;
-          if (!map[key]) map[key] = { name: a.name ?? key, image: a.image ?? '', sum: 0, count: 0 };
-          map[key].sum   += r;
-          map[key].count += 1;
-        }
-        topArtists.value = Object.entries(map)
-          .map(([id, v]) => ({ id, name: v.name, image: v.image, avgRate: v.sum / v.count, count: v.count }))
-          .sort((a, b) =>
-            b.avgRate - a.avgRate ||
-            b.count   - a.count  ||
-            a.name.localeCompare(b.name)
-          )
-          .slice(0, 7);
-      } catch { /* silently */ } finally {
-        topArtistsLoading.value = false;
-      }
-    };
-
     // ── Mapa musical ─────────────────────────────────────
     const COUNTRY_ABBR: Record<string, string> = {
       "United States of America": "USA",
@@ -779,28 +755,24 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
     const musicMapData    = ref<CountryEntry[]>([]);
     const musicMapLoading = ref(true);
 
-    const fetchMusicMap = async () => {
+    const fetchHomeInsights = async () => {
       try {
-        const response = await getRatesByUser(1000, 0, undefined, undefined, undefined, undefined, 'rate');
-        const counts: Record<string, { name: string; count: number }> = {};
-        for (const rate of response.data as any[]) {
-          const country = rate.disc?.artist?.country;
-          if (!country?.isoCode) continue;
-          const iso = country.isoCode;
-          if (!counts[iso]) counts[iso] = { name: COUNTRY_ABBR[country.name] ?? country.name ?? iso, count: 0 };
-          counts[iso].count++;
-        }
-        const total = Object.values(counts).reduce((a, b) => a + b.count, 0) || 1;
-        musicMapData.value = Object.entries(counts)
-          .sort((a, b) => b[1].count - a[1].count)
-          .slice(0, 10)
-          .map(([iso, { name, count }]) => ({
-            isoCode: iso.toLowerCase(),
-            name,
-            count,
-            pct: Math.round((count / total) * 100),
-          }));
+        const response = await getRatesHomeInsights();
+        topArtists.value = response.topArtists.map((artist) => ({
+          id: artist.id,
+          name: artist.name,
+          image: artist.image,
+          avgRate: artist.averageRate,
+          count: artist.ratingCount,
+        }));
+        musicMapData.value = response.countries.map((country) => ({
+          isoCode: country.isoCode.toLowerCase(),
+          name: COUNTRY_ABBR[country.name] ?? country.name ?? country.isoCode,
+          count: country.count,
+          pct: country.percentage,
+        }));
       } catch { /* silently */ } finally {
+        topArtistsLoading.value = false;
         musicMapLoading.value = false;
       }
     };
@@ -1074,8 +1046,12 @@ const map: Record<string, { name: string; image: string; sum: number; count: num
       fetchTopDiscs();
       fetchCoverOfDay();
       fetchCemeteryDiscs();
-      fetchTopArtists();
-      fetchMusicMap();
+      if (isEnabled('artistas') || isEnabled('mundoMusical')) {
+        fetchHomeInsights();
+      } else {
+        topArtistsLoading.value = false;
+        musicMapLoading.value = false;
+      }
       fetchStreak();
       fetchRecentVotes();
     });
