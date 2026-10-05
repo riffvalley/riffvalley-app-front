@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "bounce-easing",
+        "value": "animate-bounce",
+        "createdAt": "2026-10-05T08:23:04.788Z",
+        "reason": "Usuario confirmó conservar animate-bounce como feedback de éxito al añadir un disco"
+      }
+    ]
+  }
+}
