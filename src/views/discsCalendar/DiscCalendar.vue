@@ -72,21 +72,21 @@
           <div v-show="groupState[index]" class="mt-4 overflow-x-auto">
             <!-- Contenedor de botones centrado -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-2 mt-4 w-full">
-              <button v-if="isSuperUser" @click="buscarImagenesLastFm(group.releaseDate)"
+              <button v-if="canFillImages" @click="buscarImagenesLastFm(group.releaseDate)"
                 class="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-full text-sm font-semibold
                        hover:bg-red-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
                        w-full max-w-[300px] sm:max-w-none sm:w-auto justify-center self-center shadow-md">
                 <i class="fa-brands fa-lastfm"></i> Last.fm búsqueda
               </button>
 
-              <button v-if="new Date(group.releaseDate) < new Date()" @click="buscarEnlacesSpotify(group.discs)"
+              <button v-if="canEditCatalog && new Date(group.releaseDate) < new Date()" @click="buscarEnlacesSpotify(group.discs)"
                 class="inline-flex items-center gap-2 bg-[#1DB954] text-white px-4 py-2 rounded-full text-sm font-semibold
                        hover:bg-[#1aa34a] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
                        w-full max-w-[300px] sm:max-w-none sm:w-auto justify-center self-center shadow-md">
                 <i class="fa-brands fa-spotify"></i> Buscar en Spotify
               </button>
 
-              <button @click="exportarHtml(group)"
+              <button v-if="canEditCatalog" @click="exportarHtml(group)"
                 class="inline-flex items-center gap-2 bg-rv-navy dark:bg-rv-purple text-white px-4 py-2 rounded-full text-sm font-semibold
                        hover:opacity-80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
                        w-full max-w-[300px] sm:max-w-none sm:w-auto justify-center self-center shadow-md">
@@ -154,6 +154,7 @@ import { resolveSpotifyAlbum } from "@services/spotify/spotifyLookup";
 import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
 import { useAuthStore } from "@stores/auth/auth";
+import { hasMinimumRole } from "@helpers/roles";
 import SwalService from "@services/swal/SwalService";
 
 export default defineComponent({
@@ -169,7 +170,8 @@ export default defineComponent({
 
   setup(props) {
     const authStore = useAuthStore();
-    const isSuperUser = computed(() => authStore.hasRole("superUser"));
+    const canEditCatalog = computed(() => hasMinimumRole(authStore.role, "riffvalley"));
+    const canFillImages = computed(() => hasMinimumRole(authStore.role, "superadmin"));
     const groupedDiscs = ref<any[]>([]);
     const groupState = reactive({});
 
@@ -645,7 +647,8 @@ export default defineComponent({
       optionsReady,
       removeDisc,
       handleDateChange,
-      isSuperUser,
+      canEditCatalog,
+      canFillImages,
       buscarImagenesLastFm,
       showScrollTop,
       scrollToTop,

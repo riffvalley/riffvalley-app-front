@@ -52,10 +52,10 @@
         Todos
       </button>
       <button
-        v-for="role in availableRoles"
+        v-for="role in roleOptions"
         :key="role.value"
         @click="toggleRoleFilter(role.value)"
-        :class="roleFilter.includes(role.value) ? 'filter-chip-active' : 'filter-chip'"
+        :class="roleFilter === role.value ? 'filter-chip-active' : 'filter-chip'"
       >
         {{ role.label }}
       </button>
@@ -132,22 +132,18 @@
 
             <!-- Roles -->
             <div>
-              <label class="block text-xs text-rv-pink mb-1.5 font-medium">Roles</label>
-              <div class="flex flex-wrap gap-2 pt-1">
-                <label
-                  v-for="role in availableRoles"
-                  :key="role.value"
-                  class="inline-flex items-center gap-1.5 cursor-pointer select-none"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="user.roles?.includes(role.value)"
-                    @change="toggleRole(user, role.value)"
-                    class="w-4 h-4 rounded border-gray-600 bg-transparent text-rv-pink focus:ring-rv-pink focus:ring-offset-0"
-                  />
-                  <span class="text-sm text-gray-700 dark:text-gray-300">{{ role.label }}</span>
-                </label>
-              </div>
+              <label class="block text-xs text-rv-pink mb-1.5 font-medium">Rol</label>
+              <select
+                :value="user.role"
+                @change="updateRole(user, $event)"
+                class="user-input"
+                aria-label="Rol del usuario"
+              >
+                <option v-if="!isUserRole(user.role)" :value="user.role ?? ''" disabled>Rol no reconocido</option>
+                <option v-for="role in roleOptions" :key="role.value" :value="role.value">
+                  {{ role.label }}
+                </option>
+              </select>
             </div>
 
             <!-- Fecha -->
@@ -229,9 +225,13 @@
               </div>
               <div>
                 <label class="block text-sm text-rv-pink mb-1.5 font-medium">Username</label>
-                <input v-model="newUser.username" type="text" placeholder="nombreusuario" class="modal-input" required />
+                <input v-model="newUser.username" type="text" placeholder="nombreusuario" class="modal-input" minlength="4" required />
               </div>
             </div>
+
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+              Las cuentas nuevas se crean con el rol User.
+            </p>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -242,6 +242,8 @@
                     :type="showCreatePassword ? 'text' : 'password'"
                     placeholder="Mínimo 6 caracteres"
                     class="modal-input pr-10"
+                    minlength="6"
+                    maxlength="50"
                     required
                   />
                   <button type="button" @click="showCreatePassword = !showCreatePassword"
@@ -252,16 +254,6 @@
                 <p v-if="passwordValidation(newUser.password)" class="mt-1.5 text-sm text-red-400">
                   {{ passwordValidation(newUser.password) }}
                 </p>
-              </div>
-              <div>
-                <label class="block text-sm text-rv-pink mb-2 font-medium">Roles</label>
-                <div class="flex flex-wrap gap-x-4 gap-y-2 pt-1">
-                  <label v-for="role in availableRoles" :key="role.value" class="inline-flex items-center gap-2 cursor-pointer select-none">
-                    <input type="checkbox" v-model="newUser.roles" :value="role.value"
-                      class="w-4 h-4 rounded border-gray-600 bg-transparent text-rv-pink focus:ring-rv-pink focus:ring-offset-0" />
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ role.label }}</span>
-                  </label>
-                </div>
               </div>
             </div>
 
@@ -356,16 +348,10 @@ import { defineComponent, ref, computed, onMounted } from "vue";
 import { useUserStore } from "@stores/user/users";
 import SwalService from "@services/swal/SwalService";
 import { deactivateUserService, activateUserService } from "@services/users/users";
+import type { AdminUser, RegisterUserPayload } from "@services/users/users";
+import { USER_ROLES, type UserRole } from "@interfaces/auth";
 
-interface User {
-  id: string;
-  username: string;
-  email: string;
-  roles: string[];
-  createdAt: string;
-  notes: string | null;
-  isActive: boolean;
-}
+type User = AdminUser;
 
 type SortField = 'username' | 'email' | 'createdAt';
 type SortDir = 'asc' | 'desc';
@@ -380,7 +366,7 @@ export default defineComponent({
     const searchQuery = ref("");
 
     // Filters
-    const roleFilter = ref<string[]>([]);
+    const roleFilter = ref<UserRole | null>(null);
     const filterBanned = ref(false);
 
     // Sort
@@ -390,12 +376,16 @@ export default defineComponent({
     // Copy feedback
     const copiedUserId = ref<string | null>(null);
 
-    const availableRoles = [
-      { value: "babyUser", label: "Baby" },
-      { value: "user", label: "User" },
-      { value: "riffValley", label: "RV" },
-      { value: "superUser", label: "Super" },
-    ];
+    const roleLabels: Record<UserRole, string> = {
+      user: "User",
+      collaborator: "Collaborator",
+      riffvalley: "Riff Valley",
+      superadmin: "Superadmin",
+    };
+    const roleOptions = USER_ROLES.map((value) => ({ value, label: roleLabels[value] }));
+    const validRoleValues = new Set<string>(USER_ROLES);
+    const isUserRole = (value: unknown): value is UserRole =>
+      typeof value === "string" && validRoleValues.has(value);
 
     const sortOptions: { value: SortField; label: string }[] = [
       { value: 'username', label: 'Usuario' },
@@ -411,7 +401,7 @@ export default defineComponent({
     }));
 
     const isFiltered = computed(() =>
-      !!searchQuery.value.trim() || roleFilter.value.length > 0 || filterBanned.value
+      !!searchQuery.value.trim() || roleFilter.value !== null || filterBanned.value
     );
 
     const filteredUsers = computed(() => {
@@ -424,8 +414,8 @@ export default defineComponent({
         );
       }
 
-      if (roleFilter.value.length > 0) {
-        list = list.filter(u => roleFilter.value.some(r => u.roles?.includes(r)));
+      if (roleFilter.value !== null) {
+        list = list.filter(u => u.role === roleFilter.value);
       }
 
       if (filterBanned.value) {
@@ -453,26 +443,22 @@ export default defineComponent({
     const emptyMessage = computed(() => {
       if (searchQuery.value.trim()) return 'No se encontraron usuarios con esa búsqueda';
       if (filterBanned.value) return 'No hay usuarios baneados';
-      if (roleFilter.value.length > 0) return 'No hay usuarios con ese rol';
+      if (roleFilter.value !== null) return 'No hay usuarios con ese rol';
       return 'No hay usuarios registrados';
     });
 
-    const toggleRoleFilter = (role: string) => {
+    const toggleRoleFilter = (role: UserRole) => {
       filterBanned.value = false;
-      if (roleFilter.value.includes(role)) {
-        roleFilter.value = roleFilter.value.filter(r => r !== role);
-      } else {
-        roleFilter.value = [...roleFilter.value, role];
-      }
+      roleFilter.value = roleFilter.value === role ? null : role;
     };
 
     const toggleBannedFilter = () => {
       filterBanned.value = !filterBanned.value;
-      roleFilter.value = [];
+      roleFilter.value = null;
     };
 
     const clearFilters = () => {
-      roleFilter.value = [];
+      roleFilter.value = null;
       filterBanned.value = false;
     };
 
@@ -506,7 +492,7 @@ export default defineComponent({
     const showCreatePassword = ref(false);
     const showChangePassword = ref(false);
 
-    const newUser = ref({ email: "", username: "", password: "", roles: [] as string[] });
+    const newUser = ref({ email: "", username: "", password: "" });
 
     const originalValues = ref<Map<string, Partial<User>>>(new Map());
 
@@ -518,7 +504,7 @@ export default defineComponent({
           originalValues.value.set(user.id, {
             username: user.username,
             email: user.email,
-            roles: [...(user.roles || [])],
+            role: user.role,
           });
         });
       } catch (error) {
@@ -570,25 +556,24 @@ export default defineComponent({
       }
     };
 
-    const toggleRole = async (user: User, role: string) => {
-      const hadRole = user.roles?.includes(role);
-      const newRoles = hadRole
-        ? user.roles.filter((r) => r !== role)
-        : [...(user.roles || []), role];
+    const updateRole = async (user: User, event: Event) => {
+      const selectedRole = (event.target as HTMLSelectElement).value;
+      if (!isUserRole(selectedRole) || selectedRole === user.role) return;
+
       try {
-        await userStore.updateUserSuperAdminStore(user.id, { roles: newRoles });
-        user.roles = newRoles;
+        await userStore.updateUserSuperAdminStore(user.id, { role: selectedRole });
+        user.role = selectedRole;
         const original = originalValues.value.get(user.id);
-        if (original) originalValues.value.set(user.id, { ...original, roles: [...newRoles] });
-        SwalService.success("Roles actualizados");
+        if (original) originalValues.value.set(user.id, { ...original, role: selectedRole });
+        SwalService.success("Rol actualizado");
       } catch (error) {
-        console.error("Error updating roles:", error);
-        SwalService.error("Error al actualizar roles");
+        console.error("Error updating role:", error);
+        SwalService.error("Error al actualizar el rol");
       }
     };
 
     const openCreateModal = () => {
-      newUser.value = { email: "", username: "", password: "", roles: [] };
+      newUser.value = { email: "", username: "", password: "" };
       showCreateModal.value = true;
     };
 
@@ -600,12 +585,12 @@ export default defineComponent({
     const createUser = async () => {
       if (passwordValidation(newUser.value.password)) return;
       try {
-        await userStore.createUser({
+        const payload: RegisterUserPayload = {
           email: newUser.value.email,
           username: newUser.value.username,
-          roles: newUser.value.roles,
           password: newUser.value.password,
-        });
+        };
+        await userStore.createUser(payload);
         await userStore.loadUsers();
         users.value = userStore.users.map((user: User) => ({ ...user }));
         users.value.forEach((user) => {
@@ -613,7 +598,7 @@ export default defineComponent({
             originalValues.value.set(user.id, {
               username: user.username,
               email: user.email,
-              roles: [...(user.roles || [])],
+              role: user.role,
             });
           }
         });
@@ -727,11 +712,12 @@ export default defineComponent({
       emptyMessage,
       stats,
       roleFilter,
+      roleOptions,
+      isUserRole,
       filterBanned,
       sortBy,
       sortDir,
       sortOptions,
-      availableRoles,
       copiedUserId,
       toggleRoleFilter,
       toggleBannedFilter,
@@ -751,7 +737,7 @@ export default defineComponent({
       updateCreatedAt,
       passwordValidation,
       updateField,
-      toggleRole,
+      updateRole,
       openCreateModal,
       closeCreateModal,
       createUser,

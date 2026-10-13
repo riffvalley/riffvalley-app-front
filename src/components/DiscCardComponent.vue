@@ -332,6 +332,8 @@ import {
 } from "@services/pendings/pendings";
 import Swal from "sweetalert2";
 import SwalService from "@services/swal/SwalService";
+import { useAuthStore } from "@stores/auth/auth";
+import { hasMinimumRole } from "@helpers/roles";
 
 interface Vote {
   id: string;
@@ -374,6 +376,7 @@ export default defineComponent({
     debut: { type: Boolean, required: false, default: false },
   },
   setup(props) {
+    const authStore = useAuthStore();
     const localRating = ref({ rate: props.rate, cover: props.cover });
     const showVotes = ref(false);
     const votes = ref<Vote[]>([]);
@@ -414,16 +417,7 @@ export default defineComponent({
       showCalendarModal.value = true;
     };
 
-    const canModerate = computed(() => {
-      const raw = localStorage.getItem("roles");
-      if (!raw) return false;
-
-      let roles: any = raw;
-      try { roles = JSON.parse(raw); } catch { }
-
-      const arr = Array.isArray(roles) ? roles : [roles];
-      return arr.map(r => String(r).toLowerCase()).includes("riffvalley");
-    });
+    const canModerate = computed(() => hasMinimumRole(authStore.role, "riffvalley"));
 
 
     // Abreviaturas

@@ -181,7 +181,7 @@
 import axios from 'axios';
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getUsersRv, type Superuser } from '@services/auth/auth';
+import { getUsersRv, type RvUser } from '@services/auth/auth';
 import SwalService from '@services/swal/SwalService';
 import {
   getRiffValleyPlaylistFestivals,
@@ -202,6 +202,7 @@ import {
   type SyncedFestivalPlaylist,
 } from '@services/spotify/festivalPlaylists';
 import { useAuthStore } from '@stores/auth/auth';
+import { hasMinimumRole } from '@helpers/roles';
 import FestivalPlaylistManager from './components/FestivalPlaylistManager.vue';
 
 type ColumnId = RiffValleyPlaylistStatus;
@@ -231,10 +232,10 @@ const emptyConnection: SpotifyConnection = {
 const authStore = useAuthStore();
 const route = useRoute();
 const router = useRouter();
-const canManage = computed(() => ['riffValley', 'admin', 'superUser'].some((role) => authStore.hasRole(role)));
+const canManage = computed(() => hasMinimumRole(authStore.role, 'riffvalley'));
 const activeTab = ref<'playlists' | 'kanban'>('playlists');
 const items = ref<RiffValleyPlaylist[]>([]);
-const users = ref<Superuser[]>([]);
+const users = ref<RvUser[]>([]);
 const connection = ref<SpotifyConnection>({ ...emptyConnection });
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -291,7 +292,7 @@ async function reload() {
   loading.value = true;
   error.value = null;
   try {
-    const requests: [Promise<RiffValleyPlaylist[]>, Promise<Superuser[]>] = [
+    const requests: [Promise<RiffValleyPlaylist[]>, Promise<RvUser[]>] = [
       getRiffValleyPlaylistFestivals(),
       canManage.value ? getUsersRv() : Promise.resolve([]),
     ];

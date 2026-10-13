@@ -177,11 +177,12 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { ContentType } from '@services/contents/contents';
+import type { RvUser } from '@services/auth/auth';
 import { MONTHS } from '@helpers/dateConstants';
 
 interface Props {
     show: boolean;
-    rvUsers: any[];
+    rvUsers: RvUser[];
 }
 
 const props = defineProps<Props>();

@@ -1,28 +1,69 @@
 import api from "@services/api/api.ts";
+import type { UserRole } from "@interfaces/auth";
+import type { RvUser } from "@services/auth/auth";
 
-export async function getUsers(): Promise<any> {
-  const response = await api.get<any>("/auth/users");
+export interface AdminUser {
+  id: string;
+  username: string;
+  email: string;
+  role: UserRole;
+  createdAt: string;
+  notes: string | null;
+  isActive: boolean;
+}
+
+export interface RegisterUserPayload {
+  email: string;
+  password: string;
+  username: string;
+  image?: string;
+  dashboardConfig?: { id: string; enabled: boolean }[];
+  mobileDashboardConfig?: { id: string; enabled: boolean }[];
+  dashboardButtonsEnabled?: boolean;
+}
+
+export interface RegisterUserResponse {
+  id: string;
+  email: string;
+  username: string;
+  role: "user";
+  createdAt: string;
+  token: string;
+  image?: string | null;
+  dashboardConfig?: { id: string; enabled: boolean }[] | null;
+  mobileDashboardConfig?: { id: string; enabled: boolean }[] | null;
+  dashboardButtonsEnabled?: boolean;
+}
+
+export type UpdateProfilePayload = Partial<RegisterUserPayload>;
+
+export type AdminUpdateUserPayload = UpdateProfilePayload & {
+  role?: UserRole;
+  notes?: string;
+  createdAt?: string;
+};
+
+export async function getUsers(): Promise<AdminUser[]> {
+  const response = await api.get<AdminUser[]>("/auth/users");
   return response.data;
 }
 
-export async function getRvUsers(): Promise<any> {
-  const response = await api.get<any>("/auth/usersRv");
+export async function getRvUsers(): Promise<RvUser[]> {
+  const response = await api.get<RvUser[]>("/auth/usersRv");
   return response.data;
 }
 
-export async function postUserService(payload: any): Promise<void> {
-  const response = await api.post("/auth/register", payload);
+export async function postUserService(payload: RegisterUserPayload): Promise<RegisterUserResponse> {
+  const response = await api.post<RegisterUserResponse>("/auth/register", payload);
   return response.data;
 }
 
-export async function updateUserService( updateUserDto: any) {
-
-  return api.patch(`/auth`, updateUserDto);
+export async function updateUserService(updateUserDto: UpdateProfilePayload) {
+  return api.patch<unknown>(`/auth`, updateUserDto);
 }
 
-export async function updateUserSuperAdminService( id: string, updateUserDto: any) {
-
-  return api.patch(`/auth/superadmin/${id}`, updateUserDto);
+export async function updateUserSuperAdminService(id: string, updateUserDto: AdminUpdateUserPayload) {
+  return api.patch<unknown>(`/auth/superadmin/${id}`, updateUserDto);
 }
 
 export async function deleteUserService(id: string): Promise<void> {
