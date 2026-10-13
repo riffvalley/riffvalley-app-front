@@ -1,8 +1,17 @@
 import { createRouter, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
+import type { UserRole } from "@interfaces/auth";
 import { useAuthStore } from "../stores/auth/auth";
+import { hasMinimumRole } from "@helpers/roles";
 
 import Login from "@views/loginPage/LoginPage.vue";
+
+declare module "vue-router" {
+  interface RouteMeta {
+    requiresAuth?: boolean;
+    requiresRole?: UserRole;
+  }
+}
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -39,25 +48,25 @@ const routes: Array<RouteRecordRaw> = [
     path: "/calendar-baby",
     name: "CalendarBaby",
     component: () => import("@views/discsCalendarBaby/DiscCalendarBaby.vue"),
-    meta: { requiresAuth: true, requiresRole: "babyUser" },
+    meta: { requiresAuth: true, requiresRole: "user" },
   },
   {
     path: "/import",
     name: "Import",
     component: () => import("@views/importPage/ImportPage.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresRole: "user" },
   },
   {
     path: "/suggest",
     name: "Suggest",
     component: () => import("@views/importPage/SuggestPage.vue"),
-    meta: { requiresAuth: true, requiresRole: "babyUser" },
+    meta: { requiresAuth: true, requiresRole: "user" },
   },
   {
     path: "/petitions",
     name: "Petitions",
     component: () => import("@views/petitions/PetitionsPage.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/suggestions",
@@ -69,31 +78,31 @@ const routes: Array<RouteRecordRaw> = [
     path: "/suggestions/management",
     name: "SuggestionsManagement",
     component: () => import("@views/suggestions/SuggestionsManagement.vue"),
-    meta: { requiresAuth: true, requiresRole: "superUser" },
+    meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/recap",
     name: "Recap",
     component: () => import("@views/weekRecap/WeekRecap.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/content-calendar",
     name: "ContentCalendar",
     component: () => import("@views/contentCalendar/ContentCalendar.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/articles",
     name: "Articles",
     component: () => import("@views/articles/ArticlesKanban.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/import-discs",
     name: "ImportDiscs",
     component: () => import("@views/importPage/ImportDiscs.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/password",
@@ -105,43 +114,43 @@ const routes: Array<RouteRecordRaw> = [
     path: "/users",
     name: "Users",
     component: () => import("@views/users/ManageUsers.vue"),
-    meta: { requiresAuth: true, requiresRole: "superUser" },
+    meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/users/stats",
     name: "UserStats",
     component: () => import("@views/users/AdminStats.vue"),
-    meta: { requiresAuth: true, requiresRole: "superUser" },
+    meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/users/activity",
     name: "UserActivity",
     component: () => import("@views/users/UserActivity.vue"),
-    meta: { requiresAuth: true, requiresRole: "superUser" },
+    meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/news",
     name: "News",
     component: () => import("@views/news/ManageNews.vue"),
-    meta: { requiresAuth: true, requiresRole: "superUser" },
+    meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/versions",
     name: "versions-admin",
     component: () => import("@views/versions/ManageVersions.vue"),
-    meta: { requiresAuth: true, requiresRole: "superUser" },
+    meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/versions/kanban",
     name: "versions-kanban",
     component: () => import("@views/versions/VersionKanban.vue"),
-    meta: { requiresAuth: true, requiresRole: "superUser" },
+    meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/list",
     name: "List",
     component: () => import("@/layouts/list/ListLayout.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
     children: [
       {
         path: "",
@@ -152,21 +161,21 @@ const routes: Array<RouteRecordRaw> = [
         path: "lists",
         name: "ListsList",
         component: () => import("@views/list/ListsList.vue"),
-        meta: { requiresAuth: true, requiresRole: "riffValley" },
+        meta: { requiresAuth: true, requiresRole: "riffvalley" },
         props: true,
       },
       {
         path: "edit/:id",
         name: "EditList",
         component: () => import("@views/list/EditList.vue"),
-        meta: { requiresAuth: true, requiresRole: "riffValley" },
+        meta: { requiresAuth: true, requiresRole: "riffvalley" },
         props: true,
       },
       {
         path: "create",
         name: "CreateList",
         component: () => import("@views/list/CreateList.vue"),
-        meta: { requiresAuth: true, requiresRole: "riffValley" },
+        meta: { requiresAuth: true, requiresRole: "riffvalley" },
       },
     ],
   },
@@ -174,7 +183,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/reunions",
     name: "Reunions",
     component: () => import("@/layouts/reunions/ReunionLayout.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
     children: [
       {
         path: "",
@@ -185,14 +194,14 @@ const routes: Array<RouteRecordRaw> = [
         path: "list",
         name: "ReunionsList",
         component: () => import("@views/reunions/ListReunion.vue"),
-        meta: { requiresAuth: true, requiresRole: "riffValley" },
+        meta: { requiresAuth: true, requiresRole: "riffvalley" },
         props: true,
       },
       {
         path: ":id",
         name: "EditReunion",
         component: () => import("@views/reunions/EditReunion.vue"),
-        meta: { requiresAuth: true, requiresRole: "riffValley" },
+        meta: { requiresAuth: true, requiresRole: "riffvalley" },
         props: true,
       },
     ],
@@ -217,13 +226,13 @@ const routes: Array<RouteRecordRaw> = [
     path: "/riff-valley-playlists/festivales",
     name: "RiffValleyPlaylistFestivals",
     component: () => import("@views/riffValleyPlaylists/RiffValleyPlaylistFestivalsKanban.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/riff-valley-playlists/generos",
     name: "RiffValleyPlaylistGenres",
     component: () => import("@views/riffValleyPlaylists/RiffValleyPlaylistGenresKanban.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/patch-notes",
@@ -235,44 +244,44 @@ const routes: Array<RouteRecordRaw> = [
     path: "/discos/radar",
     name: "RadarNovedades",
     component: () => import("@views/discos/RadarNovedades.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/discos/radar/:id",
     name: "RadarDetalle",
     component: () => import("@views/discos/RadarDetalle.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/discos/mejores",
     name: "MejoresDiscos",
     component: () => import("@views/discos/MejoresDiscos.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/discos/mejores/:id",
     name: "MejoresDetalle",
     component: () => import("@views/discos/MejoresDetalle.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/videos",
     name: "Videos",
     component: () => import("@views/videos/VideosKanban.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/videos/list/:id",
     name: "VideoListDetalle",
     component: () => import("@views/videos/VideoListDetalle.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
     props: true,
   },
   {
     path: "/artists",
     name: "ArtistManagement",
     component: () => import("@views/artists/ArtistManagement.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/national-releases/form",
@@ -284,13 +293,13 @@ const routes: Array<RouteRecordRaw> = [
     path: "/national-releases",
     name: "NationalReleasesAdmin",
     component: () => import("@views/nationalReleases/NationalReleasesAdmin.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/disc-list-error",
     name: "DiscListError",
     component: () => import("@views/discsList/DiscListError.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffValley" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/maintenance",
@@ -324,18 +333,11 @@ router.beforeEach((to) => {
     return { name: "Login" };
   }
 
-  if (
-    to.meta.requiresRole &&
-    !(authStore.roles || "").includes(to.meta.requiresRole)
-  ) {
-    return { name: "Home" };
+  if (to.meta.requiresAuth && !hasMinimumRole(authStore.role, "user")) {
+    return { name: "Login" };
   }
 
-  const restrictedForBabyUser = ["/import"];
-  if (
-    (authStore.roles || "").includes("babyUser") &&
-    restrictedForBabyUser.includes(to.path)
-  ) {
+  if (to.meta.requiresRole && !hasMinimumRole(authStore.role, to.meta.requiresRole)) {
     return { name: "Home" };
   }
 

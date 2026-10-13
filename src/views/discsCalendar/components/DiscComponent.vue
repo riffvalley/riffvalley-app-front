@@ -13,14 +13,17 @@
 
       <!-- Portada -->
       <div class="shrink-0">
-        <img v-if="disc.image" :src="disc.image" @click="openImageModal" alt="Portada"
-             class="w-24 h-24 rounded-xl object-cover cursor-pointer shadow-lg
-                    hover:scale-105 transition-transform duration-200" />
-        <button v-else @click="openImageModal"
+        <img v-if="disc.image" :src="disc.image" @click="canEditCatalog && openImageModal()" alt="Portada"
+             class="w-24 h-24 rounded-xl object-cover shadow-lg transition-transform duration-200"
+             :class="canEditCatalog ? 'cursor-pointer hover:scale-105' : 'cursor-default'" />
+        <button v-else-if="canEditCatalog" @click="openImageModal"
                 class="w-24 h-24 rounded-xl flex items-center justify-center border-2 border-dashed
                        border-white/40 hover:border-white/80 transition-colors outline-none focus:outline-none">
           <i class="fa-solid fa-image text-white/60 text-2xl"></i>
         </button>
+        <div v-else class="w-24 h-24 rounded-xl flex items-center justify-center border-2 border-dashed border-white/40">
+          <i class="fa-solid fa-image text-white/60 text-2xl"></i>
+        </div>
       </div>
 
       <!-- Info textual -->
@@ -32,7 +35,7 @@
              class="font-bold text-base leading-snug cursor-pointer hover:opacity-75 transition-opacity line-clamp-2">
             {{ disc.artist.name }}
           </a>
-          <button @click="openArtistModal" title="Editar artista"
+          <button v-if="canEditCatalog" @click="openArtistModal" title="Editar artista"
                   class="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center rounded-full
                          bg-white/20 hover:bg-white/40 transition-all outline-none focus:outline-none border-0">
             <i class="fa-solid fa-pen text-[10px]"></i>
@@ -45,7 +48,7 @@
              class="text-sm italic leading-snug cursor-pointer opacity-85 hover:opacity-60 transition-opacity line-clamp-2">
             {{ disc.name }}
           </a>
-          <button @click="showNameModal = true" title="Editar nombre"
+          <button v-if="canEditCatalog" @click="showNameModal = true" title="Editar nombre"
                   class="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center rounded-full
                          bg-white/20 hover:bg-white/40 transition-all outline-none focus:outline-none border-0">
             <i class="fa-solid fa-pen text-[10px]"></i>
@@ -54,10 +57,11 @@
 
         <!-- Fecha + link en la misma línea -->
         <div class="flex items-center gap-2 flex-wrap mt-1.5">
-          <a class="text-xs opacity-70 cursor-pointer hover:opacity-100 transition-opacity whitespace-nowrap"
+          <a v-if="canEditCatalog" class="text-xs opacity-70 cursor-pointer hover:opacity-100 transition-opacity whitespace-nowrap"
              @click="showDateModal = true">
             {{ formattedDate }}
           </a>
+          <span v-else class="text-xs opacity-70 whitespace-nowrap">{{ formattedDate }}</span>
           <a v-if="linkButtonData.visible" @click.prevent="handleListenClick" :href="disc.link"
              :class="[linkButtonData.color, linkButtonData.hover]"
              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full
@@ -68,7 +72,7 @@
           <span v-else-if="!disc.link">
             <SpotifyArtistButton :artistName="disc.artist.name" />
           </span>
-          <button @click="showLinkModal = true" title="Editar link"
+          <button v-if="canEditCatalog" @click="showLinkModal = true" title="Editar link"
                   class="w-6 h-6 flex items-center justify-center rounded-full
                          bg-white/20 hover:bg-white/40 transition-all outline-none focus:outline-none border-0">
             <i class="fa-solid fa-link text-xs"></i>
@@ -81,14 +85,14 @@
     <div class="flex-1 p-4 flex flex-col gap-2.5 bg-white dark:bg-rv-darkCard min-w-0">
 
       <!-- Género (full width) -->
-      <SearchableSelect :key="`genres-${genres.length}`" v-model="editedData.genreId" :options="genres"
+      <SearchableSelect v-if="canEditCatalog" :key="`genres-${genres.length}`" v-model="editedData.genreId" :options="genres"
         title="name" trackby="id" placeholder="Buscar género..." trigger-placeholder="Selecciona un género"
         all-label="Todos los géneros" :max="200"
         class="w-full rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 dark:border-white/10 shadow-sm ring-0 focus:ring-0 focus:outline-none"
         @update:modelValue="() => saveChanges('genreId')" />
 
       <!-- País (full width) -->
-      <SearchableSelect :key="`countries-${countries.length}`" v-model="editedArtist.countryId" :options="countries"
+      <SearchableSelect v-if="canEditCatalog" :key="`countries-${countries.length}`" v-model="editedArtist.countryId" :options="countries"
         title="name" trackby="id" placeholder="Buscar país..." trigger-placeholder="Selecciona un país"
         all-label="Todos los países" :max="300"
         class="w-full rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 dark:border-white/10 shadow-sm ring-0 focus:ring-0 focus:outline-none"
@@ -97,7 +101,7 @@
       <!-- Todos los botones de acción en una sola fila con wrap -->
       <div class="flex flex-wrap gap-2 items-center">
         <!-- Switch EP -->
-        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+        <label v-if="canEditCatalog" class="inline-flex items-center gap-1.5 cursor-pointer select-none">
           <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">Álbum</span>
           <div class="relative" @click="toggleEp()">
             <div class="w-8 h-4 rounded-full transition-colors duration-200"
@@ -109,10 +113,10 @@
         </label>
 
         <!-- Separador -->
-        <span class="w-px h-4 bg-gray-200 dark:bg-white/10"></span>
+        <span v-if="canEditCatalog" class="w-px h-4 bg-gray-200 dark:bg-white/10"></span>
 
         <!-- Switch Debut -->
-        <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+        <label v-if="canEditCatalog" class="inline-flex items-center gap-1.5 cursor-pointer select-none">
           <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">No debut</span>
           <div class="relative" @click="toggleDebut()">
             <div class="w-8 h-4 rounded-full transition-colors duration-200"
@@ -124,14 +128,14 @@
         </label>
 
         <!-- Separador -->
-        <span class="w-px h-4 bg-gray-200 dark:bg-white/10"></span>
-        <button @click="toggleVerified()"
+        <span v-if="canEditCatalog" class="w-px h-4 bg-gray-200 dark:bg-white/10"></span>
+        <button v-if="canEditCatalog" @click="toggleVerified()"
                 class="px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm whitespace-nowrap
                        transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]"
                 :class="disc.verified ? 'bg-green-500 hover:bg-green-400' : 'bg-gray-300 dark:bg-white/20 hover:bg-green-500'">
           {{ disc.verified ? '✓ Verificado' : '✗ Sin verificar' }}
         </button>
-        <button @click="togglePinned()"
+        <button v-if="canEditCatalog" @click="togglePinned()"
                 class="px-3 py-1.5 rounded-full text-xs font-semibold text-white shadow-sm whitespace-nowrap
                        transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]"
                 :class="disc.pinned ? 'bg-rv-pink hover:bg-rv-pink/80' : 'bg-gray-300 dark:bg-white/20 hover:bg-rv-pink'">
@@ -150,7 +154,7 @@
           <span v-if="justAdded">¡Añadido!</span>
           <span v-else>{{ pendingId ? 'Guardado' : 'Pendiente' }}</span>
         </button>
-        <button @click="confirmDelete(disc.id)"
+        <button v-if="canEditCatalog" @click="confirmDelete(disc.id)"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap
                        text-xs font-semibold text-white bg-red-500 hover:bg-red-600 shadow-sm
                        transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97]">
@@ -165,7 +169,7 @@
                        bg-gray-100 dark:bg-white/10 text-gray-400 dark:text-gray-500 whitespace-nowrap">
           ✓ Ya en novedades nacionales
         </button>
-        <button v-else @click="addNationalRelease" :disabled="addingNational"
+        <button v-else-if="canEditCatalog" @click="addNationalRelease" :disabled="addingNational"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
                        text-white whitespace-nowrap shadow-sm
                        bg-gradient-to-r from-rv-pink to-rv-purple hover:opacity-90 disabled:opacity-50
@@ -179,7 +183,7 @@
   <!-- Teleport modales -->
   <Teleport to="body">
     <!-- Modal artista -->
-    <div v-if="showArtistModal"
+    <div v-if="canEditCatalog && showArtistModal"
          class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4">
       <div class="bg-white dark:bg-rv-darkCard p-6 rounded-2xl shadow-2xl w-full max-w-sm
                   border border-gray-100 dark:border-white/10">
@@ -231,6 +235,8 @@ import {
   nextTick,
 } from "vue";
 import type { PropType } from "vue";
+import { useAuthStore } from "@stores/auth/auth";
+import { hasMinimumRole } from "@helpers/roles";
 import { updateDisc, deleteDisc } from "@services/discs/discs";
 import { createNationalReleaseFromDisc } from "@services/national-releases/nationalReleases";
 import { updateArtist, postArtist } from "@services/artist/artist";
@@ -291,6 +297,8 @@ export default defineComponent({
     },
   },
   setup(props, { emit }) {
+    const authStore = useAuthStore();
+    const canEditCatalog = computed(() => hasMinimumRole(authStore.role, "riffvalley"));
     // Estado local del select (solo genreId)
     const editedData = reactive({
       genreId: props.disc.genreId ?? "",
@@ -822,6 +830,7 @@ export default defineComponent({
     });
 
     return {
+      canEditCatalog,
       editedData,
       formattedDate,
       saveChanges,

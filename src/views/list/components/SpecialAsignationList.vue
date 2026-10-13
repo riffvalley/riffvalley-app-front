@@ -125,6 +125,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, watch, reactive } from "vue";
 import { getRvUsers } from "@services/users/users";
+import type { RvUser } from "@services/auth/auth";
 import SwalService from "@services/swal/SwalService";
 import {
   postAsignationService,
@@ -145,7 +146,7 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const users = ref<any[]>([]);
+    const users = ref<RvUser[]>([]);
     const asignations = ref<any[]>([]);
     const editingId = ref<string | null>(null);
     const showModal = ref(false);

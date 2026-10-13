@@ -117,6 +117,7 @@ import type { ContentType, Content } from '@services/contents/contents';
 import { getContents, createContent as createContentAPI, updateContent, deleteContent, getContentsByMonth } from '@services/contents/contents';
 import { useAuthStore } from '@stores/auth/auth';
 import { getRvUsers } from '@services/users/users';
+import type { RvUser } from '@services/auth/auth';
 import SwalService from '@services/swal/SwalService';
 import { updateAsignationService } from '@services/asignation/asignation';
 import { deleteList, getListDetails, updateList } from '@services/list/list';
@@ -153,7 +154,7 @@ const selectedContent = ref<Content | null>(null);
 const contentToDelete = ref<Content | null>(null);
 const allContents = ref<Content[]>([]);
 const editingContentId = ref<string | null>(null);
-const rvUsers = ref<any[]>([]);
+const rvUsers = ref<RvUser[]>([]);
 const currentYear = ref(new Date().getFullYear());
 const currentMonth = ref(new Date().getMonth() + 1); // 1-12
 const backlogPanelRef = ref<InstanceType<typeof BacklogPanel> | null>(null);
@@ -868,8 +869,15 @@ async function handleUpdateContentAuthor(authorId: string) {
         await updateContent(contentId, { authorId });
         const item = allContents.value.find(c => c.id === contentId);
         if (item) {
-            const user = rvUsers.value.find((u: any) => u.id === authorId);
-            if (user) item.author = user;
+            const user = rvUsers.value.find((u) => u.id === authorId);
+            if (user) {
+                item.author = {
+                    id: user.id,
+                    username: user.username,
+                    isActive: item.author.isActive,
+                    image: user.image,
+                };
+            }
         }
         SwalService.success('Autor actualizado');
     } catch (error) {

@@ -11,15 +11,15 @@ Riff Valley app is a Vue 3 + TypeScript frontend application for managing music 
 The application manages several interconnected features:
 
 - **Discs Management** - Browse, rate, and manage music album releases with filters by date, genre, and country
-- **Calendar Views** - Two calendar interfaces: standard user calendar and "baby" calendar for limited users
+- **Calendar Views** - Two calendar interfaces: the standard calendar and a reduced calendar view
 - **Ratings & Statistics** - User voting system with statistics dashboards and charts
-- **Lists (Listas)** - Curated music lists with assignment management (riffValley role)
-- **Reunions** - Meeting management with disc discussions (riffValley role)
-- **Articles & Content Calendar** - Content publishing workflow with Kanban boards (riffValley role)
+- **Lists (Listas)** - Curated music lists with assignment management (`riffvalley` minimum)
+- **Reunions** - Meeting management with disc discussions (`riffvalley` minimum)
+- **Articles & Content Calendar** - Content publishing workflow with Kanban boards (`riffvalley` minimum)
 - **Spotify Integration** - Artist enrichment and playlist management
 - **Week Recap & Videos** - Weekly content summaries and video management
-- **User Management** - Admin interface for managing users and permissions (superUser role)
-- **Import/Suggest** - Disc import tools (user) and suggestion submission (babyUser)
+- **User Management** - Admin interface for managing users and permissions (`superadmin` minimum)
+- **Import/Suggest** - Disc import and suggestion submission for authenticated users
 
 ## Requirements
 
@@ -90,14 +90,14 @@ All API calls go through the centralized axios instance at `src/services/api/api
 
 Authentication is handled by the auth store (`src/stores/auth/auth.ts`):
 
-- **Token storage**: JWT token, username, userId, image, and roles array stored in both Pinia state and localStorage
+- **Token storage**: JWT token, username, userId, image, and one canonical role stored in both Pinia state and localStorage
 - **Automatic token injection**: The axios instance (`src/services/api/api.ts`) automatically adds Bearer token to all requests
 - **401 handling**: Response interceptor logs out user and redirects to login on 401 errors
 - **Router guards**: Check `requiresAuth` and `requiresRole` route metadata
-- **Role hierarchy**: `user`, `babyUser`, `riffValley`, `superUser`
-  - `babyUser` has restricted access (cannot use `/import`, redirected to `/suggest`)
-  - `riffValley` has content management access (articles, lists, reunions)
-  - `superUser` has full admin access (user management, versions)
+- **Role hierarchy**: `user < collaborator < riffvalley < superadmin`; higher roles inherit lower minimums
+  - `user` and `collaborator` have the authenticated-user baseline, without editorial access
+  - `riffvalley` has editorial access (articles, lists, reunions)
+  - `superadmin` inherits editorial access and has administrative access (user management, versions)
 - **Maintenance mode**: When `VITE_MAINTENANCE_MODE=true`, all routes redirect to `/maintenance` page (except maintenance page itself)
 
 ### Routing
@@ -108,7 +108,7 @@ Vue Router configuration in `src/router/index.ts`:
 - Route-level code splitting with dynamic imports
 - Navigation guards for authentication and role-based authorization
 - Nested routes for complex features (e.g., `/list`, `/reunions`)
-- Special handling for babyUser restrictions
+- Route access uses the canonical role hierarchy and centralized minimum-role checks
 
 ### Layouts
 
@@ -243,14 +243,15 @@ Services export both interfaces and async functions that return typed responses.
 
 ### Role-Based Rendering
 
-Check roles in components using the auth store:
+Check minimum roles in components using the shared helper:
 
 ```typescript
 import { useAuthStore } from '@stores/auth/auth';
+import { hasMinimumRole } from '@helpers/roles';
 
 const authStore = useAuthStore();
-if (authStore.hasRole('riffValley')) {
-  // Show admin features
+if (hasMinimumRole(authStore.role, 'riffvalley')) {
+  // Show editorial features
 }
 ```
 
@@ -321,7 +322,7 @@ The workflow uses Node.js 20 and yarn v4 via corepack.
 - Auth state persists across page refreshes via localStorage
 - On app mount, `authStore.initializeAuth()` should be called to restore axios headers
 - Router guards run before every navigation to check auth/roles
-- babyUser role has inverted logic: restricted from certain routes that regular users can access
+- Route authorization uses inclusive minimum roles; do not add role-specific permissions by module
 
 ### Data Patterns
 - Most list views use pagination with `limit` and `offset` parameters

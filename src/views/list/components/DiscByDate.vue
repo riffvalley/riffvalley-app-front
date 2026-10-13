@@ -114,6 +114,7 @@ import {
 } from "vue";
 import { getDiscsDated, updateDisc } from "@services/discs/discs";
 import { getRvUsers } from "@services/users/users";
+import type { RvUser } from "@services/auth/auth";
 import { getGenres } from "@services/genres/genres"; // Importa getGenres
 import SwalService from "@services/swal/SwalService";
 import { obtenerEnlaceArtistaSpotify } from "@helpers/SpotifyFunctions";
@@ -146,7 +147,7 @@ export default defineComponent({
   },
   setup(props) {
     const discs = ref<any[]>([]);
-    const users = ref<any[]>([]);
+    const users = ref<RvUser[]>([]);
     const groupState = reactive({});
     const loading = ref(false);
     const hasMore = ref(true);

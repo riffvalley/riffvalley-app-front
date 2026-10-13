@@ -263,7 +263,7 @@ import {
     ARTICLE_TYPES,
     toISO
 } from '@services/articles/articles';
-import { getUsersRv, type Superuser } from '@services/auth/auth';
+import { getUsersRv, type RvUser } from '@services/auth/auth';
 import { useAuthStore } from '@stores/auth/auth';
 import SwalService from '@services/swal/SwalService';
 
@@ -329,7 +329,7 @@ const types = ARTICLE_TYPES;
 
 // --- State ---
 const items = ref<Article[]>([]);
-const users = ref<Superuser[]>([]);
+const users = ref<RvUser[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const draggedItem = ref<Article | null>(null);
@@ -479,7 +479,7 @@ async function onUserChange(item: Article, event: Event) {
 
     if (newUserId) {
         const u = users.value.find(x => x.id === newUserId);
-        item.user = { id: newUserId, username: u?.username || '...', image: u?.image };
+        item.user = { id: newUserId, username: u?.username || '...', image: u?.image ?? undefined };
     } else {
         item.user = undefined;
     }
@@ -517,7 +517,7 @@ async function onEditorChange(item: Article, event: Event) {
 
     if (newEditorId) {
         const u = users.value.find(x => x.id === newEditorId);
-        item.editor = { id: newEditorId, username: u?.username || '...', image: u?.image };
+        item.editor = { id: newEditorId, username: u?.username || '...', image: u?.image ?? undefined };
     } else {
         item.editor = undefined;
     }
@@ -551,7 +551,7 @@ async function onCoauthorChange(item: Article, event: Event) {
 
     if (newCoauthorId) {
         const u = users.value.find(x => x.id === newCoauthorId);
-        item.coauthor = { id: newCoauthorId, username: u?.username || '...', image: u?.image };
+        item.coauthor = { id: newCoauthorId, username: u?.username || '...', image: u?.image ?? undefined };
     } else {
         item.coauthor = undefined;
     }
