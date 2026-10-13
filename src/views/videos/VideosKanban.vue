@@ -252,7 +252,7 @@ import {
     VIDEO_TYPES,
     toISO
 } from '@services/videos/videos';
-import { getUsersRv, type Superuser } from '@services/auth/auth';
+import { getUsersRv, type RvUser } from '@services/auth/auth';
 import { useAuthStore } from '@stores/auth/auth';
 import { useRouter } from 'vue-router';
 import SwalService from '@services/swal/SwalService';
@@ -320,7 +320,7 @@ const types = VIDEO_TYPES;
 
 // --- State ---
 const items = ref<Video[]>([]);
-const users = ref<Superuser[]>([]);
+const users = ref<RvUser[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const draggedItem = ref<Video | null>(null);
@@ -473,7 +473,7 @@ async function onUserChange(item: Video, event: Event) {
         item.user = {
             id: newUserId,
             username: u?.username || '...',
-            image: u?.image
+            image: u?.image ?? undefined
         };
     } else {
         item.user = undefined;
@@ -517,7 +517,7 @@ async function onEditorChange(item: Video, event: Event) {
         item.editor = {
             id: newEditorId,
             username: u?.username || '...',
-            image: u?.image
+            image: u?.image ?? undefined
         };
     } else {
         item.editor = undefined;

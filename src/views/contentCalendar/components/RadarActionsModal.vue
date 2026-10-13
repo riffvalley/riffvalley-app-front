@@ -179,6 +179,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
+import type { RvUser } from '@services/auth/auth';
 
 interface RadarDetails {
     listDate: string;
@@ -192,7 +193,7 @@ interface Props {
     content: Content | null;
     radarDetails: RadarDetails | null;
     loading: boolean;
-    rvUsers: any[];
+    rvUsers: RvUser[];
 }
 
 const props = defineProps<Props>();

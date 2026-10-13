@@ -374,6 +374,7 @@ import SwalService from "@services/swal/SwalService";
 import { useUserStore } from "@stores/user/users";
 import { useAuthStore } from "@stores/auth/auth";
 import DashboardBuilder from "./components/DashboardBuilder.vue";
+import { hasMinimumRole } from "@helpers/roles";
 
 export default {
   name: "ChangePassword",
@@ -386,7 +387,7 @@ export default {
     const showDashboardModal = ref(false);
     const dashboardButtonsSaving = ref(false);
     const canConfigureDashboardButtons = computed(() =>
-      authStore.hasRole('riffValley') || authStore.hasRole('superUser')
+      hasMinimumRole(authStore.role, 'riffvalley')
     );
 
     watch(showDashboardModal, (val) => {

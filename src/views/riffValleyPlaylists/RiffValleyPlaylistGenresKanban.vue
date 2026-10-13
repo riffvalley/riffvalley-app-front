@@ -234,7 +234,7 @@ import {
     type RiffValleyPlaylistStatus,
     toISO
 } from '@services/riff-valley-playlists/riffValleyPlaylists';
-import { getUsersRv, type Superuser } from '@services/auth/auth';
+import { getUsersRv, type RvUser } from '@services/auth/auth';
 import { useAuthStore } from '@stores/auth/auth';
 import SwalService from '@services/swal/SwalService';
 import axios from 'axios';
@@ -278,7 +278,7 @@ const columns: Column[] = [
 
 // --- State ---
 const items = ref<RiffValleyPlaylist[]>([]);
-const users = ref<Superuser[]>([]);
+const users = ref<RvUser[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const draggedItem = ref<RiffValleyPlaylist | null>(null);
@@ -408,7 +408,7 @@ async function onUserChange(item: RiffValleyPlaylist, event: Event) {
         item.user = {
             id: newUserId,
             username: u?.username || '...',
-            image: u?.image
+            image: u?.image ?? undefined
         };
     } else {
         item.user = undefined;

@@ -198,6 +198,7 @@
 <script setup lang="ts">
 import { reactive, computed } from 'vue';
 import { Priority, type VersionItem, type CreateVersionItemDto } from '@services/versions/versions';
+import type { Superuser } from '@services/auth/auth';
 
 interface VersionForm {
   version: string;
@@ -211,7 +212,7 @@ const props = defineProps<{
   items: VersionItem[];
   form: VersionForm;
   dragOverState: string | null;
-  superusers: Array<{ id: string; username: string; email: string; roles: string[]; image: string }>;
+  superusers: Superuser[];
 }>();
 
 const emit = defineEmits<{

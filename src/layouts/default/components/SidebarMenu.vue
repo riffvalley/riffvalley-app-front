@@ -228,7 +228,7 @@
 <!-- Selector de áreas + Switch modo oscuro -->
 <div class="w-full px-2 mb-3 shrink-0 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
 
-  <!-- Selector de áreas (solo riffValley / superUser) -->
+  <!-- Selector de áreas (mínimo editorial) -->
   <div v-if="showAreaSelector" class="col-start-1 min-w-0 flex items-center gap-1 overflow-x-auto">
     <button
       v-for="area in areaOptions"
@@ -318,6 +318,8 @@ import { getAllRequests } from '@services/requests/requests';
 import { getSuggestions } from '@services/suggestions/suggestions';
 import { useSupportStore } from '@stores/support/support';
 import { usePetitionsStore } from '@stores/petitions/petitions';
+import { hasMinimumRole } from '@helpers/roles';
+import type { UserRole } from '@interfaces/auth';
 import routesData from './routes.json';
 
 // Tipo actualizado con 'new-discs'
@@ -326,7 +328,7 @@ type AppRoute = {
   label: string;
   type: 'disc-app' | 'new-discs' | 'riff-valley' | 'management' | 'bottom';
   activeClass?: string;
-  requiredRole?: string | string[];
+  requiredRole?: UserRole;
   icon?: string;
   children?: AppRoute[];
 };
@@ -366,8 +368,7 @@ emits: ['close-menu', 'toggle-theme'],
     const filterByRole = (routes: AppRoute[]) => {
       return routes.filter((route) => {
         if (!route.requiredRole) return true;
-        const requiredRoles = Array.isArray(route.requiredRole) ? route.requiredRole : [route.requiredRole];
-        return requiredRoles.some((role) => authStore.hasRole(role));
+        return hasMinimumRole(authStore.role, route.requiredRole);
       });
     };
 
@@ -396,13 +397,13 @@ emits: ['close-menu', 'toggle-theme'],
       filterByRole(allRoutes.filter((r) => r.type === 'bottom'))
     );
 
-    // Selector de áreas (App / Riff Valley / Gestión) — visible solo para riffValley y superUser
-    const canSeeRiffValleyArea = computed(() => authStore.hasRole('riffValley'));
-    const canSeeManagementArea = computed(() => authStore.hasRole('superUser'));
+    // Selector de áreas (App / Riff Valley / Gestión) — visible desde el nivel editorial.
+    const canSeeRiffValleyArea = computed(() => hasMinimumRole(authStore.role, 'riffvalley'));
+    const canSeeManagementArea = computed(() => hasMinimumRole(authStore.role, 'superadmin'));
     const showAreaSelector = computed(() => canSeeRiffValleyArea.value || canSeeManagementArea.value);
     const showAllAreas = computed(() => !authStore.dashboardButtonsEnabled);
 
-    // Nuevos Discos vive en la pestaña Gestión: los riffValley sin superUser
+    // Nuevos Discos vive en la pestaña Gestión: el equipo editorial sin superadmin
     // solo verán ahí los discos nuevos (el resto de Gestión se filtra por rol).
     // Los roles sin selector de áreas lo ven siempre en su única vista ("app").
     const newDiscsAreaId = computed<SidebarAreaId>(() =>
@@ -428,8 +429,8 @@ emits: ['close-menu', 'toggle-theme'],
         });
       }
 
-      // Gestión es visible para riffValley y superUser; los riffValley sin
-      // superUser solo verán Nuevos Discos dentro de esta pestaña.
+      // Gestión es visible para riffvalley y superadmin; el equipo editorial sin
+      // superadmin solo verá Añadir Discos dentro de esta pestaña.
       options.push({
         id: 'management',
         label: 'Gestión',
@@ -453,7 +454,7 @@ emits: ['close-menu', 'toggle-theme'],
         if (data) latestVersion.value = data.version;
       } catch {}
 
-      if (authStore.hasRole('user')) {
+      if (hasMinimumRole(authStore.role, 'riffvalley')) {
         try {
           const result = await getAllRequests();
           const reqs: any[] = Array.isArray(result) ? result : ((result as any).data ?? []);
@@ -461,7 +462,7 @@ emits: ['close-menu', 'toggle-theme'],
         } catch {}
       }
 
-      if (authStore.hasRole('superUser')) {
+      if (hasMinimumRole(authStore.role, 'superadmin')) {
         try {
           const result = await getSuggestions({ status: 'in_progress' });
           const items: any[] = Array.isArray(result) ? result : ((result as any).data ?? []);

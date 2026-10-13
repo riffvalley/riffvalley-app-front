@@ -1,20 +1,29 @@
-// @stores/auth/auth.ts
 import { defineStore } from "pinia";
 import { login, type LoginPayload } from "../../services/auth/auth";
 import api from "../../services/api/api";
+import { USER_ROLES, type UserRole } from "@interfaces/auth";
 
-function loadRoles(): string[] {
-  const raw = localStorage.getItem("roles");
-  if (!raw) return [];
-  try {
-    // Caso correcto: guardado como JSON
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    // Fallback por si quedó un string antiguo tipo "user,admin"
-    if (raw.includes("[") || raw.includes("{")) return [];
-    return raw.split(",").map(r => r.trim()).filter(Boolean);
-  }
+const USER_ROLE_SET: ReadonlySet<string> = new Set(USER_ROLES);
+
+function isUserRole(role: string | null): role is UserRole {
+  return role !== null && USER_ROLE_SET.has(role);
+}
+
+const SESSION_KEYS = [
+  "token",
+  "username",
+  "userId",
+  "image",
+  "role",
+  "roles",
+  "dashboardButtonsEnabled",
+  "dashboardConfig",
+  "mobileDashboardConfig",
+] as const;
+
+function clearPersistedSession() {
+  SESSION_KEYS.forEach((key) => localStorage.removeItem(key));
+  delete api.defaults.headers.common["Authorization"];
 }
 
 export interface DashboardModuleConfig {
@@ -26,8 +35,17 @@ function loadDashboardConfig(key: string): DashboardModuleConfig[] | null {
   const raw = localStorage.getItem(key);
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : null;
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      Array.isArray(parsed) &&
+      parsed.every((item): item is DashboardModuleConfig =>
+        typeof item === "object" && item !== null &&
+        typeof item.id === "string" && typeof item.enabled === "boolean"
+      )
+    ) {
+      return parsed;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -37,27 +55,53 @@ function loadDashboardButtonsEnabled(): boolean {
   return localStorage.getItem("dashboardButtonsEnabled") === "true";
 }
 
-export const useAuthStore = defineStore("auth", {
-  state: () => ({
-    token: localStorage.getItem("token") as string | null,
-    username: localStorage.getItem("username") as string | null,
-    userId: localStorage.getItem("userId") as string | null,
-    image: localStorage.getItem("image") as string | null,
-    roles: loadRoles(), // 👈 ahora siempre es string[]
+function loadSession() {
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
+  const hasLegacyRoles = localStorage.getItem("roles") !== null;
+
+  if (!token || !isUserRole(role) || hasLegacyRoles) {
+    clearPersistedSession();
+    return {
+      token: null,
+      username: null,
+      userId: null,
+      image: null,
+      role: null,
+      dashboardButtonsEnabled: false,
+      dashboardConfig: null,
+      mobileDashboardConfig: null,
+    };
+  }
+
+  return {
+    token,
+    username: localStorage.getItem("username"),
+    userId: localStorage.getItem("userId"),
+    image: localStorage.getItem("image"),
+    role,
     dashboardButtonsEnabled: loadDashboardButtonsEnabled(),
-    dashboardConfig: loadDashboardConfig("dashboardConfig") as DashboardModuleConfig[] | null,
-    mobileDashboardConfig: loadDashboardConfig("mobileDashboardConfig") as DashboardModuleConfig[] | null,
-  }),
+    dashboardConfig: loadDashboardConfig("dashboardConfig"),
+    mobileDashboardConfig: loadDashboardConfig("mobileDashboardConfig"),
+  };
+}
+
+export const useAuthStore = defineStore("auth", {
+  state: () => loadSession(),
   actions: {
     async login(payload: LoginPayload) {
       try {
         const response = await login(payload);
+        if (!response.token || !isUserRole(response.role)) {
+          this.logout();
+          throw new Error("Invalid authentication response");
+        }
 
         this.token = response.token;
         this.username = response.username;
         this.userId = response.id;
         this.image = response.image || null;
-        this.roles = response.roles || []; // array desde backend
+        this.role = response.role;
         this.dashboardButtonsEnabled = response.dashboardButtonsEnabled === true;
         this.dashboardConfig = response.dashboardConfig ?? null;
         this.mobileDashboardConfig = response.mobileDashboardConfig ?? null;
@@ -66,7 +110,8 @@ export const useAuthStore = defineStore("auth", {
         localStorage.setItem("username", response.username);
         localStorage.setItem("userId", response.id);
         localStorage.setItem("image", this.image || "");
-        localStorage.setItem("roles", JSON.stringify(this.roles)); // ✅ serializado
+        localStorage.setItem("role", response.role);
+        localStorage.removeItem("roles");
         localStorage.setItem("dashboardButtonsEnabled", String(this.dashboardButtonsEnabled));
         localStorage.setItem("dashboardConfig", JSON.stringify(this.dashboardConfig));
         localStorage.setItem("mobileDashboardConfig", JSON.stringify(this.mobileDashboardConfig));
@@ -103,35 +148,26 @@ export const useAuthStore = defineStore("auth", {
       this.username = null;
       this.userId = null;
       this.image = null;
-      this.roles = [];
+      this.role = null;
       this.dashboardButtonsEnabled = false;
       this.dashboardConfig = null;
       this.mobileDashboardConfig = null;
 
-      localStorage.removeItem("token");
-      localStorage.removeItem("username");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("image");
-      localStorage.removeItem("roles");
-      localStorage.removeItem("dashboardButtonsEnabled");
-      localStorage.removeItem("dashboardConfig");
-      localStorage.removeItem("mobileDashboardConfig");
-
-      delete api.defaults.headers.common["Authorization"];
+      clearPersistedSession();
     },
 
     initializeAuth() {
-      if (this.token) {
+      if (this.token && this.role && isUserRole(this.role)) {
         api.defaults.headers.common["Authorization"] = `Bearer ${this.token}`;
+      } else {
+        this.logout();
       }
     },
   },
   getters: {
     isAuthenticated: (state): boolean => !!state.token,
     loggedUser: (state) => ({ id: state.userId, username: state.username }),
-    userRoles: (state) => state.roles,
-    hasRole: (state) => (role: string): boolean =>
-      Array.isArray(state.roles) && state.roles.includes(role),
+    hasRole: (state) => (role: string): boolean => state.role === role,
     avatarUrl: (state) => state.image,
   },
 });

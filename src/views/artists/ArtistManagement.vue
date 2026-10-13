@@ -850,6 +850,7 @@ import SearchableSelect from "@components/SearchableSelect.vue";
 import DiscDetail from "@components/DiscDetail.vue";
 import DiscCardComponent from "@components/DiscCardComponent.vue";
 import Swal from "sweetalert2";
+import { hasMinimumRole } from "@helpers/roles";
 
 const LIMIT = 30;
 
@@ -869,11 +870,7 @@ export default defineComponent({
     const selectedCountryId = ref("");
     const needsReview = ref<boolean | null>(null);
     const authStore = useAuthStore();
-    const isManager =
-      authStore.hasRole?.("riffValley") ||
-      authStore.hasRole?.("superUser") ||
-      (authStore.roles || "").includes("riffValley") ||
-      (authStore.roles || "").includes("superUser");
+    const isManager = hasMinimumRole(authStore.role, "riffvalley");
     const fillingImages = ref(false);
     const fillProgress = ref(0);
     const fillTotal = ref(0);

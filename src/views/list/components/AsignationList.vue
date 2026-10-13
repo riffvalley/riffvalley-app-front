@@ -383,6 +383,7 @@
 import { defineComponent, ref, reactive, watch, computed, nextTick } from "vue";
 import { useAsignationStore } from "@stores/asignation/asignation";
 import { useUserStore } from "@stores/user/users";
+import type { RvUser } from "@services/auth/auth";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import DiscDescriptionModal from "./DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
@@ -404,7 +405,7 @@ export default defineComponent({
     const userStore = useUserStore();
     const asignations = ref<any[]>([]);
 
-    const users = computed(() => userStore.usersRv);
+    const users = computed<RvUser[]>(() => userStore.usersRv);
     const editingUserAsignationId = ref<string | null>(null);
     const editingAsignation = ref<any>(null);
     const savingDescription = ref(false);
@@ -426,7 +427,7 @@ export default defineComponent({
       if (newUserId && newUserId !== asignation.user.id) {
         try {
           await asignationStore.updateAsignationStore({ id: asignation.id, userId: newUserId });
-          const newUser = userStore.usersRv.find((u: any) => u.id === newUserId);
+          const newUser = users.value.find((u) => u.id === newUserId);
           if (newUser) {
             const index = asignations.value.findIndex(a => a.id === asignation.id);
             if (index !== -1) asignations.value[index] = { ...asignations.value[index], user: newUser };

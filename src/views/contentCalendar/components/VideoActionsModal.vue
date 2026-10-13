@@ -152,12 +152,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
+import type { RvUser } from '@services/auth/auth';
 import { VIDEO_TYPES, VIDEO_STATUSES, type VideoStatus, type VideoType } from '@services/videos/videos';
 
 interface Props {
     show: boolean;
     content: Content;
-    rvUsers: any[];
+    rvUsers: RvUser[];
 }
 
 const props = defineProps<Props>();

@@ -1,4 +1,5 @@
 import api from "@services/api/api.ts";
+import type { UserRole } from "@interfaces/auth";
 
 export interface LoginPayload {
   username: string;
@@ -7,23 +8,30 @@ export interface LoginPayload {
 
 export interface LoginResponse {
   id: string;
-  password: string;
   username: string;
+  role: UserRole;
   token: string;
-  roles?: string[];
   image?: string | null;
   dashboardButtonsEnabled?: boolean;
   dashboardConfig?: { id: string; enabled: boolean }[] | null;
   mobileDashboardConfig?: { id: string; enabled: boolean }[] | null;
 }
 
-export interface Superuser {
+export interface UserListItem {
   id: string;
   email: string;
   username: string;
-  roles: string[];
-  image: string;
+  role: UserRole;
+  image: string | null;
 }
+
+export type RvUser = Omit<UserListItem, "role"> & {
+  role: Extract<UserRole, "riffvalley" | "superadmin">;
+};
+
+export type Superuser = Omit<UserListItem, "role"> & {
+  role: "superadmin";
+};
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
   const response = await api.post<LoginResponse>("/auth/login", payload);
@@ -35,8 +43,8 @@ export async function getSuperusers(): Promise<Superuser[]> {
   return response.data;
 }
 
-export async function getUsersRv(): Promise<Superuser[]> {
-  const response = await api.get<Superuser[]>("/auth/usersRv");
+export async function getUsersRv(): Promise<RvUser[]> {
+  const response = await api.get<RvUser[]>("/auth/usersRv");
   return response.data;
 }
 
