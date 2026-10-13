@@ -100,20 +100,53 @@
             <MejoresAsignationList />
           </div>
 
-          <!-- Selección de Discos -->
+          <!-- Pestañas: Selección de discos / Mis votos -->
           <div>
-            <div class="flex items-center gap-3 mb-4">
-              <div class="p-1.5 bg-pink-100 dark:bg-pink-900/30 rounded-lg text-pink-600 dark:text-pink-400">
-                <i class="fa-solid fa-compact-disc text-lg"></i>
+            <div class="flex gap-1 mb-4 border-b border-gray-200 dark:border-white/10" role="tablist">
+              <button v-for="tab in tabs" :key="tab.id" type="button" role="tab"
+                :aria-selected="activeTab === tab.id"
+                class="flex items-center gap-2 px-4 py-2 -mb-px rounded-none rounded-t-lg bg-transparent hover:bg-transparent border-0 border-b-2 text-sm font-semibold transition-colors focus:outline-none"
+                :class="activeTab === tab.id
+                  ? 'border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'"
+                @click="activeTab = tab.id">
+                <i :class="tab.icon"></i>
+                {{ tab.label }}
+              </button>
+            </div>
+
+            <!-- Selección de Discos (v-show para conservar filtros y scroll al cambiar de pestaña) -->
+            <div v-show="activeTab === 'seleccion'">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="p-1.5 bg-pink-100 dark:bg-pink-900/30 rounded-lg text-pink-600 dark:text-pink-400">
+                  <i class="fa-solid fa-compact-disc text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-xl font-bold text-gray-900 dark:text-white">Selección de Discos</h2>
+                  <p class="text-gray-500 dark:text-gray-400 text-xs">Discos lanzados en este periodo</p>
+                </div>
               </div>
-              <div>
-                <h2 class="text-xl font-bold text-gray-900 dark:text-white">Selección de Discos</h2>
-                <p class="text-gray-500 dark:text-gray-400 text-xs">Discos lanzados en este periodo</p>
+
+              <div class="bg-white dark:bg-rv-darkCard p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-white/10">
+                <DiscsByDate v-if="list.listDate" :date="list.listDate" :type="list.type" :list-id="list.id" />
               </div>
             </div>
 
-            <div class="bg-white dark:bg-rv-darkCard p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-white/10">
-              <DiscsByDate v-if="list.listDate" :date="list.listDate" :type="list.type" :list-id="list.id" />
+            <!-- Mis votos del mes (se recarga cada vez que se abre) -->
+            <div v-if="activeTab === 'votos'">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="p-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-lg text-amber-600 dark:text-amber-400">
+                  <i class="fa-solid fa-star text-lg"></i>
+                </div>
+                <div>
+                  <h2 class="text-xl font-bold text-gray-900 dark:text-white">Mis votos del mes</h2>
+                  <p class="text-gray-500 dark:text-gray-400 text-xs">Asígnate los discos que ya has votado</p>
+                </div>
+              </div>
+
+              <div class="bg-white dark:bg-rv-darkCard p-4 rounded-2xl shadow-sm border border-gray-200 dark:border-white/10">
+                <MisVotosMes v-if="list.listDate" :list-id="list.id" :date="list.listDate" />
+              </div>
             </div>
           </div>
         </div>
@@ -132,6 +165,7 @@ import { useAsignationStore } from '@stores/asignation/asignation';
 import { useUserStore } from '@stores/user/users';
 import DiscsByDate from '../list/components/DiscByDate.vue';
 import MejoresAsignationList from '../list/components/MejoresAsignationList.vue';
+import MisVotosMes from '../list/components/MisVotosMes.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -141,6 +175,12 @@ const userStore = useUserStore();
 const list = ref<any>(null);
 const loading = ref(true);
 const publishingWp = ref(false);
+
+const tabs = [
+  { id: 'seleccion', label: 'Selección de discos', icon: 'fa-solid fa-compact-disc' },
+  { id: 'votos', label: 'Mis votos', icon: 'fa-solid fa-star' },
+] as const;
+const activeTab = ref<(typeof tabs)[number]['id']>('seleccion');
 
 function formatDateForInput(dateString: string) {
   if (!dateString) return '';

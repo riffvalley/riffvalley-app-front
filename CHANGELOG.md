@@ -1,3 +1,59 @@
+## <small>1.44.2 (2026-10-05)</small>
+
+* Merge pull request #178 from riffvalley/chore/refactor-integration ([96332c7](https://github.com/riffvalley/riffvalley-app-front/commit/96332c7)), closes [#178](https://github.com/riffvalley/riffvalley-app-front/issues/178)
+* perf(home): use aggregated rates insights ([7a0863b](https://github.com/riffvalley/riffvalley-app-front/commit/7a0863b))
+* fix(import): use catalog import routes ([6dd9d2a](https://github.com/riffvalley/riffvalley-app-front/commit/6dd9d2a))
+* fix(spotify): route frontend lookups through backend ([ce729d7](https://github.com/riffvalley/riffvalley-app-front/commit/ce729d7))
+
+## <small>1.44.1 (2026-09-25)</small>
+
+* Merge pull request #174 from riffvalley/fix/sidebar-theme-toggle-alignment ([da5c2c4](https://github.com/riffvalley/riffvalley-app-front/commit/da5c2c4)), closes [#174](https://github.com/riffvalley/riffvalley-app-front/issues/174)
+* fix(sidebar): align theme toggle to the right ([730edea](https://github.com/riffvalley/riffvalley-app-front/commit/730edea))
+* fix(sidebar): anchor theme toggle to the right ([8d773c3](https://github.com/riffvalley/riffvalley-app-front/commit/8d773c3))
+* fix(sidebar): compact navigation buttons ([339dba0](https://github.com/riffvalley/riffvalley-app-front/commit/339dba0))
+* fix(sidebar): keep theme toggle aligned ([aa6d993](https://github.com/riffvalley/riffvalley-app-front/commit/aa6d993))
+* fix(sidebar): pin theme toggle to the right column ([debf786](https://github.com/riffvalley/riffvalley-app-front/commit/debf786))
+
+## 1.44.0 (2026-09-25)
+
+* Merge pull request #173 from riffvalley/feat/dashboard-menu-main ([c4f40b6](https://github.com/riffvalley/riffvalley-app-front/commit/c4f40b6)), closes [#173](https://github.com/riffvalley/riffvalley-app-front/issues/173)
+* feat(sidebar): configure menu area buttons ([a011ed5](https://github.com/riffvalley/riffvalley-app-front/commit/a011ed5))
+
+## 1.43.0 (2026-09-21)
+
+* Merge pull request #170 from riffvalley/feat/radar-borrar-lista ([cdddaf3](https://github.com/riffvalley/riffvalley-app-front/commit/cdddaf3)), closes [#170](https://github.com/riffvalley/riffvalley-app-front/issues/170)
+* feat(radar): botón para eliminar radar desde el detalle ([c657ada](https://github.com/riffvalley/riffvalley-app-front/commit/c657ada))
+
+## <small>1.42.1 (2026-09-21)</small>
+
+* Merge pull request #169 from riffvalley/fix/mis-votos-sin-eps ([b77cec7](https://github.com/riffvalley/riffvalley-app-front/commit/b77cec7)), closes [#169](https://github.com/riffvalley/riffvalley-app-front/issues/169)
+* fix(mejores): excluir EPs de la pestaña mis votos ([cfd86da](https://github.com/riffvalley/riffvalley-app-front/commit/cfd86da))
+
+## 1.42.0 (2026-09-21)
+
+* Merge pull request #168 from riffvalley/feat/mejores-mis-votos ([de63446](https://github.com/riffvalley/riffvalley-app-front/commit/de63446)), closes [#168](https://github.com/riffvalley/riffvalley-app-front/issues/168)
+* feat(mejores): pestaña mis votos del mes con asignación a uno mismo ([0fffc9c](https://github.com/riffvalley/riffvalley-app-front/commit/0fffc9c))
+
+## 1.41.0 (2026-09-21)
+
+* Merge pull request #167 from riffvalley/fix/radar-cierre-martes ([1142916](https://github.com/riffvalley/riffvalley-app-front/commit/1142916)), closes [#167](https://github.com/riffvalley/riffvalley-app-front/issues/167)
+* feat(discos): tarjetas de mejores centradas con acordeón y fechas simplificadas en radares ([f77e557](https://github.com/riffvalley/riffvalley-app-front/commit/f77e557))
+
+## 1.40.0 (2026-09-20)
+
+* Merge pull request #166 from riffvalley/fix/radar-cierre-martes ([705fcbc](https://github.com/riffvalley/riffvalley-app-front/commit/705fcbc)), closes [#166](https://github.com/riffvalley/riffvalley-app-front/issues/166)
+* feat(mejores): colapsar anteriores y mover actuales debajo ([9af8b45](https://github.com/riffvalley/riffvalley-app-front/commit/9af8b45))
+
+## <small>1.39.1 (2026-09-20)</small>
+
+* Merge pull request #165 from riffvalley/fix/radar-cierre-martes ([b25dfac](https://github.com/riffvalley/riffvalley-app-front/commit/b25dfac)), closes [#165](https://github.com/riffvalley/riffvalley-app-front/issues/165)
+* fix(radar): títulos de secciones visibles y abiertas dentro de actuales ([473fb87](https://github.com/riffvalley/riffvalley-app-front/commit/473fb87))
+
+## 1.39.0 (2026-09-20)
+
+* Merge pull request #164 from riffvalley/fix/radar-cierre-martes ([458ec73](https://github.com/riffvalley/riffvalley-app-front/commit/458ec73)), closes [#164](https://github.com/riffvalley/riffvalley-app-front/issues/164)
+* feat(radar): mostrar solo las dos próximas semanas y colapsar el resto ([00eaa43](https://github.com/riffvalley/riffvalley-app-front/commit/00eaa43))
+
 ## 1.38.0 (2026-09-17)
 
 * feat(import): align manual import response and add Spotify search ([f37a07e](https://github.com/riffvalley/riffvalley-app-front/commit/f37a07e))
