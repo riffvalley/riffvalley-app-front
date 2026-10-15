@@ -289,6 +289,12 @@ function truncateTitle(title: string, max = 70): string {
   return title.length > max ? title.slice(0, max).trimEnd() + '…' : title;
 }
 
+function decodeHtmlEntities(value: string): string {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = value;
+  return textarea.value;
+}
+
 function sourceLabel(post: NewsPost) {
   if (post.source === 'app')           return typeLabel(post.newsType!);
   if (post.source === 'riffvalley.es') return 'riffvalley.es';
@@ -355,7 +361,10 @@ function mapFeedPost(fp: FeedPost): NewsPost {
     : fp.image;
   return {
     id:       fp.id,
-    title:    fp.title,
+    title:
+      fp.source === 'riffvalley.es'
+        ? decodeHtmlEntities(fp.title)
+        : fp.title,
     link:     fp.link,
     image,
     date:     postDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }),
