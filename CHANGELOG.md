@@ -1,3 +1,29 @@
+## <small>1.45.1 (2026-10-15)</small>
+
+* fix(news): decode WordPress feed title entities (#184) ([205e72d](https://github.com/riffvalley/riffvalley-app-front/commit/205e72d)), closes [#184](https://github.com/riffvalley/riffvalley-app-front/issues/184)
+
+## 1.45.0 (2026-10-13)
+
+* Merge pull request #171 from riffvalley/feat/dashboard-menu-preferences ([2952f30](https://github.com/riffvalley/riffvalley-app-front/commit/2952f30)), closes [#171](https://github.com/riffvalley/riffvalley-app-front/issues/171)
+* Merge pull request #175 from riffvalley/fix/sidebar-theme-toggle-alignment-dev ([f953ac0](https://github.com/riffvalley/riffvalley-app-front/commit/f953ac0)), closes [#175](https://github.com/riffvalley/riffvalley-app-front/issues/175)
+* Merge pull request #179 from riffvalley/chore/refactor-integration-dev ([3f414be](https://github.com/riffvalley/riffvalley-app-front/commit/3f414be)), closes [#179](https://github.com/riffvalley/riffvalley-app-front/issues/179)
+* Merge pull request #180 from riffvalley/chore/refactor-integration ([7cf9b93](https://github.com/riffvalley/riffvalley-app-front/commit/7cf9b93)), closes [#180](https://github.com/riffvalley/riffvalley-app-front/issues/180)
+* Merge pull request #181 from riffvalley/chore/refactor-integration-dev ([6e1d07c](https://github.com/riffvalley/riffvalley-app-front/commit/6e1d07c)), closes [#181](https://github.com/riffvalley/riffvalley-app-front/issues/181)
+* Merge pull request #183 from riffvalley/chore/refactor-integration-dev ([cef0373](https://github.com/riffvalley/riffvalley-app-front/commit/cef0373)), closes [#183](https://github.com/riffvalley/riffvalley-app-front/issues/183)
+* Merge remote-tracking branch 'origin/dev' into chore/refactor-integration-dev ([b996421](https://github.com/riffvalley/riffvalley-app-front/commit/b996421))
+* Merge remote-tracking branch 'origin/main' into chore/refactor-integration-dev ([fa41a00](https://github.com/riffvalley/riffvalley-app-front/commit/fa41a00))
+* feat(auth): migrate frontend to hierarchical single-role model ([3d36ec9](https://github.com/riffvalley/riffvalley-app-front/commit/3d36ec9))
+* feat(sidebar): configure menu area buttons ([a8d8ab1](https://github.com/riffvalley/riffvalley-app-front/commit/a8d8ab1))
+* refactor(spotify): rename local playlists domain ([45ef014](https://github.com/riffvalley/riffvalley-app-front/commit/45ef014))
+* refactor(spotify): rename local playlists domain ([576382b](https://github.com/riffvalley/riffvalley-app-front/commit/576382b))
+* perf(home): use aggregated rates insights ([3696784](https://github.com/riffvalley/riffvalley-app-front/commit/3696784))
+* fix(import): use catalog import routes ([9c7cc1b](https://github.com/riffvalley/riffvalley-app-front/commit/9c7cc1b))
+* fix(sidebar): anchor theme toggle to the right ([316165f](https://github.com/riffvalley/riffvalley-app-front/commit/316165f))
+* fix(sidebar): compact navigation buttons ([24319b4](https://github.com/riffvalley/riffvalley-app-front/commit/24319b4))
+* fix(sidebar): keep theme toggle aligned ([d579a73](https://github.com/riffvalley/riffvalley-app-front/commit/d579a73))
+* fix(sidebar): pin theme toggle to the right column ([ac0991f](https://github.com/riffvalley/riffvalley-app-front/commit/ac0991f))
+* fix(spotify): route frontend lookups through backend ([5604d67](https://github.com/riffvalley/riffvalley-app-front/commit/5604d67))
+
 ## <small>1.44.2 (2026-10-05)</small>
 
 * Merge pull request #178 from riffvalley/chore/refactor-integration ([96332c7](https://github.com/riffvalley/riffvalley-app-front/commit/96332c7)), closes [#178](https://github.com/riffvalley/riffvalley-app-front/issues/178)
