@@ -54,7 +54,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/import",
     name: "Import",
     component: () => import("@views/importPage/ImportPage.vue"),
-    meta: { requiresAuth: true, requiresRole: "user" },
+    meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/suggest",

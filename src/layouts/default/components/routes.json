@@ -84,7 +84,7 @@
     "label": "Añadir Discos",
     "activeClass": "bg-gray-700",
     "type": "new-discs",
-    "requiredRole": "user",
+    "requiredRole": "superadmin",
     "icon": "fa-solid fa-circle-plus"
   },
   {
