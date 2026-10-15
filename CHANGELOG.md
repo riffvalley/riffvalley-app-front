@@ -1,3 +1,14 @@
+## <small>1.45.2 (2026-10-15)</small>
+
+* Merge pull request #185 from riffvalley/chore/refactor-integration-dev ([4e136c1](https://github.com/riffvalley/riffvalley-app-front/commit/4e136c1)), closes [#185](https://github.com/riffvalley/riffvalley-app-front/issues/185)
+* Merge remote-tracking branch 'origin/main' into chore/refactor-integration-dev ([f595c2d](https://github.com/riffvalley/riffvalley-app-front/commit/f595c2d))
+* docs(catalog): record frontend integration status ([38a5dfe](https://github.com/riffvalley/riffvalley-app-front/commit/38a5dfe))
+* docs(catalog): record main integration ([95baad0](https://github.com/riffvalley/riffvalley-app-front/commit/95baad0))
+* fix(artists): omit unsupported country filter ([92cd5ed](https://github.com/riffvalley/riffvalley-app-front/commit/92cd5ed))
+* fix(artists): recover from out-of-range pages ([c9f6ffc](https://github.com/riffvalley/riffvalley-app-front/commit/c9f6ffc))
+* fix(catalog): align import and catalog contracts ([1d129e9](https://github.com/riffvalley/riffvalley-app-front/commit/1d129e9))
+* fix(import): restrict manual import access ([f81a2d4](https://github.com/riffvalley/riffvalley-app-front/commit/f81a2d4))
+
 ## <small>1.45.1 (2026-10-15)</small>
 
 * fix(news): decode WordPress feed title entities (#184) ([205e72d](https://github.com/riffvalley/riffvalley-app-front/commit/205e72d)), closes [#184](https://github.com/riffvalley/riffvalley-app-front/issues/184)
