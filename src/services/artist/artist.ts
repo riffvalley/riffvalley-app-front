@@ -129,12 +129,12 @@ export async function getArtistsManagement(params: {
   limit?: number;
   offset?: number;
   genreId?: string;
-  countryId?: string;
   needsReview?: boolean;
 }): Promise<ArtistManagementResponse> {
+  const { query, limit, offset, genreId, needsReview } = params;
   const response = await api.get<ArtistManagementResponse>(
     "/artists/management",
-    { params },
+    { params: { query, limit, offset, needsReview, genreId } },
   );
   return response.data;
 }

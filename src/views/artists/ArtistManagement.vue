@@ -78,18 +78,6 @@
         :max="150"
         class="w-full sm:w-56 rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 shadow-lg"
       />
-
-      <SearchableSelect
-        v-model="selectedCountryId"
-        :options="countries"
-        title="name"
-        trackby="id"
-        placeholder="Buscar país..."
-        trigger-placeholder="Todos los países"
-        all-label="Todos los países"
-        :max="250"
-        class="w-full sm:w-56 rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 shadow-lg"
-      />
     </div>
 
     <!-- Lista -->
@@ -364,26 +352,40 @@
 
     <!-- Paginación -->
     <div
-      v-if="totalPages > 1"
+      v-if="paginationState.mode !== 'hidden'"
       class="flex items-center justify-center gap-2 sm:gap-3 mt-8 flex-wrap"
     >
-      <button
-        @click="goToPage(currentPage - 1)"
-        :disabled="currentPage <= 1"
-        class="w-9 h-9 rounded-xl bg-gray-400 dark:bg-white/20 text-white text-sm disabled:opacity-40 hover:bg-rv-pink dark:hover:bg-rv-pink transition-colors flex items-center justify-center"
-      >
-        <i class="fa-solid fa-chevron-left"></i>
-      </button>
-      <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-        Página {{ currentPage }} de {{ totalPages }}
-      </span>
-      <button
-        @click="goToPage(currentPage + 1)"
-        :disabled="currentPage >= totalPages"
-        class="w-9 h-9 rounded-xl bg-gray-400 dark:bg-white/20 text-white text-sm disabled:opacity-40 hover:bg-rv-pink dark:hover:bg-rv-pink transition-colors flex items-center justify-center"
-      >
-        <i class="fa-solid fa-chevron-right"></i>
-      </button>
+      <template v-if="paginationState.mode === 'recovery'">
+        <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+          La página solicitada ya no está disponible.
+        </span>
+        <button
+          @click="goToPage(paginationState.page)"
+          :disabled="loading"
+          class="rounded-xl bg-gray-400 dark:bg-white/20 text-white text-sm px-3 py-2 disabled:opacity-40 hover:bg-rv-pink dark:hover:bg-rv-pink transition-colors"
+        >
+          Volver a la página {{ paginationState.page }}
+        </button>
+      </template>
+      <template v-else>
+        <button
+          @click="goToPage(currentPage - 1)"
+          :disabled="currentPage <= 1"
+          class="w-9 h-9 rounded-xl bg-gray-400 dark:bg-white/20 text-white text-sm disabled:opacity-40 hover:bg-rv-pink dark:hover:bg-rv-pink transition-colors flex items-center justify-center"
+        >
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <span class="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+          Página {{ currentPage }} de {{ totalPages }}
+        </span>
+        <button
+          @click="goToPage(currentPage + 1)"
+          :disabled="currentPage >= totalPages"
+          class="w-9 h-9 rounded-xl bg-gray-400 dark:bg-white/20 text-white text-sm disabled:opacity-40 hover:bg-rv-pink dark:hover:bg-rv-pink transition-colors flex items-center justify-center"
+        >
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </template>
     </div>
   </div>
 
@@ -820,6 +822,7 @@ import {
   defineComponent,
   ref,
   reactive,
+  computed,
   watch,
   onMounted,
   onUnmounted,
@@ -851,6 +854,10 @@ import DiscDetail from "@components/DiscDetail.vue";
 import DiscCardComponent from "@components/DiscCardComponent.vue";
 import Swal from "sweetalert2";
 import { hasMinimumRole } from "@helpers/roles";
+import {
+  canNavigateToArtistPage,
+  getArtistManagementPaginationState,
+} from "./artistManagementPagination";
 
 const LIMIT = 30;
 
@@ -862,12 +869,14 @@ export default defineComponent({
     const totalItems = ref(0);
     const totalPages = ref(1);
     const currentPage = ref(1);
+    const paginationState = computed(() =>
+      getArtistManagementPaginationState(currentPage.value, totalPages.value),
+    );
     const loading = ref(false);
     const query = ref("");
     const countries = ref<Country[]>([]);
     const genres = ref<Genre[]>([]);
     const selectedGenreId = ref("");
-    const selectedCountryId = ref("");
     const needsReview = ref<boolean | null>(null);
     const authStore = useAuthStore();
     const isManager = hasMinimumRole(authStore.role, "riffvalley");
@@ -895,7 +904,6 @@ export default defineComponent({
           limit: LIMIT,
           offset,
           genreId: selectedGenreId.value || undefined,
-          countryId: selectedCountryId.value || undefined,
           needsReview: needsReview.value ?? undefined,
         });
         artists.value = res.data;
@@ -922,11 +930,19 @@ export default defineComponent({
     };
 
     watch(selectedGenreId, () => fetchArtists(1));
-    watch(selectedCountryId, () => fetchArtists(1));
     watch(needsReview, () => fetchArtists(1));
 
     const goToPage = (page: number) => {
-      if (page < 1 || page > totalPages.value) return;
+      if (
+        !canNavigateToArtistPage(
+          page,
+          currentPage.value,
+          totalPages.value,
+          loading.value,
+        )
+      ) {
+        return;
+      }
       fetchArtists(page);
     };
 
@@ -1418,12 +1434,12 @@ export default defineComponent({
       totalItems,
       totalPages,
       currentPage,
+      paginationState,
       loading,
       query,
       countries,
       genres,
       selectedGenreId,
-      selectedCountryId,
       needsReview,
       isManager,
       fillingImages,
