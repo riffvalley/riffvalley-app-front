@@ -3,13 +3,13 @@ import api from "@services/api/api.ts";
 export interface Genre {
   id: string;
   name: string;
-  color: string;
+  color: string | null;
 }
 
 export interface Country {
   id: string;
   name: string;
-  isoCode: string;
+  isoCode: string | null;
 }
 
 export interface CatalogResponse {
