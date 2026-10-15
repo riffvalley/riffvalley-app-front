@@ -78,18 +78,6 @@
         :max="150"
         class="w-full sm:w-56 rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 shadow-lg"
       />
-
-      <SearchableSelect
-        v-model="selectedCountryId"
-        :options="countries"
-        title="name"
-        trackby="id"
-        placeholder="Buscar país..."
-        trigger-placeholder="Todos los países"
-        all-label="Todos los países"
-        :max="250"
-        class="w-full sm:w-56 rounded-full text-rv-navy dark:text-white text-sm border-rv-navy/20 shadow-lg"
-      />
     </div>
 
     <!-- Lista -->
@@ -867,7 +855,6 @@ export default defineComponent({
     const countries = ref<Country[]>([]);
     const genres = ref<Genre[]>([]);
     const selectedGenreId = ref("");
-    const selectedCountryId = ref("");
     const needsReview = ref<boolean | null>(null);
     const authStore = useAuthStore();
     const isManager = hasMinimumRole(authStore.role, "riffvalley");
@@ -895,7 +882,6 @@ export default defineComponent({
           limit: LIMIT,
           offset,
           genreId: selectedGenreId.value || undefined,
-          countryId: selectedCountryId.value || undefined,
           needsReview: needsReview.value ?? undefined,
         });
         artists.value = res.data;
@@ -922,7 +908,6 @@ export default defineComponent({
     };
 
     watch(selectedGenreId, () => fetchArtists(1));
-    watch(selectedCountryId, () => fetchArtists(1));
     watch(needsReview, () => fetchArtists(1));
 
     const goToPage = (page: number) => {
@@ -1423,7 +1408,6 @@ export default defineComponent({
       countries,
       genres,
       selectedGenreId,
-      selectedCountryId,
       needsReview,
       isManager,
       fillingImages,
