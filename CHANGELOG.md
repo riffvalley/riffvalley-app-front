@@ -1,3 +1,7 @@
+## <small>1.45.1 (2026-10-15)</small>
+
+* fix(news): decode WordPress feed title entities (#184) ([205e72d](https://github.com/riffvalley/riffvalley-app-front/commit/205e72d)), closes [#184](https://github.com/riffvalley/riffvalley-app-front/issues/184)
+
 ## 1.45.0 (2026-10-13)
 
 * Merge pull request #171 from riffvalley/feat/dashboard-menu-preferences ([2952f30](https://github.com/riffvalley/riffvalley-app-front/commit/2952f30)), closes [#171](https://github.com/riffvalley/riffvalley-app-front/issues/171)
