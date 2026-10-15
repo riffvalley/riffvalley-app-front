@@ -19,6 +19,13 @@
 - Prettier 3.5.3 con Yarn, limitado a los dos archivos de código: aprobado.
 - No se contactó el backend ni servicios externos.
 
+## BC-CAT-RELEASE-6 — Preparación de integración frontend
+
+- El contrato de Catalog queda cubierto por `92cd5ed` y `1d129e9`: Artists y Countries, `Genre.color: string | null`, `Country.isoCode: string | null` y pruebas del payload de catálogo.
+- Las pruebas focalizadas de Catalog/importación y el build/typecheck pasaron el 2026-10-15; detalles y hashes están en `roadmap/catalog-import.md`.
+- No se integró `origin/main`: el remoto avanzó hasta `dfcfad4` durante la tarea y modifica `.impeccable/config.json`, que conserva cambios locales. El bloqueo y el inventario de commits remotos quedan registrados en el roadmap de importación.
+- La verificación mockeada no acredita integración HTTP real ni compatibilidad de esquema en producción; el informe backend de regresión conserva esos puntos como bloqueos de publicación.
+
 ## Sincronización backend
 
-La actualización de `roadmap/backend-cleanup.md` queda pendiente. El archivo ya contiene un diff local sin confirmar con el registro de BC-OVR-0/OVR-F1 y el entorno permite escritura solo en el repositorio frontend. La evidencia anterior permite sincronizar OVR-F1 como resuelto y BC-OVR-1 como completada, marcar CatalogOverview como completado y conservar Discs como pendiente, después de integrar esos cambios locales.
+La sincronización de OVR-F1 y BC-OVR-1 en `roadmap/backend-cleanup.md` quedó registrada en el informe backend de regresión del 2026-10-15 (BC-CAT-RELEASE-5). Se conserva esta referencia porque el repositorio backend no forma parte de este cambio frontend.
