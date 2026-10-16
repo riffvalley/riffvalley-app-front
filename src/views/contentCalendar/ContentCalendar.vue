@@ -658,7 +658,6 @@ async function handleUpdateVideo(data: any) {
             name: data.name,
             type: data.type,
             status: data.status,
-            link: data.link,
             userId: data.userId,
             editorId: data.editorId
         });
