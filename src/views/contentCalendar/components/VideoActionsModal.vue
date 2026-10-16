@@ -53,13 +53,6 @@
                             </div>
 
                             <div>
-                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Enlace</label>
-                                <input v-model="formData.link" type="url"
-                                    class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg text-sm"
-                                    placeholder="https://..." />
-                            </div>
-
-                            <div>
                                 <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Estado</label>
                                 <select v-model="formData.videoStatus"
                                     class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg text-sm">
@@ -221,7 +214,6 @@ const formData = ref({
     authorId: (props.content as any).authorId || props.content.author?.id || '',
     videoType: video?.type || 'best' as VideoType,
     videoStatus: video?.status || 'not_started' as VideoStatus,
-    link: video?.link || '',
     userId: video?.userId || video?.user?.id || '',
     editorId: video?.editorId || video?.editor?.id || ''
 });
@@ -237,7 +229,6 @@ watch(() => props.content, (newContent) => {
         authorId: (newContent as any).authorId || newContent.author?.id || '',
         videoType: v?.type || 'best',
         videoStatus: v?.status || 'not_started',
-        link: v?.link || '',
         userId: v?.userId || v?.user?.id || '',
         editorId: v?.editorId || v?.editor?.id || ''
     };
@@ -259,7 +250,6 @@ function handleUpdate() {
             name: formData.value.name,
             type: formData.value.videoType,
             status: formData.value.videoStatus,
-            link: formData.value.link || undefined,
             userId: formData.value.userId || undefined,
             editorId: formData.value.editorId || undefined
         });
