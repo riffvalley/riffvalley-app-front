@@ -28,19 +28,13 @@
           <div class="absolute bottom-0 left-0 w-48 h-48 bg-rv-pink/5 rounded-full blur-3xl -ml-12 -mb-12 pointer-events-none dark:hidden"></div>
 
           <div class="relative z-10 p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center gap-4 md:gap-6">
-            <!-- Título + descripción -->
+            <!-- Título -->
             <div class="flex-1 min-w-0">
               <input
                 v-model="list.name"
                 @change="updateField('name', list.name)"
                 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white bg-transparent border-none placeholder-gray-400 dark:placeholder-white/40 focus:ring-0 w-full p-0 leading-tight mb-1"
                 placeholder="Nombre de la lista"
-              />
-              <input
-                v-model="list.description"
-                @change="updateField('description', list.description)"
-                class="text-gray-500 dark:text-white/60 text-sm bg-transparent border-none placeholder-gray-400 dark:placeholder-white/30 focus:ring-0 w-full p-0"
-                placeholder="Añade una descripción..."
               />
             </div>
 
