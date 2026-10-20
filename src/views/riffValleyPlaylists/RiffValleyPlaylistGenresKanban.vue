@@ -131,10 +131,15 @@
                                 <!-- Buttons -->
                                 <div class="flex items-center gap-2">
                                     <!-- Edit -->
-                                    <button @click="item.spotifyPlaylistId ? openManager(item) : openEdit(item)"
+                                    <button @click="openEdit(item)"
                                         class="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
-                                        title="Editar">
-                                        <i class="fa-solid text-xs" :class="item.spotifyPlaylistId ? 'fa-sliders' : 'fa-pen'"></i>
+                                        title="Editar campos editoriales">
+                                        <i class="fa-solid fa-pen text-xs"></i>
+                                    </button>
+                                    <button v-if="item.spotifyPlaylistId" @click="openManager(item)"
+                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-purple-50 dark:bg-purple-900/20 text-rv-purple dark:text-rv-pink hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+                                        title="Gestionar playlist en Spotify">
+                                        <i class="fa-solid fa-sliders text-xs"></i>
                                     </button>
 
                                     <button v-if="!item.spotifyPlaylistId && item.link" @click="linkExisting(item)"
@@ -189,7 +194,13 @@
                         class="w-full rounded-lg border dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 px-3 py-2 outline-none focus:ring-2 focus:ring-black/40 dark:focus:ring-white/20" />
                 </div>
 
-                <div v-if="isEditing || createMode === 'link'">
+                <div v-if="isEditing && editingPlaylist?.spotifyPlaylistId">
+                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Enlace de Spotify (solo lectura)</label>
+                    <input :value="editingPlaylist.link" type="url" readonly
+                        class="w-full rounded-lg border bg-gray-100 dark:border-white/20 dark:bg-rv-darkBg dark:text-gray-400 px-3 py-2 outline-none cursor-text" />
+                </div>
+
+                <div v-else-if="isEditing || createMode === 'link'">
                     <label class="block text-sm font-medium mb-1 dark:text-gray-300">Enlace</label>
                     <input v-model="form.link" type="url"
                         class="w-full rounded-lg border dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 px-3 py-2 outline-none focus:ring-2 focus:ring-black/40 dark:focus:ring-white/20" />
@@ -224,7 +235,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, nextTick } from 'vue';
+import { ref, onMounted, reactive, nextTick, computed } from 'vue';
 import {
     getRiffValleyPlaylistGenres,
     updateRiffValleyPlaylist,
@@ -248,6 +259,7 @@ import {
     createGenrePlaylist,
     createLinkedGenrePlaylist,
     linkExistingGenrePlaylist,
+    updateGenrePlaylist,
     type SyncedGenrePlaylist,
 } from '@services/spotify/genrePlaylists';
 
@@ -295,6 +307,7 @@ const userSelectRef = ref<HTMLSelectElement | null>(null);
 const showModal = ref(false);
 const isEditing = ref(false);
 const editingId = ref<string | null>(null);
+const editingPlaylist = computed(() => items.value.find(item => item.id === editingId.value) ?? null);
 const form = reactive({
     name: '',
     link: '',
@@ -451,18 +464,36 @@ function closeModal() {
 }
 
 async function save() {
-    if ((isEditing.value && (!form.name || !form.link)) || (!isEditing.value && createMode.value === 'new' && !form.name) || (!isEditing.value && createMode.value === 'link' && !form.link)) {
+    const currentPlaylist = isEditing.value ? editingPlaylist.value : null;
+    if ((isEditing.value && (!form.name || (!currentPlaylist?.spotifyPlaylistId && !form.link))) || (!isEditing.value && createMode.value === 'new' && !form.name) || (!isEditing.value && createMode.value === 'link' && !form.link)) {
         SwalService.error('Completa todos los campos');
         return;
     }
 
     try {
-        if (isEditing.value && editingId.value) {
-            const updated = await updateRiffValleyPlaylist(editingId.value, {
-                name: form.name,
-                link: form.link,
-                updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined
-            });
+        if (isEditing.value && editingId.value && currentPlaylist) {
+            let updated: RiffValleyPlaylist = currentPlaylist;
+            const updateDate = form.updateDate ? toISO(new Date(form.updateDate)) : undefined;
+
+            if (currentPlaylist.spotifyPlaylistId) {
+                if (form.name !== currentPlaylist.name) {
+                    const synced = await updateGenrePlaylist(editingId.value, { name: form.name });
+                    updated = { ...updated, ...synced };
+                }
+
+                const currentDate = currentPlaylist.updateDate ? currentPlaylist.updateDate.slice(0, 10) : '';
+                if (form.updateDate !== currentDate) {
+                    const editorialUpdate = await updateRiffValleyPlaylist(editingId.value, { updateDate });
+                    updated = { ...updated, ...editorialUpdate };
+                }
+            } else {
+                updated = await updateRiffValleyPlaylist(editingId.value, {
+                    name: form.name,
+                    link: form.link,
+                    updateDate
+                });
+            }
+
             const idx = items.value.findIndex(x => x.id === editingId.value);
             if (idx !== -1) items.value[idx] = updated;
             closeModal();
