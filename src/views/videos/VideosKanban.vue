@@ -466,11 +466,13 @@ async function onUserChange(item: Video, event: Event) {
     }
 
     try {
-        await updateVideo(item.id, { userId: newUserId || undefined });
-    } catch (e) {
+        const updated = await updateVideo(item.id, { userId: newUserId });
+        item.user = updated.user;
+    } catch (e: any) {
         console.error(e);
         item.user = oldUser;
-        SwalService.error('Error asignando usuario');
+        const message = e?.response?.data?.message;
+        SwalService.error(Array.isArray(message) ? message.join(', ') : message || 'Error asignando usuario');
     }
 }
 
@@ -510,11 +512,13 @@ async function onEditorChange(item: Video, event: Event) {
     }
 
     try {
-        await updateVideo(item.id, { editorId: newEditorId || undefined });
-    } catch (e) {
+        const updated = await updateVideo(item.id, { editorId: newEditorId });
+        item.editor = updated.editor;
+    } catch (e: any) {
         console.error(e);
         item.editor = oldEditor;
-        SwalService.error('Error asignando editor');
+        const message = e?.response?.data?.message;
+        SwalService.error(Array.isArray(message) ? message.join(', ') : message || 'Error asignando editor');
     }
 }
 
@@ -564,7 +568,6 @@ async function save() {
             const created = await createVideo({
                 name: form.name,
                 type: form.type,
-                link: form.link || undefined,
                 status: 'not_started',
                 updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
                 userId: authStore.userId || undefined

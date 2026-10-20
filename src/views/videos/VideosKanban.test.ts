@@ -131,4 +131,58 @@ describe('VideosKanban assignments', () => {
         wrapper.unmount();
     });
 
+    it('selects, explicitly clears and reloads User/Editor assignments', async () => {
+        const wrapper = mountBoard();
+        await flushPromises();
+
+        expect(wrapper.text()).toContain('Usuario');
+        expect(wrapper.text()).toContain('Editora');
+
+        const userLabel = wrapper.findAll('span').find(span => span.text() === 'Usuario')!;
+        await userLabel.trigger('click');
+        const userSelect = wrapper.findAll('select').find(select => select.find('option[value=""]').exists())!;
+        await userSelect.setValue('');
+        await flushPromises();
+
+        expect(updateVideo).toHaveBeenCalledWith('video-1', { userId: null });
+        expect(wrapper.text()).toContain('Sin asignar');
+        expect(wrapper.text()).toContain('Editora');
+
+        const editorLabel = wrapper.findAll('div').find(div =>
+            div.attributes('class')?.includes('bg-purple-50/50') && div.text().includes('Editora')
+        )!;
+        await editorLabel.trigger('click');
+        const editorSelect = wrapper.findAll('select').find(select => select.find('option[value=""]').exists())!;
+        await editorSelect.setValue('');
+        await flushPromises();
+
+        expect(updateVideo).toHaveBeenCalledWith('video-1', { editorId: null });
+        expect(wrapper.text()).toContain('Sin editor');
+
+        wrapper.unmount();
+        const reloaded = mountBoard();
+        await flushPromises();
+        expect(reloaded.text()).toContain('Sin asignar');
+        expect(reloaded.text()).toContain('Sin editor');
+        reloaded.unmount();
+    });
+
+    it('restores the visible assignment and shows the backend error after HTTP 400', async () => {
+        vi.mocked(updateVideo).mockRejectedValueOnce({
+            response: { data: { message: 'El video debe tener un usuario asignado.' } }
+        });
+        const wrapper = mountBoard();
+        await flushPromises();
+
+        const userLabel = wrapper.findAll('span').find(span => span.text() === 'Usuario')!;
+        await userLabel.trigger('click');
+        const userSelect = wrapper.findAll('select').find(select => select.find('option[value=""]').exists())!;
+        await userSelect.setValue('');
+        await flushPromises();
+
+        expect(wrapper.text()).toContain('Usuario');
+        expect(wrapper.text()).not.toContain('Sin asignar');
+        expect(SwalService.error).toHaveBeenCalledWith('El video debe tener un usuario asignado.');
+        wrapper.unmount();
+    });
 });

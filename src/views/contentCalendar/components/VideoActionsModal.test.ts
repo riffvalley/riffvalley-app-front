@@ -56,4 +56,48 @@ describe('VideoActionsModal relationship updates', () => {
         wrapper.unmount();
     });
 
+    it('sends explicit null when User and Editor are cleared, preserving UUID selections', async () => {
+        const wrapper = mountModal();
+        const selects = wrapper.findAll('select');
+        const assignmentSelects = selects.slice(-2);
+
+        await assignmentSelects[0].setValue('');
+        await assignmentSelects[1].setValue(userId);
+        const saveButton = wrapper.findAll('button').find(button => button.text().includes('Guardar Cambios'))!;
+        await saveButton.trigger('click');
+
+        expect(wrapper.emitted('update-video')?.[0]?.[0]).toMatchObject({
+            videoId: 'video-1',
+            userId: null,
+            editorId: userId
+        });
+
+        wrapper.unmount();
+    });
+
+    it('omits User and Editor when the form values have not changed', async () => {
+        const wrapper = mountModal();
+
+        const saveButton = wrapper.findAll('button').find(button => button.text().includes('Guardar Cambios'))!;
+        await saveButton.trigger('click');
+
+        const payload = wrapper.emitted('update-video')?.[0]?.[0] as Record<string, unknown>;
+        expect(payload).not.toHaveProperty('userId');
+        expect(payload).not.toHaveProperty('editorId');
+
+        wrapper.unmount();
+    });
+
+    it('restores saved User and Editor values when the API update is rejected', async () => {
+        const wrapper = mountModal();
+        const assignmentSelects = wrapper.findAll('select').slice(-2);
+        await assignmentSelects[0].setValue('');
+        await assignmentSelects[1].setValue('');
+
+        await wrapper.setProps({ videoUpdateError: 1 });
+
+        expect((assignmentSelects[0].element as HTMLSelectElement).value).toBe(userId);
+        expect((assignmentSelects[1].element as HTMLSelectElement).value).toBe(editorId);
+        wrapper.unmount();
+    });
 });

@@ -60,12 +60,23 @@
                 <i class="fa-regular fa-calendar text-gray-400 dark:text-white/50 text-xs"></i>
                 <input
                   type="date"
+                  :value="formatDateForInput(list.releaseDate)"
+                  @change="updateRequiredEditorialDate"
+                  class="bg-transparent border-none p-0 text-gray-700 dark:text-white text-xs font-bold focus:ring-0 cursor-pointer w-[105px]"
+                  title="Fecha de publicación obligatoria"
+                  aria-label="Fecha de publicación obligatoria"
+                  required
+                />
+                <span class="text-gray-300 dark:text-white/30 text-xs">·</span>
+                <input
+                  type="date"
                   :value="formatDateForInput(list.listDate)"
                   :min="minListDate"
                   :max="maxListDate"
-                  @change="(e) => updateField('listDate', (e.target as HTMLInputElement).value)"
+                  @change="updateOptionalDate('listDate', $event)"
                   class="bg-transparent border-none p-0 text-gray-700 dark:text-white text-xs font-bold focus:ring-0 cursor-pointer w-[82px]"
                   title="Fecha de lista"
+                  aria-label="Fecha de lista"
                 />
                 <span class="text-gray-300 dark:text-white/30 text-xs">→</span>
                 <i class="fa-regular fa-clock text-gray-400 dark:text-white/50 text-xs"></i>
@@ -74,9 +85,10 @@
                   :value="formatDateForInput(list.closeDate)"
                   :min="minCloseDate"
                   :max="maxCloseDate"
-                  @change="(e) => updateField('closeDate', (e.target as HTMLInputElement).value)"
+                  @change="updateOptionalDate('closeDate', $event)"
                   class="bg-transparent border-none p-0 text-gray-700 dark:text-white text-xs font-bold focus:ring-0 cursor-pointer w-[82px]"
                   title="Fecha de cierre"
+                  aria-label="Fecha de cierre"
                 />
               </div>
             </div>
@@ -138,9 +150,25 @@ const userStore = useUserStore();
 const list = ref<any>(null);
 const loading = ref(true);
 
-function formatDateForInput(dateString: string) {
+function formatDateForInput(dateString?: string | null) {
   if (!dateString) return '';
-  return new Date(dateString).toISOString().split('T')[0];
+  const date = new Date(dateString);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+}
+
+function isValidDateInput(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(0);
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(year, month - 1, day);
+  return date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day;
 }
 
 const maxListDate = computed(() => {
@@ -213,6 +241,57 @@ async function updateField(field: string, value: any) {
   try {
     await updateList(list.value.id, { [field]: value });
   } catch {
+    SwalService.error('No se pudo guardar el cambio');
+  }
+}
+
+async function updateRequiredEditorialDate(event: Event) {
+  if (!list.value) return;
+  const input = event.target as HTMLInputElement;
+  const value = input.value;
+  const previousDate = formatDateForInput(list.value.releaseDate);
+  const hasBadInput = input.validity.badInput;
+
+  if (hasBadInput || !isValidDateInput(value)) {
+    input.value = previousDate;
+    const message = hasBadInput || value
+      ? 'La fecha de publicación no es válida.'
+      : 'La fecha de publicación es obligatoria.';
+    SwalService.error(message);
+    return;
+  }
+
+  if (value === previousDate) return;
+
+  try {
+    await updateList(list.value.id, { releaseDate: value });
+    list.value.releaseDate = value;
+  } catch {
+    input.value = previousDate;
+    SwalService.error('No se pudo guardar el cambio');
+  }
+}
+
+async function updateOptionalDate(field: 'listDate' | 'closeDate', event: Event) {
+  if (!list.value) return;
+  const input = event.target as HTMLInputElement;
+  const value = input.value;
+  const previousDate = formatDateForInput(list.value[field]);
+
+  if (input.validity.badInput || (value !== '' && !isValidDateInput(value))) {
+    input.value = previousDate;
+    SwalService.error('La fecha indicada no es válida.');
+    return;
+  }
+
+  const nextDate = value === '' ? null : value;
+  if ((nextDate ?? '') === previousDate) return;
+
+  try {
+    await updateList(list.value.id, { [field]: nextDate });
+    list.value[field] = nextDate;
+  } catch {
+    input.value = previousDate;
     SwalService.error('No se pudo guardar el cambio');
   }
 }

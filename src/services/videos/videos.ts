@@ -48,8 +48,8 @@ export interface CreateVideoDto {
     status: VideoStatus;
     type: VideoType;
     updateDate?: string;
-    userId?: string;
-    editorId?: string;
+    userId?: string | null;
+    editorId?: string | null;
     listId?: string;
 }
 

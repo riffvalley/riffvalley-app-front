@@ -62,14 +62,26 @@
                   </select>
                 </div>
 
-                <!-- Fecha Publicación -->
+                <!-- Fecha editorial obligatoria -->
                 <div class="flex items-center bg-white/70 dark:bg-black/20 backdrop-blur-sm rounded-lg border border-indigo-200 dark:border-white/5 overflow-hidden">
                   <div class="px-3 py-1.5 border-r border-indigo-100 dark:border-white/5 bg-indigo-50 dark:bg-white/5">
                     <i class="fa-regular fa-calendar text-indigo-400 dark:text-indigo-300"></i>
                   </div>
+                  <input type="date" :value="formatDateForInput(list.releaseDate)"
+                    @change="updateRequiredEditorialDate"
+                    class="bg-transparent text-gray-700 dark:text-white border-none focus:ring-0 px-3 py-1.5 h-full w-auto text-sm font-bold cursor-pointer hover:bg-indigo-50 dark:hover:bg-white/5 transition-colors"
+                    title="Fecha de publicación obligatoria" aria-label="Fecha de publicación obligatoria" required />
+                </div>
+
+                <!-- Fecha opcional de la lista -->
+                <div class="flex items-center bg-white/70 dark:bg-black/20 backdrop-blur-sm rounded-lg border border-indigo-200 dark:border-white/5 overflow-hidden">
+                  <div class="px-3 py-1.5 border-r border-indigo-100 dark:border-white/5 bg-indigo-50 dark:bg-white/5">
+                    <i class="fa-regular fa-calendar-days text-indigo-400 dark:text-indigo-300"></i>
+                  </div>
                   <input type="date" :value="formatDateForInput(list.listDate)"
-                    @change="(e) => updateField('listDate', (e.target as HTMLInputElement).value)"
-                    class="bg-transparent text-gray-700 dark:text-white border-none focus:ring-0 px-3 py-1.5 h-full w-auto text-sm font-bold cursor-pointer hover:bg-indigo-50 dark:hover:bg-white/5 transition-colors" />
+                    @change="updateOptionalListDate"
+                    class="bg-transparent text-gray-700 dark:text-white border-none focus:ring-0 px-3 py-1.5 h-full w-auto text-sm font-bold cursor-pointer hover:bg-indigo-50 dark:hover:bg-white/5 transition-colors"
+                    title="Fecha de lista (opcional)" aria-label="Fecha de lista (opcional)" />
                 </div>
 
               </div>
@@ -142,9 +154,31 @@ const list = ref<any>(null);
 const loading = ref(true);
 const publishingWp = ref(false);
 
-function formatDateForInput(dateString: string) {
+const tabs = [
+  { id: 'seleccion', label: 'Selección de discos', icon: 'fa-solid fa-compact-disc' },
+  { id: 'votos', label: 'Mis votos', icon: 'fa-solid fa-star' },
+] as const;
+const activeTab = ref<(typeof tabs)[number]['id']>('seleccion');
+
+function formatDateForInput(dateString?: string | null) {
   if (!dateString) return '';
-  return new Date(dateString).toISOString().split('T')[0];
+  const date = new Date(dateString);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().split('T')[0];
+}
+
+function isValidDateInput(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(0);
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(year, month - 1, day);
+  return date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day;
 }
 
 function getStatusColorForHeader(status: string) {
@@ -181,6 +215,57 @@ async function updateField(field: string, value: any) {
   try {
     await updateList(list.value.id, { [field]: value });
   } catch (error) {
+    SwalService.error('No se pudo guardar el cambio');
+  }
+}
+
+async function updateRequiredEditorialDate(event: Event) {
+  if (!list.value) return;
+  const input = event.target as HTMLInputElement;
+  const value = input.value;
+  const previousDate = formatDateForInput(list.value.releaseDate);
+  const hasBadInput = input.validity.badInput;
+
+  if (hasBadInput || !isValidDateInput(value)) {
+    input.value = previousDate;
+    const message = hasBadInput || value
+      ? 'La fecha de publicación no es válida.'
+      : 'La fecha de publicación es obligatoria.';
+    SwalService.error(message);
+    return;
+  }
+
+  if (value === previousDate) return;
+
+  try {
+    await updateList(list.value.id, { releaseDate: value });
+    list.value.releaseDate = value;
+  } catch {
+    input.value = previousDate;
+    SwalService.error('No se pudo guardar el cambio');
+  }
+}
+
+async function updateOptionalListDate(event: Event) {
+  if (!list.value) return;
+  const input = event.target as HTMLInputElement;
+  const value = input.value;
+  const previousDate = formatDateForInput(list.value.listDate);
+
+  if (input.validity.badInput || (value !== '' && !isValidDateInput(value))) {
+    input.value = previousDate;
+    SwalService.error('La fecha indicada no es válida.');
+    return;
+  }
+
+  const nextDate = value === '' ? null : value;
+  if ((nextDate ?? '') === previousDate) return;
+
+  try {
+    await updateList(list.value.id, { listDate: nextDate });
+    list.value.listDate = nextDate;
+  } catch {
+    input.value = previousDate;
     SwalService.error('No se pudo guardar el cambio');
   }
 }
