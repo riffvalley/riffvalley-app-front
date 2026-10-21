@@ -1,3 +1,10 @@
+## 1.46.0 (2026-10-21)
+
+* Merge pull request #187 from riffvalley/refactor/editorial ([bdab68f](https://github.com/riffvalley/riffvalley-app-front/commit/bdab68f)), closes [#187](https://github.com/riffvalley/riffvalley-app-front/issues/187)
+* feat(frontend): update editorial workflows ([597b2ea](https://github.com/riffvalley/riffvalley-app-front/commit/597b2ea))
+* fix(radar): remove list description editing ([f302dca](https://github.com/riffvalley/riffvalley-app-front/commit/f302dca))
+* fix(videos): remove unsupported link field ([73e182f](https://github.com/riffvalley/riffvalley-app-front/commit/73e182f))
+
 ## <small>1.45.2 (2026-10-15)</small>
 
 * Merge pull request #185 from riffvalley/chore/refactor-integration-dev ([4e136c1](https://github.com/riffvalley/riffvalley-app-front/commit/4e136c1)), closes [#185](https://github.com/riffvalley/riffvalley-app-front/issues/185)
