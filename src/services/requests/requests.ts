@@ -3,14 +3,14 @@ import api from "@services/api/api.ts";
 export interface CreateRequestDto {
   discName: string;
   artistName: string;
-  releaseDate?: string;
+  releaseDate?: string | null;
   ep?: boolean;
   debut?: boolean;
   description?: string;
   image?: string;
   link?: string;
-  genreId?: string;
-  countryId?: string;
+  genreId?: string | null;
+  countryId?: string | null;
 }
 
 export interface DiscRequest {
@@ -30,12 +30,32 @@ export interface DiscRequest {
 export interface UpdateRequestDto {
   discName?: string;
   artistName?: string;
-  releaseDate?: string;
-  genreId?: string;
-  countryId?: string;
+  releaseDate?: string | null;
+  genreId?: string | null;
+  countryId?: string | null;
   ep?: boolean;
   debut?: boolean;
   adminNotes?: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+export function getRequestErrorMessage(error: unknown, fallback: string): string {
+  const response = isRecord(error) ? error.response : undefined;
+  const data = isRecord(response) ? response.data : undefined;
+  const message = isRecord(data) ? data.message : undefined;
+
+  if (typeof message === "string" && message.trim()) return message;
+  if (Array.isArray(message)) {
+    const messages = message.filter(
+      (item): item is string => typeof item === "string" && Boolean(item.trim()),
+    );
+    if (messages.length > 0) return messages.join(". ");
+  }
+
+  return fallback;
 }
 
 export async function createRequest(dto: CreateRequestDto): Promise<DiscRequest> {

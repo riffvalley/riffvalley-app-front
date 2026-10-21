@@ -255,6 +255,8 @@ import {
   approveRequest,
   rejectRequest,
   reopenRequest,
+  getRequestErrorMessage,
+  type UpdateRequestDto,
   type DiscRequest,
 } from '@services/requests/requests';
 import { useCatalogStore } from '@stores/catalog/catalog';
@@ -327,10 +329,10 @@ export default defineComponent({
       if (!editingRequest.value) return;
       saving.value = true;
       try {
-        const dto: any = {};
+        const dto: UpdateRequestDto = {};
         if (editForm.artistName !== editingRequest.value.artistName) dto.artistName = editForm.artistName;
         if (editForm.discName !== editingRequest.value.discName) dto.discName = editForm.discName;
-        if (editForm.releaseDate !== (editingRequest.value.releaseDate ?? '')) dto.releaseDate = editForm.releaseDate;
+        if (editForm.releaseDate !== (editingRequest.value.releaseDate ?? '')) dto.releaseDate = editForm.releaseDate || null;
         if (editForm.genreId !== (editingRequest.value.genre?.id ?? '')) dto.genreId = editForm.genreId || null;
         if (editForm.countryId !== (editingRequest.value.country?.id ?? '')) dto.countryId = editForm.countryId || null;
         if (editForm.ep !== editingRequest.value.ep) dto.ep = editForm.ep;
@@ -342,8 +344,8 @@ export default defineComponent({
         if (idx !== -1) requests.value[idx] = updated;
         editingRequest.value = null;
         SwalService.success('Petición actualizada');
-      } catch (error: any) {
-        SwalService.error(error.response?.data?.message || 'Error al guardar');
+      } catch (error: unknown) {
+        SwalService.error(getRequestErrorMessage(error, 'Error al guardar'));
       } finally {
         saving.value = false;
       }
@@ -357,8 +359,8 @@ export default defineComponent({
         if (idx !== -1) requests.value[idx] = { ...requests.value[idx], status: 'approved' };
         syncPendingCount();
         SwalService.success('Petición aprobada y disco creado');
-      } catch (error: any) {
-        SwalService.error(error.response?.data?.message || 'Error al aprobar');
+      } catch (error: unknown) {
+        SwalService.error(getRequestErrorMessage(error, 'Error al aprobar'));
       }
     };
 
@@ -370,8 +372,8 @@ export default defineComponent({
         if (idx !== -1) requests.value[idx] = updated;
         syncPendingCount();
         SwalService.success('Petición reabierta');
-      } catch (error: any) {
-        SwalService.error(error.response?.data?.message || 'Error al reabrir');
+      } catch (error: unknown) {
+        SwalService.error(getRequestErrorMessage(error, 'Error al reabrir'));
       }
     };
 
@@ -405,8 +407,8 @@ export default defineComponent({
         rejectingRequest.value = null;
         syncPendingCount();
         SwalService.success('Petición rechazada');
-      } catch (error: any) {
-        SwalService.error(error.response?.data?.message || 'Error al rechazar');
+      } catch (error: unknown) {
+        SwalService.error(getRequestErrorMessage(error, 'Error al rechazar'));
       } finally {
         rejecting.value = false;
       }

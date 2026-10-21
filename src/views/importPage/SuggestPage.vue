@@ -197,7 +197,13 @@
 
 <script lang="ts">
 import { defineComponent, ref, reactive, onMounted } from 'vue';
-import { createRequest, getMyRequests, type DiscRequest } from '@services/requests/requests';
+import {
+  createRequest,
+  getMyRequests,
+  getRequestErrorMessage,
+  type CreateRequestDto,
+  type DiscRequest,
+} from '@services/requests/requests';
 import { useCatalogStore } from '@stores/catalog/catalog';
 import SwalService from '@services/swal/SwalService';
 import SearchableSelect from '@components/SearchableSelect.vue';
@@ -250,7 +256,7 @@ export default defineComponent({
 
       submitting.value = true;
       try {
-        const dto: any = {
+        const dto: CreateRequestDto = {
           discName: form.discName.trim(),
           artistName: form.artistName.trim(),
           releaseDate: form.releaseDate,
@@ -264,8 +270,8 @@ export default defineComponent({
         myRequests.value.unshift(newRequest);
         resetForm();
         SwalService.success('Petición enviada correctamente');
-      } catch (error: any) {
-        SwalService.error(error.response?.data?.message || 'Error al enviar la petición');
+      } catch (error: unknown) {
+        SwalService.error(getRequestErrorMessage(error, 'Error al enviar la petición'));
       } finally {
         submitting.value = false;
       }
