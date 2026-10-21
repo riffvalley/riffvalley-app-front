@@ -21,7 +21,7 @@
         "files": [
           "src/views/homePage/components/NewsFeed.vue"
         ],
-        "createdAt": "2026-10-15T15:29:32.635Z",
+        "createdAt": "2026-10-15T15:34:27.001Z",
         "reason": "User confirmed: keep the colored left border to distinguish news sources in the home feed"
       }
     ]

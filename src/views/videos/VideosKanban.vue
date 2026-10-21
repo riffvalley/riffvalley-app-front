@@ -149,13 +149,6 @@
                                         <i class="fa-solid fa-trash text-xs"></i>
                                     </button>
 
-                                    <!-- Link -->
-                                    <a v-if="item.link" :href="item.link" target="_blank"
-                                        class="w-8 h-8 flex items-center justify-center rounded-lg bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors"
-                                        title="Abrir enlace">
-                                        <i class="fa-solid fa-link text-xs"></i>
-                                    </a>
-
                                     <!-- List: Navigate -->
                                     <button v-if="item.listId"
                                         @click="router.push(`/videos/list/${item.listId}?videoType=${item.type}`)"
@@ -207,12 +200,6 @@
                         class="w-full rounded-lg border dark:border-white/20 px-3 py-2 outline-none focus:ring-2 focus:ring-black/40 dark:bg-rv-darkSurface dark:text-gray-200">
                         <option v-for="t in types" :key="t" :value="t">{{ t }}</option>
                     </select>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium mb-1 dark:text-gray-300">Enlace (Opcional)</label>
-                    <input v-model="form.link" type="url"
-                        class="w-full rounded-lg border dark:border-white/20 px-3 py-2 outline-none focus:ring-2 focus:ring-black/40 dark:bg-rv-darkSurface dark:text-gray-200" />
                 </div>
 
                 <div>
@@ -341,7 +328,6 @@ const editingId = ref<string | null>(null);
 const form = reactive({
     name: '',
     type: 'best' as VideoType,
-    link: '',
     updateDate: ''
 });
 
@@ -480,11 +466,13 @@ async function onUserChange(item: Video, event: Event) {
     }
 
     try {
-        await updateVideo(item.id, { userId: newUserId || undefined });
-    } catch (e) {
+        const updated = await updateVideo(item.id, { userId: newUserId });
+        item.user = updated.user;
+    } catch (e: any) {
         console.error(e);
         item.user = oldUser;
-        SwalService.error('Error asignando usuario');
+        const message = e?.response?.data?.message;
+        SwalService.error(Array.isArray(message) ? message.join(', ') : message || 'Error asignando usuario');
     }
 }
 
@@ -524,11 +512,13 @@ async function onEditorChange(item: Video, event: Event) {
     }
 
     try {
-        await updateVideo(item.id, { editorId: newEditorId || undefined });
-    } catch (e) {
+        const updated = await updateVideo(item.id, { editorId: newEditorId });
+        item.editor = updated.editor;
+    } catch (e: any) {
         console.error(e);
         item.editor = oldEditor;
-        SwalService.error('Error asignando editor');
+        const message = e?.response?.data?.message;
+        SwalService.error(Array.isArray(message) ? message.join(', ') : message || 'Error asignando editor');
     }
 }
 
@@ -538,7 +528,6 @@ function openCreate() {
     editingId.value = null;
     form.name = '';
     form.type = 'best';
-    form.link = '';
     form.updateDate = '';
     showModal.value = true;
 }
@@ -548,7 +537,6 @@ function openEdit(item: Video) {
     editingId.value = item.id;
     form.name = item.name;
     form.type = item.type;
-    form.link = item.link || '';
     form.updateDate = item.updateDate ? item.updateDate.slice(0, 10) : '';
     showModal.value = true;
 }
@@ -569,7 +557,6 @@ async function save() {
             const updated = await updateVideo(editingId.value, {
                 name: form.name,
                 type: form.type,
-                link: form.link || undefined,
                 updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined
             });
             const idx = items.value.findIndex(x => x.id === editingId.value);
@@ -581,7 +568,6 @@ async function save() {
             const created = await createVideo({
                 name: form.name,
                 type: form.type,
-                link: form.link || undefined,
                 status: 'not_started',
                 updateDate: form.updateDate ? toISO(new Date(form.updateDate)) : undefined,
                 userId: authStore.userId || undefined

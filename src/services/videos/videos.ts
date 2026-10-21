@@ -28,7 +28,6 @@ export interface Video {
     name: string;
     status: VideoStatus;
     type: VideoType;
-    link?: string;
     updateDate: string | null; // ISO
     createdAt: string; // ISO
     updatedAt: string; // ISO
@@ -48,10 +47,9 @@ export interface CreateVideoDto {
     name: string;
     status: VideoStatus;
     type: VideoType;
-    link?: string;
     updateDate?: string;
-    userId?: string;
-    editorId?: string;
+    userId?: string | null;
+    editorId?: string | null;
     listId?: string;
 }
 

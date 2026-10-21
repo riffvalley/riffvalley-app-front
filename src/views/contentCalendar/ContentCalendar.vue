@@ -94,7 +94,8 @@
             @delete="confirmDeleteContent" @navigate-kanban="goToArticlesKanban" />
 
         <VideoActionsModal v-else-if="selectedContent?.type === 'video'" :show="showActionsModal"
-            :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
+            :content="editingContent" :rv-users="rvUsers" :video-update-error="videoUpdateError"
+            @close="showActionsModal = false"
             @update="handleUpdateContent" @update-video="handleUpdateVideo"
             @delete="confirmDeleteContent" @navigate-kanban="goToVideosKanban" />
 
@@ -151,6 +152,7 @@ const showActionsModal = ref(false);
 const showLegendModal = ref(false);
 const showDeleteModal = ref(false);
 const selectedContent = ref<Content | null>(null);
+const videoUpdateError = ref(0);
 const contentToDelete = ref<Content | null>(null);
 const allContents = ref<Content[]>([]);
 const editingContentId = ref<string | null>(null);
@@ -654,17 +656,23 @@ async function handleUpdateArticle(data: any) {
 
 async function handleUpdateVideo(data: any) {
     try {
-        await updateVideo(data.videoId, {
+        const update: Record<string, unknown> = {
             name: data.name,
             type: data.type,
-            status: data.status,
-            link: data.link,
-            userId: data.userId,
-            editorId: data.editorId
-        });
+            status: data.status
+        };
+        if (Object.prototype.hasOwnProperty.call(data, 'userId')) {
+            update.userId = data.userId;
+        }
+        if (Object.prototype.hasOwnProperty.call(data, 'editorId')) {
+            update.editorId = data.editorId;
+        }
+        await updateVideo(data.videoId, update);
     } catch (error) {
         console.error('Error updating video:', error);
-        SwalService.error('Error al actualizar el video');
+        videoUpdateError.value += 1;
+        const message = (error as any)?.response?.data?.message;
+        SwalService.error(Array.isArray(message) ? message.join(', ') : message || 'Error al actualizar el video');
     }
 }
 
