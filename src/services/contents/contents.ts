@@ -27,7 +27,6 @@ export interface ContentList {
     listDate: string;
     releaseDate: string | null;
     closeDate: string | null;
-    free: boolean;
     asignations: ContentListAsignation[];
 }
 

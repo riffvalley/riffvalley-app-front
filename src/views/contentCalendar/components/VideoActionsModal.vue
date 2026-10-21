@@ -53,13 +53,6 @@
                             </div>
 
                             <div>
-                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Enlace</label>
-                                <input v-model="formData.link" type="url"
-                                    class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg text-sm"
-                                    placeholder="https://..." />
-                            </div>
-
-                            <div>
                                 <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Estado</label>
                                 <select v-model="formData.videoStatus"
                                     class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg text-sm">
@@ -159,9 +152,10 @@ interface Props {
     show: boolean;
     content: Content;
     rvUsers: RvUser[];
+    videoUpdateError?: number;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), { videoUpdateError: 0 });
 
 const emit = defineEmits<{
     close: [];
@@ -212,6 +206,8 @@ function getVideoTypeColor(type: VideoType): string {
 }
 
 const video = (props.content as any).video;
+const initialUserId = ref(video?.userId || video?.user?.id || '');
+const initialEditorId = ref(video?.editorId || video?.editor?.id || '');
 
 const formData = ref({
     type: 'video' as const,
@@ -221,7 +217,6 @@ const formData = ref({
     authorId: (props.content as any).authorId || props.content.author?.id || '',
     videoType: video?.type || 'best' as VideoType,
     videoStatus: video?.status || 'not_started' as VideoStatus,
-    link: video?.link || '',
     userId: video?.userId || video?.user?.id || '',
     editorId: video?.editorId || video?.editor?.id || ''
 });
@@ -229,6 +224,8 @@ const formData = ref({
 watch(() => props.content, (newContent) => {
     const v = (newContent as any).video;
     videoData.value = v;
+    initialUserId.value = v?.userId || v?.user?.id || '';
+    initialEditorId.value = v?.editorId || v?.editor?.id || '';
     formData.value = {
         type: 'video',
         name: newContent.name,
@@ -237,11 +234,20 @@ watch(() => props.content, (newContent) => {
         authorId: (newContent as any).authorId || newContent.author?.id || '',
         videoType: v?.type || 'best',
         videoStatus: v?.status || 'not_started',
-        link: v?.link || '',
         userId: v?.userId || v?.user?.id || '',
         editorId: v?.editorId || v?.editor?.id || ''
     };
 }, { deep: true });
+
+watch(() => props.videoUpdateError, () => {
+    const v = (props.content as any).video;
+    const userId = v?.userId || v?.user?.id || '';
+    const editorId = v?.editorId || v?.editor?.id || '';
+    formData.value.userId = userId;
+    formData.value.editorId = editorId;
+    initialUserId.value = userId;
+    initialEditorId.value = editorId;
+});
 
 function handleUpdate() {
     emit('update', {
@@ -254,15 +260,19 @@ function handleUpdate() {
 
     const v = (props.content as any).video;
     if (v?.id) {
-        emit('update-video', {
+        const videoUpdate: Record<string, unknown> = {
             videoId: v.id,
             name: formData.value.name,
             type: formData.value.videoType,
-            status: formData.value.videoStatus,
-            link: formData.value.link || undefined,
-            userId: formData.value.userId || undefined,
-            editorId: formData.value.editorId || undefined
-        });
+            status: formData.value.videoStatus
+        };
+        if (formData.value.userId !== initialUserId.value) {
+            videoUpdate.userId = formData.value.userId || null;
+        }
+        if (formData.value.editorId !== initialEditorId.value) {
+            videoUpdate.editorId = formData.value.editorId || null;
+        }
+        emit('update-video', videoUpdate);
     }
 }
 </script>
