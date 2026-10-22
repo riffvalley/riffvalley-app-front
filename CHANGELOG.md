@@ -1,3 +1,8 @@
+## <small>1.47.1 (2026-10-22)</small>
+
+* Merge pull request #190 from riffvalley/fix/bc-id-7-session-recovery ([6d54c8c](https://github.com/riffvalley/riffvalley-app-front/commit/6d54c8c)), closes [#190](https://github.com/riffvalley/riffvalley-app-front/issues/190)
+* fix(auth): coordinate session recovery across tabs ([2c032ff](https://github.com/riffvalley/riffvalley-app-front/commit/2c032ff))
+
 ## 1.47.0 (2026-10-22)
 
 * feat(auth): migrate App to renewable refresh-v1 sessions (#189) ([8d40260](https://github.com/riffvalley/riffvalley-app-front/commit/8d40260)), closes [#189](https://github.com/riffvalley/riffvalley-app-front/issues/189)
