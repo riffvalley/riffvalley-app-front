@@ -1,3 +1,8 @@
+## 1.48.0 (2026-10-22)
+
+* Merge pull request #191 from riffvalley/bc-id-3f-daily-activity-app ([b868951](https://github.com/riffvalley/riffvalley-app-front/commit/b868951)), closes [#191](https://github.com/riffvalley/riffvalley-app-front/issues/191)
+* feat(activity): record daily App visits ([f28e6a2](https://github.com/riffvalley/riffvalley-app-front/commit/f28e6a2))
+
 ## <small>1.47.1 (2026-10-22)</small>
 
 * Merge pull request #190 from riffvalley/fix/bc-id-7-session-recovery ([6d54c8c](https://github.com/riffvalley/riffvalley-app-front/commit/6d54c8c)), closes [#190](https://github.com/riffvalley/riffvalley-app-front/issues/190)
