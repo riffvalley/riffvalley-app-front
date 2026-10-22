@@ -1,3 +1,8 @@
+## <small>1.48.1 (2026-10-22)</small>
+
+* Merge pull request #192 from riffvalley/fix/auth-refresh-csrf-recovery ([d6f5e62](https://github.com/riffvalley/riffvalley-app-front/commit/d6f5e62)), closes [#192](https://github.com/riffvalley/riffvalley-app-front/issues/192)
+* fix(auth): recover expired refresh CSRF proof ([52674da](https://github.com/riffvalley/riffvalley-app-front/commit/52674da))
+
 ## 1.48.0 (2026-10-22)
 
 * Merge pull request #191 from riffvalley/bc-id-3f-daily-activity-app ([b868951](https://github.com/riffvalley/riffvalley-app-front/commit/b868951)), closes [#191](https://github.com/riffvalley/riffvalley-app-front/issues/191)
