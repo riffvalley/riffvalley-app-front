@@ -124,6 +124,45 @@ describe("SessionAuthTransport", () => {
     expect(refreshed).not.toHaveProperty("refreshToken");
   });
 
+  it("recovers an expired refresh proof after an idle tab and retries once", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-22T12:00:00.000Z"));
+    localStorage.setItem("rv.auth.session-csrf", "expired-refresh-csrf");
+    localStorage.setItem("rv.auth.logout-csrf", "logout-csrf-1");
+    const http = makeHttpClient();
+    const get = vi.spyOn(http, "get").mockResolvedValue(
+      axiosResponse({ csrfToken: "recovered-refresh-csrf" }),
+    );
+    const post = vi.spyOn(http, "post");
+    post.mockRejectedValueOnce(Object.assign(new Error("expired CSRF"), {
+      isAxiosError: true,
+      response: { status: 403, headers: {} },
+    }));
+    post.mockResolvedValueOnce(axiosResponse(refreshResponse));
+    const transport = new SessionAuthTransport(http);
+
+    try {
+      await vi.advanceTimersByTimeAsync(31 * 60 * 1000);
+      const refreshed = await transport.refresh();
+
+      expect(get).toHaveBeenCalledWith("/auth/refresh/csrf", {
+        withCredentials: true,
+        timeout: 15_000,
+      });
+      expect(post).toHaveBeenCalledTimes(2);
+      expect(post.mock.calls[0]?.[2]?.headers).toEqual(expect.objectContaining({
+        [CSRF_HEADER]: "expired-refresh-csrf",
+      }));
+      expect(post.mock.calls[1]?.[2]?.headers).toEqual(expect.objectContaining({
+        [CSRF_HEADER]: "recovered-refresh-csrf",
+      }));
+      expect(refreshed.token).toBe("next-access-jwt");
+      expect(localStorage.getItem("rv.auth.session-csrf")).toBe("refresh-csrf-2");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("migrates existing per-tab CSRF proofs to shared origin storage", async () => {
     sessionStorage.setItem("rv.auth.session-csrf", "legacy-session-csrf");
     sessionStorage.setItem("rv.auth.logout-csrf", "legacy-logout-csrf");
