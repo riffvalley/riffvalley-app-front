@@ -377,25 +377,54 @@ export class SessionAuthTransport {
           null,
         );
       }
+      const refresh = (proof: string) => this.request(() =>
+        this.http.post<unknown>("/auth/refresh", {}, {
+          withCredentials: true,
+          timeout: AUTH_REQUEST_TIMEOUT_MS,
+          headers: {
+            "Content-Type": "application/json",
+            [AUTH_SESSION_MODE_HEADER]: AUTH_SESSION_MODE,
+            [REFRESH_OPERATION_HEADER]: operationId,
+            [CSRF_HEADER]: proof,
+          },
+        }),
+      );
       let response: unknown;
       try {
-        response = await this.request(() =>
-          this.http.post<unknown>("/auth/refresh", {}, {
-            withCredentials: true,
-            timeout: AUTH_REQUEST_TIMEOUT_MS,
-            headers: {
-              "Content-Type": "application/json",
-              [AUTH_SESSION_MODE_HEADER]: AUTH_SESSION_MODE,
-              [REFRESH_OPERATION_HEADER]: operationId,
-              [CSRF_HEADER]: csrfToken,
-            },
-          }),
-        );
+        response = await refresh(csrfToken);
       } catch (error: unknown) {
         if (error instanceof SessionAuthError && error.category === "unauthenticated") {
           this.clearSessionCsrfTokens();
+          throw error;
         }
-        throw error;
+        if (!(error instanceof SessionAuthError) || error.category !== "forbidden") {
+          throw error;
+        }
+
+        let recoveredCsrfToken: string;
+        try {
+          recoveredCsrfToken = await this.recoverRefreshCsrfToken();
+        } catch (recoveryError: unknown) {
+          if (
+            recoveryError instanceof SessionAuthError &&
+            recoveryError.category === "unauthenticated"
+          ) {
+            this.clearSessionCsrfTokens();
+          }
+          throw recoveryError;
+        }
+        this.setRefreshCsrfToken(recoveredCsrfToken);
+        try {
+          response = await refresh(recoveredCsrfToken);
+        } catch (retryError: unknown) {
+          if (
+            retryError instanceof SessionAuthError &&
+            retryError.category === "unauthenticated"
+          ) {
+            this.clearSessionCsrfTokens();
+          }
+          throw retryError;
+        }
       }
 
       const session = readRefreshResponse(response);
@@ -451,6 +480,19 @@ export class SessionAuthTransport {
     }
   }
 
+  private async recoverRefreshCsrfToken(): Promise<string> {
+    const response = await this.request(() =>
+      this.http.get<unknown>("/auth/refresh/csrf", {
+        withCredentials: true,
+        timeout: AUTH_REQUEST_TIMEOUT_MS,
+      }),
+    );
+    if (!isRecord(response) || !isNonEmptyString(response.csrfToken)) {
+      throw protocolError();
+    }
+    return response.csrfToken;
+  }
+
   private setSessionCsrfTokens(
     csrfToken: string,
     logoutCsrfToken: string,
@@ -459,6 +501,12 @@ export class SessionAuthTransport {
     this.logoutCsrfToken = logoutCsrfToken;
     writeStoredCsrf(SESSION_CSRF_STORAGE_KEY, csrfToken);
     writeStoredCsrf(LOGOUT_CSRF_STORAGE_KEY, logoutCsrfToken);
+    broadcastSessionCsrfUpdated();
+  }
+
+  private setRefreshCsrfToken(csrfToken: string): void {
+    this.sessionCsrfToken = csrfToken;
+    writeStoredCsrf(SESSION_CSRF_STORAGE_KEY, csrfToken);
     broadcastSessionCsrfUpdated();
   }
 
