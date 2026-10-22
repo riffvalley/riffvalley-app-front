@@ -1,5 +1,6 @@
 const SESSION_MUTATION_LOCK = "riffvalley-app-auth-session-mutation";
 const SESSION_CHANNEL_NAME = "riffvalley-app-auth-session";
+const SESSION_LOCK_WAIT_TIMEOUT_MS = 30_000;
 
 interface LogoutMessage {
   type: "logout";
@@ -9,18 +10,13 @@ interface LoginMessage {
   type: "login";
 }
 
-export interface SessionCsrfProofs {
-  csrfToken: string;
-  logoutCsrfToken: string;
-}
-
-interface SessionCsrfMessage extends SessionCsrfProofs {
-  type: "session-csrf";
+interface SessionCsrfUpdatedMessage {
+  type: "session-csrf-updated";
 }
 
 type LogoutListener = () => void;
 type LoginListener = () => void;
-type SessionCsrfListener = (proofs: SessionCsrfProofs) => void;
+type SessionCsrfListener = () => void;
 
 let channel: BroadcastChannel | null | undefined;
 const logoutListeners = new Set<LogoutListener>();
@@ -41,11 +37,8 @@ function getChannel(): BroadcastChannel | null {
       loginListeners.forEach((listener) => listener());
       return;
     }
-    if (isSessionCsrfMessage(event.data)) {
-      sessionCsrfListeners.forEach((listener) => listener({
-        csrfToken: event.data.csrfToken,
-        logoutCsrfToken: event.data.logoutCsrfToken,
-      }));
+    if (isSessionCsrfUpdatedMessage(event.data)) {
+      sessionCsrfListeners.forEach((listener) => listener());
     }
   });
   return channel;
@@ -61,17 +54,39 @@ function isLoginMessage(value: unknown): value is LoginMessage {
     (value as Record<string, unknown>).type === "login";
 }
 
-function isSessionCsrfMessage(value: unknown): value is SessionCsrfMessage {
-  if (typeof value !== "object" || value === null) return false;
-  const message = value as Record<string, unknown>;
-  return message.type === "session-csrf" &&
-    typeof message.csrfToken === "string" &&
-    typeof message.logoutCsrfToken === "string";
+function isSessionCsrfUpdatedMessage(value: unknown): value is SessionCsrfUpdatedMessage {
+  return typeof value === "object" && value !== null &&
+    (value as Record<string, unknown>).type === "session-csrf-updated";
 }
 
-export function withAuthSessionLock<T>(operation: () => Promise<T>): Promise<T> {
+export class AuthSessionLockTimeoutError extends Error {
+  constructor() {
+    super("La coordinación de sesión tardó demasiado. Puedes volver a intentarlo.");
+    this.name = "AuthSessionLockTimeoutError";
+  }
+}
+
+export async function withAuthSessionLock<T>(operation: () => Promise<T>): Promise<T> {
   if (typeof navigator === "undefined" || !navigator.locks) return operation();
-  return navigator.locks.request(SESSION_MUTATION_LOCK, { mode: "exclusive" }, operation);
+
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeout = globalThis.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, SESSION_LOCK_WAIT_TIMEOUT_MS);
+  try {
+    return await navigator.locks.request(
+      SESSION_MUTATION_LOCK,
+      { mode: "exclusive", signal: controller.signal },
+      operation,
+    );
+  } catch (error: unknown) {
+    if (timedOut) throw new AuthSessionLockTimeoutError();
+    throw error;
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
 }
 
 export function broadcastAuthLogout(): void {
@@ -90,11 +105,11 @@ export function broadcastAuthLogin(): void {
   }
 }
 
-export function broadcastSessionCsrf(proofs: SessionCsrfProofs): void {
+export function broadcastSessionCsrfUpdated(): void {
   try {
-    getChannel()?.postMessage({ type: "session-csrf", ...proofs } satisfies SessionCsrfMessage);
+    getChannel()?.postMessage({ type: "session-csrf-updated" } satisfies SessionCsrfUpdatedMessage);
   } catch {
-    // CSRF proofs remain available in the current tab if peer synchronization fails.
+    // Shared storage remains available in the current tab if peer notification fails.
   }
 }
 
@@ -110,7 +125,7 @@ export function subscribeToRemoteAuthLogin(listener: LoginListener): () => void 
   return () => loginListeners.delete(listener);
 }
 
-export function subscribeToRemoteSessionCsrf(listener: SessionCsrfListener): () => void {
+export function subscribeToRemoteSessionCsrfUpdated(listener: SessionCsrfListener): () => void {
   getChannel();
   sessionCsrfListeners.add(listener);
   return () => sessionCsrfListeners.delete(listener);

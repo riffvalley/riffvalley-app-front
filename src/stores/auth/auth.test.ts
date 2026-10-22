@@ -17,8 +17,8 @@ vi.mock("@services/auth/sessionAuth", async (importOriginal) => {
 vi.mock("@services/auth/sessionAuthCoordinator", () => ({
   broadcastAuthLogin,
   broadcastAuthLogout,
-  broadcastSessionCsrf: vi.fn(),
-  subscribeToRemoteSessionCsrf: vi.fn(() => () => undefined),
+  broadcastSessionCsrfUpdated: vi.fn(),
+  subscribeToRemoteSessionCsrfUpdated: vi.fn(() => () => undefined),
   withAuthSessionLock: (operation: () => Promise<unknown>) => operation(),
 }));
 
@@ -129,6 +129,7 @@ describe("renewable auth store", () => {
     new SessionAuthError("Rate limited", "rate-limited", 429),
     new SessionAuthError("Unavailable", "unavailable", 503),
     new SessionAuthError("Network error", "network-error", null),
+    new SessionAuthError("CSRF proof not yet available in this tab", "protocol-error", null),
   ])("retains a retryable error state for temporary refresh failures", async (error) => {
     refresh.mockRejectedValueOnce(error).mockResolvedValueOnce(renewableSession);
     const store = useAuthStore();
