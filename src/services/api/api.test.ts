@@ -230,6 +230,15 @@ describe("shared Axios auth refresh", () => {
     const store = useRenewableSession();
     let finishRefresh!: (value: typeof renewedSession) => void;
     refresh.mockReturnValue(new Promise((resolve) => { finishRefresh = resolve; }));
+    api.defaults.adapter = async (config) => {
+      if (config.url === "/activity/app/daily") {
+        return responseFor(config as InternalAxiosRequestConfig, 204);
+      }
+      if (config.headers.Authorization !== "Bearer fresh-token") {
+        throw unauthorized(config as InternalAxiosRequestConfig);
+      }
+      return responseFor(config as InternalAxiosRequestConfig, 200);
+    };
     login.mockResolvedValue({
       id: "22",
       username: "New user",

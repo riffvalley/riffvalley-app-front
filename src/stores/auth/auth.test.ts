@@ -2,12 +2,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 
-const { refresh, login, logout, broadcastAuthLogin, broadcastAuthLogout } = vi.hoisted(() => ({
+const { refresh, login, logout, broadcastAuthLogin, broadcastAuthLogout, notifyAppDailyActivity } = vi.hoisted(() => ({
   refresh: vi.fn(),
   login: vi.fn(),
   logout: vi.fn(),
   broadcastAuthLogin: vi.fn(),
   broadcastAuthLogout: vi.fn(),
+  notifyAppDailyActivity: vi.fn(),
 }));
 
 vi.mock("@services/auth/sessionAuth", async (importOriginal) => {
@@ -21,6 +22,7 @@ vi.mock("@services/auth/sessionAuthCoordinator", () => ({
   subscribeToRemoteSessionCsrfUpdated: vi.fn(() => () => undefined),
   withAuthSessionLock: (operation: () => Promise<unknown>) => operation(),
 }));
+vi.mock("@services/activity/appDailyActivity", () => ({ notifyAppDailyActivity }));
 
 import { SessionAuthError } from "@services/auth/sessionAuth";
 import { useAuthStore } from "./auth";
@@ -63,6 +65,7 @@ describe("renewable auth store", () => {
     logout.mockReset();
     broadcastAuthLogin.mockReset();
     broadcastAuthLogout.mockReset();
+    notifyAppDailyActivity.mockReset();
     setActivePinia(createPinia());
   });
 
@@ -80,6 +83,7 @@ describe("renewable auth store", () => {
     expect(store.isAuthenticated).toBe(true);
     expect(store.sessionMode).toBe("renewable");
     expect(broadcastAuthLogin).toHaveBeenCalledOnce();
+    expect(notifyAppDailyActivity).toHaveBeenCalledOnce();
     for (const key of ["token", "username", "userId", "image", "role", "roles"]) {
       expect(localStorage.getItem(key)).toBeNull();
       expect(sessionStorage.getItem(key)).toBeNull();
@@ -104,6 +108,7 @@ describe("renewable auth store", () => {
     expect(store.dashboardConfig).toEqual([{ id: "albums", enabled: true }]);
     expect(store.mobileDashboardConfig).toEqual([{ id: "news", enabled: false }]);
     expect(store.sessionMode).toBe("renewable");
+    expect(notifyAppDailyActivity).toHaveBeenCalledOnce();
     expect(localStorage.getItem("token")).toBeNull();
     expect(localStorage.getItem("role")).toBeNull();
     expect(localStorage.getItem("dashboardButtonsEnabled")).toBe("true");
@@ -252,5 +257,22 @@ describe("renewable auth store", () => {
     await logoutPromise;
     expect(store.authStatus).toBe("anonymous");
     expect(store.token).toBeNull();
+  });
+
+  it("does not notify daily activity during an automatic session renewal", async () => {
+    const store = useAuthStore();
+    store.$patch({
+      token: "memory-access-token",
+      username: "Mara",
+      userId: "42",
+      role: "riffvalley",
+      authStatus: "authenticated",
+      sessionMode: "renewable",
+    });
+    refresh.mockResolvedValue(renewableSession);
+
+    await expect(store.renewSession()).resolves.toBe("renewed");
+
+    expect(notifyAppDailyActivity).not.toHaveBeenCalled();
   });
 });

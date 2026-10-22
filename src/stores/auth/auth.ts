@@ -10,6 +10,7 @@ import {
   broadcastAuthLogin,
   broadcastAuthLogout,
 } from "@services/auth/sessionAuthCoordinator";
+import { notifyAppDailyActivity } from "@services/activity/appDailyActivity";
 
 export type AuthStatus = "initializing" | "authenticated" | "anonymous" | "error";
 export type AuthSessionMode = "renewable" | null;
@@ -180,6 +181,7 @@ export const useAuthStore = defineStore("auth", {
       clearPersistedCredentials();
       persistPreferences(this);
       broadcastAuthLogin();
+      notifyAppDailyActivity();
     },
 
     setImage(newImage: string) {
@@ -269,6 +271,7 @@ export const useAuthStore = defineStore("auth", {
         this.authSessionGeneration += 1;
         clearPersistedCredentials();
         persistPreferences(this);
+        notifyAppDailyActivity();
         return this.authStatus;
       } catch (error: unknown) {
         if (expectedGeneration !== this.authSessionGeneration) return this.authStatus;
