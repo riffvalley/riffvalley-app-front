@@ -1,3 +1,7 @@
+## 1.47.0 (2026-10-22)
+
+* feat(auth): migrate App to renewable refresh-v1 sessions (#189) ([8d40260](https://github.com/riffvalley/riffvalley-app-front/commit/8d40260)), closes [#189](https://github.com/riffvalley/riffvalley-app-front/issues/189)
+
 ## 1.46.0 (2026-10-21)
 
 * Merge pull request #187 from riffvalley/refactor/editorial ([bdab68f](https://github.com/riffvalley/riffvalley-app-front/commit/bdab68f)), closes [#187](https://github.com/riffvalley/riffvalley-app-front/issues/187)
