@@ -111,12 +111,3 @@ export async function getSourceFeed(params: FeedParams): Promise<FeedResponse> {
     const { data } = await api.get<FeedResponse>('/news/source-feed', { params });
     return data;
 }
-
-export async function uploadImage(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append('file', file);
-    const { data } = await api.post<{ url: string }>('/uploads/image', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return data.url;
-}
