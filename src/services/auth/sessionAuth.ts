@@ -2,8 +2,8 @@ import axios, { AxiosHeaders, type AxiosInstance, type AxiosResponse } from "axi
 import { USER_ROLES, type UserRole } from "@interfaces/auth";
 import type { LoginPayload } from "@interfaces/auth";
 import {
-  broadcastSessionCsrf,
-  subscribeToRemoteSessionCsrf,
+  broadcastSessionCsrfUpdated,
+  subscribeToRemoteSessionCsrfUpdated,
   withAuthSessionLock,
 } from "@services/auth/sessionAuthCoordinator";
 
@@ -12,10 +12,11 @@ export const AUTH_SESSION_MODE = "refresh-v1";
 export const CSRF_HEADER = "X-CSRF-Token";
 export const REFRESH_OPERATION_HEADER = "X-Refresh-Operation";
 
-// Session-bound CSRF proofs are not bearer credentials; keep them per-tab so a
-// later page load can refresh using the browser-managed HttpOnly cookie.
+// Session-bound CSRF proofs are not bearer credentials; share them by origin so
+// every tab can refresh with the browser-managed HttpOnly cookie.
 const SESSION_CSRF_STORAGE_KEY = "rv.auth.session-csrf";
 const LOGOUT_CSRF_STORAGE_KEY = "rv.auth.logout-csrf";
+const AUTH_REQUEST_TIMEOUT_MS = 15_000;
 
 export interface SessionAuthUser {
   id: string;
@@ -86,8 +87,15 @@ function createOperationId(): string {
 
 function readStoredCsrf(key: string): string | null {
   try {
-    const value = sessionStorage.getItem(key);
-    return isNonEmptyString(value) ? value : null;
+    const sharedValue = localStorage.getItem(key);
+    if (isNonEmptyString(sharedValue)) return sharedValue;
+
+    // Migrate the per-tab proofs written by the previous App build.
+    const legacyValue = sessionStorage.getItem(key);
+    if (!isNonEmptyString(legacyValue)) return null;
+    localStorage.setItem(key, legacyValue);
+    sessionStorage.removeItem(key);
+    return legacyValue;
   } catch {
     return null;
   }
@@ -95,7 +103,8 @@ function readStoredCsrf(key: string): string | null {
 
 function writeStoredCsrf(key: string, value: string): void {
   try {
-    sessionStorage.setItem(key, value);
+    localStorage.setItem(key, value);
+    sessionStorage.removeItem(key);
   } catch {
     // The in-memory session remains usable when browser storage is unavailable.
   }
@@ -103,6 +112,7 @@ function writeStoredCsrf(key: string, value: string): void {
 
 function removeStoredCsrf(key: string): void {
   try {
+    localStorage.removeItem(key);
     sessionStorage.removeItem(key);
   } catch {
     // A later page load will require a fresh login if storage cannot be cleared.
@@ -298,14 +308,15 @@ export class SessionAuthTransport {
     private readonly http: AxiosInstance = authHttp,
     private readonly operationIdFactory: OperationIdFactory = createOperationId,
   ) {
-    subscribeToRemoteSessionCsrf(({ csrfToken, logoutCsrfToken }) => {
-      this.setSessionCsrfTokens(csrfToken, logoutCsrfToken, false);
-    });
+    subscribeToRemoteSessionCsrfUpdated(() => this.loadSessionCsrfTokens());
   }
 
   async getCsrf(): Promise<CsrfBootstrapResponse> {
     const response = await this.request(() =>
-      this.http.get<unknown>("/auth/csrf", { withCredentials: true }),
+      this.http.get<unknown>("/auth/csrf", {
+        withCredentials: true,
+        timeout: AUTH_REQUEST_TIMEOUT_MS,
+      }),
     );
 
     if (!isRecord(response) || !isNonEmptyString(response.csrfToken)) {
@@ -321,6 +332,7 @@ export class SessionAuthTransport {
       const response = await this.request(() =>
         this.http.post<unknown>("/auth/login", payload, {
           withCredentials: true,
+          timeout: AUTH_REQUEST_TIMEOUT_MS,
           headers: {
             "Content-Type": "application/json",
             [AUTH_SESSION_MODE_HEADER]: AUTH_SESSION_MODE,
@@ -351,6 +363,9 @@ export class SessionAuthTransport {
 
   private async performRefresh(options: { operationId?: string }): Promise<SessionRefreshResponse> {
     return withAuthSessionLock(async () => {
+      // Read after acquiring the cross-tab lock so the request uses the proof
+      // written by the tab that most recently rotated the shared cookie.
+      this.loadSessionCsrfTokens();
       const csrfToken = this.sessionCsrfToken;
       if (!csrfToken) throw protocolError();
 
@@ -367,6 +382,7 @@ export class SessionAuthTransport {
         response = await this.request(() =>
           this.http.post<unknown>("/auth/refresh", {}, {
             withCredentials: true,
+            timeout: AUTH_REQUEST_TIMEOUT_MS,
             headers: {
               "Content-Type": "application/json",
               [AUTH_SESSION_MODE_HEADER]: AUTH_SESSION_MODE,
@@ -403,6 +419,7 @@ export class SessionAuthTransport {
     }
 
     return withAuthSessionLock(async () => {
+      this.loadSessionCsrfTokens();
       const csrfToken = this.logoutCsrfToken;
       if (!csrfToken) throw protocolError();
 
@@ -410,6 +427,7 @@ export class SessionAuthTransport {
         await this.request(async () => {
           const response = await this.http.post<void>("/auth/logout", {}, {
             withCredentials: true,
+            timeout: AUTH_REQUEST_TIMEOUT_MS,
             headers: { "Content-Type": "application/json", [CSRF_HEADER]: csrfToken },
           });
           if (response.status !== 204) throw protocolError();
@@ -436,13 +454,24 @@ export class SessionAuthTransport {
   private setSessionCsrfTokens(
     csrfToken: string,
     logoutCsrfToken: string,
-    broadcast = true,
   ): void {
     this.sessionCsrfToken = csrfToken;
     this.logoutCsrfToken = logoutCsrfToken;
     writeStoredCsrf(SESSION_CSRF_STORAGE_KEY, csrfToken);
     writeStoredCsrf(LOGOUT_CSRF_STORAGE_KEY, logoutCsrfToken);
-    if (broadcast) broadcastSessionCsrf({ csrfToken, logoutCsrfToken });
+    broadcastSessionCsrfUpdated();
+  }
+
+  private loadSessionCsrfTokens(): void {
+    try {
+      // Do not discard the in-memory proofs when browser storage is blocked.
+      localStorage.getItem(SESSION_CSRF_STORAGE_KEY);
+      localStorage.getItem(LOGOUT_CSRF_STORAGE_KEY);
+    } catch {
+      return;
+    }
+    this.sessionCsrfToken = readStoredCsrf(SESSION_CSRF_STORAGE_KEY);
+    this.logoutCsrfToken = readStoredCsrf(LOGOUT_CSRF_STORAGE_KEY);
   }
 
   private clearSessionCsrfTokens(): void {
@@ -450,6 +479,7 @@ export class SessionAuthTransport {
     this.logoutCsrfToken = null;
     removeStoredCsrf(SESSION_CSRF_STORAGE_KEY);
     removeStoredCsrf(LOGOUT_CSRF_STORAGE_KEY);
+    broadcastSessionCsrfUpdated();
   }
 }
 

@@ -67,7 +67,10 @@ describe("SessionAuthTransport", () => {
 
     const result = await transport.login({ username: "riff", password: "secret" });
 
-    expect(get).toHaveBeenCalledWith("/auth/csrf", { withCredentials: true });
+    expect(get).toHaveBeenCalledWith("/auth/csrf", {
+      withCredentials: true,
+      timeout: 15_000,
+    });
     expect(post).toHaveBeenCalledWith(
       "/auth/login",
       { username: "riff", password: "secret" },
@@ -82,10 +85,10 @@ describe("SessionAuthTransport", () => {
     );
     expect(post.mock.calls[0]?.[2]?.headers).not.toHaveProperty("Authorization");
     expect(result).not.toHaveProperty("refreshToken");
-    expect(localStorage.length).toBe(0);
-    expect(sessionStorage.getItem("rv.auth.session-csrf")).toBe("refresh-csrf-1");
-    expect(sessionStorage.getItem("rv.auth.logout-csrf")).toBe("logout-csrf-1");
-    expect(sessionStorage.getItem("rv.auth.session-csrf")).not.toBe("access-jwt");
+    expect(localStorage.getItem("rv.auth.session-csrf")).toBe("refresh-csrf-1");
+    expect(localStorage.getItem("rv.auth.logout-csrf")).toBe("logout-csrf-1");
+    expect(localStorage.getItem("rv.auth.session-csrf")).not.toBe("access-jwt");
+    expect(sessionStorage.length).toBe(0);
   });
 
   it("uses the current session CSRF token and an operation UUID for refresh", async () => {
@@ -121,9 +124,26 @@ describe("SessionAuthTransport", () => {
     expect(refreshed).not.toHaveProperty("refreshToken");
   });
 
+  it("migrates existing per-tab CSRF proofs to shared origin storage", async () => {
+    sessionStorage.setItem("rv.auth.session-csrf", "legacy-session-csrf");
+    sessionStorage.setItem("rv.auth.logout-csrf", "legacy-logout-csrf");
+    const http = makeHttpClient();
+    const post = vi.spyOn(http, "post").mockResolvedValue(axiosResponse(refreshResponse));
+    const transport = new SessionAuthTransport(http);
+
+    await transport.refresh();
+
+    expect(post.mock.calls[0]?.[2]?.headers).toEqual(expect.objectContaining({
+      [CSRF_HEADER]: "legacy-session-csrf",
+    }));
+    expect(localStorage.getItem("rv.auth.session-csrf")).toBe("refresh-csrf-2");
+    expect(localStorage.getItem("rv.auth.logout-csrf")).toBe("logout-csrf-2");
+    expect(sessionStorage.length).toBe(0);
+  });
+
   it("clears session CSRF proofs after a definitive refresh 401", async () => {
-    sessionStorage.setItem("rv.auth.session-csrf", "session-csrf");
-    sessionStorage.setItem("rv.auth.logout-csrf", "logout-csrf");
+    localStorage.setItem("rv.auth.session-csrf", "session-csrf");
+    localStorage.setItem("rv.auth.logout-csrf", "logout-csrf");
     const http = makeHttpClient();
     const post = vi.spyOn(http, "post").mockRejectedValue(Object.assign(new Error("unauthenticated"), {
       isAxiosError: true,
@@ -132,8 +152,8 @@ describe("SessionAuthTransport", () => {
     const transport = new SessionAuthTransport(http);
 
     await expect(transport.refresh()).rejects.toMatchObject({ category: "unauthenticated" });
-    expect(sessionStorage.getItem("rv.auth.session-csrf")).toBeNull();
-    expect(sessionStorage.getItem("rv.auth.logout-csrf")).toBeNull();
+    expect(localStorage.getItem("rv.auth.session-csrf")).toBeNull();
+    expect(localStorage.getItem("rv.auth.logout-csrf")).toBeNull();
     await expect(transport.refresh()).rejects.toMatchObject({ category: "protocol-error" });
     expect(post).toHaveBeenCalledTimes(1);
   });
@@ -162,7 +182,8 @@ describe("SessionAuthTransport", () => {
       }),
     );
     expect(post.mock.calls[1]?.[2]?.headers).not.toHaveProperty(AUTH_SESSION_MODE_HEADER);
-    expect(sessionStorage.length).toBe(0);
+    expect(localStorage.getItem("rv.auth.session-csrf")).toBeNull();
+    expect(localStorage.getItem("rv.auth.logout-csrf")).toBeNull();
     await expect(transport.refresh()).rejects.toMatchObject({ category: "protocol-error" });
   });
 
@@ -195,8 +216,8 @@ describe("SessionAuthTransport", () => {
   });
 
   it("clears session CSRF proofs after logout returns a definitive 401", async () => {
-    sessionStorage.setItem("rv.auth.session-csrf", "session-csrf");
-    sessionStorage.setItem("rv.auth.logout-csrf", "logout-csrf");
+    localStorage.setItem("rv.auth.session-csrf", "session-csrf");
+    localStorage.setItem("rv.auth.logout-csrf", "logout-csrf");
     const http = makeHttpClient();
     const post = vi.spyOn(http, "post").mockRejectedValue(Object.assign(new Error("unauthenticated"), {
       isAxiosError: true,
@@ -205,8 +226,8 @@ describe("SessionAuthTransport", () => {
     const transport = new SessionAuthTransport(http);
 
     await expect(transport.logout()).rejects.toMatchObject({ category: "unauthenticated" });
-    expect(sessionStorage.getItem("rv.auth.session-csrf")).toBeNull();
-    expect(sessionStorage.getItem("rv.auth.logout-csrf")).toBeNull();
+    expect(localStorage.getItem("rv.auth.session-csrf")).toBeNull();
+    expect(localStorage.getItem("rv.auth.logout-csrf")).toBeNull();
     expect(post).toHaveBeenCalledTimes(1);
   });
 

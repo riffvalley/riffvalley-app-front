@@ -2,13 +2,60 @@
   <main v-if="authStore.authStatus === 'initializing'" class="min-h-screen flex items-center justify-center p-6" aria-live="polite">
     <p>Comprobando tu sesión…</p>
   </main>
-  <main v-else-if="authStore.authStatus === 'error' && route.name !== 'Login'" class="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center" role="alert">
-    <h1>No se pudo comprobar la sesión</h1>
-    <p>El servicio de identidad no está disponible ahora. Puedes volver a intentarlo.</p>
-    <button class="btn btn-primary" type="button" :disabled="retrying" @click="retryAuthInitialization">
-      {{ retrying ? 'Reintentando…' : 'Reintentar' }}
-    </button>
-    <router-link class="link" to="/login">Acceder con contraseña</router-link>
+  <main
+    v-else-if="authStore.authStatus === 'error' && route.name !== 'Login'"
+    class="min-h-screen flex items-center justify-center bg-gray-100 px-5 py-10 text-center dark:bg-rv-darkBg sm:px-8"
+    role="alert"
+  >
+    <section class="w-full max-w-lg rounded-3xl border border-gray-200 bg-white px-6 py-9 shadow-xl dark:border-white/10 dark:bg-rv-darkSurface sm:px-10 sm:py-11">
+      <div class="mx-auto mb-7 flex h-16 w-16 items-center justify-center rounded-full bg-rv-pink/10 text-rv-pink dark:bg-rv-pink/15" aria-hidden="true">
+        <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 7v5h-5" />
+          <path d="M4.9 9a7.5 7.5 0 0 1 12.4-2L20 12M4 17v-5h5" />
+          <path d="M19.1 15a7.5 7.5 0 0 1-12.4 2L4 12" />
+        </svg>
+      </div>
+
+      <h1 class="text-2xl font-bold leading-tight text-rv-navy dark:text-white sm:text-3xl">
+        No hemos podido recuperar tu sesión
+      </h1>
+      <p class="mx-auto mt-4 max-w-prose text-base leading-relaxed text-gray-600 dark:text-gray-300">
+        No hemos podido conectar con el servicio de autenticación. Tu sesión podría seguir activa.
+      </p>
+
+      <div class="mt-8 flex flex-col items-center gap-4">
+        <button
+          class="!min-h-12 !w-full !max-w-xs !gap-2 !rounded-xl !border-rv-pink !bg-rv-pink !px-6 !py-3 !font-semibold !text-rv-navy transition-colors hover:!bg-rv-pink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rv-purple disabled:!cursor-not-allowed disabled:!opacity-60"
+          type="button"
+          :disabled="retrying"
+          :aria-busy="retrying"
+          @click="retryAuthInitialization"
+        >
+          <svg
+            class="h-5 w-5"
+            :class="retrying ? 'animate-spin' : ''"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M20 7v5h-5" />
+            <path d="M20 12a8 8 0 0 0-14.9-4M4 17v-5h5" />
+            <path d="M4 12a8 8 0 0 0 14.9 4" />
+          </svg>
+          {{ retrying ? 'Reintentando…' : 'Reintentar' }}
+        </button>
+        <router-link
+          class="rounded-lg px-3 py-2 text-sm font-semibold text-rv-navy underline decoration-transparent underline-offset-4 transition-colors hover:text-rv-pink hover:decoration-current focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:text-gray-200 dark:hover:text-rv-pink"
+          to="/login"
+        >
+          Acceder con contraseña
+        </router-link>
+      </div>
+    </section>
   </main>
   <div v-else-if="authReady" id="app-container">
 
