@@ -312,7 +312,9 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref, onMounted } from 'vue';
+import router from '/src/router';
 import { useAuthStore } from '@stores/auth/auth.ts';
+import SwalService from '@services/swal/SwalService';
 import { getLatestPublicVersion } from '@services/versions/versions';
 import { getAllRequests } from '@services/requests/requests';
 import { getSuggestions } from '@services/suggestions/suggestions';
@@ -356,9 +358,13 @@ emits: ['close-menu', 'toggle-theme'],
     const allRoutes = routesData as AppRoute[];
     const latestVersion = ref<string | null>(null);
 
-    const handleLogout = () => {
-      authStore.logout();
-      window.location.href = '/';
+    const handleLogout = async () => {
+      const logoutRequest = authStore.logout();
+      await router.replace({ name: 'Login' });
+      const outcome = await logoutRequest;
+      if (outcome.revocation === 'unconfirmed') {
+        await SwalService.error('Cerraste la sesión en esta App, pero el servidor no confirmó la revocación. La sesión podría seguir activa.');
+      }
     };
 
     const closeMenu = () => {

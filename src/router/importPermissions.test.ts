@@ -16,6 +16,7 @@ describe("import route permissions", () => {
     const authStore = useAuthStore();
     authStore.token = role ? "test-token" : null;
     authStore.role = role;
+    authStore.authStatus = role ? "authenticated" : "anonymous";
 
     await router.push(path);
     return router.currentRoute.value;

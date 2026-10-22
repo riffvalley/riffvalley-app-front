@@ -314,7 +314,7 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore();
 
   const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
@@ -327,6 +327,14 @@ router.beforeEach((to) => {
     if (to.name === 'Maintenance') {
       return { name: "Home" };
     }
+  }
+
+  const authStatus = await authStore.initializeAuth();
+  if (authStatus === "error") {
+    // Keep the existing password login reachable when session recovery is unavailable.
+    if (to.name === "Login") return true;
+    // A temporary Identity failure must not be interpreted as an anonymous session.
+    return false;
   }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {

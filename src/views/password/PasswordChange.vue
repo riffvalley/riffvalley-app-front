@@ -482,7 +482,7 @@ export default {
 
     const loadAvatars = () => {
       avatars.value = allAvatars.value;
-      const saved = authStore.avatarUrl || localStorage.getItem("image");
+      const saved = authStore.avatarUrl;
       selectedAvatar.value = (saved && saved.length) ? saved : (avatars.value[0] || "");
 
       // Abrir la pestaña que contiene el avatar actual
