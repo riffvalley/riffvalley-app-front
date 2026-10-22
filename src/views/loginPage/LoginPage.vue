@@ -218,6 +218,7 @@
 import { defineComponent, ref, onMounted, onUnmounted, watch } from 'vue';
 import { useAuthStore } from '../../stores/auth/auth';
 import { useRouter } from 'vue-router';
+import { SessionAuthError } from '@services/auth/sessionAuth';
 import HowToUseModal from '@/components/HowToUseModal.vue';
 import AccessRequestModal from '@/components/AccessRequestModal.vue';
 
@@ -517,8 +518,28 @@ export default defineComponent({
       try {
         await authStore.login({ username: username.value, password: password.value });
         router.push({ name: 'Home' });
-      } catch {
-        error.value = 'Acceso fallido. Revisa tus credenciales.';
+      } catch (cause: unknown) {
+        if (cause instanceof SessionAuthError) {
+          switch (cause.category) {
+            case 'unauthenticated':
+              error.value = 'Usuario o contraseña incorrectos.';
+              break;
+            case 'forbidden':
+              error.value = 'No se pudo validar la solicitud de acceso. Recarga la página e inténtalo de nuevo.';
+              break;
+            case 'rate-limited':
+              error.value = 'Demasiados intentos. Espera un momento antes de volver a intentarlo.';
+              break;
+            case 'unavailable':
+            case 'network-error':
+              error.value = 'El servicio de acceso no está disponible temporalmente. Inténtalo más tarde.';
+              break;
+            default:
+              error.value = 'No se pudo completar el acceso. Inténtalo de nuevo.';
+          }
+        } else {
+          error.value = 'No se pudo completar el acceso. Inténtalo de nuevo.';
+        }
       } finally {
         loading.value = false;
       }
