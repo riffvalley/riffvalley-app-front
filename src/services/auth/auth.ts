@@ -1,22 +1,6 @@
 import api from "@services/api/api.ts";
 import type { UserRole } from "@interfaces/auth";
 
-export interface LoginPayload {
-  username: string;
-  password: string;
-}
-
-export interface LoginResponse {
-  id: string;
-  username: string;
-  role: UserRole;
-  token: string;
-  image?: string | null;
-  dashboardButtonsEnabled?: boolean;
-  dashboardConfig?: { id: string; enabled: boolean }[] | null;
-  mobileDashboardConfig?: { id: string; enabled: boolean }[] | null;
-}
-
 export interface UserListItem {
   id: string;
   email: string;
@@ -32,11 +16,6 @@ export type RvUser = Omit<UserListItem, "role"> & {
 export type Superuser = Omit<UserListItem, "role"> & {
   role: "superadmin";
 };
-
-export async function login(payload: LoginPayload): Promise<LoginResponse> {
-  const response = await api.post<LoginResponse>("/auth/login", payload);
-  return response.data; // La respuesta ya incluye `token`, `username`, etc.
-}
 
 export async function getSuperusers(): Promise<Superuser[]> {
   const response = await api.get<Superuser[]>("/auth/users/superusers");

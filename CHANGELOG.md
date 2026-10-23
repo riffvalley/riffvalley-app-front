@@ -1,3 +1,122 @@
+## <small>1.48.1 (2026-10-22)</small>
+
+* Merge pull request #192 from riffvalley/fix/auth-refresh-csrf-recovery ([d6f5e62](https://github.com/riffvalley/riffvalley-app-front/commit/d6f5e62)), closes [#192](https://github.com/riffvalley/riffvalley-app-front/issues/192)
+* fix(auth): recover expired refresh CSRF proof ([52674da](https://github.com/riffvalley/riffvalley-app-front/commit/52674da))
+
+## 1.48.0 (2026-10-22)
+
+* Merge pull request #191 from riffvalley/bc-id-3f-daily-activity-app ([b868951](https://github.com/riffvalley/riffvalley-app-front/commit/b868951)), closes [#191](https://github.com/riffvalley/riffvalley-app-front/issues/191)
+* feat(activity): record daily App visits ([f28e6a2](https://github.com/riffvalley/riffvalley-app-front/commit/f28e6a2))
+
+## <small>1.47.1 (2026-10-22)</small>
+
+* Merge pull request #190 from riffvalley/fix/bc-id-7-session-recovery ([6d54c8c](https://github.com/riffvalley/riffvalley-app-front/commit/6d54c8c)), closes [#190](https://github.com/riffvalley/riffvalley-app-front/issues/190)
+* fix(auth): coordinate session recovery across tabs ([2c032ff](https://github.com/riffvalley/riffvalley-app-front/commit/2c032ff))
+
+## 1.47.0 (2026-10-22)
+
+* feat(auth): migrate App to renewable refresh-v1 sessions (#189) ([8d40260](https://github.com/riffvalley/riffvalley-app-front/commit/8d40260)), closes [#189](https://github.com/riffvalley/riffvalley-app-front/issues/189)
+
+## 1.46.0 (2026-10-21)
+
+* Merge pull request #187 from riffvalley/refactor/editorial ([bdab68f](https://github.com/riffvalley/riffvalley-app-front/commit/bdab68f)), closes [#187](https://github.com/riffvalley/riffvalley-app-front/issues/187)
+* feat(frontend): update editorial workflows ([597b2ea](https://github.com/riffvalley/riffvalley-app-front/commit/597b2ea))
+* fix(radar): remove list description editing ([f302dca](https://github.com/riffvalley/riffvalley-app-front/commit/f302dca))
+* fix(videos): remove unsupported link field ([73e182f](https://github.com/riffvalley/riffvalley-app-front/commit/73e182f))
+
+## <small>1.45.2 (2026-10-15)</small>
+
+* Merge pull request #185 from riffvalley/chore/refactor-integration-dev ([4e136c1](https://github.com/riffvalley/riffvalley-app-front/commit/4e136c1)), closes [#185](https://github.com/riffvalley/riffvalley-app-front/issues/185)
+* Merge remote-tracking branch 'origin/main' into chore/refactor-integration-dev ([f595c2d](https://github.com/riffvalley/riffvalley-app-front/commit/f595c2d))
+* docs(catalog): record frontend integration status ([38a5dfe](https://github.com/riffvalley/riffvalley-app-front/commit/38a5dfe))
+* docs(catalog): record main integration ([95baad0](https://github.com/riffvalley/riffvalley-app-front/commit/95baad0))
+* fix(artists): omit unsupported country filter ([92cd5ed](https://github.com/riffvalley/riffvalley-app-front/commit/92cd5ed))
+* fix(artists): recover from out-of-range pages ([c9f6ffc](https://github.com/riffvalley/riffvalley-app-front/commit/c9f6ffc))
+* fix(catalog): align import and catalog contracts ([1d129e9](https://github.com/riffvalley/riffvalley-app-front/commit/1d129e9))
+* fix(import): restrict manual import access ([f81a2d4](https://github.com/riffvalley/riffvalley-app-front/commit/f81a2d4))
+
+## <small>1.45.1 (2026-10-15)</small>
+
+* fix(news): decode WordPress feed title entities (#184) ([205e72d](https://github.com/riffvalley/riffvalley-app-front/commit/205e72d)), closes [#184](https://github.com/riffvalley/riffvalley-app-front/issues/184)
+
+## 1.45.0 (2026-10-13)
+
+* Merge pull request #171 from riffvalley/feat/dashboard-menu-preferences ([2952f30](https://github.com/riffvalley/riffvalley-app-front/commit/2952f30)), closes [#171](https://github.com/riffvalley/riffvalley-app-front/issues/171)
+* Merge pull request #175 from riffvalley/fix/sidebar-theme-toggle-alignment-dev ([f953ac0](https://github.com/riffvalley/riffvalley-app-front/commit/f953ac0)), closes [#175](https://github.com/riffvalley/riffvalley-app-front/issues/175)
+* Merge pull request #179 from riffvalley/chore/refactor-integration-dev ([3f414be](https://github.com/riffvalley/riffvalley-app-front/commit/3f414be)), closes [#179](https://github.com/riffvalley/riffvalley-app-front/issues/179)
+* Merge pull request #180 from riffvalley/chore/refactor-integration ([7cf9b93](https://github.com/riffvalley/riffvalley-app-front/commit/7cf9b93)), closes [#180](https://github.com/riffvalley/riffvalley-app-front/issues/180)
+* Merge pull request #181 from riffvalley/chore/refactor-integration-dev ([6e1d07c](https://github.com/riffvalley/riffvalley-app-front/commit/6e1d07c)), closes [#181](https://github.com/riffvalley/riffvalley-app-front/issues/181)
+* Merge pull request #183 from riffvalley/chore/refactor-integration-dev ([cef0373](https://github.com/riffvalley/riffvalley-app-front/commit/cef0373)), closes [#183](https://github.com/riffvalley/riffvalley-app-front/issues/183)
+* Merge remote-tracking branch 'origin/dev' into chore/refactor-integration-dev ([b996421](https://github.com/riffvalley/riffvalley-app-front/commit/b996421))
+* Merge remote-tracking branch 'origin/main' into chore/refactor-integration-dev ([fa41a00](https://github.com/riffvalley/riffvalley-app-front/commit/fa41a00))
+* feat(auth): migrate frontend to hierarchical single-role model ([3d36ec9](https://github.com/riffvalley/riffvalley-app-front/commit/3d36ec9))
+* feat(sidebar): configure menu area buttons ([a8d8ab1](https://github.com/riffvalley/riffvalley-app-front/commit/a8d8ab1))
+* refactor(spotify): rename local playlists domain ([45ef014](https://github.com/riffvalley/riffvalley-app-front/commit/45ef014))
+* refactor(spotify): rename local playlists domain ([576382b](https://github.com/riffvalley/riffvalley-app-front/commit/576382b))
+* perf(home): use aggregated rates insights ([3696784](https://github.com/riffvalley/riffvalley-app-front/commit/3696784))
+* fix(import): use catalog import routes ([9c7cc1b](https://github.com/riffvalley/riffvalley-app-front/commit/9c7cc1b))
+* fix(sidebar): anchor theme toggle to the right ([316165f](https://github.com/riffvalley/riffvalley-app-front/commit/316165f))
+* fix(sidebar): compact navigation buttons ([24319b4](https://github.com/riffvalley/riffvalley-app-front/commit/24319b4))
+* fix(sidebar): keep theme toggle aligned ([d579a73](https://github.com/riffvalley/riffvalley-app-front/commit/d579a73))
+* fix(sidebar): pin theme toggle to the right column ([ac0991f](https://github.com/riffvalley/riffvalley-app-front/commit/ac0991f))
+* fix(spotify): route frontend lookups through backend ([5604d67](https://github.com/riffvalley/riffvalley-app-front/commit/5604d67))
+
+## <small>1.44.2 (2026-10-05)</small>
+
+* Merge pull request #178 from riffvalley/chore/refactor-integration ([96332c7](https://github.com/riffvalley/riffvalley-app-front/commit/96332c7)), closes [#178](https://github.com/riffvalley/riffvalley-app-front/issues/178)
+* perf(home): use aggregated rates insights ([7a0863b](https://github.com/riffvalley/riffvalley-app-front/commit/7a0863b))
+* fix(import): use catalog import routes ([6dd9d2a](https://github.com/riffvalley/riffvalley-app-front/commit/6dd9d2a))
+* fix(spotify): route frontend lookups through backend ([ce729d7](https://github.com/riffvalley/riffvalley-app-front/commit/ce729d7))
+
+## <small>1.44.1 (2026-09-25)</small>
+
+* Merge pull request #174 from riffvalley/fix/sidebar-theme-toggle-alignment ([da5c2c4](https://github.com/riffvalley/riffvalley-app-front/commit/da5c2c4)), closes [#174](https://github.com/riffvalley/riffvalley-app-front/issues/174)
+* fix(sidebar): align theme toggle to the right ([730edea](https://github.com/riffvalley/riffvalley-app-front/commit/730edea))
+* fix(sidebar): anchor theme toggle to the right ([8d773c3](https://github.com/riffvalley/riffvalley-app-front/commit/8d773c3))
+* fix(sidebar): compact navigation buttons ([339dba0](https://github.com/riffvalley/riffvalley-app-front/commit/339dba0))
+* fix(sidebar): keep theme toggle aligned ([aa6d993](https://github.com/riffvalley/riffvalley-app-front/commit/aa6d993))
+* fix(sidebar): pin theme toggle to the right column ([debf786](https://github.com/riffvalley/riffvalley-app-front/commit/debf786))
+
+## 1.44.0 (2026-09-25)
+
+* Merge pull request #173 from riffvalley/feat/dashboard-menu-main ([c4f40b6](https://github.com/riffvalley/riffvalley-app-front/commit/c4f40b6)), closes [#173](https://github.com/riffvalley/riffvalley-app-front/issues/173)
+* feat(sidebar): configure menu area buttons ([a011ed5](https://github.com/riffvalley/riffvalley-app-front/commit/a011ed5))
+
+## 1.43.0 (2026-09-21)
+
+* Merge pull request #170 from riffvalley/feat/radar-borrar-lista ([cdddaf3](https://github.com/riffvalley/riffvalley-app-front/commit/cdddaf3)), closes [#170](https://github.com/riffvalley/riffvalley-app-front/issues/170)
+* feat(radar): botón para eliminar radar desde el detalle ([c657ada](https://github.com/riffvalley/riffvalley-app-front/commit/c657ada))
+
+## <small>1.42.1 (2026-09-21)</small>
+
+* Merge pull request #169 from riffvalley/fix/mis-votos-sin-eps ([b77cec7](https://github.com/riffvalley/riffvalley-app-front/commit/b77cec7)), closes [#169](https://github.com/riffvalley/riffvalley-app-front/issues/169)
+* fix(mejores): excluir EPs de la pestaña mis votos ([cfd86da](https://github.com/riffvalley/riffvalley-app-front/commit/cfd86da))
+
+## 1.42.0 (2026-09-21)
+
+* Merge pull request #168 from riffvalley/feat/mejores-mis-votos ([de63446](https://github.com/riffvalley/riffvalley-app-front/commit/de63446)), closes [#168](https://github.com/riffvalley/riffvalley-app-front/issues/168)
+* feat(mejores): pestaña mis votos del mes con asignación a uno mismo ([0fffc9c](https://github.com/riffvalley/riffvalley-app-front/commit/0fffc9c))
+
+## 1.41.0 (2026-09-21)
+
+* Merge pull request #167 from riffvalley/fix/radar-cierre-martes ([1142916](https://github.com/riffvalley/riffvalley-app-front/commit/1142916)), closes [#167](https://github.com/riffvalley/riffvalley-app-front/issues/167)
+* feat(discos): tarjetas de mejores centradas con acordeón y fechas simplificadas en radares ([f77e557](https://github.com/riffvalley/riffvalley-app-front/commit/f77e557))
+
+## 1.40.0 (2026-09-20)
+
+* Merge pull request #166 from riffvalley/fix/radar-cierre-martes ([705fcbc](https://github.com/riffvalley/riffvalley-app-front/commit/705fcbc)), closes [#166](https://github.com/riffvalley/riffvalley-app-front/issues/166)
+* feat(mejores): colapsar anteriores y mover actuales debajo ([9af8b45](https://github.com/riffvalley/riffvalley-app-front/commit/9af8b45))
+
+## <small>1.39.1 (2026-09-20)</small>
+
+* Merge pull request #165 from riffvalley/fix/radar-cierre-martes ([b25dfac](https://github.com/riffvalley/riffvalley-app-front/commit/b25dfac)), closes [#165](https://github.com/riffvalley/riffvalley-app-front/issues/165)
+* fix(radar): títulos de secciones visibles y abiertas dentro de actuales ([473fb87](https://github.com/riffvalley/riffvalley-app-front/commit/473fb87))
+
+## 1.39.0 (2026-09-20)
+
+* Merge pull request #164 from riffvalley/fix/radar-cierre-martes ([458ec73](https://github.com/riffvalley/riffvalley-app-front/commit/458ec73)), closes [#164](https://github.com/riffvalley/riffvalley-app-front/issues/164)
+* feat(radar): mostrar solo las dos próximas semanas y colapsar el resto ([00eaa43](https://github.com/riffvalley/riffvalley-app-front/commit/00eaa43))
+
 ## 1.38.0 (2026-09-17)
 
 * feat(import): align manual import response and add Spotify search ([f37a07e](https://github.com/riffvalley/riffvalley-app-front/commit/f37a07e))

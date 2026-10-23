@@ -2,6 +2,11 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
+import { useAuthStore } from '@stores/auth/auth';
+import {
+  subscribeToRemoteAuthLogin,
+  subscribeToRemoteAuthLogout,
+} from '@services/auth/sessionAuthCoordinator';
 
 // VueSweetalert2
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -29,12 +34,26 @@ import './style.css';      // su CSS global
 import './assets/fonts.css'; // fuentes
 
 const app = createApp(App);
+const pinia = createPinia();
 
 // Circle flags
 app.use(CircleFlags);
-app.use(createPinia());
+app.use(pinia);
 app.use(router);
 app.use(VueSweetalert2);
+
+const authStore = useAuthStore(pinia);
+subscribeToRemoteAuthLogout(() => {
+  authStore.clearSessionLocally();
+  if (router.currentRoute.value.meta.requiresAuth) {
+    void router.replace({ name: 'Login' });
+  }
+});
+subscribeToRemoteAuthLogin(() => {
+  const protectedRoute = router.currentRoute.value.meta.requiresAuth;
+  void authStore.restoreAfterRemoteLogin();
+  if (protectedRoute) void router.replace({ name: 'Login' });
+});
 
 // Registrar componentes globales
 app.component('VueDatePicker', VueDatePicker);
