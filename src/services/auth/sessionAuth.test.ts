@@ -226,6 +226,52 @@ describe("SessionAuthTransport", () => {
     await expect(transport.refresh()).rejects.toMatchObject({ category: "protocol-error" });
   });
 
+  it("recovers expired CSRF proofs and retries logout with the rotated logout proof", async () => {
+    localStorage.setItem("rv.auth.session-csrf", "expired-refresh-csrf");
+    localStorage.setItem("rv.auth.logout-csrf", "expired-logout-csrf");
+    const http = makeHttpClient();
+    const get = vi.spyOn(http, "get").mockResolvedValue(
+      axiosResponse({ csrfToken: "recovered-refresh-csrf" }),
+    );
+    const post = vi.spyOn(http, "post");
+    post
+      .mockRejectedValueOnce(Object.assign(new Error("expired logout CSRF"), {
+        isAxiosError: true,
+        response: { status: 403, headers: {} },
+      }))
+      .mockRejectedValueOnce(Object.assign(new Error("expired refresh CSRF"), {
+        isAxiosError: true,
+        response: { status: 403, headers: {} },
+      }))
+      .mockResolvedValueOnce(axiosResponse(refreshResponse))
+      .mockResolvedValueOnce(axiosResponse(undefined, 204));
+    const transport = new SessionAuthTransport(http);
+
+    await transport.logout();
+
+    expect(get).toHaveBeenCalledWith("/auth/refresh/csrf", {
+      withCredentials: true,
+      timeout: 15_000,
+    });
+    expect(post.mock.calls.map(([url]) => url)).toEqual([
+      "/auth/logout",
+      "/auth/refresh",
+      "/auth/refresh",
+      "/auth/logout",
+    ]);
+    expect(post.mock.calls[0]?.[2]?.headers).toEqual(expect.objectContaining({
+      [CSRF_HEADER]: "expired-logout-csrf",
+    }));
+    expect(post.mock.calls[2]?.[2]?.headers).toEqual(expect.objectContaining({
+      [CSRF_HEADER]: "recovered-refresh-csrf",
+    }));
+    expect(post.mock.calls[3]?.[2]?.headers).toEqual(expect.objectContaining({
+      [CSRF_HEADER]: "logout-csrf-2",
+    }));
+    expect(localStorage.getItem("rv.auth.session-csrf")).toBeNull();
+    expect(localStorage.getItem("rv.auth.logout-csrf")).toBeNull();
+  });
+
   it("shares an in-flight refresh and makes logout wait for the rotated logout CSRF token", async () => {
     const http = makeHttpClient();
     vi.spyOn(http, "get").mockResolvedValue(axiosResponse({ csrfToken: "bootstrap-csrf" }));

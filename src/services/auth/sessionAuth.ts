@@ -447,6 +447,22 @@ export class SessionAuthTransport {
       }
     }
 
+    try {
+      await this.revokeWithCurrentLogoutProof();
+    } catch (error: unknown) {
+      // A proof can expire while the app is idle. Refresh obtains a new
+      // refresh proof when needed, then rotates both proofs before logout is
+      // retried with the new logout proof.
+      if (!(error instanceof SessionAuthError) || error.category !== "forbidden") {
+        throw error;
+      }
+
+      await this.refresh();
+      await this.revokeWithCurrentLogoutProof();
+    }
+  }
+
+  private async revokeWithCurrentLogoutProof(): Promise<void> {
     return withAuthSessionLock(async () => {
       this.loadSessionCsrfTokens();
       const csrfToken = this.logoutCsrfToken;
