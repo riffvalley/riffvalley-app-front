@@ -54,6 +54,10 @@ describe("SessionAuthTransport", () => {
     vi.restoreAllMocks();
     localStorage.clear();
     sessionStorage.clear();
+    Object.defineProperty(navigator, "locks", {
+      configurable: true,
+      value: { request: (_name: string, _options: unknown, callback: () => Promise<unknown>) => callback() },
+    });
   });
 
   it("bootstraps CSRF and negotiates refresh-v1 login with browser credentials", async () => {
@@ -119,6 +123,9 @@ describe("SessionAuthTransport", () => {
     );
     expect(post.mock.calls[1]?.[2]?.headers).not.toHaveProperty("Authorization");
     expect(refreshed.user.id).toBe("user-1");
+    expect(refreshed.user).not.toHaveProperty("dashboardButtonsEnabled");
+    expect(refreshed.user).not.toHaveProperty("dashboardConfig");
+    expect(refreshed.user).not.toHaveProperty("mobileDashboardConfig");
     expect(refreshed.token).toBe("next-access-jwt");
     expect(refreshed).not.toHaveProperty("refreshToken");
   });

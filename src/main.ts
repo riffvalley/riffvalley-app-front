@@ -79,7 +79,11 @@ subscribeToRemoteAuthLogin(() => {
 subscribeToRemoteAuthPermissionsChanged(() => {
   // Remove data before checking this tab's own session; the event carries no role or profile data.
   clearPrivateQueryCache();
-  void authStore.renewSession().catch(() => undefined);
+  void authStore.renewSession().then((result) => {
+    if (result === "unauthenticated" && router.currentRoute.value.meta.requiresAuth) {
+      void router.replace({ name: "Login" });
+    }
+  }).catch(() => undefined);
 });
 
 // Auth callbacks and Pinia are ready before Vue Router starts its initial navigation.

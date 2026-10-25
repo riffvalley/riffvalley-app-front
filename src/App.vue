@@ -17,14 +17,19 @@
       </div>
 
       <h1 class="text-2xl font-bold leading-tight text-rv-navy dark:text-white sm:text-3xl">
-        No hemos podido recuperar tu sesión
+        {{ authStore.authInitializationError === 'coordination-unavailable'
+          ? 'Este navegador no permite renovar tu sesión'
+          : 'No hemos podido recuperar tu sesión' }}
       </h1>
       <p class="mx-auto mt-4 max-w-prose text-base leading-relaxed text-gray-600 dark:text-gray-300">
-        No hemos podido conectar con el servicio de autenticación. Tu sesión podría seguir activa.
+        {{ authStore.authInitializationError === 'coordination-unavailable'
+          ? 'La renovación automática requiere Web Locks para coordinar las pestañas. Accede con contraseña o abre la aplicación en un navegador compatible.'
+          : 'No hemos podido conectar con el servicio de autenticación. Tu sesión podría seguir activa.' }}
       </p>
 
       <div class="mt-8 flex flex-col items-center gap-4">
         <button
+          v-if="authStore.authInitializationError !== 'coordination-unavailable'"
           class="!min-h-12 !w-full !max-w-xs !gap-2 !rounded-xl !border-rv-pink !bg-rv-pink !px-6 !py-3 !font-semibold !text-rv-navy transition-colors hover:!bg-rv-pink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rv-purple disabled:!cursor-not-allowed disabled:!opacity-60"
           type="button"
           :disabled="retrying"

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 
 const { refresh, login, logout, broadcastAuthLogin, broadcastAuthLogout, notifyAppDailyActivity } = vi.hoisted(() => ({
@@ -58,6 +58,12 @@ const loginResponse = {
 };
 
 describe("renewable auth store", () => {
+  const legacyCredentialKeys = ["token", "username", "userId", "image", "role", "roles"];
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
@@ -68,6 +74,51 @@ describe("renewable auth store", () => {
     broadcastAuthLogout.mockReset();
     notifyAppDailyActivity.mockReset();
     setActivePinia(createPinia());
+  });
+
+  it("clears every legacy credential when storage is available", () => {
+    for (const key of legacyCredentialKeys) localStorage.setItem(key, `legacy-${key}`);
+    const removeItem = vi.spyOn(localStorage, "removeItem");
+
+    const store = useAuthStore();
+
+    expect(store.authStatus).toBe("initializing");
+    expect(removeItem.mock.calls.map(([key]) => key)).toEqual(legacyCredentialKeys);
+    for (const key of legacyCredentialKeys) expect(localStorage.getItem(key)).toBeNull();
+  });
+
+  it("continues clearing the remaining credentials when one key fails", () => {
+    const nativeRemoveItem = localStorage.removeItem;
+    const removeItem = vi.spyOn(localStorage, "removeItem").mockImplementation(function (key) {
+      if (key === "token") throw new DOMException("Storage is blocked", "SecurityError");
+      return nativeRemoveItem.call(this, key);
+    });
+
+    const store = useAuthStore();
+
+    expect(store.authStatus).toBe("initializing");
+    expect(removeItem.mock.calls.map(([key]) => key)).toEqual(legacyCredentialKeys);
+  });
+
+  it("creates Auth and restores the session when legacy storage cleanup is restricted", async () => {
+    const removeItem = vi.spyOn(localStorage, "removeItem").mockImplementation(() => {
+      throw new DOMException("Storage is blocked", "SecurityError");
+    });
+    refresh.mockResolvedValue(renewableSession);
+
+    const store = useAuthStore();
+    expect(store.authStatus).toBe("initializing");
+    await expect(store.initializeAuth()).resolves.toBe("authenticated");
+
+    expect(removeItem).toHaveBeenCalledTimes(legacyCredentialKeys.length * 2);
+    expect(removeItem.mock.calls.map(([key]) => key)).toEqual([
+      ...legacyCredentialKeys,
+      ...legacyCredentialKeys,
+    ]);
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(store.authStatus).toBe("authenticated");
+    expect(store.token).toBe("memory-access-token");
+    expect(store.username).toBe("Mara");
   });
 
   it("logs in from the refresh-v1 response and keeps credentials only in memory", async () => {
@@ -91,6 +142,71 @@ describe("renewable auth store", () => {
     }
     expect(localStorage.getItem("dashboardConfig")).toBe(JSON.stringify(loginResponse.dashboardConfig));
     expect(useDashboardPreferencesStore().dashboardConfig).toEqual(loginResponse.dashboardConfig);
+  });
+
+  it("completes login and applies session preferences when preference storage writes are denied", async () => {
+    login.mockResolvedValue(loginResponse);
+    vi.spyOn(localStorage, "setItem").mockImplementation(() => {
+      throw new DOMException("Storage is blocked", "SecurityError");
+    });
+    const store = useAuthStore();
+
+    await expect(store.login({ username: "Mara", password: "secret" })).resolves.toBeUndefined();
+
+    const preferences = useDashboardPreferencesStore();
+    expect(store.isAuthenticated).toBe(true);
+    expect(store.username).toBe("Mara");
+    expect(preferences.dashboardButtonsEnabled).toBe(true);
+    expect(preferences.dashboardConfig).toEqual(loginResponse.dashboardConfig);
+    expect(preferences.mobileDashboardConfig).toEqual(loginResponse.mobileDashboardConfig);
+  });
+
+  it("characterizes retention if an incomplete mocked refresh profile omits optional fields", async () => {
+    login.mockResolvedValue(loginResponse);
+    const store = useAuthStore();
+    await store.login({ username: "Mara", password: "secret" });
+
+    refresh.mockResolvedValue({
+      ...renewableSession,
+      user: { id: "84", username: "Nara", role: "user" },
+    });
+
+    await expect(store.renewSession()).resolves.toBe("renewed");
+
+    const preferences = useDashboardPreferencesStore();
+    expect(store.userId).toBe("84");
+    expect(store.username).toBe("Nara");
+    expect(preferences.dashboardButtonsEnabled).toBe(true);
+    expect(preferences.dashboardConfig).toEqual(loginResponse.dashboardConfig);
+    expect(preferences.mobileDashboardConfig).toEqual(loginResponse.mobileDashboardConfig);
+  });
+
+  it("replaces all preferences when refresh-v1 restores a different account with a complete profile", async () => {
+    login.mockResolvedValue(loginResponse);
+    const store = useAuthStore();
+    await store.login({ username: "Mara", password: "secret" });
+
+    const nextMobileConfig = [{ id: "music", enabled: true }];
+    refresh.mockResolvedValue({
+      ...renewableSession,
+      user: {
+        id: "84",
+        username: "Nara",
+        role: "user",
+        dashboardButtonsEnabled: false,
+        dashboardConfig: null,
+        mobileDashboardConfig: nextMobileConfig,
+      },
+    });
+
+    await expect(store.renewSession()).resolves.toBe("renewed");
+
+    const preferences = useDashboardPreferencesStore();
+    expect(store.userId).toBe("84");
+    expect(store.username).toBe("Nara");
+    expect(preferences.dashboardButtonsEnabled).toBe(false);
+    expect(preferences.dashboardConfig).toBeNull();
+    expect(preferences.mobileDashboardConfig).toEqual(nextMobileConfig);
   });
 
   it("restores nested profile fields on startup and purges credentials left by legacy builds", async () => {
@@ -173,6 +289,52 @@ describe("renewable auth store", () => {
     expect(store.isAuthenticated).toBe(false);
     expect(await store.initializeAuth()).toBe("authenticated");
     expect(refresh).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not repeat unsupported startup refresh attempts and still permits login", async () => {
+    refresh.mockRejectedValue(new SessionAuthError(
+      "Web Locks unavailable",
+      "coordination-unavailable",
+      null,
+    ));
+    login.mockResolvedValue(loginResponse);
+    const store = useAuthStore();
+
+    expect(await store.initializeAuth()).toBe("error");
+    expect(await store.initializeAuth()).toBe("error");
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(store.authInitializationError).toBe("coordination-unavailable");
+    expect(store.token).toBeNull();
+
+    await store.login({ username: "Mara", password: "secret" });
+    expect(store.authStatus).toBe("authenticated");
+    expect(store.isAuthenticated).toBe(true);
+    expect(login).toHaveBeenCalledOnce();
+  });
+
+  it("clears only this tab locally when an expired access token cannot be renewed", async () => {
+    refresh.mockRejectedValue(new SessionAuthError(
+      "Web Locks unavailable",
+      "coordination-unavailable",
+      null,
+    ));
+    const store = useAuthStore();
+    store.$patch({
+      token: "expired-token",
+      username: "Mara",
+      userId: "42",
+      role: "riffvalley",
+      authStatus: "authenticated",
+      sessionMode: "renewable",
+    });
+
+    await expect(store.renewSession()).resolves.toBe("unauthenticated");
+
+    expect(store.authStatus).toBe("anonymous");
+    expect(store.token).toBeNull();
+    expect(store.sessionMode).toBeNull();
+    expect(broadcastAuthLogout).not.toHaveBeenCalled();
+    expect(logout).not.toHaveBeenCalled();
   });
 
   it("shares the initial refresh while concurrent guards initialize the same store", async () => {

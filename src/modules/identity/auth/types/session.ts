@@ -33,6 +33,7 @@ export type SessionAuthErrorCategory =
   | "forbidden"
   | "rate-limited"
   | "unavailable"
+  | "coordination-unavailable"
   | "conflict"
   | "bad-request"
   | "http-error"

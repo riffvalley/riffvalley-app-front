@@ -216,22 +216,17 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, watch } from 'vue';
-import { useAuthStore } from '@/modules/identity/auth/stores/auth';
-import { useRouter } from 'vue-router';
-import { SessionAuthError } from '@/modules/identity/auth/api/sessionAuth';
 import HowToUseModal from '@/components/HowToUseModal.vue';
 import AccessRequestModal from './components/AccessRequestModal.vue';
 import { useLoginBackgroundAnimation, type LoginBackgroundMode } from './composables/useLoginBackgroundAnimation';
+import { useLoginForm } from './composables/useLoginForm';
 
 type BgMode = LoginBackgroundMode;
 
 export default defineComponent({
   components: { HowToUseModal, AccessRequestModal },
   setup() {
-    const username = ref('');
-    const password = ref('');
-    const loading = ref(false);
-    const error = ref<string | null>(null);
+    const { username, password, loading, error, handleLogin } = useLoginForm();
     const showPassword = ref(false);
     const showHowToUse = ref(false);
     const showAccessRequest = ref(false);
@@ -283,42 +278,6 @@ export default defineComponent({
 
     useLoginBackgroundAnimation(canvasEl, bgMode);
 
-
-    const authStore = useAuthStore();
-    const router = useRouter();
-
-    const handleLogin = async () => {
-      error.value = null;
-      loading.value = true;
-      try {
-        await authStore.login({ username: username.value, password: password.value });
-        router.push({ name: 'Home' });
-      } catch (cause: unknown) {
-        if (cause instanceof SessionAuthError) {
-          switch (cause.category) {
-            case 'unauthenticated':
-              error.value = 'Usuario o contraseña incorrectos.';
-              break;
-            case 'forbidden':
-              error.value = 'No se pudo validar la solicitud de acceso. Recarga la página e inténtalo de nuevo.';
-              break;
-            case 'rate-limited':
-              error.value = 'Demasiados intentos. Espera un momento antes de volver a intentarlo.';
-              break;
-            case 'unavailable':
-            case 'network-error':
-              error.value = 'El servicio de acceso no está disponible temporalmente. Inténtalo más tarde.';
-              break;
-            default:
-              error.value = 'No se pudo completar el acceso. Inténtalo de nuevo.';
-          }
-        } else {
-          error.value = 'No se pudo completar el acceso. Inténtalo de nuevo.';
-        }
-      } finally {
-        loading.value = false;
-      }
-    };
 
     return {
       username, password, showPassword, loading, error, handleLogin,

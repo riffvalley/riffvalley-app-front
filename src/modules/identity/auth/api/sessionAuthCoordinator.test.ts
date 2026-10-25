@@ -147,6 +147,10 @@ describe("auth session cross-tab coordinator", () => {
   });
 
   it("loads the current origin-shared session CSRF proof for refresh", async () => {
+    Object.defineProperty(navigator, "locks", {
+      configurable: true,
+      value: new FakeLockManager(),
+    });
     const { SessionAuthTransport } = await import("@/modules/identity/auth/api/sessionAuth");
     const http = axios.create({ baseURL: "https://backend.riffvalley.es/api" });
     localStorage.setItem("rv.auth.session-csrf", "peer-current-csrf");
@@ -173,6 +177,60 @@ describe("auth session cross-tab coordinator", () => {
     expect(post.mock.calls[0]?.[2]?.headers).toEqual(expect.objectContaining({
       "X-CSRF-Token": "peer-current-csrf",
     }));
+  });
+
+  it("refuses refresh from both tabs without Web Locks and never posts or retries", async () => {
+    expect(navigator.locks).toBeUndefined();
+    const { SessionAuthTransport } = await import("@/modules/identity/auth/api/sessionAuth");
+    const firstHttp = axios.create({ baseURL: "https://backend.riffvalley.es/api" });
+    const secondHttp = axios.create({ baseURL: "https://backend.riffvalley.es/api" });
+    const firstGet = vi.spyOn(firstHttp, "get");
+    const secondGet = vi.spyOn(secondHttp, "get");
+    const firstPost = vi.spyOn(firstHttp, "post");
+    const secondPost = vi.spyOn(secondHttp, "post");
+    localStorage.setItem("rv.auth.session-csrf", "shared-session-csrf");
+    localStorage.setItem("rv.auth.logout-csrf", "shared-logout-csrf");
+    const firstTab = new SessionAuthTransport(firstHttp);
+    const secondTab = new SessionAuthTransport(secondHttp);
+
+    const attempts = await Promise.allSettled([firstTab.refresh(), secondTab.refresh()]);
+    expect(attempts).toEqual([
+      { status: "rejected", reason: expect.objectContaining({ category: "coordination-unavailable" }) },
+      { status: "rejected", reason: expect.objectContaining({ category: "coordination-unavailable" }) },
+    ]);
+    await expect(firstTab.refresh()).rejects.toMatchObject({ category: "coordination-unavailable" });
+    expect(firstGet).not.toHaveBeenCalled();
+    expect(secondGet).not.toHaveBeenCalled();
+    expect(firstPost).not.toHaveBeenCalled();
+    expect(secondPost).not.toHaveBeenCalled();
+    expect(localStorage.getItem("rv.auth.session-csrf")).toBe("shared-session-csrf");
+  });
+
+  it("keeps login and logout available without Web Locks and does not refresh during logout", async () => {
+    expect(navigator.locks).toBeUndefined();
+    const { SessionAuthTransport } = await import("@/modules/identity/auth/api/sessionAuth");
+    const http = axios.create({ baseURL: "https://backend.riffvalley.es/api" });
+    const get = vi.spyOn(http, "get").mockResolvedValue({
+      data: { csrfToken: "bootstrap-csrf" }, status: 200, statusText: "OK", headers: {},
+      config: { headers: axios.AxiosHeaders.from({}) },
+    } as AxiosResponse);
+    const post = vi.spyOn(http, "post").mockResolvedValueOnce({
+      data: {
+        id: "user-1", username: "riff", role: "user", token: "access-jwt",
+        csrfToken: "session-csrf", logoutCsrfToken: "logout-csrf",
+      }, status: 200, statusText: "OK", headers: {},
+      config: { headers: axios.AxiosHeaders.from({}) },
+    } as AxiosResponse).mockResolvedValueOnce({
+      data: undefined, status: 204, statusText: "No Content", headers: {},
+      config: { headers: axios.AxiosHeaders.from({}) },
+    } as AxiosResponse);
+    const transport = new SessionAuthTransport(http);
+
+    await transport.login({ username: "riff", password: "secret" });
+    await transport.logout();
+
+    expect(get).toHaveBeenCalledOnce();
+    expect(post.mock.calls.map(([url]) => url)).toEqual(["/auth/login", "/auth/logout"]);
   });
 
   it("restores from a newly opened tab using the shared session cookie", async () => {

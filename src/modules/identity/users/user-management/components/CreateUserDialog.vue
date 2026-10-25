@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 interface CreateUserForm {
   email: string;
@@ -40,27 +40,65 @@ const passwordVisible = computed({
   get: () => props.passwordVisible,
   set: (visible: boolean) => emit('update:passwordVisible', visible),
 });
+
+const dialog = ref<HTMLElement | null>(null);
+const focusableSelector = 'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+
+watch(() => props.open, async (open) => {
+  if (!open) return;
+  await nextTick();
+  (dialog.value?.querySelector<HTMLElement>('[autofocus]') ?? dialog.value?.querySelector<HTMLElement>(focusableSelector))?.focus();
+}, { immediate: true });
+
+function handleDialogKeydown(event: KeyboardEvent) {
+  if (event.key !== 'Tab' || !dialog.value) return;
+  const focusable = Array.from(dialog.value.querySelectorAll<HTMLElement>(focusableSelector));
+  const first = focusable[0];
+  const last = focusable.at(-1);
+  if (!first || !last) {
+    event.preventDefault();
+    dialog.value.focus();
+    return;
+  }
+  if (event.shiftKey && (document.activeElement === first || !dialog.value.contains(document.activeElement))) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && (document.activeElement === last || !dialog.value.contains(document.activeElement))) {
+    event.preventDefault();
+    first.focus();
+  }
+}
+
 </script>
 
 <template>
   <Teleport to="body">
     <div v-if="open" class="modal-overlay" @click.self="emit('close')">
-      <div class="modal-content modal-lg">
-        <button @click="emit('close')" class="modal-close">
+      <div
+        ref="dialog"
+        class="modal-content modal-lg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-user-dialog-title"
+        tabindex="-1"
+        @keydown="handleDialogKeydown"
+        @keydown.esc.stop.prevent="emit('close')"
+      >
+        <button type="button" @click="emit('close')" class="modal-close" aria-label="Cerrar diálogo de creación de usuario">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Crear Nuevo Usuario</h3>
+        <h3 id="create-user-dialog-title" class="text-xl font-bold text-gray-900 dark:text-white mb-6">Crear Nuevo Usuario</h3>
         <form @submit.prevent="emit('submit')" class="space-y-5">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm text-rv-pink mb-1.5 font-medium">Email</label>
-              <input v-model="email" type="email" placeholder="email@ejemplo.com" class="modal-input" required />
+              <label for="create-user-email" class="block text-sm text-rv-pink mb-1.5 font-medium">Email</label>
+              <input id="create-user-email" v-model="email" type="email" placeholder="email@ejemplo.com" class="modal-input" required autofocus />
             </div>
             <div>
-              <label class="block text-sm text-rv-pink mb-1.5 font-medium">Username</label>
-              <input v-model="username" type="text" placeholder="nombreusuario" class="modal-input" minlength="4" required />
+              <label for="create-user-username" class="block text-sm text-rv-pink mb-1.5 font-medium">Username</label>
+              <input id="create-user-username" v-model="username" type="text" placeholder="nombreusuario" class="modal-input" minlength="4" required />
             </div>
           </div>
 
@@ -70,9 +108,10 @@ const passwordVisible = computed({
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm text-rv-pink mb-1.5 font-medium">Contraseña</label>
+              <label for="create-user-password" class="block text-sm text-rv-pink mb-1.5 font-medium">Contraseña</label>
               <div class="relative">
                 <input
+                  id="create-user-password"
                   v-model="password"
                   :type="passwordVisible ? 'text' : 'password'"
                   placeholder="Mínimo 6 caracteres"
@@ -82,7 +121,8 @@ const passwordVisible = computed({
                   required
                 />
                 <button type="button" @click="passwordVisible = !passwordVisible"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none">
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-200 focus:outline-none"
+                  :aria-label="passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'">
                   <i :class="passwordVisible ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
                 </button>
               </div>

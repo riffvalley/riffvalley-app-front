@@ -12,7 +12,9 @@ import type {
 import {
   broadcastSessionCsrfUpdated,
   subscribeToRemoteSessionCsrfUpdated,
+  AuthSessionLockUnavailableError,
   withAuthSessionLock,
+  withRequiredAuthSessionLock,
 } from "./sessionAuthCoordinator";
 
 export const AUTH_SESSION_MODE_HEADER = "X-Auth-Session-Mode";
@@ -219,6 +221,8 @@ function messageForCategory(category: SessionAuthErrorCategory): string {
       return "Se ha alcanzado el límite de solicitudes de autenticación.";
     case "unavailable":
       return "El servicio de autenticación no está disponible temporalmente.";
+    case "coordination-unavailable":
+      return "Este navegador no permite renovar la sesión de forma segura entre pestañas. Accede con contraseña o usa un navegador compatible.";
     case "conflict":
       return "La operación de sesión ya se ha procesado.";
     case "bad-request":
@@ -315,7 +319,16 @@ export class SessionAuthTransport {
   refresh(options: { operationId?: string } = {}): Promise<SessionRefreshResponse> {
     if (this.refreshInFlight) return this.refreshInFlight;
 
-    const pending = this.performRefresh(options);
+    const pending = this.performRefresh(options).catch((error: unknown) => {
+      if (error instanceof AuthSessionLockUnavailableError) {
+        throw new SessionAuthError(
+          messageForCategory("coordination-unavailable"),
+          "coordination-unavailable",
+          null,
+        );
+      }
+      throw error;
+    });
     this.refreshInFlight = pending;
     const clearPending = () => {
       if (this.refreshInFlight === pending) this.refreshInFlight = null;
@@ -325,7 +338,7 @@ export class SessionAuthTransport {
   }
 
   private async performRefresh(options: { operationId?: string }): Promise<SessionRefreshResponse> {
-    return withAuthSessionLock(async () => {
+    return withRequiredAuthSessionLock(async () => {
       // Read after acquiring the cross-tab lock so the request uses the proof
       // written by the tab that most recently rotated the shared cookie.
       this.loadSessionCsrfTokens();

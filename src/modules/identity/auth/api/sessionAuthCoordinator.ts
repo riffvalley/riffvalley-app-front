@@ -81,9 +81,18 @@ export class AuthSessionLockTimeoutError extends Error {
   }
 }
 
-export async function withAuthSessionLock<T>(operation: () => Promise<T>): Promise<T> {
-  if (typeof navigator === "undefined" || !navigator.locks) return operation();
+export class AuthSessionLockUnavailableError extends Error {
+  constructor() {
+    super("La renovación de sesión requiere coordinación Web Locks entre pestañas.");
+    this.name = "AuthSessionLockUnavailableError";
+  }
+}
 
+function hasWebLocks(): boolean {
+  return typeof navigator !== "undefined" && Boolean(navigator.locks);
+}
+
+async function requestAuthSessionLock<T>(operation: () => Promise<T>): Promise<T> {
   const controller = new AbortController();
   let timedOut = false;
   const timeout = globalThis.setTimeout(() => {
@@ -102,6 +111,15 @@ export async function withAuthSessionLock<T>(operation: () => Promise<T>): Promi
   } finally {
     globalThis.clearTimeout(timeout);
   }
+}
+
+export function withAuthSessionLock<T>(operation: () => Promise<T>): Promise<T> {
+  return hasWebLocks() ? requestAuthSessionLock(operation) : operation();
+}
+
+export function withRequiredAuthSessionLock<T>(operation: () => Promise<T>): Promise<T> {
+  if (!hasWebLocks()) return Promise.reject(new AuthSessionLockUnavailableError());
+  return requestAuthSessionLock(operation);
 }
 
 export function broadcastAuthLogout(): void {

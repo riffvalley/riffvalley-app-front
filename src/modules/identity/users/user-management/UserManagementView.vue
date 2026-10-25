@@ -22,7 +22,7 @@
         </div>
       </div>
       <button
-        @click="openCreateModal"
+        @click="openCreateModal($event)"
         class="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rv-pink to-rv-purple text-white font-medium rounded-full shadow-sm hover:opacity-90 transition-opacity whitespace-nowrap"
       >
         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -174,13 +174,13 @@
               Baneado
             </span>
 
-            <button @click="openNotesModal(user)" class="action-btn action-btn-blue" title="Notas">
+            <button @click="openNotesModal(user, $event)" class="action-btn action-btn-blue" title="Notas" :aria-label="`Editar notas de ${user.username}`">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             </button>
 
-            <button @click="openPasswordModal(user)" class="action-btn action-btn-pink" title="Cambiar contraseña">
+            <button @click="openPasswordModal(user, $event)" class="action-btn action-btn-pink" title="Cambiar contraseña" :aria-label="`Cambiar contraseña de ${user.username}`">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
               </svg>
@@ -244,7 +244,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, watch } from "vue";
+import { defineComponent, ref, computed, watch, nextTick } from "vue";
 import { useAuthStore } from "@/modules/identity/auth/stores/auth";
 import { useAdminUsersQuery } from "@/modules/identity/users/composables/useAdminUsersQuery";
 import { useAdminUserMutations } from "@/modules/identity/users/composables/useAdminUserMutations";
@@ -401,6 +401,7 @@ export default defineComponent({
     const showCreateModal = ref(false);
     const showPasswordModal = ref(false);
     const showNotesModal = ref(false);
+    const activeDialogTrigger = ref<HTMLElement | null>(null);
     const showCreatePassword = ref(false);
     const showChangePassword = ref(false);
 
@@ -431,6 +432,7 @@ export default defineComponent({
       showCreateModal.value = false;
       showPasswordModal.value = false;
       showNotesModal.value = false;
+      activeDialogTrigger.value = null;
       showCreatePassword.value = false;
       showChangePassword.value = false;
       copiedUserId.value = null;
@@ -490,7 +492,7 @@ export default defineComponent({
       try {
         await adminMutations.updateUser.mutateAsync({
           session,
-          payload: { userId: user.id, changes: { createdAt: newDate } },
+          payload: { userId: user.id, changes: { createdAt: newDate.toISOString() } },
         });
         if (!adminMutations.isCurrentSession(session)) return;
         user.createdAt = newDate.toISOString();
@@ -555,8 +557,31 @@ export default defineComponent({
       }
     };
 
-    const openCreateModal = () => {
+    const rememberDialogTrigger = (event?: Event) => {
+      const eventTarget = event?.currentTarget;
+      if (typeof HTMLElement !== "undefined" && eventTarget instanceof HTMLElement) {
+        activeDialogTrigger.value = eventTarget;
+      } else if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+        activeDialogTrigger.value = document.activeElement;
+      }
+    };
+
+    const restoreDialogTriggerFocus = () => {
+      const trigger = activeDialogTrigger.value;
+      activeDialogTrigger.value = null;
+      void nextTick(() => {
+        if (
+          trigger?.isConnected &&
+          !showCreateModal.value &&
+          !showPasswordModal.value &&
+          !showNotesModal.value
+        ) trigger.focus();
+      });
+    };
+
+    const openCreateModal = (event?: Event) => {
       if (!canManageUsers()) return;
+      rememberDialogTrigger(event);
       createDialogGeneration++;
       createPendingOperation.value = null;
       newUser.value = { email: "", username: "", password: "" };
@@ -568,6 +593,7 @@ export default defineComponent({
       createPendingOperation.value = null;
       showCreateModal.value = false;
       showCreatePassword.value = false;
+      restoreDialogTriggerFocus();
     };
 
     const createUser = async () => {
@@ -597,8 +623,9 @@ export default defineComponent({
       }
     };
 
-    const openPasswordModal = (user: User) => {
+    const openPasswordModal = (user: User, event?: Event) => {
       if (!canManageUsers()) return;
+      rememberDialogTrigger(event);
       passwordDialogGeneration++;
       passwordPendingOperation.value = null;
       selectedUser.value = user;
@@ -613,6 +640,7 @@ export default defineComponent({
       selectedUser.value = null;
       newPassword.value = "";
       showChangePassword.value = false;
+      restoreDialogTriggerFocus();
     };
 
     const updatePassword = async () => {
@@ -651,8 +679,9 @@ export default defineComponent({
       }
     };
 
-    const openNotesModal = (user: User) => {
+    const openNotesModal = (user: User, event?: Event) => {
       if (!canManageUsers()) return;
+      rememberDialogTrigger(event);
       notesDialogGeneration++;
       notesPendingOperation.value = null;
       selectedUser.value = user;
@@ -666,6 +695,7 @@ export default defineComponent({
       showNotesModal.value = false;
       selectedUser.value = null;
       userNotes.value = "";
+      restoreDialogTriggerFocus();
     };
 
     const saveNotes = async () => {

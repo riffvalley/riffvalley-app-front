@@ -8,7 +8,7 @@ const api = vi.hoisted(() => ({
 
 vi.mock("@services/api/api.ts", () => ({ default: api }));
 
-import { getGlobalActivity, getUsers, postUserService, updateUserService } from "./users";
+import { getGlobalActivity, getUsers, postUserService, updateUserService, updateUserSuperAdminService } from "./users";
 
 describe("Identity account HTTP contracts", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -58,6 +58,15 @@ describe("Identity account HTTP contracts", () => {
     await updateUserService(payload);
 
     expect(api.patch).toHaveBeenCalledWith("/auth", payload);
+  });
+
+  it("sends an ISO createdAt string through the existing superadmin PATCH contract", async () => {
+    api.patch.mockResolvedValue({ data: {} });
+    const payload = { createdAt: "2025-02-03T00:00:00.000Z" };
+
+    await updateUserSuperAdminService("u1", payload);
+
+    expect(api.patch).toHaveBeenCalledWith("/auth/superadmin/u1", payload);
   });
 
   it("retains registration as the existing POST /auth/register operation", async () => {

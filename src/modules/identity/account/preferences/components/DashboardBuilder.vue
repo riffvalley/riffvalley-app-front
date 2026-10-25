@@ -39,16 +39,25 @@
             <div class="flex gap-3 flex-1 min-w-0">
               <template v-if="row.type === 'full'">
                 <ModuleCard :key="row.a.id" :mod="row.a" full :dragging="isDragging(row.a.id)" :hover-side="sideOf(row.a.id)"
+                  :can-move-up="canMoveDesktopModuleUp(row.a.id)" :can-move-down="canMoveDesktopModuleDown(row.a.id)"
                   @dragstart="dragStartModule(row.a.id)" @dragover="onCardDragOver(row.a.id, $event)"
-                  @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag" @remove="desktopDisableModule(row.a.id)" />
+                  @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag"
+                  @move-up="moveDesktopModuleUp(row.a.id)" @move-down="moveDesktopModuleDown(row.a.id)"
+                  @remove="desktopDisableModule(row.a.id)" />
               </template>
               <template v-else>
                 <ModuleCard :key="row.a.id" :mod="row.a" :dragging="isDragging(row.a.id)" :hover-side="sideOf(row.a.id)"
+                  :can-move-up="canMoveDesktopModuleUp(row.a.id)" :can-move-down="canMoveDesktopModuleDown(row.a.id)"
                   @dragstart="dragStartModule(row.a.id)" @dragover="onCardDragOver(row.a.id, $event)"
-                  @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag" @remove="desktopDisableModule(row.a.id)" />
+                  @drop="onCardDrop(row.a.id, $event)" @dragend="clearDrag"
+                  @move-up="moveDesktopModuleUp(row.a.id)" @move-down="moveDesktopModuleDown(row.a.id)"
+                  @remove="desktopDisableModule(row.a.id)" />
                 <ModuleCard v-if="row.b" :key="row.b.id" :mod="row.b" :dragging="isDragging(row.b.id)" :hover-side="sideOf(row.b.id)"
+                  :can-move-up="canMoveDesktopModuleUp(row.b.id)" :can-move-down="canMoveDesktopModuleDown(row.b.id)"
                   @dragstart="dragStartModule(row.b.id)" @dragover="onCardDragOver(row.b.id, $event)"
-                  @drop="onCardDrop(row.b.id, $event)" @dragend="clearDrag" @remove="desktopDisableModule(row.b.id)" />
+                  @drop="onCardDrop(row.b.id, $event)" @dragend="clearDrag"
+                  @move-up="moveDesktopModuleUp(row.b.id)" @move-down="moveDesktopModuleDown(row.b.id)"
+                  @remove="desktopDisableModule(row.b.id)" />
                 <div v-else
                   class="flex-1 min-w-0 flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-4 text-sm transition-colors duration-150"
                   :class="hoverKey === 'gap:' + idx
@@ -114,16 +123,18 @@
           @dragover.prevent="setHover('tray')"
           @drop.prevent="dropTray"
         >
-          <div
+          <button
             v-for="mod in desktopDisabled"
             :key="mod.id"
+            type="button"
             draggable="true"
             @dragstart="onModuleDragStart($event, mod.id)"
             @dragend="clearDrag"
             @click="desktopEnableModule(mod.id)"
+            :aria-label="`Activar ${mod.label} en el dashboard de escritorio`"
             class="flex items-center gap-2 rounded-full border border-gray-200 dark:border-white/10 bg-white dark:bg-rv-darkCard
-                   px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 cursor-grab active:cursor-grabbing select-none
-                   hover:border-rv-pink/40 hover:text-rv-pink dark:hover:text-rv-pink transition-colors"
+                   px-4 py-2 text-left text-sm font-medium text-gray-500 dark:text-gray-400 cursor-grab active:cursor-grabbing select-none
+                   hover:border-rv-pink/40 hover:text-rv-pink dark:hover:text-rv-pink transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
             :class="isDragging(mod.id) ? 'opacity-40' : 'opacity-100'"
           >
             <i :class="[mod.icon, 'text-sm']"></i>
@@ -131,7 +142,7 @@
             <span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/10">
               {{ mod.size === 'full' ? '2x1' : '1x1' }}
             </span>
-          </div>
+          </button>
           <p v-if="!desktopDisabled.length" class="w-full text-center text-gray-400 dark:text-gray-500 text-sm italic py-3">
             Todos los módulos están activados.
           </p>
@@ -169,24 +180,26 @@
           <span class="flex-1 min-w-0 text-xs font-semibold text-gray-700 dark:text-white truncate">{{ mod.label }}</span>
           <div class="flex flex-col gap-0.5 shrink-0">
             <button @click="mobileMoveUp(i)" :disabled="i === 0" type="button"
+              :aria-label="`Subir ${mod.label}`"
               class="w-8 h-7 rounded flex items-center justify-center
                      text-gray-400 bg-gray-100 dark:bg-white/10
                      hover:text-rv-pink hover:bg-gray-200 dark:hover:bg-white/20
-                     disabled:opacity-25 disabled:pointer-events-none transition-colors border-0 outline-none focus:outline-none">
+                     disabled:opacity-25 disabled:pointer-events-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple">
               <i class="fa-solid fa-chevron-up text-[9px]"></i>
             </button>
             <button @click="mobileMoveDown(i)" :disabled="i === mobileEnabled.length - 1" type="button"
+              :aria-label="`Bajar ${mod.label}`"
               class="w-8 h-7 rounded flex items-center justify-center
                      text-gray-400 bg-gray-100 dark:bg-white/10
                      hover:text-rv-pink hover:bg-gray-200 dark:hover:bg-white/20
-                     disabled:opacity-25 disabled:pointer-events-none transition-colors border-0 outline-none focus:outline-none">
+                     disabled:opacity-25 disabled:pointer-events-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple">
               <i class="fa-solid fa-chevron-down text-[9px]"></i>
             </button>
           </div>
-          <button @click="mobileDisableModule(mod.id)" type="button"
+          <button @click="mobileDisableModule(mod.id)" type="button" :aria-label="`Desactivar ${mod.label} en el dashboard móvil`"
             class="w-6 h-6 rounded-full flex items-center justify-center shrink-0 ml-2
                    text-gray-400 bg-gray-100 dark:bg-white/10
-                   hover:text-white hover:bg-rv-pink transition-colors duration-150">
+                   hover:text-white hover:bg-rv-pink transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple">
             <i class="fa-solid fa-xmark text-[10px]"></i>
           </button>
         </div>
@@ -204,10 +217,10 @@
           class="flex items-center gap-2.5 px-3 py-2.5 bg-white dark:bg-rv-darkSurface">
           <i :class="[mod.icon, 'text-gray-300 dark:text-white/20 text-sm shrink-0 w-4 text-center']" aria-hidden="true"></i>
           <span class="flex-1 min-w-0 text-xs text-gray-400 dark:text-gray-500 truncate">{{ mod.label }}</span>
-          <button @click="mobileEnableModule(mod.id)" type="button"
+          <button @click="mobileEnableModule(mod.id)" type="button" :aria-label="`Activar ${mod.label} en el dashboard móvil`"
             class="w-6 h-6 rounded-full flex items-center justify-center shrink-0
                    text-gray-400 bg-gray-100 dark:bg-white/10
-                   hover:text-white hover:bg-rv-pink transition-colors duration-150">
+                   hover:text-white hover:bg-rv-pink transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple">
             <i class="fa-solid fa-plus text-[10px]"></i>
           </button>
         </div>
@@ -309,6 +322,31 @@ function nextRowFirstId(rowIndex: number): string | null {
 function idAfter(id: string): string | null {
   const idx = desktopModules.value.findIndex(m => m.id === id);
   return desktopModules.value[idx + 1]?.id ?? null;
+}
+
+function enabledDesktopIndex(id: string): number {
+  return desktopEnabled.value.findIndex(module => module.id === id);
+}
+
+function canMoveDesktopModuleUp(id: string): boolean {
+  return enabledDesktopIndex(id) > 0;
+}
+
+function canMoveDesktopModuleDown(id: string): boolean {
+  const index = enabledDesktopIndex(id);
+  return index !== -1 && index < desktopEnabled.value.length - 1;
+}
+
+function moveDesktopModuleUp(id: string) {
+  const index = enabledDesktopIndex(id);
+  if (index <= 0) return;
+  desktopMoveModule(id, desktopEnabled.value[index - 1].id);
+}
+
+function moveDesktopModuleDown(id: string) {
+  const index = enabledDesktopIndex(id);
+  if (index === -1 || index >= desktopEnabled.value.length - 1) return;
+  desktopMoveModule(id, idAfter(desktopEnabled.value[index + 1].id));
 }
 
 // Lo que se está arrastrando: un módulo suelto, o una fila entera (sus 1-2

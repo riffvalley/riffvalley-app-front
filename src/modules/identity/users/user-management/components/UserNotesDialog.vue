@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 
 const props = defineProps<{
   open: boolean;
@@ -17,24 +17,64 @@ const notes = computed({
   get: () => props.modelValue,
   set: (value: string) => emit("update:modelValue", value),
 });
+
+const dialog = ref<HTMLElement | null>(null);
+const focusableSelector = 'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+
+watch(() => props.open, async (open) => {
+  if (!open) return;
+  await nextTick();
+  (dialog.value?.querySelector<HTMLElement>('[autofocus]') ?? dialog.value?.querySelector<HTMLElement>(focusableSelector))?.focus();
+}, { immediate: true });
+
+function handleDialogKeydown(event: KeyboardEvent) {
+  if (event.key !== "Tab" || !dialog.value) return;
+  const focusable = Array.from(dialog.value.querySelectorAll<HTMLElement>(focusableSelector));
+  const first = focusable[0];
+  const last = focusable.at(-1);
+  if (!first || !last) {
+    event.preventDefault();
+    dialog.value.focus();
+    return;
+  }
+  if (event.shiftKey && (document.activeElement === first || !dialog.value.contains(document.activeElement))) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && (document.activeElement === last || !dialog.value.contains(document.activeElement))) {
+    event.preventDefault();
+    first.focus();
+  }
+}
 </script>
 
 <template>
   <Teleport to="body">
     <div v-if="open" class="modal-overlay" @click.self="emit('close')">
-      <div class="modal-content modal-md">
-        <button @click="emit('close')" class="modal-close">
+      <div
+        ref="dialog"
+        class="modal-content modal-md"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-notes-dialog-title"
+        tabindex="-1"
+        @keydown="handleDialogKeydown"
+        @keydown.esc.stop.prevent="emit('close')"
+      >
+        <button type="button" @click="emit('close')" class="modal-close" aria-label="Cerrar diálogo de notas">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Notas</h3>
+        <h3 id="user-notes-dialog-title" class="text-xl font-bold text-gray-900 dark:text-white mb-1">Notas</h3>
         <p class="text-gray-500 dark:text-gray-400 mb-6">
           Usuario: <span class="text-rv-pink font-medium">{{ username }}</span>
         </p>
 
+        <label for="user-notes" class="sr-only">Notas del usuario</label>
         <textarea
+          id="user-notes"
           v-model="notes"
+          autofocus
           rows="6"
           class="modal-input resize-none"
           placeholder="Escribe notas sobre este usuario..."

@@ -139,6 +139,39 @@ describe("ManageUsers Query listing", () => {
     wrapper.unmount();
   });
 
+  it("opens each user dialog and returns focus to its trigger after Escape", async () => {
+    getUsers.mockResolvedValue(list);
+    const wrapper = render();
+    document.body.append(wrapper.element);
+    await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
+
+    const createTrigger = wrapper.findAll("button").find((button) => button.text().includes("Crear Usuario"));
+    if (!createTrigger) throw new Error("Missing create user trigger");
+    await createTrigger.trigger("click");
+    await flushPromises();
+    expect(document.activeElement).toBe(document.body.querySelector("#create-user-email"));
+    document.body.querySelector<HTMLElement>('[role="dialog"]')?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await flushPromises();
+    expect(document.activeElement).toBe(createTrigger.element);
+
+    const notesTrigger = wrapper.get('button[aria-label="Editar notas de Zed"]');
+    await notesTrigger.trigger("click");
+    await flushPromises();
+    expect(document.activeElement).toBe(document.body.querySelector("#user-notes"));
+    document.body.querySelector<HTMLElement>('[role="dialog"]')?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await flushPromises();
+    expect(document.activeElement).toBe(notesTrigger.element);
+
+    const passwordTrigger = wrapper.get('button[aria-label="Cambiar contraseña de Zed"]');
+    await passwordTrigger.trigger("click");
+    await flushPromises();
+    expect(document.activeElement).toBe(document.body.querySelector("#change-user-password"));
+    document.body.querySelector<HTMLElement>('[role="dialog"]')?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    await flushPromises();
+    expect(document.activeElement).toBe(passwordTrigger.element);
+    wrapper.unmount();
+  });
+
   it("preserves search, role filters and sorting on the local editable rows", async () => {
     getUsers.mockResolvedValue(list);
     const wrapper = render();
@@ -590,7 +623,7 @@ describe("ManageUsers Query listing", () => {
     await vi.waitFor(() => expect(updateUserSuperAdminService).toHaveBeenCalledTimes(3));
     expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(1, "u-zed", { username: "Zed-renamed" });
     expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(2, "u-zed", { role: "riffvalley" });
-    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(3, "u-zed", { createdAt: new Date("2025-02-03") });
+    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(3, "u-zed", { createdAt: "2025-02-03T00:00:00.000Z" });
 
     const zedCard = wrapper.findAll(".user-card").find((card) =>
       (card.get('input[placeholder="Username"]').element as HTMLInputElement).value === "Zed-renamed"
@@ -608,7 +641,7 @@ describe("ManageUsers Query listing", () => {
     await zedCard.get('button[title="Cambiar contraseña"]').trigger("click");
     let passwordField = document.body.querySelector<HTMLInputElement>("input[placeholder='Mínimo 6 caracteres']");
     if (!passwordField) throw new Error("Missing password dialog field");
-    document.body.querySelector<HTMLButtonElement>(".modal-sm button[type='button']")?.click();
+    document.body.querySelector<HTMLButtonElement>(".modal-sm .relative button")?.click();
     await flushPromises();
     expect(passwordField.type).toBe("text");
     document.body.querySelector<HTMLButtonElement>(".modal-sm .modal-btn-cancel")?.click();
@@ -634,6 +667,31 @@ describe("ManageUsers Query listing", () => {
     expect(wrapper.vm.newPassword).toBe("");
     expect(successToast).toHaveBeenCalledWith("Notas guardadas");
     expect(successToast).toHaveBeenCalledWith("Contraseña actualizada");
+    wrapper.unmount();
+  });
+
+  it("sends a valid createdAt as ISO, skips an empty date, and preserves the row after failure", async () => {
+    getUsers.mockResolvedValue(list);
+    updateUserSuperAdminService.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error("offline"));
+    const wrapper = render();
+    await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
+    const user = wrapper.vm.users[0];
+
+    await wrapper.vm.updateCreatedAt(user, { target: { value: "2025-02-03" } } as unknown as Event);
+    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(1, "u-zed", {
+      createdAt: "2025-02-03T00:00:00.000Z",
+    });
+    expect(user.createdAt).toBe("2025-02-03T00:00:00.000Z");
+
+    await wrapper.vm.updateCreatedAt(user, { target: { value: "" } } as unknown as Event);
+    expect(updateUserSuperAdminService).toHaveBeenCalledOnce();
+
+    await wrapper.vm.updateCreatedAt(user, { target: { value: "2025-04-05" } } as unknown as Event);
+    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(2, "u-zed", {
+      createdAt: "2025-04-05T00:00:00.000Z",
+    });
+    expect(user.createdAt).toBe("2025-02-03T00:00:00.000Z");
+    expect(errorToast).toHaveBeenCalledWith("Error al actualizar fecha");
     wrapper.unmount();
   });
 

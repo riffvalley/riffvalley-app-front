@@ -17,6 +17,7 @@ export type AuthSessionMode = "renewable" | null;
 export type AuthInitializationError =
   | "rate-limited"
   | "unavailable"
+  | "coordination-unavailable"
   | "network-error"
   | "forbidden"
   | "protocol-error"
@@ -36,9 +37,13 @@ function isUserRole(role: string | null): role is UserRole {
 }
 
 function clearPersistedCredentials() {
-  ["token", "username", "userId", "image", "role", "roles"].forEach((key) =>
-    localStorage.removeItem(key),
-  );
+  ["token", "username", "userId", "image", "role", "roles"].forEach((key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Legacy credential cleanup is best-effort when browser storage is restricted.
+    }
+  });
 }
 
 function clearLocalAuthState(store: {
@@ -169,6 +174,9 @@ export const useAuthStore = defineStore("auth", {
       if (this.authStatus === "authenticated" || this.authStatus === "anonymous") {
         return this.authStatus;
       }
+      if (this.authStatus === "error" && this.authInitializationError === "coordination-unavailable") {
+        return this.authStatus;
+      }
 
       const existing = initializationPromises.get(this);
       if (existing) return existing;
@@ -213,7 +221,8 @@ export const useAuthStore = defineStore("auth", {
         this.authInitializationError = error instanceof SessionAuthError
           ? (error.category === "rate-limited" || error.category === "unavailable" ||
             error.category === "network-error" || error.category === "forbidden" ||
-            error.category === "protocol-error" ? error.category : "http-error")
+            error.category === "protocol-error" || error.category === "coordination-unavailable"
+            ? error.category : "http-error")
           : "network-error";
         this.authStatus = "error";
         return this.authStatus;
@@ -252,6 +261,12 @@ export const useAuthStore = defineStore("auth", {
         return "renewed";
       } catch (error: unknown) {
         if (expectedGeneration !== this.authSessionGeneration) return "stale";
+        if (error instanceof SessionAuthError && error.category === "coordination-unavailable") {
+          // The access token was rejected, and this tab cannot safely renew the shared cookie.
+          // Clear only local state; do not broadcast a logout or revoke the backend session.
+          clearLocalAuthState(this);
+          return "unauthenticated";
+        }
         if (error instanceof SessionAuthError && error.category === "unauthenticated") {
           clearAndBroadcastAuthLogout(this);
           return "unauthenticated";
@@ -260,7 +275,8 @@ export const useAuthStore = defineStore("auth", {
         this.authInitializationError = error instanceof SessionAuthError
           ? (error.category === "rate-limited" || error.category === "unavailable" ||
             error.category === "network-error" || error.category === "forbidden" ||
-            error.category === "protocol-error" ? error.category : "http-error")
+            error.category === "protocol-error" || error.category === "coordination-unavailable"
+            ? error.category : "http-error")
           : "network-error";
         throw error;
       }

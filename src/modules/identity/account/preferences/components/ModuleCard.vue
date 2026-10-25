@@ -18,19 +18,33 @@
     <div v-if="hoverSide === 'before'" class="absolute left-0.5 top-1.5 bottom-1.5 w-1 rounded-full bg-rv-pink"></div>
     <div v-if="hoverSide === 'after'" class="absolute right-0.5 top-1.5 bottom-1.5 w-1 rounded-full bg-rv-pink"></div>
 
-    <i class="fa-solid fa-grip-vertical text-gray-300 dark:text-white/20 text-sm shrink-0"></i>
+    <i class="fa-solid fa-grip-vertical text-gray-300 dark:text-white/20 text-sm shrink-0" aria-hidden="true"></i>
     <i :class="[mod.icon, 'text-rv-pink text-lg shrink-0 ml-2']"></i>
     <span class="flex-1 text-base font-semibold text-gray-700 dark:text-white truncate">{{ mod.label }}</span>
     <span class="text-xs font-bold text-gray-400 dark:text-gray-500 shrink-0">
       {{ mod.size === 'full' ? '2x1' : '1x1' }}
     </span>
-    <button type="button" @click="$emit('remove')"
+    <div class="flex shrink-0 items-center gap-1">
+      <button type="button" @click="emit('moveUp')" :aria-disabled="!props.canMoveUp"
+        :aria-label="`Mover ${mod.label} antes`" :title="`Mover ${mod.label} antes`"
+        class="flex h-7 w-7 items-center justify-center rounded text-gray-400 hover:text-rv-pink hover:bg-gray-200 dark:hover:bg-white/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+        :class="!props.canMoveUp ? 'opacity-40' : ''">
+        <i class="fa-solid fa-chevron-up text-[9px]" aria-hidden="true"></i>
+      </button>
+      <button type="button" @click="emit('moveDown')" :aria-disabled="!props.canMoveDown"
+        :aria-label="`Mover ${mod.label} después`" :title="`Mover ${mod.label} después`"
+        class="flex h-7 w-7 items-center justify-center rounded text-gray-400 hover:text-rv-pink hover:bg-gray-200 dark:hover:bg-white/10 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+        :class="!props.canMoveDown ? 'opacity-40' : ''">
+        <i class="fa-solid fa-chevron-down text-[9px]" aria-hidden="true"></i>
+      </button>
+      <button type="button" @click="emit('remove')" :aria-label="`Desactivar ${mod.label} en el dashboard de escritorio`"
       class="shrink-0 w-7 h-7 rounded-full flex items-center justify-center
              text-gray-400 bg-gray-200 dark:text-gray-400 dark:bg-white/10
              hover:text-white hover:bg-rv-pink dark:hover:text-white dark:hover:bg-rv-pink
-             border-0 outline-none focus:outline-none transition-colors duration-150">
-      <i class="fa-solid fa-xmark text-xs"></i>
-    </button>
+             transition-colors duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple">
+        <i class="fa-solid fa-xmark text-xs" aria-hidden="true"></i>
+      </button>
+    </div>
   </div>
 </template>
 
@@ -42,6 +56,8 @@ const props = defineProps<{
   full?: boolean;
   dragging?: boolean;
   hoverSide?: 'before' | 'after' | null;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -49,6 +65,8 @@ const emit = defineEmits<{
   dragover: [side: 'before' | 'after'];
   drop: [side: 'before' | 'after'];
   dragend: [];
+  moveUp: [];
+  moveDown: [];
   remove: [];
 }>();
 

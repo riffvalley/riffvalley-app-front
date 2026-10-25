@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { afterEach, describe, expect, it } from "vitest";
+import { nextTick } from "vue";
 import { mount } from "@vue/test-utils";
 import UserPasswordDialog from "./UserPasswordDialog.vue";
 
@@ -45,7 +46,7 @@ describe("UserPasswordDialog", () => {
     await wrapper.vm.$nextTick();
     expect(wrapper.emitted("update:modelValue")).toEqual([["Admin123"]]);
 
-    document.body.querySelector<HTMLButtonElement>('button[type="button"]')?.click();
+    document.body.querySelector<HTMLButtonElement>(".relative button")?.click();
     expect(wrapper.emitted("update:passwordVisible")).toEqual([[true]]);
 
     document.body.querySelector<HTMLButtonElement>(".modal-btn-primary")?.click();
@@ -67,6 +68,33 @@ describe("UserPasswordDialog", () => {
 
     document.body.querySelector<HTMLElement>(".modal-overlay")?.click();
     await wrapper.vm.$nextTick();
+    expect(wrapper.emitted("close")).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it("exposes a named modal, labelled password control and keyboard focus behavior", async () => {
+    const wrapper = mount(UserPasswordDialog, {
+      props: { open: true, username: "Amy", modelValue: "", passwordVisible: false, validationError: "" },
+    });
+    await nextTick();
+    const dialog = document.body.querySelector<HTMLElement>('[role="dialog"]');
+    const password = document.body.querySelector<HTMLInputElement>("#change-user-password");
+    if (!dialog || !password) throw new Error("Missing password dialog controls");
+    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'));
+
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-labelledby")).toBe("change-user-password-dialog-title");
+    expect(document.body.querySelector<HTMLLabelElement>('label[for="change-user-password"]')?.control).toBe(password);
+    expect(document.body.querySelector<HTMLButtonElement>(".modal-close")?.getAttribute("aria-label")).toBe("Cerrar diálogo de cambio de contraseña");
+    expect(document.body.querySelector<HTMLButtonElement>(".relative button")?.getAttribute("aria-label")).toBe("Mostrar contraseña");
+    expect(password).toBe(document.activeElement);
+
+    focusable.at(-1)?.focus();
+    const forwardTab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    focusable.at(-1)?.dispatchEvent(forwardTab);
+    expect(forwardTab.defaultPrevented).toBe(true);
+    expect(focusable[0]).toBe(document.activeElement);
+    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
     expect(wrapper.emitted("close")).toHaveLength(1);
     wrapper.unmount();
   });

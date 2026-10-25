@@ -80,6 +80,30 @@ describe('CreateUserDialog', () => {
     expect(component.emitted('close')).toHaveLength(1);
   });
 
+  it('exposes a named modal, labelled fields, named icon buttons and keyboard focus behavior', async () => {
+    const component = render();
+    await nextTick();
+    const dialog = teleported<HTMLElement>('[role="dialog"]');
+    const email = teleported<HTMLInputElement>('#create-user-email');
+    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'));
+
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(dialog.getAttribute('aria-labelledby')).toBe('create-user-dialog-title');
+    expect(teleported<HTMLButtonElement>('.modal-close').getAttribute('aria-label')).toBe('Cerrar diálogo de creación de usuario');
+    expect(teleported<HTMLButtonElement>('.relative button').getAttribute('aria-label')).toBe('Mostrar contraseña');
+    expect(teleported<HTMLLabelElement>('label[for="create-user-email"]').control).toBe(email);
+    expect(email).toBe(document.activeElement);
+
+    focusable[0].focus();
+    const backwardsTab = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+    focusable[0].dispatchEvent(backwardsTab);
+    expect(backwardsTab.defaultPrevented).toBe(true);
+    expect(focusable.at(-1)).toBe(document.activeElement);
+
+    dialog.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(component.emitted('close')).toHaveLength(1);
+  });
+
   it('hides when closed and displays validation errors while disabling confirmation', () => {
     render({ open: false });
     expect(document.body.querySelector('.modal-overlay')).toBeNull();
