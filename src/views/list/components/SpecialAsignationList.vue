@@ -124,8 +124,8 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, watch, reactive } from "vue";
-import { getRvUsers } from "@services/users/users";
-import type { RvUser } from "@services/auth/auth";
+import { getRvUsers } from "@/modules/identity/api/users";
+import type { RvUser } from "@/modules/identity/types/users";
 import SwalService from "@services/swal/SwalService";
 import {
   postAsignationService,

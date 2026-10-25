@@ -1,0 +1,92 @@
+// @vitest-environment happy-dom
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mount } from "@vue/test-utils";
+import PasswordChange from "./PasswordChange.vue";
+
+const mocks = vi.hoisted(() => ({
+  updateUserStore: vi.fn(),
+  setImage: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
+  preferences: {
+    dashboardButtonsEnabled: false,
+    setDashboardButtonsEnabled: vi.fn(),
+  },
+}));
+
+vi.mock("@stores/user/users", () => ({
+  useUserStore: () => ({ updateUserStore: mocks.updateUserStore }),
+}));
+
+vi.mock("@/modules/identity/stores/auth", () => ({
+  useAuthStore: () => ({ role: "riffvalley", avatarUrl: "/avatar/avatar1.png", setImage: mocks.setImage }),
+}));
+
+vi.mock("@/modules/identity/composables/useDashboardPreferences", () => ({
+  useDashboardPreferences: () => mocks.preferences,
+}));
+
+vi.mock("@services/swal/SwalService", () => ({
+  default: { success: mocks.success, error: mocks.error },
+}));
+
+async function mountPasswordChange() {
+  const wrapper = mount(PasswordChange, {
+    global: { stubs: { DashboardBuilder: true, Teleport: true, Transition: false } },
+  });
+  await wrapper.vm.$nextTick();
+  return wrapper;
+}
+
+describe("Identity password and profile page", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.updateUserStore.mockResolvedValue(undefined);
+    mocks.preferences.dashboardButtonsEnabled = false;
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    document.body.style.overflow = "";
+  });
+
+  it("validates password and confirmation before updating the account", async () => {
+    const wrapper = await mountPasswordChange();
+    await wrapper.find("#password").setValue("weak");
+    await wrapper.find("#confirmPassword").setValue("different");
+    await wrapper.find("form").trigger("submit");
+    expect(wrapper.text()).toContain("Las contraseñas no coinciden");
+    expect(mocks.updateUserStore).not.toHaveBeenCalled();
+
+    await wrapper.find("#password").setValue("Strong1");
+    await wrapper.find("#confirmPassword").setValue("Strong1");
+    await wrapper.find("form").trigger("submit");
+    expect(mocks.updateUserStore).toHaveBeenCalledWith({ password: "Strong1" });
+    expect(mocks.success).toHaveBeenCalledWith("Contraseña cambiada correctamente");
+    expect((wrapper.find("#password").element as HTMLInputElement).value).toBe("");
+    wrapper.unmount();
+  });
+
+  it("saves the selected avatar through the existing profile update flow", async () => {
+    const wrapper = await mountPasswordChange();
+    const saveAvatar = wrapper.findAll("button").find((button) => button.text().includes("Guardar avatar"));
+    await saveAvatar?.trigger("click");
+
+    expect(mocks.updateUserStore).toHaveBeenCalledWith({ image: "/avatar/avatar1.png" });
+    expect(mocks.setImage).toHaveBeenCalledWith("/avatar/avatar1.png");
+    expect(mocks.success).toHaveBeenCalledWith("Avatar actualizado correctamente");
+    wrapper.unmount();
+  });
+
+  it("keeps dashboard button preferences separate and reports update failures", async () => {
+    mocks.updateUserStore.mockRejectedValueOnce({ response: { data: { message: "Falló el guardado" } } });
+    const wrapper = await mountPasswordChange();
+    const toggle = wrapper.findAll("button").find((button) => button.text().includes("Activar botones del menú"));
+    await toggle?.trigger("click");
+
+    expect(mocks.updateUserStore).toHaveBeenCalledWith({ dashboardButtonsEnabled: true });
+    expect(mocks.preferences.setDashboardButtonsEnabled).not.toHaveBeenCalled();
+    expect(mocks.error).toHaveBeenCalledWith("Falló el guardado");
+    wrapper.unmount();
+  });
+});

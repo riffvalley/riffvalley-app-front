@@ -7,7 +7,7 @@ import {
   updateRiffValleyPlaylist,
   type RiffValleyPlaylist,
 } from "@services/riff-valley-playlists/riffValleyPlaylists";
-import { getUsersRv } from "@services/auth/auth";
+import { getRvUsers } from "@/modules/identity/api/users";
 import SwalService from "@services/swal/SwalService";
 import { getSpotifyConnection } from "@services/spotify/festivalPlaylists";
 import { updateGenrePlaylist } from "@services/spotify/genrePlaylists";
@@ -37,7 +37,7 @@ vi.mock("@services/riff-valley-playlists/riffValleyPlaylists", () => ({
   createRiffValleyPlaylistContent: serviceMocks.createContent,
   toISO: (date: Date) => date.toISOString(),
 }));
-vi.mock("@services/auth/auth", () => ({ getUsersRv: serviceMocks.getUsers }));
+vi.mock("@/modules/identity/api/users", () => ({ getRvUsers: serviceMocks.getUsers }));
 vi.mock("@services/swal/SwalService", () => ({
   default: {
     error: serviceMocks.swalError,
@@ -55,7 +55,7 @@ vi.mock("@services/spotify/genrePlaylists", () => ({
   linkExistingGenrePlaylist: serviceMocks.linkExistingGenre,
   updateGenrePlaylist: serviceMocks.updateSyncedGenre,
 }));
-vi.mock("@stores/auth/auth", () => ({
+vi.mock("@/modules/identity/stores/auth", () => ({
   useAuthStore: () => ({
     userId: "user-1",
     username: "Editor",
@@ -122,7 +122,7 @@ describe("RiffValleyPlaylistGenresKanban linked playlist editing", () => {
     vi.mocked(getRiffValleyPlaylistGenres).mockResolvedValue([
       linkedPlaylist(),
     ]);
-    vi.mocked(getUsersRv).mockResolvedValue([]);
+    vi.mocked(getRvUsers).mockResolvedValue([]);
     vi.mocked(getSpotifyConnection).mockResolvedValue({
       connected: true,
       spotifyUserId: "riff-valley",

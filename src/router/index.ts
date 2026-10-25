@@ -1,10 +1,10 @@
 import { createRouter, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
-import type { UserRole } from "@interfaces/auth";
-import { useAuthStore } from "../stores/auth/auth";
-import { hasMinimumRole } from "@helpers/roles";
+import type { UserRole } from "@/modules/identity/types/auth";
+import { useAuthStore } from "@/modules/identity/stores/auth";
+import { hasMinimumRole } from "@/modules/identity/utils/permissions";
 
-import Login from "@views/loginPage/LoginPage.vue";
+import Login from "@/modules/identity/views/LoginPage.vue";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -107,25 +107,50 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/password",
     name: "Password",
-    component: () => import("@views/password/PasswordChange.vue"),
+    component: () => import("@/modules/identity/views/PasswordChange.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/users",
     name: "Users",
-    component: () => import("@views/users/ManageUsers.vue"),
+    component: () => import("@/modules/identity/views/ManageUsers.vue"),
     meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/users/stats",
-    name: "UserStats",
-    component: () => import("@views/users/AdminStats.vue"),
+    meta: { requiresAuth: true, requiresRole: "superadmin" },
+    component: () => import("@/modules/identity/views/UserStatisticsLayout.vue"),
+    children: [
+      {
+        path: "",
+        name: "UserStats",
+        component: () => import("@/modules/identity/views/AdminStats.vue"),
+        meta: { requiresAuth: true, requiresRole: "superadmin" },
+      },
+      {
+        path: "users",
+        name: "UserStatsUsers",
+        component: () => import("@/modules/identity/views/UserActivity.vue"),
+        meta: { requiresAuth: true, requiresRole: "superadmin" },
+      },
+      {
+        path: "inactivity",
+        name: "UserStatsInactivity",
+        component: () => import("@/modules/identity/views/ActivityInactivity.vue"),
+        meta: { requiresAuth: true, requiresRole: "superadmin" },
+      },
+    ],
+  },
+  {
+    path: "/users/inactivity",
+    name: "UserInactivity",
+    redirect: (to) => ({ name: "UserStatsInactivity", query: to.query, hash: to.hash }),
     meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/users/activity",
     name: "UserActivity",
-    component: () => import("@views/users/UserActivity.vue"),
+    redirect: (to) => ({ name: "UserStatsUsers", query: to.query, hash: to.hash }),
     meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {

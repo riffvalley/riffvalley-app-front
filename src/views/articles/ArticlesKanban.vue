@@ -263,8 +263,9 @@ import {
     ARTICLE_TYPES,
     toISO
 } from '@services/articles/articles';
-import { getUsersRv, type RvUser } from '@services/auth/auth';
-import { useAuthStore } from '@stores/auth/auth';
+import { getRvUsers } from '@/modules/identity/api/users';
+import type { RvUser } from '@/modules/identity/types/users';
+import { useAuthStore } from '@/modules/identity/stores/auth';
 import SwalService from '@services/swal/SwalService';
 
 const authStore = useAuthStore();
@@ -390,7 +391,7 @@ async function reload() {
     error.value = null;
     try {
         if (users.value.length === 0) {
-            users.value = await getUsersRv();
+            users.value = await getRvUsers();
         }
 
         if (!selectedUserId.value && authStore.userId) {

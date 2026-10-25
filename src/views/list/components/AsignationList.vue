@@ -383,7 +383,7 @@
 import { defineComponent, ref, reactive, watch, computed, nextTick } from "vue";
 import { useAsignationStore } from "@stores/asignation/asignation";
 import { useUserStore } from "@stores/user/users";
-import type { RvUser } from "@services/auth/auth";
+import type { RvUser } from "@/modules/identity/types/users";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import DiscDescriptionModal from "./DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";

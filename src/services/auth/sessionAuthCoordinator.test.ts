@@ -60,7 +60,7 @@ describe("auth session cross-tab coordinator", () => {
       configurable: true,
       value: new FakeLockManager(),
     });
-    const { withAuthSessionLock } = await import("./sessionAuthCoordinator");
+    const { withAuthSessionLock } = await import("@/modules/identity/api/sessionAuthCoordinator");
     const order: string[] = [];
     let finishRefresh!: () => void;
 
@@ -86,7 +86,7 @@ describe("auth session cross-tab coordinator", () => {
       subscribeToRemoteAuthLogin,
       subscribeToRemoteAuthLogout,
       subscribeToRemoteSessionCsrfUpdated,
-    } = await import("./sessionAuthCoordinator");
+    } = await import("@/modules/identity/api/sessionAuthCoordinator");
     const onRemoteLogout = vi.fn();
     const onSecondTabLogout = vi.fn();
     const onRemoteLogin = vi.fn();
@@ -135,7 +135,7 @@ describe("auth session cross-tab coordinator", () => {
   });
 
   it("loads the current origin-shared session CSRF proof for refresh", async () => {
-    const { SessionAuthTransport } = await import("./sessionAuth");
+    const { SessionAuthTransport } = await import("@/modules/identity/api/sessionAuth");
     const http = axios.create({ baseURL: "https://backend.riffvalley.es/api" });
     localStorage.setItem("rv.auth.session-csrf", "peer-current-csrf");
     localStorage.setItem("rv.auth.logout-csrf", "peer-current-logout-csrf");
@@ -168,7 +168,7 @@ describe("auth session cross-tab coordinator", () => {
       configurable: true,
       value: new FakeLockManager(),
     });
-    const { SessionAuthTransport } = await import("./sessionAuth");
+    const { SessionAuthTransport } = await import("@/modules/identity/api/sessionAuth");
     const sharedCookie = { present: false };
     const session = {
       user: { id: "user-1", username: "riff", role: "user" },
@@ -221,7 +221,7 @@ describe("auth session cross-tab coordinator", () => {
       configurable: true,
       value: new FakeLockManager(),
     });
-    const { SessionAuthTransport } = await import("./sessionAuth");
+    const { SessionAuthTransport } = await import("@/modules/identity/api/sessionAuth");
     localStorage.setItem("rv.auth.session-csrf", "csrf-1");
     localStorage.setItem("rv.auth.logout-csrf", "logout-csrf-1");
     let currentCsrf = "csrf-1";
@@ -280,7 +280,7 @@ describe("auth session cross-tab coordinator", () => {
       configurable: true,
       value: new FakeLockManager(),
     });
-    const { SessionAuthTransport } = await import("./sessionAuth");
+    const { SessionAuthTransport } = await import("@/modules/identity/api/sessionAuth");
     localStorage.setItem("rv.auth.session-csrf", "csrf-1");
     localStorage.setItem("rv.auth.logout-csrf", "logout-csrf-1");
     const http = axios.create({ baseURL: "https://backend.riffvalley.es/api" });
@@ -316,7 +316,7 @@ describe("auth session cross-tab coordinator", () => {
         }),
       },
     });
-    const { AuthSessionLockTimeoutError, withAuthSessionLock } = await import("./sessionAuthCoordinator");
+    const { AuthSessionLockTimeoutError, withAuthSessionLock } = await import("@/modules/identity/api/sessionAuthCoordinator");
     const pending = withAuthSessionLock(async () => "never acquired");
     const rejection = expect(pending).rejects.toBeInstanceOf(AuthSessionLockTimeoutError);
     await vi.advanceTimersByTimeAsync(30_000);

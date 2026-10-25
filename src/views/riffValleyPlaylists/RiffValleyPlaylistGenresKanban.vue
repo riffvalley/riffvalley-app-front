@@ -245,8 +245,9 @@ import {
     type RiffValleyPlaylistStatus,
     toISO
 } from '@services/riff-valley-playlists/riffValleyPlaylists';
-import { getUsersRv, type RvUser } from '@services/auth/auth';
-import { useAuthStore } from '@stores/auth/auth';
+import { getRvUsers } from '@/modules/identity/api/users';
+import type { RvUser } from '@/modules/identity/types/users';
+import { useAuthStore } from '@/modules/identity/stores/auth';
 import SwalService from '@services/swal/SwalService';
 import axios from 'axios';
 import GenrePlaylistManager from './components/GenrePlaylistManager.vue';
@@ -335,7 +336,7 @@ async function reload() {
     error.value = null;
     try {
         if (users.value.length === 0) {
-            users.value = await getUsersRv();
+            users.value = await getRvUsers();
         }
         items.value = await getRiffValleyPlaylistGenres();
         try {

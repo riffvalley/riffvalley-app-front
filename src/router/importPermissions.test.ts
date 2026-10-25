@@ -2,8 +2,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import router from "./index";
-import { useAuthStore } from "@stores/auth/auth";
-import type { UserRole } from "@interfaces/auth";
+import { useAuthStore } from "@/modules/identity/stores/auth";
+import type { UserRole } from "@/modules/identity/types/auth";
 
 describe("import route permissions", () => {
   beforeEach(async () => {
@@ -47,5 +47,43 @@ describe("import route permissions", () => {
     expect((await navigateAs("superadmin", "/import-discs")).name).toBe(
       "ImportDiscs",
     );
+  });
+
+  it("keeps user administration restricted to superadmin", async () => {
+    expect((await navigateAs("user", "/users")).name).toBe("Home");
+    expect((await navigateAs("riffvalley", "/users")).name).toBe("Home");
+    expect((await navigateAs("superadmin", "/users")).name).toBe("Users");
+    expect(router.currentRoute.value.path).toBe("/users");
+  });
+
+  it("keeps administrative statistics restricted to superadmin", async () => {
+    expect((await navigateAs("user", "/users/stats")).name).toBe("Home");
+    expect((await navigateAs("riffvalley", "/users/stats")).name).toBe("Home");
+    expect((await navigateAs("superadmin", "/users/stats")).name).toBe("UserStats");
+  });
+
+  it("keeps all three usage statistics tabs restricted to superadmin", async () => {
+    for (const path of ["/users/stats/users", "/users/stats/inactivity"]) {
+      expect((await navigateAs("user", path)).name).toBe("Home");
+      expect((await navigateAs("riffvalley", path)).name).toBe("Home");
+    }
+
+    expect((await navigateAs("superadmin", "/users/stats/users")).name).toBe("UserStatsUsers");
+    expect((await navigateAs("superadmin", "/users/stats/inactivity")).name).toBe("UserStatsInactivity");
+  });
+
+  it("keeps administrative inactivity restricted to superadmin", async () => {
+    expect((await navigateAs("user", "/users/inactivity")).name).toBe("Home");
+    expect((await navigateAs("riffvalley", "/users/inactivity")).name).toBe("Home");
+    expect((await navigateAs("superadmin", "/users/inactivity")).name).toBe("UserStatsInactivity");
+    expect(router.currentRoute.value.path).toBe("/users/stats/inactivity");
+  });
+
+  it("keeps administrative activity restricted to superadmin", async () => {
+    expect((await navigateAs("user", "/users/activity")).name).toBe("Home");
+    expect((await navigateAs("riffvalley", "/users/activity")).name).toBe("Home");
+    expect((await navigateAs("superadmin", "/users/activity?userId=member-1")).name).toBe("UserStatsUsers");
+    expect(router.currentRoute.value.path).toBe("/users/stats/users");
+    expect(router.currentRoute.value.query.userId).toBe("member-1");
   });
 });

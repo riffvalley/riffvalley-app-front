@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { post } = vi.hoisted(() => ({ post: vi.fn() }));
 vi.mock("@services/api/api", () => ({ default: { post } }));
 
-import { notifyAppDailyActivity } from "./appDailyActivity";
+import { notifyAppDailyActivity } from "@/modules/identity/api/appDailyActivity";
 
 describe("App daily activity notification", () => {
   beforeEach(() => post.mockReset());

@@ -8,9 +8,8 @@ import {
   REFRESH_OPERATION_HEADER,
   SessionAuthError,
   SessionAuthTransport,
-  type SessionLoginResponse,
-  type SessionRefreshResponse,
-} from "./sessionAuth";
+} from "@/modules/identity/api/sessionAuth";
+import type { SessionLoginResponse, SessionRefreshResponse } from "@/modules/identity/types/session";
 
 const loginResponse: SessionLoginResponse = {
   id: "user-1",
