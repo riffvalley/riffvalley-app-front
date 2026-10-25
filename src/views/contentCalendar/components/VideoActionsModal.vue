@@ -145,7 +145,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
-import type { RvUser } from '@services/auth/auth';
+import type { RvUser } from '@/modules/identity/users/types/users';
 import { VIDEO_TYPES, VIDEO_STATUSES, type VideoStatus, type VideoType } from '@services/videos/videos';
 
 interface Props {

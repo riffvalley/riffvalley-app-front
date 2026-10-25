@@ -8,8 +8,8 @@ const { logout, errorNotification } = vi.hoisted(() => ({
   errorNotification: vi.fn(),
 }));
 
-vi.mock("@services/auth/sessionAuth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@services/auth/sessionAuth")>();
+vi.mock("@/modules/identity/auth/api/sessionAuth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/modules/identity/auth/api/sessionAuth")>();
   return { ...actual, sessionAuthTransport: { logout, login: vi.fn(), refresh: vi.fn() } };
 });
 vi.mock("@services/swal/SwalService", () => ({ default: { error: errorNotification } }));
@@ -17,8 +17,8 @@ vi.mock("@services/versions/versions", () => ({ getLatestPublicVersion: vi.fn() 
 vi.mock("@services/requests/requests", () => ({ getAllRequests: vi.fn() }));
 vi.mock("@services/suggestions/suggestions", () => ({ getSuggestions: vi.fn() }));
 
-import { useAuthStore } from "@stores/auth/auth";
-import { SessionAuthError } from "@services/auth/sessionAuth";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
 import router from "/src/router";
 import SidebarMenu from "./SidebarMenu.vue";
 

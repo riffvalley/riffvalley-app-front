@@ -19,6 +19,7 @@
     "@fullcalendar/interaction": "^6.1.19",
     "@fullcalendar/list": "^6.1.19",
     "@fullcalendar/vue3": "^6.1.19",
+    "@tanstack/vue-query": "^5",
     "@vuepic/vue-datepicker": "^11.0.1",
     "@vueup/vue-quill": "^1.2.0",
     "axios": "^1.7.9",

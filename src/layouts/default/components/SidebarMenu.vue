@@ -313,15 +313,16 @@
 <script lang="ts">
 import { defineComponent, computed, ref, onMounted } from 'vue';
 import router from '/src/router';
-import { useAuthStore } from '@stores/auth/auth.ts';
+import { useAuthStore } from '@/modules/identity/auth/stores/auth.ts';
+import { useDashboardPreferences } from '@/modules/identity/account/preferences/composables/useDashboardPreferences';
 import SwalService from '@services/swal/SwalService';
 import { getLatestPublicVersion } from '@services/versions/versions';
 import { getAllRequests } from '@services/requests/requests';
 import { getSuggestions } from '@services/suggestions/suggestions';
 import { useSupportStore } from '@stores/support/support';
 import { usePetitionsStore } from '@stores/petitions/petitions';
-import { hasMinimumRole } from '@helpers/roles';
-import type { UserRole } from '@interfaces/auth';
+import { hasMinimumRole } from '@/modules/identity/shared/utils/permissions';
+import type { UserRole } from '@/modules/identity/shared/types/auth';
 import routesData from './routes.json';
 
 // Tipo actualizado con 'new-discs'
@@ -353,6 +354,7 @@ props: {
 emits: ['close-menu', 'toggle-theme'],
   setup(_, { emit }) {
     const authStore = useAuthStore();
+    const dashboardPreferencesStore = useDashboardPreferences();
     const supportStore = useSupportStore();
     const petitionsStore = usePetitionsStore();
     const allRoutes = routesData as AppRoute[];
@@ -407,7 +409,7 @@ emits: ['close-menu', 'toggle-theme'],
     const canSeeRiffValleyArea = computed(() => hasMinimumRole(authStore.role, 'riffvalley'));
     const canSeeManagementArea = computed(() => hasMinimumRole(authStore.role, 'superadmin'));
     const showAreaSelector = computed(() => canSeeRiffValleyArea.value || canSeeManagementArea.value);
-    const showAllAreas = computed(() => !authStore.dashboardButtonsEnabled);
+    const showAllAreas = computed(() => !dashboardPreferencesStore.dashboardButtonsEnabled);
 
     // Nuevos Discos vive en la pestaña Gestión: el equipo editorial sin superadmin
     // solo verán ahí los discos nuevos (el resto de Gestión se filtra por rol).

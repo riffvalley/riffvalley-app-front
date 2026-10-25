@@ -4,8 +4,9 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SidebarMenu from "./SidebarMenu.vue";
-import { useAuthStore } from "@stores/auth/auth";
-import type { UserRole } from "@interfaces/auth";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useDashboardPreferences } from "@/modules/identity/account/preferences/composables/useDashboardPreferences";
+import type { UserRole } from "@/modules/identity/shared/types/auth";
 
 vi.mock("@services/versions/versions", () => ({
   getLatestPublicVersion: vi.fn().mockResolvedValue(null),
@@ -34,7 +35,7 @@ describe("import options in sidebar", () => {
     const authStore = useAuthStore();
     authStore.token = "test-token";
     authStore.role = role;
-    authStore.dashboardButtonsEnabled = false;
+    useDashboardPreferences().dashboardButtonsEnabled = false;
 
     const wrapper = mount(SidebarMenu, {
       props: { menuVisible: true, isDark: false },
@@ -66,6 +67,17 @@ describe("import options in sidebar", () => {
     expect(wrapper.find('[data-to="/import-discs"]').text()).toContain(
       "Importar Discos",
     );
+    wrapper.unmount();
+  });
+
+  it("offers one administrative entry for the three usage statistics tabs", async () => {
+    const wrapper = await renderAs("superadmin");
+
+    const entry = wrapper.findAll('[data-to="/users/stats"]');
+    expect(entry).toHaveLength(1);
+    expect(entry[0]?.text()).toContain("Estadísticas de uso");
+    expect(wrapper.find('[data-to="/users/inactivity"]').exists()).toBe(false);
+    expect(wrapper.find('[data-to="/users/activity"]').exists()).toBe(false);
     wrapper.unmount();
   });
 

@@ -203,15 +203,9 @@
       },
       {
         "to": "/users/stats",
-        "label": "Estadísticas",
+        "label": "Estadísticas de uso",
         "requiredRole": "superadmin",
         "icon": "fa-solid fa-chart-bar"
-      },
-      {
-        "to": "/users/activity",
-        "label": "Actividad",
-        "requiredRole": "superadmin",
-        "icon": "fa-solid fa-bolt"
       }
     ]
   },

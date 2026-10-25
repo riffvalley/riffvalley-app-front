@@ -1,10 +1,11 @@
 import { createRouter, createWebHistory } from "vue-router";
+import { watch } from "vue";
 import type { RouteRecordRaw } from "vue-router";
-import type { UserRole } from "@interfaces/auth";
-import { useAuthStore } from "../stores/auth/auth";
-import { hasMinimumRole } from "@helpers/roles";
+import type { UserRole } from "@/modules/identity/shared/types/auth";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { hasMinimumRole } from "@/modules/identity/shared/utils/permissions";
 
-import Login from "@views/loginPage/LoginPage.vue";
+import Login from "@/modules/identity/auth/login/LoginView.vue";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -107,25 +108,50 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/password",
     name: "Password",
-    component: () => import("@views/password/PasswordChange.vue"),
+    component: () => import("@/modules/identity/account/password-change/PasswordChangeView.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/users",
     name: "Users",
-    component: () => import("@views/users/ManageUsers.vue"),
+    component: () => import("@/modules/identity/users/user-management/UserManagementView.vue"),
     meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/users/stats",
-    name: "UserStats",
-    component: () => import("@views/users/AdminStats.vue"),
+    meta: { requiresAuth: true, requiresRole: "superadmin" },
+    component: () => import("@/modules/identity/activity/layout/UserStatisticsLayout.vue"),
+    children: [
+      {
+        path: "",
+        name: "UserStats",
+        component: () => import("@/modules/identity/activity/overview/UserStatisticsView.vue"),
+        meta: { requiresAuth: true, requiresRole: "superadmin" },
+      },
+      {
+        path: "users",
+        name: "UserStatsUsers",
+        component: () => import("@/modules/identity/activity/user-activity/UserActivityView.vue"),
+        meta: { requiresAuth: true, requiresRole: "superadmin" },
+      },
+      {
+        path: "inactivity",
+        name: "UserStatsInactivity",
+        component: () => import("@/modules/identity/activity/inactivity/UserInactivityView.vue"),
+        meta: { requiresAuth: true, requiresRole: "superadmin" },
+      },
+    ],
+  },
+  {
+    path: "/users/inactivity",
+    name: "UserInactivity",
+    redirect: (to) => ({ name: "UserStatsInactivity", query: to.query, hash: to.hash }),
     meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/users/activity",
     name: "UserActivity",
-    component: () => import("@views/users/UserActivity.vue"),
+    redirect: (to) => ({ name: "UserStatsUsers", query: to.query, hash: to.hash }),
     meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
@@ -314,8 +340,36 @@ const router = createRouter({
   routes,
 });
 
+let stopActiveRouteAuthorizationWatch: (() => void) | undefined;
+let activeRouteAuthorizationStore: ReturnType<typeof useAuthStore> | undefined;
+
+function watchActiveRouteAuthorization(authStore: ReturnType<typeof useAuthStore>) {
+  if (activeRouteAuthorizationStore === authStore) return;
+  stopActiveRouteAuthorizationWatch?.();
+  activeRouteAuthorizationStore = authStore;
+
+  stopActiveRouteAuthorizationWatch = watch(
+    [
+      () => authStore.authStatus,
+      () => authStore.role,
+      () => router.currentRoute.value.meta.requiresRole,
+    ],
+    ([status, role, requiredRole]) => {
+      if (!requiredRole) return;
+      if (status === "anonymous") {
+        void router.replace({ name: "Login" });
+      } else if (status === "authenticated" && !hasMinimumRole(role, requiredRole)) {
+        // Match the existing guard's destination for an authenticated role denial.
+        void router.replace({ name: "Home" });
+      }
+    },
+    { flush: "sync" },
+  );
+}
+
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
+  watchActiveRouteAuthorization(authStore);
 
   const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
 

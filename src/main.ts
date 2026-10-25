@@ -2,11 +2,15 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
-import { useAuthStore } from '@stores/auth/auth';
+import { useAuthStore } from '@/modules/identity/auth/stores/auth';
+import { clearPrivateQueryCache, installQuery } from '@/app/queryClient';
+import { observePrivateQueryCache } from '@/app/privateQueryCache';
+import { configureApiAuth } from '@services/api/api';
 import {
   subscribeToRemoteAuthLogin,
+  subscribeToRemoteAuthPermissionsChanged,
   subscribeToRemoteAuthLogout,
-} from '@services/auth/sessionAuthCoordinator';
+} from '@/modules/identity/auth/api/sessionAuthCoordinator';
 
 // VueSweetalert2
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -39,21 +43,51 @@ const pinia = createPinia();
 // Circle flags
 app.use(CircleFlags);
 app.use(pinia);
-app.use(router);
+installQuery(app);
 app.use(VueSweetalert2);
 
 const authStore = useAuthStore(pinia);
+observePrivateQueryCache(authStore);
+configureApiAuth({
+  getSession: () => ({
+    token: authStore.token,
+    isAuthenticated: authStore.isAuthenticated,
+    sessionMode: authStore.sessionMode,
+    generation: authStore.authSessionGeneration,
+  }),
+  renewSession: (generation) => authStore.renewSession(generation),
+  clearSessionLocally: () => authStore.clearSessionLocally(),
+  logout: () => authStore.logout(),
+  redirectToLogin: () => router.currentRoute.value.name === 'Login'
+    ? Promise.resolve()
+    : router.push({ name: 'Login' }),
+});
+
 subscribeToRemoteAuthLogout(() => {
   authStore.clearSessionLocally();
   if (router.currentRoute.value.meta.requiresAuth) {
     void router.replace({ name: 'Login' });
   }
 });
+
 subscribeToRemoteAuthLogin(() => {
   const protectedRoute = router.currentRoute.value.meta.requiresAuth;
   void authStore.restoreAfterRemoteLogin();
   if (protectedRoute) void router.replace({ name: 'Login' });
 });
+
+subscribeToRemoteAuthPermissionsChanged(() => {
+  // Remove data before checking this tab's own session; the event carries no role or profile data.
+  clearPrivateQueryCache();
+  void authStore.renewSession().then((result) => {
+    if (result === "unauthenticated" && router.currentRoute.value.meta.requiresAuth) {
+      void router.replace({ name: "Login" });
+    }
+  }).catch(() => undefined);
+});
+
+// Auth callbacks and Pinia are ready before Vue Router starts its initial navigation.
+app.use(router);
 
 // Registrar componentes globales
 app.component('VueDatePicker', VueDatePicker);

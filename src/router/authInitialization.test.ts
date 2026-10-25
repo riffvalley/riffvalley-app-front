@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
-vi.mock("@services/auth/sessionAuth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@services/auth/sessionAuth")>();
+vi.mock("@/modules/identity/auth/api/sessionAuth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/modules/identity/auth/api/sessionAuth")>();
   return { ...actual, sessionAuthTransport: { refresh } };
 });
 
-import { SessionAuthError } from "@services/auth/sessionAuth";
+import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
 import router from "./index";
-import { useAuthStore } from "@stores/auth/auth";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
 
 describe("router authentication bootstrap", () => {
   beforeEach(async () => {
@@ -54,5 +54,23 @@ describe("router authentication bootstrap", () => {
     expect(result).toBeTruthy();
     expect(useAuthStore().authStatus).toBe("error");
     expect(router.currentRoute.value.name).toBe("NationalReleasePublic");
+  });
+
+  it("preserves the authenticated Password route and redirects anonymous visitors", async () => {
+    const authStore = useAuthStore();
+    authStore.token = "test-token";
+    authStore.role = "user";
+    authStore.authStatus = "authenticated";
+
+    await router.push("/password");
+    expect(router.currentRoute.value.name).toBe("Password");
+    expect(router.currentRoute.value.meta.requiresAuth).toBe(true);
+
+    authStore.token = null;
+    authStore.role = null;
+    authStore.authStatus = "anonymous";
+    await router.push("/login");
+    await router.push("/password");
+    expect(router.currentRoute.value.name).toBe("Login");
   });
 });

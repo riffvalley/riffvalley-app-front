@@ -23,6 +23,15 @@
         ],
         "createdAt": "2026-10-15T15:34:27.001Z",
         "reason": "User confirmed: keep the colored left border to distinguish news sources in the home feed"
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "src/modules/identity/views/UserStatisticsLayout.vue"
+        ],
+        "createdAt": "2026-10-24T16:28:20.707Z",
+        "reason": "Agent: the bottom border is the required selected-tab indicator; this element is a navigation tab, not a rounded card"
       }
     ]
   }

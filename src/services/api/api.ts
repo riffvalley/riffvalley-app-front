@@ -1,9 +1,6 @@
 import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from "axios";
 import Swal from "sweetalert2";
-import router from "/src/router";
 import SwalService from "@services/swal/SwalService";
-import { useAuthStore } from "/src/stores/auth/auth";
-import type { RenewSessionResult } from "/src/stores/auth/auth";
 
 declare module "axios" {
   interface AxiosRequestConfig {
@@ -23,8 +20,30 @@ interface RefreshFlight {
   promise: Promise<RenewSessionResult>;
 }
 
+type RenewSessionResult = "renewed" | "unauthenticated" | "stale";
+
+export interface ApiAuthSession {
+  getSession(): {
+    token: string | null;
+    isAuthenticated: boolean;
+    sessionMode: "renewable" | null;
+    generation: number;
+  };
+  renewSession(generation: number): Promise<RenewSessionResult>;
+  clearSessionLocally(): void;
+  logout(): Promise<{ revocation: "confirmed" | "already-absent" | "unconfirmed" }>;
+  redirectToLogin(): Promise<unknown>;
+}
+
 let refreshFlight: RefreshFlight | null = null;
 let loginRedirect: Promise<unknown> | null = null;
+let authSession: ApiAuthSession | null = null;
+
+export function configureApiAuth(session: ApiAuthSession): void {
+  authSession = session;
+  refreshFlight = null;
+  loginRedirect = null;
+}
 
 const SESSION_ENDPOINTS = ["/auth/csrf", "/auth/login", "/auth/refresh", "/auth/logout"];
 
@@ -35,17 +54,17 @@ function isSessionEndpoint(url?: string): boolean {
 }
 
 function redirectToLoginOnce(): void {
-  if (router.currentRoute.value.name === "Login" || loginRedirect) return;
-  loginRedirect = router.push({ name: "Login" }).finally(() => {
+  if (!authSession || loginRedirect) return;
+  loginRedirect = authSession.redirectToLogin().finally(() => {
     loginRedirect = null;
   });
 }
 
 function getSharedRefresh(generation: number) {
-  const authStore = useAuthStore();
+  if (!authSession) return Promise.resolve<RenewSessionResult>("stale");
   if (refreshFlight?.generation === generation) return refreshFlight.promise;
 
-  const promise = authStore.renewSession(generation);
+  const promise = authSession.renewSession(generation);
   refreshFlight = { generation, promise };
   const clearFlight = () => {
     if (refreshFlight?.promise === promise) refreshFlight = null;
@@ -60,16 +79,18 @@ function retryWithCurrentAccessToken(config: InternalAxiosRequestConfig) {
 }
 
 api.interceptors.request.use((config) => {
-  const authStore = useAuthStore();
   if (isSessionEndpoint(config.url)) {
     delete config.headers.Authorization;
     return config;
   }
 
-  const token = authStore.isAuthenticated ? authStore.token : null;
   delete config.headers.Authorization;
+  const session = authSession?.getSession();
+  if (!session) return config;
+
+  const token = session.isAuthenticated ? session.token : null;
   if (token) config.headers.Authorization = `Bearer ${token}`;
-  config._authSessionGeneration = authStore.authSessionGeneration;
+  config._authSessionGeneration = session.generation;
   config._authAccessToken = token;
   return config;
 });
@@ -104,23 +125,25 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    const authStore = useAuthStore();
+    const sessionAccess = authSession;
+    if (!sessionAccess) return Promise.reject(error);
+    const session = sessionAccess.getSession();
     const requestGeneration = config._authSessionGeneration;
-    if (!authStore.isAuthenticated || !authStore.token || requestGeneration === undefined) {
+    if (!session.isAuthenticated || !session.token || requestGeneration === undefined) {
       return Promise.reject(error);
     }
-    if (requestGeneration !== authStore.authSessionGeneration) {
+    if (requestGeneration !== session.generation) {
       return Promise.reject(error);
     }
 
-    if (authStore.sessionMode !== "renewable") {
-      authStore.clearSessionLocally();
+    if (session.sessionMode !== "renewable") {
+      sessionAccess.clearSessionLocally();
       redirectToLoginOnce();
       return Promise.reject(error);
     }
 
     if (config._authRetry) {
-      void authStore.logout().then((outcome) => {
+      void sessionAccess.logout().then((outcome) => {
         if (outcome.revocation === "unconfirmed") {
           void SwalService.error(
             "La sesión dejó de ser válida, pero el servidor no confirmó su revocación. La sesión podría seguir activa.",
@@ -132,7 +155,7 @@ api.interceptors.response.use(
     }
 
     config._authRetry = true;
-    if (config._authAccessToken !== authStore.token) {
+    if (config._authAccessToken !== session.token) {
       return retryWithCurrentAccessToken(config as InternalAxiosRequestConfig);
     }
 
@@ -144,10 +167,11 @@ api.interceptors.response.use(
         }
         return Promise.reject(error);
       }
+      const renewed = sessionAccess.getSession();
       if (
-        authStore.authSessionGeneration !== requestGeneration ||
-        !authStore.isAuthenticated ||
-        !authStore.token
+        renewed.generation !== requestGeneration ||
+        !renewed.isAuthenticated ||
+        !renewed.token
       ) {
         return Promise.reject(error);
       }

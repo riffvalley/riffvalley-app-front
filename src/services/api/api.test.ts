@@ -7,18 +7,18 @@ import { createPinia, setActivePinia } from "pinia";
 const { refresh, login, logout } = vi.hoisted(() => ({ refresh: vi.fn(), login: vi.fn(), logout: vi.fn() }));
 let routerPush: ReturnType<typeof vi.spyOn>;
 
-vi.mock("@services/auth/sessionAuth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@services/auth/sessionAuth")>();
+vi.mock("@/modules/identity/auth/api/sessionAuth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/modules/identity/auth/api/sessionAuth")>();
   return { ...actual, sessionAuthTransport: { refresh, login, logout } };
 });
 vi.mock("sweetalert2", () => ({ default: { getPopup: vi.fn(() => null) } }));
 vi.mock("@services/swal/SwalService", () => ({ default: { error: vi.fn() } }));
 
-import { SessionAuthError } from "@services/auth/sessionAuth";
+import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
 import SwalService from "@services/swal/SwalService";
-import { useAuthStore } from "@stores/auth/auth";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
 import router from "/src/router";
-import api from "./api";
+import api, { configureApiAuth } from "./api";
 
 const originalAdapter = api.defaults.adapter;
 
@@ -68,6 +68,21 @@ describe("shared Axios auth refresh", () => {
     vi.mocked(SwalService.error).mockClear();
     await router.push("/national-releases/form");
     routerPush = vi.spyOn(router, "push");
+    const authStore = useAuthStore();
+    configureApiAuth({
+      getSession: () => ({
+        token: authStore.token,
+        isAuthenticated: authStore.isAuthenticated,
+        sessionMode: authStore.sessionMode,
+        generation: authStore.authSessionGeneration,
+      }),
+      renewSession: (generation) => authStore.renewSession(generation),
+      clearSessionLocally: () => authStore.clearSessionLocally(),
+      logout: () => authStore.logout(),
+      redirectToLogin: () => router.currentRoute.value.name === "Login"
+        ? Promise.resolve()
+        : router.push({ name: "Login" }),
+    });
     api.defaults.adapter = async (config) => {
       if (config.headers.Authorization !== "Bearer fresh-token") {
         throw unauthorized(config as InternalAxiosRequestConfig);
