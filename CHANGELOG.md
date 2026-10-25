@@ -1,3 +1,7 @@
+## <small>1.49.1 (2026-10-25)</small>
+
+* fix(auth): retry logout after CSRF recovery ([edde947](https://github.com/riffvalley/riffvalley-app-front/commit/edde947))
+
 ## 1.49.0 (2026-10-24)
 
 * feat(dev): proxy local API to production (#193) ([ebe6673](https://github.com/riffvalley/riffvalley-app-front/commit/ebe6673)), closes [#193](https://github.com/riffvalley/riffvalley-app-front/issues/193)
