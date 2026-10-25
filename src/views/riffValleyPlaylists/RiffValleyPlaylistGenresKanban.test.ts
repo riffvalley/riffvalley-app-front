@@ -7,7 +7,7 @@ import {
   updateRiffValleyPlaylist,
   type RiffValleyPlaylist,
 } from "@services/riff-valley-playlists/riffValleyPlaylists";
-import { getRvUsers } from "@/modules/identity/api/users";
+import { getRvUsers } from "@/modules/identity/users/api/users";
 import SwalService from "@services/swal/SwalService";
 import { getSpotifyConnection } from "@services/spotify/festivalPlaylists";
 import { updateGenrePlaylist } from "@services/spotify/genrePlaylists";
@@ -37,7 +37,7 @@ vi.mock("@services/riff-valley-playlists/riffValleyPlaylists", () => ({
   createRiffValleyPlaylistContent: serviceMocks.createContent,
   toISO: (date: Date) => date.toISOString(),
 }));
-vi.mock("@/modules/identity/api/users", () => ({ getRvUsers: serviceMocks.getUsers }));
+vi.mock("@/modules/identity/users/api/users", () => ({ getRvUsers: serviceMocks.getUsers }));
 vi.mock("@services/swal/SwalService", () => ({
   default: {
     error: serviceMocks.swalError,
@@ -55,7 +55,7 @@ vi.mock("@services/spotify/genrePlaylists", () => ({
   linkExistingGenrePlaylist: serviceMocks.linkExistingGenre,
   updateGenrePlaylist: serviceMocks.updateSyncedGenre,
 }));
-vi.mock("@/modules/identity/stores/auth", () => ({
+vi.mock("@/modules/identity/auth/stores/auth", () => ({
   useAuthStore: () => ({
     userId: "user-1",
     username: "Editor",

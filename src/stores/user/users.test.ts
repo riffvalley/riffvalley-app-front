@@ -6,7 +6,7 @@ const { getRvUsers, updateUserService } = vi.hoisted(() => ({
   updateUserService: vi.fn(),
 }));
 
-vi.mock("@/modules/identity/api/users", () => ({
+vi.mock("@/modules/identity/users/api/users", () => ({
   getRvUsers,
   updateUserService,
 }));

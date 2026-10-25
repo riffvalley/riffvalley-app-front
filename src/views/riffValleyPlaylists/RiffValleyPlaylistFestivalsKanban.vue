@@ -181,8 +181,8 @@
 import axios from 'axios';
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getRvUsers } from '@/modules/identity/api/users';
-import type { RvUser } from '@/modules/identity/types/users';
+import { getRvUsers } from '@/modules/identity/users/api/users';
+import type { RvUser } from '@/modules/identity/users/types/users';
 import SwalService from '@services/swal/SwalService';
 import {
   getRiffValleyPlaylistFestivals,
@@ -202,8 +202,8 @@ import {
   type SpotifyConnection,
   type SyncedFestivalPlaylist,
 } from '@services/spotify/festivalPlaylists';
-import { useAuthStore } from '@/modules/identity/stores/auth';
-import { hasMinimumRole } from '@/modules/identity/utils/permissions';
+import { useAuthStore } from '@/modules/identity/auth/stores/auth';
+import { hasMinimumRole } from '@/modules/identity/shared/utils/permissions';
 import FestivalPlaylistManager from './components/FestivalPlaylistManager.vue';
 
 type ColumnId = RiffValleyPlaylistStatus;

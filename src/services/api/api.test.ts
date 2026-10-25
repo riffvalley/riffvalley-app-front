@@ -7,16 +7,16 @@ import { createPinia, setActivePinia } from "pinia";
 const { refresh, login, logout } = vi.hoisted(() => ({ refresh: vi.fn(), login: vi.fn(), logout: vi.fn() }));
 let routerPush: ReturnType<typeof vi.spyOn>;
 
-vi.mock("@/modules/identity/api/sessionAuth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/modules/identity/api/sessionAuth")>();
+vi.mock("@/modules/identity/auth/api/sessionAuth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/modules/identity/auth/api/sessionAuth")>();
   return { ...actual, sessionAuthTransport: { refresh, login, logout } };
 });
 vi.mock("sweetalert2", () => ({ default: { getPopup: vi.fn(() => null) } }));
 vi.mock("@services/swal/SwalService", () => ({ default: { error: vi.fn() } }));
 
-import { SessionAuthError } from "@/modules/identity/api/sessionAuth";
+import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
 import SwalService from "@services/swal/SwalService";
-import { useAuthStore } from "@/modules/identity/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
 import router from "/src/router";
 import api, { configureApiAuth } from "./api";
 

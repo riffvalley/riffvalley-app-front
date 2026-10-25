@@ -97,7 +97,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
-import type { RvUser } from '@/modules/identity/types/users';
+import type { RvUser } from '@/modules/identity/users/types/users';
 
 interface Props {
     show: boolean;

@@ -4,9 +4,9 @@ import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SidebarMenu from "./SidebarMenu.vue";
-import { useAuthStore } from "@/modules/identity/stores/auth";
-import { useDashboardPreferences } from "@/modules/identity/composables/useDashboardPreferences";
-import type { UserRole } from "@/modules/identity/types/auth";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useDashboardPreferences } from "@/modules/identity/account/preferences/composables/useDashboardPreferences";
+import type { UserRole } from "@/modules/identity/shared/types/auth";
 
 vi.mock("@services/versions/versions", () => ({
   getLatestPublicVersion: vi.fn().mockResolvedValue(null),

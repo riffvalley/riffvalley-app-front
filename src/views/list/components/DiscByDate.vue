@@ -113,8 +113,8 @@ import {
   nextTick,
 } from "vue";
 import { getDiscsDated, updateDisc } from "@services/discs/discs";
-import { getRvUsers } from "@/modules/identity/api/users";
-import type { RvUser } from "@/modules/identity/types/users";
+import { getRvUsers } from "@/modules/identity/users/api/users";
+import type { RvUser } from "@/modules/identity/users/types/users";
 import { getGenres } from "@services/genres/genres"; // Importa getGenres
 import SwalService from "@services/swal/SwalService";
 import { obtenerEnlaceArtistaSpotify } from "@helpers/SpotifyFunctions";

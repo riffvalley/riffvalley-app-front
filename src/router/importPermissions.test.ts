@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import router from "./index";
-import { useAuthStore } from "@/modules/identity/stores/auth";
-import type { UserRole } from "@/modules/identity/types/auth";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import type { UserRole } from "@/modules/identity/shared/types/auth";
 
 describe("import route permissions", () => {
   beforeEach(async () => {
@@ -60,6 +60,26 @@ describe("import route permissions", () => {
     expect((await navigateAs("user", "/users/stats")).name).toBe("Home");
     expect((await navigateAs("riffvalley", "/users/stats")).name).toBe("Home");
     expect((await navigateAs("superadmin", "/users/stats")).name).toBe("UserStats");
+  });
+
+  it("evacuates an open administrative route when refresh revokes superadmin", async () => {
+    const authStore = useAuthStore();
+    authStore.$patch({ userId: "admin-a", authSessionGeneration: 8 });
+    await navigateAs("superadmin", "/users/stats/users");
+
+    // Permission refresh keeps the identity and session generation unchanged.
+    authStore.$patch({ role: "user" });
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe("Home"));
+    expect(authStore.userId).toBe("admin-a");
+    expect(authStore.authSessionGeneration).toBe(8);
+  });
+
+  it("redirects an open administrative route to Login when its session is cleared", async () => {
+    const authStore = useAuthStore();
+    await navigateAs("superadmin", "/users/stats/inactivity");
+
+    authStore.clearSessionLocally();
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe("Login"));
   });
 
   it("keeps all three usage statistics tabs restricted to superadmin", async () => {

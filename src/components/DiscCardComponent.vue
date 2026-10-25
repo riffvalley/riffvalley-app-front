@@ -332,8 +332,8 @@ import {
 } from "@services/pendings/pendings";
 import Swal from "sweetalert2";
 import SwalService from "@services/swal/SwalService";
-import { useAuthStore } from "@/modules/identity/stores/auth";
-import { hasMinimumRole } from "@/modules/identity/utils/permissions";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { hasMinimumRole } from "@/modules/identity/shared/utils/permissions";
 
 interface Vote {
   id: string;

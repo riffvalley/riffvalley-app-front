@@ -2,14 +2,15 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
-import { useAuthStore } from '@/modules/identity/stores/auth';
-import { installQuery } from '@/app/queryClient';
+import { useAuthStore } from '@/modules/identity/auth/stores/auth';
+import { clearPrivateQueryCache, installQuery } from '@/app/queryClient';
 import { observePrivateQueryCache } from '@/app/privateQueryCache';
 import { configureApiAuth } from '@services/api/api';
 import {
   subscribeToRemoteAuthLogin,
+  subscribeToRemoteAuthPermissionsChanged,
   subscribeToRemoteAuthLogout,
-} from '@/modules/identity/api/sessionAuthCoordinator';
+} from '@/modules/identity/auth/api/sessionAuthCoordinator';
 
 // VueSweetalert2
 import VueSweetalert2 from 'vue-sweetalert2';
@@ -73,6 +74,12 @@ subscribeToRemoteAuthLogin(() => {
   const protectedRoute = router.currentRoute.value.meta.requiresAuth;
   void authStore.restoreAfterRemoteLogin();
   if (protectedRoute) void router.replace({ name: 'Login' });
+});
+
+subscribeToRemoteAuthPermissionsChanged(() => {
+  // Remove data before checking this tab's own session; the event carries no role or profile data.
+  clearPrivateQueryCache();
+  void authStore.renewSession().catch(() => undefined);
 });
 
 // Auth callbacks and Pinia are ready before Vue Router starts its initial navigation.

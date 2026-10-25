@@ -3,26 +3,28 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { QueryClient } from "@tanstack/vue-query";
 
-const { refresh, logout } = vi.hoisted(() => ({
+const { refresh, logout, broadcastAuthPermissionsChanged } = vi.hoisted(() => ({
   refresh: vi.fn(),
   logout: vi.fn(),
+  broadcastAuthPermissionsChanged: vi.fn(),
 }));
 
-vi.mock("@/modules/identity/api/sessionAuth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/modules/identity/api/sessionAuth")>();
+vi.mock("@/modules/identity/auth/api/sessionAuth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/modules/identity/auth/api/sessionAuth")>();
   return { ...actual, sessionAuthTransport: { refresh, login: vi.fn(), logout } };
 });
-vi.mock("@/modules/identity/api/sessionAuthCoordinator", () => ({
+vi.mock("@/modules/identity/auth/api/sessionAuthCoordinator", () => ({
+  broadcastAuthPermissionsChanged,
   broadcastAuthLogin: vi.fn(),
   broadcastAuthLogout: vi.fn(),
   broadcastSessionCsrfUpdated: vi.fn(),
   subscribeToRemoteSessionCsrfUpdated: vi.fn(() => () => undefined),
   withAuthSessionLock: (operation: () => Promise<unknown>) => operation(),
 }));
-vi.mock("@/modules/identity/api/appDailyActivity", () => ({ notifyAppDailyActivity: vi.fn() }));
+vi.mock("@/modules/identity/activity/api/appDailyActivity", () => ({ notifyAppDailyActivity: vi.fn() }));
 
-import { SessionAuthError } from "@/modules/identity/api/sessionAuth";
-import { useAuthStore } from "@/modules/identity/stores/auth";
+import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
 import { observePrivateQueryCache } from "./privateQueryCache";
 
 function createLifecycle() {
@@ -32,13 +34,17 @@ function createLifecycle() {
   return { authStore, client };
 }
 
-function authenticate(authStore: ReturnType<typeof useAuthStore>, userId = "user-a") {
+function authenticate(
+  authStore: ReturnType<typeof useAuthStore>,
+  userId = "user-a",
+  role: "user" | "superadmin" = "user",
+) {
   authStore.$patch({
+    role,
     authStatus: "authenticated",
     userId,
     username: userId,
     token: "memory-only-token",
-    role: "user",
     sessionMode: "renewable",
   });
 }
@@ -49,6 +55,7 @@ describe("private query cache lifecycle", () => {
     sessionStorage.clear();
     refresh.mockReset();
     logout.mockReset();
+    broadcastAuthPermissionsChanged.mockReset();
     setActivePinia(createPinia());
   });
 
@@ -92,6 +99,89 @@ describe("private query cache lifecycle", () => {
     authStore.$patch({ userId: "user-b", username: "user-b" });
 
     expect(client.getQueryCache().getAll()).toHaveLength(0);
+  });
+
+  it("removes admin data on a refresh downgrade without changing identity or session generation", async () => {
+    const { authStore, client } = createLifecycle();
+    authenticate(authStore, "user-a", "superadmin");
+    const generation = authStore.authSessionGeneration;
+    client.setQueryData(["identity", "users", "admin-list"], [{ id: "private-user" }]);
+    client.setQueryData(["identity", "activity", "dashboard"], { total: 42 });
+    refresh.mockResolvedValue({
+      user: { id: "user-a", username: "user-a", role: "user" },
+      token: "renewed-token",
+    });
+
+    await expect(authStore.renewSession()).resolves.toBe("renewed");
+
+    expect(authStore.userId).toBe("user-a");
+    expect(authStore.authSessionGeneration).toBe(generation);
+    expect(authStore.role).toBe("user");
+    expect(client.getQueryCache().getAll()).toHaveLength(0);
+    expect(broadcastAuthPermissionsChanged).toHaveBeenCalledOnce();
+  });
+
+  it("keeps cached data on a refresh with unchanged or equivalent effective permissions", async () => {
+    const { authStore, client } = createLifecycle();
+    authenticate(authStore);
+    client.setQueryData(["identity", "users"], [{ id: "user-a" }]);
+
+    refresh.mockResolvedValueOnce({
+      user: { id: "user-a", username: "user-a", role: "user" },
+      token: "renewed-token",
+    });
+    await authStore.renewSession();
+    expect(client.getQueryData(["identity", "users"])).toEqual([{ id: "user-a" }]);
+
+    refresh.mockResolvedValueOnce({
+      user: { id: "user-a", username: "user-a", role: "riffvalley" },
+      token: "renewed-token-2",
+    });
+    await authStore.renewSession();
+    expect(authStore.role).toBe("riffvalley");
+    expect(client.getQueryData(["identity", "users"])).toEqual([{ id: "user-a" }]);
+    expect(broadcastAuthPermissionsChanged).not.toHaveBeenCalled();
+  });
+
+  it("cancels pending queries and prevents their late result from restoring admin data", async () => {
+    const { authStore, client } = createLifecycle();
+    authenticate(authStore, "user-a", "superadmin");
+    let resolveRequest!: (value: string) => void;
+    let requestSignal: AbortSignal | undefined;
+    const pending = client.fetchQuery({
+      queryKey: ["identity", "activity", "pending"],
+      queryFn: ({ signal }) => {
+        requestSignal = signal;
+        return new Promise<string>((resolve) => { resolveRequest = resolve; });
+      },
+    }).catch(() => undefined);
+    refresh.mockResolvedValue({
+      user: { id: "user-a", username: "user-a", role: "user" },
+      token: "renewed-token",
+    });
+
+    await authStore.renewSession();
+    resolveRequest("late private response");
+    await pending;
+
+    expect(requestSignal?.aborted).toBe(true);
+    expect(client.getQueryData(["identity", "activity", "pending"])).toBeUndefined();
+  });
+
+  it("clears again when administrative permissions are restored", async () => {
+    const { authStore, client } = createLifecycle();
+    authenticate(authStore);
+    client.setQueryData(["identity", "activity", "dashboard"], { old: true });
+    refresh.mockResolvedValue({
+      user: { id: "user-a", username: "user-a", role: "superadmin" },
+      token: "renewed-token",
+    });
+
+    await authStore.renewSession();
+
+    expect(authStore.role).toBe("superadmin");
+    expect(client.getQueryCache().getAll()).toHaveLength(0);
+    expect(broadcastAuthPermissionsChanged).toHaveBeenCalledOnce();
   });
 
   it("cancels active requests so a late response cannot repopulate private data", async () => {

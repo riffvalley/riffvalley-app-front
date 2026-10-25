@@ -608,7 +608,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, onUnmounted } from "vue";
-import { useAuthStore } from "@/modules/identity/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
 import { getTopRatedOrFeaturedAndStats, getDiscs } from "@services/discs/discs";
 import {
   getRatesByUser,

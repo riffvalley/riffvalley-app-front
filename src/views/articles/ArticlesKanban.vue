@@ -263,9 +263,9 @@ import {
     ARTICLE_TYPES,
     toISO
 } from '@services/articles/articles';
-import { getRvUsers } from '@/modules/identity/api/users';
-import type { RvUser } from '@/modules/identity/types/users';
-import { useAuthStore } from '@/modules/identity/stores/auth';
+import { getRvUsers } from '@/modules/identity/users/api/users';
+import type { RvUser } from '@/modules/identity/users/types/users';
+import { useAuthStore } from '@/modules/identity/auth/stores/auth';
 import SwalService from '@services/swal/SwalService';
 
 const authStore = useAuthStore();

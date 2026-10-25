@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 
 const { refresh } = vi.hoisted(() => ({ refresh: vi.fn() }));
-vi.mock("@/modules/identity/api/sessionAuth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/modules/identity/api/sessionAuth")>();
+vi.mock("@/modules/identity/auth/api/sessionAuth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/modules/identity/auth/api/sessionAuth")>();
   return { ...actual, sessionAuthTransport: { refresh } };
 });
 
-import { SessionAuthError } from "@/modules/identity/api/sessionAuth";
+import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
 import router from "./index";
-import { useAuthStore } from "@/modules/identity/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
 
 describe("router authentication bootstrap", () => {
   beforeEach(async () => {

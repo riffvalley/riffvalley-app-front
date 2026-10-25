@@ -29,14 +29,14 @@ Se encontraron responsabilidades mezcladas en vistas grandes, no una razón para
 - `ContentCalendar.vue` (1.251 líneas) coordina tipos distintos de contenido, consultas, filtros, calendario, backlog y modales especializados.
 - `ArtistManagement.vue` (1.501 líneas) mezcla gestión del catálogo, paginación, consultas y flujos asociados a playlists.
 - `DiscList.vue` (701 líneas) mantiene filtros, búsqueda, paginación, estados de carga y composición de datos comunitarios.
-- `LoginPage.vue` (565 líneas) incluye el formulario de login y personalización visual/preferencias de la propia pantalla.
-- `PasswordChange.vue` mezcla cambio de contraseña, avatar, preferencias locales y configuración persistida del dashboard.
+- `modules/identity/views/login/LoginView.vue` (565 líneas) incluye el formulario de login y personalización visual/preferencias de la propia pantalla.
+- `modules/identity/views/password-change/PasswordChangeView.vue` mezcla cambio de contraseña, avatar, preferencias locales y configuración persistida del dashboard.
 
 El frontend usa una mezcla de Options API, `setup()` y `<script setup>`. La migración no requiere convertir todos los SFC; cada vista se puede dejar con el estilo que ya usa salvo que una extracción concreta aporte claridad.
 
 ### Dependencias y problemas confirmados
 
-- Hay un ciclo de imports: `stores/auth/auth.ts` importa `services/activity/appDailyActivity.ts`, que importa `services/api/api.ts`, que vuelve a importar `stores/auth/auth.ts`. Las funciones se invocan en runtime y no se afirma que hoy provoque un fallo, pero el acoplamiento complica inicialización y cambios.
+- El baseline de esta auditoría reportó un ciclo entre Auth, actividad diaria y Axios. La revisión del árbol actual de I1-11a.14 no encuentra un ciclo estático: Auth importa la notificación diaria y esta importa el cliente Axios; el cliente recibe la sesión mediante `configureApiAuth()` y no importa Auth. Se conserva el comportamiento del flujo y no se modifica como parte de la revisión estructural.
 - `services/auth/auth.ts` y `services/users/users.ts` exponen ambas `getUsersRv()` para `/auth/usersRv`, y distintas vistas consumen cada copia. También hay consumidores de este listado que llaman al servicio directamente y otros que pasan por `useUserStore`.
 - `SidebarMenu.vue` solicita listas de peticiones y sugerencias para sus contadores. `PetitionsPage.vue` y `SuggestionsManagement.vue` vuelven a solicitar datos relacionados y alimentan stores globales. Esta duplicación puede resolverse con consultas compartidas por clave, después de comprobar que filtros y permisos coinciden.
 - Las stores `user`, `asignation`, `catalog`, `petitions` y parte de `support` conservan respuestas del backend fuera de vistas activas. No hay una estrategia uniforme de caducidad, deduplicación, sincronización por parámetros o invalidación tras mutaciones.
@@ -45,7 +45,7 @@ El frontend usa una mezcla de Options API, `setup()` y `<script setup>`. La migr
 - `PetitionsStore.pendingCount` es un conteo derivado de las peticiones consultadas y almacenado globalmente para menú y página. `SupportStore.pendingIds` vuelve a guardar IDs de sugerencias en progreso recibidos del backend; `readIds` sí es estado local persistido. `readIds` no incluye `userId`, por lo que debe confirmarse si el estado de lectura es por usuario antes de cambiar su clave.
 - `CatalogStore` contiene géneros y países de un catálogo compartido, con un `loaded` booleano de vida indefinida. Es un candidato razonable a consulta cacheada; no es necesario mantener Pinia para sus resultados si TanStack Query cubre sus consumidores.
 - Hay estado de vista correctamente local en muchos formularios y componentes. No hace falta convertir cada `ref`/`reactive` en store o query; los filtros solo deben pasar al router cuando queramos compartirlos o restaurarlos mediante URL.
-- `useDashboardConfig()` mantiene estado editable local y persiste configuración vía API; Auth también carga esa configuración del perfil y la refleja en Pinia/localStorage. Separar la preferencia del estado de sesión y decidir si Query o estado local es dueño debe hacerse al migrar esa funcionalidad, conservando la carga actual del perfil hasta acordar el contrato.
+- `useDashboardConfig()` mantiene estado editable local y persiste configuración vía API; Auth aplica la configuración recibida del perfil mediante el store `dashboardPreferences`, propiedad de Account y separado del estado de sesión.
 - Las vistas `ArticlesList.vue` y `PublicVersion.vue` no aparecen en el router ni en imports del código consultado. No se afirma que sean obsoletas: registrar su uso y eliminarlas solo si una búsqueda completa posterior confirma que no hay consumidores.
 
 ### Tests y verificaciones existentes
@@ -53,7 +53,7 @@ El frontend usa una mezcla de Options API, `setup()` y `<script setup>`. La migr
 El frontend usa Vitest (`yarn test` ejecuta `vitest run`) y `yarn build` incluye `vue-tsc --noEmit` antes de Vite. No se encontró script o configuración E2E de Playwright/Cypress. Se identificaron 19 archivos `*.test.ts`:
 
 - Shell, router y permisos: `src/layouts/default/components/SidebarMenuAuth.test.ts`, `SidebarMenuPermissions.test.ts`, `src/router/authInitialization.test.ts`, `importPermissions.test.ts`.
-- Servicios/API: `src/services/activity/appDailyActivity.test.ts`, `api/api.test.ts`, `artist/artist.test.ts`, `auth/sessionAuth.test.ts`, `auth/sessionAuthCoordinator.test.ts`, `catalog/catalog.test.ts`, `imports/imports.test.ts`.
+- Servicios/API: `src/modules/identity/api/appDailyActivity.test.ts`, `api/api.test.ts`, `artist/artist.test.ts`, `modules/identity/api/sessionAuth.test.ts`, `modules/identity/api/sessionAuthCoordinator.test.ts`, `catalog/catalog.test.ts`, `imports/imports.test.ts`.
 - Store: `src/stores/auth/auth.test.ts`.
 - Vistas/features: `src/views/artists/artistManagementPagination.test.ts`, `contentCalendar/components/VideoActionsModal.test.ts`, `discos/MejoresDetalle.test.ts`, `discos/RadarDetalle.test.ts`, `importPage/importResults.test.ts`, `riffValleyPlaylists/RiffValleyPlaylistGenresKanban.test.ts`, `videos/VideosKanban.test.ts`.
 
@@ -104,12 +104,12 @@ src/
 └── main.ts
 ```
 
-Las carpetas de cada módulo se crean según el código que migre. Por ejemplo, Identity puede necesitar `views/`, `components/`, `api/`, `stores/` y `types/`; un módulo de Integrations sin vistas quizá solo necesite `api/`. No se crean directorios vacíos ni `index.ts` públicos en todos los módulos por convención.
+Las carpetas de cada módulo se crean según el código que migre. Identity organiza sus recursos en cinco funcionalidades (`auth/`, `account/`, `users/`, `activity/`, `shared/`); las preferencias de la propia cuenta viven en `account/preferences/`. No usa carpetas técnicas en su raíz. Otros módulos pueden tener `views/`, `api/` u otras subcarpetas si su código lo justifica. No se crean directorios vacíos ni `index.ts` públicos en todos los módulos por convención.
 
 ## 4. Reglas de organización y dependencias
 
 - `app/` compone router, layouts, plugins y vistas de estado de la aplicación. Las rutas conservan sus paths y nombres actuales.
-- `modules/<dominio>/views/` contiene las páginas propietarias; sus componentes específicos quedan junto al módulo o feature que los usa.
+- Las páginas propietarias viven dentro de su módulo; cada módulo elige una organización adecuada. Identity coloca las vistas navegables dentro de su feature, no en `views/` global.
 - `api/` contiene funciones HTTP tipadas que llaman al cliente compartido y expresan endpoints reales. No envuelve cada endpoint en un repository o use case.
 - `composables/` contiene lógica reactiva que se reutiliza o maneja estado/efectos de un feature. Las consultas y mutaciones de TanStack Query viven preferentemente aquí y llaman a `api/`.
 - `stores/` solo se añade si el módulo necesita estado compartido con vida mayor que una vista. No crear store para cada recurso remoto.
@@ -148,7 +148,7 @@ flowchart LR
   integrations --> shared
 ```
 
-Identity no depende de features; el resto solo lee el contrato público de sesión/rol que necesita. App puede componer APIs/composables de dominio para badges y shell. Los módulos no se importan entre sí por detalles internos ni se forman ciclos. Si una pantalla compuesta dificulta el grafo, separar visualmente las responsabilidades con props/eventos antes de crear una capa nueva.
+El diagrama anterior es una vista agregada de los módulos de producto, no representa todos los bordes internos de Identity. En el checkout actual, Auth consume el store de preferencias de Account y la API Activity para notificar actividad diaria; las mutaciones de Users invalidan una query de Activity; y la API Activity usa el DTO de Inactivity mediante import type-only. Son dependencias existentes conservadas por ownership, no motivo para duplicar estado o mover APIs a Shared. Los consumidores externos usan los contratos/funciones concretos que ya necesitan; no deben importar árboles de vistas. El cliente Axios recibe `ApiAuthSession` mediante `configureApiAuth()` y no importa Auth, por lo que la antigua descripción de un ciclo Auth/Axios no corresponde al grafo vigente. Si una pantalla compuesta dificulta el grafo, separar visualmente responsabilidades con props/eventos antes de crear una capa nueva.
 
 ## 5. Inventario completo de rutas y páginas
 
@@ -193,11 +193,14 @@ Las rutas siguientes son las declaradas en `src/router/index.ts`; los paths se c
 | `catalog` | `/artists` | `ArtistManagement` — `ArtistManagement.vue` | Autenticado en router; backend impone autorización |
 | `editorial` | `/national-releases/form` | `NationalReleasePublic` — `NationalReleaseForm.vue` | Público |
 | `editorial` | `/national-releases` | `NationalReleasesAdmin` — `NationalReleasesAdmin.vue` | `riffvalley` mínimo |
-| `identity` | `/login` | `Login` — `LoginPage.vue` | Público; el guard intenta inicializar sesión |
-| `identity` | `/password` | `Password` — `modules/identity/views/PasswordChange.vue` | Autenticado |
-| `identity` | `/users` | `Users` — `ManageUsers.vue` | `superadmin` mínimo |
-| `identity` | `/users/stats` | `UserStats` — `AdminStats.vue` | `superadmin` mínimo |
-| `identity` | `/users/activity` | `UserActivity` — `UserActivity.vue` | `superadmin` mínimo |
+| `identity/auth` | `/login` | `Login` — `auth/login/LoginView.vue` | Público; el guard intenta inicializar sesión |
+| `identity/account` | `/password` | `Password` — `account/password-change/PasswordChangeView.vue` | Autenticado |
+| `identity/users` | `/users` | `Users` — `users/user-management/UserManagementView.vue` | `superadmin` mínimo |
+| `identity/activity` | `/users/stats` | `UserStats` — `activity/overview/UserStatisticsView.vue` dentro de `UserStatisticsLayout.vue` | `superadmin` mínimo |
+| `identity/activity` | `/users/stats/users` | `UserStatsUsers` — `activity/user-activity/UserActivityView.vue` dentro de `UserStatisticsLayout.vue` | `superadmin` mínimo |
+| `identity/activity` | `/users/stats/inactivity` | `UserStatsInactivity` — `activity/inactivity/UserInactivityView.vue` dentro de `UserStatisticsLayout.vue` | `superadmin` mínimo |
+| `identity/activity` | `/users/activity` | `UserActivity` — redirect a `UserStatsUsers` | `superadmin` mínimo |
+| `identity/activity` | `/users/inactivity` | `UserInactivity` — redirect a `UserStatsInactivity` | `superadmin` mínimo |
 | `product` | `/news` | `News` — `ManageNews.vue` | `superadmin` mínimo |
 | `product` | `/versions` | `versions-admin` — `ManageVersions.vue` | `superadmin` mínimo |
 | `product` | `/versions/kanban` | `versions-kanban` — `VersionKanban.vue` | `superadmin` mínimo |
@@ -211,32 +214,32 @@ Las rutas siguientes son las declaradas en `src/router/index.ts`; los paths se c
 
 | Store | Responsabilidad, estado y consumidores encontrados | HTTP/dependencias actuales | Propuesta y riesgo |
 |---|---|---|---|
-| `auth` — `src/stores/auth/auth.ts` | Sesión compartida: access JWT en memoria, username, id, imagen, rol, estado `initializing/authenticated/anonymous/error`, modo de sesión y generación para descartar respuestas tardías. También guarda preferencias de dashboard. La consumen `main.ts`, App, router, interceptor, Sidebar, login, dashboard, calendario, listas, editorial y componentes compartidos. | `sessionAuthTransport` ejecuta login/refresh/logout; coordina BroadcastChannel; envía actividad diaria. No depende de otras stores. | **Mantener y simplificar por ownership Identity.** Es estado global esencial y no se migra a Query. Separar preferencias de dashboard cuando se migre esa UX. Riesgo alto: interceptor, router, consumidores del token/rol y el ciclo de imports dependen de formas actuales.
+| `auth` — `src/modules/identity/auth/stores/auth.ts` | Sesión compartida: access JWT en memoria, username, id, imagen, rol, estado `initializing/authenticated/anonymous/error`, modo de sesión y generación para descartar respuestas tardías. Aplica preferencias de perfil mediante el store `dashboardPreferences`, propiedad de Account y separada de la sesión. La consumen `main.ts`, App, router, interceptor, Sidebar, login, dashboard, calendario, listas, editorial y componentes compartidos. | `sessionAuthTransport` ejecuta login/refresh/logout; coordina BroadcastChannel; solicita actividad diaria. Al aplicar preferencias usa `dashboardPreferences`, sin mezclarlas con el estado de sesión. | **Mantener y simplificar por ownership Identity.** Es estado global esencial y no se migra a Query. Las preferencias permanecen bajo Account, fuera del estado de sesión. Riesgo alto por interceptor, router y consumidores del token/rol; el baseline de ciclo de imports no describe el grafo actual.
 | `catalog` — `src/stores/catalog/catalog.ts` | Guarda `genres`, `countries` y `loaded`. Consumidores: App, Rankings, DiscList, Calendar, CalendarBaby, Import, Suggest, Petitions y GenrePlaylistManager. | `fetchCatalog()` llama `getCatalog()`; App precarga al autenticar. Sin dependencias entre stores. | **Migrar el dato remoto a Query** con key `catalog/overview` y una vigencia mayor; eliminar store después de migrar consumidores y comprobar que no necesitan una acción global imperativa. Riesgo bajo/medio: ordenar arrays y timing de carga deben mantenerse.
 | `user` — `src/stores/user/users.ts` | Guarda listas admin, usuarios asignables y un `user` singular. La usan ManageUsers, PasswordChange, `useDashboardConfig`, pantallas de List/Radar/Mejores/Vídeo y componentes de asignación. | `getUsers`, `getRvUsers`, create/update/delete vía `services/users/users.ts`; no llama servicios para `fetchUser()`. Sin depender de Auth store, pero `useDashboardConfig` usa ambas. | **Dividir por responsabilidad y migrar listas/remotos a Query.** Mantener solo estado que de verdad cruce vistas, si se identifica. Eliminar `user`, `fetchUser`, `setUser` y `addUser` solo tras confirmar cero consumidores. Riesgo medio/alto: estado optimista, formularios de administración y actualización del perfil tienen consumidores distintos.
 | `asignation` — `src/stores/asignation/asignation.ts` | Conserva una lista de asignaciones y getter por id. La comparten List/EditList, Radar/Mejores, WeekRecap y componentes de listas. | Carga por listId y mutations de update/delete; depende de `services/asignation/asignation.ts`. Sin otras stores salvo los componentes consumidores. | **Migrar consultas/mutaciones a Editorial Query composables**, key por `listId`. No conservar la lista como global si Query y la vista cubren esos usos. Riesgo medio: invalidar sincronización entre listados y conservar cambios de orden/optimismo.
 | `petitions` — `src/stores/petitions/petitions.ts` | Solo mantiene `pendingCount`. La usan Sidebar y PetitionsPage. | Ambos consumidores calculan el conteo desde peticiones remotas y llaman `setPendingCount`; sin HTTP en la store. | **Eliminar tras migrar**, derivando el badge de la consulta compartida de Community. Riesgo bajo/medio: igualar filtros, rol y definición de estado `pending` en ambas pantallas.
 | `support` — `src/stores/support/support.ts` | Comparte `readIds` (Set persistido), `pendingIds` remoto y `unreadCount` derivado. Lo consumen Sidebar y SuggestionsManagement. | No llama HTTP; las vistas/menú obtienen sugerencias y lo alimentan con IDs. | **Conservar solo lectura local si sigue compartida; mover IDs pendientes a la consulta de Product.** Derivar unreadCount de Query + readIds. Riesgo medio: clave persistida no segmentada por userId y semántica de leído por usuario/producto sin validar.
 
-`dashboardButtonsEnabled`, `dashboardConfig` y `mobileDashboardConfig` no son credenciales ni autorización: son preferencias sincronizadas con el perfil y usadas en Dashboard/Password. No deben mantenerse en Auth por comodidad después de desacoplarlas; validar si Query debe ser su dueño remoto y si la parte de edición queda en `ref` local. La store de Auth debe permanecer mínima para sesión, sujeto a conservar el perfil exigido por `refresh-v1`.
+`dashboardButtonsEnabled`, `dashboardConfig` y `mobileDashboardConfig` no son credenciales ni autorización: son preferencias sincronizadas con el perfil y usadas en Dashboard/Password. Su estado persistido pertenece actualmente al store `src/modules/identity/account/preferences/stores/dashboardPreferences.ts`; Auth lo consume al aplicar preferencias recibidas del perfil, sin apropiarse de él. La store de Auth conserva sesión y el perfil exigido por `refresh-v1`.
 
 ## 7. Servicios, API, composables y componentes
 
 ### Servicios y llamadas HTTP actuales
 
-Las llamadas están dispersas en más de 30 archivos bajo `src/services/`. Este inventario agrupa todos los servicios por ownership; los nombres de archivo se conservan hasta que migre cada funcionalidad.
+Las llamadas de las funcionalidades aún no migradas están dispersas en más de 30 archivos bajo `src/services/`. Las APIs de Identity ya se encuentran dentro de sus owners funcionales; las rutas indicadas para el resto de los servicios describen su ubicación existente y pueden cambiar cuando migre cada funcionalidad.
 
 | Ownership propuesto | Servicios actuales / familia de endpoints |
 |---|---|
 | Shared | `api/api.ts` y `api/api.test.ts` (Axios compartido y política de sesión); `swal/SwalService.ts` (notificaciones UI).
-| Identity | `auth/auth.ts`, `auth/sessionAuth.ts`, `auth/sessionAuthCoordinator.ts`, `users/users.ts`, `accessRequest/accessRequest.ts`, `activity/appDailyActivity.ts`. Cubren sesión, administración y perfil `/auth/*`, solicitud `/access-requests` y ping `/activity/app/daily`.
+| Identity | `modules/identity/auth/api/sessionAuth.ts`, `auth/api/sessionAuthCoordinator.ts`, `auth/stores/auth.ts`, `auth/login/api/accessRequest.ts`, `users/api/users.ts`, `activity/api/activity.ts` y `activity/api/appDailyActivity.ts`. Cubren sesión, administración/perfil `/auth/*`, solicitud `/access-requests`, estadísticas de actividad e informe `/activity/app/daily`.
 | Catalog | `catalog/catalog.ts`, `artist/artist.ts`, `countries/countries.ts`, `discs/discs.ts`, `genres/genres.ts`, `imports/imports.ts`, `lastfm/lastfm.ts`. Cubren catálogo `/catalog`, discos/artistas/géneros/países, importación y operaciones de enriquecimiento Last.fm pertenecientes al caso de uso Catalog.
 | Community | `comments/comments.ts`, `favorites/favorites.ts`, `pendings/pendings.ts`, `rates/rates.ts`, `requests/requests.ts`. Cubren contribuciones y estado comunitario de discos/usuarios.
 | Editorial | `articles/articles.ts`, `asignation/asignation.ts`, `contents/contents.ts`, `list/list.ts`, `national-releases/nationalReleases.ts`, `points/point.ts`, `reunions/reunions.ts`, `riff-valley-playlists/riffValleyPlaylists.ts`, `videos/videos.ts`; también `spotify/festivalPlaylists.ts` y `spotify/genrePlaylists.ts` para API de playlists editoriales gestionadas por el backend.
 | Product | `news/news.ts`, `suggestions/suggestions.ts`, `versions/versions.ts`.
 | Integrations | `languagetool/languagetool.ts` y la parte de `spotify/spotifyLookup.ts` que llama a `/spotify/*`. `SpotifyFunctions.ts` requiere revisar callers para distinguir una utilidad de proveedor de lógica específica de Catalog/Editorial.
 
-`auth/auth.ts` y `users/users.ts` duplican `getUsersRv()` para `/auth/usersRv`. `getRvUsers()` también existe en `users/users.ts`; la consolidación debe mantener un tipo de usuario asignable y consumidores de Articles/Videos/Playlists/Lists/Calendar. `spotify/spotifyLookup.ts` mezcla endpoints backend de Integrations (`/spotify/*`) y Catalog (`/discs/spotify/*`); separar por ownership al moverlo, sin cambiar requests. `national-releases/nationalReleases.ts` usa tanto Axios compartido como un Axios público separado para algunas llamadas; ese acceso público es una excepción de transporte, no un segundo ownership.
+La duplicación histórica de `/auth/usersRv` entre los servicios Auth y Users se consolidó en I1-02; actualmente `getRvUsers()` tiene una implementación en `modules/identity/users/api/users.ts`, que también consumen vistas/servicios legacy externos. `spotify/spotifyLookup.ts` mezcla endpoints backend de Integrations (`/spotify/*`) y Catalog (`/discs/spotify/*`); separar por ownership al moverlo, sin cambiar requests. `national-releases/nationalReleases.ts` usa tanto Axios compartido como un Axios público separado para algunas llamadas; ese acceso público es una excepción de transporte, no un segundo ownership.
 
 En vistas/componentes hay imports directos de Axios en `ArtistManagement.vue`, ambos calendarios, `DiscComponent.vue`, los dos kanbans de playlists y sus gestores. `ArtistDetail.vue` llama directamente a Last.fm. En cada migración confirmar si el destino es API backend (`shared/api`) o proveedor externo (`modules/integrations/api`), y conservar las llamadas públicas de formularios. No cambiar contratos HTTP en este roadmap.
 
@@ -244,8 +247,8 @@ En vistas/componentes hay imports directos de Axios en `ArtistManagement.vue`, a
 
 - `useIsMobileViewport()` es transversal y se usa en Insights, DashboardBuilder y estadísticas: candidato claro a `shared/composables`.
 - `useTheme()` se usa en DefaultLayout y mantiene estado compartido de tema; pertenece a `shared/composables` si sigue usado desde más de un módulo.
-- `useDashboardConfig()` pertenece a Dashboard/Insights o a un feature de preferencias de perfil, no a shared. Tiene acoplamiento real a Auth y User stores y migra al aclarar quién posee la configuración remota.
-- `artistManagementPagination.ts` y utils de `statistics/` permanecen en sus features. `modules/identity/utils/permissions.ts` contiene la comparación genérica de roles que consumen Router y componentes.
+- `useDashboardConfig()` pertenece a Dashboard/Insights o consume la configuración de cuenta propiedad de Identity; no pertenece a shared. Tiene acoplamiento real a Auth y User stores y migra al aclarar quién posee la configuración remota.
+- `artistManagementPagination.ts` y utils de `statistics/` permanecen en sus features. `modules/identity/shared/utils/permissions.ts` contiene la comparación genérica de roles que consumen Router y componentes.
 - `dateConstants`, `rejectReasons`, `SpotifyFunctions` y `SwalFuncionts` no se vuelven shared automáticamente; revisar el uso y ownership de cada uno al migrar.
 
 ### Componentes existentes
@@ -289,14 +292,14 @@ La documentación oficial describe query keys serializables y dependencias de ke
 
 - `/login` presenta username/password, maneja error de `SessionAuthError` y llama directamente a `authStore.login()`. `AccessRequestModal` se ofrece desde Login; no existe una página de registro público.
 - Logout se inicia desde `SidebarMenu.vue`. Auth limpia localmente estado y generación y solicita revocación a `sessionAuthTransport`; la UI informa cuando el backend no confirmó revocación.
-- `src/stores/auth/auth.ts` conserva sesión de usuario/rol y access JWT solo en memoria. Los datos CSRF de sesión/logout se guardan en localStorage por origen para soportar pestañas; no son JWT bearer. `sessionAuth.ts` no lee la cookie HttpOnly.
-- `sessionAuth.ts` maneja CSRF bootstrap, login, refresh CSRF recovery, refresh y logout con `withCredentials`, DTO validation, errores tipados y cabeceras `refresh-v1`. `sessionAuthCoordinator.ts` coordina pestañas mediante Web Locks/BroadcastChannel.
+- `src/modules/identity/auth/stores/auth.ts` conserva sesión de usuario/rol y access JWT solo en memoria. Los datos CSRF de sesión/logout se guardan en localStorage por origen para soportar pestañas; no son JWT bearer. `auth/api/sessionAuth.ts` no lee la cookie HttpOnly.
+- `auth/api/sessionAuth.ts` maneja CSRF bootstrap, login, refresh CSRF recovery, refresh y logout con `withCredentials`, DTO validation, errores tipados y cabeceras `refresh-v1`. `auth/api/sessionAuthCoordinator.ts` coordina pestañas mediante Web Locks/BroadcastChannel.
 - `src/services/api/api.ts` adjunta Bearer desde Auth, evita añadirlo a endpoints de sesión, comparte refresh por generación y reintenta una request una sola vez. Un 403 no renueva ni cierra sesión.
 - Los errores de sesión se normalizan como `SessionAuthError` (`unauthenticated`, `forbidden`, `rate-limited`, `unavailable`, `conflict`, `bad-request`, `http-error`, `network-error`, `protocol-error`). Un 401 definitivo limpia la sesión; errores transitorios de refresh conservan el estado y bloquean la navegación protegida con opción de reintento; 403 no fuerza logout. Logout distingue revocación confirmada y no confirmada.
-- `main.ts` registra eventos remotos de login/logout. Logout remoto limpia el Auth store de otras pestañas del mismo origin; App y el guard esperan inicialización. `router/index.ts` mantiene `requiresAuth`/`requiresRole` y `modules/identity/utils/permissions.ts` ordena los cuatro roles (`user < collaborator < riffvalley < superadmin`). La comprobación del frontend no reemplaza autorización backend.
-- `PasswordChange.vue` cambia contraseña y avatar vía servicio de usuario y también gestiona ajustes locales y dashboard. El cambio de contraseña no debe confundirse con login/session API.
-- `services/users/users.ts` incluye `/auth/register`, usado por el flujo de alta en `ManageUsers.vue`, además de CRUD/listados. En el frontend consultado no hay formulario público de registro, recovery ni reset de contraseña.
-- Tests existentes: `stores/auth/auth.test.ts`, `services/auth/sessionAuth.test.ts`, `sessionAuthCoordinator.test.ts`, `services/api/api.test.ts`, `router/authInitialization.test.ts`, `router/importPermissions.test.ts` y tests de visibilidad de Sidebar. LoginPage no tiene un test específico encontrado; no hay script E2E ni configuración Playwright/Cypress en el frontend.
+- `main.ts` registra eventos remotos de login/logout. Logout remoto limpia el Auth store de otras pestañas del mismo origin; App y el guard esperan inicialización. `router/index.ts` mantiene `requiresAuth`/`requiresRole` y `modules/identity/shared/utils/permissions.ts` ordena los cuatro roles (`user < collaborator < riffvalley < superadmin`). La comprobación del frontend no reemplaza autorización backend.
+- `account/password-change/PasswordChangeView.vue` cambia contraseña y avatar vía servicios de usuario y también gestiona ajustes locales y dashboard. El cambio de contraseña no debe confundirse con login/session API.
+- `modules/identity/users/api/users.ts` incluye `/auth/register`, usado por `users/user-management/UserManagementView.vue`, además de CRUD/listados. En el frontend consultado no hay formulario público de registro, recovery ni reset de contraseña.
+- Tests actuales incluyen `auth/stores/auth.test.ts`, los tests de `auth/api/sessionAuth*`, `auth/login/LoginView.test.ts`, pruebas de Router/permisos/Sidebar y tests de Password Change, User Management, Overview, User Activity, Inactivity y User Statistics Layout en sus owners. No hay script E2E ni configuración Playwright/Cypress en el frontend.
 
 ### Comportamiento vigente y alcance acordado
 
@@ -308,16 +311,18 @@ La documentación oficial describe query keys serializables y dependencias de ke
 | Registro público futuro | Backend conserva `POST /auth/register` como requisito de producto para 2027. Frontend no tiene formulario público ahora; el endpoint se usa en administración. Su traslado debe conservarlo, sin abrir antes el flujo público ni inventar permisos/UX. |
 | Recuperación de contraseña | No se encontró endpoint/servicio ni flujo frontend en el código consultado. No crear la feature hasta que haya contrato y requisitos de producto. |
 
-### Estructura de Identity propuesta
+### Estructura de Identity vigente
+
+La estructura funcional definitiva, el inventario por archivo y las subtareas físicas están en [identity-structure.md](identity-structure.md). Esta sección conserva el baseline de comportamiento y contratos de Identity; cualquier referencia estructural genérica anterior queda subordinada a esa convención.
 
 ```text
 modules/identity/
-├── views/       # Login, password/perfil y administración si se migra en esta fase
-├── components/  # Formulario/piezas de identity; solo si separarlas aporta claridad
-├── composables/ # Solo lógica reactiva reutilizada, p. ej. roles/perfil si se justifica
-├── stores/      # Sesión Pinia
-├── api/         # sessionAuth, user admin, access request y actividad identity
-└── types/       # Roles y contratos de Identity
+├── auth/        # Login, solicitud de acceso, sesión, transporte y store Auth
+├── account/     # Cuenta: contraseña, avatar, perfil y preferencias
+│   └── preferences/ # Store, composable y componentes de preferencias de Dashboard
+├── users/       # Administración y contratos/API de Users
+├── activity/    # Estadísticas, actividad diaria e inactividad
+└── shared/      # Contratos y permisos transversales de Identity
 ```
 
 El guard/router, App bootstrap y Axios compartido permanecen bajo `app/`/`shared/`; Identity no debe absorber infraestructura de toda la aplicación. Las preferencias del Dashboard no son propiedad de sesión, aunque el refresh actual devuelva sus campos.
@@ -341,7 +346,7 @@ El guard/router, App bootstrap y Axios compartido permanecen bajo `app/`/`shared
 | Archivo o familia actual | Responsabilidad / destino propuesto |
 |---|---|
 | `src/views/loginPage/LoginPage.vue`, `src/components/AccessRequestModal.vue` | Login y solicitud de acceso; `modules/identity/views` y `components`. La página usa Auth directamente. |
-| `src/views/password/PasswordChange.vue` | Cambio de contraseña/avatar y preferencias de Dashboard. Identity para el flujo de cuenta; separar preferencias solo en su propia migración, no como parte del baseline. |
+| `src/views/password/PasswordChange.vue` | Cambio de contraseña/avatar y preferencias de Dashboard. Identity para el flujo de cuenta; las preferencias se trasladan en su propia migración bajo Account, fuera del alcance del baseline. |
 | `src/views/users/{ManageUsers,AdminStats,UserActivity}.vue` | Administración, estadísticas y actividad de usuarios; vistas de Identity. El formulario público de registro no existe. |
 | `src/stores/auth/auth.ts` | Fuente Pinia de sesión global: token efímero en memoria, username/id/avatar/rol, estado y error de inicialización, modo renovable y generación anti-respuesta obsoleta. Mantener en `modules/identity/stores`. |
 | `src/services/auth/sessionAuth.ts`, `sessionAuthCoordinator.ts`, `src/services/auth/auth.ts` | Transporte de sesión, coordinación de pestañas, estadísticas/admin y una segunda implementación de `/auth/usersRv`; APIs y tipos migrados y duplicación consolidada en I1-02 sin cambiar contratos. |
@@ -352,13 +357,13 @@ El guard/router, App bootstrap y Axios compartido permanecen bajo `app/`/`shared
 | `src/services/api/api.ts` | Cliente Axios transversal y política actual de Bearer/401/403/refresh; permanece en `shared/api` (o infraestructura común equivalente). |
 | `src/layouts/default/components/SidebarMenu.vue`, `src/composables/useDashboardConfig.ts`, `src/components/{CommentItem,DiscCardComponent}.vue`, vistas de Dashboard, Articles, Artist Management, Content Calendar, Disc Calendar/DiscComponent, `MisVotosMes`, Login, Password, Riff Valley Playlists, Videos y `WeekLists` | Consumidores legacy que leen sesión/rol, o preferencias dashboard; mantener imports compatibles al principio y migrar por grupos hacia el contrato público de Identity sin importar internals nuevos. Sidebar pertenece al shell; los demás consumidores conservan el ownership de su feature. `main.ts`, App, Router y Axios son consumidores de composición/bootstrap detallados arriba. |
 
-La dependencia circular observada es `auth.ts` (store) → `appDailyActivity.ts` → `api.ts` → `auth.ts` (store). Axios también importa Router y Auth; el store importa la actividad y el coordinator. La store no usa otra store Pinia, pero sí participa en el ciclo de módulos. No se corrigió en I1-01; romperlo requiere separar la inicialización de cliente y las llamadas API en una subtarea posterior, conservando refresh y orden de bootstrap.
+El baseline I1-01 observó una dependencia circular entre store Auth, actividad diaria y Axios. El grafo actual no tiene ese ciclo: `auth/stores/auth.ts` importa `activity/api/appDailyActivity.ts`, que usa `services/api/api.ts`; el cliente Axios conserva una interfaz `ApiAuthSession` inyectada con `configureApiAuth()` y no importa el store. Se conserva este flujo y su comportamiento.
 
-Clasificación del estado Auth: sesión/usuario mínimo y rol son globales y deben permanecer en Pinia; `authStatus`, error, modo y generación son estado global de ciclo de sesión; el token es estado sensible efímero, nunca persistido ni de TanStack Query. Preferencias de Dashboard son persistencia local asociada al perfil/UI, hoy mezclada en Auth, no estado de autenticación. Los datos admin (`users`, actividad, estadísticas) son remotos y pueden migrar a Query; formularios, selección y loading de pantalla son locales. `loggedUser`, `avatarUrl`, `isAuthenticated` y `hasRole` son derivados.
+Clasificación del estado Auth: sesión/usuario mínimo y rol son globales y deben permanecer en Pinia; `authStatus`, error, modo y generación son estado global de ciclo de sesión; el token es estado sensible efímero, nunca persistido ni de TanStack Query. Las preferencias de la propia cuenta pertenecen a Account: `dashboardPreferences` persiste localmente en su store Pinia y permanece separada del estado de autenticación. Los datos admin (`users`, actividad, estadísticas) son remotos y pueden migrar a Query; formularios, selección y loading de pantalla son locales. `loggedUser`, `avatarUrl`, `isAuthenticated` y `hasRole` son derivados.
 
 #### Cobertura ejecutada
 
-Comando focalizado: `yarn test src/stores/auth/auth.test.ts src/services/auth/sessionAuth.test.ts src/services/auth/sessionAuthCoordinator.test.ts src/services/api/api.test.ts src/router/authInitialization.test.ts src/router/importPermissions.test.ts src/layouts/default/components/SidebarMenuAuth.test.ts src/layouts/default/components/SidebarMenuPermissions.test.ts src/services/activity/appDailyActivity.test.ts`.
+Comando focalizado: `yarn test src/stores/auth/auth.test.ts src/modules/identity/api/sessionAuth.test.ts src/modules/identity/api/sessionAuthCoordinator.test.ts src/services/api/api.test.ts src/router/authInitialization.test.ts src/router/importPermissions.test.ts src/layouts/default/components/SidebarMenuAuth.test.ts src/layouts/default/components/SidebarMenuPermissions.test.ts src/modules/identity/api/appDailyActivity.test.ts`.
 
 - **Aprobadas:** 9 archivos, 59 tests; incluyen login/validación, restauración, refresh y recuperación CSRF, logout confirmado/no confirmado, coordinación same-origin, concurrencia y respuestas obsoletas, interceptor 401/403, guards/roles, logout desde Sidebar y actividad.
 - **Fallidas:** ninguna.
@@ -675,11 +680,11 @@ La Iteración 0 se cierra con este documento. La Iteración 1 funcional migra pr
 - `ManageUsers.vue` (1.076 líneas) combina listado y filtros locales, edición inline de varios campos, cambios de rol/estado, notas, alta, borrado, confirmaciones y formularios/modales. Las queries y mutaciones ya están en composables; el siguiente corte legible es separar formulario/diálogo y fila/acciones solo donde reduzca responsabilidades del SFC. Mantener filtros, drafts y selección local en Vue y no volver a crear una store para usuarios remotos.
 - `AdminStats.vue` (469 líneas) compone resumen, filtros, paginación, estado de consulta, feedback y cuatro gráficas. Su fuente actual se va a sustituir por contratos de actividad nuevos; simplificarla después de adaptar la fuente para evitar extraer componentes alrededor de datos obsoletos.
 - `UserActivity.vue` (272 líneas) mezcla feed global paginado y detalle individual, selección de usuario, fecha y score formatting, errores/toasts y estados de ambas queries. La query está aislada, pero la vista tiene dos modos funcionales con datos distintos; adaptar primero su detalle a los nuevos agregados y después extraer piezas solo si la vista conserva suficiente complejidad.
-- `PasswordChange.vue` (591 líneas) reúne cambio de contraseña/avatar, preferencias del dashboard y preferencias locales. La sesión ya delega preferencias persistidas a `dashboardPreferences`; queda separar el bloque de cuenta de las preferencias de interfaz, manteniendo cada guardado y su propietario actual.
+- `PasswordChange.vue` (591 líneas) reúne cambio de contraseña/avatar, preferencias del dashboard y preferencias locales. La sesión ya delega preferencias persistidas a `dashboardPreferences`; queda valorar la composición visual de esos bloques dentro de Account, que mantiene el ownership de las preferencias persistidas.
 - `LoginPage.vue` (565 líneas) tiene bastante plantilla y el acceso al modal de solicitud, pero el flujo de sesión está delegado a Auth. La extensión visual por sí sola no justifica extraer componentes; conservarlo salvo que la implementación revele lógica de presentación/validación difícil de probar.
 - Los gráficos de `components/admin-stats/` repiten registro y opciones Chart.js; todos declaran `chartData` como `any`. La evolución de estadísticas determinará cuáles sobreviven. Compartir configuración o tipar datasets solo si queda duplicación real después de retirar métricas reemplazadas; no crear un wrapper genérico preventivo.
 - `useAdminStatsQuery`, `useAdminActivityQueries` y `useAdminUserMutations` ya concentran consultas, sesión e invalidación de Query. La protección por `userId` y `authSessionGeneration` está repetida intencionadamente en cada límite sensible; revisar si hay duplicación simplificable sin ocultar las comprobaciones de sesión. `useAuthStore` (275 líneas) mantiene un flujo cohesivo de sesión renovable, concurrencia, errores y logout; no dividirlo en capas ceremoniosas. `dashboardPreferences` ya es un store separado.
-- No se observó una store de listas administrativas duplicada tras I1-10e. En este alcance, conservar Pinia para sesión y preferencias globales existentes; Vue para drafts, filtros, paginación, modales y selección temporal; Query para datos remotos. Las validaciones de transporte de sesión permanecen en `sessionAuth`; validación de formularios administrativos debe tener una única regla por campo y tests de entradas/errores al simplificar formularios.
+- No se observó una store de listas administrativas duplicada tras I1-10e. En este alcance, conservar Pinia para sesión y para las preferencias persistidas propiedad de Account; Vue para drafts, filtros, paginación, modales y selección temporal; Query para datos remotos. Las validaciones de transporte de sesión permanecen en `sessionAuth`; validación de formularios administrativos debe tener una única regla por campo y tests de entradas/errores al simplificar formularios.
 
 ##### Contraste verificado con backend local
 
@@ -1121,14 +1126,14 @@ I1-E01, I1-E02, I1-E03e–I1-E03g e I1-E04a–I1-E04e están completadas a nivel
 - **Tests y verificaciones:** ampliar pruebas focalizadas de formularios/validación/cancelación/permisos; comprobar integración de la vista y `git diff --check`.
 - **Tamaño:** S. **Estado:** pendiente.
 
-###### I1-S02 XS — Separar preferencias de la pantalla de cuenta
+###### I1-S02 XS — Separar bloques visuales dentro de Account
 
 - **Categoría:** S — Simplificación.
-- **Objetivo:** aclarar el ownership visual de cambio de contraseña/avatar y preferencias en `PasswordChange.vue`.
+- **Objetivo:** aclarar la composición visual de contraseña/avatar y preferencias dentro de Account, manteniendo ambos ownership bajo esa funcionalidad.
 - **Problema que resuelve:** pantalla de 591 líneas con cuenta, preferencias de dashboard persistidas y preferencias locales en una misma plantilla/flujo.
-- **Archivos implicados:** `src/modules/identity/views/PasswordChange.vue`, `components/account/DashboardBuilder.vue`, `ModuleCard.vue`, `stores/dashboardPreferences.ts`, tests de PasswordChange y composables de preferencias.
+- **Archivos implicados:** `src/modules/identity/account/password-change/PasswordChangeView.vue`, `account/preferences/components/DashboardBuilder.vue`, `ModuleCard.vue`, `account/preferences/stores/dashboardPreferences.ts`, tests de Password Change y `account/preferences/composables/useDashboardPreferences.ts`.
 - **Dependencias:** I1-08 e I1-03 completadas.
-- **Cambios funcionales previstos:** ninguno; separar bloques de presentación donde reduzca acoplamiento; mantener la store de preferencias global justificada y estado efímero local en Vue.
+- **Cambios funcionales previstos:** ninguno; separar bloques de presentación donde reduzca acoplamiento; mantener el store `dashboardPreferences` propiedad de Account y el estado efímero local en Vue.
 - **Criterios de aceptación:** cambio de credenciales/avatar y preferencias conservan API, persistencia, UX, permisos y estados de error/carga; no se mezclan preferencias con auth session.
 - **Tests y verificaciones:** pruebas de envío/cancelación/errores y guardado de preferencias; cotejo de consumidores del store antes de cualquier traslado.
 - **Tamaño:** XS. **Estado:** pendiente.
@@ -1197,7 +1202,7 @@ I1-E01, I1-E02, I1-E03e–I1-E03g e I1-E04a–I1-E04e están completadas a nivel
 - **Tamaño:** XS.
 - **Estado:** pendiente.
 
-#### I1-12 XS — Verificar compatibilidad con futuros cambios del contrato backend
+#### I1-13 XS — Verificar compatibilidad con futuros cambios del contrato backend
 
 - **Objetivo:** comprobar que futuros cambios backend, si se aprueban, sigan siendo compatibles con el contrato de Identity de Riff Valley.
 - **Alcance:** revisar evidencia versionada del rollout y requisitos aprobados que afecten las sesiones renovables o el registro público futuro. Preservar los contratos actuales mientras no exista cambio aprobado; Riff Valley y Wiki conservan sesiones independientes. SSO y logout entre aplicaciones quedan fuera de alcance y no son objetivos de esta tarea.
@@ -1221,7 +1226,7 @@ No se planifica el traslado individual de todas las vistas futuras hasta termina
 
 ## 11. Riesgos, decisiones y dependencias
 
-- El ciclo Auth/API/actividad se debe deshacer con cuidado para no provocar imports parcialmente inicializados.
+- El diagnóstico I1-01 reportó un ciclo Auth/API/actividad, pero la revisión estática I1-11a.14 no lo reproduce en el grafo actual; cualquier cambio futuro de este flujo debe volver a verificar imports y orden de inicialización.
 - La renovación depende de cookie HttpOnly, CSRF y cabeceras exactas del backend. No cambiar nombres, paths, credenciales o semántica desde la migración modular.
 - La sesión de 30 días aparece en el código de backend y en el historial frontend; esta auditoría no hizo HTTP contra producción. El trabajo futuro debe distinguir branch, rollout y release activa.
 - Riff Valley y Wiki mantienen sesiones independientes; la migración debe conservar esa frontera. Los broadcasts actuales coordinan solo pestañas de Riff Valley en el mismo origen.
