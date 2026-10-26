@@ -119,7 +119,7 @@ Estrategia provisional de L-0: quitar el Sidebar duplicado y evaluar consultas d
 
 ## Roadmap propuesto
 
-Los tamaños son relativos: XS hasta unas horas, S hasta un día, M hasta varios días con integración/regresión. L-0 a L-4 están completadas; L-5 se cierra como N/A tras auditoría. L-6.1 está completada y L-6.2 sigue pendiente, por lo que L-6 no está cerrada.
+Los tamaños son relativos: XS hasta unas horas, S hasta un día, M hasta varios días con integración/regresión. L-0 a L-4 están completadas; L-5 se cierra como N/A tras auditoría. L-6.1 y L-6.2 están completadas y verificadas. L-7 queda completada con las verificaciones locales registradas al final; no se ejecutó CI ni se validaron servicios reales.
 
 | ID | Tarea | Tamaño | Dependencias | Estado / criterio de cierre |
 |---|---|---:|---|---|
@@ -129,10 +129,10 @@ Los tamaños son relativos: XS hasta unas horas, S hasta un día, M hasta varios
 | L-3 | Implementar proyección de resumen en backend mediante lecturas de cada owner | M | L-2 | **Completada.** `CrossDomainModule` compone `GET /api/app/sidebar-summary` con lecturas mínimas de Versions, Requests y Suggestions; permisos por rol, fallo atómico y pruebas. |
 | L-4 | Consumir resumen con TanStack Query y retirar las tres cargas directas del Sidebar | M | L-3 | **Completada.** Query privada de sesión, invalidaciones acotadas, badges y regresión; vistas conservan sus endpoints. |
 | L-5 | Delimitar Sidebar como presentación y delegación mediante contratos públicos | N/A | L-4 | **N/A tras auditoría L-5a.** Las dependencias actuales tienen owner y no justifican refactorización adicional. |
-| L-6 | Limpiar estado legacy y duplicaciones | S | L-1, L-5 | L-6.1 completada; L-6.2 pendiente. Cerrar L-6 solo al completar o descartar formalmente el resto; preservar guards/rutas/roles. |
-| L-7 | Regresión y cierre | S | L-3–L-6 | Casos de rol/sesión/mutaciones y gates proporcionales; evidencia local y CI separadas. |
+| L-6 | Limpiar estado legacy y duplicaciones | S | L-1, L-5 | **Completada.** L-6.1 y L-6.2 verificadas; se preservan guards/rutas/roles. |
+| L-7 | Regresión y cierre | S | L-3–L-6 | **Completada.** Regresión local aprobada; lint mantiene baseline de 1131 errores. Limitaciones de E2E, CI y backend real documentadas al final. |
 
-L-5 se cierra como **N/A tras auditoría**, conforme a la evidencia y justificación de L-5a. La auditoría previa L-6a y el avance de L-6.1 están documentados al final. L-6 sigue pendiente por L-6.2. No se inicia L-7.
+L-5 se cierra como **N/A tras auditoría**, conforme a la evidencia y justificación de L-5a. La auditoría L-6a y las ejecuciones de L-6.1/L-6.2 están documentadas al final. L-7 cierra el roadmap según la evidencia y limitaciones descritas en su sección.
 
 ## Verificaciones de L-0
 
@@ -446,4 +446,66 @@ Hay trabajo pequeño justificado; no se recomienda cerrar L-6 como N/A. Dividir 
 | `git diff --check` | Exit 0. |
 | Archivos de código de L-6.1 | Solo se modificó `src/views/petitions/PetitionsPage.vue` y se eliminó `src/stores/petitions/petitions.ts`. Los demás cambios del checkout se conservaron. |
 
-L-6 permanece **pendiente** por L-6.2; no se considera cerrada por completar esta subtarea.
+En el momento de documentar L-6.1, L-6 permanecía **pendiente** por L-6.2. La ejecución posterior de L-6.2 y el cierre verificado de L-6 constan a continuación.
+
+### Ejecución de L-6.2 — Suggestions y wrappers de Versions
+
+**Estado: completada.** Se repitió la búsqueda global antes de eliminar los símbolos. `pendingIds`, `unreadCount`, `setPendingIds` y `markAllAsRead` no tenían consumidores: el único escritor era `SuggestionsManagement.vue`, mientras que Sidebar deriva el badge desde `sidebarSummary`. Los wrappers `getLatestPublicVersion()` y `getLatestProductionVersion()` solo aparecían en sus declaraciones de `versions.ts`; se conserva el endpoint backend `GET /versions/production/latest` y los demás servicios frontend de Versiones.
+
+Se retiraron los cuatro miembros remotos de la store y la escritura asociada al `fetchAll` filtrado. `readIds`, `isRead`, `markAsRead`, la persistencia `rv_support_read_ids`, los indicadores de filas, el resumen del Sidebar y el resto de filtros/listados/mutaciones permanecen sin cambios. No se añadieron tests porque la modificación elimina código sin consumidor y conserva intacta la lógica de lectura existente; no hay tests propios de Suggestions o Versions disponibles.
+
+| Verificación | Resultado |
+|---|---|
+| Búsqueda global de símbolos retirados en `src/` | Exit 0, sin referencias a los cuatro miembros de Suggestions ni a los dos wrappers de Versions. El endpoint backend se conserva y no fue modificado. |
+| Tests focalizados disponibles | `pnpm exec vitest run src/layouts/default/components/SidebarMenuAuth.test.ts src/layouts/default/components/SidebarMenuPermissions.test.ts`: 2 archivos, 8 tests aprobados. No hay suites específicas de Suggestions o Versions. Una invocación previa ejecutó el suite completo: 55 archivos y 341 tests aprobados. |
+| Typecheck | `pnpm run typecheck`: exit 0 con Node 24.22.1 y pnpm 11.28.8. |
+| Build | `pnpm run build`: exit 0. Muestra avisos preexistentes de Browserslist desactualizado, CSS `.flex-[2]` y tamaño de chunks. |
+| ESLint focalizado y comparación con `HEAD` | Los archivos actuales y sus versiones de `HEAD` producen los mismos hallazgos: 18 errores en `SuggestionsManagement.vue`; cero en `support.ts` y `versions.ts`. No se corrigieron hallazgos preexistentes. |
+| `git diff --check` | Exit 0. |
+| Archivos de L-6.2 | `src/stores/support/support.ts`, `src/views/suggestions/SuggestionsManagement.vue`, `src/services/versions/versions.ts` y este roadmap. No se modificó `SidebarMenu.vue`, backend, `sidebarSummary.ts` ni configuración. |
+
+L-6 queda **completada** porque L-6.1 y L-6.2 están verificadas.
+
+## L-7 — Regresión y cierre del Layout
+
+**Estado: completada con límites documentados.** Se ejecutó la regresión frontend sobre el checkout con Node 24.22.1 y pnpm 11.28.8. Los tests usan mocks y no contactan el backend ni la base de datos reales. No hay script ni configuración E2E en `package.json`, `.github` o `scripts`; por eso la cobertura de interacción es la disponible en Vitest y la revisión estática.
+
+El usuario confirma que realizó un smoke test manual y que funcionó correctamente; no se detallaron casos ni entorno.
+
+### Shell, navegación y preferencias
+
+| Escenario | Evidencia |
+|---|---|
+| Una instancia de Sidebar y una petición inicial de resumen | `App.shell.test.ts`: una instancia y una llamada a `/app/sidebar-summary` para una ruta ordinaria autenticada. La query permanece deshabilitada anónimamente (`sidebarSummary.test.ts`). |
+| Ruta pública sin Sidebar | `App.shell.test.ts`: NationalReleasePublic no monta Sidebar ni hamburger. |
+| Abrir/cerrar menú, overlay y scroll | `App.shell.test.ts`: el botón abre el menú; overlay único; `body` queda bloqueado y se restaura al cerrar; también se restaura al desmontar el shell. La prueba confirma la llamada de restauración de scroll. |
+| Logout | `SidebarMenuAuth.test.ts` y tests de Auth: limpieza local, navegación a Login y aviso si el servidor no confirma revocación. |
+| Guards y roles | `router/importPermissions.test.ts` y `router/authInitialization.test.ts`: acceso anónimo, rutas por rol, revocación de permisos en ruta administrativa e inicialización. |
+| Tema, área y navegación entre rutas ordinarias | Revisión estática de `DefaultLayout.vue` y `SidebarMenu.vue`: tema y área siguen delegados a las preferencias/store existentes; el watcher de ruta cierra el menú. No hay un test específico de estas tres interacciones en el checkout. |
+
+### SidebarSummary, sesión y caché
+
+- El resumen se solicita una vez en carga inicial elegible; la prueba de shell verifica una llamada y `sidebarSummary.test.ts` comprueba endpoint, `AbortSignal` y query desactivada sin sesión. La respuesta pública muestra versión. Los datos de Requests solo se proyectan desde `riffvalley`; Suggestions solo desde `superadmin`. El badge de Suggestions calcula `inProgressIds` menos `readIds` y los campos ausentes no se presentan como cero (`SidebarMenuPermissions.test.ts`).
+- `sidebarSummary.test.ts` conserva estado de error de Query y confirma que no se crea ningún dato con contadores cero al fallar la petición. Las invalidaciones solo afectan al prefijo del resumen y se ejecutan después de mutaciones exitosas.
+- `privateQueryCache.test.ts` cubre logout, expiración, logout remoto, cambio de usuario, cambio de permisos, downgrade `riffvalley → collaborator`, limpieza/cancelación y rechazo de respuestas tardías. `auth.test.ts` y `sessionAuth.test.ts` cubren renovación/login/logout.
+- La búsqueda en `src/layouts/default/` y `SidebarMenu.vue` no encuentra llamadas directas antiguas a `/requests`, `/suggestions` ni `/versions/production/latest`; el Sidebar solo usa el resumen. Las vistas Petitions, Suggestions y Versions conservan sus llamadas de detalle y sus mutaciones con invalidación del resumen cuando corresponde.
+
+### Limpieza legacy
+
+La búsqueda productiva en `src/` no encuentra store/import de `petitions`, `pendingCount`, `setPendingCount`, `pendingIds`, `unreadCount`, `setPendingIds`, `markAllAsRead`, `getLatestPublicVersion()` ni `getLatestProductionVersion()`. Permanecen las consultas de pantalla necesarias: `getAllRequests()`/`getMyRequests()`, `getSuggestions()` y los listados/paginación de Versiones.
+
+### Gates locales
+
+| Gate | Resultado |
+|---|---|
+| Tests focalizados de shell, resumen, sesión, logout y permisos | 10 archivos, 81 tests aprobados. |
+| Suite completa `pnpm test` | 55 archivos, 341 tests aprobados. Algunos tests imprimen errores offline esperados al probar estados de error. |
+| `pnpm run typecheck` | Exit 0. |
+| `pnpm build` | Exit 0. Emite avisos de caniuse-lite desactualizado, selector CSS `.flex-[2]` y chunks mayores de 500 kB; no se modificaron configuración ni dependencias. |
+| `pnpm lint` | Exit 1: 1131 errores, 0 warnings. Comparación de `HEAD` mediante `git archive` y la misma versión de ESLint: también 1131 errores, 0 warnings. Los tres archivos funcionales modificados mantienen exactamente los hallazgos baseline en `SuggestionsManagement.vue` (18); `support.ts` y `versions.ts` tienen 0 en ambas versiones. No se atribuyen ni corrigen hallazgos preexistentes. |
+| `pnpm run markdown:links` | Exit 0, 21 archivos y 1302 enlaces. Informa un fallo preexistente en `roadmap/roles.md:9`, que apunta fuera del repositorio. |
+| `git diff --check` | Exit 0 tras la actualización documental. |
+
+No se verificó GitHub Actions ni se hicieron requests contra backend/base de datos reales. Los tests del frontend usan mocks; la revisión de la selección de endpoints e invalidaciones confirma el wiring en cliente, no disponibilidad ni autorización efectiva del servicio real. No se detectaron regresiones que requieran corrección; no se alteraron contratos, comportamiento funcional, dependencias ni configuración.
+
+**Cierre:** L-0–L-4 y L-6 completadas, L-5 N/A tras auditoría y L-7 completada. El roadmap de Layout queda **completado** con las limitaciones locales registradas arriba.

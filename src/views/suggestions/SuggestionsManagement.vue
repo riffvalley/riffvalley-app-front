@@ -350,11 +350,6 @@ export default defineComponent({
         if (activeStatus.value !== 'all') params.status = activeStatus.value;
         const result = await getSuggestions(params);
         suggestions.value = Array.isArray(result) ? result : ((result as any).data ?? []);
-        // Actualizar el store con los IDs pendientes para el badge del sidebar
-        const pendingIds = suggestions.value
-          .filter(s => s.status === 'in_progress')
-          .map(s => s.id);
-        supportStore.setPendingIds(pendingIds);
       } finally {
         loading.value = false;
       }
