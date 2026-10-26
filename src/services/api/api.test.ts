@@ -16,7 +16,7 @@ vi.mock("@services/swal/SwalService", () => ({ default: { error: vi.fn() } }));
 
 import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
 import SwalService from "@services/swal/SwalService";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 import router from "/src/router";
 import api, { configureApiAuth } from "./api";
 

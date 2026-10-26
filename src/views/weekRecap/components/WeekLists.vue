@@ -80,7 +80,7 @@
 import { defineComponent, ref, onMounted, computed } from "vue";
 import { getLists } from "@services/list/list";
 import { useRouter } from "vue-router";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 import { useAsignationStore } from "@stores/asignation/asignation";
 import SwalService from "@services/swal/SwalService";
 export default defineComponent({

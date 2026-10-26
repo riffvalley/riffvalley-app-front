@@ -21,10 +21,14 @@ describe("UserPasswordDialog", () => {
     });
 
     expect(document.body.textContent).toContain("Usuario: Zed");
-    expect(document.body.querySelector<HTMLInputElement>("input")?.placeholder).toBe("Mínimo 6 caracteres");
+    expect(document.body.querySelector<HTMLInputElement>("input")?.placeholder).toBe(
+      "Mínimo 6 caracteres"
+    );
     expect(document.body.querySelector<HTMLInputElement>("input")?.type).toBe("password");
     expect(document.body.textContent).toContain("Mínimo 6 caracteres");
-    expect(document.body.querySelector<HTMLButtonElement>(".modal-btn-primary")?.disabled).toBe(true);
+    expect(document.body.querySelector<HTMLButtonElement>(".modal-btn-primary")?.disabled).toBe(
+      true
+    );
     wrapper.unmount();
   });
 
@@ -74,28 +78,70 @@ describe("UserPasswordDialog", () => {
 
   it("exposes a named modal, labelled password control and keyboard focus behavior", async () => {
     const wrapper = mount(UserPasswordDialog, {
-      props: { open: true, username: "Amy", modelValue: "", passwordVisible: false, validationError: "" },
+      props: {
+        open: true,
+        username: "Amy",
+        modelValue: "",
+        passwordVisible: false,
+        validationError: "",
+      },
     });
     await nextTick();
     const dialog = document.body.querySelector<HTMLElement>('[role="dialog"]');
     const password = document.body.querySelector<HTMLInputElement>("#change-user-password");
     if (!dialog || !password) throw new Error("Missing password dialog controls");
-    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'));
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+      )
+    );
 
     expect(dialog.getAttribute("aria-modal")).toBe("true");
     expect(dialog.getAttribute("aria-labelledby")).toBe("change-user-password-dialog-title");
-    expect(document.body.querySelector<HTMLLabelElement>('label[for="change-user-password"]')?.control).toBe(password);
-    expect(document.body.querySelector<HTMLButtonElement>(".modal-close")?.getAttribute("aria-label")).toBe("Cerrar diálogo de cambio de contraseña");
-    expect(document.body.querySelector<HTMLButtonElement>(".relative button")?.getAttribute("aria-label")).toBe("Mostrar contraseña");
+    expect(
+      document.body.querySelector<HTMLLabelElement>('label[for="change-user-password"]')?.control
+    ).toBe(password);
+    expect(
+      document.body.querySelector<HTMLButtonElement>(".modal-close")?.getAttribute("aria-label")
+    ).toBe("Cerrar diálogo de cambio de contraseña");
+    expect(
+      document.body.querySelector<HTMLButtonElement>(".relative button")?.getAttribute("aria-label")
+    ).toBe("Mostrar contraseña");
     expect(password).toBe(document.activeElement);
 
     focusable.at(-1)?.focus();
-    const forwardTab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
+    const forwardTab = new KeyboardEvent("keydown", {
+      key: "Tab",
+      bubbles: true,
+      cancelable: true,
+    });
     focusable.at(-1)?.dispatchEvent(forwardTab);
     expect(forwardTab.defaultPrevented).toBe(true);
     expect(focusable[0]).toBe(document.activeElement);
-    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    dialog.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })
+    );
     expect(wrapper.emitted("close")).toHaveLength(1);
+    wrapper.unmount();
+  });
+
+  it("associates validation feedback with the invalid password field", () => {
+    const wrapper = mount(UserPasswordDialog, {
+      props: {
+        open: true,
+        username: "Amy",
+        modelValue: "short",
+        passwordVisible: false,
+        validationError: "Mínimo 6 caracteres",
+      },
+    });
+    const password = document.body.querySelector<HTMLInputElement>("#change-user-password");
+
+    expect(password?.getAttribute("aria-invalid")).toBe("true");
+    expect(password?.getAttribute("aria-describedby")).toBe("change-user-password-error");
+    expect(
+      document.body.querySelector<HTMLElement>("#change-user-password-error")?.getAttribute("role")
+    ).toBe("alert");
     wrapper.unmount();
   });
 });

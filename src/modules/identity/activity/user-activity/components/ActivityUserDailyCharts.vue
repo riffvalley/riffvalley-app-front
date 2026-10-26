@@ -31,36 +31,43 @@ function formatValue(value: number | null): string {
 
 const dates = computed(() => props.activity.presenceByDay.map(({ date }) => date));
 const labels = computed(() => dates.value.map(dateLabel));
-const presenceData = computed(() => new Map(
-  props.activity.presenceByDay.map(({ date, present }) => [date, present]),
-));
-const newVotesData = computed(() => new Map(
-  props.activity.newVotesByDay.map(({ date, count }) => [date, count]),
-));
-const changedVotesData = computed(() => new Map(
-  props.activity.changedVotesByDay.map(({ date, count }) => [date, count]),
-));
+const presenceData = computed(
+  () => new Map(props.activity.presenceByDay.map(({ date, present }) => [date, present]))
+);
+const newVotesData = computed(
+  () => new Map(props.activity.newVotesByDay.map(({ date, count }) => [date, count]))
+);
+const changedVotesData = computed(
+  () => new Map(props.activity.changedVotesByDay.map(({ date, count }) => [date, count]))
+);
 
-const hasPresenceValues = computed(() => [...presenceData.value.values()].some((value) => value !== null));
-const hasVoteValues = computed(() => [...newVotesData.value.values(), ...changedVotesData.value.values()]
-  .some((value) => value !== null));
+const hasPresenceValues = computed(() =>
+  [...presenceData.value.values()].some((value) => value !== null)
+);
+const hasVoteValues = computed(() =>
+  [...newVotesData.value.values(), ...changedVotesData.value.values()].some(
+    (value) => value !== null
+  )
+);
 
 const presenceChart = computed<ChartData<"line", (number | null)[], string>>(() => ({
   labels: labels.value,
-  datasets: [{
-    label: "Presencia App",
-    data: dates.value.map((date) => {
-      const present = presenceData.value.get(date);
-      return present === null || present === undefined ? null : Number(present);
-    }),
-    borderColor: "#228b68",
-    backgroundColor: "rgba(34, 139, 104, 0.12)",
-    borderWidth: 2,
-    pointRadius: 2.5,
-    pointHoverRadius: 5,
-    stepped: true,
-    spanGaps: false,
-  }],
+  datasets: [
+    {
+      label: "Presencia App",
+      data: dates.value.map((date) => {
+        const present = presenceData.value.get(date);
+        return present === null || present === undefined ? null : Number(present);
+      }),
+      borderColor: "#228b68",
+      backgroundColor: "rgba(34, 139, 104, 0.12)",
+      borderWidth: 2,
+      pointRadius: 2.5,
+      pointHoverRadius: 5,
+      stepped: true,
+      spanGaps: false,
+    },
+  ],
 }));
 
 const voteChart = computed<ChartData<"line", (number | null)[], string>>(() => ({
@@ -97,8 +104,15 @@ const commonOptions = computed<ChartOptions<"line">>(() => ({
   maintainAspectRatio: false,
   interaction: { intersect: false, mode: "index" },
   plugins: {
-    legend: { position: "bottom", labels: { color: "#64748b", usePointStyle: true, boxWidth: 8, padding: 16 } },
-    tooltip: { callbacks: { label: (context) => ` ${context.dataset.label}: ${formatValue(context.parsed.y)}` } },
+    legend: {
+      position: "bottom",
+      labels: { color: "#64748b", usePointStyle: true, boxWidth: 8, padding: 16 },
+    },
+    tooltip: {
+      callbacks: {
+        label: (context) => ` ${context.dataset.label}: ${formatValue(context.parsed.y)}`,
+      },
+    },
   },
   scales: {
     x: { grid: { display: false }, ticks: { color: "#64748b", maxTicksLimit: 10, maxRotation: 0 } },
@@ -108,7 +122,8 @@ const commonOptions = computed<ChartOptions<"line">>(() => ({
       ticks: {
         color: "#64748b",
         precision: 0,
-        callback: (tick) => new Intl.NumberFormat("es-ES", { notation: "compact" }).format(Number(tick)),
+        callback: (tick) =>
+          new Intl.NumberFormat("es-ES", { notation: "compact" }).format(Number(tick)),
       },
     },
   },
@@ -120,7 +135,8 @@ const presenceOptions = computed<ChartOptions<"line">>(() => ({
     ...commonOptions.value.plugins,
     tooltip: {
       callbacks: {
-        label: (context) => ` Presencia App: ${context.parsed.y === null ? "sin cobertura" : context.parsed.y === 1 ? "presente" : "sin presencia"}`,
+        label: (context) =>
+          ` Presencia App: ${context.parsed.y === null ? "sin cobertura" : context.parsed.y === 1 ? "presente" : "sin presencia"}`,
       },
     },
   },
@@ -133,7 +149,7 @@ const presenceOptions = computed<ChartOptions<"line">>(() => ({
       ticks: {
         stepSize: 1,
         color: "#64748b",
-        callback: (tick) => Number(tick) === 1 ? "Presente" : "Sin presencia",
+        callback: (tick) => (Number(tick) === 1 ? "Presente" : "Sin presencia"),
       },
     },
   },
@@ -150,31 +166,61 @@ const presenceOptions = computed<ChartOptions<"line">>(() => ({
     </div>
 
     <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-      <article class="chart-panel rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-rv-darkCard sm:p-5">
+      <article
+        class="chart-panel rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-rv-darkCard sm:p-5"
+      >
         <h4 class="font-semibold text-gray-800 dark:text-gray-100">Presencia diaria en App</h4>
         <div v-if="hasPresenceValues" class="chart-canvas mt-3">
-          <Line :data="presenceChart" :options="presenceOptions" role="img" aria-label="Presencia diaria en la aplicación. Un valor vacío indica falta de cobertura." />
+          <Line
+            :data="presenceChart"
+            :options="presenceOptions"
+            role="img"
+            aria-label="Presencia diaria en la aplicación. Un valor vacío indica falta de cobertura."
+          />
         </div>
-        <p v-else class="chart-empty mt-3 flex h-64 items-center justify-center rounded-lg bg-gray-50 px-4 text-center text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300">
+        <p
+          v-else
+          class="chart-empty mt-3 flex h-64 items-center justify-center rounded-lg bg-gray-50 px-4 text-center text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300"
+        >
           No hay días cubiertos de presencia para este rango.
         </p>
-        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Presente = actividad diaria registrada; no representa sesiones ni duración.</p>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          Presente = actividad diaria registrada; no representa sesiones ni duración.
+        </p>
       </article>
 
-      <article class="chart-panel rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-rv-darkCard sm:p-5">
-        <h4 class="font-semibold text-gray-800 dark:text-gray-100">Eventos de valoración por día</h4>
+      <article
+        class="chart-panel rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-rv-darkCard sm:p-5"
+      >
+        <h4 class="font-semibold text-gray-800 dark:text-gray-100">
+          Eventos de valoración por día
+        </h4>
         <div v-if="hasVoteValues" class="chart-canvas mt-3">
-          <Line :data="voteChart" :options="commonOptions" role="img" aria-label="Eventos diarios separados entre votos nuevos set y modificaciones change. Los días sin cobertura no se muestran como cero." />
+          <Line
+            :data="voteChart"
+            :options="commonOptions"
+            role="img"
+            aria-label="Eventos diarios separados entre votos nuevos set y modificaciones change. Los días sin cobertura no se muestran como cero."
+          />
         </div>
-        <p v-else class="chart-empty mt-3 flex h-64 items-center justify-center rounded-lg bg-gray-50 px-4 text-center text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300">
+        <p
+          v-else
+          class="chart-empty mt-3 flex h-64 items-center justify-center rounded-lg bg-gray-50 px-4 text-center text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300"
+        >
           No hay días cubiertos de eventos de voto para este rango.
         </p>
-        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Los huecos sin cobertura se mantienen separados de los ceros.</p>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          Los huecos sin cobertura se mantienen separados de los ceros.
+        </p>
       </article>
     </div>
   </section>
 </template>
 
 <style scoped>
-.chart-canvas { position: relative; height: 17rem; min-width: 0; }
+.chart-canvas {
+  position: relative;
+  height: 17rem;
+  min-width: 0;
+}
 </style>

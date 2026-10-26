@@ -4,6 +4,8 @@
 
 **Alcance:** inventario de los 58 archivos actuales en `src/modules/identity/`, sus imports/consumidores relevantes y el plan de su reorganización física. Este documento concreta el ownership de Identity respecto a [la arquitectura frontend](frontend-architecture.md). No autoriza cambios funcionales.
 
+**Estado documental:** este archivo se conserva como historial de reorganización I1-11, incluidos inventarios, tareas y resultados. La fuente canónica de la estructura y contratos vigentes es [docs/frontend/modules/identity.md](../docs/frontend/modules/identity.md); no se reescribe aquí la cronología.
+
 ## 1. Diagnóstico del checkout
 
 El inventario de 58 archivos se confirma contra el árbol actual. I1-11b.1–.7 trasladaron Auth, Account, Users, Shared y todas las áreas de Activity a sus destinos funcionales. I1-11b.8 contrastó árbol, inventario, rutas, referencias y regresiones; la reorganización está cerrada.

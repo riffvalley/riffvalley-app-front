@@ -7,30 +7,35 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 
 const { getGlobalActivity } = vi.hoisted(() => ({ getGlobalActivity: vi.fn() }));
 
-vi.mock("@/modules/identity/users/api/users", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/modules/identity/users/api/users")>();
+vi.mock("@/modules/identity/activity/api/activity", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/modules/identity/activity/api/activity")>();
   return { ...actual, getGlobalActivity };
 });
 
 import { observePrivateQueryCache } from "@/app/privateQueryCache";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
-import type { GlobalActivityResponse } from "@/modules/identity/users/types/users";
-import { globalActivityQueryKeyForSession, useAdminActivityQueries } from "./useAdminActivityQueries";
+import { useAuthStore } from "@/modules/identity/auth";
+import type { GlobalActivityResponse } from "@/modules/identity/activity/types/activity";
+import {
+  globalActivityQueryKeyForSession,
+  useAdminActivityQueries,
+} from "./useAdminActivityQueries";
 
 const globalActivity: GlobalActivityResponse = {
   totalItems: 1,
   totalPages: 2,
   currentPage: 1,
   limit: 20,
-  data: [{
-    id: "vote-1",
-    rate: 5,
-    cover: null,
-    createdAt: "2025-03-04T12:30:00.000Z",
-    editedAt: null,
-    user: { id: "target-1", username: "Member A", image: "" },
-    disc: { id: "disc-1", name: "Release" },
-  }],
+  data: [
+    {
+      id: "vote-1",
+      rate: 5,
+      cover: null,
+      createdAt: "2025-03-04T12:30:00.000Z",
+      editedAt: null,
+      user: { id: "target-1", username: "Member A", image: "" },
+      disc: { id: "disc-1", name: "Release" },
+    },
+  ],
 };
 
 describe("useAdminActivityQueries global feed", () => {
@@ -41,7 +46,9 @@ describe("useAdminActivityQueries global feed", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setActivePinia(createPinia());
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 60_000, gcTime: Infinity } } });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 60_000, gcTime: Infinity } },
+    });
     const authStore = useAuthStore();
     authStore.$patch({
       authStatus: "authenticated",
@@ -64,16 +71,19 @@ describe("useAdminActivityQueries global feed", () => {
 
   function mountQuery(enabled: () => boolean = () => true) {
     const page = ref(1);
-    wrapper = mount(defineComponent({
-      setup() {
-        const queries = useAdminActivityQueries({
-          limit: 20,
-          offset: () => (page.value - 1) * 20,
-          enabled,
-        });
-        return () => queries.globalQuery.data.value?.totalItems ?? null;
-      },
-    }), { global: { plugins: [[VueQueryPlugin, { queryClient }]] } });
+    wrapper = mount(
+      defineComponent({
+        setup() {
+          const queries = useAdminActivityQueries({
+            limit: 20,
+            offset: () => (page.value - 1) * 20,
+            enabled,
+          });
+          return () => queries.globalQuery.data.value?.totalItems ?? null;
+        },
+      }),
+      { global: { plugins: [[VueQueryPlugin, { queryClient }]] } }
+    );
     return { page };
   }
 
@@ -99,8 +109,9 @@ describe("useAdminActivityQueries global feed", () => {
     selectedUserId.value = "";
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(getGlobalActivity).toHaveBeenCalledOnce();
-    expect(queryClient.getQueryData(globalActivityQueryKeyForSession(20, 0, "admin-a", 3)))
-      .toEqual(globalActivity);
+    expect(queryClient.getQueryData(globalActivityQueryKeyForSession(20, 0, "admin-a", 3))).toEqual(
+      globalActivity
+    );
   });
 
   it("does not query the global feed without a superadmin session", async () => {
@@ -114,7 +125,12 @@ describe("useAdminActivityQueries global feed", () => {
   it("discards a late feed response on downgrade and fetches current data after restoration", async () => {
     let resolveLate!: (value: GlobalActivityResponse) => void;
     getGlobalActivity
-      .mockImplementationOnce(() => new Promise((resolve) => { resolveLate = resolve; }))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveLate = resolve;
+          })
+      )
       .mockResolvedValueOnce({ ...globalActivity, totalItems: 2 });
     const authStore = useAuthStore();
     mountQuery();
@@ -125,11 +141,18 @@ describe("useAdminActivityQueries global feed", () => {
     expect(signal.aborted).toBe(true);
     resolveLate(globalActivity);
     await flushPromises();
-    expect(queryClient.getQueryCache().getAll().every((query) => query.state.data === undefined)).toBe(true);
+    expect(
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .every((query) => query.state.data === undefined)
+    ).toBe(true);
 
     authStore.$patch({ role: "superadmin" });
     const key = globalActivityQueryKeyForSession(20, 0, "admin-a", 3);
-    await vi.waitFor(() => expect(queryClient.getQueryData(key)).toEqual({ ...globalActivity, totalItems: 2 }));
+    await vi.waitFor(() =>
+      expect(queryClient.getQueryData(key)).toEqual({ ...globalActivity, totalItems: 2 })
+    );
     expect(getGlobalActivity).toHaveBeenCalledTimes(2);
   });
 });

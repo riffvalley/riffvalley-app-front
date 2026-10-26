@@ -144,7 +144,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { getTopRatedOrFeaturedAndStats } from "@services/discs/discs";
-import type { Disc } from "@services/discs/disc";
+import type { Disc } from "@services/discs/discs";
 import DiscCard from "@components/DiscCardComponent.vue";
 import DiscFilters from "@components/DiscFilters.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";

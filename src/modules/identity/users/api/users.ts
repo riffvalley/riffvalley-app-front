@@ -2,7 +2,6 @@ import api from "@services/api/api.ts";
 import type {
   AdminUpdateUserPayload,
   AdminUser,
-  GlobalActivityResponse,
   RegisterUserPayload,
   RegisterUserResponse,
   RvUser,
@@ -36,7 +35,10 @@ export async function updateUserService(updateUserDto: UpdateProfilePayload) {
   return api.patch<unknown>(`/auth`, updateUserDto);
 }
 
-export async function updateUserSuperAdminService(id: string, updateUserDto: AdminUpdateUserPayload) {
+export async function updateUserSuperAdminService(
+  id: string,
+  updateUserDto: AdminUpdateUserPayload
+) {
   return api.patch<unknown>(`/auth/superadmin/${id}`, updateUserDto);
 }
 
@@ -50,11 +52,4 @@ export async function deactivateUserService(id: string): Promise<void> {
 
 export async function activateUserService(id: string): Promise<void> {
   await api.patch(`/auth/${id}/activate`);
-}
-
-export async function getGlobalActivity(limit = 20, offset = 0, signal?: AbortSignal): Promise<GlobalActivityResponse> {
-  const response = await api.get<GlobalActivityResponse>("/auth/activity", signal
-    ? { params: { limit, offset }, signal }
-    : { params: { limit, offset } });
-  return response.data;
 }

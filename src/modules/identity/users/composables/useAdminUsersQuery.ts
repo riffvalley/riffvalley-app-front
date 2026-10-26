@@ -1,7 +1,7 @@
 import { computed } from "vue";
 import { useQuery } from "@tanstack/vue-query";
 import { getUsers } from "@/modules/identity/users/api/users";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 
 export const adminUsersQueryKey = ["identity", "users", "admin-list"] as const;
 
@@ -20,11 +20,14 @@ export function useAdminUsersQuery() {
     authStore.authSessionGeneration === generation;
 
   return useQuery({
-    queryKey: computed(() => adminUsersQueryKeyForSession(authStore.userId, authStore.authSessionGeneration)),
-    enabled: computed(() =>
-      authStore.authStatus === "authenticated" &&
-      authStore.isAuthenticated &&
-      authStore.hasRole("superadmin"),
+    queryKey: computed(() =>
+      adminUsersQueryKeyForSession(authStore.userId, authStore.authSessionGeneration)
+    ),
+    enabled: computed(
+      () =>
+        authStore.authStatus === "authenticated" &&
+        authStore.isAuthenticated &&
+        authStore.hasRole("superadmin")
     ),
     queryFn: async ({ signal }) => {
       const requestedUserId = authStore.userId;
@@ -34,10 +37,7 @@ export function useAdminUsersQuery() {
       }
 
       const users = await getUsers(signal);
-      if (
-        signal.aborted ||
-        !canManageUsers(requestedUserId, requestedGeneration)
-      ) {
+      if (signal.aborted || !canManageUsers(requestedUserId, requestedGeneration)) {
         throw new Error("La sesión o los permisos cambiaron antes de completar la consulta.");
       }
 

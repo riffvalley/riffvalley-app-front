@@ -38,10 +38,16 @@ describe("useLoginForm", () => {
 
   it.each([
     ["unauthenticated", "Usuario o contraseña incorrectos."],
-    ["forbidden", "No se pudo validar la solicitud de acceso. Recarga la página e inténtalo de nuevo."],
+    [
+      "forbidden",
+      "No se pudo validar la solicitud de acceso. Recarga la página e inténtalo de nuevo.",
+    ],
     ["rate-limited", "Demasiados intentos. Espera un momento antes de volver a intentarlo."],
     ["unavailable", "El servicio de acceso no está disponible temporalmente. Inténtalo más tarde."],
-    ["network-error", "El servicio de acceso no está disponible temporalmente. Inténtalo más tarde."],
+    [
+      "network-error",
+      "El servicio de acceso no está disponible temporalmente. Inténtalo más tarde.",
+    ],
     ["conflict", "No se pudo completar el acceso. Inténtalo de nuevo."],
     ["bad-request", "No se pudo completar el acceso. Inténtalo de nuevo."],
     ["http-error", "No se pudo completar el acceso. Inténtalo de nuevo."],
@@ -70,7 +76,12 @@ describe("useLoginForm", () => {
 
   it("clears a previous error and exposes loading until login settles", async () => {
     let resolveLogin!: () => void;
-    login.mockImplementation(() => new Promise<void>((resolve) => { resolveLogin = resolve; }));
+    login.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveLogin = resolve;
+        })
+    );
     const form = useLoginForm();
     form.error.value = "error anterior";
 

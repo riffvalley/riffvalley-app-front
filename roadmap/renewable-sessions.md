@@ -2,6 +2,8 @@
 
 **Estado:** BC-ID-7.1 a BC-ID-7.6 completadas el 2026-10-22. La migración de App está publicada y validada en producción; el siguiente bloque es BC-ID-8 — Migración de Wiki.
 
+> **Lectura actual (FQ-6.5):** este roadmap conserva el contrato consultado, las decisiones y evidencias del rollout de App. El comportamiento vigente de sesión de App se resume en la [documentación canónica de Identity](../docs/frontend/modules/identity.md). App y Wiki mantienen sesiones independientes; la fase BC-ID-8 mencionada abajo es planificación histórica, no parte de FQ-6.5.
+
 **Objetivo:** registrar el cierre de la migración de sesión de App al protocolo `refresh-v1`, conservando el JWT de acceso solo en memoria y delegando la cookie HttpOnly al navegador.
 
 **Alcance:** frontend principal Vue 3 + TypeScript + Pinia + Vue Router. No incluye cambios en backend ni Wiki, despliegues, cambios de rutas/permisos ni modificaciones de `.impeccable/config.json`.

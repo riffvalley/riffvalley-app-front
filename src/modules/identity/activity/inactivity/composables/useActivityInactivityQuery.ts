@@ -9,12 +9,12 @@ import {
   type ActivityInactivityResponse,
   type ActivityInactivityUser,
 } from "@/modules/identity/activity/inactivity/types/activityInactivity";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore, type AuthStore } from "@/modules/identity/auth";
 
 export const activityInactivityQueryKey = ["identity", "activity", "inactivity"] as const;
 
 export function normalizeActivityInactivityParams(
-  params: ActivityInactivityParams,
+  params: ActivityInactivityParams
 ): ActivityInactivityParams {
   return {
     ...(params.asOf === undefined ? {} : { asOf: params.asOf }),
@@ -30,7 +30,7 @@ export function normalizeActivityInactivityParams(
 export function activityInactivityQueryKeyForSession(
   params: ActivityInactivityParams,
   userId: string | null,
-  generation: number,
+  generation: number
 ) {
   return [
     ...activityInactivityQueryKey,
@@ -69,22 +69,28 @@ function isNullableString(value: unknown): value is string | null {
 function isInactivityUser(value: unknown): value is ActivityInactivityUser {
   if (!value || typeof value !== "object") return false;
   const user = value as Record<string, unknown>;
-  const isKnownVoteAge = ACTIVITY_INACTIVITY_BUCKETS.includes(user.inactivityGroup as ActivityInactivityUser["inactivityGroup"]);
+  const isKnownVoteAge = ACTIVITY_INACTIVITY_BUCKETS.includes(
+    user.inactivityGroup as ActivityInactivityUser["inactivityGroup"]
+  );
   const nullableVoteFieldsMatch = isKnownVoteAge
     ? typeof user.lastVoteAt === "string" && isNonNegativeInteger(user.daysSinceLastVote)
     : user.lastVoteAt === null && user.daysSinceLastVote === null;
 
-  return typeof user.userId === "string" &&
+  return (
+    typeof user.userId === "string" &&
     typeof user.username === "string" &&
     ["user", "collaborator", "riffvalley", "superadmin"].includes(String(user.role)) &&
     typeof user.isActive === "boolean" &&
     isNullableString(user.lastVoteAt) &&
     (user.daysSinceLastVote === null || isNonNegativeInteger(user.daysSinceLastVote)) &&
     nullableVoteFieldsMatch &&
-    ACTIVITY_INACTIVITY_GROUPS.includes(user.inactivityGroup as ActivityInactivityUser["inactivityGroup"]) &&
+    ACTIVITY_INACTIVITY_GROUPS.includes(
+      user.inactivityGroup as ActivityInactivityUser["inactivityGroup"]
+    ) &&
     isNullableString(user.lastPresenceAt) &&
     isNullableString(user.lastRatingModifiedAt) &&
-    isNonNegativeInteger(user.currentRatings);
+    isNonNegativeInteger(user.currentRatings)
+  );
 }
 
 export function isActivityInactivityResponse(value: unknown): value is ActivityInactivityResponse {
@@ -98,37 +104,52 @@ export function isActivityInactivityResponse(value: unknown): value is ActivityI
     return total + (typeof valueForGroup === "number" ? valueForGroup : 0);
   }, 0);
 
-  return typeof response.asOf === "string" &&
+  return (
+    typeof response.asOf === "string" &&
     response.timezone === "Europe/Madrid" &&
     isNonNegativeInteger(response.totalUsers) &&
     groupsTotal === response.totalUsers &&
     groupKeys.length === ACTIVITY_INACTIVITY_GROUPS.length &&
     ACTIVITY_INACTIVITY_GROUPS.every((group) => isNonNegativeInteger(groups[group])) &&
-    groupKeys.every((group) => ACTIVITY_INACTIVITY_GROUPS.includes(group as ActivityInactivityUser["inactivityGroup"])) &&
-    !!response.coverage && typeof response.coverage === "object" &&
-    ["partial", "unavailable"].includes(String((response.coverage as Record<string, unknown>).status)) &&
+    groupKeys.every((group) =>
+      ACTIVITY_INACTIVITY_GROUPS.includes(group as ActivityInactivityUser["inactivityGroup"])
+    ) &&
+    !!response.coverage &&
+    typeof response.coverage === "object" &&
+    ["partial", "unavailable"].includes(
+      String((response.coverage as Record<string, unknown>).status)
+    ) &&
     isNullableString((response.coverage as Record<string, unknown>).captureStartedAt) &&
     isNullableString((response.coverage as Record<string, unknown>).captureDataSince) &&
     typeof (response.coverage as Record<string, unknown>).interpretation === "string" &&
-    isNonNegativeInteger(response.limit) && response.limit >= 1 && response.limit <= 100 &&
+    isNonNegativeInteger(response.limit) &&
+    response.limit >= 1 &&
+    response.limit <= 100 &&
     isNonNegativeInteger(response.offset) &&
-    ACTIVITY_INACTIVITY_SORT_FIELDS.includes(response.sortBy as ActivityInactivityResponse["sortBy"]) &&
+    ACTIVITY_INACTIVITY_SORT_FIELDS.includes(
+      response.sortBy as ActivityInactivityResponse["sortBy"]
+    ) &&
     ["asc", "desc"].includes(String(response.sortOrder)) &&
-    Array.isArray(response.data) && response.data.length <= response.limit && response.data.every(isInactivityUser);
+    Array.isArray(response.data) &&
+    response.data.length <= response.limit &&
+    response.data.every(isInactivityUser)
+  );
 }
 
-function isSuperadminSession(authStore: ReturnType<typeof useAuthStore>): boolean {
-  return authStore.authStatus === "authenticated" &&
+function isSuperadminSession(authStore: AuthStore): boolean {
+  return (
+    authStore.authStatus === "authenticated" &&
     authStore.isAuthenticated &&
     authStore.hasRole("superadmin") &&
-    !!authStore.userId;
+    !!authStore.userId
+  );
 }
 
 function assertCurrentAdminSession(
-  authStore: ReturnType<typeof useAuthStore>,
+  authStore: AuthStore,
   userId: string | null,
   generation: number,
-  signal: AbortSignal,
+  signal: AbortSignal
 ): asserts userId is string {
   if (
     signal.aborted ||
@@ -143,11 +164,13 @@ function assertCurrentAdminSession(
 
 export function useActivityInactivityQuery(params: () => ActivityInactivityParams) {
   const authStore = useAuthStore();
-  const queryKey = computed(() => activityInactivityQueryKeyForSession(
-    params(),
-    authStore.userId,
-    authStore.authSessionGeneration,
-  ));
+  const queryKey = computed(() =>
+    activityInactivityQueryKeyForSession(
+      params(),
+      authStore.userId,
+      authStore.authSessionGeneration
+    )
+  );
 
   return useQuery({
     queryKey,

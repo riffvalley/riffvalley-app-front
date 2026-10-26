@@ -9,7 +9,10 @@ import {
   SessionAuthError,
   SessionAuthTransport,
 } from "@/modules/identity/auth/api/sessionAuth";
-import type { SessionLoginResponse, SessionRefreshResponse } from "@/modules/identity/auth/types/session";
+import type {
+  SessionLoginResponse,
+  SessionRefreshResponse,
+} from "@/modules/identity/auth/types/session";
 
 const loginResponse: SessionLoginResponse = {
   id: "user-1",
@@ -56,15 +59,17 @@ describe("SessionAuthTransport", () => {
     sessionStorage.clear();
     Object.defineProperty(navigator, "locks", {
       configurable: true,
-      value: { request: (_name: string, _options: unknown, callback: () => Promise<unknown>) => callback() },
+      value: {
+        request: (_name: string, _options: unknown, callback: () => Promise<unknown>) => callback(),
+      },
     });
   });
 
   it("bootstraps CSRF and negotiates refresh-v1 login with browser credentials", async () => {
     const http = makeHttpClient();
-    const get = vi.spyOn(http, "get").mockResolvedValue(
-      axiosResponse({ csrfToken: "bootstrap-csrf" }),
-    );
+    const get = vi
+      .spyOn(http, "get")
+      .mockResolvedValue(axiosResponse({ csrfToken: "bootstrap-csrf" }));
     const post = vi.spyOn(http, "post").mockResolvedValue(axiosResponse(loginResponse));
     const transport = new SessionAuthTransport(http);
 
@@ -84,7 +89,7 @@ describe("SessionAuthTransport", () => {
           [AUTH_SESSION_MODE_HEADER]: AUTH_SESSION_MODE,
           [CSRF_HEADER]: "bootstrap-csrf",
         }),
-      }),
+      })
     );
     expect(post.mock.calls[0]?.[2]?.headers).not.toHaveProperty("Authorization");
     expect(result).not.toHaveProperty("refreshToken");
@@ -119,7 +124,7 @@ describe("SessionAuthTransport", () => {
           [REFRESH_OPERATION_HEADER]: operationId,
           [CSRF_HEADER]: "refresh-csrf-1",
         }),
-      }),
+      })
     );
     expect(post.mock.calls[1]?.[2]?.headers).not.toHaveProperty("Authorization");
     expect(refreshed.user.id).toBe("user-1");
@@ -136,14 +141,16 @@ describe("SessionAuthTransport", () => {
     localStorage.setItem("rv.auth.session-csrf", "expired-refresh-csrf");
     localStorage.setItem("rv.auth.logout-csrf", "logout-csrf-1");
     const http = makeHttpClient();
-    const get = vi.spyOn(http, "get").mockResolvedValue(
-      axiosResponse({ csrfToken: "recovered-refresh-csrf" }),
-    );
+    const get = vi
+      .spyOn(http, "get")
+      .mockResolvedValue(axiosResponse({ csrfToken: "recovered-refresh-csrf" }));
     const post = vi.spyOn(http, "post");
-    post.mockRejectedValueOnce(Object.assign(new Error("expired CSRF"), {
-      isAxiosError: true,
-      response: { status: 403, headers: {} },
-    }));
+    post.mockRejectedValueOnce(
+      Object.assign(new Error("expired CSRF"), {
+        isAxiosError: true,
+        response: { status: 403, headers: {} },
+      })
+    );
     post.mockResolvedValueOnce(axiosResponse(refreshResponse));
     const transport = new SessionAuthTransport(http);
 
@@ -156,12 +163,16 @@ describe("SessionAuthTransport", () => {
         timeout: 15_000,
       });
       expect(post).toHaveBeenCalledTimes(2);
-      expect(post.mock.calls[0]?.[2]?.headers).toEqual(expect.objectContaining({
-        [CSRF_HEADER]: "expired-refresh-csrf",
-      }));
-      expect(post.mock.calls[1]?.[2]?.headers).toEqual(expect.objectContaining({
-        [CSRF_HEADER]: "recovered-refresh-csrf",
-      }));
+      expect(post.mock.calls[0]?.[2]?.headers).toEqual(
+        expect.objectContaining({
+          [CSRF_HEADER]: "expired-refresh-csrf",
+        })
+      );
+      expect(post.mock.calls[1]?.[2]?.headers).toEqual(
+        expect.objectContaining({
+          [CSRF_HEADER]: "recovered-refresh-csrf",
+        })
+      );
       expect(refreshed.token).toBe("next-access-jwt");
       expect(localStorage.getItem("rv.auth.session-csrf")).toBe("refresh-csrf-2");
     } finally {
@@ -178,9 +189,11 @@ describe("SessionAuthTransport", () => {
 
     await transport.refresh();
 
-    expect(post.mock.calls[0]?.[2]?.headers).toEqual(expect.objectContaining({
-      [CSRF_HEADER]: "legacy-session-csrf",
-    }));
+    expect(post.mock.calls[0]?.[2]?.headers).toEqual(
+      expect.objectContaining({
+        [CSRF_HEADER]: "legacy-session-csrf",
+      })
+    );
     expect(localStorage.getItem("rv.auth.session-csrf")).toBe("refresh-csrf-2");
     expect(localStorage.getItem("rv.auth.logout-csrf")).toBe("logout-csrf-2");
     expect(sessionStorage.length).toBe(0);
@@ -190,10 +203,12 @@ describe("SessionAuthTransport", () => {
     localStorage.setItem("rv.auth.session-csrf", "session-csrf");
     localStorage.setItem("rv.auth.logout-csrf", "logout-csrf");
     const http = makeHttpClient();
-    const post = vi.spyOn(http, "post").mockRejectedValue(Object.assign(new Error("unauthenticated"), {
-      isAxiosError: true,
-      response: { status: 401, headers: {} },
-    }));
+    const post = vi.spyOn(http, "post").mockRejectedValue(
+      Object.assign(new Error("unauthenticated"), {
+        isAxiosError: true,
+        response: { status: 401, headers: {} },
+      })
+    );
     const transport = new SessionAuthTransport(http);
 
     await expect(transport.refresh()).rejects.toMatchObject({ category: "unauthenticated" });
@@ -224,7 +239,7 @@ describe("SessionAuthTransport", () => {
           "Content-Type": "application/json",
           [CSRF_HEADER]: "logout-csrf-1",
         }),
-      }),
+      })
     );
     expect(post.mock.calls[1]?.[2]?.headers).not.toHaveProperty(AUTH_SESSION_MODE_HEADER);
     expect(localStorage.getItem("rv.auth.session-csrf")).toBeNull();
@@ -238,7 +253,11 @@ describe("SessionAuthTransport", () => {
     const post = vi.spyOn(http, "post");
     post.mockResolvedValueOnce(axiosResponse(loginResponse));
     let finishRefresh!: (response: AxiosResponse<SessionRefreshResponse>) => void;
-    post.mockReturnValueOnce(new Promise((resolve) => { finishRefresh = resolve; }));
+    post.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishRefresh = resolve;
+      })
+    );
     post.mockResolvedValueOnce(axiosResponse(undefined, 204));
     const transport = new SessionAuthTransport(http);
 
@@ -254,9 +273,11 @@ describe("SessionAuthTransport", () => {
 
     expect(post).toHaveBeenCalledTimes(3);
     expect(post.mock.calls[2]?.[0]).toBe("/auth/logout");
-    expect(post.mock.calls[2]?.[2]?.headers).toEqual(expect.objectContaining({
-      [CSRF_HEADER]: "logout-csrf-2",
-    }));
+    expect(post.mock.calls[2]?.[2]?.headers).toEqual(
+      expect.objectContaining({
+        [CSRF_HEADER]: "logout-csrf-2",
+      })
+    );
     expect(sessionStorage.length).toBe(0);
   });
 
@@ -264,10 +285,12 @@ describe("SessionAuthTransport", () => {
     localStorage.setItem("rv.auth.session-csrf", "session-csrf");
     localStorage.setItem("rv.auth.logout-csrf", "logout-csrf");
     const http = makeHttpClient();
-    const post = vi.spyOn(http, "post").mockRejectedValue(Object.assign(new Error("unauthenticated"), {
-      isAxiosError: true,
-      response: { status: 401, headers: {} },
-    }));
+    const post = vi.spyOn(http, "post").mockRejectedValue(
+      Object.assign(new Error("unauthenticated"), {
+        isAxiosError: true,
+        response: { status: 401, headers: {} },
+      })
+    );
     const transport = new SessionAuthTransport(http);
 
     await expect(transport.logout()).rejects.toMatchObject({ category: "unauthenticated" });
@@ -305,9 +328,9 @@ describe("SessionAuthTransport", () => {
   it("rejects malformed login data and invalid operation IDs before posting", async () => {
     const http = makeHttpClient();
     vi.spyOn(http, "get").mockResolvedValue(axiosResponse({ csrfToken: "bootstrap-csrf" }));
-    const post = vi.spyOn(http, "post").mockResolvedValue(
-      axiosResponse({ ...loginResponse, role: "unknown" }),
-    );
+    const post = vi
+      .spyOn(http, "post")
+      .mockResolvedValue(axiosResponse({ ...loginResponse, role: "unknown" }));
     const transport = new SessionAuthTransport(http);
 
     await expect(transport.login({ username: "riff", password: "secret" })).rejects.toMatchObject({

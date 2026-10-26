@@ -1,16 +1,14 @@
 import { defineStore } from "pinia";
-import { USER_ROLES, type LoginPayload, type UserRole } from "@/modules/identity/shared/types/auth";
-import {
-  sessionAuthTransport,
-  SessionAuthError,
-} from "@/modules/identity/auth/api/sessionAuth";
+import { USER_ROLES, type UserRole } from "@/modules/identity/shared";
+import type { LoginPayload } from "../types/login";
+import { sessionAuthTransport, SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
 import type { SessionAuthUser, SessionLoginResponse } from "@/modules/identity/auth/types/session";
 import {
   broadcastAuthLogin,
   broadcastAuthLogout,
 } from "@/modules/identity/auth/api/sessionAuthCoordinator";
-import { notifyAppDailyActivity } from "@/modules/identity/activity/api/appDailyActivity";
-import { useDashboardPreferencesStore } from "../../account/preferences/stores/dashboardPreferences";
+import { notifyAppDailyActivity } from "@/modules/identity/activity";
+import { useDashboardPreferences } from "@/modules/identity/account";
 
 export type AuthStatus = "initializing" | "authenticated" | "anonymous" | "error";
 export type AuthSessionMode = "renewable" | null;
@@ -86,14 +84,14 @@ function applyRenewableProfile(
     authInitializationError: AuthInitializationError;
   },
   user: SessionAuthUser,
-  token: string,
+  token: string
 ) {
   store.token = token;
   store.username = user.username;
   store.userId = user.id;
   store.image = user.image ?? null;
   store.role = user.role;
-  useDashboardPreferencesStore().applySessionPreferences(user);
+  useDashboardPreferences().applySessionPreferences(user);
   store.authStatus = "authenticated";
   store.sessionMode = "renewable";
   store.authInitializationError = null;
@@ -126,7 +124,7 @@ export const useAuthStore = defineStore("auth", {
         throw new SessionAuthError(
           "La respuesta de Identity no coincide con el contrato de sesión.",
           "protocol-error",
-          null,
+          null
         );
       }
 
@@ -163,9 +161,14 @@ export const useAuthStore = defineStore("auth", {
         if (error instanceof SessionAuthError && error.category === "unauthenticated") {
           return { revocation: "already-absent" };
         }
-        const sessionError = error instanceof SessionAuthError
-          ? error
-          : new SessionAuthError("No se pudo confirmar la revocación de sesión.", "network-error", null);
+        const sessionError =
+          error instanceof SessionAuthError
+            ? error
+            : new SessionAuthError(
+                "No se pudo confirmar la revocación de sesión.",
+                "network-error",
+                null
+              );
         return { revocation: "unconfirmed", error: sessionError };
       }
     },
@@ -174,7 +177,10 @@ export const useAuthStore = defineStore("auth", {
       if (this.authStatus === "authenticated" || this.authStatus === "anonymous") {
         return this.authStatus;
       }
-      if (this.authStatus === "error" && this.authInitializationError === "coordination-unavailable") {
+      if (
+        this.authStatus === "error" &&
+        this.authInitializationError === "coordination-unavailable"
+      ) {
         return this.authStatus;
       }
 
@@ -218,18 +224,25 @@ export const useAuthStore = defineStore("auth", {
           return this.authStatus;
         }
 
-        this.authInitializationError = error instanceof SessionAuthError
-          ? (error.category === "rate-limited" || error.category === "unavailable" ||
-            error.category === "network-error" || error.category === "forbidden" ||
-            error.category === "protocol-error" || error.category === "coordination-unavailable"
-            ? error.category : "http-error")
-          : "network-error";
+        this.authInitializationError =
+          error instanceof SessionAuthError
+            ? error.category === "rate-limited" ||
+              error.category === "unavailable" ||
+              error.category === "network-error" ||
+              error.category === "forbidden" ||
+              error.category === "protocol-error" ||
+              error.category === "coordination-unavailable"
+              ? error.category
+              : "http-error"
+            : "network-error";
         this.authStatus = "error";
         return this.authStatus;
       }
     },
 
-    async renewSession(expectedGeneration = this.authSessionGeneration): Promise<RenewSessionResult> {
+    async renewSession(
+      expectedGeneration = this.authSessionGeneration
+    ): Promise<RenewSessionResult> {
       if (
         expectedGeneration !== this.authSessionGeneration ||
         this.authStatus !== "authenticated" ||
@@ -247,11 +260,16 @@ export const useAuthStore = defineStore("auth", {
         ) {
           return "stale";
         }
-        if (!session.token || !session.user?.id || !session.user.username || !isUserRole(session.user.role)) {
+        if (
+          !session.token ||
+          !session.user?.id ||
+          !session.user.username ||
+          !isUserRole(session.user.role)
+        ) {
           throw new SessionAuthError(
             "La respuesta de Identity no coincide con el contrato de sesión.",
             "protocol-error",
-            null,
+            null
           );
         }
 
@@ -272,12 +290,17 @@ export const useAuthStore = defineStore("auth", {
           return "unauthenticated";
         }
 
-        this.authInitializationError = error instanceof SessionAuthError
-          ? (error.category === "rate-limited" || error.category === "unavailable" ||
-            error.category === "network-error" || error.category === "forbidden" ||
-            error.category === "protocol-error" || error.category === "coordination-unavailable"
-            ? error.category : "http-error")
-          : "network-error";
+        this.authInitializationError =
+          error instanceof SessionAuthError
+            ? error.category === "rate-limited" ||
+              error.category === "unavailable" ||
+              error.category === "network-error" ||
+              error.category === "forbidden" ||
+              error.category === "protocol-error" ||
+              error.category === "coordination-unavailable"
+              ? error.category
+              : "http-error"
+            : "network-error";
         throw error;
       }
     },
@@ -285,7 +308,10 @@ export const useAuthStore = defineStore("auth", {
   getters: {
     isAuthenticated: (state): boolean => state.authStatus === "authenticated" && !!state.token,
     loggedUser: (state) => ({ id: state.userId, username: state.username }),
-    hasRole: (state) => (role: string): boolean => state.role === role,
+    hasRole:
+      (state) =>
+      (role: string): boolean =>
+        state.role === role,
     avatarUrl: (state) => state.image,
   },
 });

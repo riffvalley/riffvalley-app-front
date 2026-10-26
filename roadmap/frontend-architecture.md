@@ -2,6 +2,8 @@
 
 **Estado:** Iteración 0 completada el 2026-10-23. Auditoría, diseño y planificación; no se modificó código funcional, tests ni configuración.
 
+**Estado documental:** este archivo se conserva como historial de planificación e iteraciones. La referencia canónica de arquitectura vigente es [docs/frontend/architecture.md](../docs/frontend/architecture.md); no se reescriben aquí las fotografías ni resultados históricos.
+
 **Alcance observado:** frontend Vue 3 + TypeScript + Pinia + Vue Router del checkout actual. Se contrastaron los límites con `../riffvalley-app-back/src/` y sus roadmaps de arquitectura e Identity. No se ejecutaron tests ni verificaciones de runtime; las validaciones de este cambio son documentales.
 
 Los roadmaps frontend existentes de roles, Artists Management, Catalog Import, Catalog Overview y sesiones renovables se conservan como documentos de detalle e historial. Este documento los complementa con ownership modular y orden global; no vuelve a planificar tareas ya cerradas.

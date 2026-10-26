@@ -7,10 +7,13 @@ vi.mock("@/modules/identity/auth/api/sessionAuth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/modules/identity/auth/api/sessionAuth")>();
   return { ...actual, sessionAuthTransport: { refresh } };
 });
+vi.mock("@/modules/identity/activity/api/appDailyActivity", () => ({
+  notifyAppDailyActivity: vi.fn(),
+}));
 
 import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
 import router from "./index";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 
 describe("router authentication bootstrap", () => {
   beforeEach(async () => {

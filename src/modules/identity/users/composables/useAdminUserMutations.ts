@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/vue-query";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
-import { activityDashboardQueryKey } from "@/modules/identity/activity/composables/useActivityStatisticsQueries";
+import { useAuthStore } from "@/modules/identity/auth";
+import { invalidateActivityDashboard } from "@/modules/identity/activity";
 import {
   activateUserService,
   deactivateUserService,
@@ -9,7 +9,10 @@ import {
   updateUserSuperAdminService,
 } from "@/modules/identity/users/api/users";
 import { adminUsersQueryKeyForSession } from "@/modules/identity/users/composables/useAdminUsersQuery";
-import type { AdminUpdateUserPayload, RegisterUserPayload } from "@/modules/identity/users/types/users";
+import type {
+  AdminUpdateUserPayload,
+  RegisterUserPayload,
+} from "@/modules/identity/users/types/users";
 
 export interface AdminMutationSession {
   userId: string;
@@ -72,7 +75,7 @@ export function useAdminUserMutations() {
       exact: true,
     });
     if (includeStats && isCurrentSession(session)) {
-      await queryClient.invalidateQueries({ queryKey: activityDashboardQueryKey });
+      await invalidateActivityDashboard(queryClient);
     }
   };
 

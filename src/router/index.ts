@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { watch } from "vue";
 import type { RouteRecordRaw } from "vue-router";
-import type { UserRole } from "@/modules/identity/shared/types/auth";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
-import { hasMinimumRole } from "@/modules/identity/shared/utils/permissions";
+import type { UserRole } from "@/modules/identity/shared";
+import { useAuthStore, type AuthStore } from "@/modules/identity/auth";
+import { hasMinimumRole } from "@/modules/identity/shared";
 
 import Login from "@/modules/identity/auth/login/LoginView.vue";
 
@@ -341,9 +341,9 @@ const router = createRouter({
 });
 
 let stopActiveRouteAuthorizationWatch: (() => void) | undefined;
-let activeRouteAuthorizationStore: ReturnType<typeof useAuthStore> | undefined;
+let activeRouteAuthorizationStore: AuthStore | undefined;
 
-function watchActiveRouteAuthorization(authStore: ReturnType<typeof useAuthStore>) {
+function watchActiveRouteAuthorization(authStore: AuthStore) {
   if (activeRouteAuthorizationStore === authStore) return;
   stopActiveRouteAuthorizationWatch?.();
   activeRouteAuthorizationStore = authStore;

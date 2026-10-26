@@ -153,8 +153,8 @@ import { MONTHS, getYearOptions } from "@helpers/dateConstants";
 import { resolveSpotifyAlbum } from "@services/spotify/spotifyLookup";
 import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
-import { hasMinimumRole } from "@/modules/identity/shared/utils/permissions";
+import { useAuthStore } from "@/modules/identity/auth";
+import { hasMinimumRole } from "@/modules/identity/shared";
 import SwalService from "@services/swal/SwalService";
 
 export default defineComponent({

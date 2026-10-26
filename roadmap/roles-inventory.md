@@ -2,6 +2,8 @@
 
 **Estado:** F.1.1, F.1.2 y F.1.3 completadas el 2026-10-13. Solo inspección y documentación; no se modificó código funcional ni tests.
 
+> **Lectura actual (FQ-6.5):** este inventario conserva la baseline de roles, consumidores y regresión de la migración. La jerarquía, los guards y la autorización frontend vigente están en la [documentación canónica de Identity](../docs/frontend/modules/identity.md); las observaciones previas a F.2–F.4 no describen el checkout actual.
+
 **Subtarea y dependencias:** F.1.1 XS — Cerrar matriz de roles y consumidores; no tiene dependencias. F.1.2 XS depende de F.1.1. F.1.3 S — Establecer baseline funcional y de regresión depende de F.1.1 y F.1.2; queda completada con la matriz de este documento. F.2.1 XS queda completada; la siguiente subtarea es F.2.2 S.
 
 **Instrucciones consultadas:** `README.md` y `CLAUDE.md` del frontend. No existe `AGENTS.md` en el checkout. La arquitectura documentada es Vue 3 + TypeScript, Pinia, Vue Router, servicios por recurso y Axios centralizado. `yarn build` es la verificación de producción documentada.

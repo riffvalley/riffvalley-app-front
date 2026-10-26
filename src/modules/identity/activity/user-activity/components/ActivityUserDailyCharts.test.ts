@@ -9,7 +9,11 @@ vi.mock("vue-chartjs", () => ({
     name: "MockLineChart",
     props: { data: { type: Object, required: true }, options: { type: Object, required: true } },
     setup(props) {
-      return () => h("div", { "data-testid": "line-chart", "data-datasets": JSON.stringify(props.data.datasets) });
+      return () =>
+        h("div", {
+          "data-testid": "line-chart",
+          "data-datasets": JSON.stringify(props.data.datasets),
+        });
     },
   }),
 }));
@@ -59,10 +63,14 @@ describe("ActivityUserDailyCharts", () => {
     const voteDatasets = JSON.parse(charts[1]!.attributes("data-datasets")!);
 
     expect(presenceDatasets[0].data).toEqual([1, 0, null]);
-    expect(voteDatasets.map((dataset: { label: string; data: (number | null)[] }) => [dataset.label, dataset.data]))
-      .toEqual([
-        ["Votos nuevos (set)", [1, 0, null]],
-        ["Modificaciones (change)", [0, 0, null]],
-      ]);
+    expect(
+      voteDatasets.map((dataset: { label: string; data: (number | null)[] }) => [
+        dataset.label,
+        dataset.data,
+      ])
+    ).toEqual([
+      ["Votos nuevos (set)", [1, 0, null]],
+      ["Modificaciones (change)", [0, 0, null]],
+    ]);
   });
 });

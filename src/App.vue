@@ -85,7 +85,7 @@ import DefaultLayout from "./layouts/default/DefaultLayout.vue";
 import LoginLayout from "./layouts/auth/LoginLayout.vue";
 import SidebarMenu from "@/layouts/default/components/SidebarMenu.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 
 export default defineComponent({
   name: "App",

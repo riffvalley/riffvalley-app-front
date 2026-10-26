@@ -56,9 +56,12 @@ vi.mock("@/modules/identity/auth/api/sessionAuth", async (importOriginal) => {
 });
 
 import { observePrivateQueryCache } from "@/app/privateQueryCache";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 import { useUserStore } from "@/stores/user/users";
-import { adminUsersQueryKey, adminUsersQueryKeyForSession } from "@/modules/identity/users/composables/useAdminUsersQuery";
+import {
+  adminUsersQueryKey,
+  adminUsersQueryKeyForSession,
+} from "@/modules/identity/users/composables/useAdminUsersQuery";
 import ManageUsers from "./UserManagementView.vue";
 import type { AdminUser } from "@/modules/identity/users/types/users";
 
@@ -139,18 +142,49 @@ describe("ManageUsers Query listing", () => {
     wrapper.unmount();
   });
 
+  it("provides accessible names for search and each editable user field", async () => {
+    getUsers.mockResolvedValue(list);
+    const wrapper = render();
+    await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
+
+    expect(wrapper.get('input[aria-label="Buscar usuarios"]').exists()).toBe(true);
+    const usernameLabel = wrapper.get('label[for="user-username-u-zed"]')
+      .element as HTMLLabelElement;
+    expect(usernameLabel.contains(wrapper.get("#user-username-u-zed").element)).toBe(true);
+    expect(
+      wrapper
+        .get('[aria-labelledby="user-email-label-u-zed"]')
+        .element.getAttribute("aria-labelledby")
+    ).toBe("user-email-label-u-zed");
+    const roleLabel = wrapper.get('label[for="user-role-u-zed"]').element as HTMLLabelElement;
+    const createdAtLabel = wrapper.get('label[for="user-created-at-u-zed"]')
+      .element as HTMLLabelElement;
+    expect(roleLabel.contains(wrapper.get("#user-role-u-zed").element)).toBe(true);
+    expect(createdAtLabel.contains(wrapper.get("#user-created-at-u-zed").element)).toBe(true);
+    expect(wrapper.get('button[aria-label="Copiar email de Zed"]').exists()).toBe(true);
+    expect(wrapper.get('button[aria-label="Banear a Zed"]').exists()).toBe(true);
+    expect(wrapper.get('button[aria-label="Eliminar permanentemente a Zed"]').exists()).toBe(true);
+    wrapper.unmount();
+  });
+
   it("opens each user dialog and returns focus to its trigger after Escape", async () => {
     getUsers.mockResolvedValue(list);
     const wrapper = render();
     document.body.append(wrapper.element);
     await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
 
-    const createTrigger = wrapper.findAll("button").find((button) => button.text().includes("Crear Usuario"));
+    const createTrigger = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Crear Usuario"));
     if (!createTrigger) throw new Error("Missing create user trigger");
     await createTrigger.trigger("click");
     await flushPromises();
     expect(document.activeElement).toBe(document.body.querySelector("#create-user-email"));
-    document.body.querySelector<HTMLElement>('[role="dialog"]')?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    document.body
+      .querySelector<HTMLElement>('[role="dialog"]')
+      ?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })
+      );
     await flushPromises();
     expect(document.activeElement).toBe(createTrigger.element);
 
@@ -158,7 +192,11 @@ describe("ManageUsers Query listing", () => {
     await notesTrigger.trigger("click");
     await flushPromises();
     expect(document.activeElement).toBe(document.body.querySelector("#user-notes"));
-    document.body.querySelector<HTMLElement>('[role="dialog"]')?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    document.body
+      .querySelector<HTMLElement>('[role="dialog"]')
+      ?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })
+      );
     await flushPromises();
     expect(document.activeElement).toBe(notesTrigger.element);
 
@@ -166,7 +204,11 @@ describe("ManageUsers Query listing", () => {
     await passwordTrigger.trigger("click");
     await flushPromises();
     expect(document.activeElement).toBe(document.body.querySelector("#change-user-password"));
-    document.body.querySelector<HTMLElement>('[role="dialog"]')?.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    document.body
+      .querySelector<HTMLElement>('[role="dialog"]')
+      ?.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })
+      );
     await flushPromises();
     expect(document.activeElement).toBe(passwordTrigger.element);
     wrapper.unmount();
@@ -180,26 +222,49 @@ describe("ManageUsers Query listing", () => {
     const search = wrapper.get('input[placeholder="Buscar por usuario o email..."]');
     await search.setValue("zed");
     expect(wrapper.findAll(".user-card")).toHaveLength(1);
-    expect((wrapper.get('.user-card input[placeholder="Username"]').element as HTMLInputElement).value).toBe("Zed");
+    expect(
+      (wrapper.get('.user-card input[placeholder="Username"]').element as HTMLInputElement).value
+    ).toBe("Zed");
 
     await search.setValue("");
-    await wrapper.findAll("button").find((button) => button.text().trim() === "Todos")?.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().trim() === "Todos")
+      ?.trigger("click");
     const emailSort = wrapper.findAll("button").find((button) => button.text().includes("Email"));
     await emailSort?.trigger("click");
-    const usernames = wrapper.findAll('.user-card input[placeholder="Username"]').map((input) => (input.element as HTMLInputElement).value);
+    const usernames = wrapper
+      .findAll('.user-card input[placeholder="Username"]')
+      .map((input) => (input.element as HTMLInputElement).value);
     expect(usernames).toEqual(["Zed", "Amy"]);
 
-    const roleButton = wrapper.findAll("button").find((button) => button.text().trim() === "Collaborator");
+    const dateSort = wrapper.findAll("button").find((button) => button.text().includes("Fecha"));
+    await dateSort?.trigger("click");
+    const usernamesByDate = () =>
+      wrapper
+        .findAll('.user-card input[placeholder="Username"]')
+        .map((input) => (input.element as HTMLInputElement).value);
+    expect(usernamesByDate()).toEqual(["Amy", "Zed"]);
+    await dateSort?.trigger("click");
+    expect(usernamesByDate()).toEqual(["Zed", "Amy"]);
+
+    const roleButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().trim() === "Collaborator");
     await roleButton?.trigger("click");
     expect(wrapper.findAll(".user-card")).toHaveLength(1);
-    expect((wrapper.get('.user-card input[placeholder="Username"]').element as HTMLInputElement).value).toBe("Amy");
+    expect(
+      (wrapper.get('.user-card input[placeholder="Username"]').element as HTMLInputElement).value
+    ).toBe("Amy");
     wrapper.unmount();
   });
 
   it("shows query errors and the successful empty-list state", async () => {
     getUsers.mockRejectedValueOnce(new Error("offline"));
     const failed = render();
-    await vi.waitFor(() => expect(failed.get('[role="alert"]').text()).toContain("Error al cargar usuarios"));
+    await vi.waitFor(() =>
+      expect(failed.get('[role="alert"]').text()).toContain("Error al cargar usuarios")
+    );
     expect(errorToast).toHaveBeenCalledWith("Error al cargar usuarios");
     failed.unmount();
     queryClient.clear();
@@ -241,7 +306,9 @@ describe("ManageUsers Query listing", () => {
     getUsers
       .mockImplementationOnce((signal: AbortSignal) => {
         oldSignal = signal;
-        return new Promise<AdminUser[]>((resolve) => { resolveOldQuery = resolve; });
+        return new Promise<AdminUser[]>((resolve) => {
+          resolveOldQuery = resolve;
+        });
       })
       .mockResolvedValueOnce([{ ...list[1], id: "u-new", username: "New account" }]);
     const wrapper = render();
@@ -254,9 +321,19 @@ describe("ManageUsers Query listing", () => {
     await flushPromises();
 
     expect(oldSignal?.aborted).toBe(true);
-    await vi.waitFor(() => expect((wrapper.get('.user-card input[placeholder="Username"]').element as HTMLInputElement).value).toBe("New account"));
-    expect(wrapper.findAll('.user-card input[placeholder="Username"]').map((input) => (input.element as HTMLInputElement).value)).toEqual(["New account"]);
-    expect(queryClient.getQueryData(adminUsersQueryKeyForSession("admin-b", 1))).toEqual([{ ...list[1], id: "u-new", username: "New account" }]);
+    await vi.waitFor(() =>
+      expect(
+        (wrapper.get('.user-card input[placeholder="Username"]').element as HTMLInputElement).value
+      ).toBe("New account")
+    );
+    expect(
+      wrapper
+        .findAll('.user-card input[placeholder="Username"]')
+        .map((input) => (input.element as HTMLInputElement).value)
+    ).toEqual(["New account"]);
+    expect(queryClient.getQueryData(adminUsersQueryKeyForSession("admin-b", 1))).toEqual([
+      { ...list[1], id: "u-new", username: "New account" },
+    ]);
     wrapper.unmount();
   });
 
@@ -269,7 +346,11 @@ describe("ManageUsers Query listing", () => {
     wrapper.vm.openNotesModal(target);
     wrapper.vm.userNotes = "sensitive draft";
     wrapper.vm.newPassword = "Sensitive123";
-    wrapper.vm.newUser = { email: "draft@example.test", username: "draft-user", password: "Draft123" };
+    wrapper.vm.newUser = {
+      email: "draft@example.test",
+      username: "draft-user",
+      password: "Draft123",
+    };
     wrapper.vm.showCreateModal = true;
     wrapper.vm.showPasswordModal = true;
     wrapper.vm.showCreatePassword = true;
@@ -339,9 +420,17 @@ describe("ManageUsers Query listing", () => {
     await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(1));
 
     expect(getUsers).toHaveBeenCalledTimes(2);
-    expect((wrapper.find('.user-card input[placeholder="Username"]').element as HTMLInputElement).value).toBe("Fresh admin result");
-    expect(wrapper.findAll('.user-card input[placeholder="Username"]').map((input) => (input.element as HTMLInputElement).value)).not.toContain("Zed");
-    expect(queryClient.getQueryData(adminUsersQueryKeyForSession("admin-a", 1))).toEqual(refreshedList);
+    expect(
+      (wrapper.find('.user-card input[placeholder="Username"]').element as HTMLInputElement).value
+    ).toBe("Fresh admin result");
+    expect(
+      wrapper
+        .findAll('.user-card input[placeholder="Username"]')
+        .map((input) => (input.element as HTMLInputElement).value)
+    ).not.toContain("Zed");
+    expect(queryClient.getQueryData(adminUsersQueryKeyForSession("admin-a", 1))).toEqual(
+      refreshedList
+    );
     wrapper.unmount();
   });
 
@@ -350,7 +439,9 @@ describe("ManageUsers Query listing", () => {
     let requestSignal: AbortSignal | undefined;
     getUsers.mockImplementation((signal: AbortSignal) => {
       requestSignal = signal;
-      return new Promise<AdminUser[]>((resolve) => { resolveQuery = resolve; });
+      return new Promise<AdminUser[]>((resolve) => {
+        resolveQuery = resolve;
+      });
     });
     const wrapper = render();
     await vi.waitFor(() => expect(getUsers).toHaveBeenCalledOnce());
@@ -371,7 +462,12 @@ describe("ManageUsers Query listing", () => {
   it("does not apply or announce a pending mutation result after permission is revoked", async () => {
     getUsers.mockResolvedValue(list);
     let resolveMutation!: () => void;
-    updateUserSuperAdminService.mockImplementation(() => new Promise<void>((resolve) => { resolveMutation = resolve; }));
+    updateUserSuperAdminService.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveMutation = resolve;
+        })
+    );
     const wrapper = render();
     await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
     const row = wrapper.vm.users[0];
@@ -396,13 +492,19 @@ describe("ManageUsers Query listing", () => {
     getUsers.mockResolvedValue(list);
     const oldRequest = deferred<void>();
     const currentRequest = deferred<void>();
-    postUserService.mockImplementationOnce(() => oldRequest.promise).mockImplementationOnce(() => currentRequest.promise);
+    postUserService
+      .mockImplementationOnce(() => oldRequest.promise)
+      .mockImplementationOnce(() => currentRequest.promise);
     const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
     const wrapper = render();
     await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
 
     wrapper.vm.openCreateModal();
-    Object.assign(wrapper.vm.newUser, { email: "old@example.test", username: "old-user", password: "Password1" });
+    Object.assign(wrapper.vm.newUser, {
+      email: "old@example.test",
+      username: "old-user",
+      password: "Password1",
+    });
     const oldSubmit = wrapper.vm.createUser();
     await vi.waitFor(() => expect(postUserService).toHaveBeenCalledTimes(1));
     await wrapper.vm.createUser();
@@ -410,7 +512,11 @@ describe("ManageUsers Query listing", () => {
 
     wrapper.vm.closeCreateModal();
     wrapper.vm.openCreateModal();
-    Object.assign(wrapper.vm.newUser, { email: "new@example.test", username: "new-user", password: "Password2" });
+    Object.assign(wrapper.vm.newUser, {
+      email: "new@example.test",
+      username: "new-user",
+      password: "Password2",
+    });
     const currentSubmit = wrapper.vm.createUser();
     await vi.waitFor(() => expect(postUserService).toHaveBeenCalledTimes(2));
     const currentPending = wrapper.vm.createPendingOperation;
@@ -418,7 +524,11 @@ describe("ManageUsers Query listing", () => {
     oldRequest.resolve(undefined);
     await oldSubmit;
     expect(wrapper.vm.showCreateModal).toBe(true);
-    expect(wrapper.vm.newUser).toEqual({ email: "new@example.test", username: "new-user", password: "Password2" });
+    expect(wrapper.vm.newUser).toEqual({
+      email: "new@example.test",
+      username: "new-user",
+      password: "Password2",
+    });
     expect(wrapper.vm.createPendingOperation).toBe(currentPending);
     expect(successToast).not.toHaveBeenCalled();
 
@@ -427,7 +537,10 @@ describe("ManageUsers Query listing", () => {
     expect(wrapper.vm.showCreateModal).toBe(false);
     expect(successToast).toHaveBeenCalledWith("Usuario creado correctamente");
     expect(invalidate).toHaveBeenCalledTimes(4);
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: adminUsersQueryKeyForSession("admin-a", 1), exact: true });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: adminUsersQueryKeyForSession("admin-a", 1),
+      exact: true,
+    });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["identity", "activity", "dashboard"] });
     wrapper.unmount();
   });
@@ -441,17 +554,29 @@ describe("ManageUsers Query listing", () => {
     await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
 
     wrapper.vm.openCreateModal();
-    Object.assign(wrapper.vm.newUser, { email: "old@example.test", username: "old-user", password: "Password1" });
+    Object.assign(wrapper.vm.newUser, {
+      email: "old@example.test",
+      username: "old-user",
+      password: "Password1",
+    });
     const oldSubmit = wrapper.vm.createUser();
     await vi.waitFor(() => expect(postUserService).toHaveBeenCalledOnce());
     wrapper.vm.closeCreateModal();
     wrapper.vm.openCreateModal();
-    Object.assign(wrapper.vm.newUser, { email: "draft@example.test", username: "draft-user", password: "Password2" });
+    Object.assign(wrapper.vm.newUser, {
+      email: "draft@example.test",
+      username: "draft-user",
+      password: "Password2",
+    });
 
     oldRequest.reject(new Error("offline"));
     await oldSubmit;
     expect(wrapper.vm.showCreateModal).toBe(true);
-    expect(wrapper.vm.newUser).toEqual({ email: "draft@example.test", username: "draft-user", password: "Password2" });
+    expect(wrapper.vm.newUser).toEqual({
+      email: "draft@example.test",
+      username: "draft-user",
+      password: "Password2",
+    });
     expect(wrapper.vm.createPendingOperation).toBeNull();
     expect(errorToast).not.toHaveBeenCalledWith("Error al crear usuario");
     expect(invalidate).not.toHaveBeenCalled();
@@ -462,7 +587,9 @@ describe("ManageUsers Query listing", () => {
     getUsers.mockResolvedValue(list);
     const oldRequest = deferred<void>();
     const currentRequest = deferred<void>();
-    updateUserSuperAdminService.mockImplementationOnce(() => oldRequest.promise).mockImplementationOnce(() => currentRequest.promise);
+    updateUserSuperAdminService
+      .mockImplementationOnce(() => oldRequest.promise)
+      .mockImplementationOnce(() => currentRequest.promise);
     const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
     const wrapper = render();
     await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
@@ -496,8 +623,13 @@ describe("ManageUsers Query listing", () => {
     expect(wrapper.vm.selectedUser).toBeNull();
     expect(successToast).toHaveBeenCalledWith("Contraseña actualizada");
     expect(invalidate).toHaveBeenCalledTimes(2);
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: adminUsersQueryKeyForSession("admin-a", 1), exact: true });
-    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: ["identity", "activity", "dashboard"] });
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: adminUsersQueryKeyForSession("admin-a", 1),
+      exact: true,
+    });
+    expect(invalidate).not.toHaveBeenCalledWith({
+      queryKey: ["identity", "activity", "dashboard"],
+    });
     wrapper.unmount();
   });
 
@@ -535,7 +667,11 @@ describe("ManageUsers Query listing", () => {
     const wrapper = render();
     await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
     wrapper.vm.openCreateModal();
-    Object.assign(wrapper.vm.newUser, { email: "admin@example.test", username: "admin-user", password: "Password1" });
+    Object.assign(wrapper.vm.newUser, {
+      email: "admin@example.test",
+      username: "admin-user",
+      password: "Password1",
+    });
     const pending = wrapper.vm.createUser();
     await vi.waitFor(() => expect(postUserService).toHaveBeenCalledOnce());
 
@@ -556,7 +692,9 @@ describe("ManageUsers Query listing", () => {
     let signal: AbortSignal | undefined;
     getUsers.mockImplementation((querySignal: AbortSignal) => {
       signal = querySignal;
-      return new Promise<AdminUser[]>((resolve) => { resolveQuery = resolve; });
+      return new Promise<AdminUser[]>((resolve) => {
+        resolveQuery = resolve;
+      });
     });
     const wrapper = render();
     await vi.waitFor(() => expect(getUsers).toHaveBeenCalledOnce());
@@ -592,12 +730,18 @@ describe("ManageUsers Query listing", () => {
         input.dispatchEvent(new Event("input", { bubbles: true }));
         await flushPromises();
       }
-      document.body.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      document.body
+        .querySelector("form")
+        ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
       await flushPromises();
     };
 
     await fillAndSubmitCreateForm();
-    expect(postUserService).toHaveBeenCalledWith({ email: "created@example.test", username: "created", password: "Password1" });
+    expect(postUserService).toHaveBeenCalledWith({
+      email: "created@example.test",
+      username: "created",
+      password: "Password1",
+    });
     expect(wrapper.vm.showCreateModal).toBe(false);
     expect(successToast).toHaveBeenCalledWith("Usuario creado correctamente");
     expect(useUserStore()).not.toHaveProperty("users");
@@ -621,13 +765,21 @@ describe("ManageUsers Query listing", () => {
     await wrapper.vm.updateRole(user, { target: { value: "riffvalley" } } as unknown as Event);
     wrapper.vm.updateCreatedAt(user, { target: { value: "2025-02-03" } } as unknown as Event);
     await vi.waitFor(() => expect(updateUserSuperAdminService).toHaveBeenCalledTimes(3));
-    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(1, "u-zed", { username: "Zed-renamed" });
+    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(1, "u-zed", {
+      username: "Zed-renamed",
+    });
     expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(2, "u-zed", { role: "riffvalley" });
-    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(3, "u-zed", { createdAt: "2025-02-03T00:00:00.000Z" });
+    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(3, "u-zed", {
+      createdAt: "2025-02-03T00:00:00.000Z",
+    });
 
-    const zedCard = wrapper.findAll(".user-card").find((card) =>
-      (card.get('input[placeholder="Username"]').element as HTMLInputElement).value === "Zed-renamed"
-    );
+    const zedCard = wrapper
+      .findAll(".user-card")
+      .find(
+        (card) =>
+          (card.get('input[placeholder="Username"]').element as HTMLInputElement).value ===
+          "Zed-renamed"
+      );
     if (!zedCard) throw new Error("Missing Zed user card");
     await zedCard.get('button[title="Notas"]').trigger("click");
     const notesField = document.body.querySelector<HTMLTextAreaElement>("textarea");
@@ -639,7 +791,9 @@ describe("ManageUsers Query listing", () => {
     await flushPromises();
 
     await zedCard.get('button[title="Cambiar contraseña"]').trigger("click");
-    let passwordField = document.body.querySelector<HTMLInputElement>("input[placeholder='Mínimo 6 caracteres']");
+    let passwordField = document.body.querySelector<HTMLInputElement>(
+      "input[placeholder='Mínimo 6 caracteres']"
+    );
     if (!passwordField) throw new Error("Missing password dialog field");
     document.body.querySelector<HTMLButtonElement>(".modal-sm .relative button")?.click();
     await flushPromises();
@@ -649,7 +803,9 @@ describe("ManageUsers Query listing", () => {
     expect(wrapper.vm.showPasswordModal).toBe(false);
 
     await zedCard.get('button[title="Cambiar contraseña"]').trigger("click");
-    passwordField = document.body.querySelector<HTMLInputElement>("input[placeholder='Mínimo 6 caracteres']");
+    passwordField = document.body.querySelector<HTMLInputElement>(
+      "input[placeholder='Mínimo 6 caracteres']"
+    );
     if (!passwordField) throw new Error("Missing reopened password dialog field");
     expect(passwordField.value).toBe("");
     expect(passwordField.type).toBe("password");
@@ -659,8 +815,12 @@ describe("ManageUsers Query listing", () => {
     document.body.querySelector<HTMLButtonElement>(".modal-btn-primary")?.click();
     await flushPromises();
 
-    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(4, "u-zed", { notes: "Internal note" });
-    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(5, "u-zed", { password: "Admin123" });
+    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(4, "u-zed", {
+      notes: "Internal note",
+    });
+    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(5, "u-zed", {
+      password: "Admin123",
+    });
     expect(wrapper.vm.showNotesModal).toBe(false);
     expect(wrapper.vm.showPasswordModal).toBe(false);
     expect(wrapper.vm.userNotes).toBe("");
@@ -670,9 +830,36 @@ describe("ManageUsers Query listing", () => {
     wrapper.unmount();
   });
 
+  it("sends typed email changes and restores a rejected username edit", async () => {
+    getUsers.mockResolvedValue(list);
+    updateUserSuperAdminService
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error("offline"));
+    const wrapper = render();
+    await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
+    const user = wrapper.vm.users[0];
+
+    user.email = "updated@example.test";
+    await wrapper.vm.updateField(user, "email");
+    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(1, "u-zed", {
+      email: "updated@example.test",
+    });
+
+    user.username = "Rejected edit";
+    await wrapper.vm.updateField(user, "username");
+    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(2, "u-zed", {
+      username: "Rejected edit",
+    });
+    expect(user.username).toBe("Zed");
+    expect(errorToast).toHaveBeenCalledWith("Error al actualizar username");
+    wrapper.unmount();
+  });
+
   it("sends a valid createdAt as ISO, skips an empty date, and preserves the row after failure", async () => {
     getUsers.mockResolvedValue(list);
-    updateUserSuperAdminService.mockResolvedValueOnce({}).mockRejectedValueOnce(new Error("offline"));
+    updateUserSuperAdminService
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(new Error("offline"));
     const wrapper = render();
     await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
     const user = wrapper.vm.users[0];
@@ -717,7 +904,9 @@ describe("ManageUsers Query listing", () => {
     expect(wrapper.vm.showNotesModal).toBe(true);
 
     await wrapper.get('.user-card button[title="Cambiar contraseña"]').trigger("click");
-    const passwordField = document.body.querySelector<HTMLInputElement>("input[placeholder='Mínimo 6 caracteres']");
+    const passwordField = document.body.querySelector<HTMLInputElement>(
+      "input[placeholder='Mínimo 6 caracteres']"
+    );
     if (!passwordField) throw new Error("Missing password dialog field");
     passwordField.value = "Admin123";
     passwordField.dispatchEvent(new Event("input", { bubbles: true }));
@@ -727,7 +916,10 @@ describe("ManageUsers Query listing", () => {
 
     expect(errorToast).toHaveBeenCalledWith("Error al actualizar contraseña");
     expect(wrapper.vm.showPasswordModal).toBe(true);
-    expect(document.body.querySelector<HTMLInputElement>("input[placeholder='Mínimo 6 caracteres']")?.value).toBe("Admin123");
+    expect(
+      document.body.querySelector<HTMLInputElement>("input[placeholder='Mínimo 6 caracteres']")
+        ?.value
+    ).toBe("Admin123");
     wrapper.unmount();
   });
 
@@ -768,7 +960,12 @@ describe("ManageUsers Query listing", () => {
       .mockResolvedValueOnce(list)
       .mockResolvedValueOnce([{ ...list[0], id: "u-new-session", username: "New identity" }]);
     let resolveUpdate!: () => void;
-    updateUserSuperAdminService.mockImplementation(() => new Promise<void>((resolve) => { resolveUpdate = resolve; }));
+    updateUserSuperAdminService.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveUpdate = resolve;
+        })
+    );
     const wrapper = render();
     await vi.waitFor(() => expect(wrapper.findAll(".user-card")).toHaveLength(2));
     const user = wrapper.vm.users[0];
@@ -783,7 +980,9 @@ describe("ManageUsers Query listing", () => {
 
     expect(invalidate).not.toHaveBeenCalled();
     expect(successToast).not.toHaveBeenCalled();
-    await vi.waitFor(() => expect(wrapper.vm.users.map((row: AdminUser) => row.username)).toEqual(["New identity"]));
+    await vi.waitFor(() =>
+      expect(wrapper.vm.users.map((row: AdminUser) => row.username)).toEqual(["New identity"])
+    );
     wrapper.unmount();
   });
 

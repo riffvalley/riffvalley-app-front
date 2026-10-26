@@ -31,9 +31,8 @@ const permissionsChangedListeners = new Set<PermissionsChangedListener>();
 
 function getChannel(): BroadcastChannel | null {
   if (channel !== undefined) return channel;
-  channel = typeof BroadcastChannel === "undefined"
-    ? null
-    : new BroadcastChannel(SESSION_CHANNEL_NAME);
+  channel =
+    typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel(SESSION_CHANNEL_NAME);
   channel?.addEventListener("message", (event: MessageEvent<unknown>) => {
     if (isLogoutMessage(event.data)) {
       logoutListeners.forEach((listener) => listener());
@@ -55,23 +54,35 @@ function getChannel(): BroadcastChannel | null {
 }
 
 function isLogoutMessage(value: unknown): value is LogoutMessage {
-  return typeof value === "object" && value !== null &&
-    (value as Record<string, unknown>).type === "logout";
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as Record<string, unknown>).type === "logout"
+  );
 }
 
 function isLoginMessage(value: unknown): value is LoginMessage {
-  return typeof value === "object" && value !== null &&
-    (value as Record<string, unknown>).type === "login";
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as Record<string, unknown>).type === "login"
+  );
 }
 
 function isSessionCsrfUpdatedMessage(value: unknown): value is SessionCsrfUpdatedMessage {
-  return typeof value === "object" && value !== null &&
-    (value as Record<string, unknown>).type === "session-csrf-updated";
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as Record<string, unknown>).type === "session-csrf-updated"
+  );
 }
 
 function isPermissionsChangedMessage(value: unknown): value is PermissionsChangedMessage {
-  return typeof value === "object" && value !== null &&
-    (value as Record<string, unknown>).type === "permissions-changed";
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as Record<string, unknown>).type === "permissions-changed"
+  );
 }
 
 export class AuthSessionLockTimeoutError extends Error {
@@ -103,7 +114,7 @@ async function requestAuthSessionLock<T>(operation: () => Promise<T>): Promise<T
     return await navigator.locks.request(
       SESSION_MUTATION_LOCK,
       { mode: "exclusive", signal: controller.signal },
-      operation,
+      operation
     );
   } catch (error: unknown) {
     if (timedOut) throw new AuthSessionLockTimeoutError();
@@ -173,7 +184,9 @@ export function subscribeToRemoteSessionCsrfUpdated(listener: SessionCsrfListene
   return () => sessionCsrfListeners.delete(listener);
 }
 
-export function subscribeToRemoteAuthPermissionsChanged(listener: PermissionsChangedListener): () => void {
+export function subscribeToRemoteAuthPermissionsChanged(
+  listener: PermissionsChangedListener
+): () => void {
   getChannel();
   permissionsChangedListeners.add(listener);
   return () => permissionsChangedListeners.delete(listener);

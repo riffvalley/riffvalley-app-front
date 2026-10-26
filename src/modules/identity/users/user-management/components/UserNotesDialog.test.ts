@@ -15,8 +15,12 @@ describe("UserNotesDialog", () => {
     });
 
     expect(document.body.textContent).toContain("Usuario: Amy");
-    expect(document.body.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe("Existing note");
-    expect(document.body.querySelector<HTMLTextAreaElement>("textarea")?.placeholder).toBe("Escribe notas sobre este usuario...");
+    expect(document.body.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "Existing note"
+    );
+    expect(document.body.querySelector<HTMLTextAreaElement>("textarea")?.placeholder).toBe(
+      "Escribe notas sobre este usuario..."
+    );
     wrapper.unmount();
   });
 
@@ -50,20 +54,35 @@ describe("UserNotesDialog", () => {
     const dialog = document.body.querySelector<HTMLElement>('[role="dialog"]');
     const notes = document.body.querySelector<HTMLTextAreaElement>("#user-notes");
     if (!dialog || !notes) throw new Error("Missing notes dialog controls");
-    const focusable = Array.from(dialog.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'));
+    const focusable = Array.from(
+      dialog.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+      )
+    );
 
     expect(dialog.getAttribute("aria-modal")).toBe("true");
     expect(dialog.getAttribute("aria-labelledby")).toBe("user-notes-dialog-title");
-    expect(document.body.querySelector<HTMLLabelElement>('label[for="user-notes"]')?.control).toBe(notes);
-    expect(document.body.querySelector<HTMLButtonElement>(".modal-close")?.getAttribute("aria-label")).toBe("Cerrar diálogo de notas");
+    expect(document.body.querySelector<HTMLLabelElement>('label[for="user-notes"]')?.control).toBe(
+      notes
+    );
+    expect(
+      document.body.querySelector<HTMLButtonElement>(".modal-close")?.getAttribute("aria-label")
+    ).toBe("Cerrar diálogo de notas");
     expect(notes).toBe(document.activeElement);
 
     focusable[0].focus();
-    const backwardsTab = new KeyboardEvent("keydown", { key: "Tab", shiftKey: true, bubbles: true, cancelable: true });
+    const backwardsTab = new KeyboardEvent("keydown", {
+      key: "Tab",
+      shiftKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
     focusable[0].dispatchEvent(backwardsTab);
     expect(backwardsTab.defaultPrevented).toBe(true);
     expect(focusable.at(-1)).toBe(document.activeElement);
-    dialog.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }));
+    dialog.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true })
+    );
     expect(wrapper.emitted("close")).toHaveLength(1);
     wrapper.unmount();
   });

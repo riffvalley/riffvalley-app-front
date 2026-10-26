@@ -31,9 +31,9 @@ const modules: DashboardModule[] = [
 ];
 
 function makeConfig(target: "desktop" | "mobile") {
-  const targetModules = ref(modules.map(module => ({ ...module })));
-  const enabledModules = computed(() => targetModules.value.filter(module => module.enabled));
-  const disabledModules = computed(() => targetModules.value.filter(module => !module.enabled));
+  const targetModules = ref(modules.map((module) => ({ ...module })));
+  const enabledModules = computed(() => targetModules.value.filter((module) => module.enabled));
+  const disabledModules = computed(() => targetModules.value.filter((module) => !module.enabled));
   const isDesktop = target === "desktop";
 
   return {
@@ -57,7 +57,7 @@ describe("DashboardBuilder keyboard controls", () => {
     desktopConfig = makeConfig("desktop");
     mobileConfig = makeConfig("mobile");
     mocks.useDashboardConfig.mockImplementation((target: "desktop" | "mobile") =>
-      target === "desktop" ? desktopConfig : mobileConfig,
+      target === "desktop" ? desktopConfig : mobileConfig
     );
   });
 
@@ -90,7 +90,9 @@ describe("DashboardBuilder keyboard controls", () => {
 
   it("activates a desktop tray module by button and preserves its draggable affordance", async () => {
     const wrapper = mount(DashboardBuilder, { attachTo: document.body });
-    const activateDelta = wrapper.get('button[aria-label="Activar Delta en el dashboard de escritorio"]');
+    const activateDelta = wrapper.get(
+      'button[aria-label="Activar Delta en el dashboard de escritorio"]'
+    );
 
     expect(activateDelta.attributes("draggable")).toBe("true");
     await activateDelta.trigger("click");
@@ -133,7 +135,15 @@ describe("DashboardBuilder keyboard controls", () => {
     });
     const card = wrapper.get(".cursor-grab[draggable='true']");
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
-      x: 0, y: 0, left: 0, top: 0, right: 100, bottom: 40, width: 100, height: 40, toJSON: () => ({}),
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 100,
+      bottom: 40,
+      width: 100,
+      height: 40,
+      toJSON: () => ({}),
     });
 
     expect(card.attributes("draggable")).toBe("true");

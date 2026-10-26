@@ -1,6 +1,8 @@
 # Roadmaps
 
-- [Arquitectura modular frontend](roadmap/frontend-architecture.md): auditoría del estado actual, mapa de módulos, estrategia de estado/TanStack Query y roadmap pendiente de Identity y migraciones posteriores.
+- [Documentación del frontend](docs/frontend/index.md): índice de fuentes canónicas y roadmaps históricos.
+- [Arquitectura modular frontend — historial](roadmap/frontend-architecture.md): auditoría, decisiones y planificación conservadas; la [arquitectura vigente](docs/frontend/architecture.md) está en la documentación canónica.
+- [Calidad frontend (FQ-1/FQ-2)](roadmap/frontend-quality.md): auditoría, gates y migración documental; FQ-5 se auditó localmente, pero sigue sin cerrar por fallos en los checks incrementales de Identity y comparaciones incompletas.
 - [Organización estructural de Identity](roadmap/identity-structure.md): inventario por archivo, ownership y plan de reorganización física sin cambios funcionales.
 - [Lógica de vistas Identity (I1-12)](roadmap/identity-logic.md): auditoría contrastada de siete vistas, extracciones acotadas y regresión funcional pendiente.
 - [Migración frontend al modelo de rol único](roadmap/roles.md): inventario, contratos/store, guards/navegación, administración de usuarios y regresión.

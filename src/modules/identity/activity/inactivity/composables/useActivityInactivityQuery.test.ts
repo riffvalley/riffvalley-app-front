@@ -12,7 +12,7 @@ vi.mock("@/modules/identity/activity/api/activity", async (importOriginal) => {
 });
 
 import { observePrivateQueryCache } from "@/app/privateQueryCache";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 import type { ActivityInactivityResponse } from "@/modules/identity/activity/inactivity/types/activityInactivity";
 import {
   activityInactivityQueryKeyForSession,
@@ -35,7 +35,12 @@ const response: ActivityInactivityResponse = {
     never_voted: 0,
     insufficient_history: 0,
   },
-  coverage: { status: "unavailable", captureStartedAt: null, captureDataSince: null, interpretation: "Sin captura." },
+  coverage: {
+    status: "unavailable",
+    captureStartedAt: null,
+    captureDataSince: null,
+    interpretation: "Sin captura.",
+  },
   limit: 20,
   offset: 0,
   sortBy: "daysSinceLastVote",
@@ -54,7 +59,9 @@ describe("useActivityInactivityQuery", () => {
     wrappers = [];
     pinia = createPinia();
     setActivePinia(pinia);
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    });
     const authStore = useAuthStore();
     authStore.$patch({
       authStatus: "authenticated",
@@ -81,22 +88,33 @@ describe("useActivityInactivityQuery", () => {
         return () => h("output", query.data.value?.asOf ?? String(query.error.value ?? "loading"));
       },
     });
-    const wrapper = mount(Harness, { global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] } });
+    const wrapper = mount(Harness, {
+      global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] },
+    });
     wrappers.push(wrapper);
     return { wrapper, parameters };
   }
 
   it("normalizes parameters and isolates cache keys by filters, identity, and session generation", () => {
-    expect(normalizeActivityInactivityParams({ role: undefined, limit: 20, offset: 0 })).toEqual({ limit: 20, offset: 0 });
-    const params = { asOf: "2026-10-24", role: "user" as const, isActive: "true" as const, limit: 20, offset: 0 };
+    expect(normalizeActivityInactivityParams({ role: undefined, limit: 20, offset: 0 })).toEqual({
+      limit: 20,
+      offset: 0,
+    });
+    const params = {
+      asOf: "2026-10-24",
+      role: "user" as const,
+      isActive: "true" as const,
+      limit: 20,
+      offset: 0,
+    };
     expect(activityInactivityQueryKeyForSession(params, "admin-a", 4)).not.toEqual(
-      activityInactivityQueryKeyForSession(params, "admin-b", 4),
+      activityInactivityQueryKeyForSession(params, "admin-b", 4)
     );
     expect(activityInactivityQueryKeyForSession(params, "admin-a", 4)).not.toEqual(
-      activityInactivityQueryKeyForSession(params, "admin-a", 5),
+      activityInactivityQueryKeyForSession(params, "admin-a", 5)
     );
     expect(activityInactivityQueryKeyForSession(params, "admin-a", 4)).not.toEqual(
-      activityInactivityQueryKeyForSession({ ...params, offset: 20 }, "admin-a", 4),
+      activityInactivityQueryKeyForSession({ ...params, offset: 20 }, "admin-a", 4)
     );
   });
 
@@ -105,15 +123,29 @@ describe("useActivityInactivityQuery", () => {
       ...response,
       totalUsers: 1,
       groups: { ...response.groups, insufficient_history: 1 },
-      data: [{
-        userId: "u-1", username: "Listener", role: "user", isActive: true,
-        lastVoteAt: null, daysSinceLastVote: null, inactivityGroup: "insufficient_history",
-        lastPresenceAt: null, lastRatingModifiedAt: null, currentRatings: 0,
-      }],
+      data: [
+        {
+          userId: "u-1",
+          username: "Listener",
+          role: "user",
+          isActive: true,
+          lastVoteAt: null,
+          daysSinceLastVote: null,
+          inactivityGroup: "insufficient_history",
+          lastPresenceAt: null,
+          lastRatingModifiedAt: null,
+          currentRatings: 0,
+        },
+      ],
     };
     expect(isActivityInactivityResponse(valid)).toBe(true);
     expect(isActivityInactivityResponse({ ...response, groups: { "0_2_days": 0 } })).toBe(false);
-    expect(isActivityInactivityResponse({ ...response, data: [{ ...response.data[0], inactivityGroup: "unknown" }] })).toBe(false);
+    expect(
+      isActivityInactivityResponse({
+        ...response,
+        data: [{ ...response.data[0], inactivityGroup: "unknown" }],
+      })
+    ).toBe(false);
   });
 
   it("does not request private inactivity data without superadmin access", async () => {
@@ -127,7 +159,12 @@ describe("useActivityInactivityQuery", () => {
   it("discards a late inactivity response on downgrade and refetches after restoration", async () => {
     let resolveLate!: (value: ActivityInactivityResponse) => void;
     getActivityInactivity
-      .mockImplementationOnce(() => new Promise((resolve) => { resolveLate = resolve; }))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveLate = resolve;
+          })
+      )
       .mockResolvedValueOnce({ ...response, asOf: "2026-10-25" });
     const authStore = useAuthStore();
     const { wrapper } = mountQuery();
@@ -139,20 +176,34 @@ describe("useActivityInactivityQuery", () => {
     resolveLate(response);
     await flushPromises();
     expect(wrapper.text()).not.toContain("2026-10-24");
-    expect(queryClient.getQueryCache().getAll().every((query) => query.state.data === undefined)).toBe(true);
+    expect(
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .every((query) => query.state.data === undefined)
+    ).toBe(true);
 
     authStore.$patch({ role: "superadmin" });
     const key = activityInactivityQueryKeyForSession(
-      { asOf: "2026-10-24", limit: 20, offset: 0 }, "admin-a", 4,
+      { asOf: "2026-10-24", limit: 20, offset: 0 },
+      "admin-a",
+      4
     );
-    await vi.waitFor(() => expect(queryClient.getQueryData(key)).toEqual({ ...response, asOf: "2026-10-25" }));
+    await vi.waitFor(() =>
+      expect(queryClient.getQueryData(key)).toEqual({ ...response, asOf: "2026-10-25" })
+    );
     expect(getActivityInactivity).toHaveBeenCalledTimes(2);
   });
 
   it("cancels the previous request when reactive filters change", async () => {
     let resolvePrevious: ((value: ActivityInactivityResponse) => void) | undefined;
     getActivityInactivity
-      .mockImplementationOnce(() => new Promise((resolve) => { resolvePrevious = resolve; }))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolvePrevious = resolve;
+          })
+      )
       .mockResolvedValueOnce({ ...response, asOf: "2026-10-25" });
     const { wrapper, parameters } = mountQuery();
 
@@ -168,7 +219,12 @@ describe("useActivityInactivityQuery", () => {
   it("passes AbortSignal and prevents an older session response from populating the new session cache", async () => {
     let resolveOld: ((value: ActivityInactivityResponse) => void) | undefined;
     getActivityInactivity
-      .mockImplementationOnce(() => new Promise((resolve) => { resolveOld = resolve; }))
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveOld = resolve;
+          })
+      )
       .mockResolvedValueOnce({ ...response, asOf: "2026-10-25" });
     const { wrapper } = mountQuery();
 
@@ -183,10 +239,14 @@ describe("useActivityInactivityQuery", () => {
     await flushPromises();
 
     expect(wrapper.text()).toBe("2026-10-25");
-    expect(queryClient.getQueryData(activityInactivityQueryKeyForSession(
-      { asOf: "2026-10-24", limit: 20, offset: 0 },
-      "admin-a",
-      4,
-    ))).toBeUndefined();
+    expect(
+      queryClient.getQueryData(
+        activityInactivityQueryKeyForSession(
+          { asOf: "2026-10-24", limit: 20, offset: 0 },
+          "admin-a",
+          4
+        )
+      )
+    ).toBeUndefined();
   });
 });

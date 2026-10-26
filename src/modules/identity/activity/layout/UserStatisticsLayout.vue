@@ -35,15 +35,23 @@ function handleTabKeydown(event: KeyboardEvent, currentIndex: number) {
 </script>
 
 <template>
-  <div class="min-h-full bg-gray-50 px-4 py-5 text-rv-navy dark:bg-rv-darkBg dark:text-white sm:px-6 lg:px-8">
+  <div
+    class="min-h-full bg-gray-50 px-4 py-5 text-rv-navy dark:bg-rv-darkBg dark:text-white sm:px-6 lg:px-8"
+  >
     <div class="mx-auto max-w-7xl">
       <header class="mb-5 border-b border-gray-200 pb-4 dark:border-white/10">
         <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Estadísticas de uso</h1>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">Actividad general, actividad de usuarios e inactividad de voto nuevo.</p>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          Actividad general, actividad de usuarios e inactividad de voto nuevo.
+        </p>
       </header>
 
       <nav aria-label="Secciones de estadísticas de uso" class="mb-5 overflow-x-auto">
-        <div role="tablist" aria-label="Estadísticas de uso" class="flex min-w-max gap-2 border-b border-gray-200 dark:border-white/10">
+        <div
+          role="tablist"
+          aria-label="Estadísticas de uso"
+          class="flex min-w-max gap-2 border-b border-gray-200 dark:border-white/10"
+        >
           <RouterLink
             v-for="(tab, index) in tabs"
             :id="`usage-tab-${tab.id}`"
@@ -54,9 +62,11 @@ function handleTabKeydown(event: KeyboardEvent, currentIndex: number) {
             aria-controls="usage-tabpanel"
             :tabindex="activeTab === tab.id ? 0 : -1"
             class="rounded-t-lg border-b-2 px-4 py-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
-            :class="activeTab === tab.id
-              ? 'border-rv-pink bg-white text-rv-navy dark:bg-rv-darkCard dark:text-white'
-              : 'border-transparent text-gray-600 hover:bg-white/70 hover:text-rv-navy dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white'"
+            :class="
+              activeTab === tab.id
+                ? 'border-rv-pink bg-white text-rv-navy dark:bg-rv-darkCard dark:text-white'
+                : 'border-transparent text-gray-600 hover:bg-white/70 hover:text-rv-navy dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-white'
+            "
             @keydown="handleTabKeydown($event, index)"
           >
             {{ tab.label }}

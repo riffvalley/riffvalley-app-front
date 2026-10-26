@@ -1,4 +1,4 @@
-import type { UserRole } from "../../shared/types/auth";
+import type { UserRole } from "@/modules/identity/shared";
 
 export interface UserListItem {
   id: string;
@@ -7,7 +7,6 @@ export interface UserListItem {
   role: UserRole;
   image: string | null;
 }
-
 export type RvUser = Omit<UserListItem, "role"> & {
   role: Extract<UserRole, "riffvalley" | "superadmin">;
 };
@@ -56,21 +55,3 @@ export type AdminUpdateUserPayload = UpdateProfilePayload & {
   notes?: string | null;
   createdAt?: string;
 };
-
-export interface ActivityVote {
-  id: string;
-  rate: number | null;
-  cover: number | null;
-  createdAt: string;
-  editedAt: string | null;
-  user: { id: string; username: string; image?: string };
-  disc: { id: string; name: string };
-}
-
-export interface GlobalActivityResponse {
-  totalItems: number;
-  totalPages: number;
-  currentPage: number;
-  limit: number;
-  data: ActivityVote[];
-}

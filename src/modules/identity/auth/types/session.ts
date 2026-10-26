@@ -1,4 +1,4 @@
-import type { UserRole } from "@/modules/identity/shared/types/auth";
+import type { UserRole } from "@/modules/identity/shared";
 
 export interface SessionAuthUser {
   id: string;

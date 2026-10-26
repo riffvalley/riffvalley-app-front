@@ -81,7 +81,7 @@ import { getRatesByUser } from '@services/rates/rates';
 import { postAsignationService } from '@services/asignation/asignation';
 import SwalService from '@services/swal/SwalService';
 import { useAsignationStore } from '@stores/asignation/asignation';
-import { useAuthStore } from '@/modules/identity/auth/stores/auth';
+import { useAuthStore } from '@/modules/identity/auth';
 
 const props = defineProps<{
   listId: string;

@@ -1,5 +1,5 @@
 import { computed } from 'vue';
-import { useDashboardPreferences, type DashboardModuleConfig } from '@/modules/identity/account/preferences/composables/useDashboardPreferences';
+import { useDashboardPreferences, type DashboardModuleConfig } from '@/modules/identity/account';
 import { useUserStore } from '@stores/user/users';
 import SwalService from '@services/swal/SwalService';
 

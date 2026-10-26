@@ -17,7 +17,7 @@ vi.mock("@services/versions/versions", () => ({ getLatestPublicVersion: vi.fn() 
 vi.mock("@services/requests/requests", () => ({ getAllRequests: vi.fn() }));
 vi.mock("@services/suggestions/suggestions", () => ({ getSuggestions: vi.fn() }));
 
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
 import router from "/src/router";
 import SidebarMenu from "./SidebarMenu.vue";

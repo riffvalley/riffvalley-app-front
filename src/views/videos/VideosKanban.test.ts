@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import VideosKanban from './VideosKanban.vue';
 import { createVideo, getVideos, updateVideo } from '@services/videos/videos';
-import { getRvUsers } from '@/modules/identity/users/api/users';
+import { getRvUsers } from '@/modules/identity/users';
 import SwalService from '@services/swal/SwalService';
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
@@ -12,10 +12,10 @@ const editorId = 'd2342314-9a14-40c9-bcf2-006c6b927b4c';
 let apiVideo: any;
 
 vi.mock('vue-router', () => ({ useRouter: () => ({ push }) }));
-vi.mock('@/modules/identity/auth/stores/auth', () => ({
+vi.mock('@/modules/identity/auth', () => ({
     useAuthStore: () => ({ userId, username: 'Usuario', image: undefined })
 }));
-vi.mock('@/modules/identity/users/api/users', () => ({ getRvUsers: vi.fn() }));
+vi.mock('@/modules/identity/users', () => ({ getRvUsers: vi.fn() }));
 vi.mock('@services/videos/videos', () => ({
     getVideos: vi.fn(),
     createVideo: vi.fn(),

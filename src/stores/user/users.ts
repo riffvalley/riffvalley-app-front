@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { updateUserService, getRvUsers } from "@/modules/identity/users/api/users";
+import { updateUserService, getRvUsers } from "@/modules/identity/users";
 
 export const useUserStore = defineStore("user", {
   state: () => ({

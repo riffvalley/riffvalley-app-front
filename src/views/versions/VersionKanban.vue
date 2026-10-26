@@ -56,8 +56,8 @@ import {
   removeVersionItem,
   updateItem,
 } from '@services/versions/versions';
-import { getSuperusers } from '@/modules/identity/users/api/users';
-import type { Superuser } from '@/modules/identity/users/types/users';
+import { getSuperusers } from '@/modules/identity/users';
+import type { Superuser } from '@/modules/identity/users';
 import BacklogPanel from './components/BacklogPanel.vue';
 import KanbanBoard from './components/KanbanBoard.vue';
 

@@ -13,11 +13,15 @@
           </span>
           <span class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
             <span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
-            <span class="font-semibold text-green-600 dark:text-green-400">{{ stats.active }}</span> activos
+            <span class="font-semibold text-green-600 dark:text-green-400">{{ stats.active }}</span>
+            activos
           </span>
           <span class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
             <span class="w-1.5 h-1.5 rounded-full bg-orange-400 inline-block"></span>
-            <span class="font-semibold text-orange-500 dark:text-orange-400">{{ stats.banned }}</span> baneados
+            <span class="font-semibold text-orange-500 dark:text-orange-400">{{
+              stats.banned
+            }}</span>
+            baneados
           </span>
         </div>
       </div>
@@ -25,8 +29,19 @@
         @click="openCreateModal($event)"
         class="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-rv-pink to-rv-purple text-white font-medium rounded-full shadow-sm hover:opacity-90 transition-opacity whitespace-nowrap"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-5 w-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M12 4v16m8-8H4"
+          />
         </svg>
         Crear Usuario
       </button>
@@ -34,14 +49,19 @@
 
     <!-- Search bar -->
     <div class="relative mb-4">
-      <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+      <i
+        class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+      ></i>
       <input
         v-model="searchQuery"
         type="text"
         placeholder="Buscar por usuario o email..."
+        aria-label="Buscar usuarios"
         class="w-full pl-11 pr-32 py-3 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-rv-darkSurface text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-rv-pink focus:ring-2 focus:ring-rv-pink/25 transition-all"
       />
-      <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 tabular-nums whitespace-nowrap">
+      <span
+        class="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-gray-400 tabular-nums whitespace-nowrap"
+      >
         {{ filteredUsers.length }}<span v-if="isFiltered"> / {{ users.length }}</span> usuarios
       </span>
     </div>
@@ -86,12 +106,22 @@
     </div>
 
     <!-- Lista de usuarios -->
-    <div v-if="isUsersLoading" class="py-16 text-center text-gray-500 dark:text-gray-400" role="status">
+    <div
+      v-if="isUsersLoading"
+      class="py-16 text-center text-gray-500 dark:text-gray-400"
+      role="status"
+    >
       Cargando usuarios…
     </div>
-    <div v-else-if="isUsersError" class="py-16 text-center text-gray-500 dark:text-gray-400" role="alert">
+    <div
+      v-else-if="isUsersError"
+      class="py-16 text-center text-gray-500 dark:text-gray-400"
+      role="alert"
+    >
       <p>Error al cargar usuarios</p>
-      <button class="mt-3 text-sm text-rv-pink hover:underline" @click="retryUsers">Reintentar</button>
+      <button class="mt-3 text-sm text-rv-pink hover:underline" @click="retryUsers">
+        Reintentar
+      </button>
     </div>
     <div v-else class="space-y-3">
       <div
@@ -104,31 +134,50 @@
           <div class="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <!-- Username -->
             <div>
-              <label class="block text-xs text-rv-pink mb-1.5 font-medium">Usuario</label>
-              <input
-                v-model="user.username"
-                @blur="updateField(user, 'username')"
-                @keyup.enter="($event.target as HTMLInputElement).blur()"
-                class="user-input"
-                placeholder="Username"
-              />
+              <label
+                :for="`user-username-${user.id}`"
+                class="block text-xs text-rv-pink mb-1.5 font-medium"
+              >
+                Usuario
+                <input
+                  :id="`user-username-${user.id}`"
+                  v-model="user.username"
+                  @blur="updateField(user, 'username')"
+                  @keyup.enter="($event.target as HTMLInputElement).blur()"
+                  class="user-input block text-base"
+                  placeholder="Username"
+                />
+              </label>
             </div>
 
             <!-- Email -->
             <div>
               <div class="flex items-center justify-between mb-1.5">
-                <label class="text-xs text-rv-pink font-medium">Email</label>
+                <span :id="`user-email-label-${user.id}`" class="text-xs text-rv-pink font-medium"
+                  >Email</span
+                >
                 <button
                   @click="copyEmail(user.id, user.email)"
                   class="text-xs flex items-center gap-1 transition-colors"
-                  :class="copiedUserId === user.id ? 'text-green-400' : 'text-gray-400 hover:text-rv-pink'"
+                  :class="
+                    copiedUserId === user.id ? 'text-green-400' : 'text-gray-400 hover:text-rv-pink'
+                  "
                   :title="copiedUserId === user.id ? '¡Copiado!' : 'Copiar email'"
+                  :aria-label="
+                    copiedUserId === user.id
+                      ? `Email de ${user.username} copiado`
+                      : `Copiar email de ${user.username}`
+                  "
                 >
-                  <i class="fa-solid" :class="copiedUserId === user.id ? 'fa-check' : 'fa-copy'"></i>
+                  <i
+                    class="fa-solid"
+                    :class="copiedUserId === user.id ? 'fa-check' : 'fa-copy'"
+                  ></i>
                   <span v-if="copiedUserId === user.id">Copiado</span>
                 </button>
               </div>
               <input
+                :aria-labelledby="`user-email-label-${user.id}`"
                 v-model="user.email"
                 @blur="updateField(user, 'email')"
                 @keyup.enter="($event.target as HTMLInputElement).blur()"
@@ -139,34 +188,49 @@
 
             <!-- Roles -->
             <div>
-              <label class="block text-xs text-rv-pink mb-1.5 font-medium">Rol</label>
-              <select
-                :value="user.role"
-                @change="updateRole(user, $event)"
-                class="user-input"
-                aria-label="Rol del usuario"
+              <label
+                :for="`user-role-${user.id}`"
+                class="block text-xs text-rv-pink mb-1.5 font-medium"
               >
-                <option v-if="!isUserRole(user.role)" :value="user.role ?? ''" disabled>Rol no reconocido</option>
-                <option v-for="role in roleOptions" :key="role.value" :value="role.value">
-                  {{ role.label }}
-                </option>
-              </select>
+                Rol
+                <select
+                  :id="`user-role-${user.id}`"
+                  :value="user.role"
+                  @change="updateRole(user, $event)"
+                  class="user-input block text-base"
+                >
+                  <option v-if="!isUserRole(user.role)" :value="user.role ?? ''" disabled>
+                    Rol no reconocido
+                  </option>
+                  <option v-for="role in roleOptions" :key="role.value" :value="role.value">
+                    {{ role.label }}
+                  </option>
+                </select>
+              </label>
             </div>
 
             <!-- Fecha -->
             <div>
-              <label class="block text-xs text-rv-pink mb-1.5 font-medium">Creado</label>
-              <input
-                type="date"
-                :value="formatDateForInput(user.createdAt)"
-                @change="updateCreatedAt(user, $event)"
-                class="user-input date-input"
-              />
+              <label
+                :for="`user-created-at-${user.id}`"
+                class="block text-xs text-rv-pink mb-1.5 font-medium"
+              >
+                Creado
+                <input
+                  :id="`user-created-at-${user.id}`"
+                  type="date"
+                  :value="formatDateForInput(user.createdAt)"
+                  @change="updateCreatedAt(user, $event)"
+                  class="user-input date-input block text-base"
+                />
+              </label>
             </div>
           </div>
 
           <!-- Acciones -->
-          <div class="flex items-center gap-2 lg:ml-4 pt-3 lg:pt-0 border-t border-gray-200 dark:border-white/10 lg:border-0">
+          <div
+            class="flex items-center gap-2 lg:ml-4 pt-3 lg:pt-0 border-t border-gray-200 dark:border-white/10 lg:border-0"
+          >
             <span
               v-if="!user.isActive"
               class="text-xs font-bold px-2 py-1 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 whitespace-nowrap"
@@ -174,15 +238,47 @@
               Baneado
             </span>
 
-            <button @click="openNotesModal(user, $event)" class="action-btn action-btn-blue" title="Notas" :aria-label="`Editar notas de ${user.username}`">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            <button
+              @click="openNotesModal(user, $event)"
+              class="action-btn action-btn-blue"
+              title="Notas"
+              :aria-label="`Editar notas de ${user.username}`"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
               </svg>
             </button>
 
-            <button @click="openPasswordModal(user, $event)" class="action-btn action-btn-pink" title="Cambiar contraseña" :aria-label="`Cambiar contraseña de ${user.username}`">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            <button
+              @click="openPasswordModal(user, $event)"
+              class="action-btn action-btn-pink"
+              title="Cambiar contraseña"
+              :aria-label="`Cambiar contraseña de ${user.username}`"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                />
               </svg>
             </button>
 
@@ -191,13 +287,35 @@
               class="action-btn"
               :class="user.isActive ? 'action-btn-orange' : 'action-btn-green'"
               :title="user.isActive ? 'Banear' : 'Reactivar'"
+              :aria-label="
+                user.isActive ? `Banear a ${user.username}` : `Reactivar a ${user.username}`
+              "
             >
-              <i :class="user.isActive ? 'fa-solid fa-user-slash' : 'fa-solid fa-user-check'" class="text-sm"></i>
+              <i
+                :class="user.isActive ? 'fa-solid fa-user-slash' : 'fa-solid fa-user-check'"
+                class="text-sm"
+              ></i>
             </button>
 
-            <button @click="confirmDeleteUser(user)" class="action-btn action-btn-red" title="Eliminar permanentemente">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            <button
+              @click="confirmDeleteUser(user)"
+              class="action-btn action-btn-red"
+              title="Eliminar permanentemente"
+              :aria-label="`Eliminar permanentemente a ${user.username}`"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
               </svg>
             </button>
           </div>
@@ -205,10 +323,20 @@
       </div>
 
       <!-- Empty state -->
-      <div v-if="filteredUsers.length === 0" class="text-center py-16 text-gray-500 dark:text-gray-400">
+      <div
+        v-if="filteredUsers.length === 0"
+        class="text-center py-16 text-gray-500 dark:text-gray-400"
+      >
         <i class="fa-solid fa-user-slash text-3xl mb-3 block opacity-40"></i>
         <p>{{ emptyMessage }}</p>
-        <button v-if="isFiltered" @click="clearFilters(); searchQuery = ''" class="mt-3 text-sm text-rv-pink hover:underline">
+        <button
+          v-if="isFiltered"
+          @click="
+            clearFilters();
+            searchQuery = '';
+          "
+          class="mt-3 text-sm text-rv-pink hover:underline"
+        >
           Limpiar filtros
         </button>
       </div>
@@ -245,20 +373,25 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, watch, nextTick } from "vue";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 import { useAdminUsersQuery } from "@/modules/identity/users/composables/useAdminUsersQuery";
 import { useAdminUserMutations } from "@/modules/identity/users/composables/useAdminUserMutations";
 import SwalService from "@services/swal/SwalService";
-import type { AdminUser, RegisterUserPayload } from "@/modules/identity/users/types/users";
-import { USER_ROLES, type UserRole } from "@/modules/identity/shared/types/auth";
+import type {
+  AdminUpdateUserPayload,
+  AdminUser,
+  RegisterUserPayload,
+} from "@/modules/identity/users/types/users";
+import { USER_ROLES, type UserRole } from "@/modules/identity/shared";
 import CreateUserDialog from "./components/CreateUserDialog.vue";
 import UserPasswordDialog from "./components/UserPasswordDialog.vue";
 import UserNotesDialog from "./components/UserNotesDialog.vue";
 
 type User = AdminUser;
 
-type SortField = 'username' | 'email' | 'createdAt';
-type SortDir = 'asc' | 'desc';
+type SortField = "username" | "email" | "createdAt";
+type SortDir = "asc" | "desc";
+type EditableUserField = "username" | "email";
 
 export default defineComponent({
   name: "ManageUsers",
@@ -281,8 +414,8 @@ export default defineComponent({
     const filterBanned = ref(false);
 
     // Sort
-    const sortBy = ref<SortField>('username');
-    const sortDir = ref<SortDir>('asc');
+    const sortBy = ref<SortField>("username");
+    const sortDir = ref<SortDir>("asc");
 
     // Copy feedback
     const copiedUserId = ref<string | null>(null);
@@ -299,20 +432,20 @@ export default defineComponent({
       typeof value === "string" && validRoleValues.has(value);
 
     const sortOptions: { value: SortField; label: string }[] = [
-      { value: 'username', label: 'Usuario' },
-      { value: 'email', label: 'Email' },
-      { value: 'createdAt', label: 'Fecha' },
+      { value: "username", label: "Usuario" },
+      { value: "email", label: "Email" },
+      { value: "createdAt", label: "Fecha" },
     ];
 
     // Stats
     const stats = computed(() => ({
       total: users.value.length,
-      active: users.value.filter(u => u.isActive).length,
-      banned: users.value.filter(u => !u.isActive).length,
+      active: users.value.filter((u) => u.isActive).length,
+      banned: users.value.filter((u) => !u.isActive).length,
     }));
 
-    const isFiltered = computed(() =>
-      !!searchQuery.value.trim() || roleFilter.value !== null || filterBanned.value
+    const isFiltered = computed(
+      () => !!searchQuery.value.trim() || roleFilter.value !== null || filterBanned.value
     );
 
     const filteredUsers = computed(() => {
@@ -320,42 +453,41 @@ export default defineComponent({
 
       const q = searchQuery.value.trim().toLowerCase();
       if (q) {
-        list = list.filter(u =>
-          u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
+        list = list.filter(
+          (u) => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)
         );
       }
 
       if (roleFilter.value !== null) {
-        list = list.filter(u => u.role === roleFilter.value);
+        list = list.filter((u) => u.role === roleFilter.value);
       }
 
       if (filterBanned.value) {
-        list = list.filter(u => !u.isActive);
+        list = list.filter((u) => !u.isActive);
       }
 
       list.sort((a, b) => {
-        let va: any = a[sortBy.value] ?? '';
-        let vb: any = b[sortBy.value] ?? '';
-        if (sortBy.value === 'createdAt') {
-          va = new Date(va).getTime() || 0;
-          vb = new Date(vb).getTime() || 0;
+        let comparison: number;
+        if (sortBy.value === "createdAt") {
+          const aTime = new Date(a.createdAt).getTime() || 0;
+          const bTime = new Date(b.createdAt).getTime() || 0;
+          comparison = aTime < bTime ? -1 : aTime > bTime ? 1 : 0;
         } else {
-          va = String(va).toLowerCase();
-          vb = String(vb).toLowerCase();
+          const aValue = a[sortBy.value].toLowerCase();
+          const bValue = b[sortBy.value].toLowerCase();
+          comparison = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
         }
-        if (va < vb) return sortDir.value === 'asc' ? -1 : 1;
-        if (va > vb) return sortDir.value === 'asc' ? 1 : -1;
-        return 0;
+        return sortDir.value === "asc" ? comparison : -comparison;
       });
 
       return list;
     });
 
     const emptyMessage = computed(() => {
-      if (searchQuery.value.trim()) return 'No se encontraron usuarios con esa búsqueda';
-      if (filterBanned.value) return 'No hay usuarios baneados';
-      if (roleFilter.value !== null) return 'No hay usuarios con ese rol';
-      return 'No hay usuarios registrados';
+      if (searchQuery.value.trim()) return "No se encontraron usuarios con esa búsqueda";
+      if (filterBanned.value) return "No hay usuarios baneados";
+      if (roleFilter.value !== null) return "No hay usuarios con ese rol";
+      return "No hay usuarios registrados";
     });
 
     const toggleRoleFilter = (role: UserRole) => {
@@ -375,10 +507,10 @@ export default defineComponent({
 
     const setSort = (field: SortField) => {
       if (sortBy.value === field) {
-        sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+        sortDir.value = sortDir.value === "asc" ? "desc" : "asc";
       } else {
         sortBy.value = field;
-        sortDir.value = 'asc';
+        sortDir.value = "asc";
       }
     };
 
@@ -387,9 +519,11 @@ export default defineComponent({
       try {
         await navigator.clipboard.writeText(email);
         copiedUserId.value = userId;
-        setTimeout(() => { copiedUserId.value = null; }, 2000);
+        setTimeout(() => {
+          copiedUserId.value = null;
+        }, 2000);
       } catch {
-        SwalService.error('No se pudo copiar el email');
+        SwalService.error("No se pudo copiar el email");
       }
     };
 
@@ -449,11 +583,16 @@ export default defineComponent({
       }
       if (!queryUsers) return;
       users.value = queryUsers.map((user) => ({ ...user }));
-      originalValues.value = new Map(users.value.map((user) => [user.id, {
-        username: user.username,
-        email: user.email,
-        role: user.role,
-      }]));
+      originalValues.value = new Map(
+        users.value.map((user) => [
+          user.id,
+          {
+            username: user.username,
+            email: user.email,
+            role: user.role,
+          },
+        ])
+      );
     };
 
     watch(usersQuery.data, syncUsersFromQuery, { immediate: true });
@@ -464,8 +603,17 @@ export default defineComponent({
       }
     });
     watch(
-      () => [authStore.authStatus, authStore.userId, authStore.authSessionGeneration, canManageUsers()] as const,
-      ([status, userId, generation, hasPermission], [previousStatus, previousUserId, previousGeneration, hadPermission]) => {
+      () =>
+        [
+          authStore.authStatus,
+          authStore.userId,
+          authStore.authSessionGeneration,
+          canManageUsers(),
+        ] as const,
+      (
+        [status, userId, generation, hasPermission],
+        [previousStatus, previousUserId, previousGeneration, hadPermission]
+      ) => {
         const sessionChanged =
           status !== "authenticated" ||
           userId !== previousUserId ||
@@ -474,7 +622,7 @@ export default defineComponent({
         const permissionRevoked = hadPermission && !hasPermission;
         if (sessionChanged || permissionRevoked) clearAdminViewState();
       },
-      { flush: "sync" },
+      { flush: "sync" }
     );
 
     const formatDateForInput = (dateString: string) => {
@@ -513,23 +661,28 @@ export default defineComponent({
       return "";
     };
 
-    const updateField = async (user: User, field: string) => {
+    const updateField = async (user: User, field: EditableUserField) => {
       const original = originalValues.value.get(user.id);
-      if (!original || (user as any)[field] === (original as any)[field]) return;
+      if (!original) return;
+      const value = user[field];
+      const originalValue = original[field];
+      if (originalValue === undefined || value === originalValue) return;
+      const changes: AdminUpdateUserPayload =
+        field === "username" ? { username: value } : { email: value };
       const session = adminMutations.captureSession();
       if (!session) return;
       try {
         await adminMutations.updateUser.mutateAsync({
           session,
-          payload: { userId: user.id, changes: { [field]: (user as any)[field] } },
+          payload: { userId: user.id, changes },
         });
         if (!adminMutations.isCurrentSession(session)) return;
-        originalValues.value.set(user.id, { ...original, [field]: (user as any)[field] });
+        originalValues.value.set(user.id, { ...original, [field]: value });
         SwalService.success(`${field} actualizado`);
       } catch (error) {
         if (!adminMutations.isCurrentSession(session)) return;
         console.error(`Error updating ${field}:`, error);
-        (user as any)[field] = (original as any)[field];
+        user[field] = originalValue;
         SwalService.error(`Error al actualizar ${field}`);
       }
     };
@@ -575,7 +728,8 @@ export default defineComponent({
           !showCreateModal.value &&
           !showPasswordModal.value &&
           !showNotesModal.value
-        ) trigger.focus();
+        )
+          trigger.focus();
       });
     };
 
@@ -611,11 +765,21 @@ export default defineComponent({
           password: newUser.value.password,
         };
         await adminMutations.createUser.mutateAsync({ session, payload });
-        if (!adminMutations.isCurrentSession(session) || !showCreateModal.value || createDialogGeneration !== generation) return;
+        if (
+          !adminMutations.isCurrentSession(session) ||
+          !showCreateModal.value ||
+          createDialogGeneration !== generation
+        )
+          return;
         closeCreateModal();
         SwalService.success("Usuario creado correctamente");
       } catch (error) {
-        if (!adminMutations.isCurrentSession(session) || !showCreateModal.value || createDialogGeneration !== generation) return;
+        if (
+          !adminMutations.isCurrentSession(session) ||
+          !showCreateModal.value ||
+          createDialogGeneration !== generation
+        )
+          return;
         console.error("Error creating user:", error);
         SwalService.error("Error al crear usuario");
       } finally {
@@ -662,7 +826,8 @@ export default defineComponent({
           !showPasswordModal.value ||
           passwordDialogGeneration !== generation ||
           selectedUser.value !== targetUser
-        ) return;
+        )
+          return;
         closePasswordModal();
         SwalService.success("Contraseña actualizada");
       } catch (error) {
@@ -671,11 +836,13 @@ export default defineComponent({
           !showPasswordModal.value ||
           passwordDialogGeneration !== generation ||
           selectedUser.value !== targetUser
-        ) return;
+        )
+          return;
         console.error("Error updating password:", error);
         SwalService.error("Error al actualizar contraseña");
       } finally {
-        if (passwordPendingOperation.value?.id === operationId) passwordPendingOperation.value = null;
+        if (passwordPendingOperation.value?.id === operationId)
+          passwordPendingOperation.value = null;
       }
     };
 
@@ -718,7 +885,8 @@ export default defineComponent({
           !showNotesModal.value ||
           notesDialogGeneration !== generation ||
           selectedUser.value !== targetUser
-        ) return;
+        )
+          return;
         targetUser.notes = notes;
         closeNotesModal();
         SwalService.success("Notas guardadas");
@@ -728,7 +896,8 @@ export default defineComponent({
           !showNotesModal.value ||
           notesDialogGeneration !== generation ||
           selectedUser.value !== targetUser
-        ) return;
+        )
+          return;
         console.error("Error saving notes:", error);
         SwalService.error("Error al guardar notas");
       } finally {
@@ -739,12 +908,12 @@ export default defineComponent({
     const confirmBanUser = async (user: User) => {
       const session = adminMutations.captureSession();
       if (!session) return;
-      const action = user.isActive ? 'banear' : 'reactivar';
-      const title = user.isActive ? '¿Banear usuario?' : '¿Reactivar usuario?';
+      const action = user.isActive ? "banear" : "reactivar";
+      const title = user.isActive ? "¿Banear usuario?" : "¿Reactivar usuario?";
       const text = user.isActive
         ? `${user.username} no podrá iniciar sesión. Puedes reactivarlo en cualquier momento.`
         : `${user.username} podrá volver a iniciar sesión.`;
-      const result = await SwalService.confirm(title, text, 'Confirmar', 'Cancelar');
+      const result = await SwalService.confirm(title, text, "Confirmar", "Cancelar");
       if (!result.isConfirmed || !adminMutations.isCurrentSession(session)) return;
       try {
         await adminMutations.setUserActive.mutateAsync({
@@ -753,9 +922,11 @@ export default defineComponent({
         });
         if (!adminMutations.isCurrentSession(session)) return;
         user.isActive = !user.isActive;
-        SwalService.success(user.isActive
-          ? `${user.username} reactivado correctamente`
-          : `${user.username} baneado correctamente`);
+        SwalService.success(
+          user.isActive
+            ? `${user.username} reactivado correctamente`
+            : `${user.username} baneado correctamente`
+        );
       } catch (error) {
         if (!adminMutations.isCurrentSession(session)) return;
         console.error(`Error al ${action} usuario:`, error);
@@ -769,7 +940,8 @@ export default defineComponent({
       const result = await SwalService.confirm(
         "¿Eliminar usuario permanentemente?",
         `Se borrarán todos los datos de ${user.username} y no se podrá recuperar.`,
-        'Sí, eliminar', 'Cancelar'
+        "Sí, eliminar",
+        "Cancelar"
       );
       if (!result.isConfirmed || !adminMutations.isCurrentSession(session)) return;
       try {
@@ -965,8 +1137,12 @@ export default defineComponent({
   color: #6b7280;
 }
 
-.date-input { color-scheme: light; }
-:global(.dark) .date-input { color-scheme: dark; }
+.date-input {
+  color-scheme: light;
+}
+:global(.dark) .date-input {
+  color-scheme: dark;
+}
 
 /* Action buttons */
 .action-btn {
@@ -980,18 +1156,44 @@ export default defineComponent({
 }
 
 @media (min-width: 1024px) {
-  .action-btn { flex: none; }
+  .action-btn {
+    flex: none;
+  }
 }
 
-.action-btn-blue   { background: rgba(0, 100, 214, 0.15); color: #0064d6; }
-.action-btn-blue:hover   { background: rgba(0, 100, 214, 0.3); }
-.action-btn-pink   { background: rgba(228, 110, 138, 0.15); color: #e46e8a; }
-.action-btn-pink:hover   { background: rgba(228, 110, 138, 0.3); }
-.action-btn-red    { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-.action-btn-red:hover    { background: rgba(239, 68, 68, 0.3); }
-.action-btn-orange { background: rgba(249, 115, 22, 0.15); color: #fb923c; }
-.action-btn-orange:hover { background: rgba(249, 115, 22, 0.3); }
-.action-btn-green  { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
-.action-btn-green:hover  { background: rgba(34, 197, 94, 0.3); }
-
+.action-btn-blue {
+  background: rgba(0, 100, 214, 0.15);
+  color: #0064d6;
+}
+.action-btn-blue:hover {
+  background: rgba(0, 100, 214, 0.3);
+}
+.action-btn-pink {
+  background: rgba(228, 110, 138, 0.15);
+  color: #e46e8a;
+}
+.action-btn-pink:hover {
+  background: rgba(228, 110, 138, 0.3);
+}
+.action-btn-red {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+.action-btn-red:hover {
+  background: rgba(239, 68, 68, 0.3);
+}
+.action-btn-orange {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+}
+.action-btn-orange:hover {
+  background: rgba(249, 115, 22, 0.3);
+}
+.action-btn-green {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+.action-btn-green:hover {
+  background: rgba(34, 197, 94, 0.3);
+}
 </style>

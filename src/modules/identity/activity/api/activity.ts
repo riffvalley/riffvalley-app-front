@@ -6,11 +6,24 @@ import type {
   ActivityUserDetailResponse,
   ActivityUsersParams,
   ActivityUsersResponse,
+  GlobalActivityResponse,
 } from "../types/activity";
 import type {
   ActivityInactivityParams,
   ActivityInactivityResponse,
 } from "../inactivity/types/activityInactivity";
+
+export async function getGlobalActivity(
+  limit = 20,
+  offset = 0,
+  signal?: AbortSignal
+): Promise<GlobalActivityResponse> {
+  const response = await api.get<GlobalActivityResponse>(
+    "/auth/activity",
+    signal ? { params: { limit, offset }, signal } : { params: { limit, offset } }
+  );
+  return response.data;
+}
 
 function activityQueryParams(params: ActivityDateRangeParams) {
   return {
@@ -21,48 +34,51 @@ function activityQueryParams(params: ActivityDateRangeParams) {
 
 export async function getActivitySummary(
   params: ActivitySummaryParams = {},
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<ActivitySummaryResponse> {
   const queryParams = {
     ...activityQueryParams(params),
     ...("period" in params ? { period: params.period } : {}),
   };
-  const response = await api.get<ActivitySummaryResponse>("/activity/summary", signal
-    ? { params: queryParams, signal }
-    : { params: queryParams });
+  const response = await api.get<ActivitySummaryResponse>(
+    "/activity/summary",
+    signal ? { params: queryParams, signal } : { params: queryParams }
+  );
   return response.data;
 }
 
 export async function getActivityUsers(
   params: ActivityUsersParams = {},
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<ActivityUsersResponse> {
   const queryParams = {
     ...activityQueryParams(params),
     ...(params.limit === undefined ? {} : { limit: params.limit }),
     ...(params.offset === undefined ? {} : { offset: params.offset }),
   };
-  const response = await api.get<ActivityUsersResponse>("/activity/users", signal
-    ? { params: queryParams, signal }
-    : { params: queryParams });
+  const response = await api.get<ActivityUsersResponse>(
+    "/activity/users",
+    signal ? { params: queryParams, signal } : { params: queryParams }
+  );
   return response.data;
 }
 
 export async function getActivityUserDetail(
   userId: string,
   params: ActivityDateRangeParams = {},
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<ActivityUserDetailResponse> {
   const queryParams = activityQueryParams(params);
-  const response = await api.get<ActivityUserDetailResponse>(`/activity/users/${userId}`, signal
-    ? { params: queryParams, signal }
-    : { params: queryParams });
+  const response = await api.get<ActivityUserDetailResponse>(
+    `/activity/users/${userId}`,
+    signal ? { params: queryParams, signal } : { params: queryParams }
+  );
   return response.data;
 }
 
 export async function getActivityInactivity(
   params: ActivityInactivityParams = {},
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<ActivityInactivityResponse> {
   const queryParams = {
     ...(params.asOf === undefined ? {} : { asOf: params.asOf }),
@@ -75,7 +91,7 @@ export async function getActivityInactivity(
   };
   const response = await api.get<ActivityInactivityResponse>(
     "/activity/inactivity",
-    signal ? { params: queryParams, signal } : { params: queryParams },
+    signal ? { params: queryParams, signal } : { params: queryParams }
   );
   return response.data;
 }

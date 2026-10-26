@@ -1,113 +1,42 @@
-# 🎵 Spam Music Front
+# 🎵 Riff Valley App — frontend
 
-## OAuth de Spotify para playlists de festivales
+Entrada para instalar y arrancar el frontend. La documentación vigente está en el [índice del frontend](docs/frontend/index.md); la planificación y el historial se mantienen en [`roadmap.md`](roadmap.md).
 
-El callback del backend debe volver a la vista de festivales. En producción se configura en el backend (no como variable `VITE_`) con:
+## Requisitos
+
+- Node.js **24.22.1**, fijado en `.nvmrc`.
+- pnpm **11.28.8**, seleccionado por Corepack desde `package.json`.
+
+## Instalación y desarrollo
+
+Desde la raíz del repositorio:
+
+```sh
+nvm use 24.22.1
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Vite suele servir la app en `http://localhost:5173/`.
+
+La app necesita `VITE_API_BASE_URL` para comunicarse con el backend. `VITE_MAINTENANCE_MODE=true` activa la vista de mantenimiento; déjalo sin definir o en `false` para el uso normal. Los valores dependen del entorno; solicita la URL correspondiente al equipo.
+
+## Comandos principales
+
+- `pnpm run typecheck` — comprueba tipos de TypeScript y Vue.
+- `pnpm test` — ejecuta Vitest.
+- `pnpm build` — comprueba tipos y genera `dist/`.
+- `pnpm preview` — sirve localmente la build generada.
+
+Consulta [Convenciones del frontend](docs/frontend/conventions.md) para lint, formato, controles de arquitectura, enlaces y hooks. Las reglas vigentes están en [Arquitectura](docs/frontend/architecture.md) y los contratos de Identity en su [guía de módulo](docs/frontend/modules/identity.md). Las instrucciones operativas para agentes están en [AGENTS.md](AGENTS.md). Claude Code puede no leerlo automáticamente; si se utiliza, indícale expresamente que lo lea antes de trabajar.
+
+## Spotify para playlists de festivales
+
+El callback se configura en el backend, no como variable `VITE_`:
 
 ```text
 SPOTIFY_FRONTEND_REDIRECT_URL=https://app.riffvalley.es/riff-valley-playlists/festivales
 ```
 
-La gestión de playlists usa exclusivamente OAuth a través del backend. No deben añadirse secretos de Spotify al bundle del frontend.
-
-## 📋 Requisitos
-
-- **Node.js ≥ 20**  
-  Se recomienda instalarlo con [nvm](https://github.com/nvm-sh/nvm) o [nvm-windows](https://github.com/coreybutler/nvm-windows).  
-- **Yarn (v4 o superior)**  
-  Viene incluido con `corepack` en Node.js.
-
----
-
-
-## 🚀 Instalación
-
-Clona el repositorio y en la raíz del proyecto ejecuta:
-
-```bash
-corepack enable
-yarn install --immutable
-```
-
-Esto instalará todas las dependencias usando el `yarn.lock` incluido en el proyecto.
-
----
-
-## 🛠️ Desarrollo
-
-Para iniciar el servidor de desarrollo:
-
-```bash
-yarn dev
-```
-
-Por defecto estará disponible en `http://localhost:5173/`.
-
----
-
-## 🏗️ Build de producción
-
-Genera la build optimizada en la carpeta `dist/`:
-
-```bash
-yarn build
-```
-
----
-
-## 👀 Vista previa de la build
-
-Para probar localmente el resultado de la build:
-
-```bash
-yarn preview
-```
-
----
-
-## ✍️ Convenciones de commits
-
-Este proyecto usa [Conventional Commits](https://www.conventionalcommits.org).  
-Todos los commits deben seguir este formato:
-
-```
-<tipo>(<scope>): <descripción>
-```
-
-### Tipos permitidos
-- **feat** → nueva funcionalidad  
-- **fix** → corrección de bug  
-- **docs** → cambios en documentación  
-- **style** → cambios de formato (espacios, comas, etc., sin afectar la lógica)  
-- **refactor** → cambios en el código que no corrigen errores ni añaden funcionalidades  
-- **perf** → mejoras de rendimiento  
-- **test** → añadir o modificar tests  
-- **build** → cambios en el sistema de build o dependencias  
-- **ci** → cambios en la configuración de CI  
-- **chore** → mantenimiento general, sin afectar código de producción  
-- **revert** → revertir un commit previo  
-
-### Ejemplos
-```bash
-feat(auth): añade login con Google
-fix(ui): corrige padding en el header
-docs(readme): añade guía de instalación
-refactor(api): simplifica validación de usuarios
-```
--
-### Breaking Changes
-Si un cambio rompe compatibilidad, márcalo de una de estas formas:
-
-```bash
-feat(api)!: elimina el endpoint /users/old
-```
-
-o con un footer:
-
-```
-feat(api): elimina el endpoint /users/old
-
-BREAKING CHANGE: los clientes deben usar /users/v2
-```
-
-Esto hará que la versión suba a **major** automáticamente (ej: de `1.2.3` → `2.0.0`).
+La app usa OAuth a través del backend; no incluyas secretos de Spotify en el bundle frontend.

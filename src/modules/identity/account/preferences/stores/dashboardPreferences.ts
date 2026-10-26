@@ -35,10 +35,16 @@ function loadDashboardConfig(key: string): DashboardModuleConfig[] | null {
   if (!raw) return null;
   try {
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.every((item): item is DashboardModuleConfig =>
-      typeof item === "object" && item !== null &&
-      typeof item.id === "string" && typeof item.enabled === "boolean"
-    ) ? parsed : null;
+    return Array.isArray(parsed) &&
+      parsed.every(
+        (item): item is DashboardModuleConfig =>
+          typeof item === "object" &&
+          item !== null &&
+          typeof item.id === "string" &&
+          typeof item.enabled === "boolean"
+      )
+      ? parsed
+      : null;
   } catch {
     return null;
   }

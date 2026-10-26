@@ -10,7 +10,9 @@ class FakeLockManager {
   request<T>(_name: string, _options: { mode: "exclusive" }, callback: LockCallback): Promise<T> {
     const previous = this.tail;
     let release!: () => void;
-    this.tail = new Promise<void>((resolve) => { release = resolve; });
+    this.tail = new Promise<void>((resolve) => {
+      release = resolve;
+    });
     return previous.then(callback).finally(release) as Promise<T>;
   }
 }
@@ -60,16 +62,21 @@ describe("auth session cross-tab coordinator", () => {
       configurable: true,
       value: new FakeLockManager(),
     });
-    const { withAuthSessionLock } = await import("@/modules/identity/auth/api/sessionAuthCoordinator");
+    const { withAuthSessionLock } =
+      await import("@/modules/identity/auth/api/sessionAuthCoordinator");
     const order: string[] = [];
     let finishRefresh!: () => void;
 
     const refresh = withAuthSessionLock(async () => {
       order.push("refresh:start");
-      await new Promise<void>((resolve) => { finishRefresh = resolve; });
+      await new Promise<void>((resolve) => {
+        finishRefresh = resolve;
+      });
       order.push("refresh:end");
     });
-    const logout = withAuthSessionLock(async () => { order.push("logout"); });
+    const logout = withAuthSessionLock(async () => {
+      order.push("logout");
+    });
 
     await Promise.resolve();
     expect(order).toEqual(["refresh:start"]);
@@ -98,7 +105,9 @@ describe("auth session cross-tab coordinator", () => {
     const unsubscribeSecondTab = subscribeToRemoteAuthLogout(onSecondTabLogout);
     const unsubscribeLogin = subscribeToRemoteAuthLogin(onRemoteLogin);
     const unsubscribeCsrf = subscribeToRemoteSessionCsrfUpdated(onRemoteCsrfUpdated);
-    const unsubscribePermissions = subscribeToRemoteAuthPermissionsChanged(onRemotePermissionsChanged);
+    const unsubscribePermissions = subscribeToRemoteAuthPermissionsChanged(
+      onRemotePermissionsChanged
+    );
     const peer = new FakeBroadcastChannel("riffvalley-app-auth-session");
     const onPeerMessage = vi.fn();
     peer.addEventListener("message", onPeerMessage);
@@ -174,9 +183,11 @@ describe("auth session cross-tab coordinator", () => {
 
     await transport.refresh();
 
-    expect(post.mock.calls[0]?.[2]?.headers).toEqual(expect.objectContaining({
-      "X-CSRF-Token": "peer-current-csrf",
-    }));
+    expect(post.mock.calls[0]?.[2]?.headers).toEqual(
+      expect.objectContaining({
+        "X-CSRF-Token": "peer-current-csrf",
+      })
+    );
   });
 
   it("refuses refresh from both tabs without Web Locks and never posts or retries", async () => {
@@ -195,10 +206,18 @@ describe("auth session cross-tab coordinator", () => {
 
     const attempts = await Promise.allSettled([firstTab.refresh(), secondTab.refresh()]);
     expect(attempts).toEqual([
-      { status: "rejected", reason: expect.objectContaining({ category: "coordination-unavailable" }) },
-      { status: "rejected", reason: expect.objectContaining({ category: "coordination-unavailable" }) },
+      {
+        status: "rejected",
+        reason: expect.objectContaining({ category: "coordination-unavailable" }),
+      },
+      {
+        status: "rejected",
+        reason: expect.objectContaining({ category: "coordination-unavailable" }),
+      },
     ]);
-    await expect(firstTab.refresh()).rejects.toMatchObject({ category: "coordination-unavailable" });
+    await expect(firstTab.refresh()).rejects.toMatchObject({
+      category: "coordination-unavailable",
+    });
     expect(firstGet).not.toHaveBeenCalled();
     expect(secondGet).not.toHaveBeenCalled();
     expect(firstPost).not.toHaveBeenCalled();
@@ -211,19 +230,35 @@ describe("auth session cross-tab coordinator", () => {
     const { SessionAuthTransport } = await import("@/modules/identity/auth/api/sessionAuth");
     const http = axios.create({ baseURL: "https://backend.riffvalley.es/api" });
     const get = vi.spyOn(http, "get").mockResolvedValue({
-      data: { csrfToken: "bootstrap-csrf" }, status: 200, statusText: "OK", headers: {},
+      data: { csrfToken: "bootstrap-csrf" },
+      status: 200,
+      statusText: "OK",
+      headers: {},
       config: { headers: axios.AxiosHeaders.from({}) },
     } as AxiosResponse);
-    const post = vi.spyOn(http, "post").mockResolvedValueOnce({
-      data: {
-        id: "user-1", username: "riff", role: "user", token: "access-jwt",
-        csrfToken: "session-csrf", logoutCsrfToken: "logout-csrf",
-      }, status: 200, statusText: "OK", headers: {},
-      config: { headers: axios.AxiosHeaders.from({}) },
-    } as AxiosResponse).mockResolvedValueOnce({
-      data: undefined, status: 204, statusText: "No Content", headers: {},
-      config: { headers: axios.AxiosHeaders.from({}) },
-    } as AxiosResponse);
+    const post = vi
+      .spyOn(http, "post")
+      .mockResolvedValueOnce({
+        data: {
+          id: "user-1",
+          username: "riff",
+          role: "user",
+          token: "access-jwt",
+          csrfToken: "session-csrf",
+          logoutCsrfToken: "logout-csrf",
+        },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config: { headers: axios.AxiosHeaders.from({}) },
+      } as AxiosResponse)
+      .mockResolvedValueOnce({
+        data: undefined,
+        status: 204,
+        statusText: "No Content",
+        headers: {},
+        config: { headers: axios.AxiosHeaders.from({}) },
+      } as AxiosResponse);
     const transport = new SessionAuthTransport(http);
 
     await transport.login({ username: "riff", password: "secret" });
@@ -249,19 +284,34 @@ describe("auth session cross-tab coordinator", () => {
     };
     const firstHttp = axios.create({ baseURL: "https://backend.riffvalley.es/api" });
     vi.spyOn(firstHttp, "get").mockResolvedValue({
-      data: { csrfToken: "bootstrap-csrf" }, status: 200, statusText: "OK", headers: {},
+      data: { csrfToken: "bootstrap-csrf" },
+      status: 200,
+      statusText: "OK",
+      headers: {},
       config: { headers: axios.AxiosHeaders.from({}) },
     } as AxiosResponse);
-    vi.spyOn(firstHttp, "post").mockResolvedValueOnce({
-      data: {
-        id: "user-1", username: "riff", role: "user", token: "access-jwt",
-        csrfToken: "session-csrf", logoutCsrfToken: "logout-csrf",
-      }, status: 200, statusText: "OK", headers: {},
-      config: { headers: axios.AxiosHeaders.from({}) },
-    } as AxiosResponse).mockResolvedValueOnce({
-      data: session, status: 200, statusText: "OK", headers: {},
-      config: { headers: axios.AxiosHeaders.from({}) },
-    } as AxiosResponse);
+    vi.spyOn(firstHttp, "post")
+      .mockResolvedValueOnce({
+        data: {
+          id: "user-1",
+          username: "riff",
+          role: "user",
+          token: "access-jwt",
+          csrfToken: "session-csrf",
+          logoutCsrfToken: "logout-csrf",
+        },
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config: { headers: axios.AxiosHeaders.from({}) },
+      } as AxiosResponse)
+      .mockResolvedValueOnce({
+        data: session,
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config: { headers: axios.AxiosHeaders.from({}) },
+      } as AxiosResponse);
     const firstTab = new SessionAuthTransport(firstHttp);
     await firstTab.login({ username: "riff", password: "secret" });
     // Model the HttpOnly Set-Cookie side effect of the mocked login response.
@@ -270,15 +320,22 @@ describe("auth session cross-tab coordinator", () => {
     // A separate tab shares localStorage and the HttpOnly cookie, but not sessionStorage.
     sessionStorage.clear();
     const secondHttp = axios.create({ baseURL: "https://backend.riffvalley.es/api" });
-    const secondPost = vi.spyOn(secondHttp, "post").mockImplementation(async (_url, _body, config) => {
-      expect(sharedCookie.present).toBe(true);
-      expect(config?.withCredentials).toBe(true);
-      expect(config?.headers).toEqual(expect.objectContaining({ "X-CSRF-Token": "session-csrf" }));
-      return {
-        data: session, status: 200, statusText: "OK", headers: {},
-        config: { headers: axios.AxiosHeaders.from({}) },
-      } as AxiosResponse;
-    });
+    const secondPost = vi
+      .spyOn(secondHttp, "post")
+      .mockImplementation(async (_url, _body, config) => {
+        expect(sharedCookie.present).toBe(true);
+        expect(config?.withCredentials).toBe(true);
+        expect(config?.headers).toEqual(
+          expect.objectContaining({ "X-CSRF-Token": "session-csrf" })
+        );
+        return {
+          data: session,
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          config: { headers: axios.AxiosHeaders.from({}) },
+        } as AxiosResponse;
+      });
     const secondTab = new SessionAuthTransport(secondHttp);
 
     await expect(secondTab.refresh()).resolves.toMatchObject({ token: "access-jwt" });
@@ -298,7 +355,9 @@ describe("auth session cross-tab coordinator", () => {
     const observedCsrf: string[] = [];
     let finishFirstRefresh!: () => void;
     let firstRefreshStarted!: () => void;
-    const firstStarted = new Promise<void>((resolve) => { firstRefreshStarted = resolve; });
+    const firstStarted = new Promise<void>((resolve) => {
+      firstRefreshStarted = resolve;
+    });
 
     const makeTabHttp = (blockFirst: boolean) => {
       const http = axios.create({ baseURL: "https://backend.riffvalley.es/api" });
@@ -311,7 +370,9 @@ describe("auth session cross-tab coordinator", () => {
         responseNumber += 1;
         if (blockFirst && responseNumber === 1) {
           firstRefreshStarted();
-          await new Promise<void>((resolve) => { finishFirstRefresh = resolve; });
+          await new Promise<void>((resolve) => {
+            finishFirstRefresh = resolve;
+          });
         }
         const nextCsrf = `csrf-${observedCsrf.length + 1}`;
         currentCsrf = nextCsrf;
@@ -355,10 +416,12 @@ describe("auth session cross-tab coordinator", () => {
     localStorage.setItem("rv.auth.logout-csrf", "logout-csrf-1");
     const http = axios.create({ baseURL: "https://backend.riffvalley.es/api" });
     const post = vi.spyOn(http, "post");
-    post.mockRejectedValueOnce(Object.assign(new Error("unavailable"), {
-      isAxiosError: true,
-      response: { status: 503, headers: {} },
-    }));
+    post.mockRejectedValueOnce(
+      Object.assign(new Error("unavailable"), {
+        isAxiosError: true,
+        response: { status: 503, headers: {} },
+      })
+    );
     post.mockResolvedValueOnce({
       data: {
         user: { id: "user-1", username: "riff", role: "user" },
@@ -366,7 +429,10 @@ describe("auth session cross-tab coordinator", () => {
         csrfToken: "csrf-2",
         logoutCsrfToken: "logout-csrf-2",
         expiresAt: "2027-01-01T00:00:00.000Z",
-      }, status: 200, statusText: "OK", headers: {},
+      },
+      status: 200,
+      statusText: "OK",
+      headers: {},
       config: { headers: axios.AxiosHeaders.from({}) },
     } as AxiosResponse);
     const transport = new SessionAuthTransport(http);
@@ -381,12 +447,16 @@ describe("auth session cross-tab coordinator", () => {
     Object.defineProperty(navigator, "locks", {
       configurable: true,
       value: {
-        request: (_name: string, options: LockOptions) => new Promise((_resolve, reject) => {
-          options.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
-        }),
+        request: (_name: string, options: LockOptions) =>
+          new Promise((_resolve, reject) => {
+            options.signal?.addEventListener("abort", () =>
+              reject(new DOMException("Aborted", "AbortError"))
+            );
+          }),
       },
     });
-    const { AuthSessionLockTimeoutError, withAuthSessionLock } = await import("@/modules/identity/auth/api/sessionAuthCoordinator");
+    const { AuthSessionLockTimeoutError, withAuthSessionLock } =
+      await import("@/modules/identity/auth/api/sessionAuthCoordinator");
     const pending = withAuthSessionLock(async () => "never acquired");
     const rejection = expect(pending).rejects.toBeInstanceOf(AuthSessionLockTimeoutError);
     await vi.advanceTimersByTimeAsync(30_000);

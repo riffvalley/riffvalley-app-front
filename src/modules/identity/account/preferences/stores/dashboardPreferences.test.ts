@@ -35,11 +35,13 @@ describe("dashboard preferences store with restricted storage", () => {
     const dashboardConfig = [{ id: "novedades", enabled: false }];
     const mobileDashboardConfig = [{ id: "comunidad", enabled: false }];
 
-    expect(() => store.applySessionPreferences({
-      dashboardButtonsEnabled: true,
-      dashboardConfig,
-      mobileDashboardConfig,
-    })).not.toThrow();
+    expect(() =>
+      store.applySessionPreferences({
+        dashboardButtonsEnabled: true,
+        dashboardConfig,
+        mobileDashboardConfig,
+      })
+    ).not.toThrow();
 
     expect(store.dashboardButtonsEnabled).toBe(true);
     expect(store.dashboardConfig).toEqual(dashboardConfig);

@@ -19,11 +19,13 @@ const groupRows: { id: ActivityInactivityGroup; label: string; kind: "known" | "
 ];
 
 const maxCount = computed(() => Math.max(0, ...groupRows.map(({ id }) => props.groups[id])));
-const rows = computed(() => groupRows.map((group) => ({
-  ...group,
-  count: props.groups[group.id],
-  width: maxCount.value === 0 ? 0 : (props.groups[group.id] / maxCount.value) * 100,
-})));
+const rows = computed(() =>
+  groupRows.map((group) => ({
+    ...group,
+    count: props.groups[group.id],
+    width: maxCount.value === 0 ? 0 : (props.groups[group.id] / maxCount.value) * 100,
+  }))
+);
 </script>
 
 <template>
@@ -33,11 +35,26 @@ const rows = computed(() => groupRows.map((group) => ({
         <h2 id="inactivity-distribution-heading">Distribución de usuarios</h2>
         <p>Los grupos sin fecha conocida aparecen separados de los tramos numéricos.</p>
       </div>
-      <span class="distribution-total">{{ groups["0_2_days"] + groups["3_6_days"] + groups["7_13_days"] + groups["14_29_days"] + groups["30_59_days"] + groups["60_plus_days"] }} con voto conocido</span>
+      <span class="distribution-total"
+        >{{
+          groups["0_2_days"] +
+          groups["3_6_days"] +
+          groups["7_13_days"] +
+          groups["14_29_days"] +
+          groups["30_59_days"] +
+          groups["60_plus_days"]
+        }}
+        con voto conocido</span
+      >
     </div>
 
     <div class="distribution-list">
-      <div v-for="row in rows" :key="row.id" class="distribution-row" :class="{ 'distribution-row--context': row.kind === 'context' }">
+      <div
+        v-for="row in rows"
+        :key="row.id"
+        class="distribution-row"
+        :class="{ 'distribution-row--context': row.kind === 'context' }"
+      >
         <div class="distribution-label">
           <span>{{ row.label }}</span>
           <strong>{{ row.count.toLocaleString("es-ES") }}</strong>

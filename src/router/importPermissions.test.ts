@@ -2,8 +2,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import router from "./index";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
-import type { UserRole } from "@/modules/identity/shared/types/auth";
+import { useAuthStore } from "@/modules/identity/auth";
+import type { UserRole } from "@/modules/identity/shared";
 
 describe("import route permissions", () => {
   beforeEach(async () => {
