@@ -1,6 +1,7 @@
 # Roadmaps
 
 - [Documentación del frontend](docs/frontend/index.md): índice de fuentes canónicas y roadmaps históricos.
+- [Layout y Sidebar (L-0–L-7)](roadmap/layout.md): auditorías, integración del resumen, limpieza legacy y regresión/cierre local completados con limitaciones documentadas.
 - [Arquitectura modular frontend — historial](roadmap/frontend-architecture.md): auditoría, decisiones y planificación conservadas; la [arquitectura vigente](docs/frontend/architecture.md) está en la documentación canónica.
 - [Calidad frontend (FQ-1/FQ-2)](roadmap/frontend-quality.md): auditoría, gates y migración documental; FQ-5 se auditó localmente, pero sigue sin cerrar por fallos en los checks incrementales de Identity y comparaciones incompletas.
 - [Organización estructural de Identity](roadmap/identity-structure.md): inventario por archivo, ownership y plan de reorganización física sin cambios funcionales.

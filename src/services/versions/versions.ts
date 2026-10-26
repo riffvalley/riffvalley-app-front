@@ -114,12 +114,6 @@ export const toYMD = (d: Date) => {
 // Endpoints PÚBLICOS
 // =========================
 
-// Última versión activa (para footer)
-export async function getLatestPublicVersion(): Promise<Version | null> {
-  const { data } = await api.get<Version | null>('/versions/production/latest');
-  return data;
-}
-
 // Scroll infinito (cursor-based)
 export async function getPublicVersionsInfinite(
   limit = 20,
@@ -146,17 +140,6 @@ export async function getProductionVersionsPaginated(
     params: { page, limit },
   });
   return data;
-}
-
-// Última versión de producción
-export async function getLatestProductionVersion(): Promise<string | null> {
-  try {
-    const { data } = await api.get<{ version: string } | null>('/versions/production/latest');
-    return data?.version || null;
-  } catch (error) {
-    console.error('Error fetching latest production version:', error);
-    return null;
-  }
 }
 
 // =========================

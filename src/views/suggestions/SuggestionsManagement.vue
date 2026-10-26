@@ -277,6 +277,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue';
+import { useQueryClient } from '@tanstack/vue-query';
 import {
   getSuggestions,
   createSuggestion,
@@ -293,10 +294,12 @@ import {
 import type { VersionItem } from '@services/versions/versions';
 import SwalService from '@services/swal/SwalService';
 import { useSupportStore } from '@stores/support/support';
+import { mutateAndInvalidateSidebarSummary } from '@/app/sidebarSummary';
 
 export default defineComponent({
   name: 'SuggestionsManagement',
   setup() {
+    const queryClient = useQueryClient();
     const supportStore = useSupportStore();
     const suggestions = ref<Suggestion[]>([]);
     const loading = ref(false);
@@ -347,11 +350,6 @@ export default defineComponent({
         if (activeStatus.value !== 'all') params.status = activeStatus.value;
         const result = await getSuggestions(params);
         suggestions.value = Array.isArray(result) ? result : ((result as any).data ?? []);
-        // Actualizar el store con los IDs pendientes para el badge del sidebar
-        const pendingIds = suggestions.value
-          .filter(s => s.status === 'in_progress')
-          .map(s => s.id);
-        supportStore.setPendingIds(pendingIds);
       } finally {
         loading.value = false;
       }
@@ -373,7 +371,7 @@ export default defineComponent({
       if (!form.title.trim() || !form.description.trim()) return;
       createModal.value.saving = true;
       try {
-        await createSuggestion(form);
+        await mutateAndInvalidateSidebarSummary(queryClient, () => createSuggestion(form));
         createModal.value.show = false;
         SwalService.success('Creado correctamente');
         await fetchAll();
@@ -394,7 +392,8 @@ export default defineComponent({
       if (!rejectModal.value.suggestion || !rejectModal.value.reason.trim()) return;
       rejectModal.value.saving = true;
       try {
-        const updated = await rejectSuggestion(rejectModal.value.suggestion.id, rejectModal.value.reason);
+        const updated = await mutateAndInvalidateSidebarSummary(queryClient, () =>
+          rejectSuggestion(rejectModal.value.suggestion!.id, rejectModal.value.reason));
         updateInList(updated);
         rejectModal.value.show = false;
         SwalService.success('Rechazada');
@@ -425,7 +424,8 @@ export default defineComponent({
       if (!suggestion || (!internal && !versionItemId)) return;
       doneModal.value.saving = true;
       try {
-        const updated = await doneSuggestion(suggestion.id, internal ? undefined : versionItemId);
+        const updated = await mutateAndInvalidateSidebarSummary(queryClient, () =>
+          doneSuggestion(suggestion.id, internal ? undefined : versionItemId));
         updateInList(updated);
         doneModal.value.show = false;
         SwalService.success('Marcada como hecha');
@@ -455,7 +455,7 @@ export default defineComponent({
 
     const handleProgress = async (s: Suggestion) => {
       try {
-        const updated = await progressSuggestion(s.id);
+        const updated = await mutateAndInvalidateSidebarSummary(queryClient, () => progressSuggestion(s.id));
         updateInList(updated);
         SwalService.success('Vuelta a pendiente');
       } catch {
@@ -467,7 +467,7 @@ export default defineComponent({
       const result = await SwalService.confirm('¿Eliminar esta entrada?', 'Esta acción no se puede deshacer.', 'Sí, eliminar', 'Cancelar');
       if (!result.isConfirmed) return;
       try {
-        await deleteSuggestion(s.id);
+        await mutateAndInvalidateSidebarSummary(queryClient, () => deleteSuggestion(s.id));
         suggestions.value = suggestions.value.filter(x => x.id !== s.id);
         SwalService.success('Eliminada');
       } catch {

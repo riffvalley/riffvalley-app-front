@@ -63,15 +63,6 @@
     </section>
   </main>
   <div v-else-if="authReady" id="app-container">
-
-    <!-- FONDO OSCURO SOLO CUANDO EL MENÚ ESTÁ ABIERTO -->
-    <div v-if="menuVisible && !isLoginPage" class="fixed inset-0 bg-black bg-opacity-50 z-10"
-      @click="closeMenuHandler" />
-
-    <!-- Sidebar (por encima del overlay) -->
-    <SidebarMenu v-if="!isLoginPage" :menuVisible="menuVisible" @close-menu="closeMenuHandler" class="z-20" />
-
-    <!-- Layout logic -->
     <component :is="layoutComponent">
       <router-view />
     </component>
@@ -83,17 +74,12 @@ import { defineComponent, ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import DefaultLayout from "./layouts/default/DefaultLayout.vue";
 import LoginLayout from "./layouts/auth/LoginLayout.vue";
-import SidebarMenu from "@/layouts/default/components/SidebarMenu.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";
 import { useAuthStore } from "@/modules/identity/auth";
 
 export default defineComponent({
   name: "App",
-  components: {
-    SidebarMenu,
-  },
   setup() {
-    const menuVisible = ref(false);
     const route = useRoute();
     const router = useRouter();
     const catalogStore = useCatalogStore();
@@ -123,50 +109,12 @@ export default defineComponent({
       (authStore.authStatus === "error" && route.name === "Login"),
     );
 
-    const closeMenuHandler = () => {
-      menuVisible.value = false;
-    };
-
-    // Detectar si estamos en la página de login o mantenimiento (para ocultar sidebar)
-    const isLoginPage = computed(() => ["Login", "Maintenance", "NationalReleasePublic"].includes(route.name as string));
-
-    watch(route, () => {
-      menuVisible.value = false;
-    });
-
-    let scrollY = 0;
-
-    watch(menuVisible, (visible) => {
-      const body = document.body;
-
-      if (visible) {
-        scrollY = window.scrollY;
-
-        body.style.position = "fixed";
-        body.style.top = `-${scrollY}px`;
-        body.style.left = "0";
-        body.style.right = "0";
-        body.style.width = "100%";
-      } else {
-        body.style.position = "";
-        body.style.top = "";
-        body.style.left = "";
-        body.style.right = "";
-        body.style.width = "";
-
-        window.scrollTo(0, scrollY);
-      }
-    });
-
     return {
-      menuVisible,
       authStore,
       authReady,
       route,
       retrying,
       retryAuthInitialization,
-      closeMenuHandler,
-      isLoginPage, // ✅ Nueva variable reactiva para detectar login
       layoutComponent: computed(() => {
         return ["Login", "Maintenance", "NationalReleasePublic"].includes(route.name as string) ? LoginLayout : DefaultLayout;
       }),

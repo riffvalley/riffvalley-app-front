@@ -45,6 +45,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useQueryClient } from '@tanstack/vue-query';
 import { useRouter } from 'vue-router';
 import SwalService from '@services/swal/SwalService';
 import type { Version, VersionItem, CreateVersionItemDto } from '@services/versions/versions';
@@ -60,8 +61,10 @@ import { getSuperusers } from '@/modules/identity/users';
 import type { Superuser } from '@/modules/identity/users';
 import BacklogPanel from './components/BacklogPanel.vue';
 import KanbanBoard from './components/KanbanBoard.vue';
+import { mutateAndInvalidateSidebarSummary } from '@/app/sidebarSummary';
 
 const router = useRouter();
+const queryClient = useQueryClient();
 function goBack() { router.push({ name: 'versions-admin' }); }
 
 const version = ref<Version | null>(null);
@@ -103,7 +106,8 @@ async function saveVersion() {
       releaseDate: form.value.releaseDate || undefined,
       publishedAt: fromLocalDT(form.value.publishedAt),
     };
-    const updated = await updateVersion(version.value.id, dto);
+    const updated = await mutateAndInvalidateSidebarSummary(queryClient, () =>
+      updateVersion(version.value!.id, dto));
     version.value = updated;
     form.value = {
       version: updated.version,
@@ -385,10 +389,10 @@ async function handleMoveToProduction() {
   if (!ok) return;
 
   try {
-    const updated = await updateVersion(version.value.id, {
+    const updated = await mutateAndInvalidateSidebarSummary(queryClient, () => updateVersion(version.value!.id, {
       status: 'en_produccion',
       publishedAt: new Date().toISOString(),
-    });
+    }));
     version.value = updated;
     SwalService.success('Versión movida a producción');
     router.push({ name: 'versions-admin' });
