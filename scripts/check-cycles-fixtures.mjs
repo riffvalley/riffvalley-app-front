@@ -8,6 +8,7 @@ import {
   isBlockingCycle,
   scanGraph,
 } from "./check-cycles.mjs";
+import { evaluateComparison } from "./quality-comparison.mjs";
 
 const repositoryRoot = join(fileURLToPath(new URL("..", import.meta.url)));
 const fixtureRelativePath = "src/views/__fq34-cycle-fixtures__";
@@ -84,8 +85,92 @@ try {
     "new production runtime cycles should block on a reliable baseline"
   );
 
+  const completeScan = { unresolved: [], outOfSourceDependencyCount: 0 };
+  const noRegression = evaluateComparison({
+    control: "Cycle",
+    required: true,
+    baseSha: "base-sha",
+    headSha: "head-sha",
+    baseline: completeScan,
+    current: completeScan,
+  });
+  assert.equal(noRegression.exitCode, 0, "complete graphs without regressions should pass");
+  assert.match(noRegression.message, /Cycle comparison passed/);
+
+  const newRuntimeCycle = evaluateComparison({
+    control: "Cycle",
+    required: true,
+    baseSha: "base-sha",
+    headSha: "head-sha",
+    baseline: completeScan,
+    current: completeScan,
+    regressionCount: added.filter(isBlockingCycle).length,
+    regressionDescription: "production runtime/mixed cycle(s)",
+  });
+  assert.equal(newRuntimeCycle.exitCode, 1, "a new runtime cycle should block");
+  assert.match(newRuntimeCycle.message, /1 new production runtime\/mixed cycle/);
+
+  const unresolvedBase = evaluateComparison({
+    control: "Cycle",
+    required: true,
+    baseSha: "base-sha",
+    headSha: "head-sha",
+    baseline: { unresolved: ["src/base.ts -> missing"], outOfSourceDependencyCount: 0 },
+    current: completeScan,
+  });
+  assert.equal(unresolvedBase.exitCode, 2, "an unresolved import in base should block comparison");
+  assert.match(unresolvedBase.message, /base graph has 1 unresolved/);
+  assert.match(unresolvedBase.message, /src\/base\.ts -> missing/);
+
+  const unresolvedHead = evaluateComparison({
+    control: "Cycle",
+    required: true,
+    baseSha: "base-sha",
+    headSha: "head-sha",
+    baseline: completeScan,
+    current: { unresolved: ["src/head.ts -> missing"], outOfSourceDependencyCount: 0 },
+  });
+  assert.equal(unresolvedHead.exitCode, 2, "an unresolved import in head should block comparison");
+  assert.match(unresolvedHead.message, /head graph has 1/);
+  assert.match(unresolvedHead.message, /src\/head\.ts -> missing/);
+
+  const missingReference = evaluateComparison({ control: "Cycle", required: true });
+  assert.equal(missingReference.exitCode, 2, "a missing required reference should block");
+  assert.match(missingReference.message, /base and head references are required/);
+
+  const missingMergeBase = evaluateComparison({
+    control: "Cycle",
+    required: true,
+    baseSha: "base-sha",
+    headSha: "head-sha",
+    referenceError: "could not resolve merge base",
+  });
+  assert.equal(missingMergeBase.exitCode, 2, "an unavailable merge-base should block");
+  assert.match(missingMergeBase.message, /could not resolve merge base/);
+
+  const analyzerFailure = evaluateComparison({
+    control: "Cycle",
+    required: true,
+    baseSha: "base-sha",
+    headSha: "head-sha",
+    analysisError: "dependency-cruiser failed",
+  });
+  assert.equal(analyzerFailure.exitCode, 2, "an analyzer failure should block in required mode");
+  assert.match(analyzerFailure.message, /analyzer failed/);
+
+  const localIncomplete = evaluateComparison({
+    control: "Cycle",
+    required: false,
+    baseSha: "base-sha",
+    headSha: "head-sha",
+    baseline: { unresolved: ["src/base.ts -> missing"], outOfSourceDependencyCount: 0 },
+    current: completeScan,
+  });
+  assert.equal(localIncomplete.exitCode, 0, "local incomplete scans remain diagnostic");
+  assert.match(localIncomplete.message, /informational/);
+
   console.log(
-    `Cycle fixtures passed (${scan.moduleCount} fixture modules; TS, Vue, type-only, aliases, tests, acyclic).`
+    `Cycle fixtures passed (${scan.moduleCount} fixture modules; TS, Vue, type-only, aliases, tests, acyclic, required comparison failures).`
   );
   for (const cycle of cycles) console.log(`  ${cycle.kind}: ${cycle.nodes.join(" -> ")}`);
 } finally {

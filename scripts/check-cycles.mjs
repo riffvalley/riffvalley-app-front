@@ -5,6 +5,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { cruise } from "dependency-cruiser";
 import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config";
+import { evaluateComparison } from "./quality-comparison.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -219,80 +220,104 @@ export async function scanGitRevision(baseSha) {
 }
 
 async function run() {
+  const args = process.argv.slice(2);
+  const required = args.includes("--required");
+  if (args.some((arg) => arg !== "--required")) {
+    console.error("Usage: node scripts/check-cycles.mjs [--required]");
+    process.exitCode = 2;
+    return;
+  }
+
+  let baseSha = process.env.FQ_QUALITY_BASE_SHA;
+  let headSha = process.env.FQ_QUALITY_HEAD_SHA;
+  let referenceError;
+
+  if (required && (!baseSha || !headSha)) {
+    const outcome = evaluateComparison({
+      control: "Cycle",
+      required,
+      baseSha,
+      headSha,
+    });
+    console.error(outcome.message);
+    process.exitCode = outcome.exitCode;
+    return;
+  }
+
+  if (baseSha && headSha) {
+    const mergeBase = runGit(["merge-base", baseSha, headSha], { encoding: "utf8" });
+    if (mergeBase.error || !mergeBase.stdout.trim()) {
+      referenceError = `could not resolve merge base for ${baseSha} and ${headSha}`;
+      baseSha = undefined;
+    } else {
+      baseSha = mergeBase.stdout.trim();
+    }
+  } else {
+    const head = runGit(["rev-parse", "HEAD"], { encoding: "utf8" });
+    if (head.error || !head.stdout.trim()) {
+      referenceError = "could not resolve local HEAD";
+      baseSha = undefined;
+      headSha = undefined;
+    } else {
+      baseSha = head.stdout.trim();
+      headSha = baseSha;
+    }
+  }
+
   let current;
   try {
     current = await scanGraph();
   } catch (error) {
-    console.error(`Cycle graph scan failed: ${error.message}`);
+    console.error(
+      required
+        ? `Required cycle comparison failed: analyzer failed (${error.message}).`
+        : `Cycle graph scan failed: ${error.message}`
+    );
     process.exitCode = 2;
     return;
   }
   const currentCycles = describeCycles(current.graph);
-  let baseSha = process.env.FQ_QUALITY_BASE_SHA;
-  const headSha = process.env.FQ_QUALITY_HEAD_SHA;
-  let comparison = "informative (no reproducible base provided)";
+  let baseline;
+  let analysisError;
   let addedCycles = [];
-  let comparisonReliable = false;
-
-  if (baseSha && headSha) {
-    const mergeBase = runGit(["merge-base", baseSha, headSha], { encoding: "utf8" });
-    if (!mergeBase.error && mergeBase.stdout.trim()) {
-      baseSha = mergeBase.stdout.trim();
-    } else {
-      console.warn(
-        `Could not find a merge base for ${baseSha} and ${headSha}; cycle results remain informational.`
-      );
-      baseSha = undefined;
-    }
-  } else {
-    const head = runGit(["rev-parse", "HEAD"], { encoding: "utf8" });
-    if (!head.error) baseSha = head.stdout.trim();
-  }
 
   if (baseSha) {
     try {
-      const baseline = await scanGitRevision(baseSha);
+      baseline = await scanGitRevision(baseSha);
       const baselineCycles = describeCycles(baseline.graph);
       addedCycles = addedCycleComponents(currentCycles, baselineCycles);
-      comparisonReliable =
-        baseline.unresolved.length === 0 &&
-        baseline.outOfSourceDependencyCount === 0 &&
-        current.unresolved.length === 0 &&
-        current.outOfSourceDependencyCount === 0;
-      if (!comparisonReliable) {
-        comparison = "incomplete graph; informative only";
-        console.warn(
-          `Cannot compare complete graphs (base: ${baseline.unresolved.length} unresolved/out-of-scope edge(s), current: ${current.unresolved.length + current.outOfSourceDependencyCount}); cycle delta remains informational.`
-        );
-      } else {
-        comparison = `reproducible against ${baseSha}`;
-      }
     } catch (error) {
-      console.warn(
-        `Could not compare against base (${error.message}); cycle results remain informational.`
-      );
+      analysisError = `could not scan base graph (${error.message})`;
     }
   }
 
-  printReport("Source graph", current, currentCycles, { comparison });
-  if (comparisonReliable) {
+  const blockingCycles = addedCycles.filter(isBlockingCycle);
+  const outcome = evaluateComparison({
+    control: "Cycle",
+    required,
+    baseSha,
+    headSha,
+    baseline,
+    current,
+    regressionCount: blockingCycles.length,
+    regressionDescription: "production runtime/mixed cycle(s)",
+    referenceError,
+    analysisError,
+  });
+
+  printReport("Source graph", current, currentCycles, { comparison: outcome.status });
+  if (outcome.reliable) {
     console.log(`New cycle component(s): ${addedCycles.length}.`);
-    console.log(
-      `Blocking delta: ${addedCycles.filter(isBlockingCycle).length} production runtime/mixed cycle(s).`
-    );
+    console.log(`Blocking delta: ${blockingCycles.length} production runtime/mixed cycle(s).`);
     for (const cycle of addedCycles) {
       console.log(`  NEW ${cycle.scope} ${cycle.kind} cycle: ${cycle.nodes.join(" -> ")}`);
     }
   }
-
   if (current.unresolved.length) {
-    console.warn(
-      "The graph is incomplete; unresolved imports are reported above and the delta is not blocking."
-    );
+    console.warn(`Current graph has ${current.unresolved.length} unresolved local import(s).`);
   }
-  if (comparisonReliable && addedCycles.some(isBlockingCycle)) {
-    process.exitCode = 1;
-  }
+  console.log(outcome.message);
+  process.exitCode = outcome.exitCode;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

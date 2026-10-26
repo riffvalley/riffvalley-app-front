@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { scanGitRevision, scanGraph } from "./check-cycles.mjs";
+import { evaluateComparison } from "./quality-comparison.mjs";
 
 const repositoryRoot = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const owners = new Set(["auth", "account", "users", "activity", "shared"]);
@@ -104,7 +105,12 @@ export function hasBlockingIdentityBoundaryDelta(comparisonReliable, current, ba
 
 function runGit(args) {
   const result = spawnSync("git", args, { cwd: repositoryRoot, encoding: "utf8" });
-  return result.status === 0 ? result.stdout.trim() : undefined;
+  if (result.error || result.status !== 0) {
+    return {
+      error: result.error ?? new Error(result.stderr?.trim() || `git ${args[0]} failed`),
+    };
+  }
+  return { stdout: result.stdout.trim() };
 }
 
 function printFindings(label, findings) {
@@ -115,75 +121,105 @@ function printFindings(label, findings) {
 }
 
 async function run() {
+  const args = process.argv.slice(2);
+  const required = args.includes("--required");
+  if (args.some((arg) => arg !== "--required")) {
+    console.error("Usage: node scripts/check-identity-boundaries.mjs [--required]");
+    process.exitCode = 2;
+    return;
+  }
+
+  let baseSha = process.env.FQ_QUALITY_BASE_SHA;
+  let headSha = process.env.FQ_QUALITY_HEAD_SHA;
+  let referenceError;
+
+  if (required && (!baseSha || !headSha)) {
+    const outcome = evaluateComparison({
+      control: "Identity boundary",
+      required,
+      baseSha,
+      headSha,
+    });
+    console.error(outcome.message);
+    process.exitCode = outcome.exitCode;
+    return;
+  }
+
+  if (baseSha && headSha) {
+    const mergeBase = runGit(["merge-base", baseSha, headSha]);
+    if (mergeBase.error || !mergeBase.stdout) {
+      referenceError = `could not resolve merge base for ${baseSha} and ${headSha}`;
+      baseSha = undefined;
+    } else {
+      baseSha = mergeBase.stdout;
+    }
+  } else {
+    const head = runGit(["rev-parse", "HEAD"]);
+    if (head.error || !head.stdout) {
+      referenceError = "could not resolve local HEAD";
+      baseSha = undefined;
+      headSha = undefined;
+    } else {
+      baseSha = head.stdout;
+      headSha = baseSha;
+    }
+  }
+
   let current;
   try {
     current = await scanGraph();
   } catch (error) {
-    console.error(`Identity boundary scan failed: ${error.message}`);
+    console.error(
+      required
+        ? `Required Identity boundary comparison failed: analyzer failed (${error.message}).`
+        : `Identity boundary scan failed: ${error.message}`
+    );
     process.exitCode = 2;
     return;
   }
 
   const currentFindings = collectIdentityBoundaryFindings(current.graph);
-  const unresolvedCount = current.unresolved.length + current.outOfSourceDependencyCount;
-  let baseSha = process.env.FQ_QUALITY_BASE_SHA;
-  const headSha = process.env.FQ_QUALITY_HEAD_SHA;
-  let comparison = "informative (no reproducible base provided)";
   let baselineFindings;
-  let comparisonReliable = false;
-
-  if (baseSha && headSha) {
-    const mergeBase = runGit(["merge-base", baseSha, headSha]);
-    if (mergeBase) baseSha = mergeBase;
-    else baseSha = undefined;
-  } else {
-    baseSha = runGit(["rev-parse", "HEAD"]);
-  }
+  let baseline;
+  let analysisError;
 
   if (baseSha) {
     try {
-      const baseline = await scanGitRevision(baseSha);
+      baseline = await scanGitRevision(baseSha);
       baselineFindings = collectIdentityBoundaryFindings(baseline.graph);
-      comparisonReliable =
-        baseline.unresolved.length === 0 &&
-        baseline.outOfSourceDependencyCount === 0 &&
-        unresolvedCount === 0;
-      if (comparisonReliable) {
-        comparison = `reproducible against ${baseSha}`;
-      } else {
-        comparison = "incomplete graph; informative only";
-        console.warn(
-          `Cannot compare complete graphs (base: ${baseline.unresolved.length + baseline.outOfSourceDependencyCount} unresolved/out-of-scope edge(s), current: ${unresolvedCount}); boundary delta remains informational.`
-        );
-        for (const unresolved of baseline.unresolved)
-          console.log(`  BASE UNRESOLVED ${unresolved}`);
-      }
     } catch (error) {
-      comparison = "base unavailable; informative only";
-      console.warn(
-        `Could not compare against base (${error.message}); boundary results remain informational.`
-      );
+      analysisError = `could not scan base graph (${error.message})`;
     }
   }
+
+  const added = baselineFindings
+    ? addedIdentityBoundaryFindings(currentFindings, baselineFindings)
+    : [];
+  const outcome = evaluateComparison({
+    control: "Identity boundary",
+    required,
+    baseSha,
+    headSha,
+    baseline,
+    current,
+    regressionCount: added.length,
+    regressionDescription: "new production violation(s)",
+    referenceError,
+    analysisError,
+  });
 
   console.log(
     `Identity boundary scan: ${current.moduleCount} source module(s), ${currentFindings.length} production violation(s), ${countIdentityTestEdges(current.graph)} test edge(s) classified separately, ${current.unresolved.length} unresolved local edge(s).`
   );
   for (const unresolved of current.unresolved) console.log(`  UNRESOLVED ${unresolved}`);
-  printFindings("Global diagnostic (informational)", currentFindings);
-  console.log(`Comparison: ${comparison}.`);
+  printFindings("Current production findings", currentFindings);
+  console.log(`Comparison: ${outcome.status}.`);
 
-  if (comparisonReliable) {
-    const added = addedIdentityBoundaryFindings(currentFindings, baselineFindings);
+  if (outcome.reliable) {
     printFindings("New blocking delta", added);
-    if (hasBlockingIdentityBoundaryDelta(comparisonReliable, currentFindings, baselineFindings)) {
-      process.exitCode = 1;
-    }
-  } else {
-    console.log(
-      "No boundary findings block while the Git comparison is incomplete or unavailable."
-    );
   }
+  console.log(outcome.message);
+  process.exitCode = outcome.exitCode;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -51,25 +51,19 @@ jobs:
       - name: Format full source report (informational)
         run: pnpm format:check
         continue-on-error: true
-      - name: Lint changed Identity files
-        run: pnpm run lint:identity:changed
-        env:
-          FQ_QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          FQ_QUALITY_HEAD_SHA: ${{ github.sha }}
-      - name: Check formatting in changed Identity files
-        run: pnpm run format:check:identity:changed
-        env:
-          FQ_QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-          FQ_QUALITY_HEAD_SHA: ${{ github.sha }}
+      - name: Lint all Identity files
+        run: pnpm run lint:identity
+      - name: Check formatting in all Identity files
+        run: pnpm run format:check:identity
       - name: Identity import boundary fixtures
         run: pnpm run identity:boundaries:fixtures
       - name: Check new Identity import boundary violations
-        run: pnpm run identity:boundaries
+        run: pnpm run identity:boundaries:required
         env:
           FQ_QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           FQ_QUALITY_HEAD_SHA: ${{ github.sha }}
       - name: Report source dependency cycles and reject new cycles
-        run: pnpm run cycles
+        run: pnpm run cycles:required
         env:
           FQ_QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           FQ_QUALITY_HEAD_SHA: ${{ github.sha }}

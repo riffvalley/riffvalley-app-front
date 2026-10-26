@@ -6,6 +6,7 @@ import {
   countIdentityTestEdges,
   hasBlockingIdentityBoundaryDelta,
 } from "./check-identity-boundaries.mjs";
+import { evaluateComparison } from "./quality-comparison.mjs";
 
 const classify = (from, to) => classifyIdentityEdge({ from, to });
 
@@ -103,6 +104,59 @@ assert.equal(
   "a new production violation blocks when the comparison is reliable"
 );
 
+const completeScan = { unresolved: [], outOfSourceDependencyCount: 0 };
+const noRegression = evaluateComparison({
+  control: "Identity boundary",
+  required: true,
+  baseSha: "base-sha",
+  headSha: "head-sha",
+  baseline: completeScan,
+  current: completeScan,
+  regressionCount: addedIdentityBoundaryFindings(baseline, baseline).length,
+  regressionDescription: "production violation(s)",
+});
+assert.equal(noRegression.exitCode, 0, "complete graphs without new violations should pass");
+assert.match(noRegression.message, /Identity boundary comparison passed/);
+
+const newViolation = evaluateComparison({
+  control: "Identity boundary",
+  required: true,
+  baseSha: "base-sha",
+  headSha: "head-sha",
+  baseline: completeScan,
+  current: completeScan,
+  regressionCount: addedIdentityBoundaryFindings(current, baseline).length,
+  regressionDescription: "production violation(s)",
+});
+assert.equal(newViolation.exitCode, 1, "a new boundary violation should block");
+assert.match(newViolation.message, /1 new production violation/);
+
+const unresolvedBase = evaluateComparison({
+  control: "Identity boundary",
+  required: true,
+  baseSha: "base-sha",
+  headSha: "head-sha",
+  baseline: { unresolved: ["src/base.ts -> missing"], outOfSourceDependencyCount: 0 },
+  current: completeScan,
+});
+assert.equal(unresolvedBase.exitCode, 2, "an unresolved import in base should block comparison");
+assert.match(unresolvedBase.message, /base graph has 1 unresolved/);
+
+const unresolvedHead = evaluateComparison({
+  control: "Identity boundary",
+  required: true,
+  baseSha: "base-sha",
+  headSha: "head-sha",
+  baseline: completeScan,
+  current: { unresolved: ["src/head.ts -> missing"], outOfSourceDependencyCount: 0 },
+});
+assert.equal(unresolvedHead.exitCode, 2, "an unresolved import in head should block comparison");
+assert.match(unresolvedHead.message, /head graph has 1/);
+
+const missingReference = evaluateComparison({ control: "Identity boundary", required: true });
+assert.equal(missingReference.exitCode, 2, "a missing required reference should block");
+assert.match(missingReference.message, /base and head references are required/);
+
 console.log(
-  "Identity boundary fixtures passed (internal, public, private, owner direction, Router Vue, test, delta)."
+  "Identity boundary fixtures passed (internal, public, private, owner direction, Router Vue, test, delta, required comparison failures)."
 );
