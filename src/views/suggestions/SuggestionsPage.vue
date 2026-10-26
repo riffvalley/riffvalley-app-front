@@ -155,6 +155,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue';
+import { useQueryClient } from '@tanstack/vue-query';
 import {
   createSuggestion,
   getMySuggestions,
@@ -162,10 +163,12 @@ import {
   type SuggestionType,
 } from '@services/suggestions/suggestions';
 import SwalService from '@services/swal/SwalService';
+import { mutateAndInvalidateSidebarSummary } from '@/app/sidebarSummary';
 
 export default defineComponent({
   name: 'SuggestionsPage',
   setup() {
+    const queryClient = useQueryClient();
     const suggestions = ref<Suggestion[]>([]);
     const counts = ref({ in_progress: 0, done: 0, rejected: 0 });
     const loading = ref(false);
@@ -199,7 +202,7 @@ export default defineComponent({
       if (!form.value.title.trim() || !form.value.description.trim()) return;
       submitting.value = true;
       try {
-        await createSuggestion(form.value);
+        await mutateAndInvalidateSidebarSummary(queryClient, () => createSuggestion(form.value));
         form.value = { title: '', description: '', type: 'suggestion' };
         SwalService.success('Enviado correctamente');
         await fetchMine();

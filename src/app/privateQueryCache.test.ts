@@ -37,7 +37,7 @@ function createLifecycle() {
 function authenticate(
   authStore: ReturnType<typeof useAuthStore>,
   userId = "user-a",
-  role: "user" | "superadmin" = "user",
+  role: "user" | "collaborator" | "riffvalley" | "superadmin" = "user",
 ) {
   authStore.$patch({
     role,
@@ -62,7 +62,9 @@ describe("private query cache lifecycle", () => {
   it("clears private entries immediately on explicit logout", async () => {
     const { authStore, client } = createLifecycle();
     authenticate(authStore);
-    client.setQueryData(["identity", "users"], [{ id: "user-a" }]);
+    client.setQueryData(["app", "sidebar-summary", "user-a", "user", authStore.authSessionGeneration], {
+      version: { latest: "1.8.4" },
+    });
 
     await authStore.logout();
 
@@ -94,7 +96,9 @@ describe("private query cache lifecycle", () => {
   it("isolates one user's data before the replacement identity becomes active", () => {
     const { authStore, client } = createLifecycle();
     authenticate(authStore);
-    client.setQueryData(["identity", "users", { page: 1 }], [{ id: "user-a" }]);
+    client.setQueryData(["app", "sidebar-summary", "user-a", "user", authStore.authSessionGeneration], {
+      version: { latest: "1.8.4" },
+    });
 
     authStore.$patch({ userId: "user-b", username: "user-b" });
 
@@ -105,7 +109,11 @@ describe("private query cache lifecycle", () => {
     const { authStore, client } = createLifecycle();
     authenticate(authStore, "user-a", "superadmin");
     const generation = authStore.authSessionGeneration;
-    client.setQueryData(["identity", "users", "admin-list"], [{ id: "private-user" }]);
+    client.setQueryData(["app", "sidebar-summary", "user-a", "superadmin", generation], {
+      version: { latest: "1.8.4" },
+      petitions: { pending: 7 },
+      suggestions: { inProgressIds: ["suggestion-1"] },
+    });
     client.setQueryData(["identity", "activity", "dashboard"], { total: 42 });
     refresh.mockResolvedValue({
       user: { id: "user-a", username: "user-a", role: "user" },
@@ -134,13 +142,49 @@ describe("private query cache lifecycle", () => {
     expect(client.getQueryData(["identity", "users"])).toEqual([{ id: "user-a" }]);
 
     refresh.mockResolvedValueOnce({
-      user: { id: "user-a", username: "user-a", role: "riffvalley" },
+      user: { id: "user-a", username: "user-a", role: "collaborator" },
       token: "renewed-token-2",
     });
     await authStore.renewSession();
-    expect(authStore.role).toBe("riffvalley");
+    expect(authStore.role).toBe("collaborator");
     expect(client.getQueryData(["identity", "users"])).toEqual([{ id: "user-a" }]);
     expect(broadcastAuthPermissionsChanged).not.toHaveBeenCalled();
+  });
+
+  it("clears private data when Requests access is revoked from riffvalley to collaborator", async () => {
+    const { authStore, client } = createLifecycle();
+    authenticate(authStore, "user-a", "riffvalley");
+    client.setQueryData(["app", "sidebar-summary", "user-a", "riffvalley", 0], {
+      petitions: { pending: 7 },
+    });
+    refresh.mockResolvedValue({
+      user: { id: "user-a", username: "user-a", role: "collaborator" },
+      token: "renewed-token",
+    });
+
+    await authStore.renewSession();
+
+    expect(authStore.role).toBe("collaborator");
+    expect(client.getQueryCache().getAll()).toHaveLength(0);
+    expect(broadcastAuthPermissionsChanged).toHaveBeenCalledOnce();
+  });
+
+  it("clears private data when Requests access is granted to riffvalley", async () => {
+    const { authStore, client } = createLifecycle();
+    authenticate(authStore, "user-a", "collaborator");
+    client.setQueryData(["app", "sidebar-summary", "user-a", "collaborator", 0], {
+      version: { latest: "1.8.4" },
+    });
+    refresh.mockResolvedValue({
+      user: { id: "user-a", username: "user-a", role: "riffvalley" },
+      token: "renewed-token",
+    });
+
+    await authStore.renewSession();
+
+    expect(authStore.role).toBe("riffvalley");
+    expect(client.getQueryCache().getAll()).toHaveLength(0);
+    expect(broadcastAuthPermissionsChanged).toHaveBeenCalledOnce();
   });
 
   it("cancels pending queries and prevents their late result from restoring admin data", async () => {
@@ -149,7 +193,7 @@ describe("private query cache lifecycle", () => {
     let resolveRequest!: (value: string) => void;
     let requestSignal: AbortSignal | undefined;
     const pending = client.fetchQuery({
-      queryKey: ["identity", "activity", "pending"],
+      queryKey: ["app", "sidebar-summary", "user-a", "superadmin", authStore.authSessionGeneration],
       queryFn: ({ signal }) => {
         requestSignal = signal;
         return new Promise<string>((resolve) => { resolveRequest = resolve; });
@@ -190,7 +234,7 @@ describe("private query cache lifecycle", () => {
     let resolveRequest!: (value: string) => void;
     let requestSignal: AbortSignal | undefined;
     const pending = client.fetchQuery({
-      queryKey: ["identity", "users", { page: 1 }],
+      queryKey: ["app", "sidebar-summary", "user-a", "user", authStore.authSessionGeneration],
       queryFn: ({ signal }) => {
         requestSignal = signal;
         return new Promise<string>((resolve) => { resolveRequest = resolve; });

@@ -2,21 +2,16 @@
 import { defineComponent } from "vue";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SidebarMenu from "./SidebarMenu.vue";
 import { useAuthStore } from "@/modules/identity/auth";
 import { useDashboardPreferences } from "@/modules/identity/account";
+import { useSupportStore } from "@stores/support/support";
 import type { UserRole } from "@/modules/identity/shared";
 
-vi.mock("@services/versions/versions", () => ({
-  getLatestPublicVersion: vi.fn().mockResolvedValue(null),
-}));
-vi.mock("@services/requests/requests", () => ({
-  getAllRequests: vi.fn().mockResolvedValue([]),
-}));
-vi.mock("@services/suggestions/suggestions", () => ({
-  getSuggestions: vi.fn().mockResolvedValue([]),
-}));
+const { getSidebarSummary } = vi.hoisted(() => ({ getSidebarSummary: vi.fn() }));
+vi.mock("@services/api/api", () => ({ default: { get: getSidebarSummary } }));
 
 const RouterLinkStub = defineComponent({
   props: { to: { type: [String, Object], required: true } },
@@ -27,6 +22,7 @@ describe("import options in sidebar", () => {
   beforeEach(() => {
     localStorage.clear();
     setActivePinia(createPinia());
+    getSidebarSummary.mockReset().mockResolvedValue({ data: { version: { latest: "1.8.4" } } });
   });
 
   async function renderAs(role: UserRole) {
@@ -34,13 +30,24 @@ describe("import options in sidebar", () => {
     setActivePinia(pinia);
     const authStore = useAuthStore();
     authStore.token = "test-token";
+    authStore.authStatus = "authenticated";
+    authStore.userId = "user-1";
     authStore.role = role;
     useDashboardPreferences().dashboardButtonsEnabled = false;
+    getSidebarSummary.mockResolvedValue({
+      data: {
+        version: { latest: "1.8.4" },
+        ...(role === "riffvalley" || role === "superadmin" ? { petitions: { pending: 4 } } : {}),
+        ...(role === "superadmin" ? { suggestions: { inProgressIds: ["read-id", "unread-a", "unread-b"] } } : {}),
+      },
+    });
+    if (role === "superadmin") useSupportStore().markAsRead("read-id");
 
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const wrapper = mount(SidebarMenu, {
       props: { menuVisible: true, isDark: false },
       global: {
-        plugins: [pinia],
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
         stubs: { "router-link": RouterLinkStub },
       },
     });
@@ -86,6 +93,27 @@ describe("import options in sidebar", () => {
 
     expect(wrapper.find('[data-to="/import"]').exists()).toBe(false);
     expect(wrapper.find('[data-to="/import-discs"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("shows only summary fields authorized for the role and subtracts locally read suggestions", async () => {
+    const riffvalley = await renderAs("riffvalley");
+    expect(riffvalley.find('[data-to="/petitions"]').text()).toContain("4");
+    expect(riffvalley.find('[data-to="/suggestions/management"] .bg-red-500').exists()).toBe(false);
+    riffvalley.unmount();
+
+    const superadmin = await renderAs("superadmin");
+    expect(superadmin.find('[data-to="/petitions"]').text()).toContain("4");
+    expect(superadmin.find('[data-to="/suggestions/management"]').text()).toContain("2");
+    expect(superadmin.find('[data-to="/patch-notes"]').text()).toContain("version 1.8.4");
+    superadmin.unmount();
+  });
+
+  it("does not treat omitted private fields as authorized zero counts", async () => {
+    const wrapper = await renderAs("user");
+
+    expect(wrapper.find('[data-to="/petitions"]').exists()).toBe(false);
+    expect(wrapper.find('[data-to="/suggestions/management"] .bg-red-500').exists()).toBe(false);
     wrapper.unmount();
   });
 });
