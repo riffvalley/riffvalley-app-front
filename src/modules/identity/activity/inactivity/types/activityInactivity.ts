@@ -1,17 +1,10 @@
-import type { UserRole } from "../../../shared/types/auth";
+import type { UserRole } from "@/modules/identity/shared";
 
 export type ActivityInactivityBucket =
-  | "0_2_days"
-  | "3_6_days"
-  | "7_13_days"
-  | "14_29_days"
-  | "30_59_days"
-  | "60_plus_days";
+  "0_2_days" | "3_6_days" | "7_13_days" | "14_29_days" | "30_59_days" | "60_plus_days";
 
 export type ActivityInactivityGroup =
-  | ActivityInactivityBucket
-  | "never_voted"
-  | "insufficient_history";
+  ActivityInactivityBucket | "never_voted" | "insufficient_history";
 
 export type ActivityInactivitySortBy =
   | "lastVoteAt"

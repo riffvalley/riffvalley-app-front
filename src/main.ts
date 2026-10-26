@@ -2,7 +2,7 @@ import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
-import { useAuthStore } from '@/modules/identity/auth/stores/auth';
+import { useAuthStore } from '@/modules/identity/auth';
 import { clearPrivateQueryCache, installQuery } from '@/app/queryClient';
 import { observePrivateQueryCache } from '@/app/privateQueryCache';
 import { configureApiAuth } from '@services/api/api';
@@ -10,7 +10,7 @@ import {
   subscribeToRemoteAuthLogin,
   subscribeToRemoteAuthPermissionsChanged,
   subscribeToRemoteAuthLogout,
-} from '@/modules/identity/auth/api/sessionAuthCoordinator';
+} from '@/modules/identity/auth';
 
 // VueSweetalert2
 import VueSweetalert2 from 'vue-sweetalert2';

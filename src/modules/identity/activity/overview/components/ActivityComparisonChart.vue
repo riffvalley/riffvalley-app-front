@@ -12,7 +12,10 @@ import {
   type ChartData,
   type ChartOptions,
 } from "chart.js";
-import type { ActivityDashboardDay, ActivityDateRangeParams } from "@/modules/identity/activity/types/activity";
+import type {
+  ActivityDashboardDay,
+  ActivityDateRangeParams,
+} from "@/modules/identity/activity/types/activity";
 
 type SeriesMetric = "activeUsers" | "newVotes";
 
@@ -56,8 +59,11 @@ const alignedSeries = computed(() => {
   };
 });
 
-const hasValues = computed(() => [...alignedSeries.value.currentValues, ...alignedSeries.value.previousValues]
-  .some((value) => value !== null));
+const hasValues = computed(() =>
+  [...alignedSeries.value.currentValues, ...alignedSeries.value.previousValues].some(
+    (value) => value !== null
+  )
+);
 
 const chartData = computed<ChartData<"line", (number | null)[], string>>(() => ({
   labels: alignedSeries.value.labels,
@@ -102,10 +108,14 @@ const options = computed<ChartOptions<"line">>(() => ({
         title: (items) => {
           const index = items[0]?.dataIndex;
           const current = alignedSeries.value.current[index];
-          const previous = current ? alignedSeries.value.previousByIndex.get(current.dayIndex) : undefined;
+          const previous = current
+            ? alignedSeries.value.previousByIndex.get(current.dayIndex)
+            : undefined;
           return current && previous
             ? `Actual ${fullDate(current.date)} · Anterior ${fullDate(previous.date)}`
-            : current ? fullDate(current.date) : "";
+            : current
+              ? fullDate(current.date)
+              : "";
         },
         label: (context) => {
           const value = context.parsed.y;
@@ -126,19 +136,23 @@ const options = computed<ChartOptions<"line">>(() => ({
       ticks: {
         color: "#64748b",
         precision: 0,
-        callback: (value) => new Intl.NumberFormat("es-ES", { notation: "compact" }).format(Number(value)),
+        callback: (value) =>
+          new Intl.NumberFormat("es-ES", { notation: "compact" }).format(Number(value)),
       },
     },
   },
 }));
 
-const accessibleRange = computed(() =>
-  `Actual ${fullDate(props.currentRange.from)} a ${fullDate(props.currentRange.to)}. Anterior ${fullDate(props.previousRange.from)} a ${fullDate(props.previousRange.to)}.`,
+const accessibleRange = computed(
+  () =>
+    `Actual ${fullDate(props.currentRange.from)} a ${fullDate(props.currentRange.to)}. Anterior ${fullDate(props.previousRange.from)} a ${fullDate(props.previousRange.to)}.`
 );
 </script>
 
 <template>
-  <article class="chart-panel rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-rv-darkCard sm:p-5">
+  <article
+    class="chart-panel rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-rv-darkCard sm:p-5"
+  >
     <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
       <div>
         <h3 class="font-semibold text-gray-800 dark:text-gray-100">{{ title }}</h3>
@@ -146,15 +160,30 @@ const accessibleRange = computed(() =>
       </div>
     </div>
     <div v-if="hasValues" class="chart-canvas">
-      <Line :data="chartData" :options="options" role="img" :aria-label="`${title}. ${accessibleRange}`" />
-      <p class="sr-only">La línea continua representa el período actual; la línea discontinua, el período anterior. Los días sin cobertura no se conectan ni se muestran como cero.</p>
+      <Line
+        :data="chartData"
+        :options="options"
+        role="img"
+        :aria-label="`${title}. ${accessibleRange}`"
+      />
+      <p class="sr-only">
+        La línea continua representa el período actual; la línea discontinua, el período anterior.
+        Los días sin cobertura no se conectan ni se muestran como cero.
+      </p>
     </div>
-    <p v-else class="chart-empty flex h-64 items-center justify-center rounded-lg bg-gray-50 px-4 text-center text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300">
+    <p
+      v-else
+      class="chart-empty flex h-64 items-center justify-center rounded-lg bg-gray-50 px-4 text-center text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300"
+    >
       No hay valores cubiertos para este indicador en los períodos seleccionados.
     </p>
   </article>
 </template>
 
 <style scoped>
-.chart-canvas { position: relative; height: 17rem; min-width: 0; }
+.chart-canvas {
+  position: relative;
+  height: 17rem;
+  min-width: 0;
+}
 </style>

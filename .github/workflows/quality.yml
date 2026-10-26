@@ -1,0 +1,81 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - dev
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: typecheck, tests, and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        id: setup-node
+        with:
+          node-version-file: .nvmrc
+      - name: Enable Corepack and verify pnpm
+        run: |
+          corepack enable
+          test "$(pnpm --version)" = "11.28.8"
+      - name: Get pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ runner.arch }}-node-${{ steps.setup-node.outputs.node-version }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-${{ runner.os }}-${{ runner.arch }}-node-${{ steps.setup-node.outputs.node-version }}-
+      - run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm run typecheck
+      - name: Unit tests
+        run: pnpm test
+      - name: Lint full source report (informational)
+        run: pnpm lint
+        continue-on-error: true
+      - name: Format full source report (informational)
+        run: pnpm format:check
+        continue-on-error: true
+      - name: Lint all Identity files
+        run: pnpm run lint:identity
+      - name: Check formatting in all Identity files
+        run: pnpm run format:check:identity
+      - name: Identity import boundary fixtures
+        run: pnpm run identity:boundaries:fixtures
+      - name: Check new Identity import boundary violations
+        run: pnpm run identity:boundaries:required
+        env:
+          FQ_QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FQ_QUALITY_HEAD_SHA: ${{ github.sha }}
+      - name: Report source dependency cycles and reject new cycles
+        run: pnpm run cycles:required
+        env:
+          FQ_QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FQ_QUALITY_HEAD_SHA: ${{ github.sha }}
+      - name: Report all local Markdown links (informational)
+        run: pnpm run markdown:links
+        continue-on-error: true
+      - name: Markdown link checker fixtures
+        run: pnpm run markdown:links:fixtures
+      - name: Check new broken links in changed Markdown
+        run: pnpm run markdown:links:delta
+        env:
+          FQ_QUALITY_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          FQ_QUALITY_HEAD_SHA: ${{ github.sha }}
+      - name: Production build
+        run: pnpm build

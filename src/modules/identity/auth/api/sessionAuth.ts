@@ -1,6 +1,6 @@
 import axios, { AxiosHeaders, type AxiosInstance, type AxiosResponse } from "axios";
-import { USER_ROLES, type UserRole } from "@/modules/identity/shared/types/auth";
-import type { LoginPayload } from "@/modules/identity/shared/types/auth";
+import { USER_ROLES, type UserRole } from "@/modules/identity/shared";
+import type { LoginPayload } from "../types/login";
 import type {
   CsrfBootstrapResponse,
   SessionAuthErrorCategory,
@@ -33,7 +33,7 @@ export class SessionAuthError extends Error {
     message: string,
     readonly category: SessionAuthErrorCategory,
     readonly status: number | null,
-    readonly retryAfter: string | null = null,
+    readonly retryAfter: string | null = null
   ) {
     super(message);
     this.name = "SessionAuthError";
@@ -102,11 +102,7 @@ function readDashboardConfig(value: unknown): SessionAuthUser["dashboardConfig"]
 
   const config: { id: string; enabled: boolean }[] = [];
   for (const item of value) {
-    if (
-      !isRecord(item) ||
-      typeof item.id !== "string" ||
-      typeof item.enabled !== "boolean"
-    ) {
+    if (!isRecord(item) || typeof item.id !== "string" || typeof item.enabled !== "boolean") {
       return undefined;
     }
     config.push({ id: item.id, enabled: item.enabled });
@@ -188,7 +184,7 @@ function protocolError(): SessionAuthError {
   return new SessionAuthError(
     "La respuesta de Identity no coincide con el contrato de sesión.",
     "protocol-error",
-    null,
+    null
   );
 }
 
@@ -240,30 +236,17 @@ function toSessionAuthError(error: unknown): SessionAuthError {
   if (error instanceof SessionAuthError) return error;
 
   if (!axios.isAxiosError<SessionAuthErrorResponse>(error)) {
-    return new SessionAuthError(
-      messageForCategory("network-error"),
-      "network-error",
-      null,
-    );
+    return new SessionAuthError(messageForCategory("network-error"), "network-error", null);
   }
 
   const status = error.response?.status;
   if (status === undefined) {
-    return new SessionAuthError(
-      messageForCategory("network-error"),
-      "network-error",
-      null,
-    );
+    return new SessionAuthError(messageForCategory("network-error"), "network-error", null);
   }
 
   const category = categoryForStatus(status);
   const retryAfter = AxiosHeaders.from(error.response?.headers).get("retry-after") ?? null;
-  return new SessionAuthError(
-    messageForCategory(category),
-    category,
-    status,
-    retryAfter,
-  );
+  return new SessionAuthError(messageForCategory(category), category, status, retryAfter);
 }
 
 export class SessionAuthTransport {
@@ -273,7 +256,7 @@ export class SessionAuthTransport {
 
   constructor(
     private readonly http: AxiosInstance = authHttp,
-    private readonly operationIdFactory: OperationIdFactory = createOperationId,
+    private readonly operationIdFactory: OperationIdFactory = createOperationId
   ) {
     subscribeToRemoteSessionCsrfUpdated(() => this.loadSessionCsrfTokens());
   }
@@ -283,7 +266,7 @@ export class SessionAuthTransport {
       this.http.get<unknown>("/auth/csrf", {
         withCredentials: true,
         timeout: AUTH_REQUEST_TIMEOUT_MS,
-      }),
+      })
     );
 
     if (!isRecord(response) || !isNonEmptyString(response.csrfToken)) {
@@ -305,7 +288,7 @@ export class SessionAuthTransport {
             [AUTH_SESSION_MODE_HEADER]: AUTH_SESSION_MODE,
             [CSRF_HEADER]: csrfToken,
           },
-        }),
+        })
       );
 
       const session = readLoginResponse(response);
@@ -324,7 +307,7 @@ export class SessionAuthTransport {
         throw new SessionAuthError(
           messageForCategory("coordination-unavailable"),
           "coordination-unavailable",
-          null,
+          null
         );
       }
       throw error;
@@ -346,25 +329,32 @@ export class SessionAuthTransport {
       if (!csrfToken) throw protocolError();
 
       const operationId = options.operationId ?? this.operationIdFactory();
-      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId)) {
+      if (
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(operationId)
+      ) {
         throw new SessionAuthError(
           "El identificador de operación de refresh no es válido.",
           "protocol-error",
-          null,
+          null
         );
       }
-      const refresh = (proof: string) => this.request(() =>
-        this.http.post<unknown>("/auth/refresh", {}, {
-          withCredentials: true,
-          timeout: AUTH_REQUEST_TIMEOUT_MS,
-          headers: {
-            "Content-Type": "application/json",
-            [AUTH_SESSION_MODE_HEADER]: AUTH_SESSION_MODE,
-            [REFRESH_OPERATION_HEADER]: operationId,
-            [CSRF_HEADER]: proof,
-          },
-        }),
-      );
+      const refresh = (proof: string) =>
+        this.request(() =>
+          this.http.post<unknown>(
+            "/auth/refresh",
+            {},
+            {
+              withCredentials: true,
+              timeout: AUTH_REQUEST_TIMEOUT_MS,
+              headers: {
+                "Content-Type": "application/json",
+                [AUTH_SESSION_MODE_HEADER]: AUTH_SESSION_MODE,
+                [REFRESH_OPERATION_HEADER]: operationId,
+                [CSRF_HEADER]: proof,
+              },
+            }
+          )
+        );
       let response: unknown;
       try {
         response = await refresh(csrfToken);
@@ -393,10 +383,7 @@ export class SessionAuthTransport {
         try {
           response = await refresh(recoveredCsrfToken);
         } catch (retryError: unknown) {
-          if (
-            retryError instanceof SessionAuthError &&
-            retryError.category === "unauthenticated"
-          ) {
+          if (retryError instanceof SessionAuthError && retryError.category === "unauthenticated") {
             this.clearSessionCsrfTokens();
           }
           throw retryError;
@@ -446,11 +433,15 @@ export class SessionAuthTransport {
 
       try {
         await this.request(async () => {
-          const response = await this.http.post<void>("/auth/logout", {}, {
-            withCredentials: true,
-            timeout: AUTH_REQUEST_TIMEOUT_MS,
-            headers: { "Content-Type": "application/json", [CSRF_HEADER]: csrfToken },
-          });
+          const response = await this.http.post<void>(
+            "/auth/logout",
+            {},
+            {
+              withCredentials: true,
+              timeout: AUTH_REQUEST_TIMEOUT_MS,
+              headers: { "Content-Type": "application/json", [CSRF_HEADER]: csrfToken },
+            }
+          );
           if (response.status !== 204) throw protocolError();
           return response;
         });
@@ -477,7 +468,7 @@ export class SessionAuthTransport {
       this.http.get<unknown>("/auth/refresh/csrf", {
         withCredentials: true,
         timeout: AUTH_REQUEST_TIMEOUT_MS,
-      }),
+      })
     );
     if (!isRecord(response) || !isNonEmptyString(response.csrfToken)) {
       throw protocolError();
@@ -485,10 +476,7 @@ export class SessionAuthTransport {
     return response.csrfToken;
   }
 
-  private setSessionCsrfTokens(
-    csrfToken: string,
-    logoutCsrfToken: string,
-  ): void {
+  private setSessionCsrfTokens(csrfToken: string, logoutCsrfToken: string): void {
     this.sessionCsrfToken = csrfToken;
     this.logoutCsrfToken = logoutCsrfToken;
     writeStoredCsrf(SESSION_CSRF_STORAGE_KEY, csrfToken);

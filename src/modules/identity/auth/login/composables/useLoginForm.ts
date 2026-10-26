@@ -24,14 +24,16 @@ export function useLoginForm() {
             error.value = "Usuario o contraseña incorrectos.";
             break;
           case "forbidden":
-            error.value = "No se pudo validar la solicitud de acceso. Recarga la página e inténtalo de nuevo.";
+            error.value =
+              "No se pudo validar la solicitud de acceso. Recarga la página e inténtalo de nuevo.";
             break;
           case "rate-limited":
             error.value = "Demasiados intentos. Espera un momento antes de volver a intentarlo.";
             break;
           case "unavailable":
           case "network-error":
-            error.value = "El servicio de acceso no está disponible temporalmente. Inténtalo más tarde.";
+            error.value =
+              "El servicio de acceso no está disponible temporalmente. Inténtalo más tarde.";
             break;
           default:
             error.value = "No se pudo completar el acceso. Inténtalo de nuevo.";

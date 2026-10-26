@@ -25,14 +25,19 @@ function formatDate(value: string | null): string {
   if (!value) return "Sin registro";
   const date = new Date(`${value.slice(0, 10)}T12:00:00Z`);
   return new Intl.DateTimeFormat("es-ES", {
-    day: "2-digit", month: "short", year: "numeric", timeZone: "Europe/Madrid",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "Europe/Madrid",
   }).format(date);
 }
 
 function formatUtcTimestamp(value: string | null): string {
   if (!value) return "Sin dato histórico";
   return new Intl.DateTimeFormat("es-ES", {
-    dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Madrid",
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Europe/Madrid",
   }).format(new Date(value));
 }
 
@@ -55,7 +60,9 @@ function formatLocalTimestamp(value: string | null): string {
           <th scope="col">Último voto nuevo</th>
           <th scope="col">Inactividad</th>
           <th scope="col">Última presencia</th>
-          <th scope="col" title="Rate.editedAt puede cambiar también por una edición de portada">Edición de valoración</th>
+          <th scope="col" title="Rate.editedAt puede cambiar también por una edición de portada">
+            Edición de valoración
+          </th>
           <th scope="col">Valoraciones actuales</th>
           <th scope="col"><span class="sr-only">Detalle</span></th>
         </tr>
@@ -65,12 +72,17 @@ function formatLocalTimestamp(value: string | null): string {
           <th scope="row" class="username-cell">{{ user.username }}</th>
           <td>
             <span>{{ roleLabels[user.role] }}</span>
-            <span class="account-state" :class="user.isActive ? 'account-state--active' : 'account-state--disabled'">
+            <span
+              class="account-state"
+              :class="user.isActive ? 'account-state--active' : 'account-state--disabled'"
+            >
               {{ user.isActive ? "Activa" : "Deshabilitada" }}
             </span>
           </td>
           <td>
-            <time v-if="user.lastVoteAt" :datetime="user.lastVoteAt">{{ formatUtcTimestamp(user.lastVoteAt) }}</time>
+            <time v-if="user.lastVoteAt" :datetime="user.lastVoteAt">{{
+              formatUtcTimestamp(user.lastVoteAt)
+            }}</time>
             <span v-else class="muted">Sin dato histórico</span>
           </td>
           <td>
@@ -78,11 +90,17 @@ function formatLocalTimestamp(value: string | null): string {
               {{ user.daysSinceLastVote }} {{ user.daysSinceLastVote === 1 ? "día" : "días" }}
             </span>
             <span v-else class="muted">—</span>
-            <span class="group-label" :class="`group-label--${user.inactivityGroup}`">{{ groupLabels[user.inactivityGroup] }}</span>
+            <span class="group-label" :class="`group-label--${user.inactivityGroup}`">{{
+              groupLabels[user.inactivityGroup]
+            }}</span>
           </td>
           <td>{{ formatDate(user.lastPresenceAt) }}</td>
           <td>
-            <time v-if="user.lastRatingModifiedAt" :datetime="user.lastRatingModifiedAt" :title="`${formatLocalTimestamp(user.lastRatingModifiedAt)} · timestamp sin zona horaria`">
+            <time
+              v-if="user.lastRatingModifiedAt"
+              :datetime="user.lastRatingModifiedAt"
+              :title="`${formatLocalTimestamp(user.lastRatingModifiedAt)} · timestamp sin zona horaria`"
+            >
               {{ formatLocalTimestamp(user.lastRatingModifiedAt) }}
             </time>
             <span v-else class="muted">Sin registro</span>

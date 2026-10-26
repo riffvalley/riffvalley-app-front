@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { defineComponent, h, nextTick } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
-import { flushPromises, mount } from "@vue/test-utils";
+import { mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 
 const { getGlobalActivity, getUsers, getActivityUserDetail, errorToast } = vi.hoisted(() => ({
@@ -15,27 +15,51 @@ const { getGlobalActivity, getUsers, getActivityUserDetail, errorToast } = vi.ho
 
 vi.mock("@/modules/identity/users/api/users", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/modules/identity/users/api/users")>();
-  return { ...actual, getGlobalActivity, getUsers };
+  return { ...actual, getUsers };
 });
 vi.mock("@/modules/identity/activity/api/activity", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/modules/identity/activity/api/activity")>();
-  return { ...actual, getActivityUserDetail };
+  return { ...actual, getActivityUserDetail, getGlobalActivity };
 });
-vi.mock("vue-chartjs", () => ({ Line: defineComponent({ setup: (_props, { attrs }) => () => h("div", attrs) }) }));
+vi.mock("vue-chartjs", () => ({
+  Line: defineComponent({
+    setup:
+      (_props, { attrs }) =>
+      () =>
+        h("div", attrs),
+  }),
+}));
 vi.mock("@services/swal/SwalService", () => ({ default: { error: errorToast } }));
 
 import { observePrivateQueryCache } from "@/app/privateQueryCache";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 import { adminUsersQueryKeyForSession } from "@/modules/identity/users/composables/useAdminUsersQuery";
 import { activityUserDetailQueryKeyForSession } from "@/modules/identity/activity/composables/useActivityStatisticsQueries";
 import type { ActivityUserDetailResponse } from "@/modules/identity/activity/types/activity";
-import type { AdminUser, GlobalActivityResponse } from "@/modules/identity/users/types/users";
+import type { GlobalActivityResponse } from "@/modules/identity/activity/types/activity";
+import type { AdminUser } from "@/modules/identity/users/types/users";
 import ActivityUserDailyCharts from "./components/ActivityUserDailyCharts.vue";
 import UserActivity from "./UserActivityView.vue";
 
 const users: AdminUser[] = [
-  { id: "target-a", username: "Member A", email: "a@example.test", role: "user", createdAt: "2025-01-01", notes: null, isActive: true },
-  { id: "target-b", username: "Member B", email: "b@example.test", role: "user", createdAt: "2025-01-01", notes: null, isActive: true },
+  {
+    id: "target-a",
+    username: "Member A",
+    email: "a@example.test",
+    role: "user",
+    createdAt: "2025-01-01",
+    notes: null,
+    isActive: true,
+  },
+  {
+    id: "target-b",
+    username: "Member B",
+    email: "b@example.test",
+    role: "user",
+    createdAt: "2025-01-01",
+    notes: null,
+    isActive: true,
+  },
 ];
 
 const globalActivity: GlobalActivityResponse = {
@@ -43,15 +67,17 @@ const globalActivity: GlobalActivityResponse = {
   totalPages: 2,
   currentPage: 1,
   limit: 20,
-  data: [{
-    id: "vote-a",
-    rate: 5,
-    cover: 3,
-    createdAt: "2025-03-04T12:30:00.000Z",
-    editedAt: null,
-    user: { id: "target-a", username: "Member A", image: "" },
-    disc: { id: "disc-1", name: "Release A" },
-  }],
+  data: [
+    {
+      id: "vote-a",
+      rate: 5,
+      cover: 3,
+      createdAt: "2025-03-04T12:30:00.000Z",
+      editedAt: null,
+      user: { id: "target-a", username: "Member A", image: "" },
+      disc: { id: "disc-1", name: "Release A" },
+    },
+  ],
 };
 
 const detailResponse = (userId: string): ActivityUserDetailResponse => ({
@@ -102,7 +128,9 @@ describe("UserActivity Query view", () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     pinia = createPinia();
     setActivePinia(pinia);
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 60_000, gcTime: Infinity } } });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 60_000, gcTime: Infinity } },
+    });
     activityRouter = createRouter({
       history: createMemoryHistory(),
       routes: [{ path: "/users/stats/users", name: "UserStatsUsers", component: UserActivity }],
@@ -139,6 +167,28 @@ describe("UserActivity Query view", () => {
     queryClient.setQueryData(adminUsersQueryKeyForSession("admin-a", 3), users);
   }
 
+  it("gives the user filter and reset button accessible names and treats the avatar as decorative", async () => {
+    primeUserList();
+    getGlobalActivity.mockResolvedValue({
+      ...globalActivity,
+      data: globalActivity.data.map((vote) => ({
+        ...vote,
+        user: { ...vote.user, image: "/avatar.png" },
+      })),
+    });
+    const wrapper = render();
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain("Release A"));
+    const userFilter = wrapper.get("select");
+    expect(userFilter.attributes("aria-label")).toBe("Filtrar actividad por usuario");
+    expect(wrapper.get('img[src="/avatar.png"]').attributes("alt")).toBe("");
+
+    await userFilter.setValue("target-a");
+    expect(
+      wrapper.get('button[aria-label="Mostrar actividad de todos los usuarios"]').exists()
+    ).toBe(true);
+  });
+
   it("keeps the global feed and pagination while replacing the selected-user detail with the new endpoint", async () => {
     primeUserList();
     getGlobalActivity.mockResolvedValue(globalActivity);
@@ -150,9 +200,16 @@ describe("UserActivity Query view", () => {
     expect(wrapper.find("select").text()).toContain("Member A");
     expect(wrapper.find("select").text()).toContain("Member B");
 
-    await wrapper.findAll("button").find((button) => button.text().includes("Member A"))!.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Member A"))!
+      .trigger("click");
     await vi.waitFor(() => expect(wrapper.text()).toContain("Valoraciones actuales"));
-    expect(getActivityUserDetail).toHaveBeenCalledWith("target-a", expect.objectContaining({ from: expect.any(String), to: expect.any(String) }), expect.any(AbortSignal));
+    expect(getActivityUserDetail).toHaveBeenCalledWith(
+      "target-a",
+      expect.objectContaining({ from: expect.any(String), to: expect.any(String) }),
+      expect.any(AbortSignal)
+    );
     expect(wrapper.text()).toContain("Votos nuevos · set");
     expect(wrapper.text()).toContain("Modificaciones · change");
     expect(wrapper.text()).toContain("12 registrados desde el inicio de captura");
@@ -162,11 +219,20 @@ describe("UserActivity Query view", () => {
     expect(getGlobalActivity).toHaveBeenCalledTimes(1);
 
     await wrapper.find("select").setValue("target-b");
-    await vi.waitFor(() => expect(getActivityUserDetail).toHaveBeenLastCalledWith("target-b", expect.any(Object), expect.any(AbortSignal)));
+    await vi.waitFor(() =>
+      expect(getActivityUserDetail).toHaveBeenLastCalledWith(
+        "target-b",
+        expect.any(Object),
+        expect.any(AbortSignal)
+      )
+    );
     expect(wrapper.text()).toContain("Actividad de Member B");
     const [, targetBRange] = getActivityUserDetail.mock.calls.at(-1)!;
-    expect(queryClient.getQueryData(activityUserDetailQueryKeyForSession("target-b", targetBRange, "admin-a", 3)))
-      .toMatchObject({ userId: "target-b" });
+    expect(
+      queryClient.getQueryData(
+        activityUserDetailQueryKeyForSession("target-b", targetBRange, "admin-a", 3)
+      )
+    ).toMatchObject({ userId: "target-b" });
   });
 
   it("opens the individual detail when a userId is supplied by the administrative route", async () => {
@@ -184,7 +250,7 @@ describe("UserActivity Query view", () => {
     expect(getActivityUserDetail).toHaveBeenCalledWith(
       "target-a",
       expect.objectContaining({ from: expect.any(String), to: expect.any(String) }),
-      expect.any(AbortSignal),
+      expect.any(AbortSignal)
     );
     expect(wrapper.text()).not.toContain("Release A");
   });
@@ -198,11 +264,20 @@ describe("UserActivity Query view", () => {
     await wrapper.find("select").setValue("target-a");
     await vi.waitFor(() => expect(getActivityUserDetail).toHaveBeenCalledOnce());
 
-    await wrapper.findAll("button").find((button) => button.text() === "7 días")!.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "7 días")!
+      .trigger("click");
     await vi.waitFor(() => expect(getActivityUserDetail).toHaveBeenCalledTimes(2));
-    expect(getActivityUserDetail.mock.calls[1]?.[1]).toMatchObject({ from: expect.any(String), to: expect.any(String) });
+    expect(getActivityUserDetail.mock.calls[1]?.[1]).toMatchObject({
+      from: expect.any(String),
+      to: expect.any(String),
+    });
 
-    await wrapper.findAll("button").find((button) => button.text() === "Personalizado")!.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Personalizado")!
+      .trigger("click");
     await nextTick();
     const afterPreset = getActivityUserDetail.mock.calls.length;
     const dateInputs = wrapper.findAll('input[type="date"]');
@@ -211,7 +286,11 @@ describe("UserActivity Query view", () => {
     expect(getActivityUserDetail).toHaveBeenCalledTimes(afterPreset);
     await dateInputs[1]!.setValue("2026-10-07");
     await vi.waitFor(() => expect(getActivityUserDetail).toHaveBeenCalledTimes(afterPreset + 1));
-    expect(getActivityUserDetail).toHaveBeenLastCalledWith("target-a", { from: "2026-10-01", to: "2026-10-07" }, expect.any(AbortSignal));
+    expect(getActivityUserDetail).toHaveBeenLastCalledWith(
+      "target-a",
+      { from: "2026-10-01", to: "2026-10-07" },
+      expect.any(AbortSignal)
+    );
   });
 
   it("presents the three daily series without converting unknowns or covered zeroes", async () => {
@@ -229,8 +308,12 @@ describe("UserActivity Query view", () => {
       { date: "2026-10-21", present: false },
       { date: "2026-10-22", present: null },
     ]);
-    expect(charts.props("activity").newVotesByDay.map(({ count }: { count: number | null }) => count)).toEqual([1, 0, null]);
-    expect(charts.props("activity").changedVotesByDay.map(({ count }: { count: number | null }) => count)).toEqual([1, 0, null]);
+    expect(
+      charts.props("activity").newVotesByDay.map(({ count }: { count: number | null }) => count)
+    ).toEqual([1, 0, null]);
+    expect(
+      charts.props("activity").changedVotesByDay.map(({ count }: { count: number | null }) => count)
+    ).toEqual([1, 0, null]);
     expect(wrapper.text()).toContain("los valores no representan todo el rango");
   });
 
@@ -241,11 +324,18 @@ describe("UserActivity Query view", () => {
     const wrapper = render();
     await vi.waitFor(() => expect(wrapper.text()).toContain("Release A"));
     await wrapper.find("select").setValue("target-a");
-    await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain("Usuario no encontrado"));
+    await vi.waitFor(() =>
+      expect(wrapper.get('[role="alert"]').text()).toContain("Usuario no encontrado")
+    );
 
-    getActivityUserDetail.mockResolvedValueOnce({ ...detailResponse("target-a"), newVotes7: undefined });
+    getActivityUserDetail.mockResolvedValueOnce({
+      ...detailResponse("target-a"),
+      newVotes7: undefined,
+    });
     await wrapper.get('[role="alert"] button').trigger("click");
-    await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain("Backend incompatible"));
+    await vi.waitFor(() =>
+      expect(wrapper.get('[role="alert"]').text()).toContain("Backend incompatible")
+    );
 
     getActivityUserDetail.mockResolvedValueOnce({
       ...detailResponse("target-a"),
@@ -314,7 +404,12 @@ describe("UserActivity Query view", () => {
     const generation = authStore.authSessionGeneration;
     authStore.$patch({ role: "user" });
     await vi.waitFor(() => expect(wrapper.find(".min-h-screen").exists()).toBe(false));
-    expect(queryClient.getQueryCache().getAll().every((query) => query.state.data === undefined)).toBe(true);
+    expect(
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .every((query) => query.state.data === undefined)
+    ).toBe(true);
 
     authStore.$patch({ role: "superadmin" });
     getUsers.mockResolvedValue(users);
@@ -332,7 +427,9 @@ describe("UserActivity Query view", () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain("Release A"));
     await wrapper.find("select").setValue("target-a");
 
-    await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain("Sesión caducada"));
+    await vi.waitFor(() =>
+      expect(wrapper.get('[role="alert"]').text()).toContain("Sesión caducada")
+    );
     expect(wrapper.text()).toContain("Inicia sesión de nuevo");
   });
 
@@ -345,7 +442,11 @@ describe("UserActivity Query view", () => {
     }));
     const wrapper = render();
     await vi.waitFor(() => expect(wrapper.text()).toContain("Página 1 / 2"));
-    await wrapper.findAll("button").filter((button) => button.classes().includes("page-btn")).at(1)!.trigger("click");
+    await wrapper
+      .findAll("button")
+      .filter((button) => button.classes().includes("page-btn"))
+      .at(1)!
+      .trigger("click");
     await vi.waitFor(() => expect(wrapper.text()).toContain("Página 2 / 2"));
     expect(getActivityUserDetail).not.toHaveBeenCalled();
   });

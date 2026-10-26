@@ -1,0 +1,10 @@
+allowBuilds:
+  esbuild: true
+  vue-demi: true
+
+overrides:
+  postcss: 8.5.2
+  'vite@5.4.21>postcss': 8.5.30
+  vue: 3.5.13
+
+pmOnFail: error

@@ -12,19 +12,21 @@ vi.mock("@/modules/identity/users/api/users", async (importOriginal) => {
   return { ...actual, getUsers };
 });
 
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 import type { AdminUser } from "@/modules/identity/users/types/users";
 import { adminUsersQueryKeyForSession, useAdminUsersQuery } from "./useAdminUsersQuery";
 
-const users: AdminUser[] = [{
-  id: "private-user",
-  username: "Private user",
-  email: "private@example.test",
-  role: "user",
-  createdAt: "2025-01-01T00:00:00.000Z",
-  notes: "private notes",
-  isActive: true,
-}];
+const users: AdminUser[] = [
+  {
+    id: "private-user",
+    username: "Private user",
+    email: "private@example.test",
+    role: "user",
+    createdAt: "2025-01-01T00:00:00.000Z",
+    notes: "private notes",
+    isActive: true,
+  },
+];
 
 describe("useAdminUsersQuery authorization", () => {
   let queryClient: QueryClient;
@@ -37,7 +39,9 @@ describe("useAdminUsersQuery authorization", () => {
     getUsers.mockReset();
     pinia = createPinia();
     setActivePinia(pinia);
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    });
     useAuthStore().$patch({
       authStatus: "authenticated",
       token: "in-memory-token",
@@ -56,13 +60,21 @@ describe("useAdminUsersQuery authorization", () => {
 
   it("rejects a pending response after superadmin permission is revoked without a session change", async () => {
     let resolveUsers!: (value: AdminUser[]) => void;
-    getUsers.mockImplementation(() => new Promise<AdminUser[]>((resolve) => { resolveUsers = resolve; }));
-    wrapper = mount(defineComponent({
-      setup() {
-        query = useAdminUsersQuery();
-        return () => null;
-      },
-    }), { global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] } });
+    getUsers.mockImplementation(
+      () =>
+        new Promise<AdminUser[]>((resolve) => {
+          resolveUsers = resolve;
+        })
+    );
+    wrapper = mount(
+      defineComponent({
+        setup() {
+          query = useAdminUsersQuery();
+          return () => null;
+        },
+      }),
+      { global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] } }
+    );
     await vi.waitFor(() => expect(getUsers).toHaveBeenCalledOnce());
     const authStore = useAuthStore();
     const generation = authStore.authSessionGeneration;
@@ -74,8 +86,9 @@ describe("useAdminUsersQuery authorization", () => {
     expect(authStore.userId).toBe("admin-a");
     expect(authStore.authSessionGeneration).toBe(generation);
     expect(query.data.value).toBeUndefined();
-    expect(queryClient.getQueryData(adminUsersQueryKeyForSession("admin-a", generation))).toBeUndefined();
+    expect(
+      queryClient.getQueryData(adminUsersQueryKeyForSession("admin-a", generation))
+    ).toBeUndefined();
     expect(query.error.value?.message).toContain("permisos cambiaron");
   });
-
 });

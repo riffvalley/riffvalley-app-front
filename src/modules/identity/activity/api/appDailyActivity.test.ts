@@ -16,5 +16,4 @@ describe("App daily activity notification", () => {
     expect(post).toHaveBeenCalledOnce();
     expect(post).toHaveBeenCalledWith("/activity/app/daily");
   });
-
 });

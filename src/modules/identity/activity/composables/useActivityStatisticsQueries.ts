@@ -11,13 +11,16 @@ import type {
   ActivityUserDetailResponse,
   ActivityUsersParams,
 } from "@/modules/identity/activity/types/activity";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore, type AuthStore } from "@/modules/identity/auth";
+import { activityDashboardQueryKey } from "../queryKeys";
 
-export const activityDashboardQueryKey = ["identity", "activity", "dashboard"] as const;
+export { activityDashboardQueryKey } from "../queryKeys";
 export const activityUsersQueryKey = ["identity", "activity", "users"] as const;
 export const activityUserDetailQueryKey = ["identity", "activity", "user-detail"] as const;
 
-export function normalizeActivityDateRange(params: ActivityDateRangeParams): ActivityDateRangeParams {
+export function normalizeActivityDateRange(
+  params: ActivityDateRangeParams
+): ActivityDateRangeParams {
   return {
     ...(params.from === undefined ? {} : { from: params.from }),
     ...(params.to === undefined ? {} : { to: params.to }),
@@ -25,7 +28,9 @@ export function normalizeActivityDateRange(params: ActivityDateRangeParams): Act
 }
 
 /** Presets and custom dates are mutually exclusive in both the key and request. */
-export function normalizeActivitySummaryParams(params: ActivitySummaryParams): ActivitySummaryParams {
+export function normalizeActivitySummaryParams(
+  params: ActivitySummaryParams
+): ActivitySummaryParams {
   if ("period" in params && params.period !== undefined) return { period: params.period };
   return normalizeActivityDateRange(params);
 }
@@ -41,24 +46,34 @@ export function normalizeActivityUsersParams(params: ActivityUsersParams): Activ
 export function activityDashboardQueryKeyForSession(
   params: ActivitySummaryParams,
   userId: string | null,
-  generation: number,
+  generation: number
 ) {
-  return [...activityDashboardQueryKey, normalizeActivitySummaryParams(params), userId, generation] as const;
+  return [
+    ...activityDashboardQueryKey,
+    normalizeActivitySummaryParams(params),
+    userId,
+    generation,
+  ] as const;
 }
 
 export function activityUsersQueryKeyForSession(
   params: ActivityUsersParams,
   userId: string | null,
-  generation: number,
+  generation: number
 ) {
-  return [...activityUsersQueryKey, normalizeActivityUsersParams(params), userId, generation] as const;
+  return [
+    ...activityUsersQueryKey,
+    normalizeActivityUsersParams(params),
+    userId,
+    generation,
+  ] as const;
 }
 
 export function activityUserDetailQueryKeyForSession(
   targetUserId: string | null,
   params: ActivityDateRangeParams,
   userId: string | null,
-  generation: number,
+  generation: number
 ) {
   return [
     ...activityUserDetailQueryKey,
@@ -69,11 +84,13 @@ export function activityUserDetailQueryKeyForSession(
   ] as const;
 }
 
-function isSuperadminSession(authStore: ReturnType<typeof useAuthStore>): boolean {
-  return authStore.authStatus === "authenticated" &&
+function isSuperadminSession(authStore: AuthStore): boolean {
+  return (
+    authStore.authStatus === "authenticated" &&
     authStore.isAuthenticated &&
     authStore.hasRole("superadmin") &&
-    !!authStore.userId;
+    !!authStore.userId
+  );
 }
 
 class ActivityQuerySessionError extends Error {
@@ -98,7 +115,9 @@ export class ActivityUserDetailContractError extends Error {
   readonly category = "contract-incompatible-user-detail";
 
   constructor() {
-    super("La respuesta de actividad individual no cumple el contrato separado de presencia y eventos.");
+    super(
+      "La respuesta de actividad individual no cumple el contrato separado de presencia y eventos."
+    );
     this.name = "ActivityUserDetailContractError";
   }
 }
@@ -111,48 +130,76 @@ function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === "string";
 }
 
-function isActivityCoverage(value: unknown): value is { status: "complete" | "incomplete" | "unavailable"; dataSince: string | null } {
+function isActivityCoverage(
+  value: unknown
+): value is { status: "complete" | "incomplete" | "unavailable"; dataSince: string | null } {
   if (!value || typeof value !== "object") return false;
   const coverage = value as Record<string, unknown>;
-  return ["complete", "incomplete", "unavailable"].includes(String(coverage.status)) &&
-    isNullableString(coverage.dataSince);
-}
-
-function isDailyCountSeries(value: unknown): boolean {
-  return Array.isArray(value) && value.every((row) =>
-    !!row && typeof row === "object" &&
-    typeof row.date === "string" && isNullableNumber(row.count),
+  return (
+    ["complete", "incomplete", "unavailable"].includes(String(coverage.status)) &&
+    isNullableString(coverage.dataSince)
   );
 }
 
-function isActivityUserDetailResponse(value: unknown, requestedUserId: string): value is ActivityUserDetailResponse {
+function isDailyCountSeries(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (row) =>
+        !!row &&
+        typeof row === "object" &&
+        typeof row.date === "string" &&
+        isNullableNumber(row.count)
+    )
+  );
+}
+
+function isActivityUserDetailResponse(
+  value: unknown,
+  requestedUserId: string
+): value is ActivityUserDetailResponse {
   if (!value || typeof value !== "object") return false;
   const detail = value as Record<string, unknown>;
-  return detail.userId === requestedUserId &&
+  return (
+    detail.userId === requestedUserId &&
     isNullableString(detail.lastActiveDate) &&
     isNullableNumber(detail.activeDays7) &&
     isNullableNumber(detail.activeDays30) &&
-    Array.isArray(detail.activeDates) && detail.activeDates.every((date) => typeof date === "string") &&
-    Array.isArray(detail.presenceByDay) && detail.presenceByDay.every((row) =>
-      !!row && typeof row === "object" && typeof row.date === "string" &&
-      (row.present === null || typeof row.present === "boolean"),
+    Array.isArray(detail.activeDates) &&
+    detail.activeDates.every((date) => typeof date === "string") &&
+    Array.isArray(detail.presenceByDay) &&
+    detail.presenceByDay.every(
+      (row) =>
+        !!row &&
+        typeof row === "object" &&
+        typeof row.date === "string" &&
+        (row.present === null || typeof row.present === "boolean")
     ) &&
-    isNullableString(detail.activityDataSince) && isActivityCoverage(detail.activityCoverage) &&
-    typeof detail.currentVotes === "number" && Number.isFinite(detail.currentVotes) &&
-    isNullableNumber(detail.newVotes7) && isNullableNumber(detail.newVotes30) &&
-    typeof detail.newVotesRecorded === "number" && Number.isFinite(detail.newVotesRecorded) &&
-    isNullableNumber(detail.changedVotes7) && isNullableNumber(detail.changedVotes30) &&
-    typeof detail.changedVotesRecorded === "number" && Number.isFinite(detail.changedVotesRecorded) &&
-    isNullableString(detail.lastVoteEventAt) && isNullableString(detail.voteDataSince) &&
+    isNullableString(detail.activityDataSince) &&
+    isActivityCoverage(detail.activityCoverage) &&
+    typeof detail.currentVotes === "number" &&
+    Number.isFinite(detail.currentVotes) &&
+    isNullableNumber(detail.newVotes7) &&
+    isNullableNumber(detail.newVotes30) &&
+    typeof detail.newVotesRecorded === "number" &&
+    Number.isFinite(detail.newVotesRecorded) &&
+    isNullableNumber(detail.changedVotes7) &&
+    isNullableNumber(detail.changedVotes30) &&
+    typeof detail.changedVotesRecorded === "number" &&
+    Number.isFinite(detail.changedVotesRecorded) &&
+    isNullableString(detail.lastVoteEventAt) &&
+    isNullableString(detail.voteDataSince) &&
     isActivityCoverage(detail.voteCoverage) &&
-    isDailyCountSeries(detail.newVotesByDay) && isDailyCountSeries(detail.changedVotesByDay);
+    isDailyCountSeries(detail.newVotesByDay) &&
+    isDailyCountSeries(detail.changedVotesByDay)
+  );
 }
 
 function assertCurrentAdminSession(
-  authStore: ReturnType<typeof useAuthStore>,
+  authStore: AuthStore,
   requestedUserId: string | null,
   requestedGeneration: number,
-  signal: AbortSignal,
+  signal: AbortSignal
 ): asserts requestedUserId is string {
   if (
     signal.aborted ||
@@ -167,11 +214,13 @@ function assertCurrentAdminSession(
 
 export function useActivityDashboardQuery(params: () => ActivitySummaryParams | null) {
   const authStore = useAuthStore();
-  const queryKey = computed(() => activityDashboardQueryKeyForSession(
-    params() ?? {},
-    authStore.userId,
-    authStore.authSessionGeneration,
-  ));
+  const queryKey = computed(() =>
+    activityDashboardQueryKeyForSession(
+      params() ?? {},
+      authStore.userId,
+      authStore.authSessionGeneration
+    )
+  );
 
   return useQuery({
     queryKey,
@@ -180,7 +229,10 @@ export function useActivityDashboardQuery(params: () => ActivitySummaryParams | 
       const [, , , requestedParams, requestedUserId, requestedGeneration] = requestedKey;
       assertCurrentAdminSession(authStore, requestedUserId, requestedGeneration, signal);
 
-      const summary = await getActivitySummary(normalizeActivitySummaryParams(requestedParams), signal);
+      const summary = await getActivitySummary(
+        normalizeActivitySummaryParams(requestedParams),
+        signal
+      );
       assertCurrentAdminSession(authStore, requestedUserId, requestedGeneration, signal);
       if (!summary.dashboard) throw new ActivityDashboardContractError();
       return summary.dashboard;
@@ -190,11 +242,9 @@ export function useActivityDashboardQuery(params: () => ActivitySummaryParams | 
 
 export function useActivityUsersQuery(params: () => ActivityUsersParams) {
   const authStore = useAuthStore();
-  const queryKey = computed(() => activityUsersQueryKeyForSession(
-    params(),
-    authStore.userId,
-    authStore.authSessionGeneration,
-  ));
+  const queryKey = computed(() =>
+    activityUsersQueryKeyForSession(params(), authStore.userId, authStore.authSessionGeneration)
+  );
 
   return useQuery({
     queryKey,
@@ -212,21 +262,24 @@ export function useActivityUsersQuery(params: () => ActivityUsersParams) {
 
 export function useActivityUserDetailQuery(
   targetUserId: () => string | null | undefined,
-  params: () => ActivityDateRangeParams,
+  params: () => ActivityDateRangeParams
 ) {
   const authStore = useAuthStore();
-  const queryKey = computed(() => activityUserDetailQueryKeyForSession(
-    targetUserId() || null,
-    params(),
-    authStore.userId,
-    authStore.authSessionGeneration,
-  ));
+  const queryKey = computed(() =>
+    activityUserDetailQueryKeyForSession(
+      targetUserId() || null,
+      params(),
+      authStore.userId,
+      authStore.authSessionGeneration
+    )
+  );
 
   return useQuery({
     queryKey,
     enabled: computed(() => isSuperadminSession(authStore) && !!targetUserId()),
     queryFn: async ({ queryKey: requestedKey, signal }) => {
-      const [, , , requestedTargetUserId, requestedParams, requestedUserId, requestedGeneration] = requestedKey;
+      const [, , , requestedTargetUserId, requestedParams, requestedUserId, requestedGeneration] =
+        requestedKey;
       assertCurrentAdminSession(authStore, requestedUserId, requestedGeneration, signal);
       if (!requestedTargetUserId) throw new ActivityQuerySessionError();
 

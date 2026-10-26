@@ -7,7 +7,7 @@ function isUserRole(role: unknown): role is UserRole {
 /** Checks the existing role hierarchy for frontend navigation and presentation. */
 export function hasMinimumRole(
   currentRole: UserRole | null | undefined,
-  minimumRole: UserRole,
+  minimumRole: UserRole
 ): boolean {
   if (!isUserRole(currentRole) || !isUserRole(minimumRole)) {
     return false;

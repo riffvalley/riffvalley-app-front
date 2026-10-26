@@ -245,9 +245,9 @@ import {
     type RiffValleyPlaylistStatus,
     toISO
 } from '@services/riff-valley-playlists/riffValleyPlaylists';
-import { getRvUsers } from '@/modules/identity/users/api/users';
-import type { RvUser } from '@/modules/identity/users/types/users';
-import { useAuthStore } from '@/modules/identity/auth/stores/auth';
+import { getRvUsers } from '@/modules/identity/users';
+import type { RvUser } from '@/modules/identity/users';
+import { useAuthStore } from '@/modules/identity/auth';
 import SwalService from '@services/swal/SwalService';
 import axios from 'axios';
 import GenrePlaylistManager from './components/GenrePlaylistManager.vue';

@@ -32,7 +32,7 @@ vi.mock("@/modules/identity/users/api/users", async (importOriginal) => {
 });
 
 import { useAdminUserMutations } from "./useAdminUserMutations";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 
 describe("useAdminUserMutations", () => {
   let queryClient: QueryClient;
@@ -54,12 +54,15 @@ describe("useAdminUserMutations", () => {
       role: "superadmin",
       authSessionGeneration: 3,
     });
-    wrapper = mount(defineComponent({
-      setup() {
-        mutations = useAdminUserMutations();
-        return () => null;
-      },
-    }), { global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] } });
+    wrapper = mount(
+      defineComponent({
+        setup() {
+          mutations = useAdminUserMutations();
+          return () => null;
+        },
+      }),
+      { global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] } }
+    );
   });
 
   afterEach(() => {
@@ -75,16 +78,39 @@ describe("useAdminUserMutations", () => {
     deleteUserService.mockResolvedValue(undefined);
     const session = mutations.captureSession()!;
 
-    await mutations.createUser.mutateAsync({ session, payload: { email: "new@example.test", username: "new-user", password: "Password1" } });
-    await mutations.updateUser.mutateAsync({ session, payload: { userId: "user-1", changes: { username: "renamed" } } });
-    await mutations.updateUser.mutateAsync({ session, payload: { userId: "user-1", changes: { role: "collaborator" } } });
-    await mutations.setUserActive.mutateAsync({ session, payload: { userId: "user-1", active: false } });
-    await mutations.setUserActive.mutateAsync({ session, payload: { userId: "user-1", active: true } });
+    await mutations.createUser.mutateAsync({
+      session,
+      payload: { email: "new@example.test", username: "new-user", password: "Password1" },
+    });
+    await mutations.updateUser.mutateAsync({
+      session,
+      payload: { userId: "user-1", changes: { username: "renamed" } },
+    });
+    await mutations.updateUser.mutateAsync({
+      session,
+      payload: { userId: "user-1", changes: { role: "collaborator" } },
+    });
+    await mutations.setUserActive.mutateAsync({
+      session,
+      payload: { userId: "user-1", active: false },
+    });
+    await mutations.setUserActive.mutateAsync({
+      session,
+      payload: { userId: "user-1", active: true },
+    });
     await mutations.deleteUser.mutateAsync({ session, payload: { userId: "user-1" } });
 
-    expect(postUserService).toHaveBeenCalledWith({ email: "new@example.test", username: "new-user", password: "Password1" });
-    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(1, "user-1", { username: "renamed" });
-    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(2, "user-1", { role: "collaborator" });
+    expect(postUserService).toHaveBeenCalledWith({
+      email: "new@example.test",
+      username: "new-user",
+      password: "Password1",
+    });
+    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(1, "user-1", {
+      username: "renamed",
+    });
+    expect(updateUserSuperAdminService).toHaveBeenNthCalledWith(2, "user-1", {
+      role: "collaborator",
+    });
     expect(deactivateUserService).toHaveBeenCalledWith("user-1");
     expect(activateUserService).toHaveBeenCalledWith("user-1");
     expect(deleteUserService).toHaveBeenCalledWith("user-1");
@@ -96,8 +122,14 @@ describe("useAdminUserMutations", () => {
     const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
     const session = mutations.captureSession()!;
 
-    await mutations.updateUser.mutateAsync({ session, payload: { userId: "user-1", changes: { notes: null } } });
-    await mutations.updateUser.mutateAsync({ session, payload: { userId: "user-1", changes: { email: "updated@example.test" } } });
+    await mutations.updateUser.mutateAsync({
+      session,
+      payload: { userId: "user-1", changes: { notes: null } },
+    });
+    await mutations.updateUser.mutateAsync({
+      session,
+      payload: { userId: "user-1", changes: { email: "updated@example.test" } },
+    });
 
     expect(invalidate).toHaveBeenNthCalledWith(1, {
       queryKey: ["identity", "users", "admin-list", "admin-a", 3],
@@ -107,19 +139,34 @@ describe("useAdminUserMutations", () => {
       queryKey: ["identity", "users", "admin-list", "admin-a", 3],
       exact: true,
     });
-    expect(invalidate).toHaveBeenNthCalledWith(3, { queryKey: ["identity", "activity", "dashboard"] });
+    expect(invalidate).toHaveBeenNthCalledWith(3, {
+      queryKey: ["identity", "activity", "dashboard"],
+    });
     expect(invalidate).toHaveBeenCalledTimes(3);
   });
 
   it("does not invalidate after failure or a response from a previous session", async () => {
     updateUserSuperAdminService.mockRejectedValueOnce(new Error("offline"));
     let completeRequest!: () => void;
-    updateUserSuperAdminService.mockImplementationOnce(() => new Promise<void>((resolve) => { completeRequest = resolve; }));
+    updateUserSuperAdminService.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          completeRequest = resolve;
+        })
+    );
     const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
     const session = mutations.captureSession()!;
 
-    await expect(mutations.updateUser.mutateAsync({ session, payload: { userId: "user-1", changes: { role: "user" } } })).rejects.toThrow("offline");
-    const pending = mutations.updateUser.mutateAsync({ session, payload: { userId: "user-1", changes: { role: "user" } } });
+    await expect(
+      mutations.updateUser.mutateAsync({
+        session,
+        payload: { userId: "user-1", changes: { role: "user" } },
+      })
+    ).rejects.toThrow("offline");
+    const pending = mutations.updateUser.mutateAsync({
+      session,
+      payload: { userId: "user-1", changes: { role: "user" } },
+    });
     await vi.waitFor(() => expect(completeRequest).toBeTypeOf("function"));
     useAuthStore().$patch({ userId: "admin-b", authSessionGeneration: 4 });
     completeRequest();
@@ -132,13 +179,20 @@ describe("useAdminUserMutations", () => {
     const session = mutations.captureSession()!;
     useAuthStore().$patch({ role: "user" });
 
-    await expect(mutations.deleteUser.mutateAsync({ session, payload: { userId: "user-1" } })).rejects.toThrow("La sesión cambió");
+    await expect(
+      mutations.deleteUser.mutateAsync({ session, payload: { userId: "user-1" } })
+    ).rejects.toThrow("La sesión cambió");
     expect(deleteUserService).not.toHaveBeenCalled();
   });
 
   it("ignores an in-flight mutation result after superadmin permission is revoked", async () => {
     let completeRequest!: () => void;
-    updateUserSuperAdminService.mockImplementation(() => new Promise<void>((resolve) => { completeRequest = resolve; }));
+    updateUserSuperAdminService.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          completeRequest = resolve;
+        })
+    );
     const invalidate = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
     const authStore = useAuthStore();
     const generation = authStore.authSessionGeneration;

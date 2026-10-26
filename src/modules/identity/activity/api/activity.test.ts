@@ -4,8 +4,14 @@ const api = vi.hoisted(() => ({ get: vi.fn() }));
 
 vi.mock("@services/api/api", () => ({ default: api }));
 
-import { getActivitySummary, getActivityUserDetail, getActivityUsers } from "./activity";
+import {
+  getActivitySummary,
+  getActivityUserDetail,
+  getActivityUsers,
+  getGlobalActivity,
+} from "./activity";
 import type {
+  GlobalActivityResponse,
   ActivitySummaryResponse,
   ActivityUserDetailResponse,
   ActivityUsersResponse,
@@ -13,6 +19,45 @@ import type {
 
 describe("Identity activity statistics HTTP contracts", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("preserves the global activity endpoint, pagination, cancellation and response", async () => {
+    const controller = new AbortController();
+    const feed: GlobalActivityResponse = {
+      totalItems: 1,
+      totalPages: 1,
+      currentPage: 2,
+      limit: 20,
+      data: [
+        {
+          id: "vote-1",
+          rate: 5,
+          cover: null,
+          createdAt: "2025-03-04T12:30:00.000Z",
+          editedAt: null,
+          user: { id: "user-1", username: "Member" },
+          disc: { id: "disc-1", name: "Release" },
+        },
+      ],
+    };
+    api.get.mockResolvedValue({ data: feed });
+
+    await expect(getGlobalActivity(20, 20, controller.signal)).resolves.toBe(feed);
+
+    expect(api.get).toHaveBeenCalledWith("/auth/activity", {
+      params: { limit: 20, offset: 20 },
+      signal: controller.signal,
+    });
+  });
+
+  it("preserves the default global activity pagination", async () => {
+    api.get.mockResolvedValue({
+      data: { data: [], totalItems: 0, totalPages: 0, currentPage: 1, limit: 20 },
+    });
+
+    await getGlobalActivity();
+
+    expect(api.get).toHaveBeenCalledWith("/auth/activity", { params: { limit: 20, offset: 0 } });
+  });
 
   it("requests the summary with date-only Madrid range values and preserves nullable metrics", async () => {
     const summary: ActivitySummaryResponse = {
@@ -33,7 +78,9 @@ describe("Identity activity statistics HTTP contracts", () => {
     };
     api.get.mockResolvedValue({ data: summary });
 
-    await expect(getActivitySummary({ from: "2026-10-01", to: "2026-10-31" })).resolves.toBe(summary);
+    await expect(getActivitySummary({ from: "2026-10-01", to: "2026-10-31" })).resolves.toBe(
+      summary
+    );
 
     expect(api.get).toHaveBeenCalledWith("/activity/summary", {
       params: { from: "2026-10-01", to: "2026-10-31" },
@@ -163,7 +210,9 @@ describe("Identity activity statistics HTTP contracts", () => {
     };
     api.get.mockResolvedValue({ data: summary });
 
-    await expect(getActivitySummary({ from: "2026-10-01", to: "2026-10-07" })).resolves.toBe(summary);
+    await expect(getActivitySummary({ from: "2026-10-01", to: "2026-10-07" })).resolves.toBe(
+      summary
+    );
     expect(summary.dashboard?.newVotes.current).toBeNull();
     expect(summary.dashboard?.series.current[0]?.activeUsers).toBeNull();
     expect(summary.dashboard?.series.previous[0]?.newVotes).toBe(0);
@@ -194,29 +243,36 @@ describe("Identity activity statistics HTTP contracts", () => {
       timezone: "Europe/Madrid",
       activityDataSince: "2026-10-22",
       voteDataSince: null,
-      data: [{
-        userId: "user-1",
-        username: "listener",
-        lastActiveDate: "2026-10-22",
-        activeDays7: 1,
-        activeDays30: null,
-        currentVotes: 3,
-        voteActions7: null,
-        voteActions30: null,
-        voteActionsRecorded: 0,
-        lastVoteAt: null,
-        votesByDay: [],
-      }],
+      data: [
+        {
+          userId: "user-1",
+          username: "listener",
+          lastActiveDate: "2026-10-22",
+          activeDays7: 1,
+          activeDays30: null,
+          currentVotes: 3,
+          voteActions7: null,
+          voteActions30: null,
+          voteActionsRecorded: 0,
+          lastVoteAt: null,
+          votesByDay: [],
+        },
+      ],
     };
     const controller = new AbortController();
     api.get.mockResolvedValue({ data: response });
 
-    await expect(getActivityUsers({
-      from: "2026-10-01",
-      to: "2026-10-31",
-      limit: 20,
-      offset: 40,
-    }, controller.signal)).resolves.toBe(response);
+    await expect(
+      getActivityUsers(
+        {
+          from: "2026-10-01",
+          to: "2026-10-31",
+          limit: 20,
+          offset: 40,
+        },
+        controller.signal
+      )
+    ).resolves.toBe(response);
 
     expect(api.get).toHaveBeenCalledWith("/activity/users", {
       params: { from: "2026-10-01", to: "2026-10-31", limit: 20, offset: 40 },
@@ -269,10 +325,16 @@ describe("Identity activity statistics HTTP contracts", () => {
     const controller = new AbortController();
     api.get.mockResolvedValue({ data: detail });
 
-    await expect(getActivityUserDetail("user-1", {
-      from: "2026-10-01",
-      to: "2026-10-31",
-    }, controller.signal)).resolves.toBe(detail);
+    await expect(
+      getActivityUserDetail(
+        "user-1",
+        {
+          from: "2026-10-01",
+          to: "2026-10-31",
+        },
+        controller.signal
+      )
+    ).resolves.toBe(detail);
 
     expect(api.get).toHaveBeenCalledWith("/activity/users/user-1", {
       params: { from: "2026-10-01", to: "2026-10-31" },

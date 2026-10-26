@@ -24,7 +24,7 @@ vi.mock("@/modules/identity/auth/api/sessionAuthCoordinator", () => ({
 vi.mock("@/modules/identity/activity/api/appDailyActivity", () => ({ notifyAppDailyActivity: vi.fn() }));
 
 import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 import { observePrivateQueryCache } from "./privateQueryCache";
 
 function createLifecycle() {

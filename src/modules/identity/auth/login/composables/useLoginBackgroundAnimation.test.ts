@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount } from '@vue/test-utils';
-import { defineComponent, ref } from 'vue';
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mount } from "@vue/test-utils";
+import { defineComponent, ref } from "vue";
 import {
   useLoginBackgroundAnimation,
   type LoginBackgroundMode,
-} from './useLoginBackgroundAnimation';
+} from "./useLoginBackgroundAnimation";
 
-describe('useLoginBackgroundAnimation', () => {
+describe("useLoginBackgroundAnimation", () => {
   let frameId: number;
   let frames: Map<number, FrameRequestCallback>;
   let context: {
@@ -37,14 +37,20 @@ describe('useLoginBackgroundAnimation', () => {
       fill: vi.fn(),
       stroke: vi.fn(),
     };
-    vi.stubGlobal('requestAnimationFrame', vi.fn((callback: FrameRequestCallback) => {
-      const id = ++frameId;
-      frames.set(id, callback);
-      return id;
-    }));
-    vi.stubGlobal('cancelAnimationFrame', vi.fn((id: number) => frames.delete(id)));
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
-      context as unknown as CanvasRenderingContext2D,
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      vi.fn((callback: FrameRequestCallback) => {
+        const id = ++frameId;
+        frames.set(id, callback);
+        return id;
+      })
+    );
+    vi.stubGlobal(
+      "cancelAnimationFrame",
+      vi.fn((id: number) => frames.delete(id))
+    );
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      context as unknown as CanvasRenderingContext2D
     );
   });
 
@@ -53,7 +59,7 @@ describe('useLoginBackgroundAnimation', () => {
     vi.unstubAllGlobals();
   });
 
-  function mountAnimation(mode: LoginBackgroundMode = 'none') {
+  function mountAnimation(mode: LoginBackgroundMode = "none") {
     const TestHost = defineComponent({
       setup() {
         const canvasEl = ref<HTMLCanvasElement | null>(null);
@@ -67,27 +73,27 @@ describe('useLoginBackgroundAnimation', () => {
     return mount(TestHost);
   }
 
-  it('initializes the canvas engine and registers its window listeners', () => {
-    const addListener = vi.spyOn(window, 'addEventListener');
+  it("initializes the canvas engine and registers its window listeners", () => {
+    const addListener = vi.spyOn(window, "addEventListener");
     const wrapper = mountAnimation();
-    const canvas = wrapper.get('canvas').element as HTMLCanvasElement;
+    const canvas = wrapper.get("canvas").element as HTMLCanvasElement;
 
-    expect(HTMLCanvasElement.prototype.getContext).toHaveBeenCalledWith('2d');
+    expect(HTMLCanvasElement.prototype.getContext).toHaveBeenCalledWith("2d");
     expect(canvas.width).toBe(window.innerWidth);
     expect(canvas.height).toBe(window.innerHeight);
     expect(context.clearRect).toHaveBeenCalledWith(0, 0, canvas.width, canvas.height);
-    expect(addListener).toHaveBeenCalledWith('resize', expect.any(Function));
-    expect(addListener).toHaveBeenCalledWith('mousemove', expect.any(Function));
+    expect(addListener).toHaveBeenCalledWith("resize", expect.any(Function));
+    expect(addListener).toHaveBeenCalledWith("mousemove", expect.any(Function));
     expect(frames.size).toBe(1);
 
     wrapper.unmount();
   });
 
   it.each([
-    ['waves', 'createLinearGradient'],
-    ['constellation', 'arc'],
-    ['nebula', 'createRadialGradient'],
-  ] as const)('runs the %s renderer selected by the current mode', (mode, rendererCall) => {
+    ["waves", "createLinearGradient"],
+    ["constellation", "arc"],
+    ["nebula", "createRadialGradient"],
+  ] as const)("runs the %s renderer selected by the current mode", (mode, rendererCall) => {
     const wrapper = mountAnimation(mode);
 
     expect(context[rendererCall]).toHaveBeenCalled();
@@ -95,9 +101,9 @@ describe('useLoginBackgroundAnimation', () => {
     wrapper.unmount();
   });
 
-  it('continues the RAF loop and cancels it with both listeners on unmount', () => {
-    const addListener = vi.spyOn(window, 'addEventListener');
-    const removeListener = vi.spyOn(window, 'removeEventListener');
+  it("continues the RAF loop and cancels it with both listeners on unmount", () => {
+    const addListener = vi.spyOn(window, "addEventListener");
+    const removeListener = vi.spyOn(window, "removeEventListener");
     const wrapper = mountAnimation();
     const [[activeFrameId, callback]] = [...frames.entries()];
 
@@ -111,7 +117,7 @@ describe('useLoginBackgroundAnimation', () => {
 
     expect(window.cancelAnimationFrame).toHaveBeenCalledWith(frameId);
     expect(frames.size).toBe(0);
-    expect(removeListener).toHaveBeenCalledWith('resize', addListener.mock.calls[0][1]);
-    expect(removeListener).toHaveBeenCalledWith('mousemove', addListener.mock.calls[1][1]);
+    expect(removeListener).toHaveBeenCalledWith("resize", addListener.mock.calls[0][1]);
+    expect(removeListener).toHaveBeenCalledWith("mousemove", addListener.mock.calls[1][1]);
   });
 });

@@ -30,15 +30,17 @@ describe("UserStatisticsLayout", () => {
   async function setup(path = "/users/stats") {
     const router = createRouter({
       history: createMemoryHistory(),
-      routes: [{
-        path: "/users/stats",
-        component: UserStatisticsLayout,
-        children: [
-          { path: "", name: "UserStats", component: tabView("General") },
-          { path: "users", name: "UserStatsUsers", component: tabView("Usuarios") },
-          { path: "inactivity", name: "UserStatsInactivity", component: tabView("Inactividad") },
-        ],
-      }],
+      routes: [
+        {
+          path: "/users/stats",
+          component: UserStatisticsLayout,
+          children: [
+            { path: "", name: "UserStats", component: tabView("General") },
+            { path: "users", name: "UserStatsUsers", component: tabView("Usuarios") },
+            { path: "inactivity", name: "UserStatsInactivity", component: tabView("Inactividad") },
+          ],
+        },
+      ],
     });
     await router.push(path);
     await router.isReady();
@@ -50,18 +52,28 @@ describe("UserStatisticsLayout", () => {
   it("renders one active view and synchronizes tab selection with the route", async () => {
     const { router, wrapper } = await setup();
 
-    expect(wrapper.findAll('[role="tab"][aria-selected="true"]').map((tab) => tab.text())).toEqual(["General"]);
+    expect(wrapper.findAll('[role="tab"][aria-selected="true"]').map((tab) => tab.text())).toEqual([
+      "General",
+    ]);
     expect(wrapper.findAll("[data-view]").map((view) => view.text())).toEqual(["General"]);
     expect(mountedViews).toEqual(["General"]);
 
-    await wrapper.findAll('[role="tab"]').find((tab) => tab.text() === "Usuarios")!.trigger("click");
+    await wrapper
+      .findAll('[role="tab"]')
+      .find((tab) => tab.text() === "Usuarios")!
+      .trigger("click");
     await flushPromises();
     expect(router.currentRoute.value.fullPath).toBe("/users/stats/users");
-    expect(wrapper.findAll('[role="tab"][aria-selected="true"]').map((tab) => tab.text())).toEqual(["Usuarios"]);
+    expect(wrapper.findAll('[role="tab"][aria-selected="true"]').map((tab) => tab.text())).toEqual([
+      "Usuarios",
+    ]);
     expect(wrapper.findAll("[data-view]").map((view) => view.text())).toEqual(["Usuarios"]);
     expect(unmountedViews).toEqual(["General"]);
 
-    await wrapper.findAll('[role="tab"]').find((tab) => tab.text() === "Inactividad")!.trigger("click");
+    await wrapper
+      .findAll('[role="tab"]')
+      .find((tab) => tab.text() === "Inactividad")!
+      .trigger("click");
     await flushPromises();
     expect(router.currentRoute.value.name).toBe("UserStatsInactivity");
     expect(wrapper.findAll("[data-view]").map((view) => view.text())).toEqual(["Inactividad"]);
@@ -95,7 +107,9 @@ describe("UserStatisticsLayout", () => {
     expect(router.currentRoute.value.query.userId).toBe("member-1");
     expect(document.activeElement?.id).toBe("usage-tab-inactivity");
 
-    await wrapper.find('[role="tab"][aria-selected="true"]').trigger("keydown", { key: "ArrowLeft" });
+    await wrapper
+      .find('[role="tab"][aria-selected="true"]')
+      .trigger("keydown", { key: "ArrowLeft" });
     await flushPromises();
     expect(router.currentRoute.value.name).toBe("UserStatsUsers");
     expect(router.currentRoute.value.query.userId).toBe("member-1");

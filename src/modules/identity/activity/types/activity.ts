@@ -1,17 +1,37 @@
 /** Date-only value in YYYY-MM-DD format, interpreted in Europe/Madrid by the API. */
 export type ActivityDate = string;
 
+export interface ActivityVote {
+  id: string;
+  rate: number | null;
+  cover: number | null;
+  createdAt: string;
+  editedAt: string | null;
+  user: { id: string; username: string; image?: string };
+  disc: { id: string; name: string };
+}
+
+export interface GlobalActivityResponse {
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+  data: ActivityVote[];
+}
+
 export interface ActivityDateRangeParams {
   from?: ActivityDate;
   to?: ActivityDate;
 }
 
 /** Summary accepts either a custom/legacy range or a preset, never both. */
-export type ActivitySummaryParams = ActivityDateRangeParams | {
-  period: 7 | 30 | 90;
-  from?: never;
-  to?: never;
-};
+export type ActivitySummaryParams =
+  | ActivityDateRangeParams
+  | {
+      period: 7 | 30 | 90;
+      from?: never;
+      to?: never;
+    };
 
 export interface ActivityUsersParams extends ActivityDateRangeParams {
   limit?: number;

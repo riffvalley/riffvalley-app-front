@@ -17,8 +17,11 @@ vi.mock("vue-chartjs", () => ({
 }));
 
 import { observePrivateQueryCache } from "@/app/privateQueryCache";
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
-import type { ActivityDashboardResponse, ActivitySummaryResponse } from "@/modules/identity/activity/types/activity";
+import { useAuthStore } from "@/modules/identity/auth";
+import type {
+  ActivityDashboardResponse,
+  ActivitySummaryResponse,
+} from "@/modules/identity/activity/types/activity";
 import { Line } from "vue-chartjs";
 import AdminStats from "./UserStatisticsView.vue";
 
@@ -33,13 +36,55 @@ const dashboardFor = (): ActivityDashboardResponse => ({
   asOf: "2026-10-24T10:30:00.000Z",
   activityDataSince: "2026-09-01",
   voteDataSince: "2026-09-01",
-  activeUsers: { current: 12, previous: 10, delta: 2, changePercent: 20, coverage: { current: complete, previous: complete } },
-  newVotes: { current: 30, previous: 20, delta: 10, changePercent: 50, coverage: { current: complete, previous: complete } },
-  votingUsers: { current: 8, previous: 6, delta: 2, changePercent: 33.333, coverage: { current: complete, previous: complete } },
-  participationRate: { current: 40, previous: 30, delta: 10, changePercent: 33.333, coverage: { current: complete, previous: complete } },
-  votesPerActiveUser: { current: 2.5, previous: 2, delta: 0.5, changePercent: 25, coverage: { current: complete, previous: complete } },
-  returningUsers: { current: 5, previous: 4, delta: 1, changePercent: 25, coverage: { current: complete, previous: complete, baseline: complete } },
-  retentionRate: { current: 50, previous: 40, delta: 10, changePercent: 25, coverage: { current: complete, previous: complete, baseline: complete } },
+  activeUsers: {
+    current: 12,
+    previous: 10,
+    delta: 2,
+    changePercent: 20,
+    coverage: { current: complete, previous: complete },
+  },
+  newVotes: {
+    current: 30,
+    previous: 20,
+    delta: 10,
+    changePercent: 50,
+    coverage: { current: complete, previous: complete },
+  },
+  votingUsers: {
+    current: 8,
+    previous: 6,
+    delta: 2,
+    changePercent: 33.333,
+    coverage: { current: complete, previous: complete },
+  },
+  participationRate: {
+    current: 40,
+    previous: 30,
+    delta: 10,
+    changePercent: 33.333,
+    coverage: { current: complete, previous: complete },
+  },
+  votesPerActiveUser: {
+    current: 2.5,
+    previous: 2,
+    delta: 0.5,
+    changePercent: 25,
+    coverage: { current: complete, previous: complete },
+  },
+  returningUsers: {
+    current: 5,
+    previous: 4,
+    delta: 1,
+    changePercent: 25,
+    coverage: { current: complete, previous: complete, baseline: complete },
+  },
+  retentionRate: {
+    current: 50,
+    previous: 40,
+    delta: 10,
+    changePercent: 25,
+    coverage: { current: complete, previous: complete, baseline: complete },
+  },
   currentRatings: {
     current: 17,
     previous: null,
@@ -87,7 +132,9 @@ describe("AdminStats dashboard", () => {
     vi.clearAllMocks();
     pinia = createPinia();
     setActivePinia(pinia);
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 60_000, gcTime: Infinity } } });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 60_000, gcTime: Infinity } },
+    });
     const authStore = useAuthStore();
     authStore.$patch({
       authStatus: "authenticated",
@@ -138,21 +185,33 @@ describe("AdminStats dashboard", () => {
     const wrapper = render();
     await vi.waitFor(() => expect(getActivitySummary).toHaveBeenCalledTimes(1));
 
-    await wrapper.findAll("button").find((button) => button.text() === "7 días")!.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "7 días")!
+      .trigger("click");
     await vi.waitFor(() => expect(getActivitySummary).toHaveBeenCalledTimes(2));
-    await wrapper.findAll("button").find((button) => button.text() === "90 días")!.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "90 días")!
+      .trigger("click");
     await vi.waitFor(() => expect(getActivitySummary).toHaveBeenCalledTimes(3));
-    await wrapper.findAll("button").find((button) => button.text() === "Personalizado")!.trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Personalizado")!
+      .trigger("click");
     expect(wrapper.text()).toContain("Selecciona las dos fechas");
     expect(getActivitySummary).toHaveBeenCalledTimes(3);
 
-    await wrapper.get('input[aria-label="Fecha desde"]').setValue("2026-10-01");
+    await wrapper.get("#activity-period-from").setValue("2026-10-01");
     expect(getActivitySummary).toHaveBeenCalledTimes(3);
-    await wrapper.get('input[aria-label="Fecha hasta"]').setValue("2026-10-07");
+    await wrapper.get("#activity-period-to").setValue("2026-10-07");
     await vi.waitFor(() => expect(getActivitySummary).toHaveBeenCalledTimes(4));
-    expect(getActivitySummary).toHaveBeenLastCalledWith({ from: "2026-10-01", to: "2026-10-07" }, expect.any(AbortSignal));
+    expect(getActivitySummary).toHaveBeenLastCalledWith(
+      { from: "2026-10-01", to: "2026-10-07" },
+      expect.any(AbortSignal)
+    );
 
-    await wrapper.get('input[aria-label="Fecha desde"]').setValue("2026-10-10");
+    await wrapper.get("#activity-period-from").setValue("2026-10-10");
     expect(wrapper.text()).toContain("La fecha inicial debe ser anterior o igual a la final.");
     expect(getActivitySummary).toHaveBeenCalledTimes(4);
     wrapper.unmount();
@@ -187,14 +246,19 @@ describe("AdminStats dashboard", () => {
     getActivitySummary.mockResolvedValueOnce(summaryFor(dashboard));
     const wrapper = render();
 
-    await vi.waitFor(() => expect(wrapper.text()).toContain("Cobertura: actual: parcial desde 2026-10-03 · anterior: sin cobertura"));
+    await vi.waitFor(() =>
+      expect(wrapper.text()).toContain(
+        "Cobertura: actual: parcial desde 2026-10-03 · anterior: sin cobertura"
+      )
+    );
     expect(wrapper.text()).toContain("No disponible");
     expect(wrapper.text()).toContain("No hay valores cubiertos para este indicador");
     wrapper.unmount();
   });
 
   it("shows a clear contract error and never requests or renders legacy statistics", async () => {
-    const { dashboard: _dashboard, ...legacyOnly } = summaryFor();
+    const legacyOnly = summaryFor();
+    delete (legacyOnly as Partial<typeof legacyOnly>).dashboard;
     getActivitySummary.mockResolvedValueOnce(legacyOnly);
     const wrapper = render();
 
@@ -209,7 +273,9 @@ describe("AdminStats dashboard", () => {
   it("shows HTTP errors inline and offers an explicit retry", async () => {
     getActivitySummary.mockRejectedValueOnce(new Error("offline"));
     const wrapper = render();
-    await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain("Error al cargar las estadísticas"));
+    await vi.waitFor(() =>
+      expect(wrapper.get('[role="alert"]').text()).toContain("Error al cargar las estadísticas")
+    );
     getActivitySummary.mockResolvedValueOnce(summaryFor());
 
     await wrapper.get('[role="alert"] button').trigger("click");
@@ -233,7 +299,12 @@ describe("AdminStats dashboard", () => {
 
     authStore.$patch({ role: "user" });
     await vi.waitFor(() => expect(wrapper.text()).not.toContain("Usuarios activos"));
-    expect(queryClient.getQueryCache().getAll().every((query) => query.state.data === undefined)).toBe(true);
+    expect(
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .every((query) => query.state.data === undefined)
+    ).toBe(true);
 
     authStore.$patch({ role: "superadmin" });
     await vi.waitFor(() => expect(getActivitySummary).toHaveBeenCalledTimes(2));
@@ -254,10 +325,16 @@ describe("AdminStats dashboard", () => {
     expect(getActivitySummary).not.toHaveBeenCalled();
     wrapper.unmount();
 
-  const viewSource = readFileSync("src/modules/identity/activity/overview/UserStatisticsView.vue", "utf8");
+    const viewSource = readFileSync(
+      "src/modules/identity/activity/overview/UserStatisticsView.vue",
+      "utf8"
+    );
     const apiSource = readFileSync("src/modules/identity/users/api/users.ts", "utf8");
     const typesSource = readFileSync("src/modules/identity/users/types/users.ts", "utf8");
-    const mutationsSource = readFileSync("src/modules/identity/users/composables/useAdminUserMutations.ts", "utf8");
+    const mutationsSource = readFileSync(
+      "src/modules/identity/users/composables/useAdminUserMutations.ts",
+      "utf8"
+    );
     expect(viewSource).not.toContain("useAdminStatsQuery");
     expect(viewSource).not.toContain("getAdminStats");
     expect(apiSource).not.toContain("getAdminStats");

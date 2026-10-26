@@ -2,14 +2,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 
-const { refresh, login, logout, broadcastAuthLogin, broadcastAuthLogout, notifyAppDailyActivity } = vi.hoisted(() => ({
-  refresh: vi.fn(),
-  login: vi.fn(),
-  logout: vi.fn(),
-  broadcastAuthLogin: vi.fn(),
-  broadcastAuthLogout: vi.fn(),
-  notifyAppDailyActivity: vi.fn(),
-}));
+const { refresh, login, logout, broadcastAuthLogin, broadcastAuthLogout, notifyAppDailyActivity } =
+  vi.hoisted(() => ({
+    refresh: vi.fn(),
+    login: vi.fn(),
+    logout: vi.fn(),
+    broadcastAuthLogin: vi.fn(),
+    broadcastAuthLogout: vi.fn(),
+    notifyAppDailyActivity: vi.fn(),
+  }));
 
 vi.mock("@/modules/identity/auth/api/sessionAuth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/modules/identity/auth/api/sessionAuth")>();
@@ -140,7 +141,9 @@ describe("renewable auth store", () => {
       expect(localStorage.getItem(key)).toBeNull();
       expect(sessionStorage.getItem(key)).toBeNull();
     }
-    expect(localStorage.getItem("dashboardConfig")).toBe(JSON.stringify(loginResponse.dashboardConfig));
+    expect(localStorage.getItem("dashboardConfig")).toBe(
+      JSON.stringify(loginResponse.dashboardConfig)
+    );
     expect(useDashboardPreferencesStore().dashboardConfig).toEqual(loginResponse.dashboardConfig);
   });
 
@@ -292,11 +295,9 @@ describe("renewable auth store", () => {
   });
 
   it("does not repeat unsupported startup refresh attempts and still permits login", async () => {
-    refresh.mockRejectedValue(new SessionAuthError(
-      "Web Locks unavailable",
-      "coordination-unavailable",
-      null,
-    ));
+    refresh.mockRejectedValue(
+      new SessionAuthError("Web Locks unavailable", "coordination-unavailable", null)
+    );
     login.mockResolvedValue(loginResponse);
     const store = useAuthStore();
 
@@ -313,11 +314,9 @@ describe("renewable auth store", () => {
   });
 
   it("clears only this tab locally when an expired access token cannot be renewed", async () => {
-    refresh.mockRejectedValue(new SessionAuthError(
-      "Web Locks unavailable",
-      "coordination-unavailable",
-      null,
-    ));
+    refresh.mockRejectedValue(
+      new SessionAuthError("Web Locks unavailable", "coordination-unavailable", null)
+    );
     const store = useAuthStore();
     store.$patch({
       token: "expired-token",
@@ -339,7 +338,11 @@ describe("renewable auth store", () => {
 
   it("shares the initial refresh while concurrent guards initialize the same store", async () => {
     let resolveRefresh!: (value: typeof renewableSession) => void;
-    refresh.mockReturnValue(new Promise((resolve) => { resolveRefresh = resolve; }));
+    refresh.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRefresh = resolve;
+      })
+    );
     const store = useAuthStore();
 
     const first = store.initializeAuth();
@@ -371,7 +374,11 @@ describe("renewable auth store", () => {
   it("restarts restoration when a remote login replaces an initialization already in flight", async () => {
     let finishOldRefresh!: (value: typeof renewableSession) => void;
     refresh
-      .mockReturnValueOnce(new Promise((resolve) => { finishOldRefresh = resolve; }))
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          finishOldRefresh = resolve;
+        })
+      )
       .mockResolvedValueOnce(renewableSession);
     const store = useAuthStore();
 
@@ -394,7 +401,11 @@ describe("renewable auth store", () => {
     store.sessionMode = "renewable";
     localStorage.setItem("dashboardConfig", JSON.stringify([{ id: "albums", enabled: true }]));
     let confirmLogout!: () => void;
-    logout.mockReturnValue(new Promise<void>((resolve) => { confirmLogout = resolve; }));
+    logout.mockReturnValue(
+      new Promise<void>((resolve) => {
+        confirmLogout = resolve;
+      })
+    );
 
     const generation = store.authSessionGeneration;
     const pending = store.logout();
@@ -437,7 +448,11 @@ describe("renewable auth store", () => {
     store.sessionMode = "renewable";
     store.token = "old-token";
     let finishRefresh!: (value: typeof renewableSession) => void;
-    refresh.mockReturnValue(new Promise((resolve) => { finishRefresh = resolve; }));
+    refresh.mockReturnValue(
+      new Promise((resolve) => {
+        finishRefresh = resolve;
+      })
+    );
 
     const renewal = store.renewSession();
     const logoutPromise = store.logout();

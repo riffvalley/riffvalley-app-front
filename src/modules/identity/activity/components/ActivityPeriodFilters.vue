@@ -17,7 +17,11 @@ const presets = [
 <template>
   <div class="period-filters">
     <fieldset>
-      <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300">Período</legend>
+      <legend
+        class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-300"
+      >
+        Período
+      </legend>
       <div class="flex flex-wrap gap-1.5" role="group" aria-label="Seleccionar período">
         <button
           v-for="preset in presets"
@@ -43,15 +47,17 @@ const presets = [
     </fieldset>
 
     <div v-if="period === 'custom'" class="date-range">
-      <label class="date-field">
+      <label class="date-field" for="activity-period-from">
         <span>Desde</span>
-        <input v-model="from" type="date" aria-label="Fecha desde" />
+        <input id="activity-period-from" v-model="from" type="date" />
       </label>
-      <label class="date-field">
+      <label class="date-field" for="activity-period-to">
         <span>Hasta</span>
-        <input v-model="to" type="date" aria-label="Fecha hasta" />
+        <input id="activity-period-to" v-model="to" type="date" />
       </label>
-      <p v-if="rangeReversed" class="date-error" role="alert">La fecha inicial debe ser anterior o igual a la final.</p>
+      <p v-if="rangeReversed" class="date-error" role="alert">
+        La fecha inicial debe ser anterior o igual a la final.
+      </p>
     </div>
   </div>
 </template>
@@ -73,7 +79,10 @@ const presets = [
   color: #334155;
   font-size: 0.8rem;
   font-weight: 600;
-  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
 }
 
 .period-button:hover {
@@ -146,10 +155,16 @@ const presets = [
   color: #f9a6b8;
 }
 
-:global(.dark) .date-field { color: #cbd5e1; }
-:global(.dark) .date-error { color: #fca5a5; }
+:global(.dark) .date-field {
+  color: #cbd5e1;
+}
+:global(.dark) .date-error {
+  color: #fca5a5;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .period-button { transition: none; }
+  .period-button {
+    transition: none;
+  }
 }
 </style>

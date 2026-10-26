@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { UserRole } from "@/modules/identity/shared/types/auth";
+import type { UserRole } from "@/modules/identity/shared";
 import type {
   ActivityInactivitySortBy,
   ActivityInactivitySortOrder,
@@ -31,33 +31,37 @@ const sortFields: { value: ActivityInactivitySortBy; label: string }[] = [
 
 <template>
   <section class="filters" aria-label="Filtros de inactividad">
-    <label class="filter-field">
+    <label class="filter-field" for="activity-inactivity-as-of">
       <span>Fecha de referencia</span>
-      <input v-model="asOf" type="date" />
+      <input id="activity-inactivity-as-of" v-model="asOf" type="date" />
     </label>
-    <label class="filter-field">
+    <label class="filter-field" for="activity-inactivity-role">
       <span>Rol</span>
-      <select v-model="role">
-        <option v-for="item in roles" :key="item.value || 'all-roles'" :value="item.value">{{ item.label }}</option>
+      <select id="activity-inactivity-role" v-model="role">
+        <option v-for="item in roles" :key="item.value || 'all-roles'" :value="item.value">
+          {{ item.label }}
+        </option>
       </select>
     </label>
-    <label class="filter-field">
+    <label class="filter-field" for="activity-inactivity-state">
       <span>Estado</span>
-      <select v-model="isActive">
+      <select id="activity-inactivity-state" v-model="isActive">
         <option value="">Todas las cuentas</option>
         <option value="true">Activas</option>
         <option value="false">Deshabilitadas</option>
       </select>
     </label>
-    <label class="filter-field filter-field--sort">
+    <label class="filter-field filter-field--sort" for="activity-inactivity-sort-by">
       <span>Ordenar por</span>
-      <select v-model="sortBy">
-        <option v-for="item in sortFields" :key="item.value" :value="item.value">{{ item.label }}</option>
+      <select id="activity-inactivity-sort-by" v-model="sortBy">
+        <option v-for="item in sortFields" :key="item.value" :value="item.value">
+          {{ item.label }}
+        </option>
       </select>
     </label>
-    <label class="filter-field filter-field--direction">
+    <label class="filter-field filter-field--direction" for="activity-inactivity-sort-order">
       <span>Dirección</span>
-      <select v-model="sortOrder">
+      <select id="activity-inactivity-sort-order" v-model="sortOrder">
         <option value="desc">Descendente</option>
         <option value="asc">Ascendente</option>
       </select>

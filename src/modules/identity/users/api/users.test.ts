@@ -8,7 +8,7 @@ const api = vi.hoisted(() => ({
 
 vi.mock("@services/api/api.ts", () => ({ default: api }));
 
-import { getGlobalActivity, getUsers, postUserService, updateUserService, updateUserSuperAdminService } from "./users";
+import { getUsers, postUserService, updateUserService, updateUserSuperAdminService } from "./users";
 
 describe("Identity account HTTP contracts", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -29,26 +29,6 @@ describe("Identity account HTTP contracts", () => {
     await getUsers(controller.signal);
 
     expect(api.get).toHaveBeenCalledWith("/auth/users", { signal: controller.signal });
-  });
-
-  it("keeps the global activity endpoint and pagination parameters while forwarding cancellation", async () => {
-    const controller = new AbortController();
-    api.get.mockResolvedValue({ data: { data: [], totalItems: 0, totalPages: 0, currentPage: 1, limit: 20 } });
-
-    await getGlobalActivity(20, 40, controller.signal);
-
-    expect(api.get).toHaveBeenCalledWith("/auth/activity", {
-      params: { limit: 20, offset: 40 },
-      signal: controller.signal,
-    });
-  });
-
-  it("preserves the default global activity request", async () => {
-    api.get.mockResolvedValue({ data: { data: [], totalItems: 0, totalPages: 0, currentPage: 1, limit: 20 } });
-
-    await getGlobalActivity();
-
-    expect(api.get).toHaveBeenCalledWith("/auth/activity", { params: { limit: 20, offset: 0 } });
   });
 
   it("updates the signed-in profile through the existing PATCH /auth contract", async () => {

@@ -313,16 +313,16 @@
 <script lang="ts">
 import { defineComponent, computed, ref, onMounted } from 'vue';
 import router from '/src/router';
-import { useAuthStore } from '@/modules/identity/auth/stores/auth.ts';
-import { useDashboardPreferences } from '@/modules/identity/account/preferences/composables/useDashboardPreferences';
+import { useAuthStore } from '@/modules/identity/auth';
+import { useDashboardPreferences } from '@/modules/identity/account';
 import SwalService from '@services/swal/SwalService';
 import { getLatestPublicVersion } from '@services/versions/versions';
 import { getAllRequests } from '@services/requests/requests';
 import { getSuggestions } from '@services/suggestions/suggestions';
 import { useSupportStore } from '@stores/support/support';
 import { usePetitionsStore } from '@stores/petitions/petitions';
-import { hasMinimumRole } from '@/modules/identity/shared/utils/permissions';
-import type { UserRole } from '@/modules/identity/shared/types/auth';
+import { hasMinimumRole } from '@/modules/identity/shared';
+import type { UserRole } from '@/modules/identity/shared';
 import routesData from './routes.json';
 
 // Tipo actualizado con 'new-discs'

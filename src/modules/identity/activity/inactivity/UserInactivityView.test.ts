@@ -12,7 +12,7 @@ vi.mock("@/modules/identity/activity/api/activity", async (importOriginal) => {
   return { ...actual, getActivityInactivity };
 });
 
-import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 import { observePrivateQueryCache } from "@/app/privateQueryCache";
 import type {
   ActivityInactivityResponse,
@@ -64,12 +64,24 @@ function response(overrides: Partial<ActivityInactivityResponse> = {}): Activity
     data: [
       user(),
       user({
-        userId: "u-never", username: "Persona nueva", lastVoteAt: null, daysSinceLastVote: null,
-        inactivityGroup: "never_voted", lastPresenceAt: null, lastRatingModifiedAt: null, currentRatings: 0,
+        userId: "u-never",
+        username: "Persona nueva",
+        lastVoteAt: null,
+        daysSinceLastVote: null,
+        inactivityGroup: "never_voted",
+        lastPresenceAt: null,
+        lastRatingModifiedAt: null,
+        currentRatings: 0,
       }),
       user({
-        userId: "u-unknown", username: "Historia antigua", lastVoteAt: null, daysSinceLastVote: null,
-        inactivityGroup: "insufficient_history", lastPresenceAt: null, lastRatingModifiedAt: null, currentRatings: 0,
+        userId: "u-unknown",
+        username: "Historia antigua",
+        lastVoteAt: null,
+        daysSinceLastVote: null,
+        inactivityGroup: "insufficient_history",
+        lastPresenceAt: null,
+        lastRatingModifiedAt: null,
+        currentRatings: 0,
       }),
     ],
     ...overrides,
@@ -88,7 +100,9 @@ describe("ActivityInactivity view", () => {
     wrappers = [];
     pinia = createPinia();
     setActivePinia(pinia);
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    });
     const authStore = useAuthStore();
     authStore.$patch({
       authStatus: "authenticated",
@@ -102,8 +116,16 @@ describe("ActivityInactivity view", () => {
     router = createRouter({
       history: createMemoryHistory(),
       routes: [
-        { path: "/users/stats/inactivity", name: "UserStatsInactivity", component: ActivityInactivity },
-        { path: "/users/stats/users", name: "UserStatsUsers", component: defineComponent(() => () => h("div", "Detalle individual")) },
+        {
+          path: "/users/stats/inactivity",
+          name: "UserStatsInactivity",
+          component: ActivityInactivity,
+        },
+        {
+          path: "/users/stats/users",
+          name: "UserStatsUsers",
+          component: defineComponent(() => () => h("div", "Detalle individual")),
+        },
       ],
     });
     await router.push("/users/stats/inactivity");
@@ -132,10 +154,12 @@ describe("ActivityInactivity view", () => {
   }
 
   it("shows all exclusive groups, distinguishes unknown history, and preserves nulls", async () => {
-    getActivityInactivity.mockImplementation(async (params) => response({
-      asOf: params.asOf,
-      offset: params.offset,
-    }));
+    getActivityInactivity.mockImplementation(async (params) =>
+      response({
+        asOf: params.asOf,
+        offset: params.offset,
+      })
+    );
     const wrapper = render();
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("Persona nueva"));
@@ -160,7 +184,12 @@ describe("ActivityInactivity view", () => {
 
     authStore.$patch({ role: "user" });
     await vi.waitFor(() => expect(wrapper.find("main").exists()).toBe(false));
-    expect(queryClient.getQueryCache().getAll().every((query) => query.state.data === undefined)).toBe(true);
+    expect(
+      queryClient
+        .getQueryCache()
+        .getAll()
+        .every((query) => query.state.data === undefined)
+    ).toBe(true);
 
     authStore.$patch({ role: "superadmin" });
     await vi.waitFor(() => expect(getActivityInactivity).toHaveBeenCalledTimes(2));
@@ -173,63 +202,83 @@ describe("ActivityInactivity view", () => {
   });
 
   it("sends the exact filters and resets offset when population filters change", async () => {
-    getActivityInactivity.mockImplementation(async (params) => response({
-      asOf: params.asOf,
-      offset: params.offset,
-      totalUsers: 41,
-      groups: {
-        "0_2_days": 0,
-        "3_6_days": 0,
-        "7_13_days": 0,
-        "14_29_days": 39,
-        "30_59_days": 0,
-        "60_plus_days": 0,
-        never_voted: 1,
-        insufficient_history: 1,
-      },
-    }));
+    getActivityInactivity.mockImplementation(async (params) =>
+      response({
+        asOf: params.asOf,
+        offset: params.offset,
+        totalUsers: 41,
+        groups: {
+          "0_2_days": 0,
+          "3_6_days": 0,
+          "7_13_days": 0,
+          "14_29_days": 39,
+          "30_59_days": 0,
+          "60_plus_days": 0,
+          never_voted: 1,
+          insufficient_history: 1,
+        },
+      })
+    );
     const wrapper = render();
     await vi.waitFor(() => expect(getActivityInactivity).toHaveBeenCalledTimes(1));
     await vi.waitFor(() => expect(wrapper.text()).toContain("Banda Escuchada"));
 
     const asOfInput = wrapper.find('input[type="date"]');
     await asOfInput.setValue("2026-10-23");
-    await vi.waitFor(() => expect(getActivityInactivity).toHaveBeenLastCalledWith(
-      expect.objectContaining({ asOf: "2026-10-23", limit: 20, offset: 0, sortBy: "daysSinceLastVote", sortOrder: "desc" }),
-      expect.any(AbortSignal),
-    ));
+    await vi.waitFor(() =>
+      expect(getActivityInactivity).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          asOf: "2026-10-23",
+          limit: 20,
+          offset: 0,
+          sortBy: "daysSinceLastVote",
+          sortOrder: "desc",
+        }),
+        expect.any(AbortSignal)
+      )
+    );
     await vi.waitFor(() => expect(wrapper.text()).toContain("Página 1 de 3"));
 
     await wrapper.get("button.pagination-next").trigger("click");
-    await vi.waitFor(() => expect(getActivityInactivity).toHaveBeenLastCalledWith(
-      expect.objectContaining({ asOf: "2026-10-23", offset: 20 }),
-      expect.any(AbortSignal),
-    ));
+    await vi.waitFor(() =>
+      expect(getActivityInactivity).toHaveBeenLastCalledWith(
+        expect.objectContaining({ asOf: "2026-10-23", offset: 20 }),
+        expect.any(AbortSignal)
+      )
+    );
     await vi.waitFor(() => expect(wrapper.text()).toContain("Página 2 de 3"));
 
     const selects = wrapper.findAll("select");
     await selects[0]!.setValue("collaborator");
-    await vi.waitFor(() => expect(getActivityInactivity).toHaveBeenLastCalledWith(
-      expect.objectContaining({ asOf: "2026-10-23", role: "collaborator", offset: 0 }),
-      expect.any(AbortSignal),
-    ));
+    await vi.waitFor(() =>
+      expect(getActivityInactivity).toHaveBeenLastCalledWith(
+        expect.objectContaining({ asOf: "2026-10-23", role: "collaborator", offset: 0 }),
+        expect.any(AbortSignal)
+      )
+    );
 
     await selects[1]!.setValue("false");
-    await vi.waitFor(() => expect(getActivityInactivity).toHaveBeenLastCalledWith(
-      expect.objectContaining({ isActive: "false", offset: 0 }),
-      expect.any(AbortSignal),
-    ));
+    await vi.waitFor(() =>
+      expect(getActivityInactivity).toHaveBeenLastCalledWith(
+        expect.objectContaining({ isActive: "false", offset: 0 }),
+        expect.any(AbortSignal)
+      )
+    );
 
     await selects[2]!.setValue("currentRatings");
-    await vi.waitFor(() => expect(getActivityInactivity).toHaveBeenLastCalledWith(
-      expect.objectContaining({ sortBy: "currentRatings", offset: 0 }),
-      expect.any(AbortSignal),
-    ));
+    await vi.waitFor(() =>
+      expect(getActivityInactivity).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: "currentRatings", offset: 0 }),
+        expect.any(AbortSignal)
+      )
+    );
     await selects[3]!.setValue("asc");
-    await vi.waitFor(() => expect(getActivityInactivity).toHaveBeenLastCalledWith(
-      expect.objectContaining({ sortOrder: "asc", offset: 0 }),
-      expect.any(AbortSignal),
-    ));
+    await vi.waitFor(() =>
+      expect(getActivityInactivity).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortOrder: "asc", offset: 0 }),
+        expect.any(AbortSignal)
+      )
+    );
   });
 
   it("links a user to the existing individual activity route with its identifier", async () => {
@@ -245,12 +294,26 @@ describe("ActivityInactivity view", () => {
   });
 
   it("shows distinct empty, HTTP error, and incompatible contract states", async () => {
-    getActivityInactivity.mockResolvedValueOnce(response({ totalUsers: 0, groups: {
-      "0_2_days": 0, "3_6_days": 0, "7_13_days": 0, "14_29_days": 0,
-      "30_59_days": 0, "60_plus_days": 0, never_voted: 0, insufficient_history: 0,
-    }, data: [] }));
+    getActivityInactivity.mockResolvedValueOnce(
+      response({
+        totalUsers: 0,
+        groups: {
+          "0_2_days": 0,
+          "3_6_days": 0,
+          "7_13_days": 0,
+          "14_29_days": 0,
+          "30_59_days": 0,
+          "60_plus_days": 0,
+          never_voted: 0,
+          insufficient_history: 0,
+        },
+        data: [],
+      })
+    );
     const emptyView = render();
-    await vi.waitFor(() => expect(emptyView.text()).toContain("No hay usuarios en la población seleccionada."));
+    await vi.waitFor(() =>
+      expect(emptyView.text()).toContain("No hay usuarios en la población seleccionada.")
+    );
     dispose(emptyView);
 
     queryClient.clear();
@@ -267,17 +330,27 @@ describe("ActivityInactivity view", () => {
   });
 
   it("distinguishes a stale empty page from an empty population and reports an expired session", async () => {
-    getActivityInactivity.mockResolvedValueOnce(response({
-      totalUsers: 21,
-      offset: 20,
-      groups: {
-        "0_2_days": 0, "3_6_days": 0, "7_13_days": 0, "14_29_days": 19,
-        "30_59_days": 0, "60_plus_days": 0, never_voted: 1, insufficient_history: 1,
-      },
-      data: [],
-    }));
+    getActivityInactivity.mockResolvedValueOnce(
+      response({
+        totalUsers: 21,
+        offset: 20,
+        groups: {
+          "0_2_days": 0,
+          "3_6_days": 0,
+          "7_13_days": 0,
+          "14_29_days": 19,
+          "30_59_days": 0,
+          "60_plus_days": 0,
+          never_voted: 1,
+          insufficient_history: 1,
+        },
+        data: [],
+      })
+    );
     const pageView = render();
-    await vi.waitFor(() => expect(pageView.text()).toContain("Esta página no contiene resultados."));
+    await vi.waitFor(() =>
+      expect(pageView.text()).toContain("Esta página no contiene resultados.")
+    );
     dispose(pageView);
 
     queryClient.clear();

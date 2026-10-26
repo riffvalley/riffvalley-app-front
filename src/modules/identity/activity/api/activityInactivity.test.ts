@@ -30,18 +30,20 @@ const response: ActivityInactivityResponse = {
   offset: 40,
   sortBy: "daysSinceLastVote",
   sortOrder: "desc",
-  data: [{
-    userId: "user-1",
-    username: "listener",
-    role: "user",
-    isActive: false,
-    lastVoteAt: null,
-    daysSinceLastVote: null,
-    inactivityGroup: "insufficient_history",
-    lastPresenceAt: null,
-    lastRatingModifiedAt: null,
-    currentRatings: 0,
-  }],
+  data: [
+    {
+      userId: "user-1",
+      username: "listener",
+      role: "user",
+      isActive: false,
+      lastVoteAt: null,
+      daysSinceLastVote: null,
+      inactivityGroup: "insufficient_history",
+      lastPresenceAt: null,
+      lastRatingModifiedAt: null,
+      currentRatings: 0,
+    },
+  ],
 };
 
 describe("getActivityInactivity", () => {
@@ -51,15 +53,20 @@ describe("getActivityInactivity", () => {
     api.get.mockResolvedValue({ data: response });
     const signal = new AbortController().signal;
 
-    await expect(getActivityInactivity({
-      asOf: "2026-10-24",
-      role: "collaborator",
-      isActive: "false",
-      limit: 15,
-      offset: 30,
-      sortBy: "lastRatingModifiedAt",
-      sortOrder: "asc",
-    }, signal)).resolves.toBe(response);
+    await expect(
+      getActivityInactivity(
+        {
+          asOf: "2026-10-24",
+          role: "collaborator",
+          isActive: "false",
+          limit: 15,
+          offset: 30,
+          sortBy: "lastRatingModifiedAt",
+          sortOrder: "asc",
+        },
+        signal
+      )
+    ).resolves.toBe(response);
 
     expect(api.get).toHaveBeenCalledWith("/activity/inactivity", {
       params: {

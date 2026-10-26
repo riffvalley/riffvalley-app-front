@@ -239,9 +239,9 @@ import {
     VIDEO_TYPES,
     toISO
 } from '@services/videos/videos';
-import { getRvUsers } from '@/modules/identity/users/api/users';
-import type { RvUser } from '@/modules/identity/users/types/users';
-import { useAuthStore } from '@/modules/identity/auth/stores/auth';
+import { getRvUsers } from '@/modules/identity/users';
+import type { RvUser } from '@/modules/identity/users';
+import { useAuthStore } from '@/modules/identity/auth';
 import { useRouter } from 'vue-router';
 import SwalService from '@services/swal/SwalService';
 

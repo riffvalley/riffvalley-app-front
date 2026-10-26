@@ -1,11 +1,11 @@
 import { watch, type WatchStopHandle } from "vue";
 import type { QueryClient } from "@tanstack/vue-query";
-import type { UserRole } from "@/modules/identity/shared/types/auth";
-import { broadcastAuthPermissionsChanged } from "@/modules/identity/auth/api/sessionAuthCoordinator";
-import type { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import type { UserRole } from "@/modules/identity/shared";
+import { broadcastAuthPermissionsChanged } from "@/modules/identity/auth";
+import type { AuthStore } from "@/modules/identity/auth";
 import { clearPrivateQueryCache, queryClient } from "./queryClient";
 
-type AuthSessionState = Pick<ReturnType<typeof useAuthStore>, "authStatus" | "userId" | "role">;
+type AuthSessionState = Pick<AuthStore, "authStatus" | "userId" | "role">;
 
 // Current administrative queries and views require superadmin. Keeping the
 // effective capability here means role changes with equivalent access do not
