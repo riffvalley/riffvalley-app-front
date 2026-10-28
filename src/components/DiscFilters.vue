@@ -152,12 +152,6 @@ export default defineComponent({
     const searchQuery = ref(props.searchQuery);
     const selectedGenre = ref(props.selectedGenre);
     const selectedCountry = ref(props.selectedCountry);
-    watch(() => props.selectedGenre, (value) => {
-      if (selectedGenre.value !== value) selectedGenre.value = value;
-    });
-    watch(() => props.selectedCountry, (value) => {
-      if (selectedCountry.value !== value) selectedCountry.value = value;
-    });
     watch(searchQuery, (v) => emit("update:searchQuery", v));
     watch(selectedGenre, (v) => emit("update:selectedGenre", v));
     watch(selectedCountry, (v) => emit("update:selectedCountry", v));

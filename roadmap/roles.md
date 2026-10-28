@@ -2,8 +2,6 @@
 
 **Estado:** F.1, F.2, F.3, F.4 y F.5 completadas. F.5.1 y F.5.2 se completaron el 2026-10-13.
 
-> **Lectura actual (FQ-6.5):** este roadmap conserva la auditoría, las decisiones y las fases de migración de roles. Para la jerarquía, los contratos y el comportamiento vigente, consulta la [documentación canónica de Identity](../docs/frontend/modules/identity.md). La fotografía inicial y sus evidencias siguen como registro histórico.
-
 **Alcance:** adaptación del frontend al contrato documentado en el backend. Este roadmap no cambia código funcional, backend, base de datos, contratos HTTP ni configuración de `.impeccable`.
 
 **Contrato de referencia:** [`roles-frontend-contract.md`](../../spammusic-back/roadmap/roles-frontend-contract.md), en el checkout vecino del backend. El backend documenta los valores `user`, `collaborator`, `riffvalley` y `superadmin`, jerarquía inclusiva, respuestas con `role` singular, y ausencia de `/auth/me` y refresh token. El código desplegado y la migración PostgreSQL no se consideran verificados por ese documento.

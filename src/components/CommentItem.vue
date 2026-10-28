@@ -164,7 +164,7 @@
 <script lang="ts">
 import { computed, defineComponent, ref, watch, nextTick } from "vue";
 import { postcommentService, updateCommentService, deleteCommentService } from "@services/comments/comments";
-import { useAuthStore } from "@/modules/identity/auth";
+import { useAuthStore } from "@stores/auth/auth.ts";
 import SwalService from "@services/swal/SwalService";
 
 export default defineComponent({

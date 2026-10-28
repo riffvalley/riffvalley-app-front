@@ -1,11 +1,10 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { watch } from "vue";
 import type { RouteRecordRaw } from "vue-router";
-import type { UserRole } from "@/modules/identity/shared";
-import { useAuthStore, type AuthStore } from "@/modules/identity/auth";
-import { hasMinimumRole } from "@/modules/identity/shared";
+import type { UserRole } from "@interfaces/auth";
+import { useAuthStore } from "../stores/auth/auth";
+import { hasMinimumRole } from "@helpers/roles";
 
-import Login from "@/modules/identity/auth/login/LoginView.vue";
+import Login from "@views/loginPage/LoginPage.vue";
 
 declare module "vue-router" {
   interface RouteMeta {
@@ -18,19 +17,19 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
     name: "Home",
-    component: () => import("@/modules/dashboard"),
+    component: () => import("@views/dashboard/DashboardPage.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/rankings",
     name: "Rankings",
-    component: () => import("@/modules/catalog/top-discs/presentation/views/TopDiscsView.vue"),
+    component: () => import("@views/homePage/HomePage.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/disc-list",
     name: "DiscList",
-    component: () => import("@/modules/catalog/discs/presentation/views/DiscListView.vue"),
+    component: () => import("@views/discsList/DiscList.vue"),
     meta: { requiresAuth: true },
   },
   {
@@ -108,50 +107,25 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/password",
     name: "Password",
-    component: () => import("@/modules/identity/account/password-change/PasswordChangeView.vue"),
+    component: () => import("@views/password/PasswordChange.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/users",
     name: "Users",
-    component: () => import("@/modules/identity/users/user-management/UserManagementView.vue"),
+    component: () => import("@views/users/ManageUsers.vue"),
     meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/users/stats",
-    meta: { requiresAuth: true, requiresRole: "superadmin" },
-    component: () => import("@/modules/identity/activity/layout/UserStatisticsLayout.vue"),
-    children: [
-      {
-        path: "",
-        name: "UserStats",
-        component: () => import("@/modules/identity/activity/overview/UserStatisticsView.vue"),
-        meta: { requiresAuth: true, requiresRole: "superadmin" },
-      },
-      {
-        path: "users",
-        name: "UserStatsUsers",
-        component: () => import("@/modules/identity/activity/user-activity/UserActivityView.vue"),
-        meta: { requiresAuth: true, requiresRole: "superadmin" },
-      },
-      {
-        path: "inactivity",
-        name: "UserStatsInactivity",
-        component: () => import("@/modules/identity/activity/inactivity/UserInactivityView.vue"),
-        meta: { requiresAuth: true, requiresRole: "superadmin" },
-      },
-    ],
-  },
-  {
-    path: "/users/inactivity",
-    name: "UserInactivity",
-    redirect: (to) => ({ name: "UserStatsInactivity", query: to.query, hash: to.hash }),
+    name: "UserStats",
+    component: () => import("@views/users/AdminStats.vue"),
     meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
     path: "/users/activity",
     name: "UserActivity",
-    redirect: (to) => ({ name: "UserStatsUsers", query: to.query, hash: to.hash }),
+    component: () => import("@views/users/UserActivity.vue"),
     meta: { requiresAuth: true, requiresRole: "superadmin" },
   },
   {
@@ -340,37 +314,8 @@ const router = createRouter({
   routes,
 });
 
-let stopActiveRouteAuthorizationWatch: (() => void) | undefined;
-let activeRouteAuthorizationStore: AuthStore | undefined;
-
-function watchActiveRouteAuthorization(authStore: AuthStore) {
-  if (activeRouteAuthorizationStore === authStore) return;
-  stopActiveRouteAuthorizationWatch?.();
-  activeRouteAuthorizationStore = authStore;
-
-  stopActiveRouteAuthorizationWatch = watch(
-    [
-      () => authStore.authStatus,
-      () => authStore.role,
-      () => router.currentRoute.value.meta.requiresRole,
-    ],
-    ([status, role, requiredRole]) => {
-      if (status === "anonymous") {
-        if (router.currentRoute.value.meta.requiresAuth) {
-          void router.replace({ name: "Login" });
-        }
-      } else if (requiredRole && status === "authenticated" && !hasMinimumRole(role, requiredRole)) {
-        // Match the existing guard's destination for an authenticated role denial.
-        void router.replace({ name: "Home" });
-      }
-    },
-    { flush: "sync" },
-  );
-}
-
 router.beforeEach(async (to) => {
   const authStore = useAuthStore();
-  watchActiveRouteAuthorization(authStore);
 
   const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
 

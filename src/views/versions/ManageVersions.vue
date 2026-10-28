@@ -309,7 +309,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { useQueryClient } from '@tanstack/vue-query';
 import { useRouter } from 'vue-router';
 import SwalService from '@services/swal/SwalService';
 import type {
@@ -325,10 +324,8 @@ import {
   updateVersionItem,
   removeVersionItem,
 } from '@services/versions/versions';
-import { mutateAndInvalidateSidebarSummary } from '@/app/sidebarSummary';
 
 const router = useRouter();
-const queryClient = useQueryClient();
 
 
 const versions = ref<Version[]>([]);
@@ -449,7 +446,7 @@ async function createVersionFromModal() {
       notes: createForm.value.notes || undefined,
     };
 
-    const created = await mutateAndInvalidateSidebarSummary(queryClient, () => createVersion(dto));
+    const created = await createVersion(dto);
 
     // Asegurar que items existe
     if (!created.items) {
@@ -489,9 +486,9 @@ async function saveVersionName() {
   }
 
   try {
-    const updated = await mutateAndInvalidateSidebarSummary(queryClient, () => updateVersion(editNameForm.value.versionId, {
+    const updated = await updateVersion(editNameForm.value.versionId, {
       version: editNameForm.value.version,
-    }));
+    });
 
     const version = versions.value.find(v => v.id === editNameForm.value.versionId);
     if (version) {

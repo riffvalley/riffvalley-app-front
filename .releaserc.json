@@ -32,7 +32,10 @@
       "assets": [
         "CHANGELOG.md",
         "package.json",
-        "pnpm-lock.yaml"
+        "package-lock.json",
+        "npm-shrinkwrap.json",
+        "pnpm-lock.yaml",
+        "yarn.lock"
       ],
       "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
     }],

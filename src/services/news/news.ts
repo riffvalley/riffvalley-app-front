@@ -102,17 +102,12 @@ export interface FeedParams {
     limit?: number;
 }
 
-export async function getNewsFeed(signal?: AbortSignal): Promise<FeedResponse> {
-    const { data } = signal
-        ? await api.get<FeedResponse>('/news/feed', { signal })
-        : await api.get<FeedResponse>('/news/feed');
+export async function getNewsFeed(): Promise<FeedResponse> {
+    const { data } = await api.get<FeedResponse>('/news/feed');
     return data;
 }
 
-export async function getSourceFeed(params: FeedParams, signal?: AbortSignal): Promise<FeedResponse> {
-    const { data } = await api.get<FeedResponse>('/news/source-feed', {
-        params,
-        ...(signal ? { signal } : {}),
-    });
+export async function getSourceFeed(params: FeedParams): Promise<FeedResponse> {
+    const { data } = await api.get<FeedResponse>('/news/source-feed', { params });
     return data;
 }

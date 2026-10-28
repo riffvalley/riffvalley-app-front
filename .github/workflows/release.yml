@@ -16,24 +16,11 @@ jobs:
         with:
           fetch-depth: 0
       - uses: actions/setup-node@v4
-        id: setup-node
         with:
-          node-version-file: .nvmrc
-      - name: Enable Corepack and verify pnpm
-        run: |
-          corepack enable
-          test "$(pnpm --version)" = "11.28.8"
-      - name: Get pnpm store path
-        id: pnpm-store
-        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: ${{ steps.pnpm-store.outputs.path }}
-          key: pnpm-${{ runner.os }}-${{ runner.arch }}-node-${{ steps.setup-node.outputs.node-version }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            pnpm-${{ runner.os }}-${{ runner.arch }}-node-${{ steps.setup-node.outputs.node-version }}-
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec semantic-release
+          node-version: '20'     # <-- usa Node 20 (>=20.8.1)
+          check-latest: true
+      - run: corepack enable
+      - run: yarn install --immutable
+      - run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

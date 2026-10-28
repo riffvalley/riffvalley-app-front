@@ -1,11 +1,4 @@
 import api from "@services/api/api.ts";
-import type { PaginatedResponse } from "@services/api/pagination";
-import type { Disc } from "@services/discs/discs";
-
-export interface UserDiscFavorite {
-  id: string;
-  disc: Disc & { userPending?: { id: string } | null };
-}
 
 export async function postFavoriteService(payload: any): Promise<void> {
   const response = await api.post("/favorites", payload);
@@ -26,8 +19,8 @@ export async function getFavoritesByUser(
   country?: string,
   type?: string,
   orderBy?: string,
-): Promise<PaginatedResponse<UserDiscFavorite>> {
-  const response = await api.get<PaginatedResponse<UserDiscFavorite>>("/favorites", {
+): Promise<any[]> {
+  const response = await api.get<any[]>("/favorites", {
     params: {
       limit,
       offset,

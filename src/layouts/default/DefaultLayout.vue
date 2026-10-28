@@ -13,12 +13,13 @@
     </button>
 
     <!-- Sidebar -->
-    <SidebarMenu
-      :menuVisible="menuVisible"
-      :isDark="isDark"
-      @toggle-theme="toggleTheme"
-      @close-menu="closeMenu"
-    />
+<SidebarMenu
+  v-if="!isLoginPage"
+  :menuVisible="menuVisible"
+  :isDark="isDark"
+  @toggle-theme="toggleTheme"
+  @close-menu="closeMenu"
+/>
 
     <!-- Contenido principal -->
 <main :class="[
@@ -43,7 +44,7 @@
 
 
 <script lang="ts">
-import { onBeforeUnmount, ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { useRoute } from "vue-router";
 import SidebarMenu from "./components/SidebarMenu.vue";
 import { useTheme } from "@/composables/useTheme";
@@ -57,7 +58,8 @@ export default {
     const menuVisible = ref(false);
     const route = useRoute();
     const { isDark, initTheme, toggleTheme } = useTheme();
-    initTheme();
+initTheme();
+    const isLoginPage = computed(() => ["Login", "Maintenance"].includes(route.name as string));
 
     // ✅ Alternar menú con botón de hamburguesa
     const toggleMenu = () => {
@@ -70,38 +72,27 @@ export default {
     });
 
     let scrollY = 0;
-    let scrollLocked = false;
-
-    const unlockScroll = () => {
-      if (!scrollLocked) return;
-
-      const body = document.body;
-      body.style.position = "";
-      body.style.top = "";
-      body.style.left = "";
-      body.style.right = "";
-      body.style.overflow = "";
-      scrollLocked = false;
-      window.scrollTo(0, scrollY);
-    };
 
     watch(menuVisible, (visible) => {
+      const html = document.documentElement;
       const body = document.body;
 
       if (visible) {
         scrollY = window.scrollY;
-        scrollLocked = true;
         body.style.position = 'fixed';
         body.style.top = `-${scrollY}px`;
         body.style.left = '0';
         body.style.right = '0';
         body.style.overflow = 'hidden';
       } else {
-        unlockScroll();
+        body.style.position = '';
+        body.style.top = '';
+        body.style.left = '';
+        body.style.right = '';
+        body.style.overflow = '';
+        window.scrollTo(0, scrollY);
       }
-    }, { flush: "sync" });
-
-    onBeforeUnmount(unlockScroll);
+    });
 
 
     // ✅ Función para cerrar menú desde `SidebarMenu.vue`
@@ -112,6 +103,7 @@ export default {
 
     return {
       menuVisible,
+      isLoginPage,
       toggleMenu,
       closeMenu,
       isDark,

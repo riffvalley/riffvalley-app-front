@@ -1,28 +1,37 @@
-import { computed } from 'vue';
-import { useDashboardPreferences, type DashboardModuleConfig } from '@/modules/identity/account';
+import { computed, ref } from 'vue';
+import { useAuthStore, type DashboardModuleConfig } from '@stores/auth/auth';
 import { useUserStore } from '@stores/user/users';
 import SwalService from '@services/swal/SwalService';
-import {
-  dashboardWidgetDefaults,
-  isDashboardWidgetId,
-  type DashboardModule,
-} from '@/app/dashboardWidgetRegistry';
 
-export type { DashboardModule } from '@/app/dashboardWidgetRegistry';
+export interface DashboardModule {
+  id: string;
+  label: string;
+  icon: string;
+  size: 'full' | 'half';
+  enabled: boolean;
+}
+
+const DEFAULT_MODULES: DashboardModule[] = [
+  { id: 'novedades',      label: 'Novedades Riff Valley',    icon: 'fa-solid fa-newspaper',      size: 'half', enabled: true },
+  { id: 'comunidad',      label: 'Comunidad / Top usuarios', icon: 'fa-solid fa-users',           size: 'half', enabled: true },
+  { id: 'discoAleatorio', label: 'Disco aleatorio',          icon: 'fa-solid fa-shuffle',         size: 'half', enabled: true },
+  { id: 'portadaDia',     label: 'Portada del día',          icon: 'fa-solid fa-image',           size: 'half', enabled: true },
+  { id: 'top3mes',        label: 'Top 3 Mes actual',         icon: 'fa-solid fa-fire',            size: 'full', enabled: true },
+  { id: 'top3semana',     label: 'Top 3 Semana actual',      icon: 'fa-solid fa-fire',            size: 'full', enabled: true },
+  { id: 'artistas',       label: 'Tus artistas favoritos',   icon: 'fa-solid fa-heart',           size: 'full', enabled: true },
+  { id: 'cementerio',     label: 'Cementerio de discos',     icon: 'fa-solid fa-skull',           size: 'half', enabled: true },
+  { id: 'mundoMusical',   label: 'Tu mundo musical',         icon: 'fa-solid fa-earth-americas',  size: 'half', enabled: true },
+  { id: 'ultimosVotos',   label: 'Tus últimos 5 votos',      icon: 'fa-solid fa-clock-rotate-left', size: 'half', enabled: true },
+  { id: 'aventura',       label: 'Crea tu propia aventura',  icon: 'fa-solid fa-book-open',       size: 'half', enabled: true },
+];
 
 // Config antigua guardada solo en localStorage, previa a persistir en el backend.
 const LEGACY_LS_KEY = 'rv_dashboard_config';
 
 function loadLegacyConfig(): DashboardModuleConfig[] | null {
-  let raw: string | null;
   try {
-    raw = localStorage.getItem(LEGACY_LS_KEY);
-  } catch {
-    return null;
-  }
-  if (!raw) return null;
-
-  try {
+    const raw = localStorage.getItem(LEGACY_LS_KEY);
+    if (!raw) return null;
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : null;
   } catch {
@@ -30,22 +39,14 @@ function loadLegacyConfig(): DashboardModuleConfig[] | null {
   }
 }
 
-function removeLegacyConfig() {
-  try {
-    localStorage.removeItem(LEGACY_LS_KEY);
-  } catch {
-    // Legacy cleanup is best-effort and must not reject the save queue.
-  }
-}
-
 function mergeWithDefaults(saved: DashboardModuleConfig[] | null): DashboardModule[] {
-  if (!saved || !saved.length) return dashboardWidgetDefaults.map(m => ({ ...m }));
-  const byId = Object.fromEntries(dashboardWidgetDefaults.map(m => [m.id, m]));
+  if (!saved || !saved.length) return DEFAULT_MODULES.map(m => ({ ...m }));
+  const byId = Object.fromEntries(DEFAULT_MODULES.map(m => [m.id, m]));
   const merged = saved
-    .filter(s => isDashboardWidgetId(s.id))
+    .filter(s => byId[s.id])
     .map(s => ({ ...byId[s.id], enabled: s.enabled }));
-  const savedIds = new Set(merged.map(m => m.id));
-  for (const m of dashboardWidgetDefaults) {
+  const savedIds = new Set(saved.map(s => s.id));
+  for (const m of DEFAULT_MODULES) {
     if (!savedIds.has(m.id)) merged.push({ ...m });
   }
   return merged;
@@ -53,89 +54,30 @@ function mergeWithDefaults(saved: DashboardModuleConfig[] | null): DashboardModu
 
 export type DashboardConfigTarget = 'desktop' | 'mobile';
 
-interface TargetSaveState {
-  confirmed: DashboardModuleConfig[] | null;
-  revision: number;
-}
-
-interface PreferencesSaveState {
-  queue: Promise<void>;
-  targets: Record<DashboardConfigTarget, TargetSaveState>;
-}
-
-// updateUserStore dispara PATCHes sin ordenarlos. Una cola por store evita que
-// dos escrituras del editor lleguen al servidor ni resuelvan fuera de orden.
-const saveStates = new WeakMap<object, PreferencesSaveState>();
-
-function copyConfig(config: DashboardModuleConfig[] | null): DashboardModuleConfig[] | null {
-  return config?.map(item => ({ ...item })) ?? null;
-}
-
 export function useDashboardConfig(target: DashboardConfigTarget = 'desktop') {
-  const dashboardPreferencesStore = useDashboardPreferences();
+  const authStore = useAuthStore();
   const userStore = useUserStore();
   const isMobile = target === 'mobile';
-  const storeKey = isMobile ? 'mobileDashboardConfig' : 'dashboardConfig';
-
-  function getSaveState(): PreferencesSaveState {
-    const existing = saveStates.get(dashboardPreferencesStore);
-    if (existing) return existing;
-
-    const state: PreferencesSaveState = {
-      queue: Promise.resolve(),
-      targets: {
-        desktop: { confirmed: copyConfig(dashboardPreferencesStore.dashboardConfig), revision: 0 },
-        mobile: { confirmed: copyConfig(dashboardPreferencesStore.mobileDashboardConfig), revision: 0 },
-      },
-    };
-    saveStates.set(dashboardPreferencesStore, state);
-    return state;
-  }
 
   // `successMessage` es opcional para no forzar un toast en llamadas internas
   // (p.ej. la migración de la config antigua al montar). `payloadOverride` es
   // solo para resetToDefault, que siempre guarda [] y no el array actual.
-  function persist(
-    successMessage?: string,
-    payloadOverride?: DashboardModuleConfig[],
-    onSuccess?: () => void,
-  ): Promise<void> {
+  function persist(successMessage?: string, payloadOverride?: DashboardModuleConfig[]) {
     const payload = payloadOverride ?? modules.value.map(m => ({ id: m.id, enabled: m.enabled }));
-    const saveState = getSaveState();
-    const targetState = saveState.targets[target];
-    const revision = ++targetState.revision;
-
-    // Optimistic update remains visible immediately to the editor and every
-    // other consumer deriving its modules from this Pinia store.
-    setStoredConfig(copyConfig(payload));
-
-    const operation = saveState.queue.then(async () => {
-      try {
-        await userStore.updateUserStore({ [storeKey]: copyConfig(payload) });
-      } catch {
-        // An older failure must not replace a newer optimistic edit. The
-        // latest failed operation rolls back to the last server-confirmed value.
-        if (revision === targetState.revision) {
-          setStoredConfig(copyConfig(targetState.confirmed));
-        }
-        SwalService.error('No se pudo guardar el cambio del dashboard');
-        return;
-      }
-
-      targetState.confirmed = copyConfig(payload);
-      if (successMessage) SwalService.success(successMessage);
-      onSuccess?.();
-    });
-    saveState.queue = operation.then(() => undefined);
-    return operation;
+    if (isMobile) {
+      authStore.setMobileDashboardConfig(payload);
+      userStore.updateUserStore({ mobileDashboardConfig: payload })
+        .then(() => { if (successMessage) SwalService.success(successMessage); })
+        .catch(() => { SwalService.error('No se pudo guardar el cambio del dashboard'); });
+    } else {
+      authStore.setDashboardConfig(payload);
+      userStore.updateUserStore({ dashboardConfig: payload })
+        .then(() => { if (successMessage) SwalService.success(successMessage); })
+        .catch(() => { SwalService.error('No se pudo guardar el cambio del dashboard'); });
+    }
   }
 
-  function setStoredConfig(config: DashboardModuleConfig[] | null) {
-    if (isMobile) dashboardPreferencesStore.setMobileDashboardConfig(config);
-    else dashboardPreferencesStore.setDashboardConfig(config);
-  }
-
-  let initial = isMobile ? dashboardPreferencesStore.mobileDashboardConfig : dashboardPreferencesStore.dashboardConfig;
+  let initial = isMobile ? authStore.mobileDashboardConfig : authStore.dashboardConfig;
   // La migración de la config antigua (localStorage previo al backend) solo
   // aplica al dashboard de escritorio: el móvil nunca tuvo esa versión legacy.
   let migrateLegacy = false;
@@ -147,12 +89,11 @@ export function useDashboardConfig(target: DashboardConfigTarget = 'desktop') {
     }
   }
 
-  const modules = computed(() => mergeWithDefaults(
-    isMobile ? dashboardPreferencesStore.mobileDashboardConfig : dashboardPreferencesStore.dashboardConfig,
-  ));
+  const modules = ref<DashboardModule[]>(mergeWithDefaults(initial));
 
   if (migrateLegacy) {
-    persist(undefined, initial?.map(({ id, enabled }) => ({ id, enabled })), removeLegacyConfig);
+    persist();
+    localStorage.removeItem(LEGACY_LS_KEY);
   }
 
   const enabledModules = computed(() => modules.value.filter(m => m.enabled));
@@ -172,13 +113,14 @@ export function useDashboardConfig(target: DashboardConfigTarget = 'desktop') {
   // los que sí se ven — por eso basta con un único array ordenado.
   function moveModule(id: string, beforeId: string | null, opts?: { enable?: boolean }) {
     const idx = modules.value.findIndex(m => m.id === id);
-    if (idx === -1) return Promise.resolve();
+    if (idx === -1) return;
     const arr = [...modules.value];
-    const [module] = arr.splice(idx, 1);
-    const moved = { ...module, enabled: opts?.enable ?? module.enabled };
+    const [moved] = arr.splice(idx, 1);
+    if (opts?.enable !== undefined) moved.enabled = opts.enable;
     const targetIdx = beforeId ? arr.findIndex(m => m.id === beforeId) : -1;
     arr.splice(targetIdx === -1 ? arr.length : targetIdx, 0, moved);
-    return persist(opts?.enable ? 'Módulo activado' : 'Orden actualizado', arr.map(m => ({ id: m.id, enabled: m.enabled })));
+    modules.value = arr;
+    persist(opts?.enable ? 'Módulo activado' : 'Orden actualizado');
   }
 
   // Mueve varios módulos a la vez (p.ej. los dos 1x1 de una fila), preservando
@@ -191,22 +133,26 @@ export function useDashboardConfig(target: DashboardConfigTarget = 'desktop') {
     const rest = modules.value.filter(m => !idSet.has(m.id));
     const targetIdx = beforeId ? rest.findIndex(m => m.id === beforeId) : -1;
     rest.splice(targetIdx === -1 ? rest.length : targetIdx, 0, ...extracted);
-    return persist('Orden actualizado', rest.map(m => ({ id: m.id, enabled: m.enabled })));
+    modules.value = rest;
+    persist('Orden actualizado');
   }
 
   function enableModule(id: string) {
-    return moveModule(id, null, { enable: true });
+    moveModule(id, null, { enable: true });
   }
 
   function disableModule(id: string) {
-    if (!modules.value.some(m => m.id === id && m.enabled)) return;
-    const next = modules.value.map(m => m.id === id ? { ...m, enabled: false } : m);
-    return persist('Módulo desactivado', next.map(({ id: moduleId, enabled }) => ({ id: moduleId, enabled })));
+    const m = modules.value.find(m => m.id === id);
+    if (m && m.enabled) {
+      m.enabled = false;
+      persist('Módulo desactivado');
+    }
   }
 
   function resetToDefault() {
+    modules.value = DEFAULT_MODULES.map(m => ({ ...m }));
     // [] y no null: el DTO del backend valida @IsArray() (no acepta null).
-    return persist('Dashboard restablecido a valores por defecto', []);
+    persist('Dashboard restablecido a valores por defecto', []);
   }
 
   return {

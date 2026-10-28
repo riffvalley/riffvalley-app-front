@@ -152,7 +152,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
-import type { RvUser } from '@/modules/identity/users';
+import type { RvUser } from '@services/auth/auth';
 import { ARTICLE_TYPES, ARTICLE_STATES, type ArticleState, type ArticleType } from '@services/articles/articles';
 
 interface Props {

@@ -109,10 +109,10 @@
               Gestión
             </div>
             <span
-              v-if="unreadSuggestionsCount !== undefined && unreadSuggestionsCount > 0"
+              v-if="supportStore.unreadCount > 0"
               class="ml-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
             >
-              {{ unreadSuggestionsCount > 99 ? '99+' : unreadSuggestionsCount }}
+              {{ supportStore.unreadCount > 99 ? '99+' : supportStore.unreadCount }}
             </span>
             <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200 group-open/area:rotate-180"></i>
           </summary>
@@ -161,10 +161,10 @@
                 <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
                 {{ route.label }}
                 <span
-                  v-if="route.to === '/suggestions/management' && unreadSuggestionsCount !== undefined && unreadSuggestionsCount > 0"
+                  v-if="route.to === '/suggestions/management' && supportStore.unreadCount > 0"
                   class="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
                 >
-                  {{ unreadSuggestionsCount > 99 ? '99+' : unreadSuggestionsCount }}
+                  {{ supportStore.unreadCount > 99 ? '99+' : supportStore.unreadCount }}
                 </span>
               </router-link>
 
@@ -180,10 +180,10 @@
             <i class="fa-solid fa-circle-plus text-base w-5 text-center mr-3"></i>
             Nuevos Discos
             <span
-              v-if="pendingRequestsCount !== undefined && pendingRequestsCount > 0"
+              v-if="petitionsStore.pendingCount > 0"
               class="ml-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
             >
-              {{ pendingRequestsCount > 99 ? '99+' : pendingRequestsCount }}
+              {{ petitionsStore.pendingCount > 99 ? '99+' : petitionsStore.pendingCount }}
             </span>
             </span>
             <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200 group-open/area:rotate-180"></i>
@@ -197,10 +197,10 @@
                 <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
                 {{ route.label }}
                 <span
-                  v-if="route.to === '/petitions' && pendingRequestsCount !== undefined && pendingRequestsCount > 0"
+                  v-if="route.to === '/petitions' && petitionsStore.pendingCount > 0"
                   class="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
                 >
-                  {{ pendingRequestsCount > 99 ? '99+' : pendingRequestsCount }}
+                  {{ petitionsStore.pendingCount > 99 ? '99+' : petitionsStore.pendingCount }}
                 </span>
               </router-link>
             </li>
@@ -311,15 +311,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref } from 'vue';
+import { defineComponent, computed, ref, onMounted } from 'vue';
 import router from '/src/router';
-import { useAuthStore } from '@/modules/identity/auth';
-import { useDashboardPreferences } from '@/modules/identity/account';
+import { useAuthStore } from '@stores/auth/auth.ts';
 import SwalService from '@services/swal/SwalService';
+import { getLatestPublicVersion } from '@services/versions/versions';
+import { getAllRequests } from '@services/requests/requests';
+import { getSuggestions } from '@services/suggestions/suggestions';
 import { useSupportStore } from '@stores/support/support';
-import { hasMinimumRole } from '@/modules/identity/shared';
-import type { UserRole } from '@/modules/identity/shared';
-import { useSidebarSummaryQuery } from '@/app/sidebarSummary';
+import { usePetitionsStore } from '@stores/petitions/petitions';
+import { hasMinimumRole } from '@helpers/roles';
+import type { UserRole } from '@interfaces/auth';
 import routesData from './routes.json';
 
 // Tipo actualizado con 'new-discs'
@@ -351,16 +353,10 @@ props: {
 emits: ['close-menu', 'toggle-theme'],
   setup(_, { emit }) {
     const authStore = useAuthStore();
-    const dashboardPreferencesStore = useDashboardPreferences();
     const supportStore = useSupportStore();
+    const petitionsStore = usePetitionsStore();
     const allRoutes = routesData as AppRoute[];
-    const sidebarSummary = useSidebarSummaryQuery();
-    const latestVersion = computed(() => sidebarSummary.data.value?.version.latest ?? null);
-    const pendingRequestsCount = computed(() => sidebarSummary.data.value?.petitions?.pending);
-    const unreadSuggestionsCount = computed(() => {
-      const ids = sidebarSummary.data.value?.suggestions?.inProgressIds;
-      return ids?.filter((id) => !supportStore.isRead(id)).length;
-    });
+    const latestVersion = ref<string | null>(null);
 
     const handleLogout = async () => {
       const logoutRequest = authStore.logout();
@@ -411,7 +407,7 @@ emits: ['close-menu', 'toggle-theme'],
     const canSeeRiffValleyArea = computed(() => hasMinimumRole(authStore.role, 'riffvalley'));
     const canSeeManagementArea = computed(() => hasMinimumRole(authStore.role, 'superadmin'));
     const showAreaSelector = computed(() => canSeeRiffValleyArea.value || canSeeManagementArea.value);
-    const showAllAreas = computed(() => !dashboardPreferencesStore.dashboardButtonsEnabled);
+    const showAllAreas = computed(() => !authStore.dashboardButtonsEnabled);
 
     // Nuevos Discos vive en la pestaña Gestión: el equipo editorial sin superadmin
     // solo verán ahí los discos nuevos (el resto de Gestión se filtra por rol).
@@ -457,6 +453,30 @@ emits: ['close-menu', 'toggle-theme'],
       selectedArea.value = id;
     };
 
+    // Fetch latest public version + badge counts
+    onMounted(async () => {
+      try {
+        const data = await getLatestPublicVersion();
+        if (data) latestVersion.value = data.version;
+      } catch {}
+
+      if (hasMinimumRole(authStore.role, 'riffvalley')) {
+        try {
+          const result = await getAllRequests();
+          const reqs: any[] = Array.isArray(result) ? result : ((result as any).data ?? []);
+          petitionsStore.setPendingCount(reqs.filter((r: any) => r.status === 'pending').length);
+        } catch {}
+      }
+
+      if (hasMinimumRole(authStore.role, 'superadmin')) {
+        try {
+          const result = await getSuggestions({ status: 'in_progress' });
+          const items: any[] = Array.isArray(result) ? result : ((result as any).data ?? []);
+          supportStore.setPendingIds(items.map((s: any) => s.id));
+        } catch {}
+      }
+    });
+
     // Computed version display with fallback
     const versionDisplay = computed(() => {
       return latestVersion.value ? `version ${latestVersion.value}` : 'version-';
@@ -465,8 +485,8 @@ emits: ['close-menu', 'toggle-theme'],
     return {
       handleLogout,
       closeMenu,
-      pendingRequestsCount,
-      unreadSuggestionsCount,
+      supportStore,
+      petitionsStore,
       logoutLabel: 'Cerrar sesión',
       filteredDiscAppRoutes,
       filteredNewDiscsRoutes,

@@ -2,8 +2,6 @@
 
 **Estado:** BC-ID-7.1 a BC-ID-7.6 completadas el 2026-10-22. La migración de App está publicada y validada en producción; el siguiente bloque es BC-ID-8 — Migración de Wiki.
 
-> **Lectura actual (FQ-6.5):** este roadmap conserva el contrato consultado, las decisiones y evidencias del rollout de App. El comportamiento vigente de sesión de App se resume en la [documentación canónica de Identity](../docs/frontend/modules/identity.md). App y Wiki mantienen sesiones independientes; la fase BC-ID-8 mencionada abajo es planificación histórica, no parte de FQ-6.5.
-
 **Objetivo:** registrar el cierre de la migración de sesión de App al protocolo `refresh-v1`, conservando el JWT de acceso solo en memoria y delegando la cookie HttpOnly al navegador.
 
 **Alcance:** frontend principal Vue 3 + TypeScript + Pinia + Vue Router. No incluye cambios en backend ni Wiki, despliegues, cambios de rutas/permisos ni modificaciones de `.impeccable/config.json`.
@@ -80,7 +78,7 @@ Las únicas llamadas de sesión frontend localizadas son `POST /auth/login` en `
 - **Depende de:** BC-ID-7.1; contrato verificable del backend disponible para frontend.
 - **Resultado:** `SessionAuthTransport` usa una instancia Axios separada sin interceptores legacy. Cada solicitud de sesión incluye `withCredentials: true`; bootstrap no añade `Content-Type`; POST envía JSON. Login obtiene bootstrap CSRF antes de negociar `refresh-v1`. Inicialmente Refresh mantenía CSRF en memoria y `sessionStorage`; el hotfix BC-ID-7.6 los comparte en `localStorage` por origen y migra los valores antiguos al cargarlos. El transporte los relee bajo Web Lock antes de refresh/logout; BroadcastChannel solo emite una notificación sin los valores. Las pruebas CSRF no son credenciales bearer. Refresh manda UUID v4 y body `{}`; logout usa CSRF de logout y exige 204. Los cuerpos se validan contra DTO y rol reconocidos. Errores se convierten a `SessionAuthError` con categorías/status y lectura best-effort de `Retry-After`; no se registran ni se almacenan password, access JWT o refresh token. El código no accede a `Set-Cookie`. No se modificó el servicio legacy, store, router, guards ni cliente HTTP común.
 - **Criterios de aceptación:** tipos sin campos inventados; llamadas a auth no filtran bearer; credenciales incluidas donde exige la cookie; no se lee/escribe token refresh desde JS; paths/métodos exactos; sin dependencia nueva. Cumplidos.
-- **Pruebas:** `yarn test src/modules/identity/api/sessionAuth.test.ts`: 8/8; `yarn test`: 16 archivos, 67 pruebas aprobadas; `yarn build`: aprobado; `git diff --check`: aprobado. Mocks Axios cubren bootstrap/login, refresh después de reconstruir el transporte (CSRF por pestaña), logout 204, headers, credenciales, ausencia de Bearer y access/refresh token en almacenamiento, UUID inválido, respuestas malformadas, errores 401/403/429/503 y ausencia de logs.
+- **Pruebas:** `yarn test src/services/auth/sessionAuth.test.ts`: 8/8; `yarn test`: 16 archivos, 67 pruebas aprobadas; `yarn build`: aprobado; `git diff --check`: aprobado. Mocks Axios cubren bootstrap/login, refresh después de reconstruir el transporte (CSRF por pestaña), logout 204, headers, credenciales, ausencia de Bearer y access/refresh token en almacenamiento, UUID inválido, respuestas malformadas, errores 401/403/429/503 y ausencia de logs.
 
 ### BC-ID-7.3 M — Estado de sesión en memoria y restauración inicial
 

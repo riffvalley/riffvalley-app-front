@@ -235,8 +235,8 @@ import {
   nextTick,
 } from "vue";
 import type { PropType } from "vue";
-import { useAuthStore } from "@/modules/identity/auth";
-import { hasMinimumRole } from "@/modules/identity/shared";
+import { useAuthStore } from "@stores/auth/auth";
+import { hasMinimumRole } from "@helpers/roles";
 import { updateDisc, deleteDisc } from "@services/discs/discs";
 import { createNationalReleaseFromDisc } from "@services/national-releases/nationalReleases";
 import { updateArtist, postArtist } from "@services/artist/artist";

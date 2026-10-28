@@ -181,8 +181,7 @@
 import axios from 'axios';
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { getRvUsers } from '@/modules/identity/users';
-import type { RvUser } from '@/modules/identity/users';
+import { getUsersRv, type RvUser } from '@services/auth/auth';
 import SwalService from '@services/swal/SwalService';
 import {
   getRiffValleyPlaylistFestivals,
@@ -202,8 +201,8 @@ import {
   type SpotifyConnection,
   type SyncedFestivalPlaylist,
 } from '@services/spotify/festivalPlaylists';
-import { useAuthStore } from '@/modules/identity/auth';
-import { hasMinimumRole } from '@/modules/identity/shared';
+import { useAuthStore } from '@stores/auth/auth';
+import { hasMinimumRole } from '@helpers/roles';
 import FestivalPlaylistManager from './components/FestivalPlaylistManager.vue';
 
 type ColumnId = RiffValleyPlaylistStatus;
@@ -295,7 +294,7 @@ async function reload() {
   try {
     const requests: [Promise<RiffValleyPlaylist[]>, Promise<RvUser[]>] = [
       getRiffValleyPlaylistFestivals(),
-      canManage.value ? getRvUsers() : Promise.resolve([]),
+      canManage.value ? getUsersRv() : Promise.resolve([]),
     ];
     const [festivals, rvUsers] = await Promise.all(requests);
     items.value = festivals;

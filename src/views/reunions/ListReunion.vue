@@ -181,7 +181,7 @@ import ReunionTable from "./components/ReunionTable.vue";
 import ReunionEditModal from "./components/ReunionEditModal.vue";
 import { getReunions } from "@services/reunions/reunions";
 import { createContent } from "@services/contents/contents";
-import { getRvUsers } from "@/modules/identity/users";
+import { getRvUsers } from "@services/users/users";
 import SwalService from "@services/swal/SwalService";
 
 export default {

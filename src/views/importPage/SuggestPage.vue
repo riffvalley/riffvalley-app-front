@@ -197,18 +197,15 @@
 
 <script lang="ts">
 import { defineComponent, ref, reactive, onMounted } from 'vue';
-import { useQueryClient } from '@tanstack/vue-query';
 import { createRequest, getMyRequests, type DiscRequest } from '@services/requests/requests';
 import { useCatalogStore } from '@stores/catalog/catalog';
 import SwalService from '@services/swal/SwalService';
 import SearchableSelect from '@components/SearchableSelect.vue';
-import { mutateAndInvalidateSidebarSummary } from '@/app/sidebarSummary';
 
 export default defineComponent({
   name: 'SuggestPage',
   components: { SearchableSelect },
   setup() {
-    const queryClient = useQueryClient();
     const catalogStore = useCatalogStore();
 
     const form = reactive({
@@ -263,7 +260,7 @@ export default defineComponent({
         if (form.genreId) dto.genreId = form.genreId;
         if (form.countryId) dto.countryId = form.countryId;
 
-        const newRequest = await mutateAndInvalidateSidebarSummary(queryClient, () => createRequest(dto));
+        const newRequest = await createRequest(dto);
         myRequests.value.unshift(newRequest);
         resetForm();
         SwalService.success('Petición enviada correctamente');

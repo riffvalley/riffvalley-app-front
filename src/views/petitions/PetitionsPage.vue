@@ -249,7 +249,6 @@ focus:outline-none focus:ring-2 focus:ring-rv-pink resize-none" />
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, reactive } from 'vue';
-import { useQueryClient } from '@tanstack/vue-query';
 import {
   getAllRequests,
   updateRequest,
@@ -259,10 +258,10 @@ import {
   type DiscRequest,
 } from '@services/requests/requests';
 import { useCatalogStore } from '@stores/catalog/catalog';
+import { usePetitionsStore } from '@stores/petitions/petitions';
 import SwalService from '@services/swal/SwalService';
 import SearchableSelect from '@components/SearchableSelect.vue';
 import { REJECT_REASONS } from '@helpers/rejectReasons';
-import { mutateAndInvalidateSidebarSummary } from '@/app/sidebarSummary';
 
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 
@@ -270,9 +269,13 @@ export default defineComponent({
   name: 'PetitionsPage',
   components: { SearchableSelect },
   setup() {
-    const queryClient = useQueryClient();
     const catalogStore = useCatalogStore();
+    const petitionsStore = usePetitionsStore();
     const requests = ref<DiscRequest[]>([]);
+
+    const syncPendingCount = () => {
+      petitionsStore.setPendingCount(requests.value.filter(r => r.status === 'pending').length);
+    };
     const loading = ref(false);
     const activeTab = ref<StatusFilter>('pending');
 
@@ -349,9 +352,10 @@ export default defineComponent({
     // --- Aprobar ---
     const handleApprove = async (req: DiscRequest) => {
       try {
-        await mutateAndInvalidateSidebarSummary(queryClient, () => approveRequest(req.id));
+        await approveRequest(req.id);
         const idx = requests.value.findIndex(r => r.id === req.id);
         if (idx !== -1) requests.value[idx] = { ...requests.value[idx], status: 'approved' };
+        syncPendingCount();
         SwalService.success('Petición aprobada y disco creado');
       } catch (error: any) {
         SwalService.error(error.response?.data?.message || 'Error al aprobar');
@@ -361,9 +365,10 @@ export default defineComponent({
     // --- Reabrir ---
     const handleReopen = async (req: DiscRequest) => {
       try {
-        const updated = await mutateAndInvalidateSidebarSummary(queryClient, () => reopenRequest(req.id));
+        const updated = await reopenRequest(req.id);
         const idx = requests.value.findIndex(r => r.id === req.id);
         if (idx !== -1) requests.value[idx] = updated;
+        syncPendingCount();
         SwalService.success('Petición reabierta');
       } catch (error: any) {
         SwalService.error(error.response?.data?.message || 'Error al reabrir');
@@ -394,11 +399,11 @@ export default defineComponent({
       }
       rejecting.value = true;
       try {
-        const updated = await mutateAndInvalidateSidebarSummary(queryClient, () =>
-          rejectRequest(rejectingRequest.value!.id, rejectNotes.value.trim()));
+        const updated = await rejectRequest(rejectingRequest.value!.id, rejectNotes.value.trim());
         const idx = requests.value.findIndex(r => r.id === updated.id);
         if (idx !== -1) requests.value[idx] = updated;
         rejectingRequest.value = null;
+        syncPendingCount();
         SwalService.success('Petición rechazada');
       } catch (error: any) {
         SwalService.error(error.response?.data?.message || 'Error al rechazar');
@@ -430,6 +435,7 @@ export default defineComponent({
       loading.value = true;
       try {
         requests.value = await getAllRequests();
+        syncPendingCount();
       } catch {
         SwalService.error('No se pudieron cargar las peticiones');
       } finally {

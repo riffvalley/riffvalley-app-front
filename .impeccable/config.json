@@ -23,24 +23,6 @@
         ],
         "createdAt": "2026-10-15T15:34:27.001Z",
         "reason": "User confirmed: keep the colored left border to distinguish news sources in the home feed"
-      },
-      {
-        "rule": "border-accent-on-rounded",
-        "value": "*",
-        "files": [
-          "src/modules/identity/views/UserStatisticsLayout.vue"
-        ],
-        "createdAt": "2026-10-24T16:28:20.707Z",
-        "reason": "Agent: the bottom border is the required selected-tab indicator; this element is a navigation tab, not a rounded card"
-      },
-      {
-        "rule": "side-tab",
-        "value": "*",
-        "files": [
-          "src/views/dashboard/components/AdventureModule.vue"
-        ],
-        "createdAt": "2026-10-27T12:19:24.515Z",
-        "reason": "User explicitly instructed in D-10d to keep the border-l-4 in AdventureModule.vue unchanged; this is a type-only task and the existing visual treatment is out of scope."
       }
     ]
   }

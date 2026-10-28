@@ -848,12 +848,12 @@ import {
   findSpotifyArtistCandidates,
 } from "@services/spotify/spotifyLookup";
 import axios from "axios";
-import { useAuthStore } from "@/modules/identity/auth";
+import { useAuthStore } from "@stores/auth/auth";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import DiscDetail from "@components/DiscDetail.vue";
 import DiscCardComponent from "@components/DiscCardComponent.vue";
 import Swal from "sweetalert2";
-import { hasMinimumRole } from "@/modules/identity/shared";
+import { hasMinimumRole } from "@helpers/roles";
 import {
   canNavigateToArtistPage,
   getArtistManagementPaginationState,

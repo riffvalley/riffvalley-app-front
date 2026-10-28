@@ -310,7 +310,6 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, watchEffect, watch, nextTick, onUnmounted, type PropType } from "vue";
-import { useQueryClient } from "@tanstack/vue-query";
 import { obtenerTrackMasPopularAlbum } from "@helpers/SpotifyFunctions";
 import defaultImage from "/src/assets/disco.png";
 import DiscDetail from "./DiscDetail.vue";
@@ -333,9 +332,8 @@ import {
 } from "@services/pendings/pendings";
 import Swal from "sweetalert2";
 import SwalService from "@services/swal/SwalService";
-import { useAuthStore } from "@/modules/identity/auth";
-import { hasMinimumRole } from "@/modules/identity/shared";
-import { mutateAndInvalidateDashboardSummary } from "@/app/dashboardSummary";
+import { useAuthStore } from "@stores/auth/auth";
+import { hasMinimumRole } from "@helpers/roles";
 
 interface Vote {
   id: string;
@@ -343,25 +341,12 @@ interface Vote {
     id: string;
     username: string;
   };
-  rate: number | string | null;
-  cover: number | string | null;
-}
-
-interface RatingSavedEvent {
-  discId: string;
-  action: "created" | "updated";
-  musicalRateChanged: boolean;
-  hasMusicalRate: boolean;
-  coverChanged: boolean;
+  rate: number;
+  cover: number;
 }
 
 export default defineComponent({
   components: { DiscDetail, ArtistDetail, ComentsModal, VotesModal, DiscCalendar }, // Add VotesModal
-  emits: {
-    "rating-saved": (payload: RatingSavedEvent) =>
-      typeof payload.discId === "string" &&
-      (payload.action === "created" || payload.action === "updated"),
-  },
   props: {
     id: { type: String, required: true },
     image: { type: String, required: true },
@@ -390,12 +375,9 @@ export default defineComponent({
     rateCount: { type: Number, required: false, default: null },
     debut: { type: Boolean, required: false, default: false },
   },
-  setup(props, { emit }) {
+  setup(props) {
     const authStore = useAuthStore();
-    const queryClient = useQueryClient();
     const localRating = ref({ rate: props.rate, cover: props.cover });
-    const savedMusicalRate = ref<number | null>(props.rate == null ? null : Number(props.rate));
-    const savedCoverRate = ref<number | null>(props.cover == null ? null : Number(props.cover));
     const showVotes = ref(false);
     const votes = ref<Vote[]>([]);
     const isEP = computed(() => props.ep);
@@ -590,9 +572,7 @@ export default defineComponent({
         if (!showVotes.value) return; // si se está cerrando, no pida nada
         votes.value = await getDiscRates(props.id);
         // Corregir el contador para contar solo votos a disco (rate > 0)
-        rateCount.value = new Set(
-          votes.value.filter((vote) => vote.rate !== null).map((vote) => vote.user.id),
-        ).size;
+        rateCount.value = votes.value.filter((v: any) => Number(v.rate) > 0).length;
       } catch (error) {
         console.error("Error fetching votes:", error);
         Swal.fire({
@@ -635,38 +615,18 @@ export default defineComponent({
         rate: Number(localRating.value.rate) || null,
         cover: Number(localRating.value.cover) || null,
       };
-      const musicalRateChanged = payload.rate !== savedMusicalRate.value;
-      const coverChanged = payload.cover !== savedCoverRate.value;
-      const action = hasVoted.value ? "updated" : "created";
       try {
         if (payload.rate === 0) payload.rate = null;
         if (payload.cover === 0) payload.cover = null;
         if (!hasVoted.value) {
-          const response = await mutateAndInvalidateDashboardSummary(
-            queryClient,
-            () => postRateService(payload),
-            musicalRateChanged,
-          );
+          const response = await postRateService(payload);
           userDiscRateId.value = response.id;
           hasVoted.value = true;
         } else {
-          await mutateAndInvalidateDashboardSummary(
-            queryClient,
-            () => updateRateService(userDiscRateId.value, payload),
-            musicalRateChanged,
-          );
+          await updateRateService(userDiscRateId.value, payload);
         }
-        savedMusicalRate.value = payload.rate;
-        savedCoverRate.value = payload.cover;
         hasVotedDisc.value = payload.rate !== null && payload.rate > 0;
         hasVotedCover.value = payload.cover !== null && payload.cover > 0;
-        emit("rating-saved", {
-          discId: props.id,
-          action,
-          musicalRateChanged,
-          hasMusicalRate: payload.rate !== null && payload.rate > 0,
-          coverChanged,
-        });
         if (payload.rate && payload.rate > 0)
           SwalService.successImage(payload.rate);
         else SwalService.success("Votación enviada con éxito");

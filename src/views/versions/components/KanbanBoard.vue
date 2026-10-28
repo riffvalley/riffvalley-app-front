@@ -198,7 +198,7 @@
 <script setup lang="ts">
 import { reactive, computed } from 'vue';
 import { Priority, type VersionItem, type CreateVersionItemDto } from '@services/versions/versions';
-import type { Superuser } from '@/modules/identity/users';
+import type { Superuser } from '@services/auth/auth';
 
 interface VersionForm {
   version: string;

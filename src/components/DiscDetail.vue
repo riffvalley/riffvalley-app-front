@@ -1,19 +1,17 @@
 <template>
   <div class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 px-4"
-       @click.self="close">
+       @click.self="$emit('close')">
 
-    <div ref="dialog" class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-2xl
+    <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-2xl
                 w-full max-w-2xl relative max-h-[88vh] overflow-y-auto
-                border border-gray-100 dark:border-white/10"
-         role="dialog" aria-modal="true" :aria-label="`Detalle del disco ${disc.name}`" tabindex="-1">
+                border border-gray-100 dark:border-white/10">
 
       <!-- Botón cerrar siempre visible -->
-      <button ref="closeButton" type="button" @click="close"
+      <button @click="$emit('close')"
         class="absolute top-4 right-4 z-20 text-white bg-rv-navy hover:bg-rv-pink
                rounded-full w-9 h-9 flex items-center justify-center shadow-md transition-all
-               border-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
-        aria-label="Cerrar detalle del disco">
-        <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
+               border-0 outline-none focus:outline-none ring-0 focus:ring-0">
+        <i class="fa-solid fa-xmark text-sm"></i>
       </button>
 
       <!-- ── Loading ─────────────────────────────────── -->
@@ -126,7 +124,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
+import { defineComponent, ref, onMounted, computed } from "vue";
 import {
   getSpotifyAlbumDetails,
   resolveSpotifyAlbum,
@@ -141,49 +139,11 @@ export default defineComponent({
       required: true,
     },
   },
-  setup(props, { emit }) {
-    const dialog = ref<HTMLElement | null>(null);
-    const closeButton = ref<HTMLButtonElement | null>(null);
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const priorOverflow = document.body.style.overflow;
+  setup(props) {
     const album = ref<any>(null);
     const tracks = ref<any[]>([]);
     const loading = ref<boolean>(true);
     const error = ref<string>("");
-
-    const close = () => emit("close");
-
-    const onKeydown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        close();
-        return;
-      }
-      if (event.key !== "Tab" || !dialog.value) return;
-
-      const focusable = [...dialog.value.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), a[href], audio[controls], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      )].filter((element) => element.tabIndex >= 0 && !element.hasAttribute("hidden"));
-      if (!focusable.length) {
-        event.preventDefault();
-        dialog.value.focus();
-        return;
-      }
-
-      const first = focusable[0]!;
-      const last = focusable[focusable.length - 1]!;
-      if (!dialog.value.contains(document.activeElement)) {
-        event.preventDefault();
-        (event.shiftKey ? last : first).focus();
-      } else if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
 
     // Busca el álbum en Spotify
     const searchAlbum = async () => {
@@ -248,16 +208,7 @@ export default defineComponent({
     });
 
     onMounted(() => {
-      document.body.style.overflow = "hidden";
-      dialog.value?.addEventListener("keydown", onKeydown);
-      void nextTick(() => closeButton.value?.focus());
       searchAlbum();
-    });
-
-    onBeforeUnmount(() => {
-      dialog.value?.removeEventListener("keydown", onKeydown);
-      document.body.style.overflow = priorOverflow;
-      if (opener?.isConnected) void nextTick(() => opener.focus());
     });
 
     return {
@@ -267,9 +218,6 @@ export default defineComponent({
       error,
       formatDuration,
       totalDurationFormatted,
-      dialog,
-      closeButton,
-      close,
     };
   },
 });

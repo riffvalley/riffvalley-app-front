@@ -2,23 +2,23 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
-import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 
 const { logout, errorNotification } = vi.hoisted(() => ({
   logout: vi.fn(),
   errorNotification: vi.fn(),
 }));
 
-vi.mock("@/modules/identity/auth/api/sessionAuth", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/modules/identity/auth/api/sessionAuth")>();
+vi.mock("@services/auth/sessionAuth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@services/auth/sessionAuth")>();
   return { ...actual, sessionAuthTransport: { logout, login: vi.fn(), refresh: vi.fn() } };
 });
 vi.mock("@services/swal/SwalService", () => ({ default: { error: errorNotification } }));
-const { getSidebarSummary } = vi.hoisted(() => ({ getSidebarSummary: vi.fn() }));
-vi.mock("@services/api/api", () => ({ default: { get: getSidebarSummary } }));
+vi.mock("@services/versions/versions", () => ({ getLatestPublicVersion: vi.fn() }));
+vi.mock("@services/requests/requests", () => ({ getAllRequests: vi.fn() }));
+vi.mock("@services/suggestions/suggestions", () => ({ getSuggestions: vi.fn() }));
 
-import { useAuthStore } from "@/modules/identity/auth";
-import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
+import { useAuthStore } from "@stores/auth/auth";
+import { SessionAuthError } from "@services/auth/sessionAuth";
 import router from "/src/router";
 import SidebarMenu from "./SidebarMenu.vue";
 
@@ -27,7 +27,6 @@ describe("SidebarMenu renewable logout", () => {
     setActivePinia(createPinia());
     logout.mockReset();
     errorNotification.mockReset();
-    getSidebarSummary.mockReset().mockResolvedValue({ data: { version: { latest: "1.8.4" } } });
     useAuthStore().$patch({
       token: "access-token",
       username: "Mara",
@@ -47,10 +46,9 @@ describe("SidebarMenu renewable logout", () => {
     let finishLogout!: (error: SessionAuthError) => void;
     logout.mockReturnValue(new Promise((_resolve, reject) => { finishLogout = reject; }));
     const replace = vi.spyOn(router, "replace").mockResolvedValue(undefined);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const wrapper = mount(SidebarMenu, {
       props: { menuVisible: true, isDark: false },
-      global: { plugins: [router, [VueQueryPlugin, { queryClient }]] },
+      global: { plugins: [router] },
     });
 
     const pendingLogout = wrapper.vm.handleLogout();
@@ -70,10 +68,9 @@ describe("SidebarMenu renewable logout", () => {
   it("does not show a revocation warning after confirmed logout", async () => {
     logout.mockResolvedValue({ revocation: "confirmed" });
     vi.spyOn(router, "replace").mockResolvedValue(undefined);
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const wrapper = mount(SidebarMenu, {
       props: { menuVisible: true, isDark: false },
-      global: { plugins: [router, [VueQueryPlugin, { queryClient }]] },
+      global: { plugins: [router] },
     });
 
     await wrapper.vm.handleLogout();

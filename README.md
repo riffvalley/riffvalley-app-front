@@ -1,35 +1,47 @@
-# 🎵 Riff Valley App — frontend
+# 🎵 Spam Music Front
 
-Entrada para instalar y arrancar el frontend. La documentación vigente está en el [índice del frontend](docs/frontend/index.md); la planificación y el historial se mantienen en [`roadmap.md`](roadmap.md).
+## OAuth de Spotify para playlists de festivales
 
-## Requisitos
+El callback del backend debe volver a la vista de festivales. En producción se configura en el backend (no como variable `VITE_`) con:
 
-- Node.js **24.22.1**, fijado en `.nvmrc`.
-- pnpm **11.28.8**, seleccionado por Corepack desde `package.json`.
-
-## Instalación y desarrollo
-
-Desde la raíz del repositorio:
-
-```sh
-nvm use 24.22.1
-corepack enable
-pnpm install --frozen-lockfile
-pnpm dev
+```text
+SPOTIFY_FRONTEND_REDIRECT_URL=https://app.riffvalley.es/riff-valley-playlists/festivales
 ```
 
-Vite suele servir la app en `http://localhost:5173/`.
+La gestión de playlists usa exclusivamente OAuth a través del backend. No deben añadirse secretos de Spotify al bundle del frontend.
 
-La app necesita `VITE_API_BASE_URL` para comunicarse con el backend. `VITE_MAINTENANCE_MODE=true` activa la vista de mantenimiento; déjalo sin definir o en `false` para el uso normal. Los valores dependen del entorno; solicita la URL correspondiente al equipo.
+## 📋 Requisitos
 
-## Comandos principales
+- **Node.js ≥ 20**  
+  Se recomienda instalarlo con [nvm](https://github.com/nvm-sh/nvm) o [nvm-windows](https://github.com/coreybutler/nvm-windows).  
+- **Yarn (v4 o superior)**  
+  Viene incluido con `corepack` en Node.js.
 
-- `pnpm run typecheck` — comprueba tipos de TypeScript y Vue.
-- `pnpm test` — ejecuta Vitest.
-- `pnpm build` — comprueba tipos y genera `dist/`.
-- `pnpm preview` — sirve localmente la build generada.
+---
 
-Consulta [Convenciones del frontend](docs/frontend/conventions.md) para lint, formato, controles de arquitectura, enlaces y hooks. Las reglas vigentes están en [Arquitectura](docs/frontend/architecture.md) y los contratos de Identity en su [guía de módulo](docs/frontend/modules/identity.md). Las instrucciones operativas para agentes están en [AGENTS.md](AGENTS.md). Claude Code puede no leerlo automáticamente; si se utiliza, indícale expresamente que lo lea antes de trabajar.
+
+## 🚀 Instalación
+
+Clona el repositorio y en la raíz del proyecto ejecuta:
+
+```bash
+corepack enable
+yarn install --immutable
+```
+
+Esto instalará todas las dependencias usando el `yarn.lock` incluido en el proyecto.
+
+---
+
+## 🛠️ Desarrollo
+
+Para iniciar el servidor de desarrollo:
+
+```bash
+yarn dev
+```
+
+Por defecto estará disponible en `http://localhost:5173/`.
 
 ### API de producción desde el entorno local
 
@@ -39,25 +51,25 @@ ignorado por Git:
 
 ```bash
 cp .env.example .env.development.local
-pnpm dev
+yarn dev
 ```
 
 La configuración usa `VITE_API_BASE_URL=/api` y `API_PROXY_TARGET` con el
 origen HTTPS de la API aprobada. Vite reenvía solo `/api`, `/api/...` y `/api?...`
-durante `pnpm dev`; mantiene el prefijo y las cabeceras de autenticación, CSRF
+durante `yarn dev`; mantiene el prefijo y las cabeceras de autenticación, CSRF
 y operación de refresh. Sobrescribe `Origin` con el HTTPS exacto de Riff Valley App para
 `refresh-v1`. Pasa `Set-Cookie` sin reescribirlo; el navegador guarda la cookie
 host-only bajo `localhost`, aislada de la cookie del API publicada. El
 navegador sigue comunicándose solo con `localhost`. El proxy no se incluye en
-`pnpm build`. Si cambia el host de la API, actualiza `API_PROXY_TARGET` en
+`yarn build`. Si cambia el host de la API, actualiza `API_PROXY_TARGET` en
 `.env.development.local`; los destinos nuevos deben añadirse a la allowlist de
 `vite.config.ts` tras verificarlos.
 
 Requisitos y límites:
 
-- Node.js 24 y pnpm 11, como en el resto del proyecto. No hace falta
+- Node.js 20 o superior y Yarn 4, como en el resto del proyecto. No hace falta
   instalar ni arrancar NestJS, PostgreSQL o integraciones externas localmente.
-- La primera ejecución requiere `pnpm install --frozen-lockfile` si aún no están
+- La primera ejecución requiere `yarn install --immutable` si aún no están
   instaladas las dependencias.
 - El backend debe tener desplegado el contrato `refresh-v1` y su feature gate
   configurado para App. La configuración local no altera CORS ni habilita ese
@@ -93,19 +105,31 @@ Sin `API_PROXY_TARGET`, Vite no crea el proxy. Solo se aceptan destinos HTTPS
 de la allowlist. Para usar otro API, añade primero su origen verificado a esa
 allowlist y luego configura la variable, manteniendo `VITE_API_BASE_URL=/api`.
 
-## Spotify para playlists de festivales
+---
 
-El callback se configura en el backend, no como variable `VITE_`:
+## 🏗️ Build de producción
 
-```text
-SPOTIFY_FRONTEND_REDIRECT_URL=https://app.riffvalley.es/riff-valley-playlists/festivales
+Genera la build optimizada en la carpeta `dist/`:
+
+```bash
+yarn build
 ```
 
-La app usa OAuth a través del backend; no incluyas secretos de Spotify en el bundle frontend.
+---
 
-## Convenciones de commits
+## 👀 Vista previa de la build
 
-Este proyecto usa [Conventional Commits](https://www.conventionalcommits.org).
+Para probar localmente el resultado de la build:
+
+```bash
+yarn preview
+```
+
+---
+
+## ✍️ Convenciones de commits
+
+Este proyecto usa [Conventional Commits](https://www.conventionalcommits.org).  
 Todos los commits deben seguir este formato:
 
 ```
@@ -113,32 +137,27 @@ Todos los commits deben seguir este formato:
 ```
 
 ### Tipos permitidos
-
-- **feat** → nueva funcionalidad
-- **fix** → corrección de bug
-- **docs** → cambios en documentación
-- **style** → cambios de formato (espacios, comas, etc., sin afectar la lógica)
-- **refactor** → cambios en el código que no corrigen errores ni añaden funcionalidades
-- **perf** → mejoras de rendimiento
-- **test** → añadir o modificar tests
-- **build** → cambios en el sistema de build o dependencias
-- **ci** → cambios en la configuración de CI
-- **chore** → mantenimiento general, sin afectar código de producción
-- **revert** → revertir un commit previo
+- **feat** → nueva funcionalidad  
+- **fix** → corrección de bug  
+- **docs** → cambios en documentación  
+- **style** → cambios de formato (espacios, comas, etc., sin afectar la lógica)  
+- **refactor** → cambios en el código que no corrigen errores ni añaden funcionalidades  
+- **perf** → mejoras de rendimiento  
+- **test** → añadir o modificar tests  
+- **build** → cambios en el sistema de build o dependencias  
+- **ci** → cambios en la configuración de CI  
+- **chore** → mantenimiento general, sin afectar código de producción  
+- **revert** → revertir un commit previo  
 
 ### Ejemplos
-
 ```bash
 feat(auth): añade login con Google
 fix(ui): corrige padding en el header
 docs(readme): añade guía de instalación
 refactor(api): simplifica validación de usuarios
 ```
-
 -
-
 ### Breaking Changes
-
 Si un cambio rompe compatibilidad, márcalo de una de estas formas:
 
 ```bash

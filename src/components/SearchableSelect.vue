@@ -1,38 +1,28 @@
 <template>
   <div class="main_wrapper" ref="wrapperEl">
     <!-- Trigger -->
-    <button
-      type="button"
-      @click="toggleSearchbox"
-      @keydown.down.prevent="openSearchbox"
-      class="search_input_trigger"
-      ref="triggerEl"
-      aria-haspopup="listbox"
-      :aria-expanded="showSearchbox"
-    >
-      <p
-        :class="{
-          'text-gray-400 font-normal': !selectedText,
-          'text-rv-navy font-semibold': !!selectedText,
-        }"
-      >
+    <div @click="toggleSearchbox" class="search_input_trigger" ref="triggerEl">
+<p
+  :class="{
+    'text-gray-400 font-normal': !selectedText,
+    'text-rv-navy font-semibold': !!selectedText
+  }"
+>
         {{ selectedText || triggerPlaceholder }}
       </p>
       <i class="fas fa-chevron-down"></i>
-    </button>
+    </div>
 
     <!-- ===== Menú con TELEPORT (recomendado) ===== -->
     <teleport v-if="useTeleport" to="body">
       <div
         v-if="showSearchbox"
         class="teleport-overlay fixed inset-0"
-        role="presentation"
         :style="{ zIndex: String(menuZIndex) }"
         @click.self="closeAll"
       >
         <div
           class="searchable__select absolute"
-          role="presentation"
           :style="menuStyle"
           ref="menuEl"
           @keydown.esc.prevent.stop="closeAll"
@@ -49,39 +39,25 @@
               class="search__input"
               type="text"
               :placeholder="placeholder"
-              :aria-label="placeholder || triggerPlaceholder"
-              :aria-controls="listboxId"
-              :aria-activedescendant="showDropdown ? optionId(activeIndex) : undefined"
               ref="searchInput"
             />
             <div v-if="loading" class="absolute right-0 top-0">
-              <i class="fas fa-spinner fa-spin" style="width: 40px; height: 40px"></i>
+              <i class="fas fa-spinner fa-spin" style="width:40px; height:40px;"></i>
             </div>
           </div>
 
           <!-- Lista -->
-          <ul
-            v-if="showDropdown"
-            :id="listboxId"
-            class="search__results"
-            ref="dropdownList"
-            role="listbox"
-          >
+          <ul v-if="showDropdown" class="search__results" ref="dropdownList">
             <li
               v-for="(option, i) in filteredOptions"
               :key="i"
               @click="onSelectOption($event, i)"
-              @keydown.enter.prevent="onSelectOption($event, i)"
-              @keydown.space.prevent="onSelectOption($event, i)"
               ref="optionRefs"
               :class="{
                 'bg-gray-300 text-gray-900': option[title] === allLabel,
-                active: option[title] !== allLabel && option[trackby] === modelValue,
+                'active':
+                  option[title] !== allLabel && option[trackby] === modelValue
               }"
-              role="option"
-              :id="optionId(i)"
-              tabindex="-1"
-              :aria-selected="option[trackby] === modelValue"
             >
               {{ getOptionTitle(option) }}
             </li>
@@ -110,38 +86,24 @@
           class="search__input"
           type="text"
           :placeholder="placeholder"
-          :aria-label="placeholder || triggerPlaceholder"
-          :aria-controls="listboxId"
-          :aria-activedescendant="showDropdown ? optionId(activeIndex) : undefined"
           ref="searchInput"
         />
         <div v-if="loading" class="absolute right-0 top-0">
-          <i class="fas fa-spinner fa-spin" style="width: 40px; height: 40px"></i>
+          <i class="fas fa-spinner fa-spin" style="width:40px; height:40px;"></i>
         </div>
       </div>
 
-      <ul
-        v-if="showDropdown"
-        :id="listboxId"
-        class="search__results"
-        ref="dropdownList"
-        role="listbox"
-      >
+      <ul v-if="showDropdown" class="search__results" ref="dropdownList">
         <li
           v-for="(option, i) in filteredOptions"
           :key="i"
           @click="onSelectOption($event, i)"
-          @keydown.enter.prevent="onSelectOption($event, i)"
-          @keydown.space.prevent="onSelectOption($event, i)"
           ref="optionRefs"
           :class="{
             'bg-gray-300 text-gray-900': option[title] === allLabel,
-            active: option[title] !== allLabel && option[trackby] === modelValue,
+            'active':
+              option[title] !== allLabel && option[trackby] === modelValue
           }"
-          role="option"
-          :id="optionId(i)"
-          tabindex="-1"
-          :aria-selected="option[trackby] === modelValue"
         >
           {{ getOptionTitle(option) }}
         </li>
@@ -159,7 +121,6 @@ import {
   onMounted,
   onUnmounted,
   nextTick,
-  useId,
   watch,
 } from "vue";
 
@@ -200,7 +161,6 @@ export default {
     const searchInput = ref(null);
     const dropdownList = ref(null);
     const optionRefs = ref([]);
-    const listboxId = `searchable-select-${useId()}`;
 
     const menuStyle = ref({
       left: "0px",
@@ -232,9 +192,13 @@ export default {
         return;
       }
       const found = props.options.find((opt) =>
-        typeof opt === "object" ? opt[props.trackby] === props.modelValue : opt === props.modelValue
+        typeof opt === "object"
+          ? opt[props.trackby] === props.modelValue
+          : opt === props.modelValue
       );
-      if (found) data.selectedText = typeof found === "object" ? found[props.title] : String(found);
+      if (found)
+        data.selectedText =
+          typeof found === "object" ? found[props.title] : String(found);
     }
 
     /* Posicionar el menú bajo el trigger (coordenadas viewport) */
@@ -250,24 +214,15 @@ export default {
       };
     }
 
-    function openSearchbox() {
-      if (data.showSearchbox) return;
-      data.showSearchbox = true;
+    function toggleSearchbox() {
+      data.showSearchbox = !data.showSearchbox;
       nextTick(() => {
         if (data.showSearchbox) {
           positionMenu();
-          if (searchInput.value) searchInput.value.focus();
+          searchInput.value && searchInput.value.focus();
           toggleDropdown();
         }
       });
-    }
-
-    function toggleSearchbox() {
-      if (data.showSearchbox) {
-        closeAll();
-        return;
-      }
-      openSearchbox();
     }
 
     function toggleDropdown() {
@@ -298,13 +253,15 @@ export default {
     }
 
     function onArrowDown() {
-      data.activeIndex = (data.activeIndex + 1) % filteredOptions.value.length;
+      data.activeIndex =
+        (data.activeIndex + 1) % filteredOptions.value.length;
       ensureActiveVisible();
     }
 
     function onArrowUp() {
       data.activeIndex =
-        (data.activeIndex - 1 + filteredOptions.value.length) % filteredOptions.value.length;
+        (data.activeIndex - 1 + filteredOptions.value.length) %
+        filteredOptions.value.length;
       ensureActiveVisible();
     }
 
@@ -334,7 +291,8 @@ export default {
         if (dropdownList.value && selectedIndex !== -1) {
           const el = optionRefs.value[selectedIndex];
           if (el) {
-            dropdownList.value.scrollTop = el.offsetTop - dropdownList.value.offsetTop;
+            dropdownList.value.scrollTop =
+              el.offsetTop - dropdownList.value.offsetTop;
           }
         }
       });
@@ -355,10 +313,6 @@ export default {
 
     function getOptionTitle(option) {
       return typeof option === "object" ? option[props.title] : String(option);
-    }
-
-    function optionId(index) {
-      return `${listboxId}-option-${index}`;
     }
 
     /* Listeners de ventana para reposicionar mientras está abierto */
@@ -399,15 +353,12 @@ export default {
       optionRefs,
       filteredOptions,
       getOptionTitle,
-      listboxId,
-      optionId,
       onInput,
       onFocus,
       onArrowDown,
       onArrowUp,
       onSelectOption,
       toggleSearchbox,
-      openSearchbox,
       closeAll,
       menuStyle,
     };
@@ -430,15 +381,14 @@ export default {
   line-height: 2.5rem;
 
   padding: 0 1rem;
-  padding-right: 0.75rem;
+  padding-right: .75rem;
 
   border-radius: 9999px;
-  border: 1px solid rgb(229 231 235);
+  border: 1px solid rgb(229 231 235); 
   background: #ffffff;
 
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.08),
-    0 1px 2px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08),
+              0 1px 2px rgba(0, 0, 0, .06);
 
   cursor: pointer;
   outline: none;
@@ -453,32 +403,31 @@ export default {
   outline: none;
   border-color: #e46e8a;
   box-shadow:
-    0 0 0 2px rgba(228, 110, 138, 0.25),
-    0 1px 3px rgba(0, 0, 0, 0.08);
+    0 0 0 2px rgba(228, 110, 138, .25),
+    0 1px 3px rgba(0, 0, 0, .08);
 }
 
 .search_input_trigger i {
   color: #9ca3af;
-  font-size: 0.9rem;
+  font-size: .9rem;
 }
 
 .searchable__select {
   background-color: #ffffff;
   border: 1px solid #e5e7eb;
   border-radius: 0.75rem;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    0 2px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0,0,0,.08),
+              0 2px 4px rgba(0,0,0,.06);
 
   overflow: hidden;
 }
 
 .search__input {
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  padding: .5rem .75rem;
   border: 0;
   outline: none;
-  font-size: 0.875rem;
+  font-size: .875rem;
   color: var(--rv-navy, #11274a);
 }
 
@@ -496,7 +445,7 @@ export default {
 }
 
 .search__results li {
-  padding: 0.5rem 0.75rem;
+  padding: .5rem .75rem;
   cursor: pointer;
   text-align: left;
   color: #111827;

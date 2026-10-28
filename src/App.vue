@@ -17,19 +17,14 @@
       </div>
 
       <h1 class="text-2xl font-bold leading-tight text-rv-navy dark:text-white sm:text-3xl">
-        {{ authStore.authInitializationError === 'coordination-unavailable'
-          ? 'Este navegador no permite renovar tu sesión'
-          : 'No hemos podido recuperar tu sesión' }}
+        No hemos podido recuperar tu sesión
       </h1>
       <p class="mx-auto mt-4 max-w-prose text-base leading-relaxed text-gray-600 dark:text-gray-300">
-        {{ authStore.authInitializationError === 'coordination-unavailable'
-          ? 'La renovación automática requiere Web Locks para coordinar las pestañas. Accede con contraseña o abre la aplicación en un navegador compatible.'
-          : 'No hemos podido conectar con el servicio de autenticación. Tu sesión podría seguir activa.' }}
+        No hemos podido conectar con el servicio de autenticación. Tu sesión podría seguir activa.
       </p>
 
       <div class="mt-8 flex flex-col items-center gap-4">
         <button
-          v-if="authStore.authInitializationError !== 'coordination-unavailable'"
           class="!min-h-12 !w-full !max-w-xs !gap-2 !rounded-xl !border-rv-pink !bg-rv-pink !px-6 !py-3 !font-semibold !text-rv-navy transition-colors hover:!bg-rv-pink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rv-purple disabled:!cursor-not-allowed disabled:!opacity-60"
           type="button"
           :disabled="retrying"
@@ -63,6 +58,15 @@
     </section>
   </main>
   <div v-else-if="authReady" id="app-container">
+
+    <!-- FONDO OSCURO SOLO CUANDO EL MENÚ ESTÁ ABIERTO -->
+    <div v-if="menuVisible && !isLoginPage" class="fixed inset-0 bg-black bg-opacity-50 z-10"
+      @click="closeMenuHandler" />
+
+    <!-- Sidebar (por encima del overlay) -->
+    <SidebarMenu v-if="!isLoginPage" :menuVisible="menuVisible" @close-menu="closeMenuHandler" class="z-20" />
+
+    <!-- Layout logic -->
     <component :is="layoutComponent">
       <router-view />
     </component>
@@ -74,12 +78,17 @@ import { defineComponent, ref, computed, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import DefaultLayout from "./layouts/default/DefaultLayout.vue";
 import LoginLayout from "./layouts/auth/LoginLayout.vue";
+import SidebarMenu from "@/layouts/default/components/SidebarMenu.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";
-import { useAuthStore } from "@/modules/identity/auth";
+import { useAuthStore } from "@stores/auth/auth";
 
 export default defineComponent({
   name: "App",
+  components: {
+    SidebarMenu,
+  },
   setup() {
+    const menuVisible = ref(false);
     const route = useRoute();
     const router = useRouter();
     const catalogStore = useCatalogStore();
@@ -109,12 +118,50 @@ export default defineComponent({
       (authStore.authStatus === "error" && route.name === "Login"),
     );
 
+    const closeMenuHandler = () => {
+      menuVisible.value = false;
+    };
+
+    // Detectar si estamos en la página de login o mantenimiento (para ocultar sidebar)
+    const isLoginPage = computed(() => ["Login", "Maintenance", "NationalReleasePublic"].includes(route.name as string));
+
+    watch(route, () => {
+      menuVisible.value = false;
+    });
+
+    let scrollY = 0;
+
+    watch(menuVisible, (visible) => {
+      const body = document.body;
+
+      if (visible) {
+        scrollY = window.scrollY;
+
+        body.style.position = "fixed";
+        body.style.top = `-${scrollY}px`;
+        body.style.left = "0";
+        body.style.right = "0";
+        body.style.width = "100%";
+      } else {
+        body.style.position = "";
+        body.style.top = "";
+        body.style.left = "";
+        body.style.right = "";
+        body.style.width = "";
+
+        window.scrollTo(0, scrollY);
+      }
+    });
+
     return {
+      menuVisible,
       authStore,
       authReady,
       route,
       retrying,
       retryAuthInitialization,
+      closeMenuHandler,
+      isLoginPage, // ✅ Nueva variable reactiva para detectar login
       layoutComponent: computed(() => {
         return ["Login", "Maintenance", "NationalReleasePublic"].includes(route.name as string) ? LoginLayout : DefaultLayout;
       }),

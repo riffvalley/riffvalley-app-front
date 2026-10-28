@@ -28,7 +28,7 @@
         </h2>
 
         <!-- Estadísticas -->
-        <div v-if="stats" class="text-center">
+        <div class="text-center">
 <h3 class="text-lg sm:text-xl font-bold text-rv-navy dark:text-white mb-3">
             Estadísticas de discos
           </h3>
@@ -47,9 +47,6 @@
             <RatingBarChart :rating-distribution="ratingDistribution" />
           </div>
         </div>
-        <p v-else class="text-sm text-gray-700 dark:text-gray-300" role="status">
-          Las estadísticas detalladas estarán disponibles en una próxima actualización.
-        </p>
       </div>
     </div>
   </Teleport>
@@ -59,10 +56,10 @@
 import RatingBarChart from '@views/homePage/components/RatingBarChar.vue';
 
 interface Props {
-  stats: { totalDiscs: number; totalVotes: number } | null;
-  ratingDistribution?: Array<{ rate: number; count: number }>;
+  stats: { totalDiscs: number; totalVotes: number };
+  ratingDistribution: Array<{ rate: number; count: number }>;
 }
 
-withDefaults(defineProps<Props>(), { ratingDistribution: () => [] });
+defineProps<Props>();
 defineEmits<{ close: [] }>();
 </script>

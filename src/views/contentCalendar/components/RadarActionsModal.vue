@@ -179,7 +179,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
-import type { RvUser } from '@/modules/identity/users';
+import type { RvUser } from '@services/auth/auth';
 
 interface RadarDetails {
     listDate: string;
