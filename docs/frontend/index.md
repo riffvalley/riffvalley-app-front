@@ -12,6 +12,7 @@ El índice y el README son las entradas generales del frontend; arquitectura, co
 - [Calidad frontend](../../roadmap/frontend-quality.md): registro de auditoría y diseño de FQ; conserva los criterios acordados y el progreso de la migración documental.
 - [Arquitectura frontend](architecture.md): límites y reglas vigentes; la planificación original se conserva en su roadmap histórico.
 - [Convenciones frontend](conventions.md): requisitos, comandos, controles, hooks y límites de validación vigentes.
+- [Sistema de diseño](../design-system.md): guía canónica de estilos para desarrollos actuales y futuros; el [roadmap de Dashboard](../../roadmap/dashboard.md) registra la auditoría y las correcciones aceptadas. Dashboard está cerrado; DS-4e–DS-4j se descartaron y DS-5 se canceló por decisión del usuario.
 - [Módulo Identity](modules/identity.md): ownership, exports públicos, sesión, permisos y dependencias vigentes.
 - [Roadmap histórico de arquitectura](../../roadmap/frontend-architecture.md): análisis, decisiones y planificación de iteraciones, conservados para trazabilidad.
 - [Estructura histórica de Identity](../../roadmap/identity-structure.md): inventario y reorganización conservados; la estructura y los contratos vigentes están en la página canónica del módulo.
@@ -25,6 +26,7 @@ Los roadmaps conservan su propósito histórico y de planificación. Una afirmac
 
 - **Arquitectura y límites vigentes:** [docs/frontend/architecture.md](architecture.md) — publicada.
 - **Comandos y convenciones:** [docs/frontend/conventions.md](conventions.md) — publicada.
+- **Sistema visual y compatibilidad de temas:** [docs/design-system.md](../design-system.md) — publicada tras DS-2; la nomenclatura de tokens semánticos sigue siendo propuesta y no está implementada.
 - **Ownership y contratos de Identity:** [docs/frontend/modules/identity.md](modules/identity.md) — publicada.
 - **Decisiones arquitectónicas duraderas:** `docs/frontend/adr/` — se habilitará solo cuando exista un ADR real; todavía no hay ADR publicado.
 - **Planificación e historial:** `roadmap/` — disponible; cada iniciativa mantiene su registro en su roadmap.

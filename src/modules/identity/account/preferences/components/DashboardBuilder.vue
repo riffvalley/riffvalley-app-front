@@ -342,7 +342,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from "vue";
-import { useDashboardConfig, type DashboardModule } from "@/composables/useDashboardConfig";
+import { useDashboardConfig } from "@/composables/useDashboardConfig";
+import type { DashboardModule } from "@/app/dashboardWidgetRegistry";
 import ModuleCard from "./ModuleCard.vue";
 
 const desktop = useDashboardConfig("desktop");

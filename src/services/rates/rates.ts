@@ -70,6 +70,66 @@ export interface GetUserHistoryParams {
   transform?: boolean;
 }
 
+export interface RatesDashboardPeriodDto {
+  start: string;
+  endExclusive: string;
+  timezone: "Europe/Madrid";
+}
+
+export interface RatesDashboardGenreDto {
+  id: string;
+  name: string;
+  activeRates: number;
+}
+
+export interface RatesDashboardDiscDto {
+  rateId: string;
+  discId: string;
+  discName: string;
+  artist: { id: string; name: string } | null;
+  coverImage: string | null;
+  rate: number;
+}
+
+export interface RatesDashboardRecentRateDto {
+  id: string;
+  discId: string;
+  discName: string;
+  artist: { id: string; name: string } | null;
+  coverImage: string | null;
+  rate: number | null;
+  cover: number | null;
+  lastActivityAt: string;
+}
+
+export interface RatesDashboardSummaryDto {
+  period: RatesDashboardPeriodDto;
+  metrics: {
+    activeRates: number;
+    averageMusicalRate: number | null;
+    distinctGenres: number;
+    bestRatedDisc: RatesDashboardDiscDto | null;
+    dominantGenre: RatesDashboardGenreDto | null;
+    weekOverWeek: {
+      currentRates: number;
+      previousRates: number;
+      difference: number;
+      percentageChange: number | null;
+    };
+  };
+  recentRates: RatesDashboardRecentRateDto[];
+}
+
+export async function getRatesDashboardSummary(
+  signal?: AbortSignal,
+): Promise<RatesDashboardSummaryDto> {
+  const response = await api.get<RatesDashboardSummaryDto>(
+    "/rates/dashboard-summary",
+    { signal },
+  );
+  return response.data;
+}
+
 /** Util: formatea Date a 'YYYY-MM-DD' */
 const toYMD = (d: Date) => {
   const y = d.getFullYear();
@@ -234,6 +294,45 @@ export interface RatesStatsResponse {
   yearOverYear: YearOverYear;
 }
 
+export interface RatesGeographyCountryDto {
+  isoCode: string;
+  name: string;
+  count: number;
+  percentage: number;
+}
+
+export interface RatesGeographyTopResponseDto {
+  countries: RatesGeographyCountryDto[];
+}
+
+export interface RatesGeographyWorldResponseDto {
+  totalRatedDiscs: number;
+  mappedDiscs: number;
+  unmappedDiscs: number;
+  countryCount: number;
+  countries: RatesGeographyCountryDto[];
+}
+
+export async function getRatesGeographyWorld(
+  signal?: AbortSignal,
+): Promise<RatesGeographyWorldResponseDto> {
+  const response = await api.get<RatesGeographyWorldResponseDto>(
+    "/rates/geography/world",
+    { signal },
+  );
+  return response.data;
+}
+
+export async function getRatesGeographyTop(
+  signal?: AbortSignal,
+): Promise<RatesGeographyTopResponseDto> {
+  const response = await api.get<RatesGeographyTopResponseDto>(
+    "/rates/geography/top",
+    { signal },
+  );
+  return response.data;
+}
+
 export interface RatesHomeInsightsResponse {
   topArtists: {
     id: string;
@@ -248,6 +347,160 @@ export interface RatesHomeInsightsResponse {
     count: number;
     percentage: number;
   }[];
+}
+
+export interface RatesTopArtistDto {
+  id: string;
+  name: string;
+  image: string | null;
+  ratingCount: number;
+  averageRate: number;
+}
+
+export interface RatesTopArtistsResponseDto {
+  artists: RatesTopArtistDto[];
+}
+
+export type RatesArtistLastfmStatus =
+  | "available"
+  | "not_found"
+  | "unavailable"
+  | "not_configured"
+  | "invalid_response";
+
+export interface RatesArtistLastfmLinkDto {
+  name: string;
+  url: string | null;
+}
+
+export interface RatesArtistLastfmCatalogDiscDto {
+  id: string;
+  name: string;
+  image: string | null;
+  releaseYear: number | null;
+  releaseDate: string | null;
+  link: string | null;
+  ep: boolean;
+  debut: boolean;
+  genre: { name: string; color: string | null } | null;
+  averageRate: number | null;
+  averageCover: number | null;
+  voteCount: number;
+  commentCount: number;
+  userRate: { id: string; rate: number | null; cover: number | null } | null;
+  favoriteId: string | null;
+  pendingId: string | null;
+}
+
+export interface RatesArtistLastfmSimilarArtistDto extends RatesArtistLastfmLinkDto {
+  catalogArtistId: string | null;
+  catalogDiscCount: number;
+  catalogDiscs: RatesArtistLastfmCatalogDiscDto[];
+}
+
+export interface RatesArtistLastfmResponseDto {
+  artistId: string;
+  status: RatesArtistLastfmStatus;
+  biography: { summary: string | null; url: string | null } | null;
+  tags: RatesArtistLastfmLinkDto[];
+  similarArtists: RatesArtistLastfmSimilarArtistDto[];
+  listeners: number | null;
+  playCount: number | null;
+  lastfmUrl: string | null;
+}
+
+export async function getRatesArtistLastfm(
+  artistId: string,
+  signal?: AbortSignal,
+): Promise<RatesArtistLastfmResponseDto> {
+  const response = await api.get<RatesArtistLastfmResponseDto>(
+    `/rates/artists/${encodeURIComponent(artistId)}/lastfm`,
+    { signal },
+  );
+  return response.data;
+}
+
+export type ArtistRankingPeriod = "month" | "year" | "all";
+
+export interface RatesArtistSummaryGenreDto {
+  id: string;
+  name: string;
+}
+
+export interface RatesArtistSummaryCountryDto {
+  id: string;
+  name: string;
+  isoCode: string | null;
+}
+
+export interface RatesArtistSummaryDiscHighlightDto {
+  id: string;
+  name: string;
+  rate: number;
+}
+
+export interface RatesArtistSummaryDiscDto {
+  id: string;
+  name: string;
+  image: string | null;
+  releaseDate: string | null;
+  rate: number;
+  cover: number | null;
+  rateId: string;
+  lastActivityAt: string;
+}
+
+export interface RatesArtistSummaryResponseDto {
+  artist: {
+    id: string;
+    name: string;
+    image: string | null;
+    country: RatesArtistSummaryCountryDto | null;
+    genres: RatesArtistSummaryGenreDto[];
+  };
+  stats: {
+    ratedDiscCount: number;
+    averageRate: number | null;
+    highestRatedDisc: RatesArtistSummaryDiscHighlightDto | null;
+    lowestRatedDisc: RatesArtistSummaryDiscHighlightDto | null;
+    firstAvailableActivityAt: string | null;
+    lastAvailableActivityAt: string | null;
+  };
+  discs: {
+    data: RatesArtistSummaryDiscDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
+export interface RatesArtistSummaryParams {
+  page?: number;
+  limit?: number;
+}
+
+export async function getRatesTopArtists(
+  signal?: AbortSignal,
+  period: ArtistRankingPeriod = "all",
+): Promise<RatesTopArtistsResponseDto> {
+  const response = await api.get<RatesTopArtistsResponseDto>(
+    "/rates/artists/top",
+    { params: { period }, signal },
+  );
+  return response.data;
+}
+
+export async function getRatesArtistSummary(
+  artistId: string,
+  params?: RatesArtistSummaryParams,
+  signal?: AbortSignal,
+): Promise<RatesArtistSummaryResponseDto> {
+  const response = await api.get<RatesArtistSummaryResponseDto>(
+    `/rates/artists/${encodeURIComponent(artistId)}/summary`,
+    { params, signal },
+  );
+  return response.data;
 }
 
 export async function getRatesHomeInsights(): Promise<RatesHomeInsightsResponse> {

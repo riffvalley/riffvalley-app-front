@@ -72,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import type { DashboardModule } from "@/composables/useDashboardConfig";
+import type { DashboardModule } from "@/app/dashboardWidgetRegistry";
 
 const props = defineProps<{
   mod: DashboardModule;

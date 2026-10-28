@@ -6,6 +6,7 @@ export interface Artist {
   name: string;
   description: string;
   image: string;
+  country?: { id: string; name: string; isoCode?: string } | null;
 }
 
 export interface Disc {
@@ -16,9 +17,45 @@ export interface Disc {
   releaseDate: string;
   artist: Artist;
   verified: boolean;
-  EP: boolean;
-  userRate?: any; // Opcional para compatibilidad
+  /** Legacy alias present in some catalog payloads; `/discs/random` returns `ep`. */
+  EP?: boolean;
+  ep?: boolean;
+  debut?: boolean;
+  link?: string | null;
+  genre?: { id?: string; name: string; color?: string | null } | null;
+  averageRate?: number | null;
+  averageCover?: number | null;
+  voteCount?: number | null;
+  commentCount?: number | null;
+  favoriteId?: string | null;
+  userFavoriteId?: string | null;
+  pendingId?: string | null;
+  userRate?: {
+    id?: string;
+    rate?: number | string | null;
+    cover?: number | string | null;
+  } | null;
 }
+
+/** Ranking response from `/discs/homeDiscs`, where Catalog guarantees a musical vote count. */
+export interface HomeRankedDisc extends Disc {
+  voteCount: number;
+  weightedScore?: number | string | null;
+}
+
+export type DailyCoverFeaturedDisc = Omit<Disc, "id" | "name" | "image" | "artist" | "averageCover"> & {
+  id: string;
+  name: string;
+  image: string;
+  artist: Artist;
+  averageCover: number;
+  coverVoteCount: number;
+  userRate?: {
+    id?: string;
+    rate?: number | string | null;
+    cover?: number | string | null;
+  } | null;
+};
 
 export interface GroupedDiscs {
   releaseDate: string;
@@ -34,7 +71,7 @@ export interface DiscsResponse {
 }
 
 export interface DiscsStatsResponse {
-  discs: Disc[];
+  discs: HomeRankedDisc[];
   totalDiscs: number;
   totalVotes: number;
   ratingDistribution: { rate: number; count: number }[];
@@ -70,7 +107,8 @@ export async function getDiscs(
   country?: string,
   orderBy?: string,
   voted?: boolean,
-  votedType?: string
+  votedType?: string,
+  signal?: AbortSignal,
 ): Promise<DiscsResponse> {
   const response = await api.get<DiscsResponse>("/discs", {
     params: {
@@ -85,6 +123,16 @@ export async function getDiscs(
       votedType,
       ...(country && { countryId: country })
     },
+    ...(signal ? { signal } : {}),
+  });
+  return response.data;
+}
+
+export async function getDailyCoverFeatured(
+  options: RequestOptions = {},
+): Promise<DailyCoverFeaturedDisc | null> {
+  const response = await api.get<DailyCoverFeaturedDisc | null>("/discs/daily-cover-featured", {
+    ...(options.signal ? { signal: options.signal } : {}),
   });
   return response.data;
 }
@@ -97,13 +145,26 @@ export interface RandomDiscsParams {
   ep?: boolean;
   debut?: boolean;
   limit?: number;
+  difficulty?: 'easy' | 'normal' | 'hard';
+  previousDiscId?: string;
+  unratedByCommunity?: boolean;
+}
+
+export interface RequestOptions {
+  signal?: AbortSignal;
 }
 
 // GET /discs/random: selección aleatoria hecha por la propia base de datos
 // (ORDER BY RANDOM() en Postgres), en vez del truco de "pedir el total y
 // luego un offset al azar" desde el cliente.
-export async function getRandomDiscs(params: RandomDiscsParams = {}): Promise<Disc[]> {
-  const response = await api.get<Disc[]>("/discs/random", { params });
+export async function getRandomDiscs(
+  params: RandomDiscsParams = {},
+  options: RequestOptions = {},
+): Promise<Disc[]> {
+  const response = await api.get<Disc[]>("/discs/random", {
+    params,
+    ...(options.signal ? { signal: options.signal } : {}),
+  });
   return response.data;
 }
 
@@ -130,17 +191,19 @@ export interface DiscOptionsFilters {
 // GET /discs/options: N valores al azar de `field` (país/género/año/ep/debut)
 // que tienen garantizado al menos un disco para los filtros ya elegidos —
 // nunca devuelve una opción que luego resulte en "no hay discos".
-export function getDiscOptions(field: 'country', filters?: DiscOptionsFilters, limit?: number): Promise<DiscOptionCountry[]>;
-export function getDiscOptions(field: 'genre', filters?: DiscOptionsFilters, limit?: number): Promise<DiscOptionGenre[]>;
-export function getDiscOptions(field: 'year', filters?: DiscOptionsFilters, limit?: number): Promise<number[]>;
-export function getDiscOptions(field: 'ep' | 'debut', filters?: DiscOptionsFilters, limit?: number): Promise<boolean[]>;
+export function getDiscOptions(field: 'country', filters?: DiscOptionsFilters, limit?: number, options?: RequestOptions): Promise<DiscOptionCountry[]>;
+export function getDiscOptions(field: 'genre', filters?: DiscOptionsFilters, limit?: number, options?: RequestOptions): Promise<DiscOptionGenre[]>;
+export function getDiscOptions(field: 'year', filters?: DiscOptionsFilters, limit?: number, options?: RequestOptions): Promise<number[]>;
+export function getDiscOptions(field: 'ep' | 'debut', filters?: DiscOptionsFilters, limit?: number, options?: RequestOptions): Promise<boolean[]>;
 export async function getDiscOptions(
   field: 'country' | 'genre' | 'year' | 'ep' | 'debut',
   filters: DiscOptionsFilters = {},
-  limit?: number
+  limit?: number,
+  options: RequestOptions = {},
 ): Promise<DiscOptionCountry[] | DiscOptionGenre[] | number[] | boolean[]> {
   const response = await api.get<DiscOptionCountry[] | DiscOptionGenre[] | number[] | boolean[]>("/discs/options", {
     params: { field, ...filters, limit },
+    ...(options.signal ? { signal: options.signal } : {}),
   });
   return response.data;
 }
@@ -201,7 +264,8 @@ export async function getTopRatedOrFeaturedAndStats(
   genreId?: string,
   country?: string,
   statsDateRange?: [string, string],
-  distributionDateRange?: [string, string]
+  distributionDateRange?: [string, string],
+  signal?: AbortSignal,
 ): Promise<DiscsStatsResponse> {
   const response = await api.get<DiscsStatsResponse>("/discs/homeDiscs", {
     params: {
@@ -211,6 +275,7 @@ export async function getTopRatedOrFeaturedAndStats(
       ...((statsDateRange) && { statsDateRange }),
       ...((distributionDateRange) && { distributionDateRange })
     },
+    ...(signal ? { signal } : {}),
   });
   return response.data;
 }

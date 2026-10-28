@@ -18,7 +18,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/",
     name: "Home",
-    component: () => import("@views/dashboard/DashboardPage.vue"),
+    component: () => import("@/modules/dashboard"),
     meta: { requiresAuth: true },
   },
   {

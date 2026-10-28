@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useDashboardConfig } from './useDashboardConfig';
 import { useDashboardPreferencesStore, type DashboardModuleConfig } from '@/modules/identity/account/preferences/stores/dashboardPreferences';
+import { dashboardWidgetDefaults } from '@/app/dashboardWidgetRegistry';
 
 const mocks = vi.hoisted(() => ({
   updateUserStore: vi.fn(),
@@ -49,6 +50,56 @@ describe('useDashboardConfig remote persistence', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('uses the registry order and enabled defaults when preferences are absent', () => {
+    const desktop = useDashboardConfig('desktop');
+    const mobile = useDashboardConfig('mobile');
+    const expected = dashboardWidgetDefaults.map(({ id, label, icon, size, enabled }) => ({
+      id,
+      label,
+      icon,
+      size,
+      enabled,
+    }));
+
+    expect(desktop.modules.value).toEqual(expected);
+    expect(mobile.modules.value).toEqual(expected);
+    expect(desktop.modules.value.every(({ enabled }) => enabled)).toBe(true);
+  });
+
+  it('keeps known saved order and visibility while ignoring unknown IDs and adding new defaults', () => {
+    seedConfig('desktop', [
+      { id: 'future-widget', enabled: false },
+      { id: 'portadaDia', enabled: false },
+      { id: 'novedades', enabled: false },
+    ]);
+    const config = useDashboardConfig('desktop');
+
+    expect(config.modules.value.slice(0, 2).map(({ id, enabled }) => ({ id, enabled }))).toEqual([
+      { id: 'portadaDia', enabled: false },
+      { id: 'novedades', enabled: false },
+    ]);
+    expect(config.modules.value).toHaveLength(dashboardWidgetDefaults.length);
+    expect(config.modules.value.map(({ id }) => id)).not.toContain('future-widget');
+    expect(config.modules.value[2].id).toBe('comunidad');
+  });
+
+  it('keeps desktop and mobile configurations independent', async () => {
+    const desktop = useDashboardConfig('desktop');
+    const mobile = useDashboardConfig('mobile');
+
+    await desktop.disableModule('novedades');
+    expect(desktop.isEnabled('novedades')).toBe(false);
+    expect(mobile.isEnabled('novedades')).toBe(true);
+
+    await mobile.disableModule('comunidad');
+    expect(desktop.isEnabled('comunidad')).toBe(true);
+    expect(mobile.isEnabled('comunidad')).toBe(false);
+
+    const store = useDashboardPreferencesStore();
+    expect(store.dashboardConfig?.some(({ id, enabled }) => id === 'novedades' && !enabled)).toBe(true);
+    expect(store.mobileDashboardConfig?.some(({ id, enabled }) => id === 'comunidad' && !enabled)).toBe(true);
   });
 
   it.each(targets)('$target keeps editor, Pinia and localStorage after a successful save', async ({ target, storeKey, storageKey }) => {

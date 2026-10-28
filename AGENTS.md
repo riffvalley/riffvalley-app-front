@@ -5,6 +5,7 @@ Riff Valley es una aplicación frontend Vue 3 y TypeScript. Usa este archivo par
 - [Índice del frontend](docs/frontend/index.md) para navegar la documentación.
 - [Arquitectura](docs/frontend/architecture.md) para ownership, dependencias, capas y estado.
 - [Convenciones](docs/frontend/conventions.md) para comandos, hooks y controles de calidad.
+- [Sistema de diseño](docs/design-system.md) antes de crear o modificar UI; sus requisitos de compatibilidad claro/oscuro y accesibilidad son obligatorios.
 - [Identity](docs/frontend/modules/identity.md) para sus contratos y comportamiento implementado; consúltala al trabajar en `src/modules/identity/`.
 - [Roadmaps](roadmap.md) y el roadmap específico de la iniciativa —por ejemplo, [calidad frontend](roadmap/frontend-quality.md)— para alcance, tareas y evidencia histórica.
 

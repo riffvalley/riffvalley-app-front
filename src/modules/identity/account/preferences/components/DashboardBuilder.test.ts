@@ -2,7 +2,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mount } from "@vue/test-utils";
 import { computed, ref } from "vue";
-import type { DashboardModule } from "@/composables/useDashboardConfig";
+import type { DashboardModule } from "@/app/dashboardWidgetRegistry";
+import { dashboardWidgetDefaults } from "@/app/dashboardWidgetRegistry";
 import DashboardBuilder from "./DashboardBuilder.vue";
 import ModuleCard from "./ModuleCard.vue";
 
@@ -24,14 +25,14 @@ vi.mock("@/composables/useDashboardConfig", () => ({
 }));
 
 const modules: DashboardModule[] = [
-  { id: "alpha", label: "Alfa", icon: "fa-solid fa-a", size: "half", enabled: true },
-  { id: "beta", label: "Beta", icon: "fa-solid fa-b", size: "half", enabled: true },
-  { id: "gamma", label: "Gamma", icon: "fa-solid fa-c", size: "full", enabled: true },
-  { id: "delta", label: "Delta", icon: "fa-solid fa-d", size: "half", enabled: false },
+  { id: "novedades", label: "Alfa", icon: "fa-solid fa-a", size: "half", enabled: true },
+  { id: "comunidad", label: "Beta", icon: "fa-solid fa-b", size: "half", enabled: true },
+  { id: "top3mes", label: "Gamma", icon: "fa-solid fa-c", size: "full", enabled: true },
+  { id: "top3semana", label: "Delta", icon: "fa-solid fa-d", size: "half", enabled: false },
 ];
 
-function makeConfig(target: "desktop" | "mobile") {
-  const targetModules = ref(modules.map((module) => ({ ...module })));
+function makeConfig(target: "desktop" | "mobile", entries = modules) {
+  const targetModules = ref(entries.map((module) => ({ ...module })));
   const enabledModules = computed(() => targetModules.value.filter((module) => module.enabled));
   const disabledModules = computed(() => targetModules.value.filter((module) => !module.enabled));
   const isDesktop = target === "desktop";
@@ -76,10 +77,10 @@ describe("DashboardBuilder keyboard controls", () => {
     moveBetaUp.element.focus();
     expect(document.activeElement).toBe(moveBetaUp.element);
     await moveBetaUp.trigger("click");
-    expect(mocks.desktopMoveModule).toHaveBeenCalledWith("beta", "alpha");
+    expect(mocks.desktopMoveModule).toHaveBeenCalledWith("comunidad", "novedades");
 
     await moveAlphaDown.trigger("click");
-    expect(mocks.desktopMoveModule).toHaveBeenLastCalledWith("alpha", "gamma");
+    expect(mocks.desktopMoveModule).toHaveBeenLastCalledWith("novedades", "top3mes");
 
     const firstModuleUp = wrapper.get('button[aria-label="Mover Alfa antes"]');
     expect(firstModuleUp.attributes("aria-disabled")).toBe("true");
@@ -96,7 +97,7 @@ describe("DashboardBuilder keyboard controls", () => {
 
     expect(activateDelta.attributes("draggable")).toBe("true");
     await activateDelta.trigger("click");
-    expect(mocks.desktopEnableModule).toHaveBeenCalledWith("delta");
+    expect(mocks.desktopEnableModule).toHaveBeenCalledWith("top3semana");
     wrapper.unmount();
   });
 
@@ -116,12 +117,12 @@ describe("DashboardBuilder keyboard controls", () => {
     }
 
     await controls[3].trigger("click");
-    expect(mocks.mobileEnableModule).toHaveBeenCalledWith("delta");
+    expect(mocks.mobileEnableModule).toHaveBeenCalledWith("top3semana");
 
     await wrapper.get('button[aria-label="Subir Beta"]').trigger("click");
-    expect(mocks.mobileMoveModule).toHaveBeenCalledWith("beta", "alpha");
+    expect(mocks.mobileMoveModule).toHaveBeenCalledWith("comunidad", "novedades");
     await wrapper.get('button[aria-label="Bajar Alfa"]').trigger("click");
-    expect(mocks.mobileMoveModule).toHaveBeenCalledWith("alpha", "gamma");
+    expect(mocks.mobileMoveModule).toHaveBeenCalledWith("novedades", "top3mes");
     wrapper.unmount();
   });
 
@@ -154,6 +155,24 @@ describe("DashboardBuilder keyboard controls", () => {
     expect(wrapper.emitted("dragstart")).toHaveLength(1);
     expect(wrapper.emitted("dragover")).toEqual([["before"]]);
     expect(wrapper.emitted("drop")).toEqual([["after"]]);
+    wrapper.unmount();
+  });
+
+  it("renders the same registered widget names in the desktop and mobile editors", () => {
+    const registeredModules = dashboardWidgetDefaults.map(({ enabled, ...widget }) => ({
+      ...widget,
+      enabled,
+    }));
+    desktopConfig = makeConfig("desktop", registeredModules);
+    mobileConfig = makeConfig("mobile", registeredModules);
+    mocks.useDashboardConfig.mockImplementation((target: "desktop" | "mobile") =>
+      target === "desktop" ? desktopConfig : mobileConfig,
+    );
+    const wrapper = mount(DashboardBuilder);
+
+    for (const widget of dashboardWidgetDefaults) {
+      expect(wrapper.text()).toContain(widget.label);
+    }
     wrapper.unmount();
   });
 });

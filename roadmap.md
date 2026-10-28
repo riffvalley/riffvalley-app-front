@@ -1,8 +1,9 @@
 # Roadmaps
 
 - [Documentación del frontend](docs/frontend/index.md): índice de fuentes canónicas y roadmaps históricos.
+- [Sistema de diseño frontend (DS-1–DS-5)](roadmap/dashboard.md): guía visual disponible para futuros desarrollos; fase de Dashboard cerrada por decisión del usuario. DS-1–DS-3 y DS-4a–DS-4d completadas; DS-4e–DS-4j descartadas y DS-5 cancelada (no se presentan como implementadas).
 - [Layout y Sidebar (L-0–L-7)](roadmap/layout.md): auditorías, integración del resumen, limpieza legacy y regresión/cierre local completados con limitaciones documentadas.
-- [Auditoría integral del Dashboard (D-0)](roadmap/dashboard.md): inventario, ownership, estado, consultas y propuesta de migración; implementación pendiente.
+- [Dashboard](roadmap/dashboard.md): once widgets implementados, reorganización modular D-MOD-1–D-MOD-4d completada y frontend Dashboard oficialmente cerrado; no quedan tareas frontend abiertas en su roadmap actual.
 - [Arquitectura modular frontend — historial](roadmap/frontend-architecture.md): auditoría, decisiones y planificación conservadas; la [arquitectura vigente](docs/frontend/architecture.md) está en la documentación canónica.
 - [Calidad frontend (FQ-1/FQ-2)](roadmap/frontend-quality.md): auditoría, gates y migración documental; FQ-5 se auditó localmente, pero sigue sin cerrar por fallos en los checks incrementales de Identity y comparaciones incompletas.
 - [Organización estructural de Identity](roadmap/identity-structure.md): inventario por archivo, ownership y plan de reorganización física sin cambios funcionales.

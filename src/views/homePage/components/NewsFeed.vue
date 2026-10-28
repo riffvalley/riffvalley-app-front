@@ -1,14 +1,20 @@
 <template>
-  <div>
+  <div class="bg-white dark:bg-rv-darkCard shadow-sm rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden flex-1">
+    <div class="flex items-center gap-2 px-6 py-4 bg-gradient-to-r from-rv-pink/8 to-rv-purple/8 dark:from-rv-pink/10 dark:to-rv-purple/10 border-b border-gray-100 dark:border-white/10">
+      <i class="fa-solid fa-newspaper text-rv-pink"></i>
+      <h3 class="font-bold text-gray-900 dark:text-white">Novedades Riff Valley</h3>
+    </div>
+    <div class="p-4 sm:p-5">
 
     <!-- ── Barra de filtros ──────────────────────────────────── -->
     <div class="flex flex-wrap gap-1.5 mb-3">
       <button
         type="button"
         @click="resetFilter"
+        :aria-pressed="activeFilter === null"
         class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
                transition-all duration-200 border
-               focus:outline-none focus-visible:outline-none ring-0 focus:ring-0"
+               focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
         :class="activeFilter === null
           ? 'bg-rv-purple text-white border-rv-purple shadow-sm'
           : 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-purple hover:text-rv-purple dark:hover:border-purple-300 dark:hover:text-purple-300'"
@@ -22,9 +28,10 @@
         :key="f.key"
         type="button"
         @click="toggleFilter(f)"
+        :aria-pressed="activeFilter?.key === f.key"
         class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold
                transition-all duration-200 border
-               focus:outline-none focus-visible:outline-none ring-0 focus:ring-0"
+               focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
         :class="activeFilter?.key === f.key ? f.activeClass : f.inactiveClass"
       >
         <i :class="f.icon" class="text-[9px]"></i>
@@ -33,12 +40,19 @@
     </div>
 
     <!-- ── Estados ──────────────────────────────────────────── -->
-    <div v-if="loading" class="flex flex-col items-center justify-center gap-2 py-8 text-gray-400">
-      <i class="fa-solid fa-spinner animate-spin text-2xl text-rv-pink"></i>
+    <div v-if="loading" class="flex flex-col items-center justify-center gap-2 py-8 text-gray-600 dark:text-gray-300" role="status" aria-live="polite">
+      <i class="fa-solid fa-spinner animate-spin text-2xl text-rv-pink" aria-hidden="true"></i>
       <span class="text-sm">Cargando noticias...</span>
     </div>
 
-    <div v-else-if="visiblePosts.length === 0" class="text-center text-gray-400 py-6 text-sm">
+    <div v-else-if="hasFeedError" class="py-6 text-center" role="alert">
+      <p class="mb-2 text-sm text-red-700 dark:text-red-300">No se pudieron cargar las novedades.</p>
+      <button type="button" class="rounded px-2 py-1 text-sm font-semibold underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple" @click="retryFeed">
+        Reintentar
+      </button>
+    </div>
+
+    <div v-else-if="visiblePosts.length === 0" class="py-6 text-center text-sm text-gray-600 dark:text-gray-300" role="status">
       No hay novedades disponibles
     </div>
 
@@ -49,11 +63,10 @@
         v-for="post in visiblePosts"
         :key="post.id"
         v-bind="post.source === 'app' ? {} : { href: post.link, target: '_blank', rel: 'noopener noreferrer' }"
-        @click="post.source === 'app' ? openAppPost(post) : undefined"
+        @click="post.source === 'app' ? openAppPost(post, $event) : undefined"
         class="group text-left w-full min-w-0 block
                bg-transparent border-0 p-0 appearance-none
-               outline-none focus:outline-none focus-visible:outline-none
-               ring-0 focus:ring-0 focus-visible:ring-0"
+               focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
       >
         <!-- Layout horizontal (todos los tamaños) -->
         <div
@@ -96,8 +109,8 @@
     <Teleport to="body">
       <div
         v-if="selectedNews"
+        ref="newsBackdrop"
         class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/60 z-50 px-4"
-        @click.self="selectedNews = null"
       >
         <div
           class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-2xl
@@ -105,6 +118,9 @@
                  border border-gray-100 dark:border-white/10"
           role="dialog"
           aria-modal="true"
+          aria-labelledby="news-dialog-title"
+          tabindex="-1"
+          ref="newsDialog"
         >
           <!-- Cabecera con imagen -->
           <div class="relative h-40 sm:h-52 flex-shrink-0 overflow-hidden rounded-t-2xl">
@@ -117,12 +133,12 @@
 
             <!-- Botón cerrar -->
             <button
-              @click="selectedNews = null"
+              @click="closeNewsModal"
               class="absolute top-3 right-3 z-10
                      w-9 h-9 rounded-full bg-black/40 hover:bg-rv-pink backdrop-blur-sm
                      text-white flex items-center justify-center
                      shadow-md transition-all duration-150
-                     border-0 outline-none focus:outline-none ring-0 focus:ring-0"
+                     border-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               aria-label="Cerrar"
             >
               <i class="fa-solid fa-xmark text-sm"></i>
@@ -141,23 +157,24 @@
 
           <!-- Cuerpo -->
           <div class="p-5 sm:p-6">
-            <h3 class="text-lg sm:text-xl font-bold text-rv-navy dark:text-white mb-4 leading-snug">
+            <h3 id="news-dialog-title" class="text-lg sm:text-xl font-bold text-rv-navy dark:text-white mb-4 leading-snug">
               {{ selectedNews.title }}
             </h3>
             <div
+              ref="newsProse"
               class="news-prose text-gray-700 dark:text-gray-300 text-sm leading-relaxed"
               v-html="selectedNews.body"
-              @click="handleBodyClick"
             />
           </div>
         </div>
       </div>
     </Teleport>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onBeforeUnmount, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { getNewsFeed, getSourceFeed } from '@services/news/news';
 import type { FeedPost, FeedParams, NewsType } from '@services/news/news';
@@ -223,33 +240,65 @@ const visiblePosts  = ref<NewsPost[]>([]);
 const loading       = ref(true);
 const activeFilter  = ref<FilterDef | null>(null);
 const selectedNews  = ref<{ title: string; type: NewsType; body: string; date: string; image: string } | null>(null);
+const hasFeedError = ref(false);
+const newsDialog = ref<HTMLElement | null>(null);
+const newsBackdrop = ref<HTMLElement | null>(null);
+const newsProse = ref<HTMLElement | null>(null);
+const newsDialogTrigger = ref<HTMLElement | null>(null);
+let initialFeedController: AbortController | null = null;
+let sourceFeedController: AbortController | null = null;
+let initialFeedCompleted = false;
 
 // ── Lógica de filtros ────────────────────────────────────────
 
 function resetFilter() {
+  sourceFeedController?.abort();
+  sourceFeedController = null;
   activeFilter.value = null;
   visiblePosts.value = defaultPosts.value;
+  loading.value = !initialFeedCompleted;
+  hasFeedError.value = false;
 }
 
 async function toggleFilter(f: FilterDef) {
   if (activeFilter.value?.key === f.key) {
-    activeFilter.value = null;
-    visiblePosts.value = defaultPosts.value;
+    resetFilter();
     return;
   }
 
-  activeFilter.value = f;
+  sourceFeedController?.abort();
+  await loadFilteredPosts(f);
+}
+
+async function loadFilteredPosts(filter: FilterDef) {
+  sourceFeedController?.abort();
+  const controller = new AbortController();
+  sourceFeedController = controller;
+  activeFilter.value = filter;
   loading.value = true;
+  hasFeedError.value = false;
   try {
-    const { posts: feedPosts } = await getSourceFeed(f.params);
+    const { posts: feedPosts } = await getSourceFeed(filter.params, controller.signal);
+    if (controller.signal.aborted) return;
     filteredPosts.value = feedPosts.map(mapFeedPost);
     visiblePosts.value  = filteredPosts.value;
   } catch (e) {
-    console.error('Error filtrando feed:', e);
-    visiblePosts.value = defaultPosts.value;
+    if (!controller.signal.aborted) {
+      console.error('Error filtrando feed:', e);
+      visiblePosts.value = [];
+      hasFeedError.value = true;
+    }
   } finally {
-    loading.value = false;
+    if (!controller.signal.aborted) loading.value = false;
   }
+}
+
+function retryFeed() {
+  if (activeFilter.value) {
+    void loadFilteredPosts(activeFilter.value);
+    return;
+  }
+  void fetchPosts();
 }
 
 // ── Helpers de estilo ────────────────────────────────────────
@@ -318,7 +367,8 @@ const appTypeImages: Record<string, string> = {
   team_notes:  '/news/equipo.jpg',
 };
 
-function openAppPost(post: NewsPost) {
+async function openAppPost(post: NewsPost, event: MouseEvent) {
+  newsDialogTrigger.value = event.currentTarget as HTMLElement;
   selectedNews.value = {
     title: post.title,
     type:  post.newsType!,
@@ -326,6 +376,51 @@ function openAppPost(post: NewsPost) {
     date:  post.date,
     image: post.image ?? appTypeImages[post.newsType!] ?? '/news/default.jpg',
   };
+  await nextTick();
+  newsDialog.value?.addEventListener('keydown', handleNewsDialogKeydown);
+  newsProse.value?.addEventListener('click', handleBodyClick);
+  newsDialog.value?.focus();
+}
+
+async function closeNewsModal() {
+  newsDialog.value?.removeEventListener('keydown', handleNewsDialogKeydown);
+  newsProse.value?.removeEventListener('click', handleBodyClick);
+  selectedNews.value = null;
+  await nextTick();
+  newsDialogTrigger.value?.focus();
+  newsDialogTrigger.value = null;
+}
+
+function handleNewsDialogKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    void closeNewsModal();
+    return;
+  }
+  if (event.key !== 'Tab') return;
+
+  const focusable = newsDialog.value?.querySelectorAll<HTMLElement>(
+    'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+  );
+  if (!focusable?.length) {
+    event.preventDefault();
+    newsDialog.value?.focus();
+    return;
+  }
+
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last?.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first?.focus();
+  }
+}
+
+function handleBackdropClick(event: MouseEvent) {
+  if (event.target === newsBackdrop.value) void closeNewsModal();
 }
 
 function typeBadgeClass(type: NewsType) {
@@ -375,18 +470,40 @@ function mapFeedPost(fp: FeedPost): NewsPost {
 }
 
 async function fetchPosts() {
+  const controller = new AbortController();
+  initialFeedController = controller;
+  loading.value = true;
+  hasFeedError.value = false;
   try {
-    const { posts: feedPosts } = await getNewsFeed();
+    const { posts: feedPosts } = await getNewsFeed(controller.signal);
+    if (controller.signal.aborted) return;
     defaultPosts.value = feedPosts.map(mapFeedPost);
     visiblePosts.value = defaultPosts.value;
   } catch (error) {
-    console.error('Error fetching news feed:', error);
+    if (!controller.signal.aborted) {
+      console.error('Error fetching news feed:', error);
+      hasFeedError.value = true;
+      visiblePosts.value = [];
+    }
   } finally {
-    loading.value = false;
+    if (!controller.signal.aborted) {
+      loading.value = false;
+      initialFeedCompleted = true;
+    }
   }
 }
 
 onMounted(fetchPosts);
+onMounted(() => {
+  document.addEventListener('click', handleBackdropClick);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleBackdropClick);
+  newsDialog.value?.removeEventListener('keydown', handleNewsDialogKeydown);
+  newsProse.value?.removeEventListener('click', handleBodyClick);
+  initialFeedController?.abort();
+  sourceFeedController?.abort();
+});
 </script>
 
 <style scoped>

@@ -2,28 +2,13 @@ import { computed } from 'vue';
 import { useDashboardPreferences, type DashboardModuleConfig } from '@/modules/identity/account';
 import { useUserStore } from '@stores/user/users';
 import SwalService from '@services/swal/SwalService';
+import {
+  dashboardWidgetDefaults,
+  isDashboardWidgetId,
+  type DashboardModule,
+} from '@/app/dashboardWidgetRegistry';
 
-export interface DashboardModule {
-  id: string;
-  label: string;
-  icon: string;
-  size: 'full' | 'half';
-  enabled: boolean;
-}
-
-const DEFAULT_MODULES: DashboardModule[] = [
-  { id: 'novedades',      label: 'Novedades Riff Valley',    icon: 'fa-solid fa-newspaper',      size: 'half', enabled: true },
-  { id: 'comunidad',      label: 'Comunidad / Top usuarios', icon: 'fa-solid fa-users',           size: 'half', enabled: true },
-  { id: 'discoAleatorio', label: 'Disco aleatorio',          icon: 'fa-solid fa-shuffle',         size: 'half', enabled: true },
-  { id: 'portadaDia',     label: 'Portada del día',          icon: 'fa-solid fa-image',           size: 'half', enabled: true },
-  { id: 'top3mes',        label: 'Top 3 Mes actual',         icon: 'fa-solid fa-fire',            size: 'full', enabled: true },
-  { id: 'top3semana',     label: 'Top 3 Semana actual',      icon: 'fa-solid fa-fire',            size: 'full', enabled: true },
-  { id: 'artistas',       label: 'Tus artistas favoritos',   icon: 'fa-solid fa-heart',           size: 'full', enabled: true },
-  { id: 'cementerio',     label: 'Cementerio de discos',     icon: 'fa-solid fa-skull',           size: 'half', enabled: true },
-  { id: 'mundoMusical',   label: 'Tu mundo musical',         icon: 'fa-solid fa-earth-americas',  size: 'half', enabled: true },
-  { id: 'ultimosVotos',   label: 'Tus últimos 5 votos',      icon: 'fa-solid fa-clock-rotate-left', size: 'half', enabled: true },
-  { id: 'aventura',       label: 'Crea tu propia aventura',  icon: 'fa-solid fa-book-open',       size: 'half', enabled: true },
-];
+export type { DashboardModule } from '@/app/dashboardWidgetRegistry';
 
 // Config antigua guardada solo en localStorage, previa a persistir en el backend.
 const LEGACY_LS_KEY = 'rv_dashboard_config';
@@ -54,13 +39,13 @@ function removeLegacyConfig() {
 }
 
 function mergeWithDefaults(saved: DashboardModuleConfig[] | null): DashboardModule[] {
-  if (!saved || !saved.length) return DEFAULT_MODULES.map(m => ({ ...m }));
-  const byId = Object.fromEntries(DEFAULT_MODULES.map(m => [m.id, m]));
+  if (!saved || !saved.length) return dashboardWidgetDefaults.map(m => ({ ...m }));
+  const byId = Object.fromEntries(dashboardWidgetDefaults.map(m => [m.id, m]));
   const merged = saved
-    .filter(s => byId[s.id])
+    .filter(s => isDashboardWidgetId(s.id))
     .map(s => ({ ...byId[s.id], enabled: s.enabled }));
-  const savedIds = new Set(saved.map(s => s.id));
-  for (const m of DEFAULT_MODULES) {
+  const savedIds = new Set(merged.map(m => m.id));
+  for (const m of dashboardWidgetDefaults) {
     if (!savedIds.has(m.id)) merged.push({ ...m });
   }
   return merged;

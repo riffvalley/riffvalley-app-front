@@ -12,7 +12,7 @@ La auditoría y el plan de migración originales se conservan en [roadmap/fronte
 - **Compartir con semántica y owner comunes.** Reutilizar una pieza visual no transfiere la propiedad del dato de negocio. `shared` se reserva a contratos o utilidades transversales con consumidores y significado comunes.
 - **Migración gradual.** `src/views/`, `src/services/`, `src/stores/`, `src/composables/`, `src/components/` y otras raíces legacy conviven con `src/modules/`. Se conservan sus contratos mientras se migra por capacidad; no se requiere mover el producto completo antes de aplicar límites en módulos adoptados.
 
-Actualmente `src/modules/` contiene solo `identity/`, dividido en `auth`, `account`, `users`, `activity` y `shared`. Esta estructura es una implementación concreta de ownership, no una plantilla obligatoria. Catalog, Community y Editorial todavía no son módulos migrados y sus áreas siguen distribuidas en el código legacy.
+Actualmente `src/modules/` contiene `identity/`, dividido en `auth`, `account`, `users`, `activity` y `shared`, y `dashboard/`, con la composición y los once widgets de Dashboard. Esta estructura es una implementación concreta de ownership, no una plantilla obligatoria. Catalog, Community y Editorial todavía no son módulos migrados y sus áreas siguen distribuidas en el código legacy. La reorganización de Dashboard quedó cerrada en [su roadmap](../../roadmap/dashboard.md); no define una plantilla obligatoria para otros dominios.
 
 ## Responsabilidad por tipo de pieza
 
