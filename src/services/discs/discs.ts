@@ -1,4 +1,5 @@
 import api from "@services/api/api.ts";
+import type { PaginatedResponse } from "@services/api/pagination";
 
 // Interfaces
 export interface Artist {
@@ -70,6 +71,8 @@ export interface DiscsResponse {
   data: GroupedDiscs[] | Disc[]; // Compatible con ambas estructuras de datos
 }
 
+export type DiscListResponse = PaginatedResponse<Disc>;
+
 export interface DiscsStatsResponse {
   discs: HomeRankedDisc[];
   totalDiscs: number;
@@ -109,8 +112,8 @@ export async function getDiscs(
   voted?: boolean,
   votedType?: string,
   signal?: AbortSignal,
-): Promise<DiscsResponse> {
-  const response = await api.get<DiscsResponse>("/discs", {
+): Promise<DiscListResponse> {
+  const response = await api.get<DiscListResponse>("/discs", {
     params: {
       limit,
       offset,

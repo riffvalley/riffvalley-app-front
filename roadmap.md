@@ -12,6 +12,7 @@
 - [Artists Management](roadmap/artists-management.md): seguimiento frontend de BC-ART-4.F.
 - [Catalog Import](roadmap/catalog-import.md): seguimiento frontend del contrato único de importación.
 - [Catalog Overview](roadmap/catalog-overview.md): seguimiento frontend de BC-OVR-1.
-- [Catalog — Discos (CAT-DISC)](roadmap/catalog-discs-audit.md): CAT-DISC-1 auditoría y CAT-DISC-2a caracterización de pruebas completadas; carrera de filtros reproducida y abierta. CAT-DISC-2b y fases funcionales/UX no iniciadas.
+- [Catalog — Discos (CAT-DISC)](roadmap/catalog-discs-audit.md): CAT-DISC-1, CAT-DISC-2a–2d, auditoría CAT-DISC-2f y CAT-DISC-3e completadas. La identidad de consulta y la limpieza de sesión cubren los seis modos; no se integraron aún los endpoints nuevos ni se inició CAT-DISC-3f.
 - [Catalog — Top discos (C-TOP)](roadmap/catalog-top-discs.md): C-TOP-1–11 funcionales completadas y cerradas; C-TOP-12 registra la consolidación arquitectónica de la vista. El límite definitivo de 11 fue confirmado por el usuario; las referencias históricas a 20 están supersedidas.
+- [CAT-DISC-3a — Auditoría de consumidores y contratos](roadmap/catalog/cat-disc-3a-auditoria-consumidores-contratos.md): análisis documental completado; alternativa C recomendada y CAT-DISC-3b+ pendientes de aprobación.
 - [Sesiones renovables (BC-ID-7)](roadmap/renewable-sessions.md): bloque completado; App usa `refresh-v1` y la siguiente fase es BC-ID-8 — Migración de Wiki.

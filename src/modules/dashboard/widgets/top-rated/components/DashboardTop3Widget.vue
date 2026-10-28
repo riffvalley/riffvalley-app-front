@@ -156,14 +156,12 @@ function retry(): void {
       class="flex items-center justify-between gap-4 px-6 py-4 border-b border-gray-100 dark:border-white/10"
       :class="headerClasses"
     >
-      <div class="flex min-w-0 items-start gap-2">
-        <i class="fa-solid fa-fire shrink-0" :class="iconClasses" aria-hidden="true"></i>
-        <div class="min-w-0">
-          <h3 class="font-bold text-gray-900 dark:text-white">
-            {{ isWeek ? "Top 3 · Semana actual" : "Top 3 · Mes actual" }}
-          </h3>
-          <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ title }}</p>
-        </div>
+      <div class="min-w-0 text-left">
+        <h3 class="flex min-w-0 items-center gap-2 font-bold text-gray-900 dark:text-white">
+          <i class="fa-solid fa-fire shrink-0" :class="iconClasses" aria-hidden="true"></i>
+          <span class="truncate">{{ isWeek ? "Top 3 · Semana actual" : "Top 3 · Mes actual" }}</span>
+        </h3>
+        <p class="mt-0.5 pl-6 text-xs text-gray-500 dark:text-gray-400">{{ title }}</p>
       </div>
       <span class="shrink-0 text-xs text-gray-400 dark:text-gray-500 capitalize">{{
         periodLabel

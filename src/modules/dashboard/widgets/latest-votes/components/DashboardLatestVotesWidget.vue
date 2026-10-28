@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
+import { faChartLine, faClockRotateLeft, faImage, faMusic } from "@fortawesome/free-solid-svg-icons";
 import { useAuthStore } from "@/modules/identity/auth";
 import DiscDetail from "@components/DiscDetail.vue";
 import defaultDiscImage from "@/assets/disco.png";
@@ -111,7 +112,10 @@ function formatActivityDate(timestamp: string): string {
 }
 
 function formatScore(score: number): string {
-  return new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 }).format(score);
+  return new Intl.NumberFormat("es-ES", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(score);
 }
 
 function formatDifference(value: number): string {
@@ -165,7 +169,7 @@ function retry(): void {
   <section class="flex flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-rv-darkSurface" aria-labelledby="latest-votes-title">
     <header class="shrink-0 border-b border-gray-100 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 px-4 py-2.5 dark:border-white/10 dark:from-rv-purple/10 dark:to-rv-pink/10 sm:flex sm:items-center sm:justify-between sm:gap-4 sm:px-5">
       <div class="flex items-center gap-2">
-        <i class="fa-solid fa-clock-rotate-left text-purple-800 dark:text-purple-300" aria-hidden="true"></i>
+        <font-awesome-icon :icon="faClockRotateLeft" class="text-purple-800 dark:text-purple-300" aria-hidden="true" />
         <h3 id="latest-votes-title" class="text-sm font-bold text-gray-900 dark:text-white">Tu semana musical</h3>
         <span v-if="periodLabel" class="hidden text-xs text-gray-500 dark:text-gray-400 sm:inline">· {{ periodLabel }}</span>
       </div>
@@ -207,7 +211,7 @@ function retry(): void {
       </p>
 
       <p class="text-[11px] leading-tight text-gray-600 dark:text-gray-400" aria-live="polite">
-        <i class="fa-solid fa-chart-line mr-1 text-purple-800 dark:text-purple-300" aria-hidden="true"></i>
+        <font-awesome-icon :icon="faChartLine" class="mr-1 text-purple-800 dark:text-purple-300" aria-hidden="true" />
         <template v-if="summary.metrics.weekOverWeek.difference === 0">Sin cambios respecto a la semana pasada</template>
         <template v-else>{{ formatDifference(summary.metrics.weekOverWeek.difference) }} respecto a la semana pasada</template>
         <span v-if="summary.metrics.weekOverWeek.percentageChange !== null && Number.isFinite(summary.metrics.weekOverWeek.percentageChange)" class="ml-1 text-gray-500 dark:text-gray-400">
@@ -290,11 +294,13 @@ function retry(): void {
               </time>
             </p>
             <div class="grid w-[4.75rem] shrink-0 grid-cols-[2.25rem_2.25rem] items-center gap-1">
-              <span v-if="rate.rate !== null" class="inline-flex w-full justify-center whitespace-nowrap text-[10px] font-bold tabular-nums text-rose-800 dark:text-rose-300" :aria-label="`Nota musical ${formatScore(rate.rate)} sobre 10`">
+              <span v-if="rate.rate !== null" class="inline-flex w-full items-center justify-center whitespace-nowrap text-[10px] font-bold tabular-nums text-rose-800 dark:text-rose-300" :aria-label="`Nota musical ${formatScore(rate.rate)} sobre 10`">
+                <font-awesome-icon :icon="faMusic" class="mr-0.5 h-2 w-2 shrink-0" aria-hidden="true" />
                 {{ formatScore(rate.rate) }}
               </span>
               <span v-else aria-hidden="true" class="w-full"></span>
-              <span v-if="rate.cover !== null" class="inline-flex w-full justify-center whitespace-nowrap text-[10px] font-bold tabular-nums text-blue-800 dark:text-blue-300" :aria-label="`Nota de portada ${formatScore(rate.cover)} sobre 10`">
+              <span v-if="rate.cover !== null" class="inline-flex w-full items-center justify-center whitespace-nowrap text-[10px] font-bold tabular-nums text-blue-800 dark:text-blue-300" :aria-label="`Nota de portada ${formatScore(rate.cover)} sobre 10`">
+                <font-awesome-icon :icon="faImage" class="mr-0.5 h-2 w-2 shrink-0" aria-hidden="true" />
                 {{ formatScore(rate.cover) }}
               </span>
               <span v-else-if="rate.rate !== null" aria-hidden="true" class="w-full"></span>

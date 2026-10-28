@@ -1,34 +1,38 @@
 # CAT-DISC-1 — Auditoría de Discos
 
-**Estado:** CAT-DISC-1 y CAT-DISC-2a completadas; CAT-DISC-2b y fases posteriores no iniciadas.
+**Estado:** CAT-DISC-1, CAT-DISC-2a–2d, CAT-DISC-2f, CAT-DISC-3a documental y CAT-DISC-3e completadas; CAT-DISC-3b–3d corresponden al backend, CAT-DISC-3f no iniciada y fases visuales posteriores pendientes.
 **Alcance:** frontend de `/disc-list`, sus consumidores y contratos backend observables.
 **Fecha de inspección:** 28 de octubre de 2026.
-**Evidencia CAT-DISC-1:** código frontend del checkout y checkout hermano `../riffvalley-app-back`; no se hicieron llamadas HTTP ni se ejecutaron pruebas durante esa auditoría. El backend consultado es evidencia del checkout disponible, no una comprobación de producción. **Evidencia CAT-DISC-2a:** suites Vitest locales mockeadas; no hubo backend, navegador ni CI.
+**Evidencia CAT-DISC-1:** código frontend del checkout y checkout hermano `../riffvalley-app-back`; no se hicieron llamadas HTTP ni se ejecutaron pruebas durante esa auditoría. El backend consultado es evidencia del checkout disponible, no una comprobación de producción. **Evidencia CAT-DISC-2a–2d:** pruebas Vitest locales mockeadas, typecheck/build y gates locales indicados por fase; no hubo backend, navegador ni CI.
+
+La auditoría posterior de concurrencia/cancelación CAT-DISC-2f está en [roadmap/catalog-discs-concurrency-audit.md](catalog-discs-concurrency-audit.md). Es documental y de solo lectura; precisa los límites de cancelación frontend/backend, los riesgos de sesión y un roadmap propuesto sin ejecutar.
+
+La auditoría documental CAT-DISC-3a de consumidores, contratos y arquitectura backend está en [roadmap/catalog/cat-disc-3a-auditoria-consumidores-contratos.md](catalog/cat-disc-3a-auditoria-consumidores-contratos.md). CAT-DISC-3e corrige el aislamiento de sesión en el coordinador frontend; no integra todavía los endpoints backend nuevos ni inicia CAT-DISC-3f.
 
 ## Resumen ejecutivo
 
-La página general de Discos está en la ruta protegida `/disc-list` (`DiscList`) y la implementa la vista legacy `src/views/discsList/DiscList.vue`, en Options API. `/rankings` es TopDiscs, una ruta y funcionalidad diferentes, ya cerrada en [su roadmap](catalog-top-discs.md).
+La auditoría CAT-DISC-1 identificó la página general en la ruta protegida `/disc-list` (`DiscList`), implementada entonces por la vista legacy `src/views/discsList/DiscList.vue`, en Options API. CAT-DISC-2b la trasladó a `src/modules/catalog/discs/presentation/views/DiscListView.vue` sin extraer su coordinación. `/rankings` es TopDiscs, una ruta y funcionalidad diferentes, ya cerrada en [su roadmap](catalog-top-discs.md).
 
-La vista agrupa seis modos (`Todos`, votos, portadas, comentarios, favoritos y pendientes), filtros comunes y scroll infinito. La mayor parte de la coordinación de estado, las llamadas HTTP, la adaptación de respuestas y el marcado de dos tipos de resultados vive en la vista. Los filtros de período tienen además estado local en `DiscFilters`; el catálogo de países/géneros reside en una store Pinia legacy. `DiscCardComponent` es una pieza transversal con UI y operaciones de Community, dependencias de Identity y una dependencia directa con Calendar.
+La vista agrupa seis modos (`Todos`, votos, portadas, comentarios, favoritos y pendientes), filtros comunes y scroll infinito. CAT-DISC-2c extrajo la selección de servicios y adaptación de respuestas a `application/loadDiscList.ts`; CAT-DISC-2d centralizó criterios, resultados, paginación y concurrencia en `application/useDiscListCoordinator.ts`. Los filtros de período conservan su estado visual en `DiscFilters`, mientras sus criterios seleccionados pertenecen al coordinador; las opciones de país/género siguen procediendo del catálogo global. `DiscCardComponent` permanece transversal con UI y operaciones de Community, dependencias de Identity y dependencia directa con Calendar.
 
 Hallazgos principales comprobados:
 
-- Al cambiar filtros mientras `fetchData` está en curso, `resetAndFetch` llama a una función que sale por `if (loading) return`. La petición antigua puede completar y anexar resultados con criterios anteriores; no se cancela ni se identifica por generación.
-- El catch de la vista solo escribe en consola. No existe estado visible de error para los listados; el grid principal tampoco tiene estado vacío explícito.
+- CAT-DISC-2a reprodujo que un filtro nuevo se descartaba mientras cargaba el anterior; CAT-DISC-2d corrigió A→B mediante identidad/generación, con regresiones activas para resultados en ambos órdenes y errores tardíos.
+- El coordinador conserva estado de error ligado a la consulta actual y registra errores activos en consola. No existe estado visible de error ni vacío explícito para el grid principal.
 - El contador usa `totalItems` del servidor, mientras el grid descarta en cliente elementos sin `image`. Si una respuesta incluye discos sin imagen, el contador y el número de tarjetas visibles divergen.
 - Las seis categorías consultan endpoints distintos. Las opciones de país/género proceden de un catálogo global de Pinia, no de opciones calculadas para los filtros activos.
-- En CAT-DISC-1 no había tests directos de `DiscList.vue`. CAT-DISC-2a añadió caracterización de la vista, filtros, paginación, wrappers de servicios y protección de ruta; los límites restantes se registran en la sección de pruebas.
+- En CAT-DISC-1 no había tests directos de `DiscList.vue`. CAT-DISC-2a–2d añadieron caracterización de vista/filtros/paginación, contratos de servicios, permisos y coordinación; los límites restantes se registran en la sección de pruebas.
 
 CAT-DISC-1 no modificó código funcional, estilos, componentes ni tests. CAT-DISC-2a añadió/modificó únicamente pruebas y documentación. El checkout ya tenía cambios locales en `router/index.ts`, `routes.json`, `DiscFilters.vue`, `SearchableSelect.vue`, tests, documentación y archivos de TopDiscs; también tenía `src/views/homePage/HomePage.vue` eliminado. Se conservaron y se trataron como estado preexistente. Las observaciones describen el checkout actual, no una comparación limpia entre HEAD y una rama base.
 
 ## Ruta y límites
 
-| Elemento                                         | Evidencia                                                                                                                                                                                                                                   |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Página Discos                                    | Vue Router `path: /disc-list`, nombre `DiscList`, carga diferida de `@views/discsList/DiscList.vue`; `requiresAuth: true`.                                                                                                                  |
-| Entrada del menú                                 | `routes.json` enlaza `/disc-list` como «Discos» y declara `requiredRole: user`. El acceso efectivo se comprueba también en Router.                                                                                                          |
-| TopDiscs                                         | Ruta `path: /rankings`, nombre `Rankings`, vista `modules/catalog/top-discs/presentation/views/TopDiscsView.vue`; no es parte de esta página.                                                                                               |
-| Vista relacionada fuera del alcance de la página | `/disc-list-error` carga `DiscListError.vue` y exige rol `riffvalley`. Reutiliza `DiscFilters`, `DiscCardComponent` y el catálogo. No es una variante de ruta de `/disc-list` ni debe confundirse con el estado de error de `DiscList.vue`. |
+| Elemento                                         | Evidencia                                                                                                                                                                                                                                       |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Página Discos                                    | Vue Router `path: /disc-list`, nombre `DiscList`, carga diferida de `@/modules/catalog/discs/presentation/views/DiscListView.vue`; `requiresAuth: true`.                                                                                        |
+| Entrada del menú                                 | `routes.json` enlaza `/disc-list` como «Discos» y declara `requiredRole: user`. El acceso efectivo se comprueba también en Router.                                                                                                              |
+| TopDiscs                                         | Ruta `path: /rankings`, nombre `Rankings`, vista `modules/catalog/top-discs/presentation/views/TopDiscsView.vue`; no es parte de esta página.                                                                                                   |
+| Vista relacionada fuera del alcance de la página | `/disc-list-error` carga `DiscListError.vue` y exige rol `riffvalley`. Reutiliza `DiscFilters`, `DiscCardComponent` y el catálogo. No es una variante de ruta de `/disc-list` ni debe confundirse con el estado de error de `DiscListView.vue`. |
 
 El guard del Router exige sesión para `/disc-list`, sin exigir un rol específico en la ruta. El backend vuelve a exigir autenticación para `GET /api/discs` y los endpoints privados de Community; el control de interfaz no reemplaza esa autorización.
 
@@ -37,14 +41,14 @@ El guard del Router exige sesión para `/disc-list`, sin exigir un rol específi
 ```text
 SidebarMenu
   -> /disc-list (requiresAuth)
-  -> DiscList.vue [vista legacy / Options API]
+  -> DiscListView.vue [composición de presentación]
        -> DiscFilters.vue
        |    -> SearchableSelect.vue
        |    -> SimpleSelect.vue
        |    -> estado local de año/mes/semana -> update:selectedWeek
        -> useCatalogStore (Pinia) -> getCatalog -> GET /api/catalog
-       -> estado local de filtros, modo, orden, páginas y resultados
-       -> APIs legacy según modo:
+       -> application/useDiscListCoordinator.ts [criterios, sesión, resultados y solicitudes]
+       -> application/loadDiscList.ts -> servicios legacy según modo:
             Catalog: GET /api/discs
             Community: GET /api/rates, /comments, /favorites, /pendings
        -> DiscCardComponent.vue [tarjeta transversal]
@@ -57,18 +61,18 @@ SidebarMenu
 
 ### Responsabilidades y estado
 
-| Área                       | Responsable actual            | Observación                                                                                                                                                                                                                                                                                                |
-| -------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Presentación de pantalla   | `DiscList.vue`                | Contiene cabecera, modos, ordenación, vista de comentarios, grid, carga incremental, sentinel y botón scroll-to-top. También coordina seis ramas de consulta y transforma los payloads.                                                                                                                    |
-| Filtros de catálogo        | `DiscFilters.vue`             | Controla entrada de búsqueda, selecciones género/país y selectores de año/mes/período. Mantiene refs propias para género/país que sincroniza desde props; la vista mantiene copias. El prop `selectedWeek` está declarado y se pasa desde la vista, pero la selección temporal interna no se deriva de él. |
-| Estado de opciones         | `useCatalogStore`             | Pinia global con `genres`, `countries` y `loaded`. `App.vue` solicita el catálogo al autenticarse; el store ordena y conserva las opciones. Es estado compartido de catálogo, no una caché de resultados.                                                                                                  |
-| Estado remoto de la página | refs de `DiscList.vue`        | Resultados, totales, `offset`, `hasMore`, carga y comentarios son estado local. La pantalla no usa TanStack Query, no pasa AbortSignal a sus servicios y no sincroniza criterios con URL.                                                                                                                  |
-| Transporte                 | servicios en `src/services/*` | El cliente Axios común añade sesión/renovación. Varios tipos de respuesta del API personal son `any` o declaran arrays aunque la vista consume `{totalItems, data}`.                                                                                                                                       |
-| UI de tarjeta y acciones   | `DiscCardComponent.vue`       | Combina presentación, modalización, operaciones remotas, adaptaciones optimistas locales, Spotify y lectura de preferencias locales.                                                                                                                                                                       |
+| Área                       | Responsable actual                                   | Observación                                                                                                                                                                                                                                                                                                |
+| -------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Presentación de pantalla   | `DiscListView.vue`                                   | Compone cabecera, modos, filtros, comentarios, grid, observer y botón scroll-to-top. Enlaza criterios/estado con el coordinador; no posee resultados ni decide cómo atender una consulta.                                                                                                                |
+| Filtros de catálogo        | `DiscFilters.vue`                                    | Controla entrada de búsqueda, selecciones género/país y selectores de año/mes/período. Mantiene refs propias para género/país que sincroniza desde props; la vista mantiene copias. El prop `selectedWeek` está declarado y se pasa desde la vista, pero la selección temporal interna no se deriva de él. |
+| Estado de opciones         | `useCatalogStore`                                    | Pinia global con `genres`, `countries` y `loaded`. `App.vue` solicita el catálogo al autenticarse; el store ordena y conserva las opciones. Es estado compartido de catálogo, no una caché de resultados.                                                                                                  |
+| Estado remoto de la página | `useDiscListCoordinator`                             | Estado local a la vista: modo, filtros, orden, offset, resultados, totales, carga/error y generaciones. No usa TanStack Query ni modifica criterios en URL. Las APIs actuales no aceptan `AbortSignal`; las respuestas obsoletas se descartan.                                                      |
+| Transporte                 | servicios en `src/services/*` + adaptador de Catalog | El cliente Axios común añade sesión/renovación. `loadDiscList` reutiliza lecturas legacy de Catalog y Community; los wrappers personales usados aquí declaran la página `{data,totalItems,totalPages,currentPage,limit}`.                                                                                  |
+| UI de tarjeta y acciones   | `DiscCardComponent.vue`                              | Combina presentación, modalización, operaciones remotas, adaptaciones optimistas locales, Spotify y lectura de preferencias locales.                                                                                                                                                                       |
 
-`DiscList.vue` mide alrededor de 700 líneas y concentra composición, navegación por modos, llamadas, paginación, transformación y UI. El tamaño es una señal descriptiva; la evidencia más útil es la mezcla de responsabilidades identificada arriba. Hay imports registrados que no aparecen en el template (`Datepicker`, `SearchableSelect`) y estado/funciones sin consumo aparente (`menuVisible`, `handleGenreChange`); `resetAndFetch` está declarado como emit de `DiscFilters` pero no se emite en ese componente. Son restos de integración que conviene volver a verificar antes de extraer código.
+`DiscListView.vue` se limita a la composición y los efectos propios de presentación. `application/useDiscListCoordinator.ts` concentra criterios de consulta, estado de páginas y protección frente a respuestas tardías; `application/loadDiscList.ts` conserva la selección de wrappers y adaptación de payloads. El selector de año/mes/semana conserva su estado visual interno en `DiscFilters` y emite `dateRange`, que pasa a formar parte de la identidad de consulta. Los estilos y contratos de componentes compartidos no se modificaron en CAT-DISC-2d.
 
-No se ejecutó un detector de ciclos ni un análisis completo del grafo frontend. No se afirma que no existan ciclos. Sí existe acoplamiento productivo explícito en la tarjeta: importa directamente una vista de Calendar, servicios legacy de Community, contratos públicos de Identity y la invalidación del resumen de Dashboard.
+CAT-DISC-2d ejecutó el detector local de ciclos y el análisis de fronteras de Identity: no encontró imports locales sin resolver ni violaciones productivas Identity; sí encontró el ciclo type-only Articles/Contents/Riff Valley Playlists ya existente. La comparación con base fue informativa porque no se pudo resolver `HEAD` local. Sigue existiendo acoplamiento productivo explícito en la tarjeta: importa directamente una vista de Calendar, servicios legacy de Community, contratos públicos de Identity y la invalidación del resumen de Dashboard.
 
 ## Inventario de archivos y consumidores
 
@@ -76,7 +80,7 @@ Clasificación solicitada; el owner actual se distingue de la posible ubicación
 
 | Pieza                                                       | Clase                                            | Consumidores comprobados / uso                                                                                                                                        | Estado y límite recomendado                                                                                                                                                         |
 | ----------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `views/discsList/DiscList.vue`                              | A — exclusiva de Discos                          | Ruta `/disc-list`                                                                                                                                                     | Vista legacy. Buen candidato a pasar a una carpeta `modules/catalog/disc-list` conservando la URL y los contratos; antes habrá que separar o caracterizar sus flujos.               |
+| `modules/catalog/discs/presentation/views/DiscListView.vue` | A — exclusiva de Discos                          | Ruta `/disc-list`; antes `views/discsList/DiscList.vue`                                                                                                               | Vista modularizada en CAT-DISC-2b. La presentación aún coordina estado y consultas legacy; extracción de HTTP y coordinación quedan para 2c/2d.                                     |
 | `views/discsList/DiscListError.vue`                         | A — pantalla específica relacionada              | Ruta `/disc-list-error`                                                                                                                                               | Pantalla separada con rol alto; consume card, filtros y store. No mover como parte del primer traslado sin acordar su relación con Discos.                                          |
 | `components/DiscFilters.vue`                                | C — transversal entre funcionalidades            | `DiscList`, `DiscListError`, `DiscCalendar`, `DiscCalendarBaby`, `DiscByDate`, `TopDiscsHeader`                                                                       | Componente de filtros de dominio reutilizado por Catalog y calendarios/listados. Su API incluye combinaciones de props para ocultar controles y organizar filas. No es UI genérica. |
 | `components/SearchableSelect.vue`                           | D — control genérico con integración transversal | Filtros; calendario; importación/sugerencias; artistas; releases; playlists; peticiones, entre otros                                                                  | Selector reutilizable; no depende de dominio musical por su contrato visual, aunque sus opciones normalmente sí. Confirmar todos los consumidores antes de cambios.                 |
@@ -87,7 +91,7 @@ Clasificación solicitada; el owner actual se distingue de la posible ubicación
 | `services/rates`, `comments`, `favorites`, `pendings`       | C — Community transversal, legacy                | Página general y tarjeta/modal, además de otras vistas                                                                                                                | Servicios consumidos directamente, sin entrada pública modular de Community observada. El módulo futuro debe respetar ownership y no copiar sus llamadas dentro de Catalog.         |
 | `helpers/dateConstants.ts`                                  | D/B — helper compartido                          | `DiscFilters` y otros filtros/controles según importaciones                                                                                                           | Contiene constantes y rango de años usado por el filtro; mantener ownership por semántica, no mover automáticamente.                                                                |
 
-La lista de consumidores procede de imports productivos encontrados en `src`; no se asumió que un componente es privado por estar visualmente dentro de Discos. No se localizaron otros consumidores del `DiscList.vue` aparte del Router.
+La lista de consumidores procede de imports productivos encontrados en `src`; no se asumió que un componente es privado por estar visualmente dentro de Discos. No se localizaron otros consumidores de la vista aparte del Router, ni antes ni después del traslado.
 
 ## Auditoría de `DiscCardComponent.vue`
 
@@ -146,7 +150,7 @@ En «Todos» las opciones incluyen fecha reciente/antigua; nota media ascendente
 
 Los seis modos son mutuamente excluyentes por radio. Los filtros comunes se conservan al cambiar de modo. Un cambio de modo restablece orden a recientes. No hay sincronización con query params de URL. La única persistencia identificada es la preferencia local del año/todos.
 
-### Reset, carga, errores y consistencia
+### Reset, carga, errores y consistencia (baseline previo a CAT-DISC-2d)
 
 - Los watchers de `viewMode`, búsqueda, fecha, género, país y orden llaman `resetAndFetch`. Este vacía resultados y contadores y vuelve a offset cero; la fecha vuelve a actualizarse por controles de `DiscFilters`, no por una acción única «limpiar filtros».
 - `DiscFilters` declara `resetAndFetch` en `emits`, y `DiscList` escucha el evento, pero no hay `emit("resetAndFetch")` en `DiscFilters.vue`.
@@ -188,14 +192,14 @@ Los filtros de período/texto/género/país se repiten como parámetros entre Ca
 
 | Dato/acción                           | Fuente actual                                                                             | Actualización/aislamiento                                                                                                  |
 | ------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Resultados y conteos del listado      | `refs` locales de `DiscList` y respuestas Axios                                           | Sin caché Query; se vacían al cambiar criterios.                                                                           |
+| Resultados y conteos del listado      | `useDiscListCoordinator` y respuestas de `loadDiscList`                                   | Estado local sin caché Query; se reemplaza al cambiar criterios y solo acepta resultados de la generación vigente.          |
 | Países y géneros                      | Pinia `catalog`                                                                           | Catálogo global, cargado una vez tras autenticación y compartido con varias vistas; no es información privada del usuario. |
 | Rate/favorite/pending dentro de disco | Respuesta server-side de `/discs` o del listado Community, más estado local de `DiscCard` | Toggle favorito/pendiente cambia ID local; rating actualiza estado y medias locales. No se invalida una query del listado. |
 | Votos en modal                        | Solicitud directa `/rates/disc/:id` al abrir y al refrescar media                         | Local a tarjeta/modal.                                                                                                     |
 | Comentarios personales                | `/comments` en `DiscList`; comentarios del disco en `ComentsModal`                        | Dos consultas con propósitos diferentes. No se aprecia un cache/invalidation común.                                        |
 | Dashboard summary                     | TanStack Query                                                                            | La tarjeta llama `mutateAndInvalidateDashboardSummary` tras votar; no convierte la lista general en Query.                 |
 
-Identity está modularizado. `DiscList` usa la protección pública del Router, no importa Auth directamente. `DiscCardComponent` sí importa `useAuthStore` desde la entrada pública de `identity/auth` y `hasMinimumRole` desde `identity/shared`, solo para controlar edición Calendar a partir de `riffvalley`. Transporte Axios central aporta token, renovación y redirección. No se encontró en la pantalla una política propia de limpieza de sus refs al cambio de sesión; en el flujo habitual logout/fin de sesión redirige rutas protegidas. La caché privada de TanStack Query limpia queries, pero el listado general no vive en esa caché: al separar conviene verificar explícitamente el ciclo de vida de su estado local entre sesiones. Esto es riesgo a caracterizar, no una fuga observada.
+Identity está modularizado. `DiscListView` conserva la protección pública del Router y el coordinador consulta `useAuthStore` mediante la entrada pública `identity/auth` para incluir usuario, autenticación y generación de sesión en la identidad de los seis modos. Al cambiar usuario o perder sesión invalida generación y resultados privados; si ya no hay sesión no emite consultas. El transporte Axios central conserva token, renovación y redirección. Esta protección está probada con promesas controladas; no sustituye la autorización del backend.
 
 La ruta permite a cualquier usuario autenticado. La edición del catálogo se oculta en la tarjeta para rol mínimo `riffvalley`; las acciones personales de rate/favorite/pending/comment se ofrecen desde una ruta autenticada y backend autoriza cada endpoint. Un 401/403 no se convierte en una vista de error específica del listado. La lectura de comentarios/votos por disco consultada en este backend parece pública; validar política desplegada queda fuera de esta auditoría.
 
@@ -228,7 +232,7 @@ La ruta permite a cualquier usuario autenticado. La edición del catálogo se oc
 
 | Área                                  | Pruebas encontradas                                                                                                                  | Qué protegen / límite                                                                                                                                                                     |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Vista `/disc-list`                    | `DiscList.characterization.test.ts` (15 tests, 1 todo)                                                                               | Seis modos, parámetros/transformaciones representativas, cambio de modo, paginación incremental, estado vacío/errores y defecto de concurrencia actual. No cubre todas las combinaciones. |
+| Vista `/disc-list`                    | `DiscListView.characterization.test.ts` (16 tests, sin todo) y `useDiscListCoordinator.test.ts` (6 tests)                             | Seis modos, mapeos, A→B en ambos órdenes, fallo obsoleto, cambios de sesión, A→B→C, páginas duplicadas, reinicio y final. No cubre backend real ni todas las combinaciones modo × filtro. |
 | `DiscFilters`                         | `DiscFilters.sync.test.ts`                                                                                                           | Sincronización país/género y rangos año/mes/semana/todos; opciones completas, accesibilidad y combinaciones exhaustivas pendientes.                                                       |
 | `SearchableSelect`                    | `SearchableSelect.keyboard.test.ts` (archivo local existente)                                                                        | Interacción por teclado del selector; no la integración con página.                                                                                                                       |
 | `DiscCardComponent`                   | `DiscCardComponent.events.test.ts`                                                                                                   | Payload `rating-saved` en creación/edición/solo portada y fallo de guardado. No cubre favorite/pending, modales, permisos o accesibilidad.                                                |
@@ -237,13 +241,13 @@ La ruta permite a cualquier usuario autenticado. La edición del catálogo se oc
 | Community comments/favorites/pendings | `comments.test.ts`, `favorites.test.ts`, `pendings.test.ts`                                                                          | Parámetros de wrappers y `type` observado cubiertos; no prueban autorización de backend ni todas las mutaciones de tarjeta.                                                               |
 | TopDiscs                              | Tests en `modules/catalog/top-discs/**`                                                                                              | Vista, filtros/queries y presentación; protege consumidor compartido de tarjeta. En este checkout los archivos de TopDiscs incluyen cambios locales no confirmados.                       |
 | Dashboard y otros consumidores        | Tests de widgets Random Disc, Adventure, Top Rated y Cemetery; `ArtistManagement` no tiene un test de contrato de tarjeta localizado | Propagación y evento parcialmente caracterizados; deben ejecutarse en futura regresión si cambia la tarjeta compartida.                                                                   |
-| Router/Identity                       | `discListPermissions.test.ts` y suites existentes de bootstrap, store/sesión, interceptor 401/403 y limpieza de Query privada        | Metadata de `/disc-list`, acceso anónimo/autenticado y redirección al perder sesión caracterizados; cambio de usuario con vista montada pendiente.                                        |
+| Router/Identity                       | `discListPermissions.test.ts`, `useDiscListCoordinator.test.ts` y suites existentes de Auth                                           | Metadata `/disc-list`, acceso autenticado, cambio de usuario y logout con consultas pendientes; no certifica renovación real ni backend.                                             |
 
 CAT-DISC-2a ejecutó las suites descritas abajo. No se prueban exhaustivamente todas las combinaciones modo × filtro ni todas las acciones de tarjeta; se mantienen como regresión futura de consumidores.
 
 ## CAT-DISC-2a — Tests de caracterización
 
-**Estado:** completada. **CAT-DISC-2b no iniciada.** No se modificaron archivos productivos, componentes, estilos, contratos ni backend. El test de concurrencia reproduce y fija el defecto; no lo corrige.
+**Estado a cierre de CAT-DISC-2a:** completada; CAT-DISC-2b aún no había comenzado. En CAT-DISC-2a no se modificaron archivos productivos, componentes, estilos, contratos ni backend. El test de concurrencia reproduce y fija el defecto; no lo corrige.
 
 ### Modos, filtros y resultados caracterizados
 
@@ -274,7 +278,7 @@ El test de ruta verifica `requiresAuth`/metadata, redirección anónima, acceso 
 
 Pruebas creadas o ampliadas:
 
-- `src/views/discsList/DiscList.characterization.test.ts` — vista, seis modos, filtros enviados, mapeos, paginación, estados y concurrencia.
+- `src/modules/catalog/discs/presentation/views/DiscListView.characterization.test.ts` — test trasladado junto a la vista; seis modos, filtros enviados, mapeos, paginación, estados y concurrencia.
 - `src/components/DiscFilters.sync.test.ts` — ampliación del test local existente para fechas/rangos.
 - `src/router/discListPermissions.test.ts` — guard específico de la ruta.
 - `src/services/rates/rates.test.ts` — ampliación de contrato del wrapper personal.
@@ -282,7 +286,80 @@ Pruebas creadas o ampliadas:
 
 Ejecución focalizada final: 15 archivos de test, **121 passed, 1 todo**. Incluyó suites de vista, filtros, tarjeta, servicios Catalog/Community, Router y pruebas relevantes de Identity/API/caché privada. Typecheck, ESLint y Prettier focalizados se registran en la entrega CAT-DISC-2a. El test todo no está ejecutándose ni falla; representa comportamiento deseado futuro.
 
-Limitaciones: no se ejecutó build ni suite completa; no se usó navegador ni backend real; los datos se suministran mediante fixtures y wrappers mockeados. La comparación de gates arquitectónicos que requiere SHA base/head no se puede atribuir ni acreditar desde este checkout con cambios preexistentes.
+Limitaciones CAT-DISC-2a: no se ejecutó build ni suite completa; no se usó navegador ni backend real; los datos se suministran mediante fixtures y wrappers mockeados. La comparación de gates arquitectónicos que requiere SHA base/head no se pudo acreditar en aquel checkout.
+
+## CAT-DISC-2b — Migración modular de DiscList
+
+**Estado:** completada. La vista y el test de caracterización se trasladaron sin extraer lógica ni cambiar comportamiento.
+
+- Vista: `src/views/discsList/DiscList.vue` → `src/modules/catalog/discs/presentation/views/DiscListView.vue`.
+- Test: `src/views/discsList/DiscList.characterization.test.ts` → `src/modules/catalog/discs/presentation/views/DiscListView.characterization.test.ts`; conserva expectativas, fixtures, reproducción de concurrencia y `it.todo`.
+- Router: el lazy import de `/disc-list` apunta a la vista modular; path, nombre `DiscList`, `requiresAuth: true`, guards y redirecciones se conservan.
+- Los únicos imports funcionales actualizados son el lazy import del Router y el import relativo de vista dentro del test. Imports de tarjeta, filtros, selects, servicios, store de catálogo, Community e Identity mantienen sus owners y ubicaciones.
+- `DiscCardComponent.vue`, `DiscFilters.vue`, `SearchableSelect.vue`, servicios de Community, componentes de Calendar y stores no se movieron ni modificaron en esta fase.
+- No quedan imports activos hacia el archivo legacy de `DiscList.vue`; `DiscListError.vue` permanece en `src/views/discsList/` y fuera del alcance.
+- No se extrajeron servicios ni transformaciones, ni se alteraron filtros, paginación, estilos o contratos HTTP. La extracción HTTP corresponde a CAT-DISC-2c; la coordinación de criterios y la carrera conocida siguen para CAT-DISC-2d.
+
+Verificaciones CAT-DISC-2b: Vitest focalizado, 6 archivos, **27 passed y 1 todo**; typecheck y build completados. ESLint pasó para Router y tests; lint del SFC conserva 10 diagnósticos que también aparecen al lintar el archivo original de `HEAD` (labels, dos componentes registrados no usados y dos `any`), por lo que son deuda preexistente y no se corrigieron en esta migración. Prettier pasó para el test trasladado, el test de Router y los roadmaps. Prettier informa formato pendiente en el SFC trasladado y `router/index.ts`; el SFC es idéntico byte a byte al origen y las diferencias de Router están en líneas no modificadas, por lo que se conservó el formato existente. También se mantuvo el formato preexistente de la tabla de `architecture.md`. `git diff --check` pasó. El chequeo de ciclos encontró 0 imports locales sin resolver y el mismo ciclo type-only existente `articles ↔ contents ↔ riff-valley-playlists`; no pudo comparar con HEAD local. El escaneo Markdown conserva un enlace preexistente a `roadmap/roles.md` que apunta fuera del repositorio. Build emitió avisos existentes de CSS `.flex-[2]`, tamaño de chunks y datos Browserslist antiguos.
+
+El test de concurrencia A/B sigue pasando como reproducción del comportamiento actual y mantiene su `it.todo`; no se corrigió. No se ejecutaron backend, suite completa ni pruebas visuales de navegador.
+
+## CAT-DISC-2c — Extracción de consulta y adaptación
+
+**Estado:** completada. `DiscListView.vue` solicita páginas mediante un contrato interno y ya no importa ni escoge entre servicios HTTP. `application/loadDiscList.ts` adapta el servicio y los parámetros por modo, transforma rates/favorites/pendings y normaliza las notas del listado general. Los tipos de consulta y resultado viven en `types/discList.ts`; el tipo de página compartido vive en `services/api/pagination.ts`.
+
+- Se reutilizan `getDiscs`, `getRatesByUser`, `getCommentsByUser`, `getFavoritesByUser` y `getPendingsByUser`; no se añadieron clientes ni endpoints.
+- Se ajustaron solo las firmas TypeScript de las lecturas paginadas para reflejar el payload que la vista ya consumía. Endpoints, parámetros, cliente común, contexto autenticado y mutaciones permanecen iguales.
+- El resultado usa una unión discriminada: discos normalizados para cinco modos, o comentarios y metadatos para `comments`. Se conservan `totalItems`, `totalPages`, `currentPage` y `limit`.
+- La vista conserva `limit=20`, `offset`, append, `IntersectionObserver`, sentinel, reset, contadores, manejo de errores y guard `loading`. No se añadió caché, cancelación, watchers ni coordinación.
+- Se añadieron siete casos de adaptación para enrutamiento/parámetros, modos, normalización de valores personales, campos de tarjeta, paginación, vacío y propagación de errores. La caracterización mantiene el `it.todo` de concurrencia.
+
+Verificación local CAT-DISC-2c: 13 archivos Vitest focalizados, **102 passed y 1 todo**; typecheck y build pasan. ESLint del conjunto modificado señala diagnósticos previos de labels, componentes registrados y `any` en la vista/servicios; el identificador de tipo no usado detectado durante la extracción se eliminó. Prettier pasa para los cuatro archivos nuevos; el check conjunto informa formato preexistente en la vista, wrappers legacy y `docs/frontend/architecture.md`. La vista y Favorites usan CRLF; para `git diff --check` el repo debe reconocer CRLF como fin de línea (`core.whitespace=cr-at-eol`). `cycles` no encuentra referencias locales sin resolver y conserva el ciclo type-only Articles/Contents/Riff Valley Playlists; los comparadores de ciclos e Identity son informativos porque no se resolvió HEAD local. Build conserva avisos de CSS `.flex-[2]`, chunk grande y Browserslist desactualizado. No se ejecutaron backend ni CI.
+
+**Estado histórico al cierre de CAT-DISC-2c:** al cambiar A→B durante una consulta, el guard `loading` rechazaba el reset y una respuesta antigua podía mostrarse bajo el criterio B. CAT-DISC-2d sustituyó esa caracterización por regresiones activas y corrigió el flujo; véase el cierre de CAT-DISC-2d a continuación.
+
+## CAT-DISC-2d — Coordinación de estado y concurrencia
+
+**Estado:** completada localmente. No se inició CAT-DISC-3 ni el rediseño visual.
+
+### Diseño y responsabilidades
+
+- `application/useDiscListCoordinator.ts` posee modo, búsqueda, rango de fechas, país, género, orden, tamaño/offset de página, resultados, total, carga inicial/adicional y error. Deriva carga total, `hasMore` y vacío.
+- `application/loadDiscList.ts` sigue eligiendo los wrappers existentes y normalizando los seis formatos; no cambian endpoints, argumentos HTTP ni contratos públicos de Community.
+- `DiscListView.vue` enlaza los criterios y resultados con los componentes actuales, y conserva el observer, scroll-to-top y formato de comentarios. No se introdujeron estilos ni componentes visuales nuevos.
+- Las opciones de países y géneros siguen consumiéndose desde `useCatalogStore`; no se implementaron opciones dinámicas.
+
+### Identidad y concurrencia
+
+La identidad serializada de consulta incluye modo, búsqueda, rango de fechas, país, género y orden. Para modos personales también incluye autenticación, `userId` y `authSessionGeneration` de la entrada pública de Identity. Todo cambio detectado reinicia offset y resultados, limpia los estados anteriores y lanza offset 0. Cada consulta captura su generación e identidad; respuestas, errores y `finally` de generaciones anteriores no pueden mutar datos ni loading actuales. El coordinador no pasa `AbortSignal`; aunque `getDiscs` lo admite, las peticiones obsoletas siguen en vuelo y se ignoran al resolverse.
+
+La carga adicional usa el mismo token vigente, tamaño fijo de 20 y un conjunto de offsets en vuelo. Se impide pedir una segunda copia de la misma página, se bloquea la carga incremental mientras hay otra activa y se descarta una página si cambia la identidad antes de responder. Offset avanza en bloques de 20 según el contrato existente; `totalItems` determina `hasMore` y la última página, incluso si una respuesta contiene menos de 20 elementos.
+
+### Regresiones y resultado de gates
+
+- La regresión A→B confirma que B se solicita mientras A sigue pendiente, y que únicamente B queda visible si B responde antes o después de A. Un fallo tardío de A tampoco aparece como error de B. Se eliminó el `it.todo` tras cubrirlo con pruebas activas.
+- Las pruebas de coordinador cubren secuencia rápida A→B→C, cambio entre modos y usuarios con solicitud pendiente, logout, deduplicación de página adicional, cambio de filtro con página posterior pendiente, offset/total, vacío y final de paginación.
+- Verificación focalizada: coordinador, caracterización, adaptador, DiscFilters y permisos de ruta; **34 tests passed**. El conjunto Community/Identity seleccionado pasó **79 tests**. Typecheck y build pasaron.
+- `pnpm test`: **101 archivos y 737 tests passed**, incluidos tests de TopDiscs, Dashboard, Community e Identity. No acredita CI ni backend real.
+- ESLint pasó para composable y tests; sobre `DiscListView.vue` informa seis reglas `label-has-for` en los labels de modo, que no se modificaron en CAT-DISC-2d. No se atribuyen contra una base porque la comparación base/head está incompleta. Prettier pasó para los archivos nuevos y los tests actualizados; reporta formato en el SFC, `roadmap/catalog-discs-audit.md` y `docs/frontend/architecture.md`, preservado para no reescribir template/estilos ni tablas documentales fuera de alcance.
+- `git -c core.whitespace=cr-at-eol diff --check` pasó, reconociendo los finales CRLF que conservan la vista y servicios legacy. `cycles` reporta el ciclo type-only Articles/Contents/Riff Valley Playlists ya documentado y 0 imports sin resolver; `identity:boundaries` encuentra 0 violaciones productivas. Ambas comparaciones delta son informativas porque no se resuelve `HEAD` local. El escaneo de enlaces Markdown reporta un enlace externo al repositorio ya existente (`roadmap/roles.md:9`).
+- Build emite avisos existentes de selector CSS `.flex-[2]`, chunk mayor a 500 kB y datos Browserslist antiguos. No se ejecutaron backend ni CI.
+
+### Límites y dependencias de fase 3
+
+La UI mantiene el spinner y el estado vacío actual de comentarios; la grilla no añade mensaje vacío o de error, y el coordinador conserva el error para una futura presentación/retry. Los contadores siguen representando `totalItems` del servidor mientras la grilla omite discos sin imagen. Fase 3 puede decidir copy/estados vacíos, retry y semántica de contador, así como persistencia/limpieza explícita de filtros; no requiere rehacer la política de aislamiento ni opciones dinámicas de país/género (CAT-DISC-3). La paginación continúa siendo hacia delante.
+
+## CAT-DISC-3e — Aislamiento de sesión
+
+**Estado:** completada localmente. Se mantiene el contrato HTTP legacy; no se integra `GET /api/discs/list` ni `/options`, no se cambia la vista ni se inicia CAT-DISC-3f.
+
+La identidad serializada de consulta contiene siempre modo, búsqueda, fechas, país, género, orden y el contexto de Identity (`isAuthenticated`, `userId`, `authSessionGeneration`). Se eliminó la excepción que dejaba `all` fuera de ese contexto. La guarda de autenticación se aplica a todos los modos, de modo que no se lanzan lecturas privadas si no hay usuario autenticado.
+
+Al cambiar o finalizar sesión, el watcher existente incrementa la generación de consulta, vacía páginas en vuelo y reinicia resultados, comentarios, totales, offset, error y estados loading. Un login posterior crea una identidad nueva y carga desde offset 0. Éxitos, errores y `finally` de la sesión anterior no pueden alterar el estado vigente; las páginas de sesiones distintas no se mezclan. El logout/redirección siguen siendo responsabilidad del flujo existente de Identity. No se añadió cancelación de transporte.
+
+La prueba determinista cubre cambio de usuario en `all`, `rates`, `covers`, `comments`, `favorites` y `pendientes`; logout durante paginación; login tras logout; éxito/error tardío; página antigua; ausencia de consultas sin sesión; reinicio de resultados y totales. Verificaciones CAT-DISC-3e: Vitest focalizado, **11 archivos y 94 tests passed** (coordinador, caracterización, adaptador, Router, Auth y servicios Community); `pnpm run build` completó typecheck y build; ESLint focalizado pasó. Prettier pasó en ambos archivos TypeScript y `roadmap.md`; los dos informes de auditoría muestran formato pendiente en su estado documental local y se conservaron sin reescritura general. `cycles` pasó con el ciclo type-only Articles/Contents/Riff Valley Playlists ya existente y 0 ciclos nuevos; `identity:boundaries` pasó con 0 infracciones. `markdown:links:delta` es informativo porque exige base/head completos. `git diff --check` se ejecutó reconociendo CRLF. Una invocación inicial del script de tests lanzó la suite completa por el separador `--` y mostró un fallo ajeno al alcance en Dashboard (`8,2`); la ejecución focalizada correcta pasó completa.
+
+**Límite:** la petición obsoleta continúa en transporte hasta resolverse; el aislamiento lógico de generación evita que escriba estado local. No se valida autenticación/backend real ni se modifica Identity globalmente.
 
 ## Riesgos de refactorización
 
@@ -302,14 +379,16 @@ Probabilidad: estimación cualitativa basada en alcance y acoplamiento observado
 | Cambio involuntario de contratos HTTP             | Media / Alto            | API legacy débilmente tipada; servicio personal declara respuesta array pero pantalla consume objeto paginado.                                      | En fase independiente, fijar DTOs a respuestas observadas y mantener nombres/params/endpoints durante la separación.                     |
 | Cambios visuales colaterales                      | Alta / Medio            | Filtros y tarjeta se comparten; cambios CSS globales pueden afectar modos oscuro/otros consumidores.                                                | Sin estilos en fase 2; después aislar CSS y verificar claro/oscuro y viewports con evidencia visual.                                     |
 | Pérdida de cobertura                              | Media / Medio           | CAT-DISC-2a ya cubre los flujos esenciales, pero no toda combinación modo × filtro ni todas las acciones de tarjeta.                                | Conservar la suite de caracterización y ampliar solo escenarios afectados; conservar suites de consumidores compartidos.                 |
-| Cambio de usuario conserva estado local           | Baja / Alto (hipótesis) | Listado personal está en refs, no Query; el ciclo habitual redirige al perder sesión, pero no se inspeccionó una transición real con vista montada. | Caracterizar logout, renovación fallida y login remoto antes de mover estado; no atribuir fuga sin reproducirla.                         |
+| Cambio de usuario conserva estado local           | Mitigado en CAT-DISC-3e | El coordinador incorpora usuario/generación de sesión a los seis modos y descarta peticiones previas; cubierto con promesas controladas. | Mantener tests al cambiar el ciclo de Auth o migrar las APIs; la respuesta tardía se ignora, no se cancela en transporte.                     |
+
+**Hallazgo histórico CAT-DISC-2f:** `all` consultaba `GET /api/discs`, protegido por Auth y con metadata del usuario, pero omitía sesión en su identidad. CAT-DISC-3e cerró esta brecha local: `all` comparte identidad de sesión y guardas con los otros cinco modos, limpia estado al logout y descarta respuestas tardías. No se observó exposición backend; el cierre está verificado con promesas diferidas.
 
 ## Arquitectura objetivo propuesta
 
 Una estructura liviana siguiendo `modules/catalog/top-discs`, sin copiar todos sus patrones ni mover dependencias por conveniencia:
 
 ```text
-src/modules/catalog/disc-list/
+src/modules/catalog/discs/
   presentation/
     views/DiscListView.vue            # composición de ruta /disc-list
     components/                       # UI exclusiva que se extraiga con motivo
@@ -320,7 +399,7 @@ src/modules/catalog/disc-list/
 
 ### Candidatos a mover o extraer
 
-1. Tras caracterizarla, mover `src/views/discsList/DiscList.vue` a `modules/catalog/disc-list/presentation/views/DiscListView.vue`; solo actualizar import del Router, manteniendo path, nombre y meta. No cambiar comportamiento/estilos en ese movimiento.
+1. [Completada en CAT-DISC-2b] Mover `src/views/discsList/DiscList.vue` a `src/modules/catalog/discs/presentation/views/DiscListView.vue`; solo actualizar import del Router, manteniendo path, nombre y meta. No cambiar comportamiento/estilos en ese movimiento.
 2. Mantener en el owner de Disc List la coordinación de modo, criterios, respuesta y paginación; extraer solo unidades de responsabilidad demostrada, por ejemplo la lista visual de comentarios y el composable coordinador. Definir los tipos de respuesta paginada junto a sus owners antes de quitar `any`.
 3. Consumir inicialmente `getDiscs`, la store del catálogo y servicios legacy de Community a través de su superficie existente. La creación de API modular de Community queda condicionada a existir una entrada pública y a asignar owner; no duplicar HTTP en Catalog.
 
@@ -345,12 +424,12 @@ Los identificadores y criterios son propuesta, no autorización para iniciar tar
 
 ### Fase 2 — Separación modular, sin cambios funcionales ni visuales
 
-| ID           | Objetivo y alcance                                                                                                                 | Dependencias | Criterios de aceptación                                                                                                           | Pruebas necesarias                                                                    | Tamaño |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------ |
-| CAT-DISC-2.1 | [Completada en CAT-DISC-2a] Caracterizar los seis modos, parámetros, mapeos, filtros, paginación, estados y carrera actual.        | CAT-DISC-1   | Suite focalizada activa pasa; defecto fijado como comportamiento actual y expectativa deseada pendiente; sin cambios de producto. | `DiscList.characterization.test.ts`, filtro, servicios, ruta y regresión relacionada. | M      |
-| CAT-DISC-2.2 | Crear shell `modules/catalog/disc-list` y trasladar la vista, actualizando solo el import de Router.                               | 2.1          | URL `/disc-list`, meta, orden y contenido observable conservados; diff sin cambios de estilos/contratos.                          | Tests de ruta/vista y typecheck.                                                      | S      |
-| CAT-DISC-2.3 | Extraer de la vista únicamente la coordinación cohesiva y el listado de comentarios si el corte queda demostrado.                  | 2.2          | La vista compone; los mapeos/efectos tienen owner claro; seis modos preservados y sin import circular nuevo.                      | Tests del composable y vista; grafo/import checks aplicables.                         | M      |
-| CAT-DISC-2.4 | Registrar límites y consumidores de servicios legacy y piezas compartidas; preparar contratos de módulo sin migrar Community/Card. | 2.2          | Exports mínimos, dependencias acíclicas documentadas, consumidores actuales siguen importando sus ubicaciones.                    | Lint/import gates, typecheck, tests de consumidores afectados.                        | S      |
+| ID           | Objetivo y alcance                                                                                                                                   | Dependencias | Criterios de aceptación                                                                                                           | Pruebas necesarias                                                                          | Tamaño |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------ |
+| CAT-DISC-2.1 | [Completada en CAT-DISC-2a] Caracterizar los seis modos, parámetros, mapeos, filtros, paginación, estados y carrera actual.                          | CAT-DISC-1   | Suite focalizada activa pasa; defecto fijado como comportamiento actual y expectativa deseada pendiente; sin cambios de producto. | `DiscListView.characterization.test.ts`, filtro, servicios, ruta y regresión relacionada.   | M      |
+| CAT-DISC-2.2 | [Completada en CAT-DISC-2b] Trasladar vista y test a `modules/catalog/discs/presentation/views`, actualizando el lazy import del Router.             | 2.1          | URL `/disc-list`, metadata y contenido observable conservados; sin cambios funcionales, estilos o contratos.                      | Tests focalizados de ruta/vista, typecheck y build.                                         | S      |
+| CAT-DISC-2.3 | [Completada en CAT-DISC-2c] Extraer transporte HTTP y adaptación de respuestas al owner de Catalog/Community que corresponda, sin cambiar contratos. | 2.2          | Vista consume contrato interno; seis modos, parámetros y paginación observables se conservan; sin duplicación ni ciclos nuevos.   | Adaptador, servicios, caracterización, gates, typecheck/build.                              | M      |
+| CAT-DISC-2.4 | [Completada en CAT-DISC-2d] Coordinar filtros y solicitudes, resolviendo la carrera de concurrencia con política explícita.                          | 2.3          | La consulta visible corresponde a filtros/sesión actuales; reset, carga incremental y seis modos conservados.                       | Promesas diferidas para concurrencia, filtros, sesión y paginación; gates arquitectónicos.   | M      |
 
 ### Fase 3 — Mejora funcional y coordinación
 
@@ -360,6 +439,8 @@ Los identificadores y criterios son propuesta, no autorización para iniciar tar
 | CAT-DISC-3.2 | Coordinar solicitudes de búsqueda/paginación y carga incremental, evitando datos de criterios obsoletos.                  | 3.1                                            | Cambios rápidos y cambios durante fetch no mezclan páginas; cancelación/identificación definida; conteos consistentes. | Tests con promesas diferidas/cancelación y paginación.           | M      |
 | CAT-DISC-3.3 | Mejorar estados vacíos, error y retry; acordar semántica de contador con imágenes ausentes.                               | 3.2; decisión de contrato/UX para contador     | Todos los modos indican vacío/error/carga; contador corresponde al criterio acordado; retry no duplica páginas.        | Tests de estado para seis modos y conteo.                        | S      |
 | CAT-DISC-3.4 | Revisar opciones de orden y filtros por modo, conservando todos los comportamientos actuales salvo decisiones explícitas. | 3.1                                            | Cada modo muestra controles válidos; query refleja solo valores soportados; sin resets sorpresa.                       | Tabla de casos por modo y tests contractuales backend mockeados. | S      |
+
+CAT-DISC-2d ya provee una fuente de verdad para criterios enviados, resultados y concurrencia. La fase 3 sigue pendiente; antes de ejecutarla, sus tareas 3.1–3.2 deben enfocarse en la interacción de reset y decisiones de UX/reintento, sin duplicar el coordinador ni mover el estado interno de año/mes/semana de `DiscFilters` sin revisar consumidores compartidos.
 
 ### Fase 4 — Mejora visual/UX
 
@@ -391,6 +472,6 @@ La dirección conceptual aprobada por el usuario es **Buscar → Explorar catál
 
 - [Índice frontend](../docs/frontend/index.md), [arquitectura](../docs/frontend/architecture.md), [convenciones](../docs/frontend/conventions.md), [Identity](../docs/frontend/modules/identity.md) y [sistema de diseño](../docs/design-system.md).
 - [TopDiscs cerrado](catalog-top-discs.md), [Catalog Overview](catalog-overview.md) y [índice de roadmaps](../roadmap.md).
-- Frontend: `src/router/index.ts`, `src/layouts/default/components/routes.json`, `src/views/discsList/DiscList.vue`, `src/components/DiscFilters.vue`, `src/components/DiscCardComponent.vue`, `src/stores/catalog/catalog.ts`, `src/services/{discs,rates,comments,favorites,pendings,catalog}`.
+- Frontend inspeccionado en CAT-DISC-1: `src/router/index.ts`, `src/layouts/default/components/routes.json`, `src/views/discsList/DiscList.vue` (luego trasladada a `src/modules/catalog/discs/presentation/views/DiscListView.vue`), `src/components/DiscFilters.vue`, `src/components/DiscCardComponent.vue`, `src/stores/catalog/catalog.ts`, `src/services/{discs,rates,comments,favorites,pendings,catalog}`.
 - Backend consultado en checkout hermano: `src/catalog/discs/discs.controller.ts`, `src/catalog/discs/dto/discs-list-query.dto.ts`, `src/catalog/discs/catalog/disc-catalog.service.ts`, `src/community/{rates,comments,favorites,pendings}` y `src/catalog/discs/__tests__/D0-baseline.md`.
 - No hubo navegación local integrada, captura visual, ejecución de suites, llamada a backend o verificación de CI/producción.

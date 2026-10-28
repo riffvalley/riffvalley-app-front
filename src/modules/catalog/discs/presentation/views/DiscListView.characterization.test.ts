@@ -19,7 +19,8 @@ vi.mock("@services/pendings/pendings", () => ({ getPendingsByUser: api.getPendin
 vi.mock("@services/comments/comments", () => ({ getCommentsByUser: api.getCommentsByUser }));
 
 import { useCatalogStore } from "@stores/catalog/catalog";
-import DiscList from "./DiscList.vue";
+import { useAuthStore } from "@/modules/identity/auth/stores/auth";
+import DiscList from "./DiscListView.vue";
 
 const FiltersStub = defineComponent({
   name: "DiscFilters",
@@ -133,6 +134,11 @@ function mountList() {
   const pinia = createPinia();
   setActivePinia(pinia);
   const catalog = useCatalogStore(pinia);
+  useAuthStore(pinia).$patch({
+    authStatus: "authenticated",
+    token: "test-session-token",
+    userId: "user-1",
+  });
   catalog.$patch({
     genres: [{ id: "genre-1", name: "Rock", color: "#123456" }],
     countries: [{ id: "country-1", name: "España", isoCode: "ES" }],
@@ -545,13 +551,14 @@ describe("DiscList current behavior", () => {
     consoleError.mockRestore();
   });
 
-  it("reproduces the current race: changing A to B during loading drops B and later renders A", async () => {
+  it("requests B during A and ignores A when its response arrives after B", async () => {
     let resolveA!: (value: ReturnType<typeof page>) => void;
-    api.getDiscs.mockReturnValueOnce(
-      new Promise((resolve) => {
-        resolveA = resolve;
-      })
-    );
+    const requestA = new Promise<ReturnType<typeof page>>((resolve) => {
+      resolveA = resolve;
+    });
+    api.getDiscs
+      .mockReturnValueOnce(requestA)
+      .mockResolvedValueOnce(page([disc("resultado-filtro-B")], 1));
     const wrapper = mountList();
     const filters = wrapper.findComponent(FiltersStub);
 
@@ -559,17 +566,59 @@ describe("DiscList current behavior", () => {
     await settle();
 
     expect(filters.props("searchQuery")).toBe("filtro B");
-    expect(api.getDiscs).toHaveBeenCalledTimes(1);
+    expect(api.getDiscs).toHaveBeenCalledTimes(2);
+    expect(api.getDiscs.mock.calls[1]?.[2]).toBe("filtro B");
+    expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
+      "resultado-filtro-B",
+    ]);
 
     resolveA(page([disc("resultado-filtro-A")], 1));
     await settle();
 
-    expect(api.getDiscs).toHaveBeenCalledTimes(1);
     expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
-      "resultado-filtro-A",
+      "resultado-filtro-B",
     ]);
     wrapper.unmount();
   });
 
-  it.todo("pending behavior: discard A after filter B is selected and render only B's response");
+  it("does not show A while B is pending when A responds first", async () => {
+    let resolveA!: (value: ReturnType<typeof page>) => void;
+    let resolveB!: (value: ReturnType<typeof page>) => void;
+    api.getDiscs
+      .mockReturnValueOnce(new Promise((resolve) => (resolveA = resolve)))
+      .mockReturnValueOnce(new Promise((resolve) => (resolveB = resolve)));
+    const wrapper = mountList();
+    wrapper.findComponent(FiltersStub).vm.$emit("update:searchQuery", "filtro B");
+    await settle();
+
+    resolveA(page([disc("resultado-filtro-A")], 1));
+    await settle();
+    expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(0);
+
+    resolveB(page([disc("resultado-filtro-B")], 1));
+    await settle();
+    expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
+      "resultado-filtro-B",
+    ]);
+    wrapper.unmount();
+  });
+
+  it("ignores a failure from A after B is selected", async () => {
+    let rejectA!: (error: Error) => void;
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    api.getDiscs
+      .mockReturnValueOnce(new Promise((_, reject) => (rejectA = reject)))
+      .mockResolvedValueOnce(page([disc("resultado-filtro-B")], 1));
+    const wrapper = mountList();
+    wrapper.findComponent(FiltersStub).vm.$emit("update:searchQuery", "filtro B");
+    await settle();
+    rejectA(new Error("A failed"));
+    await settle();
+
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
+      "resultado-filtro-B",
+    ]);
+    wrapper.unmount();
+  });
 });

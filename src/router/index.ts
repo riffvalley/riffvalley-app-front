@@ -30,7 +30,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/disc-list",
     name: "DiscList",
-    component: () => import("@views/discsList/DiscList.vue"),
+    component: () => import("@/modules/catalog/discs/presentation/views/DiscListView.vue"),
     meta: { requiresAuth: true },
   },
   {

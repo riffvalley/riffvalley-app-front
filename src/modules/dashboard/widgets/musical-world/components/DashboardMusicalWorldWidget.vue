@@ -102,13 +102,13 @@ function openMap() {
     class="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-rv-darkSurface"
     aria-labelledby="musical-world-title"
   >
-    <header class="flex items-center gap-2 border-b border-gray-100 bg-gradient-to-r from-rv-blue/8 to-rv-purple/8 px-5 py-4 dark:border-white/10 dark:from-rv-blue/10 dark:to-rv-purple/10">
-      <i class="fa-solid fa-earth-americas text-rv-blue" aria-hidden="true"></i>
-      <div class="min-w-0">
-        <h3 id="musical-world-title" class="truncate font-bold text-gray-900 dark:text-white">
-          Tu mundo musical
+    <header class="border-b border-gray-100 bg-gradient-to-r from-rv-blue/8 to-rv-purple/8 px-5 py-4 dark:border-white/10 dark:from-rv-blue/10 dark:to-rv-purple/10">
+      <div class="min-w-0 text-left">
+        <h3 id="musical-world-title" class="flex min-w-0 items-center gap-2 font-bold text-gray-900 dark:text-white">
+          <i class="fa-solid fa-earth-americas shrink-0 text-rv-blue" aria-hidden="true"></i>
+          <span class="truncate">Tu mundo musical</span>
         </h3>
-        <p class="text-xs text-gray-500 dark:text-gray-400">Los países de tus discos valorados</p>
+        <p class="pl-6 text-xs text-gray-500 dark:text-gray-400">Los países de tus discos valorados</p>
       </div>
     </header>
 

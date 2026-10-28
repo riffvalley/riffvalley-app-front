@@ -46,6 +46,19 @@ describe("/disc-list route access", () => {
     expect(router.currentRoute.value.name).toBe("DiscList");
   });
 
+  it("lazy-loads the modular DiscList view", async () => {
+    const route = router.getRoutes().find(({ name }) => name === "DiscList");
+    const loader = route?.components?.default;
+
+    expect(loader).toBeDefined();
+    if (typeof loader === "function") {
+      const loaded = await (loader as () => Promise<{ default: unknown }>)();
+      expect(loaded.default).toBeDefined();
+    } else {
+      expect(loader).toHaveProperty("setup");
+    }
+  });
+
   it("leaves the protected page when the active session is cleared", async () => {
     const authStore = useAuthStore();
     authStore.token = "test-token";

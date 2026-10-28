@@ -1,5 +1,6 @@
 import api from "@services/api/api.ts";
 import type { Disc } from "@services/discs/discs";
+import type { PaginatedResponse } from "@services/api/pagination";
 
 export interface RatePayload {
   discId: string;
@@ -22,6 +23,12 @@ export interface DiscRate {
   cover: string;
   user: User;
   disc?: Disc;
+}
+
+export interface UserDiscRateListItem extends Omit<DiscRate, "disc" | "rate" | "cover"> {
+  rate: string | number | null;
+  cover: string | number | null;
+  disc: Disc;
 }
 
 export type HistoryType = "rate" | "cover" | "both";
@@ -158,8 +165,8 @@ export async function getRatesByUser(
   country?: string,
   type?: string,
   orderBy?: string,
-): Promise<DiscRate[]> {
-  const response = await api.get<any>("/rates", {
+): Promise<PaginatedResponse<UserDiscRateListItem>> {
+  const response = await api.get<PaginatedResponse<UserDiscRateListItem>>("/rates", {
     params: {
       limit,
       offset,
