@@ -11,6 +11,7 @@ import {
   getRatesArtistSummary,
   getRatesArtistLastfm,
   getRatesTopArtists,
+  getRatesByUser,
   type RatesArtistLastfmResponseDto,
   type RatesDashboardSummaryDto,
   type RatesGeographyTopResponseDto,
@@ -54,6 +55,39 @@ describe("getRatesDashboardSummary", () => {
   });
 });
 
+describe("getRatesByUser", () => {
+  beforeEach(() => {
+    get.mockReset().mockResolvedValue({ data: { totalItems: 1, data: [] } });
+  });
+
+  it("preserves pagination, shared catalog filters, mode, and order for the personal list", async () => {
+    const dateRange: [string, string] = ["2025-01-01T00:00:00.000Z", "2025-12-31T23:59:59.999Z"];
+
+    await getRatesByUser(
+      20,
+      40,
+      "artista",
+      dateRange,
+      "genre-1",
+      "country-1",
+      "cover",
+      "rate.cover:DESC"
+    );
+
+    expect(get).toHaveBeenCalledWith("/rates", {
+      params: {
+        limit: 20,
+        offset: 40,
+        query: "artista",
+        dateRange,
+        genre: "genre-1",
+        country: "country-1",
+        type: "cover",
+        orderBy: "rate.cover:DESC",
+      },
+    });
+  });
+});
 
 describe("getRatesGeographyTop", () => {
   const geographyResponse: RatesGeographyTopResponseDto = {
@@ -81,7 +115,6 @@ describe("getRatesGeographyTop", () => {
     expect(get).toHaveBeenCalledWith("/rates/geography/top", { signal: undefined });
   });
 });
-
 
 describe("getRatesGeographyWorld", () => {
   const geographyResponse: RatesGeographyWorldResponseDto = {
@@ -116,7 +149,13 @@ describe("getRatesGeographyWorld", () => {
 describe("getRatesTopArtists", () => {
   const artistsResponse = {
     artists: [
-      { id: "00000000-0000-4000-8000-000000000023", name: "Artista", image: null, ratingCount: 12, averageRate: 8.45 },
+      {
+        id: "00000000-0000-4000-8000-000000000023",
+        name: "Artista",
+        image: null,
+        ratingCount: 12,
+        averageRate: 8.45,
+      },
     ],
   };
 
@@ -144,18 +183,25 @@ describe("getRatesTopArtists", () => {
     });
   });
 
-  it.each(["month", "year", "all"] as const)("forwards the %s period without changing backend order", async (period) => {
-    const orderedResponse = { artists: [artistsResponse.artists[0], { ...artistsResponse.artists[0], id: "another-id" }] };
-    get.mockResolvedValueOnce({ data: orderedResponse });
+  it.each(["month", "year", "all"] as const)(
+    "forwards the %s period without changing backend order",
+    async (period) => {
+      const orderedResponse = {
+        artists: [artistsResponse.artists[0], { ...artistsResponse.artists[0], id: "another-id" }],
+      };
+      get.mockResolvedValueOnce({ data: orderedResponse });
 
-    const result = await getRatesTopArtists(undefined, period);
+      const result = await getRatesTopArtists(undefined, period);
 
-    expect(get).toHaveBeenCalledWith("/rates/artists/top", {
-      params: { period },
-      signal: undefined,
-    });
-    expect(result.artists.map(({ id }) => id)).toEqual(orderedResponse.artists.map(({ id }) => id));
-  });
+      expect(get).toHaveBeenCalledWith("/rates/artists/top", {
+        params: { period },
+        signal: undefined,
+      });
+      expect(result.artists.map(({ id }) => id)).toEqual(
+        orderedResponse.artists.map(({ id }) => id)
+      );
+    }
+  );
 });
 
 describe("getRatesArtistLastfm", () => {
@@ -165,26 +211,52 @@ describe("getRatesArtistLastfm", () => {
     status: "available",
     biography: { summary: "Bio sin HTML", url: "https://www.last.fm/music/Artist/+wiki" },
     tags: [{ name: "Rock", url: "https://www.last.fm/tag/rock" }],
-    similarArtists: [{
-      name: "Similar",
-      url: "https://www.last.fm/music/Similar",
-      catalogArtistId: "00000000-0000-4000-8000-000000000024",
-      catalogDiscCount: 2,
-      catalogDiscs: [
-        {
-          id: "00000000-0000-4000-8000-000000000025", name: "First", image: null, releaseYear: 2020,
-          releaseDate: "2020-01-01", link: null, ep: false, debut: false, genre: null,
-          averageRate: null, averageCover: null, voteCount: 0, commentCount: 0,
-          userRate: null, favoriteId: null, pendingId: null,
-        },
-        {
-          id: "00000000-0000-4000-8000-000000000026", name: "Second", image: "https://images.example/second.jpg", releaseYear: null,
-          releaseDate: null, link: null, ep: false, debut: false, genre: null,
-          averageRate: null, averageCover: null, voteCount: 0, commentCount: 0,
-          userRate: null, favoriteId: null, pendingId: null,
-        },
-      ],
-    }],
+    similarArtists: [
+      {
+        name: "Similar",
+        url: "https://www.last.fm/music/Similar",
+        catalogArtistId: "00000000-0000-4000-8000-000000000024",
+        catalogDiscCount: 2,
+        catalogDiscs: [
+          {
+            id: "00000000-0000-4000-8000-000000000025",
+            name: "First",
+            image: null,
+            releaseYear: 2020,
+            releaseDate: "2020-01-01",
+            link: null,
+            ep: false,
+            debut: false,
+            genre: null,
+            averageRate: null,
+            averageCover: null,
+            voteCount: 0,
+            commentCount: 0,
+            userRate: null,
+            favoriteId: null,
+            pendingId: null,
+          },
+          {
+            id: "00000000-0000-4000-8000-000000000026",
+            name: "Second",
+            image: "https://images.example/second.jpg",
+            releaseYear: null,
+            releaseDate: null,
+            link: null,
+            ep: false,
+            debut: false,
+            genre: null,
+            averageRate: null,
+            averageCover: null,
+            voteCount: 0,
+            commentCount: 0,
+            userRate: null,
+            favoriteId: null,
+            pendingId: null,
+          },
+        ],
+      },
+    ],
     listeners: 12_400,
     playCount: 85_000,
     lastfmUrl: "https://www.last.fm/music/Artist",
@@ -199,7 +271,9 @@ describe("getRatesArtistLastfm", () => {
     const result = await getRatesArtistLastfm(artistId, controller.signal);
 
     expect(get).toHaveBeenCalledOnce();
-    expect(get).toHaveBeenCalledWith(`/rates/artists/${artistId}/lastfm`, { signal: controller.signal });
+    expect(get).toHaveBeenCalledWith(`/rates/artists/${artistId}/lastfm`, {
+      signal: controller.signal,
+    });
     expect(result).toEqual(lastfmResponse);
   });
 
@@ -227,16 +301,18 @@ describe("getRatesArtistSummary", () => {
       lastAvailableActivityAt: "2026-10-27T18:30:00.123456",
     },
     discs: {
-      data: [{
-        id: "disc-1",
-        name: "Álbum",
-        image: null,
-        releaseDate: null,
-        rate: 0,
-        cover: null,
-        rateId: "rate-1",
-        lastActivityAt: "2026-10-27T18:30:00.123456",
-      }],
+      data: [
+        {
+          id: "disc-1",
+          name: "Álbum",
+          image: null,
+          releaseDate: null,
+          rate: 0,
+          cover: null,
+          rateId: "rate-1",
+          lastActivityAt: "2026-10-27T18:30:00.123456",
+        },
+      ],
       total: 1,
       page: 1,
       limit: 10,
@@ -253,13 +329,13 @@ describe("getRatesArtistSummary", () => {
     const result = await getRatesArtistSummary(
       "00000000-0000-4000-8000-000000000023",
       { page: 2, limit: 10 },
-      controller.signal,
+      controller.signal
     );
 
     expect(get).toHaveBeenCalledOnce();
     expect(get).toHaveBeenCalledWith(
       "/rates/artists/00000000-0000-4000-8000-000000000023/summary",
-      { params: { page: 2, limit: 10 }, signal: controller.signal },
+      { params: { page: 2, limit: 10 }, signal: controller.signal }
     );
     expect(result).toEqual(artistSummary);
   });
@@ -268,7 +344,7 @@ describe("getRatesArtistSummary", () => {
     await getRatesArtistSummary("00000000-0000-4000-8000-000000000023");
     expect(get).toHaveBeenCalledWith(
       "/rates/artists/00000000-0000-4000-8000-000000000023/summary",
-      { params: undefined, signal: undefined },
+      { params: undefined, signal: undefined }
     );
   });
 });

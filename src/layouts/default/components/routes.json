@@ -8,20 +8,20 @@
     "icon": "fa-solid fa-layer-group"
   },
   {
-    "to": "/disc-list",
-    "label": "Discos",
-    "activeClass": "bg-gray-700",
-    "type": "disc-app",
-    "requiredRole": "user",
-    "icon": "fa-solid fa-compact-disc"
-  },
-  {
     "to": "/rankings",
     "label": "Top Discos",
     "activeClass": "bg-gray-700",
     "type": "disc-app",
     "requiredRole": "user",
     "icon": "fa-solid fa-star"
+  },
+  {
+    "to": "/disc-list",
+    "label": "Discos",
+    "activeClass": "bg-gray-700",
+    "type": "disc-app",
+    "requiredRole": "user",
+    "icon": "fa-solid fa-compact-disc"
   },
   {
     "to": "/artists",

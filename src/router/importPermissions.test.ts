@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from "pinia";
 import router from "./index";
 import { useAuthStore } from "@/modules/identity/auth";
 import type { UserRole } from "@/modules/identity/shared";
+import TopDiscsView from "@/modules/catalog/top-discs/presentation/views/TopDiscsView.vue";
 
 describe("import route permissions", () => {
   beforeEach(async () => {
@@ -25,6 +26,28 @@ describe("import route permissions", () => {
   it("redirects unauthenticated users from both import routes to login", async () => {
     expect((await navigateAs(null, "/import")).name).toBe("Login");
     expect((await navigateAs(null, "/import-discs")).name).toBe("Login");
+  });
+
+  it("protects Rankings for anonymous users and permits any authenticated user role", async () => {
+    expect((await navigateAs(null, "/rankings")).name).toBe("Login");
+    expect((await navigateAs("user", "/rankings")).name).toBe("Rankings");
+  });
+
+  it("loads the TopDiscs feature view for Rankings", async () => {
+    expect((await navigateAs("user", "/rankings")).name).toBe("Rankings");
+    const route = router.getRoutes().find(({ name }) => name === "Rankings");
+
+    expect(route?.path).toBe("/rankings");
+    expect(route?.meta.requiresAuth).toBe(true);
+    expect(route?.components?.default).toBe(TopDiscsView);
+  });
+
+  it("redirects Rankings to Login when the active session is cleared", async () => {
+    const authStore = useAuthStore();
+    await navigateAs("user", "/rankings");
+
+    authStore.clearSessionLocally();
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe("Login"));
   });
 
   it.each(["user", "collaborator"] as const)(

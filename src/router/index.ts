@@ -24,7 +24,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/rankings",
     name: "Rankings",
-    component: () => import("@views/homePage/HomePage.vue"),
+    component: () => import("@/modules/catalog/top-discs/presentation/views/TopDiscsView.vue"),
     meta: { requiresAuth: true },
   },
   {
@@ -355,10 +355,11 @@ function watchActiveRouteAuthorization(authStore: AuthStore) {
       () => router.currentRoute.value.meta.requiresRole,
     ],
     ([status, role, requiredRole]) => {
-      if (!requiredRole) return;
       if (status === "anonymous") {
-        void router.replace({ name: "Login" });
-      } else if (status === "authenticated" && !hasMinimumRole(role, requiredRole)) {
+        if (router.currentRoute.value.meta.requiresAuth) {
+          void router.replace({ name: "Login" });
+        }
+      } else if (requiredRole && status === "authenticated" && !hasMinimumRole(role, requiredRole)) {
         // Match the existing guard's destination for an authenticated role denial.
         void router.replace({ name: "Home" });
       }

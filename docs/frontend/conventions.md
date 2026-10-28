@@ -46,7 +46,7 @@ Reutiliza los colores y utilidades de marca definidos en [`tailwind.config.js`](
 - `pnpm run identity:boundaries:fixtures` verifica los casos del checker de fronteras.
 - `pnpm run identity:boundaries` ejecuta el diagnóstico local y usa `HEAD` como base implícita cuando puede. `pnpm run identity:boundaries:required` es el modo obligatorio de CI y exige las mismas referencias, merge-base y grafos completos. Una nueva violación productiva termina con código 1; referencia ausente, grafo incompleto, error Git o fallo del analizador terminan con código 2. El diagnóstico local informa comparaciones incompletas y termina con código 0. El gate no establece ownership para el resto del código legacy.
 
-El workflow ejecuta los dos comandos `:required`. La base actual de `dev` conserva un import local sin resolver en `src/views/homePage/HomePage.vue`; por eso, hasta que FQ-5.2 se resuelva mediante integración normal, CI bloqueará ambos comparadores al detectar el grafo base incompleto. No se debe cambiar la referencia para evitar ese bloqueo.
+El workflow ejecuta los dos comandos `:required`. La base histórica de `dev` conserva un import local sin resolver en la ubicación anterior de Rankings, `src/views/homePage/HomePage.vue`; C-TOP-12 mueve esa vista en este checkout, pero no cambia la base Git ni resuelve la limitación FQ-5.2 mediante integración normal. CI bloqueará ambos comparadores cuando detecte el grafo base incompleto. No se debe cambiar la referencia para evitar ese bloqueo.
 
 Los detalles de las reglas y excepciones de Identity están en su [documentación canónica](modules/identity.md); los principios generales y el estado de adopción gradual, en [Arquitectura](architecture.md).
 
