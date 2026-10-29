@@ -28,7 +28,7 @@
     "label": "Artistas",
     "activeClass": "bg-gray-700",
     "type": "disc-app",
-    "requiredRole": "riffvalley",
+    "requiredRole": "user",
     "icon": "fa-solid fa-microphone"
   },
   {
@@ -46,14 +46,6 @@
     "type": "disc-app",
     "requiredRole": "user",
     "icon": "fa-solid fa-chart-area"
-  },
-  {
-    "to": "/calendar-baby",
-    "label": "Calendario",
-    "activeClass": "bg-gray-700",
-    "type": "disc-app",
-    "requiredRole": "user",
-    "icon": "fa-solid fa-calendar-days"
   },
   {
     "to": "/suggest",

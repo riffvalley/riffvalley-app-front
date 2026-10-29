@@ -44,3 +44,7 @@ Ejecuta pruebas proporcionales al cambio de comportamiento; typecheck para cambi
 ## Revisión humana
 
 Al revisar un cambio, considera ownership y dirección de dependencias; contratos públicos y permisos —los guards de frontend no sustituyen la autorización del servidor—; elección razonable entre estado local, Pinia y Query; accesibilidad, foco y navegación por teclado; y pruebas acordes al riesgo. Estos criterios requieren juicio contextual y no son reglas automáticas completas. Registra por separado qué se comprobó localmente y qué se validó realmente en GitHub Actions.
+
+## Preferencias UI persistentes
+
+- El autocomplete de `/disc-list` debe seguir la paleta del modo «Todos los discos»: en tema claro, navy `rv-navy` con texto blanco; en tema oscuro, fondo gris claro `gray-200` con texto `rv-navy`. Aplicar la misma combinación a selección, hover, foco, placeholders y etiqueta del artista, manteniendo contraste legible en ambos temas.

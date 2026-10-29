@@ -3,35 +3,42 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { defineComponent, h } from "vue";
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 
 const api = vi.hoisted(() => ({
-  getDiscs: vi.fn(),
-  getRatesByUser: vi.fn(),
-  getFavoritesByUser: vi.fn(),
-  getPendingsByUser: vi.fn(),
-  getCommentsByUser: vi.fn(),
+  getDiscListPage: vi.fn(),
+  getDiscListOptions: vi.fn(),
+  getDiscListSuggestions: vi.fn(),
 }));
+const savedFiltersApi = vi.hoisted(() => ({
+  getSavedDiscFilters: vi.fn(),
+  createSavedDiscFilter: vi.fn(),
+  updateSavedDiscFilter: vi.fn(),
+  deleteSavedDiscFilter: vi.fn(),
+}));
+vi.mock("../../api/discList", () => api);
+vi.mock("../../api/savedDiscFilters", () => savedFiltersApi);
 
-vi.mock("@services/discs/discs", () => ({ getDiscs: api.getDiscs }));
-vi.mock("@services/rates/rates", () => ({ getRatesByUser: api.getRatesByUser }));
-vi.mock("@services/favorites/favorites", () => ({ getFavoritesByUser: api.getFavoritesByUser }));
-vi.mock("@services/pendings/pendings", () => ({ getPendingsByUser: api.getPendingsByUser }));
-vi.mock("@services/comments/comments", () => ({ getCommentsByUser: api.getCommentsByUser }));
-
-import { useCatalogStore } from "@stores/catalog/catalog";
 import { useAuthStore } from "@/modules/identity/auth/stores/auth";
 import DiscList from "./DiscListView.vue";
 
 const FiltersStub = defineComponent({
-  name: "DiscFilters",
-  props: ["searchQuery", "selectedGenre", "selectedCountry", "selectedWeek"],
-  emits: [
-    "update:searchQuery",
-    "update:selectedGenre",
-    "update:selectedCountry",
-    "update:selectedWeek",
-  ],
-  template: '<div data-testid="disc-filters"></div>',
+  name: "DiscListExplorationFilters",
+  props: ["searchQuery", "selectedCountry", "selectedWeek", "countries", "optionsError"],
+  emits: ["update:search", "update:country", "update:week", "update:genres", "retry-options"],
+  template:
+    '<div data-testid="disc-filters"><button data-testid="genre-filter" @click="$emit(\'update:genres\', [\'genre-a\', \'genre-b\'])">Géneros</button><span v-if="optionsError">No se pudieron cargar los filtros de país y género.</span><slot name="savedActions" /></div>',
+});
+
+const createdDiscForModal = { id: "disc-created", name: "Disco recién creado" };
+const CreateDiscModalStub = defineComponent({
+  name: "CreateDiscModal",
+  emits: ["close"],
+  template:
+    '<div data-testid="create-disc-modal"><button @click="$emit(\'close\', { createdDisc: null })">Cancelar alta</button><button @click="$emit(\'close\', { createdDisc: { ...createdDiscForModal } })">Cerrar alta</button></div>',
+  setup() {
+    return { createdDiscForModal };
+  },
 });
 
 const SimpleSelectStub = defineComponent({
@@ -60,6 +67,7 @@ const SimpleSelectStub = defineComponent({
 
 const DiscCardStub = defineComponent({
   name: "DiscCard",
+  emits: ["rating-saved", "community-updated"],
   props: [
     "id",
     "name",
@@ -77,24 +85,15 @@ const DiscCardStub = defineComponent({
   ],
   setup(props) {
     return () =>
-      h(
-        "article",
-        {
-          "data-testid": "disc-card",
-          "data-disc-id": props.id,
-        },
-        String(props.name)
-      );
+      h("article", { "data-testid": "disc-card", "data-disc-id": props.id }, String(props.name));
   },
 });
 
 const intersectionCallbacks: IntersectionObserverCallback[] = [];
-
 class IntersectionObserverStub {
   constructor(callback: IntersectionObserverCallback) {
     intersectionCallbacks.push(callback);
   }
-
   observe(): void {}
   disconnect(): void {}
   unobserve(): void {}
@@ -106,53 +105,84 @@ class IntersectionObserverStub {
   readonly thresholds = [0];
 }
 
-const dateRange: [string, string] = ["2024-01-01T00:00:00.000Z", "2024-12-31T23:59:59.999Z"];
-
-function page<T>(data: T[], totalItems = data.length) {
-  return { data, totalItems, totalPages: Math.ceil(totalItems / 20), currentPage: 1, limit: 20 };
-}
-
-function disc(id: string) {
+function card(id: string, mode = "all") {
+  const itemType =
+    mode === "rates"
+      ? "rate"
+      : mode === "covers"
+        ? "cover"
+        : mode === "favorites"
+          ? "favorite"
+          : mode === "pendientes"
+            ? "pending"
+            : "disc";
   return {
     id,
+    entryId: `${mode}-${id}`,
+    itemType,
     name: `Disco ${id}`,
     image: `https://images.test/${id}.jpg`,
-    releaseDate: "2024-03-01",
-    artist: { id: "artist-1", name: "Artista", country: undefined },
-    genre: { id: "genre-1", name: "Rock", color: "#123456" },
+    releaseDate: "2025-03-01",
+    link: null,
+    ep: false,
+    debut: true,
+    artist: { name: "Artista", country: { id: "country-a", name: "España", isoCode: "ES" } },
+    genre: { id: "genre-a", name: "Black Metal", color: "#123456" },
     averageRate: 8,
     averageCover: 7,
-    commentCount: 3,
     voteCount: 4,
-    userRate: { id: "rate-existing", rate: "8.50", cover: "7.00" },
+    commentCount: 3,
+    userRate: { id: "rate-existing", rate: 8.5, cover: 7 },
     favoriteId: "favorite-existing",
     pendingId: "pending-existing",
   };
 }
 
-function mountList() {
+function page<T>(data: T[], totalItems = data.length) {
+  return { data, totalItems, totalPages: Math.ceil(totalItems / 20), currentPage: 1, limit: 20 };
+}
+
+function comment(entryId: string) {
+  return {
+    itemType: "comment",
+    entryId,
+    comment: `Comentario ${entryId}`,
+    createdAt: "2025-03-01T12:00:00.000Z",
+    disc: {
+      id: "same-disc",
+      name: "Disco comentado",
+      image: "cover.jpg",
+      releaseDate: "2025-03-01",
+      artist: { name: "Artista", country: { id: "country-a", name: "España", isoCode: "ES" } },
+      genre: { id: "genre-a", name: "Black Metal", color: "#123456" },
+    },
+  };
+}
+
+function mountList(useRealExplorationFilters = false) {
   const pinia = createPinia();
   setActivePinia(pinia);
-  const catalog = useCatalogStore(pinia);
   useAuthStore(pinia).$patch({
     authStatus: "authenticated",
-    token: "test-session-token",
-    userId: "user-1",
+    token: "session-token",
+    userId: "user-a",
+    authSessionGeneration: 1,
   });
-  catalog.$patch({
-    genres: [{ id: "genre-1", name: "Rock", color: "#123456" }],
-    countries: [{ id: "country-1", name: "España", isoCode: "ES" }],
-  });
-
   return mount(DiscList, {
     global: {
-      plugins: [pinia],
+      plugins: [
+        pinia,
+        [
+          VueQueryPlugin,
+          { queryClient: new QueryClient({ defaultOptions: { queries: { retry: false } } }) },
+        ],
+      ],
       stubs: {
-        DiscFilters: FiltersStub,
+        ...(useRealExplorationFilters ? {} : { DiscListExplorationFilters: FiltersStub }),
         SimpleSelect: SimpleSelectStub,
         DiscCard: DiscCardStub,
+        CreateDiscModal: CreateDiscModalStub,
         CircleFlags: true,
-        "font-awesome-icon": true,
       },
     },
   });
@@ -161,26 +191,31 @@ function mountList() {
 async function settle() {
   await flushPromises();
 }
+async function openCreateDiscFromEmptySuggestions(
+  wrapper: ReturnType<typeof mountList>,
+  query: string
+) {
+  const input = wrapper.get<HTMLInputElement>("#disc-list-search-input");
+  await input.trigger("focus");
+  await input.setValue(query);
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  await settle();
+  const addButton = [
+    ...(document.body.querySelectorAll(
+      ".disc-list-autocomplete-popup button"
+    ) as NodeListOf<HTMLButtonElement>),
+  ].find((button) => button.textContent?.includes("Añadir disco"));
+  if (!addButton) throw new Error("Empty suggestions did not offer to add a disc");
+  addButton.click();
+  await settle();
+}
 
 async function selectMode(wrapper: ReturnType<typeof mountList>, mode: string) {
   await wrapper.get(`input[type="radio"][value="${mode}"]`).setValue();
   await settle();
 }
 
-async function setFilters(
-  wrapper: ReturnType<typeof mountList>,
-  filters: { query?: string; country?: string; genre?: string; dateRange?: [string, string] | null }
-) {
-  const control = wrapper.findComponent(FiltersStub);
-  if (filters.query !== undefined) control.vm.$emit("update:searchQuery", filters.query);
-  if (filters.country !== undefined) control.vm.$emit("update:selectedCountry", filters.country);
-  if (filters.genre !== undefined) control.vm.$emit("update:selectedGenre", filters.genre);
-  if (filters.dateRange !== undefined) control.vm.$emit("update:selectedWeek", filters.dateRange);
-  await settle();
-}
-
 beforeEach(() => {
-  localStorage.clear();
   intersectionCallbacks.length = 0;
   vi.stubGlobal("IntersectionObserver", IntersectionObserverStub);
   vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
@@ -194,431 +229,566 @@ beforeEach(() => {
     left: 0,
     toJSON: () => ({}),
   } as DOMRect);
-  api.getDiscs.mockReset().mockResolvedValue(page([]));
-  api.getRatesByUser.mockReset().mockResolvedValue(page([]));
-  api.getFavoritesByUser.mockReset().mockResolvedValue(page([]));
-  api.getPendingsByUser.mockReset().mockResolvedValue(page([]));
-  api.getCommentsByUser.mockReset().mockResolvedValue(page([]));
+  api.getDiscListPage
+    .mockReset()
+    .mockImplementation(async (request) =>
+      request.mode === "comments"
+        ? page([comment("comment-first")])
+        : page([card(`${request.mode}-first`, request.mode)])
+    );
+  api.getDiscListOptions.mockReset().mockResolvedValue({
+    countries: [{ id: "country-a", name: "España", isoCode: "ES" }],
+    genres: [
+      { id: "genre-a", name: "Black Metal", color: "#123456" },
+      { id: "genre-b", name: "Death Metal", color: null },
+    ],
+  });
+  api.getDiscListSuggestions.mockReset().mockResolvedValue({ artists: [], discs: [] });
+  savedFiltersApi.getSavedDiscFilters.mockReset().mockResolvedValue([]);
+  savedFiltersApi.createSavedDiscFilter.mockReset().mockImplementation(async (payload) => ({
+    id: "saved-filter-a", name: payload.name, filters: payload.filters,
+    missingGenreIds: [], countryMissing: false, createdAt: "", updatedAt: "",
+  }));
+  savedFiltersApi.updateSavedDiscFilter.mockReset().mockImplementation(async (id, payload) => ({
+    id, name: payload.name ?? "Metal", filters: payload.filters ?? { genreIds: [], countryId: null, yearFrom: null, yearTo: null },
+    missingGenreIds: [], countryMissing: false, createdAt: "", updatedAt: "",
+  }));
+  savedFiltersApi.deleteSavedDiscFilter.mockReset().mockResolvedValue(undefined);
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
-describe("DiscList current behavior", () => {
-  it("loads Todos first with 20-item pages and normalizes the card's personal state", async () => {
-    api.getDiscs.mockResolvedValueOnce(page([disc("all-1")], 1));
+describe("DiscList new backend integration", () => {
+  it("keeps the saved-filter label and control aligned with search and places states outside the control", async () => {
+    let resolveSavedFilters!: (filters: []) => void;
+    savedFiltersApi.getSavedDiscFilters.mockReturnValue(new Promise((resolve) => {
+      resolveSavedFilters = resolve;
+    }));
+    const wrapper = mountList();
+    expect(wrapper.text()).toContain("Cargando filtros guardados…");
+    resolveSavedFilters([]);
+    await settle();
+    expect(wrapper.text()).toContain("Aún no tienes filtros guardados.");
+    expect(wrapper.get("#saved-disc-filter-label").classes()).toEqual(
+      wrapper.get("#disc-list-search-label").classes()
+    );
+    expect(wrapper.get("#saved-disc-filter").classes()).toContain("min-h-[50px]");
+    expect(wrapper.findAll("button").some((button) => button.text() === "Aplicar")).toBe(false);
+    expect(wrapper.findComponent({ name: "SavedDiscFilterSelector" }).find("section").exists()).toBe(false);
+    wrapper.unmount();
+
+    savedFiltersApi.getSavedDiscFilters.mockRejectedValue(new Error("offline"));
+    const failedWrapper = mountList();
+    await settle();
+    const status = failedWrapper.get('[role="alert"]');
+    expect(status.text()).toContain("No se pudieron cargar tus filtros guardados.");
+    expect(status.find("#saved-disc-filter").exists()).toBe(false);
+    failedWrapper.unmount();
+  });
+
+  it("blocks creating another filter when the user already has 20", async () => {
+    savedFiltersApi.getSavedDiscFilters.mockResolvedValue(Array.from({ length: 20 }, (_, index) => ({
+      id: `saved-filter-${index}`,
+      name: `Filtro ${index}`,
+      filters: { genreIds: [`genre-${index}`], countryId: null, yearFrom: null, yearTo: null },
+      missingGenreIds: [],
+      countryMissing: false,
+      createdAt: "",
+      updatedAt: "",
+    })));
     const wrapper = mountList();
     await settle();
+    await wrapper.get('[data-testid="genre-filter"]').trigger("click");
+    await settle();
+    expect(wrapper.text()).toContain("Has alcanzado el límite de 20 filtros.");
+    const saveButton = wrapper.findAll("button").find((button) => button.text().startsWith("Guardar"));
+    expect(saveButton?.attributes("disabled")).toBeDefined();
+    wrapper.unmount();
+  });
 
-    expect(api.getDiscs).toHaveBeenCalledWith(
-      20,
-      0,
-      "",
-      null,
-      "",
-      "",
-      "disc.releaseDate:DESC,artist.name:ASC",
-      undefined,
-      undefined
+  it("loads saved filters and creates a named filter from the compact modal", async () => {
+    const wrapper = mountList();
+    await settle();
+    expect(savedFiltersApi.getSavedDiscFilters).toHaveBeenCalledTimes(1);
+    await wrapper.get('[data-testid="genre-filter"]').trigger("click");
+    await settle();
+    const saveButton = wrapper.findAll("button").find((button) => button.text() === "Guardar");
+    expect(saveButton).toBeDefined();
+    await saveButton!.trigger("click");
+    await wrapper.get("#saved-filter-name").setValue("Metal extremo");
+    expect(wrapper.text()).toContain("Black Metal, Death Metal");
+    await wrapper.findAll("form").at(1)!.trigger("submit");
+    await settle();
+    expect(savedFiltersApi.createSavedDiscFilter).toHaveBeenCalledWith({
+      name: "Metal extremo",
+      filters: { genreIds: ["genre-a", "genre-b"], countryId: null, yearFrom: null, yearTo: null },
+    });
+    expect(wrapper.text()).toContain("Filtro «Metal extremo» guardado.");
+    wrapper.unmount();
+  });
+
+  it("recognizes an equivalent saved combination and hides duplicate creation", async () => {
+    savedFiltersApi.getSavedDiscFilters.mockResolvedValue([{
+      id: "saved-filter-existing", name: "Metal ya guardado",
+      filters: { genreIds: ["genre-a", "genre-b"], countryId: null, yearFrom: null, yearTo: null },
+      missingGenreIds: [], countryMissing: false, createdAt: "", updatedAt: "",
+    }]);
+    const wrapper = mountList();
+    await settle();
+    await wrapper.get('[data-testid="genre-filter"]').trigger("click");
+    await settle();
+    expect(wrapper.text()).toContain("Guardado");
+    expect(wrapper.text()).not.toContain("Guardado como Metal ya guardado");
+    expect(wrapper.findAll("button").some((button) => button.text() === "Guardar")).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("applies saved criteria without clearing search, mode or ordering", async () => {
+    savedFiltersApi.getSavedDiscFilters.mockResolvedValue([{
+      id: "saved-filter-a", name: "Años 2025–2026",
+      filters: { genreIds: ["genre-b", "genre-a"], countryId: "country-a", yearFrom: 2025, yearTo: 2026 },
+      missingGenreIds: [], countryMissing: false, createdAt: "", updatedAt: "",
+    }]);
+    const wrapper = mountList();
+    await settle();
+    await wrapper.get("#disc-list-search-input").setValue("MØL");
+    await selectMode(wrapper, "favorites");
+    await wrapper.get("#saved-disc-filter").setValue("saved-filter-a");
+    await settle();
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(expect.objectContaining({
+      mode: "favorites", query: "MØL", genreIds: ["genre-a", "genre-b"], countryId: "country-a",
+      dateRange: ["2025-01-01T00:00:00.000Z", "2026-12-31T23:59:59.999Z"], offset: 0,
+    }));
+    expect(wrapper.text()).toContain("Años 2025–2026 · aplicado");
+
+    await wrapper.get("#saved-disc-filter").setValue("");
+    await settle();
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(expect.objectContaining({
+      mode: "favorites", query: "MØL", genreIds: [], countryId: "", dateRange: null, offset: 0,
+    }));
+    expect(wrapper.get("#disc-list-search-input").element).toHaveProperty("value", "MØL");
+    expect(wrapper.text()).toContain("Sin guardar");
+    wrapper.unmount();
+  });
+
+  it("renames and deletes the selected saved filter after confirmation", async () => {
+    savedFiltersApi.getSavedDiscFilters.mockResolvedValue([{
+      id: "saved-filter-a", name: "Metal",
+      filters: { genreIds: ["genre-a"], countryId: null, yearFrom: null, yearTo: null },
+      missingGenreIds: [], countryMissing: false, createdAt: "", updatedAt: "",
+    }]);
+    const wrapper = mountList();
+    await settle();
+    await wrapper.get("#saved-disc-filter").setValue("saved-filter-a");
+    await wrapper.findAll("button").find((button) => button.text() === "Renombrar")!.trigger("click");
+    await wrapper.get("#saved-filter-name").setValue("Death Metal");
+    savedFiltersApi.getSavedDiscFilters.mockResolvedValue([{
+      id: "saved-filter-a", name: "Death Metal",
+      filters: { genreIds: ["genre-a"], countryId: null, yearFrom: null, yearTo: null },
+      missingGenreIds: [], countryMissing: false, createdAt: "", updatedAt: "",
+    }]);
+    await wrapper.findAll("form").at(1)!.trigger("submit");
+    await settle();
+    expect(savedFiltersApi.updateSavedDiscFilter).toHaveBeenCalledWith("saved-filter-a", { name: "Death Metal" });
+    expect(wrapper.text()).toContain("Filtro renombrado a «Death Metal».");
+
+    await wrapper.findAll("button").find((button) => button.text() === "Eliminar")!.trigger("click");
+    await settle();
+    expect(wrapper.get('[role="dialog"]').text()).toContain("¿Eliminar el filtro «Death Metal»?");
+    await wrapper.findAll("button").find((button) => button.text() === "Eliminar filtro")!.trigger("click");
+    await settle();
+    expect(savedFiltersApi.deleteSavedDiscFilter).toHaveBeenCalledWith("saved-filter-a");
+    wrapper.unmount();
+  });
+
+  it("updates the applied filter only after explicit confirmation", async () => {
+    savedFiltersApi.getSavedDiscFilters.mockResolvedValue([{
+      id: "saved-filter-a", name: "Metal",
+      filters: { genreIds: ["genre-a"], countryId: null, yearFrom: null, yearTo: null },
+      missingGenreIds: [], countryMissing: false, createdAt: "", updatedAt: "",
+    }]);
+    const wrapper = mountList();
+    await settle();
+    await wrapper.get("#saved-disc-filter").setValue("saved-filter-a");
+    await settle();
+    await wrapper.get('[data-testid="genre-filter"]').trigger("click");
+    await settle();
+    expect(savedFiltersApi.updateSavedDiscFilter).not.toHaveBeenCalled();
+    await wrapper.findAll("button").find((button) => button.text() === "Actualizar")!.trigger("click");
+    await settle();
+    expect(wrapper.get('[role="dialog"]').text()).toContain("¿Actualizar «Metal» con los criterios actuales?");
+    expect(savedFiltersApi.updateSavedDiscFilter).not.toHaveBeenCalled();
+    await wrapper.findAll("button").find((button) => button.text() === "Actualizar filtro")!.trigger("click");
+    await settle();
+    expect(savedFiltersApi.updateSavedDiscFilter).toHaveBeenCalledWith("saved-filter-a", {
+      filters: { genreIds: ["genre-a", "genre-b"], countryId: null, yearFrom: null, yearTo: null },
+    });
+    wrapper.unmount();
+  });
+
+  it("warns when applying a saved filter with deleted genre and country references", async () => {
+    savedFiltersApi.getSavedDiscFilters.mockResolvedValue([{
+      id: "saved-filter-stale", name: "Referencias antiguas",
+      filters: { genreIds: ["genre-gone"], countryId: "country-gone", yearFrom: 2025, yearTo: 2025 },
+      missingGenreIds: ["genre-gone"], countryMissing: true, createdAt: "", updatedAt: "",
+    }]);
+    const wrapper = mountList();
+    await settle();
+    await wrapper.get("#saved-disc-filter").setValue("saved-filter-stale");
+    await settle();
+    expect(wrapper.get('[role="alert"]').text()).toContain("género(s) que ya no existen y un país que ya no existe");
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(expect.objectContaining({
+      genreIds: ["genre-gone"], countryId: "country-gone", offset: 0,
+    }));
+    wrapper.unmount();
+  });
+
+  it("shows the backend limit error in the save modal", async () => {
+    savedFiltersApi.createSavedDiscFilter.mockRejectedValue({
+      response: { status: 409, data: { code: "SAVED_DISC_FILTER_LIMIT_REACHED" } },
+    });
+    const wrapper = mountList();
+    await settle();
+    await wrapper.get('[data-testid="genre-filter"]').trigger("click");
+    await wrapper.findAll("button").find((button) => button.text() === "Guardar")!.trigger("click");
+    await wrapper.get("#saved-filter-name").setValue("Metal extremo");
+    await wrapper.findAll("form").at(1)!.trigger("submit");
+    await settle();
+    expect(wrapper.get('[role="alert"]').text()).toContain("límite de 20 filtros guardados");
+    wrapper.unmount();
+  });
+
+  it("refreshes the current list and preserves the active filters after a successful creation", async () => {
+    const wrapper = mountList();
+    await settle();
+    await openCreateDiscFromEmptySuggestions(wrapper, "Doom");
+    await settle();
+    await wrapper.get('[data-testid="genre-filter"]').trigger("click");
+    await settle();
+    const callsBeforeCreate = api.getDiscListPage.mock.calls.length;
+    const optionCallsBeforeCreate = api.getDiscListOptions.mock.calls.length;
+    const suggestionCallsBeforeCreate = api.getDiscListSuggestions.mock.calls.length;
+
+    expect(wrapper.find('[data-testid="create-disc-modal"]').exists()).toBe(true);
+    await wrapper.get('[data-testid="create-disc-modal"] button:nth-child(2)').trigger("click");
+    await settle();
+
+    expect(api.getDiscListPage.mock.calls.length).toBeGreaterThan(callsBeforeCreate);
+    expect(api.getDiscListOptions.mock.calls.length).toBeGreaterThan(optionCallsBeforeCreate);
+    expect(api.getDiscListSuggestions.mock.calls.length).toBeGreaterThan(suggestionCallsBeforeCreate);
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: "Doom", genreIds: ["genre-a", "genre-b"] })
     );
-    expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(1);
+    expect(wrapper.get("#disc-list-search-input").element).toHaveProperty("value", "Doom");
+    expect(wrapper.text()).toContain("El disco se ha creado y el listado se ha actualizado");
+    wrapper.unmount();
+  });
+
+  it("shows a backend result for the created disc when it matches the active filters", async () => {
+    const createdCard = card("disc-created");
+    createdCard.name = "Disco recién creado";
+    api.getDiscListPage.mockImplementation(async (request) =>
+      request.query === "created disc" ? page([createdCard]) : page([card("other-result")])
+    );
+    const wrapper = mountList();
+    await settle();
+    await openCreateDiscFromEmptySuggestions(wrapper, "created disc");
+    await wrapper.get('[data-testid="create-disc-modal"] button:nth-child(2)').trigger("click");
+    await settle();
+
+    expect(wrapper.find('[data-disc-id="disc-created"]').text()).toContain("Disco recién creado");
+    expect(api.getDiscListPage).toHaveBeenCalledWith(expect.objectContaining({ offset: 0 }));
+    wrapper.unmount();
+  });
+
+  it("does not clear filters when the created disc is excluded by the current search", async () => {
+    const wrapper = mountList();
+    await settle();
+    await openCreateDiscFromEmptySuggestions(wrapper, "missing title");
+    await settle();
+    await wrapper.get('[data-testid="create-disc-modal"] button:nth-child(2)').trigger("click");
+    await settle();
+
+    expect(wrapper.get("#disc-list-search-input").element).toHaveProperty("value", "missing title");
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: "missing title" })
+    );
+    expect(wrapper.text()).toContain(
+      "Si no aparece, revisa el texto y los filtros activos; no se han cambiado."
+    );
+    wrapper.unmount();
+  });
+
+  it("provides a labeled search field and clears only its search criterion", async () => {
+    const wrapper = mountList();
+    await settle();
+    const input = wrapper.get<HTMLInputElement>("#disc-list-search-input");
+    expect(wrapper.get("#disc-list-search-label").text()).toContain("Buscar discos o artistas");
+    await input.setValue("Doom");
+    await settle();
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: "Doom" })
+    );
+    await wrapper.get('button[aria-label="Limpiar búsqueda"]').trigger("click");
+    await settle();
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(expect.objectContaining({ query: "" }));
+    expect(wrapper.find('button[aria-label="Limpiar búsqueda"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("keeps live list filtering and applies an artist suggestion by exact ID without an Enter reload", async () => {
+    vi.useFakeTimers();
+    const wrapper = mountList();
+    await settle();
+    api.getDiscListSuggestions.mockResolvedValue({
+      artists: [
+        {
+          id: "artist-exact-id",
+          name: "MØL",
+          image: null,
+          country: { id: "country-a", name: "Dinamarca", isoCode: "DK" },
+        },
+      ],
+      discs: [],
+    });
+    const input = wrapper.get<HTMLInputElement>("#disc-list-search-input");
+    await input.setValue("MØL");
+    await settle();
+    expect(api.getDiscListPage.mock.calls.at(-1)?.[0]).toMatchObject({ query: "MØL" });
+    expect(api.getDiscListPage.mock.calls.at(-1)?.[0]).not.toHaveProperty("artistId");
+
+    const pageCallsBeforeEnter = api.getDiscListPage.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(250);
+    await settle();
+    await input.trigger("keydown", { key: "Enter" });
+    await settle();
+    expect(api.getDiscListPage).toHaveBeenCalledTimes(pageCallsBeforeEnter);
+
+    await input.trigger("keydown", { key: "ArrowDown" });
+    await settle();
+    const artistOption = document.body.querySelector<HTMLButtonElement>(
+      '[role="option"][id$="artist-artist-exact-id"]'
+    );
+    expect(artistOption).not.toBeNull();
+    artistOption?.click();
+    await settle();
+
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: "MØL", artistId: "artist-exact-id", offset: 0 })
+    );
+    expect(api.getDiscListOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ artistId: "artist-exact-id" })
+    );
+    expect(wrapper.get("#disc-list-search-input").element).toHaveProperty("value", "MØL");
+    expect(wrapper.get('[data-testid="selected-artist-filter"]').text()).toContain("MØL");
+    wrapper.unmount();
+  });
+
+  it("fills the search with the disc title when selecting a disc suggestion", async () => {
+    vi.useFakeTimers();
+    const wrapper = mountList();
+    await settle();
+    api.getDiscListSuggestions.mockResolvedValue({
+      artists: [],
+      discs: [
+        {
+          id: "disc-suggestion-id",
+          title: "Jord",
+          artistId: "artist-id",
+          artistName: "MØL",
+          image: null,
+        },
+      ],
+    });
+    const input = wrapper.get<HTMLInputElement>("#disc-list-search-input");
+    await input.setValue("Jord");
+    await settle();
+    await vi.advanceTimersByTimeAsync(250);
+    await settle();
+    const beforeSelect = api.getDiscListPage.mock.calls.length;
+    document.body
+      .querySelector<HTMLButtonElement>('[role="option"][id$="disc-disc-suggestion-id"]')
+      ?.click();
+    await settle();
+    expect(wrapper.get("#disc-list-search-input").element).toHaveProperty(
+      "value",
+      "Jord"
+    );
+    expect(wrapper.find('[data-testid="suggested-disc-detail"]').exists()).toBe(false);
+    expect(api.getDiscListPage).toHaveBeenCalledTimes(beforeSelect + 1);
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: "Jord", offset: 0 })
+    );
+    wrapper.unmount();
+  });
+
+  it("batches exploration clearing into one request and leaves mode and order intact", async () => {
+    const wrapper = mountList(true);
+    await settle();
+    const pageCallsBefore = api.getDiscListPage.mock.calls.length;
+    const optionCallsBefore = api.getDiscListOptions.mock.calls.length;
+    const clearButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Limpiar exploración");
+    expect(clearButton).toBeDefined();
+    await clearButton?.trigger("click");
+    await settle();
+
+    expect(api.getDiscListPage).toHaveBeenCalledTimes(pageCallsBefore + 1);
+    expect(api.getDiscListOptions).toHaveBeenCalledTimes(optionCallsBefore + 1);
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        mode: "all",
+        orderBy: "disc.releaseDate:DESC,artist.name:ASC",
+        query: "",
+        dateRange: null,
+      })
+    );
+    wrapper.unmount();
+  });
+
+  it("loads the first page from the shared endpoint and adapts private card data", async () => {
+    const wrapper = mountList();
+    await settle();
+    expect(api.getDiscListPage).toHaveBeenCalledWith(
+      expect.objectContaining({ mode: "all", offset: 0, limit: 20, genreIds: [], countryId: "" })
+    );
     expect(wrapper.findComponent(DiscCardStub).props()).toMatchObject({
-      id: "all-1",
+      id: "all-first",
       rate: 8.5,
       cover: 7,
       userDiscRate: "rate-existing",
       favoriteId: "favorite-existing",
       pendingId: "pending-existing",
     });
-    expect(wrapper.text()).toContain("(1)");
+    expect(api.getDiscListOptions).toHaveBeenCalledWith(expect.objectContaining({ mode: "all" }));
     wrapper.unmount();
   });
 
-  it.each([
-    ["rates", "getRatesByUser"],
-    ["covers", "getRatesByUser"],
-    ["comments", "getCommentsByUser"],
-    ["favorites", "getFavoritesByUser"],
-    ["pendientes", "getPendingsByUser"],
-  ] as const)(
-    "uses the %s mode endpoint, combines active filters, and replaces previous results",
-    async (mode, endpoint) => {
-      api.getDiscs.mockResolvedValueOnce(page([disc("previous-all")], 1));
+  it.each(["rates", "covers", "comments", "favorites", "pendientes"])(
+    "uses the new endpoint for %s",
+    async (mode) => {
       const wrapper = mountList();
       await settle();
-
-      await setFilters(wrapper, {
-        query: "artista",
-        country: "country-1",
-        genre: "genre-1",
-        dateRange,
-      });
-      if (mode === "rates" || mode === "covers") {
-        api.getRatesByUser.mockResolvedValueOnce(
-          page(
-            [
-              {
-                id: "rate-1",
-                rate: "9.25",
-                cover: "8.50",
-                disc: disc(`${mode}-result`),
-              },
-            ],
-            1
-          )
-        );
-      } else if (mode === "comments") {
-        api.getCommentsByUser.mockResolvedValueOnce(
-          page(
-            [
-              {
-                id: "comment-1",
-                comment: "Comentario propio",
-                createdAt: "2024-04-01",
-                disc: disc("comments-result"),
-              },
-            ],
-            1
-          )
-        );
-      } else if (mode === "favorites") {
-        api.getFavoritesByUser.mockResolvedValueOnce(
-          page(
-            [
-              {
-                id: "favorite-1",
-                disc: { ...disc("favorites-result"), userPending: { id: "pending-from-favorite" } },
-              },
-            ],
-            1
-          )
-        );
-      } else {
-        api.getPendingsByUser.mockResolvedValueOnce(
-          page(
-            [
-              {
-                id: "pending-1",
-                disc: disc("pendientes-result"),
-              },
-            ],
-            1
-          )
-        );
-      }
-
       await selectMode(wrapper, mode);
-
-      if (mode === "rates" || mode === "covers") {
-        expect(api.getRatesByUser).toHaveBeenLastCalledWith(
-          20,
-          0,
-          "artista",
-          dateRange,
-          "genre-1",
-          "country-1",
-          mode === "rates" ? "rate" : "cover",
-          "disc.releaseDate:DESC,artist.name:ASC"
-        );
-        expect(wrapper.findComponent(DiscCardStub).props()).toMatchObject({
-          id: `${mode}-result`,
-          rate: 9.25,
-          cover: 8.5,
-          userDiscRate: "rate-1",
-        });
-      } else if (mode === "comments") {
-        expect(api.getCommentsByUser).toHaveBeenLastCalledWith(
-          20,
-          0,
-          "artista",
-          dateRange,
-          "genre-1",
-          "country-1",
-          "disc.releaseDate:DESC,artist.name:ASC"
-        );
-        expect(wrapper.text()).toContain("Comentario propio");
-        expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(0);
-      } else if (mode === "favorites") {
-        expect(api.getFavoritesByUser).toHaveBeenLastCalledWith(
-          20,
-          0,
-          "artista",
-          dateRange,
-          "genre-1",
-          "country-1",
-          undefined,
-          "disc.releaseDate:DESC,artist.name:ASC"
-        );
-        expect(wrapper.findComponent(DiscCardStub).props()).toMatchObject({
-          id: "favorites-result",
-          favoriteId: "favorite-1",
-          pendingId: "pending-from-favorite",
-        });
-      } else {
-        expect(api.getPendingsByUser).toHaveBeenLastCalledWith(
-          20,
-          0,
-          "artista",
-          dateRange,
-          "genre-1",
-          "country-1"
-        );
-        expect(wrapper.findComponent(DiscCardStub).props()).toMatchObject({
-          id: "pendientes-result",
-          pendingId: "pending-1",
-          rate: 8.5,
-          cover: 7,
-        });
-      }
-
-      expect(wrapper.text()).not.toContain("Disco previous-all");
-      expect(api[endpoint]).toHaveBeenCalled();
+      expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+        expect.objectContaining({ mode, offset: 0, limit: 20 })
+      );
+      expect(api.getDiscListOptions).toHaveBeenLastCalledWith(expect.objectContaining({ mode }));
+      if (mode !== "comments") expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(1);
       wrapper.unmount();
     }
   );
 
-  it("maps the Todos unvoted sort option to the voted=false backend filter", async () => {
+  it("loads dynamic options and sends changed country, period, search, and multi-genre criteria", async () => {
     const wrapper = mountList();
     await settle();
-
-    await wrapper.get('[data-testid="disc-order"]').setValue("UNVOTED:cover");
+    const filters = wrapper.findComponent(FiltersStub);
+    filters.vm.$emit("update:country", "country-a");
+    filters.vm.$emit("update:search", " Doom ");
+    filters.vm.$emit("update:week", ["2025-01-01T00:00:00.000Z", "2025-12-31T23:59:59.999Z"]);
+    await wrapper.get('[data-testid="genre-filter"]').trigger("click");
     await settle();
 
-    expect(api.getDiscs).toHaveBeenLastCalledWith(
-      20,
-      0,
-      "",
-      null,
-      "",
-      "",
-      "disc.releaseDate:DESC,artist.name:ASC",
-      false,
-      "cover"
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: "Doom",
+        countryId: "country-a",
+        genreIds: ["genre-a", "genre-b"],
+        offset: 0,
+      })
     );
-    wrapper.unmount();
-  });
-
-  it("uses the IntersectionObserver sentinel for forward-only incremental paging and resets to offset zero", async () => {
-    const firstPage = Array.from({ length: 20 }, (_, index) => disc(`page-1-${index}`));
-    api.getDiscs
-      .mockResolvedValueOnce(page(firstPage, 25))
-      .mockResolvedValueOnce(page([disc("page-2-1")], 25))
-      .mockResolvedValueOnce(page([disc("filtered-1")], 1))
-      .mockResolvedValueOnce(page([disc("rates-1")], 1));
-    api.getRatesByUser.mockResolvedValueOnce(
-      page(
-        [
-          {
-            id: "rate-1",
-            rate: "7",
-            cover: "8",
-            disc: disc("rates-1"),
-          },
-        ],
-        1
-      )
+    expect(api.getDiscListOptions).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: "Doom",
+        countryId: "country-a",
+        genreIds: ["genre-a", "genre-b"],
+        dateRange: ["2025-01-01T00:00:00.000Z", "2025-12-31T23:59:59.999Z"],
+      })
     );
-
-    const wrapper = mountList();
-    await settle();
-    expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(20);
-    expect(intersectionCallbacks.length).toBeGreaterThan(0);
-    intersectionCallbacks[0]?.(
-      [{ isIntersecting: true } as IntersectionObserverEntry],
-      {} as IntersectionObserver
-    );
-    await settle();
-
-    expect(api.getDiscs.mock.calls[1]?.[1]).toBe(20);
-    expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(21);
-
-    await setFilters(wrapper, { query: "nuevo" });
-    expect(api.getDiscs.mock.calls[2]?.[1]).toBe(0);
-    expect(api.getDiscs.mock.calls[2]?.[2]).toBe("nuevo");
-    expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
-      "filtered-1",
-    ]);
-
-    await selectMode(wrapper, "rates");
-    expect(api.getRatesByUser).toHaveBeenLastCalledWith(
-      20,
-      0,
-      "nuevo",
-      null,
-      "",
-      "",
-      "rate",
-      "disc.releaseDate:DESC,artist.name:ASC"
-    );
-    expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
-      "rates-1",
+    expect(wrapper.findComponent(FiltersStub).props("countries")).toEqual([
+      { id: "country-a", name: "España", isoCode: "ES" },
     ]);
     wrapper.unmount();
   });
 
-  it("requests another page when a short response still has items according to totalItems", async () => {
-    api.getDiscs
-      .mockResolvedValueOnce(page([disc("short-page-1"), disc("short-page-2")], 30))
-      .mockResolvedValueOnce(page([disc("short-page-next")], 30));
-    const wrapper = mountList();
-    await settle();
-
-    expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(2);
-    intersectionCallbacks[0]?.(
-      [{ isIntersecting: true } as IntersectionObserverEntry],
-      {} as IntersectionObserver
-    );
-    await settle();
-
-    expect(api.getDiscs.mock.calls.map((call) => call[1])).toEqual([0, 20]);
-    expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
-      "short-page-1",
-      "short-page-2",
-      "short-page-next",
-    ]);
-    wrapper.unmount();
-  });
-
-  it("applies the same forward paging contract to a personal Community list", async () => {
-    api.getRatesByUser
+  it("keeps forward-only pagination and resets offset when filters change", async () => {
+    api.getDiscListPage
       .mockResolvedValueOnce(
         page(
-          [
-            { id: "rate-1", rate: "7", cover: "8", disc: disc("rates-page-1") },
-            { id: "rate-2", rate: "8", cover: "9", disc: disc("rates-page-1b") },
-          ],
+          Array.from({ length: 20 }, (_, index) => card(`first-${index}`)),
           25
         )
       )
-      .mockResolvedValueOnce(
-        page([{ id: "rate-3", rate: "9", cover: "9.5", disc: disc("rates-page-2") }], 25)
-      );
-
+      .mockResolvedValueOnce(page([card("next")], 25))
+      .mockResolvedValueOnce(page([card("filtered")], 1));
     const wrapper = mountList();
     await settle();
-    await selectMode(wrapper, "rates");
-    expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(2);
-
     intersectionCallbacks[0]?.(
       [{ isIntersecting: true } as IntersectionObserverEntry],
       {} as IntersectionObserver
     );
     await settle();
+    expect(api.getDiscListPage.mock.calls.map(([request]) => request.offset)).toEqual([0, 20]);
+    expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(21);
 
-    expect(api.getRatesByUser.mock.calls.map((call) => call[1])).toEqual([0, 20]);
-    expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
-      "rates-page-1",
-      "rates-page-1b",
-      "rates-page-2",
+    wrapper.findComponent(FiltersStub).vm.$emit("update:search", "nuevo");
+    await settle();
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: "nuevo", offset: 0 })
+    );
+    expect(wrapper.findAllComponents(DiscCardStub).map((item) => item.props("id"))).toEqual([
+      "filtered",
     ]);
     wrapper.unmount();
   });
 
-  it("renders the existing empty state for the personal comments mode", async () => {
-    api.getCommentsByUser.mockResolvedValueOnce(page([], 0));
-    const wrapper = mountList();
-    await settle();
-    await selectMode(wrapper, "comments");
-
-    expect(wrapper.text()).toContain("Todavía no has escrito comentarios.");
-    wrapper.unmount();
-  });
-
-  it("ends loading on an empty page and records that the grid has no explicit empty or error state", async () => {
-    api.getDiscs.mockResolvedValueOnce(page([], 0));
-    const wrapper = mountList();
-    await settle();
-
-    expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(0);
-    expect(wrapper.text()).not.toContain("Cargando discos...");
-    expect(wrapper.text()).not.toContain("No hay discos");
-    wrapper.unmount();
-  });
-
-  it("ends loading after an HTTP error without rendering a page-level error state", async () => {
-    const error = new Error("network unavailable");
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    api.getDiscs.mockRejectedValueOnce(error);
-    const wrapper = mountList();
-    await settle();
-
-    expect(consoleError).toHaveBeenCalledWith("Error fetching data:", error);
-    expect(wrapper.text()).not.toContain("Cargando discos...");
-    expect(wrapper.text()).not.toContain("Error al cargar discos");
-    wrapper.unmount();
-    consoleError.mockRestore();
-  });
-
-  it("requests B during A and ignores A when its response arrives after B", async () => {
+  it("discards stale result responses after a fast criteria change", async () => {
     let resolveA!: (value: ReturnType<typeof page>) => void;
-    const requestA = new Promise<ReturnType<typeof page>>((resolve) => {
-      resolveA = resolve;
-    });
-    api.getDiscs
-      .mockReturnValueOnce(requestA)
-      .mockResolvedValueOnce(page([disc("resultado-filtro-B")], 1));
+    api.getDiscListPage
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveA = resolve;
+        })
+      )
+      .mockResolvedValueOnce(page([card("current")], 1));
     const wrapper = mountList();
-    const filters = wrapper.findComponent(FiltersStub);
-
-    filters.vm.$emit("update:searchQuery", "filtro B");
+    wrapper.findComponent(FiltersStub).vm.$emit("update:search", "B");
     await settle();
-
-    expect(filters.props("searchQuery")).toBe("filtro B");
-    expect(api.getDiscs).toHaveBeenCalledTimes(2);
-    expect(api.getDiscs.mock.calls[1]?.[2]).toBe("filtro B");
-    expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
-      "resultado-filtro-B",
-    ]);
-
-    resolveA(page([disc("resultado-filtro-A")], 1));
+    expect(api.getDiscListPage).toHaveBeenCalledTimes(2);
+    resolveA(page([card("stale")], 1));
     await settle();
-
-    expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
-      "resultado-filtro-B",
+    expect(wrapper.findAllComponents(DiscCardStub).map((item) => item.props("id"))).toEqual([
+      "current",
     ]);
     wrapper.unmount();
   });
 
-  it("does not show A while B is pending when A responds first", async () => {
-    let resolveA!: (value: ReturnType<typeof page>) => void;
-    let resolveB!: (value: ReturnType<typeof page>) => void;
-    api.getDiscs
-      .mockReturnValueOnce(new Promise((resolve) => (resolveA = resolve)))
-      .mockReturnValueOnce(new Promise((resolve) => (resolveB = resolve)));
+  it("shows a separate retryable options error while keeping result cards available", async () => {
+    api.getDiscListOptions.mockRejectedValueOnce(new Error("options offline"));
     const wrapper = mountList();
-    wrapper.findComponent(FiltersStub).vm.$emit("update:searchQuery", "filtro B");
     await settle();
-
-    resolveA(page([disc("resultado-filtro-A")], 1));
-    await settle();
-    expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(0);
-
-    resolveB(page([disc("resultado-filtro-B")], 1));
-    await settle();
-    expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
-      "resultado-filtro-B",
-    ]);
+    expect(wrapper.text()).toContain("No se pudieron cargar los filtros de país y género.");
+    expect(wrapper.findAllComponents(DiscCardStub)).toHaveLength(1);
     wrapper.unmount();
   });
 
-  it("ignores a failure from A after B is selected", async () => {
-    let rejectA!: (error: Error) => void;
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    api.getDiscs
-      .mockReturnValueOnce(new Promise((_, reject) => (rejectA = reject)))
-      .mockResolvedValueOnce(page([disc("resultado-filtro-B")], 1));
+  it("refreshes only this list and its options after a card Community mutation", async () => {
     const wrapper = mountList();
-    wrapper.findComponent(FiltersStub).vm.$emit("update:searchQuery", "filtro B");
     await settle();
-    rejectA(new Error("A failed"));
+    const pageCallsBefore = api.getDiscListPage.mock.calls.length;
+    const optionCallsBefore = api.getDiscListOptions.mock.calls.length;
+    wrapper.findComponent(DiscCardStub).vm.$emit("community-updated");
     await settle();
-
-    expect(consoleError).not.toHaveBeenCalled();
-    expect(wrapper.findAllComponents(DiscCardStub).map((card) => card.props("id"))).toEqual([
-      "resultado-filtro-B",
-    ]);
+    expect(api.getDiscListPage).toHaveBeenCalledTimes(pageCallsBefore + 1);
+    expect(api.getDiscListOptions).toHaveBeenCalledTimes(optionCallsBefore + 1);
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ mode: "all", offset: 0 })
+    );
     wrapper.unmount();
   });
 });

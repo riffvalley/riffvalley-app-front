@@ -42,13 +42,13 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/calendar",
     name: "Calendar",
-    component: () => import("@views/discsCalendar/DiscCalendar.vue"),
+    component: () => import("@/modules/catalog/calendar/presentation/views/CalendarRoleView.vue"),
     meta: { requiresAuth: true, requiresRole: "user" },
   },
   {
     path: "/calendar-baby",
-    name: "CalendarBaby",
-    component: () => import("@views/discsCalendarBaby/DiscCalendarBaby.vue"),
+    name: "CalendarBabyCompatibility",
+    redirect: { name: "Calendar" },
     meta: { requiresAuth: true, requiresRole: "user" },
   },
   {
@@ -306,8 +306,8 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/artists",
     name: "ArtistManagement",
-    component: () => import("@views/artists/ArtistManagement.vue"),
-    meta: { requiresAuth: true, requiresRole: "riffvalley" },
+    component: () => import("@/modules/catalog/artists/presentation/views/ArtistManagementView.vue"),
+    meta: { requiresAuth: true, requiresRole: "user" },
   },
   {
     path: "/national-releases/form",

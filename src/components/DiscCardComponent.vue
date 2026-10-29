@@ -317,7 +317,7 @@ import DiscDetail from "./DiscDetail.vue";
 import ArtistDetail from "./ArtistDetail.vue";
 import VotesModal from "./VotesModal.vue";
 import ComentsModal from "./ComentsModal.vue";
-import DiscCalendar from "@views/discsCalendar/DiscCalendar.vue"; // o la ruta real si no está en @views
+import { DiscCalendar } from "@/modules/catalog/calendar";
 import {
   getDiscRates,
   postRateService,
@@ -361,6 +361,7 @@ export default defineComponent({
     "rating-saved": (payload: RatingSavedEvent) =>
       typeof payload.discId === "string" &&
       (payload.action === "created" || payload.action === "updated"),
+    "community-updated": () => true,
   },
   props: {
     id: { type: String, required: true },
@@ -536,6 +537,7 @@ export default defineComponent({
           SwalService.success("Añadido a Favoritos");
         }
         triggerHeartAnim();
+        emit("community-updated");
       } catch (error) {
         console.error("Error al cambiar el estado de favorito:", error);
         Swal.fire({
@@ -567,6 +569,7 @@ export default defineComponent({
           SwalService.success("Añadido a Pendientes");
         }
         triggerBookmarkAnim();
+        emit("community-updated");
       } catch (error) {
         console.error("Error al cambiar el estado de pendiente:", error);
         Swal.fire({
@@ -715,6 +718,7 @@ export default defineComponent({
     };
     const closeComentsModal = () => {
       showComentsModal.value = false;
+      emit("community-updated");
     };
 
     const openSpotify = (webLink: string) => {

@@ -9,6 +9,10 @@ El índice y el README son las entradas generales del frontend; arquitectura, co
 - [README del repositorio](../../README.md): entrada al proyecto, requisitos e instalación.
 - [AGENTS.md](../../AGENTS.md): instrucciones breves y neutrales para agentes; Claude Code puede requerir una indicación explícita para leerlo.
 - [Roadmaps](../../roadmap.md): índice de iniciativas y documentación histórica.
+- [Catalog — Artistas (CAT-ART)](../../roadmap/catalog/cat-art-1-auditoria-artistas.md): CAT-ART-1, CAT-ART-2a–2e, CAT-ART-4a–4c, CAT-ART-5 y CAT-ART-6 completadas; CAT-ART-3 descartada. Artistas está completado y cerrado funcional y arquitectónicamente para el alcance acordado. Ver [revisión final y auditoría arquitectónica](../../roadmap/catalog/cat-art-5-revision-cierre.md) y [adaptación frontend CAT-ART-4c](../../roadmap/catalog/cat-art-4c-adaptacion-frontend.md).
+- [CAT-ART-2a — Auditoría del modal](../../roadmap/catalog/cat-art-2a-auditoria-modal-artistas.md): reutilización de la ficha, Last.fm, similares, discografía y propuesta de integración A–Z.
+- [Roadmap Catalog — Discos](../../roadmap/catalog-discs-audit.md): sección cerrada para el alcance acordado; incluye CAT-DISC-6a–6d y el diseño de [filtros guardados](../../roadmap/catalog-discs-saved-filters-design.md). Las tareas expresamente diferidas y la migración pendiente por entorno conservan su estado.
+- [Catalog — Calendario (CAT-CAL)](../../roadmap/catalog/calendar.md): CAT-CAL-1–4 completadas; Calendario de lanzamientos está cerrado funcional y arquitectónicamente para el alcance acordado. `/content-calendar` queda fuera de alcance.
 - [Calidad frontend](../../roadmap/frontend-quality.md): registro de auditoría y diseño de FQ; conserva los criterios acordados y el progreso de la migración documental.
 - [Arquitectura frontend](architecture.md): límites y reglas vigentes; la planificación original se conserva en su roadmap histórico.
 - [Convenciones frontend](conventions.md): requisitos, comandos, controles, hooks y límites de validación vigentes.

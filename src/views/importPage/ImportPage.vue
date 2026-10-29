@@ -327,8 +327,7 @@ import type {
   CatalogImportImportedResult,
   ManualImportResponse,
 } from "@services/imports/imports";
-import { updateDisc } from "@services/discs/discs";
-import { resolveSpotifyAlbum } from "@services/spotify/spotifyLookup";
+import { updateDiscFromSpotify } from "@services/spotify/updateDiscFromSpotify";
 import { useCatalogStore } from "@stores/catalog/catalog";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import SwalService from "@services/swal/SwalService";
@@ -425,21 +424,13 @@ export default defineComponent({
         let foundCount = 0;
         for (const item of importedDiscsParsed.value) {
           try {
-            const album = await resolveSpotifyAlbum(
+            const wasUpdated = await updateDiscFromSpotify(
+              item.discId,
               item.discName,
               item.artistName,
             );
-            if (!album) {
-              spotifyFound.value[item.discId] = false;
-              continue;
-            }
-            await updateDisc(item.discId, {
-              link: album.listenUrl,
-              image: album.coverUrl,
-              verified: true,
-            });
-            spotifyFound.value[item.discId] = true;
-            foundCount++;
+            spotifyFound.value[item.discId] = wasUpdated;
+            if (wasUpdated) foundCount++;
           } catch {
             spotifyFound.value[item.discId] = false;
           }

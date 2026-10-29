@@ -1,211 +1,151 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const services = vi.hoisted(() => ({
-  getDiscs: vi.fn(),
-  getRatesByUser: vi.fn(),
-  getCommentsByUser: vi.fn(),
-  getFavoritesByUser: vi.fn(),
-  getPendingsByUser: vi.fn(),
-}));
-
-vi.mock("@services/discs/discs", () => ({ getDiscs: services.getDiscs }));
-vi.mock("@services/rates/rates", () => ({ getRatesByUser: services.getRatesByUser }));
-vi.mock("@services/comments/comments", () => ({ getCommentsByUser: services.getCommentsByUser }));
-vi.mock("@services/favorites/favorites", () => ({
-  getFavoritesByUser: services.getFavoritesByUser,
-}));
-vi.mock("@services/pendings/pendings", () => ({ getPendingsByUser: services.getPendingsByUser }));
+const getDiscListPage = vi.hoisted(() => vi.fn());
+vi.mock("../api/discList", () => ({ getDiscListPage }));
 
 import { loadDiscList } from "./loadDiscList";
-import type { DiscListRequest } from "../types/discList";
+import type { DiscListApiCard, DiscListApiComment, DiscListRequest } from "../types/discList";
 
-const dateRange: [string, string] = ["2025-01-01T00:00:00.000Z", "2025-12-31T23:59:59.999Z"];
-const request: DiscListRequest = {
+const baseRequest: DiscListRequest = {
   mode: "all",
-  query: "artista",
-  dateRange,
-  genre: "genre-1",
-  country: "country-1",
-  orderBy: "disc.releaseDate:ASC,artist.name:ASC",
-  offset: 40,
+  query: "rock",
+  dateRange: ["2025-01-01T00:00:00.000Z", "2025-12-31T23:59:59.999Z"],
+  genreIds: ["genre-a"],
+  countryId: "country-a",
+  orderBy: "disc.releaseDate:DESC,artist.name:ASC",
+  offset: 0,
   limit: 20,
 };
 
-function page<T>(data: T[], totalItems = 60) {
-  return { data, totalItems, totalPages: 3, currentPage: 3, limit: 20 };
-}
-
-function disc(id = "disc-1") {
+function card(overrides: Partial<DiscListApiCard> = {}): DiscListApiCard {
   return {
-    id,
+    id: "disc-1",
+    entryId: "entry-1",
+    itemType: "disc",
     name: "Disco",
-    description: "",
     image: "cover.jpg",
     releaseDate: "2025-01-01",
-    artist: { id: "artist-1", name: "Artista", description: "", image: "" },
-    verified: true,
-    commentCount: 2,
+    link: "https://music.test/album",
+    ep: false,
+    debut: true,
+    artist: { name: "Artista", country: { id: "country-a", name: "España", isoCode: "ES" } },
+    genre: { id: "genre-a", name: "Rock", color: "#123456" },
+    averageRate: 8.5,
+    averageCover: 7.5,
     voteCount: 3,
-    userRate: { id: "rate-1", rate: "8.50", cover: null },
+    commentCount: 2,
+    userRate: { id: "rate-1", rate: 9, cover: 8 },
+    favoriteId: "favorite-1",
+    pendingId: "pending-1",
+    ...overrides,
   };
 }
 
+function page<T>(data: T[]) {
+  return { data, totalItems: 41, totalPages: 3, currentPage: 1, limit: 20 };
+}
+
 beforeEach(() => {
-  for (const service of Object.values(services)) service.mockReset().mockResolvedValue(page([]));
+  getDiscListPage.mockReset().mockResolvedValue(page([card()]));
 });
 
 describe("loadDiscList", () => {
-  it("routes all mode with the original filters, sort, pagination, and UNVOTED parameters", async () => {
-    services.getDiscs.mockResolvedValueOnce(page([disc()]));
-    const result = await loadDiscList({ ...request, orderBy: "UNVOTED:cover" });
-
-    expect(services.getDiscs).toHaveBeenCalledWith(
-      20,
-      40,
-      "artista",
-      dateRange,
-      "genre-1",
-      "country-1",
-      "disc.releaseDate:DESC,artist.name:ASC",
-      false,
-      "cover"
-    );
-    expect(result).toMatchObject({
-      mode: "all",
-      totalItems: 60,
-      totalPages: 3,
-      currentPage: 3,
-      limit: 20,
-    });
-    expect(result.data[0].userRate).toEqual({ id: "rate-1", rate: 8.5, cover: null });
-  });
-
-  it.each([
-    ["rates", "rate"],
-    ["covers", "cover"],
-  ] as const)(
-    "routes %s through rates with the personal type and normalizes its response",
-    async (mode, type) => {
-      const sourceDisc = disc();
-      services.getRatesByUser.mockResolvedValueOnce(
-        page([{ id: "my-rate", rate: "9.25", cover: null, disc: sourceDisc }])
-      );
-      const result = await loadDiscList({ ...request, mode });
-
-      expect(services.getRatesByUser).toHaveBeenCalledWith(
-        20,
-        40,
-        "artista",
-        dateRange,
-        "genre-1",
-        "country-1",
-        type,
-        request.orderBy
-      );
-      expect(result.data[0]).toMatchObject({
-        id: "disc-1",
-        artist: { country: null },
-        userRate: { id: "my-rate", rate: 9.25, cover: null },
-        commentCount: 2,
-        voteCount: 3,
-      });
-      expect(sourceDisc.artist).not.toHaveProperty("country");
+  it.each(["all", "rates", "covers", "comments", "favorites", "pendientes"] as const)(
+    "uses the same list adapter and preserves the %s mode",
+    async (mode) => {
+      const response =
+        mode === "comments"
+          ? page<DiscListApiComment>([
+              {
+                itemType: "comment",
+                entryId: "comment-1",
+                comment: "Comentario",
+                createdAt: "2025-01-01",
+                disc: {
+                  id: "disc-1",
+                  name: "Disco",
+                  image: "cover.jpg",
+                  releaseDate: "2025-01-01",
+                  artist: { name: "Artista", country: null },
+                  genre: null,
+                },
+              },
+            ])
+          : page<DiscListApiCard>([
+              card({
+                itemType:
+                  mode === "all"
+                    ? "disc"
+                    : mode === "rates"
+                      ? "rate"
+                      : mode === "covers"
+                        ? "cover"
+                        : mode === "favorites"
+                          ? "favorite"
+                          : "pending",
+              }),
+            ]);
+      getDiscListPage.mockResolvedValueOnce(response);
+      const result = await loadDiscList({ ...baseRequest, mode });
+      expect(getDiscListPage).toHaveBeenCalledWith({ ...baseRequest, mode });
+      expect(result.mode).toBe(mode);
+      expect(result.totalItems).toBe(41);
+      if (mode === "comments") expect(result).toMatchObject({ comments: [{ id: "comment-1" }] });
+      else expect(result.data).toHaveLength(1);
     }
   );
 
-  it("routes comments with the static comment type and preserves the paged records", async () => {
-    const comments = [
-      { id: "comment-1", comment: "Mi comentario", createdAt: "2025-03-01", disc: disc() },
-    ];
-    services.getCommentsByUser.mockResolvedValueOnce(page(comments));
-
-    const result = await loadDiscList({ ...request, mode: "comments" });
-
-    expect(services.getCommentsByUser).toHaveBeenCalledWith(
-      20,
-      40,
-      "artista",
-      dateRange,
-      "genre-1",
-      "country-1",
-      request.orderBy
-    );
-    expect(result).toMatchObject({
-      mode: "comments",
-      comments,
-      totalItems: 60,
-      totalPages: 3,
-      currentPage: 3,
-      limit: 20,
-    });
-  });
-
-  it("routes favorites with the original undefined type and normalizes personal fields", async () => {
-    services.getFavoritesByUser.mockResolvedValueOnce(
-      page([
-        {
-          id: "favorite-1",
-          disc: { ...disc(), userPending: { id: "pending-1" } },
-        },
-      ])
-    );
-
-    const result = await loadDiscList({ ...request, mode: "favorites" });
-
-    expect(services.getFavoritesByUser).toHaveBeenCalledWith(
-      20,
-      40,
-      "artista",
-      dateRange,
-      "genre-1",
-      "country-1",
-      undefined,
-      request.orderBy
-    );
+  it("maps the card DTO to DiscCard fields and keeps private community metadata", async () => {
+    const result = await loadDiscList(baseRequest);
+    if (result.mode === "comments") throw new Error("unexpected mode");
     expect(result.data[0]).toMatchObject({
+      id: "disc-1",
+      image: "cover.jpg",
+      artist: { name: "Artista", country: { id: "country-a", isoCode: "ES" } },
+      genre: { id: "genre-a", name: "Rock", color: "#123456" },
+      averageRate: 8.5,
+      averageCover: 7.5,
+      userRate: { id: "rate-1", rate: 9, cover: 8 },
       favoriteId: "favorite-1",
       pendingId: "pending-1",
-      userRate: { id: "rate-1", rate: 8.5, cover: null },
+      commentCount: 2,
+      voteCount: 3,
+      debut: true,
     });
   });
 
-  it("routes pendings without orderBy and retains personal pending data", async () => {
-    services.getPendingsByUser.mockResolvedValueOnce(page([{ id: "pending-1", disc: disc() }]));
+  it("preserves repeated discs as distinct comment rows", async () => {
+    const comment = (entryId: string): DiscListApiComment => ({
+      itemType: "comment",
+      entryId,
+      comment: `Comentario ${entryId}`,
+      createdAt: "2025-03-01T12:00:00.000Z",
+      disc: {
+        id: "same-disc",
+        name: "Disco repetido",
+        image: "cover.jpg",
+        releaseDate: "2025-01-01",
+        artist: { name: "Artista", country: null },
+        genre: { id: "genre-a", name: "Rock", color: null },
+      },
+    });
+    getDiscListPage.mockResolvedValueOnce(page([comment("comment-1"), comment("comment-2")]));
 
-    const result = await loadDiscList({ ...request, mode: "pendientes" });
+    const result = await loadDiscList({ ...baseRequest, mode: "comments" });
+    expect(result.mode).toBe("comments");
+    if (result.mode !== "comments") throw new Error("unexpected mode");
+    expect(result.comments.map(({ id, disc }) => [id, disc.id])).toEqual([
+      ["comment-1", "same-disc"],
+      ["comment-2", "same-disc"],
+    ]);
+  });
 
-    expect(services.getPendingsByUser).toHaveBeenCalledWith(
-      20,
-      40,
-      "artista",
-      dateRange,
-      "genre-1",
-      "country-1"
+  it("normalizes null card values to the legacy DiscCard contract", async () => {
+    getDiscListPage.mockResolvedValueOnce(
+      page([card({ image: null, releaseDate: null, userRate: null })])
     );
-    expect(result.data[0]).toMatchObject({
-      pendingId: "pending-1",
-      userRate: { rate: 8.5, cover: null },
-    });
-  });
-
-  it("preserves empty results, pagination metadata, and service errors", async () => {
-    services.getDiscs.mockResolvedValueOnce({
-      data: [],
-      totalItems: 0,
-      totalPages: 0,
-      currentPage: 1,
-      limit: 20,
-    });
-    await expect(loadDiscList({ ...request, offset: 0 })).resolves.toMatchObject({
-      data: [],
-      totalItems: 0,
-      totalPages: 0,
-      currentPage: 1,
-      limit: 20,
-    });
-
-    const failure = new Error("private endpoint failed");
-    services.getPendingsByUser.mockRejectedValueOnce(failure);
-    await expect(loadDiscList({ ...request, mode: "pendientes" })).rejects.toBe(failure);
+    const result = await loadDiscList(baseRequest);
+    if (result.mode === "comments") throw new Error("unexpected mode");
+    expect(result.data[0]).toMatchObject({ image: "", releaseDate: "", userRate: null });
   });
 });

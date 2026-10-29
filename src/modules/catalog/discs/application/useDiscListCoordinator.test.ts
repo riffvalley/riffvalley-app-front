@@ -32,7 +32,17 @@ function page(request: DiscListRequest, ids: string[], totalItems: number): Disc
 
 function setup(
   loader: (request: DiscListRequest) => Promise<DiscListResult>,
-  authenticated = true
+  authenticated = true,
+  optionsLoader: (request: {
+    mode: string;
+    query: string;
+    dateRange: [string, string] | null;
+    countryId: string;
+    genreIds: string[];
+  }) => Promise<{
+    countries: { id: string; name: string; isoCode: string | null }[];
+    genres: { id: string; name: string; color: string | null }[];
+  }> = vi.fn().mockResolvedValue({ countries: [], genres: [] })
 ) {
   const pinia = createPinia();
   setActivePinia(pinia);
@@ -44,7 +54,12 @@ function setup(
     authSessionGeneration: 1,
   });
   const scope = effectScope();
-  const coordinator = scope.run(() => useDiscListCoordinator(loader));
+  const coordinator = scope.run(() =>
+    useDiscListCoordinator({
+      loadPage: loader,
+      loadOptions: optionsLoader,
+    })
+  );
   if (!coordinator) throw new Error("Coordinator scope was not created");
   return { authStore, coordinator, scope };
 }
@@ -423,5 +438,342 @@ describe("useDiscListCoordinator", () => {
     expect(coordinator.totalCovers.value).toBe(0);
     expect(coordinator.isEmpty.value).toBe(true);
     expect(coordinator.hasMore.value).toBe(false);
+  });
+
+  it("normalizes genre sets for request identity and resets offset when the set changes", async () => {
+    const loader = vi.fn(async (request: DiscListRequest) => page(request, ["result"], 50));
+    const optionsLoader = vi.fn().mockResolvedValue({
+      countries: [{ id: "country-a", name: "España", isoCode: "ES" }],
+      genres: [
+        { id: "genre-a", name: "Black Metal", color: null },
+        { id: "genre-b", name: "Death Metal", color: null },
+      ],
+    });
+    const { coordinator, scope } = setup(loader, true, optionsLoader);
+    scopes.push(scope);
+    await settle();
+
+    coordinator.setGenres(["GENRE-B", "genre-a", "genre-b"]);
+    await settle();
+    expect(loader).toHaveBeenLastCalledWith(
+      expect.objectContaining({ genreIds: ["genre-a", "genre-b"], offset: 0 })
+    );
+    const requestCount = loader.mock.calls.length;
+    coordinator.setGenres(["genre-a", "genre-b"]);
+    await settle();
+    expect(loader).toHaveBeenCalledTimes(requestCount);
+
+    coordinator.setGenres(["genre-b"]);
+    await settle();
+    expect(loader).toHaveBeenLastCalledWith(
+      expect.objectContaining({ genreIds: ["genre-b"], offset: 0 })
+    );
+  });
+
+  it("discards stale option responses and errors across rapid criteria changes", async () => {
+    const responses: Array<
+      ReturnType<
+        typeof deferred<{
+          countries: { id: string; name: string; isoCode: string | null }[];
+          genres: { id: string; name: string; color: string | null }[];
+        }>
+      >
+    > = [];
+    const optionsLoader = vi.fn(() => {
+      const response = deferred<{
+        countries: { id: string; name: string; isoCode: string | null }[];
+        genres: { id: string; name: string; color: string | null }[];
+      }>();
+      responses.push(response);
+      return response.promise;
+    });
+    const { coordinator, scope } = setup(
+      async (request) => page(request, [], 0),
+      true,
+      optionsLoader
+    );
+    scopes.push(scope);
+    coordinator.setSearchQuery("B");
+    await settle();
+    coordinator.setSearchQuery("C");
+    await settle();
+    expect(optionsLoader.mock.calls.map(([request]) => request.query)).toEqual(["", "B", "C"]);
+
+    responses[1]!.reject(new Error("stale options failure"));
+    responses[2]!.resolve({
+      countries: [{ id: "country-c", name: "Current", isoCode: null }],
+      genres: [{ id: "genre-c", name: "Current genre", color: null }],
+    });
+    await settle();
+    responses[0]!.resolve({
+      countries: [{ id: "country-a", name: "Stale", isoCode: null }],
+      genres: [],
+    });
+    await settle();
+
+    expect(coordinator.options.value.countries.map(({ id }) => id)).toEqual(["country-c"]);
+    expect(coordinator.optionsError.value).toBeNull();
+    expect(coordinator.optionsReady.value).toBe(true);
+  });
+
+  it("discards options from a previous authenticated user", async () => {
+    type Options = {
+      countries: { id: string; name: string; isoCode: string | null }[];
+      genres: { id: string; name: string; color: string | null }[];
+    };
+    const responses: Array<ReturnType<typeof deferred<Options>>> = [];
+    const optionsLoader = vi.fn(() => {
+      const response = deferred<Options>();
+      responses.push(response);
+      return response.promise;
+    });
+    const { authStore, coordinator, scope } = setup(
+      async (request) => page(request, [], 0),
+      true,
+      optionsLoader
+    );
+    scopes.push(scope);
+    authStore.$patch({ userId: "user-b", authSessionGeneration: 2 });
+    await settle();
+    expect(responses).toHaveLength(2);
+
+    responses[0]!.resolve({
+      countries: [{ id: "private-user-a", name: "A", isoCode: null }],
+      genres: [],
+    });
+    responses[1]!.resolve({
+      countries: [{ id: "private-user-b", name: "B", isoCode: null }],
+      genres: [],
+    });
+    await settle();
+
+    expect(coordinator.options.value.countries.map(({ id }) => id)).toEqual(["private-user-b"]);
+  });
+
+  it("cross-filters countries and genres while preserving the last explicit filter action", async () => {
+    const optionsLoader = vi.fn(async (request: { countryId: string; genreIds: string[] }) => {
+      if (request.countryId === "country-b" && request.genreIds.includes("genre-a")) {
+        return {
+          countries: [{ id: "country-a", name: "A", isoCode: null }],
+          genres: [{ id: "genre-b", name: "B", color: null }],
+        };
+      }
+      if (request.countryId === "country-b") {
+        return {
+          countries: [{ id: "country-b", name: "B", isoCode: null }],
+          genres: [{ id: "genre-b", name: "B", color: null }],
+        };
+      }
+      if (request.genreIds.includes("genre-a")) {
+        return {
+          countries: [{ id: "country-a", name: "A", isoCode: null }],
+          genres: [
+            { id: "genre-a", name: "A", color: null },
+            { id: "genre-b", name: "B", color: null },
+          ],
+        };
+      }
+      return {
+        countries: [
+          { id: "country-a", name: "A", isoCode: null },
+          { id: "country-b", name: "B", isoCode: null },
+        ],
+        genres: [
+          { id: "genre-a", name: "A", color: null },
+          { id: "genre-b", name: "B", color: null },
+        ],
+      };
+    });
+    const { coordinator, scope } = setup(
+      async (request) => page(request, [], 0),
+      true,
+      optionsLoader
+    );
+    scopes.push(scope);
+    await settle();
+    coordinator.setGenres(["genre-a"]);
+    await settle();
+    coordinator.setCountry("country-b");
+    await settle();
+
+    expect(coordinator.selectedCountry.value).toBe("country-b");
+    expect(coordinator.selectedGenres.value).toEqual([]);
+    expect(optionsLoader).toHaveBeenCalledWith(
+      expect.objectContaining({ countryId: "country-b", genreIds: ["genre-a"] })
+    );
+    expect(optionsLoader).toHaveBeenLastCalledWith(
+      expect.objectContaining({ countryId: "country-b", genreIds: [] })
+    );
+
+    coordinator.setGenres(["genre-a"]);
+    await settle();
+    expect(coordinator.selectedGenres.value).toEqual(["genre-a"]);
+    expect(coordinator.selectedCountry.value).toBe("");
+  });
+
+  it("filters by the selected artist ID and preserves text, mode and every other filter", async () => {
+    const pageLoader = vi.fn(async (request: DiscListRequest) => page(request, [], 0));
+    const optionsLoader = vi.fn().mockResolvedValue({
+      countries: [{ id: "country-a", name: "España", isoCode: "ES" }],
+      genres: [{ id: "genre-a", name: "Rock", color: null }],
+    });
+    const { coordinator, scope } = setup(pageLoader, true, optionsLoader);
+    scopes.push(scope);
+    await settle();
+    coordinator.setMode("favorites");
+    coordinator.setSearchQuery("MØL");
+    coordinator.setSelectedWeek(["2025-01-01", "2025-01-31"]);
+    coordinator.setCountry("country-a");
+    coordinator.setGenres(["genre-a"]);
+    await settle();
+
+    const callsBeforeArtist = pageLoader.mock.calls.length;
+    coordinator.setSelectedArtist({ id: "artist-homonym-b", name: "MØL" });
+    await settle();
+
+    expect(pageLoader).toHaveBeenCalledTimes(callsBeforeArtist + 1);
+    expect(pageLoader).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        mode: "favorites",
+        query: "MØL",
+        dateRange: ["2025-01-01", "2025-01-31"],
+        countryId: "country-a",
+        genreIds: ["genre-a"],
+        artistId: "artist-homonym-b",
+        offset: 0,
+      })
+    );
+    expect(optionsLoader).toHaveBeenLastCalledWith(
+      expect.objectContaining({ artistId: "artist-homonym-b" })
+    );
+    expect(coordinator.selectedArtist.value).toEqual({ id: "artist-homonym-b", name: "MØL" });
+    expect(coordinator.selectedCountry.value).toBe("country-a");
+    expect(coordinator.selectedGenres.value).toEqual(["genre-a"]);
+  });
+
+  it("applies saved criteria atomically while preserving search, artist, mode, order and resetting pagination", async () => {
+    const loader = vi.fn(async (request: DiscListRequest) => page(request, [], 45));
+    const optionsLoader = vi.fn().mockResolvedValue({ countries: [], genres: [] });
+    const { coordinator, scope } = setup(loader, true, optionsLoader);
+    scopes.push(scope);
+    await settle();
+    coordinator.setMode("favorites");
+    coordinator.setSearchQuery("MØL");
+    coordinator.setSelectedArtist({ id: "artist-a", name: "MØL" });
+    coordinator.orderBy.value = "disc.releaseDate:ASC,artist.name:ASC";
+    coordinator.setSelectedWeek(["2025-01-01T00:00:00.000Z", "2025-01-31T23:59:59.999Z"]);
+    await settle();
+    await coordinator.loadNextPage();
+    expect(coordinator.offset.value).toBe(40);
+
+    coordinator.applySavedCriteria({
+      genreIds: ["GENRE-B", "genre-a", "genre-a"],
+      countryId: "country-saved",
+      yearFrom: 2025,
+      yearTo: 2026,
+    });
+    await settle();
+
+    expect(loader).toHaveBeenLastCalledWith(expect.objectContaining({
+      mode: "favorites",
+      query: "MØL",
+      artistId: "artist-a",
+      orderBy: "disc.releaseDate:ASC,artist.name:ASC",
+      genreIds: ["genre-a", "genre-b"],
+      countryId: "country-saved",
+      dateRange: ["2025-01-01T00:00:00.000Z", "2026-12-31T23:59:59.999Z"],
+      offset: 0,
+    }));
+    expect(coordinator.offset.value).toBe(20);
+    expect(optionsLoader).toHaveBeenLastCalledWith(expect.objectContaining({
+      mode: "favorites", query: "MØL", artistId: "artist-a", countryId: "country-saved",
+      genreIds: ["genre-a", "genre-b"],
+    }));
+  });
+
+  it("preserves one-sided saved year bounds instead of narrowing them to one year", async () => {
+    const loader = vi.fn(async (request: DiscListRequest) => page(request, [], 0));
+    const { coordinator, scope } = setup(loader);
+    scopes.push(scope);
+    await settle();
+
+    coordinator.applySavedCriteria({ genreIds: [], countryId: null, yearFrom: 2025, yearTo: null });
+    await settle();
+    expect(loader).toHaveBeenLastCalledWith(expect.objectContaining({
+      dateRange: ["2025-01-01T00:00:00.000Z", "9999-12-31T23:59:59.999Z"], offset: 0,
+    }));
+
+    coordinator.applySavedCriteria({ genreIds: [], countryId: null, yearFrom: null, yearTo: 2026 });
+    await settle();
+    expect(loader).toHaveBeenLastCalledWith(expect.objectContaining({
+      dateRange: ["0001-01-01T00:00:00.000Z", "2026-12-31T23:59:59.999Z"], offset: 0,
+    }));
+  });
+
+  it("refreshes results and contextual options without dropping the current filters", async () => {
+    const pageLoader = vi.fn(async (request: DiscListRequest) => page(request, [], 0));
+    let omitContextualOptions = false;
+    const optionsLoader = vi.fn(async () =>
+      omitContextualOptions
+        ? { countries: [], genres: [] }
+        : {
+            countries: [{ id: "country-a", name: "España", isoCode: "ES" }],
+            genres: [{ id: "genre-a", name: "Rock", color: null }],
+          }
+    );
+    const { coordinator, scope } = setup(pageLoader, true, optionsLoader);
+    scopes.push(scope);
+    await settle();
+    coordinator.setMode("favorites");
+    coordinator.setSearchQuery("Álbum");
+    coordinator.setSelectedWeek(["2025-01-01", "2025-01-31"]);
+    coordinator.setCountry("country-a");
+    coordinator.setGenres(["genre-a"]);
+    await settle();
+
+    omitContextualOptions = true;
+    coordinator.refresh();
+    await settle();
+
+    expect(pageLoader).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        mode: "favorites",
+        query: "Álbum",
+        dateRange: ["2025-01-01", "2025-01-31"],
+        countryId: "country-a",
+        genreIds: ["genre-a"],
+        offset: 0,
+      })
+    );
+    expect(coordinator.selectedCountry.value).toBe("country-a");
+    expect(coordinator.selectedGenres.value).toEqual(["genre-a"]);
+  });
+
+  it("does not request private results or options while logged out and clears private selections", async () => {
+    const pageLoader = vi.fn(async (request: DiscListRequest) => page(request, [], 0));
+    const optionsLoader = vi.fn().mockResolvedValue({
+      countries: [{ id: "country-a", name: "España", isoCode: null }],
+      genres: [{ id: "genre-a", name: "Rock", color: null }],
+    });
+    const { authStore, coordinator, scope } = setup(pageLoader, true, optionsLoader);
+    scopes.push(scope);
+    await settle();
+    coordinator.setCountry("country-a");
+    coordinator.setGenres(["genre-a"]);
+    await settle();
+    const pageCount = pageLoader.mock.calls.length;
+    authStore.$patch({
+      authStatus: "anonymous",
+      token: null,
+      userId: null,
+      authSessionGeneration: 2,
+    });
+    await settle();
+
+    expect(coordinator.discs.value).toEqual([]);
+    expect(coordinator.options.value).toEqual({ countries: [], genres: [] });
+    expect(coordinator.selectedCountry.value).toBe("");
+    expect(coordinator.selectedGenres.value).toEqual([]);
+    expect(pageLoader).toHaveBeenCalledTimes(pageCount);
   });
 });

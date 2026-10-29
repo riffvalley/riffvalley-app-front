@@ -9,6 +9,7 @@ import { useAuthStore } from "@/modules/identity/auth";
 import { useDashboardPreferences } from "@/modules/identity/account";
 import { useSupportStore } from "@stores/support/support";
 import type { UserRole } from "@/modules/identity/shared";
+import router from "@/router";
 
 const { getSidebarSummary } = vi.hoisted(() => ({ getSidebarSummary: vi.fn() }));
 vi.mock("@services/api/api", () => ({ default: { get: getSidebarSummary } }));
@@ -25,7 +26,7 @@ describe("import options in sidebar", () => {
     getSidebarSummary.mockReset().mockResolvedValue({ data: { version: { latest: "1.8.4" } } });
   });
 
-  async function renderAs(role: UserRole) {
+  async function renderAs(role: UserRole, useRealRouterLink = false) {
     const pinia = createPinia();
     setActivePinia(pinia);
     const authStore = useAuthStore();
@@ -43,12 +44,14 @@ describe("import options in sidebar", () => {
     });
     if (role === "superadmin") useSupportStore().markAsRead("read-id");
 
+    if (useRealRouterLink) await router.push("/calendar");
+
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const wrapper = mount(SidebarMenu, {
       props: { menuVisible: true, isDark: false },
       global: {
-        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
-        stubs: { "router-link": RouterLinkStub },
+        plugins: [pinia, [VueQueryPlugin, { queryClient }], ...(useRealRouterLink ? [router] : [])],
+        ...(useRealRouterLink ? {} : { stubs: { "router-link": RouterLinkStub } }),
       },
     });
     await flushPromises();
@@ -93,6 +96,26 @@ describe("import options in sidebar", () => {
 
     expect(wrapper.find('[data-to="/import"]').exists()).toBe(false);
     expect(wrapper.find('[data-to="/import-discs"]').exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it.each(["user", "collaborator", "riffvalley", "superadmin"] as const)(
+    "shows exactly one canonical calendar entry for %s",
+    async (role) => {
+      const wrapper = await renderAs(role);
+      const entries = wrapper.findAll('[data-to="/calendar"]');
+      expect(entries).toHaveLength(1);
+      expect(entries[0]?.text()).toContain("Calendario");
+      expect(wrapper.find('[data-to="/calendar-baby"]').exists()).toBe(false);
+      wrapper.unmount();
+    },
+  );
+
+  it("marks the canonical calendar entry active at /calendar", async () => {
+    const wrapper = await renderAs("user", true);
+    const entry = wrapper.find('a[href="/calendar"]');
+    expect(entry.exists()).toBe(true);
+    expect(entry.classes()).toContain("bg-gradient-to-r");
     wrapper.unmount();
   });
 

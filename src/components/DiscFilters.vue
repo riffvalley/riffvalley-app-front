@@ -31,6 +31,7 @@
       />
 
       <SearchableSelect
+        v-if="showGenreFilter"
         v-model="selectedGenre"
         :options="genres"
         placeholder="Selecciona un género"
@@ -66,6 +67,7 @@
       />
 
       <SearchableSelect
+        v-if="showGenreFilter"
         v-model="selectedGenre"
         :options="genres"
         placeholder="Selecciona un género"
@@ -144,6 +146,7 @@ export default defineComponent({
     showWeekPicker: { type: Boolean, default: true },
     showSearchQuery: { type: Boolean, default: true },
     showCountryFilter: { type: Boolean, default: true },
+    showGenreFilter: { type: Boolean, default: true },
     externalRow1: { type: Boolean, default: false },
 
   },

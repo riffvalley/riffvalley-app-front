@@ -1,169 +1,88 @@
-import { getDiscs } from "@services/discs/discs";
-import { getRatesByUser } from "@services/rates/rates";
-import { getCommentsByUser } from "@services/comments/comments";
-import { getFavoritesByUser } from "@services/favorites/favorites";
-import { getPendingsByUser } from "@services/pendings/pendings";
+import { getDiscListPage } from "../api/discList";
 import type {
-  DiscListFavorite,
-  DiscListPending,
-  DiscListRateRecord,
+  DiscListApiCard,
+  DiscListApiComment,
+  DiscListCardDisc,
+  DiscListComment,
   DiscListRequest,
   DiscListResult,
 } from "../types/discList";
 
-function normalizeUserRate(rate: number | string | null | undefined) {
-  return rate == null ? null : Number.parseFloat(String(rate));
-}
-
-function withRate(record: DiscListRateRecord) {
+function toCardDisc(item: DiscListApiCard): DiscListCardDisc {
   return {
-    ...record.disc,
+    id: item.id,
+    name: item.name,
+    image: item.image ?? "",
+    releaseDate: item.releaseDate ?? "",
+    link: item.link,
+    ep: item.ep,
+    debut: item.debut,
     artist: {
-      ...record.disc.artist,
-      country: record.disc.artist?.country ?? null,
+      name: item.artist.name,
+      country: item.artist.country
+        ? {
+            ...item.artist.country,
+            isoCode: item.artist.country.isoCode ?? undefined,
+          }
+        : null,
     },
-    userRate: {
-      rate: normalizeUserRate(record.rate),
-      cover: normalizeUserRate(record.cover),
-      id: record.id,
-    },
-    commentCount: record.disc.commentCount,
-    voteCount: record.disc.voteCount,
+    genre: item.genre,
+    averageRate: item.averageRate,
+    averageCover: item.averageCover,
+    voteCount: item.voteCount,
+    commentCount: item.commentCount,
+    userRate: item.userRate,
+    favoriteId: item.favoriteId,
+    pendingId: item.pendingId,
   };
 }
 
-function withFavorite(favorite: DiscListFavorite) {
+function toComment(item: DiscListApiComment): DiscListComment {
   return {
-    ...favorite.disc,
-    artist: {
-      ...favorite.disc.artist,
-      country: favorite.disc.artist?.country ?? null,
+    id: item.entryId,
+    entryId: item.entryId,
+    itemType: item.itemType,
+    comment: item.comment,
+    createdAt: item.createdAt,
+    disc: {
+      id: item.disc.id,
+      name: item.disc.name,
+      image: item.disc.image ?? "",
+      releaseDate: item.disc.releaseDate ?? "",
+      artist: {
+        name: item.disc.artist.name,
+        country: item.disc.artist.country
+          ? {
+              ...item.disc.artist.country,
+              isoCode: item.disc.artist.country.isoCode ?? undefined,
+            }
+          : null,
+      },
+      genre: item.disc.genre,
     },
-    favoriteId: favorite.id,
-    pendingId: favorite.disc.userPending ? favorite.disc.userPending.id : null,
-    userRate: favorite.disc.userRate
-      ? {
-          id: favorite.disc.userRate.id,
-          rate: normalizeUserRate(favorite.disc.userRate.rate),
-          cover: normalizeUserRate(favorite.disc.userRate.cover),
-        }
-      : null,
-    commentCount: favorite.disc.commentCount,
-    voteCount: favorite.disc.voteCount,
   };
 }
 
-function withPending(pending: DiscListPending) {
-  return {
-    ...pending.disc,
-    artist: {
-      ...pending.disc.artist,
-      country: pending.disc.artist?.country ?? null,
-    },
-    pendingId: pending.id,
-    userRate: pending.disc.userRate
-      ? {
-          id: pending.disc.userRate.id,
-          rate: normalizeUserRate(pending.disc.userRate.rate),
-          cover: normalizeUserRate(pending.disc.userRate.cover),
-        }
-      : null,
-    commentCount: pending.disc.commentCount,
-    voteCount: pending.disc.voteCount,
-  };
-}
+export async function loadDiscList(request: DiscListRequest): Promise<DiscListResult> {
+  if (request.mode === "comments") {
+    const response = await getDiscListPage(request);
+    return {
+      mode: "comments",
+      comments: response.data.map(toComment),
+      totalItems: response.totalItems,
+      totalPages: response.totalPages,
+      currentPage: response.currentPage,
+      limit: response.limit,
+    };
+  }
 
-function pageMetadata(response: {
-  totalItems: number;
-  totalPages: number;
-  currentPage: number;
-  limit: number;
-}) {
+  const response = await getDiscListPage(request);
   return {
+    mode: request.mode,
+    data: response.data.map(toCardDisc),
     totalItems: response.totalItems,
     totalPages: response.totalPages,
     currentPage: response.currentPage,
     limit: response.limit,
   };
-}
-
-export async function loadDiscList(request: DiscListRequest): Promise<DiscListResult> {
-  const { mode, limit, offset, query, dateRange, genre, country, orderBy } = request;
-
-  if (mode === "rates" || mode === "covers") {
-    const response = await getRatesByUser(
-      limit,
-      offset,
-      query,
-      dateRange,
-      genre,
-      country,
-      mode === "rates" ? "rate" : "cover",
-      orderBy
-    );
-    return { mode, data: response.data.map(withRate), ...pageMetadata(response) };
-  }
-
-  if (mode === "comments") {
-    const response = await getCommentsByUser(
-      limit,
-      offset,
-      query,
-      dateRange,
-      genre,
-      country,
-      orderBy
-    );
-    return { mode, comments: response.data, ...pageMetadata(response) };
-  }
-
-  if (mode === "favorites") {
-    const response = await getFavoritesByUser(
-      limit,
-      offset,
-      query,
-      dateRange,
-      genre,
-      country,
-      undefined,
-      orderBy
-    );
-    return { mode, data: response.data.map(withFavorite), ...pageMetadata(response) };
-  }
-
-  if (mode === "pendientes") {
-    const response = await getPendingsByUser(limit, offset, query, dateRange, genre, country);
-    return { mode, data: response.data.map(withPending), ...pageMetadata(response) };
-  }
-
-  let voted: boolean | undefined;
-  let votedType: string | undefined;
-  let actualOrderBy = orderBy;
-  if (orderBy.startsWith("UNVOTED:")) {
-    voted = false;
-    votedType = orderBy.split(":")[1];
-    actualOrderBy = "disc.releaseDate:DESC,artist.name:ASC";
-  }
-  const response = await getDiscs(
-    limit,
-    offset,
-    query,
-    dateRange,
-    genre,
-    country,
-    actualOrderBy,
-    voted,
-    votedType
-  );
-  const discs = response.data.map((disc) => ({
-    ...disc,
-    userRate: disc.userRate
-      ? {
-          ...disc.userRate,
-          rate: normalizeUserRate(disc.userRate.rate),
-          cover: normalizeUserRate(disc.userRate.cover),
-        }
-      : null,
-  }));
-  return { mode, data: discs, ...pageMetadata(response) };
 }
