@@ -1,5 +1,5 @@
 <template>
-  <div :class="{ 'menu-open': menuVisible }" class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
   <!-- Sentinel scroll-to-top -->
   <div ref="scrollSentinel" class="h-px w-full"></div>
 <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-rv-navy dark:text-white">
@@ -9,11 +9,10 @@
 
     <!-- Fila única: Search + Género + Año -->
     <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
-      <DiscFilters :searchQuery="searchQuery" :selectedGenre="selectedGenre" :selectedCountry="selectedCountry"
-        :genres="genres" :countries="countries" :showWeekPicker="false" :showCountryFilter="false" :externalRow1="true"
+      <DiscFilters :searchQuery="searchQuery" :selectedGenre="selectedGenre"
+        :genres="genres" :showWeekPicker="false" :showCountryFilter="false" :externalRow1="true"
         wrapperClass="contents" selectClass="w-full" @update:searchQuery="searchQuery = $event"
-        @update:selectedGenre="selectedGenre = $event" @update:selectedCountry="selectedCountry = $event"
-        @reset-and-fetch="resetAndFetch" />
+        @update:selectedGenre="selectedGenre = $event" />
 
       <SimpleSelect v-model="selectedYear" :options="yearOptions" placeholder="Selecciona un año" class="w-full"
         selectClass="w-full" />
@@ -98,11 +97,10 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, reactive, computed, nextTick, watch } from "vue";
-import { updateDisc, getDiscsDated } from "@services/discs/discs";
+import { getDiscsDated } from "@services/discs/discs";
 import DiscComponentBaby from "../components/DiscComponentBaby.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";
 import { MONTHS, getYearOptions } from "@helpers/dateConstants";
-import { resolveSpotifyAlbum } from "@services/spotify/spotifyLookup";
 import DiscFilters from "@components/DiscFilters.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
 import SwalService from "@services/swal/SwalService";
@@ -133,8 +131,6 @@ export default defineComponent({
     // --- Filtros ---
     const searchQuery = ref("");
     const selectedGenre = ref("");
-    const selectedCountry = ref("");
-    const selectedWeek = ref<Date | null>(null);
 
     const filteredGroupedDiscs = computed(() => {
       return groupedDiscs.value
@@ -150,22 +146,6 @@ export default defineComponent({
                 .includes(searchQuery.value.toLowerCase());
             const matchesGenre =
               !selectedGenre.value || disc.genre?.id === selectedGenre.value;
-
-
-            if (selectedWeek.value) {
-              const discDate = new Date(disc.releaseDate);
-              const weekStart = new Date(selectedWeek.value);
-              const weekEnd = new Date(weekStart);
-              weekEnd.setDate(weekStart.getDate() + 6);
-
-              return (
-                matchesSearch &&
-                matchesGenre &&
-                discDate >= weekStart &&
-                discDate <= weekEnd
-              );
-            }
-
             return matchesSearch && matchesGenre;
           }),
         }))
@@ -239,7 +219,6 @@ export default defineComponent({
       loading,
       beginPageLoad,
       recordPage,
-      resetOffset,
       resetForMonth: resetPaginationForMonth,
       finishPageLoad,
     } = useCalendarPagination(limit.value);
@@ -305,72 +284,6 @@ export default defineComponent({
     };
 
 
-    const buscarEnlacesSpotify = async (discs: any[]) => {
-      for (const disc of discs) {
-        try {
-          const album = await resolveSpotifyAlbum(disc.name, disc.artist.name);
-          if (!album) {
-            disc.link = "No se encontró el álbum";
-            continue;
-          }
-          disc.link = album.listenUrl ?? "No se encontró el álbum";
-          disc.image = album.coverUrl;
-          await updateDisc(disc.id, {
-            link: disc.link,
-            image: disc.image,
-            verified: true,
-          });
-        } catch (error) {
-          console.error(`Error al buscar el álbum ${disc.name}:`, error);
-          disc.link = "Error al realizar la búsqueda";
-        }
-      }
-    };
-
-    const exportarHtml = (group: any) => {
-      let html = `
-      <figure class="wp-block-table is-style-stripes">
-        <table>
-          <tbody>`;
-
-      group.discs.forEach((disc: any) => {
-        const genreName =
-          catalogStore.genres.find((genre) => genre.id === disc.genreId)?.name ||
-          "Sin género";
-        if (disc.link) {
-          html += `
-            <tr>
-              <td class="has-text-align-left" data-align="left">${genreName}</td>
-              <td><strong><a href="${disc.link}" target="_blank" rel="noreferrer noopener">${disc.artist.name} - ${disc.name}</a></strong></td>
-            </tr>`;
-        } else {
-          html += `
-            <tr>
-              <td class="has-text-align-left" data-align="left">${genreName}</td>
-              <td><strong>${disc.artist.name} - ${disc.name}</strong></td>
-            </tr>`;
-        }
-      });
-
-      html += `
-          </tbody>
-        </table>
-      </figure>`;
-
-      const blob = new Blob([html], { type: "text/html" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `discs_${group.releaseDate}.html`;
-      link.click();
-      URL.revokeObjectURL(link.href);
-    };
-
-    const resetAndFetch = () => {
-      resetOffset();
-
-      fetchDiscs();
-    };
-
     watch(selectedYear, () => {
       selectMonth(0); // Cargar enero al cambiar el año
     });
@@ -403,8 +316,6 @@ export default defineComponent({
       loadMore,
       loading,
       hasMore,
-      buscarEnlacesSpotify,
-      exportarHtml,
       toggleGroup,
       months,
       selectedMonth,
@@ -412,13 +323,9 @@ export default defineComponent({
       formatDate,
       searchQuery,
       selectedGenre,
-      selectedCountry,
-      selectedWeek,
-      resetAndFetch,
       filteredGroupedDiscs,
       yearOptions,
       selectedYear,
-      countries: computed(() => catalogStore.countries),
       showScrollTop,
       scrollToTop,
       scrollSentinel,

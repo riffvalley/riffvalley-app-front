@@ -42,12 +42,8 @@ export function useCalendarPagination(pageSize: number) {
     hasMore.value = offset.value < totalItems.value;
   };
 
-  const resetOffset = () => {
-    offset.value = 0;
-  };
-
   const resetForMonth = () => {
-    resetOffset();
+    offset.value = 0;
     hasMore.value = true;
     loading.value = false;
   };
@@ -62,7 +58,6 @@ export function useCalendarPagination(pageSize: number) {
     loading,
     beginPageLoad,
     recordPage,
-    resetOffset,
     resetForMonth,
     finishPageLoad,
   };

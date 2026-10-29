@@ -55,16 +55,4 @@ describe("calendar pagination helpers", () => {
     expect(pagination.loading.value).toBe(false);
     expect(pagination.beginPageLoad()).toBe(true);
   });
-
-  it("resets only the offset when a filter requests a refetch", () => {
-    const pagination = useCalendarPagination(2);
-    pagination.recordPage(4);
-    pagination.recordPage(4);
-    expect(pagination.hasMore.value).toBe(false);
-
-    pagination.resetOffset();
-
-    expect(pagination.offset.value).toBe(0);
-    expect(pagination.hasMore.value).toBe(false);
-  });
 });

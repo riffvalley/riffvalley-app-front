@@ -15,7 +15,7 @@
         :selectedCountry="selectedCountry" :genres="genreOptions" :countries="countries" :showWeekPicker="false"
         :showCountryFilter="true" @update:searchQuery="searchQuery = $event"
         @update:selectedGenre="selectedGenre = $event" @update:selectedCountry="selectedCountry = $event"
-        selectClass="w-full min-w-0" @reset-and-fetch="resetAndFetch" />
+        selectClass="w-full min-w-0" />
 
       <SimpleSelect v-model="selectedYear" :options="yearOptions" placeholder="Año" class="w-full min-w-0" />
     </div>
@@ -196,7 +196,6 @@ export default defineComponent({
     const searchQuery = ref("");
     const selectedGenre = ref("");
     const selectedCountry = ref("");
-    const selectedWeek = ref<Date | null>(null);
 
     const norm = (s: string) =>
       s
@@ -370,7 +369,6 @@ export default defineComponent({
       loading,
       beginPageLoad,
       recordPage,
-      resetOffset,
       resetForMonth: resetPaginationForMonth,
       finishPageLoad,
     } = useCalendarPagination(limit.value);
@@ -521,12 +519,6 @@ export default defineComponent({
       await fillImages(month, year, week);
     };
 
-    const resetAndFetch = () => {
-      resetOffset();
-
-      fetchDiscs();
-    };
-
     watch(selectedYear, () => {
       selectMonth(0);
     });
@@ -593,8 +585,6 @@ export default defineComponent({
       searchQuery,
       selectedGenre,
       selectedCountry,
-      selectedWeek,
-      resetAndFetch,
       filteredGroupedDiscs,
       countries: computed(() => catalogStore.countries),
       genreOptions,
