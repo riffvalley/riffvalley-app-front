@@ -42,7 +42,7 @@ const routes: Array<RouteRecordRaw> = [
     path: "/calendar",
     name: "Calendar",
     component: () => import("@views/discsCalendar/DiscCalendar.vue"),
-    meta: { requiresAuth: true, requiresRole: "user" },
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/calendar-baby",
