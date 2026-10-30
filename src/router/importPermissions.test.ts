@@ -51,15 +51,15 @@ describe("import route permissions", () => {
   });
 
   it.each(["user", "collaborator"] as const)(
-    "denies %s access to Manual and Excel",
+    "shows forbidden for %s on Manual and Excel",
     async (role) => {
-      expect((await navigateAs(role, "/import")).name).toBe("Home");
-      expect((await navigateAs(role, "/import-discs")).name).toBe("Home");
+      expect((await navigateAs(role, "/import")).name).toBe("Forbidden");
+      expect((await navigateAs(role, "/import-discs")).name).toBe("Forbidden");
     },
   );
 
   it("allows riffvalley to use Excel while denying Manual", async () => {
-    expect((await navigateAs("riffvalley", "/import")).name).toBe("Home");
+    expect((await navigateAs("riffvalley", "/import")).name).toBe("Forbidden");
     expect((await navigateAs("riffvalley", "/import-discs")).name).toBe(
       "ImportDiscs",
     );
@@ -73,15 +73,15 @@ describe("import route permissions", () => {
   });
 
   it("keeps user administration restricted to superadmin", async () => {
-    expect((await navigateAs("user", "/users")).name).toBe("Home");
-    expect((await navigateAs("riffvalley", "/users")).name).toBe("Home");
+    expect((await navigateAs("user", "/users")).name).toBe("Forbidden");
+    expect((await navigateAs("riffvalley", "/users")).name).toBe("Forbidden");
     expect((await navigateAs("superadmin", "/users")).name).toBe("Users");
     expect(router.currentRoute.value.path).toBe("/users");
   });
 
   it("keeps administrative statistics restricted to superadmin", async () => {
-    expect((await navigateAs("user", "/users/stats")).name).toBe("Home");
-    expect((await navigateAs("riffvalley", "/users/stats")).name).toBe("Home");
+    expect((await navigateAs("user", "/users/stats")).name).toBe("Forbidden");
+    expect((await navigateAs("riffvalley", "/users/stats")).name).toBe("Forbidden");
     expect((await navigateAs("superadmin", "/users/stats")).name).toBe("UserStats");
   });
 
@@ -92,7 +92,7 @@ describe("import route permissions", () => {
 
     // Permission refresh keeps the identity and session generation unchanged.
     authStore.$patch({ role: "user" });
-    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe("Home"));
+    await vi.waitFor(() => expect(router.currentRoute.value.name).toBe("Forbidden"));
     expect(authStore.userId).toBe("admin-a");
     expect(authStore.authSessionGeneration).toBe(8);
   });
@@ -107,8 +107,8 @@ describe("import route permissions", () => {
 
   it("keeps all three usage statistics tabs restricted to superadmin", async () => {
     for (const path of ["/users/stats/users", "/users/stats/inactivity"]) {
-      expect((await navigateAs("user", path)).name).toBe("Home");
-      expect((await navigateAs("riffvalley", path)).name).toBe("Home");
+      expect((await navigateAs("user", path)).name).toBe("Forbidden");
+      expect((await navigateAs("riffvalley", path)).name).toBe("Forbidden");
     }
 
     expect((await navigateAs("superadmin", "/users/stats/users")).name).toBe("UserStatsUsers");
@@ -116,15 +116,15 @@ describe("import route permissions", () => {
   });
 
   it("keeps administrative inactivity restricted to superadmin", async () => {
-    expect((await navigateAs("user", "/users/inactivity")).name).toBe("Home");
-    expect((await navigateAs("riffvalley", "/users/inactivity")).name).toBe("Home");
+    expect((await navigateAs("user", "/users/inactivity")).name).toBe("Forbidden");
+    expect((await navigateAs("riffvalley", "/users/inactivity")).name).toBe("Forbidden");
     expect((await navigateAs("superadmin", "/users/inactivity")).name).toBe("UserStatsInactivity");
     expect(router.currentRoute.value.path).toBe("/users/stats/inactivity");
   });
 
   it("keeps administrative activity restricted to superadmin", async () => {
-    expect((await navigateAs("user", "/users/activity")).name).toBe("Home");
-    expect((await navigateAs("riffvalley", "/users/activity")).name).toBe("Home");
+    expect((await navigateAs("user", "/users/activity")).name).toBe("Forbidden");
+    expect((await navigateAs("riffvalley", "/users/activity")).name).toBe("Forbidden");
     expect((await navigateAs("superadmin", "/users/activity?userId=member-1")).name).toBe("UserStatsUsers");
     expect(router.currentRoute.value.path).toBe("/users/stats/users");
     expect(router.currentRoute.value.query.userId).toBe("member-1");
