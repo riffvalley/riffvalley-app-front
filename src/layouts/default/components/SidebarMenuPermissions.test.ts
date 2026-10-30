@@ -3,7 +3,7 @@ import { defineComponent } from "vue";
 import { mount, flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import SidebarMenu from "./SidebarMenu.vue";
 import { useAuthStore } from "@/modules/identity/auth";
 import { useDashboardPreferences } from "@/modules/identity/account";
@@ -20,6 +20,10 @@ const RouterLinkStub = defineComponent({
 });
 
 describe("import options in sidebar", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
     localStorage.clear();
     setActivePinia(createPinia());
@@ -167,5 +171,22 @@ describe("import options in sidebar", () => {
     expect(riffvalley.find('[data-to="/admin/disc-requests"]').text()).toContain("Solicitudes de discos");
     expect(riffvalley.find('[data-to="/petitions"]').exists()).toBe(false);
     riffvalley.unmount();
+  });
+
+  it("shows the BETA badge only when VITE_APP_ENV is beta", async () => {
+    vi.stubEnv("VITE_APP_ENV", "beta");
+    const beta = await renderAs("user");
+    expect(beta.find('[data-testid="beta-environment-badge"]').text()).toBe("BETA");
+    beta.unmount();
+
+    vi.stubEnv("VITE_APP_ENV", "production");
+    const production = await renderAs("user");
+    expect(production.find('[data-testid="beta-environment-badge"]').exists()).toBe(false);
+    production.unmount();
+
+    vi.stubEnv("VITE_APP_ENV", "");
+    const local = await renderAs("user");
+    expect(local.find('[data-testid="beta-environment-badge"]').exists()).toBe(false);
+    local.unmount();
   });
 });

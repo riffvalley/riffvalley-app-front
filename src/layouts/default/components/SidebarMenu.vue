@@ -16,6 +16,14 @@
         <span class="text-sm font-medium tracking-widest lowercase text-white/75">
           app
         </span>
+
+        <span
+          v-if="isBetaEnvironment"
+          data-testid="beta-environment-badge"
+          class="ml-1 inline-flex shrink-0 items-center rounded-full border border-rv-pink bg-white px-1.5 py-0.5 text-[10px] font-bold leading-none tracking-wider text-rv-navy"
+        >
+          BETA
+        </span>
       </div>
     </div>
 
@@ -350,6 +358,7 @@ props: {
 },
 emits: ['close-menu', 'toggle-theme'],
   setup(_, { emit }) {
+    const isBetaEnvironment = import.meta.env.VITE_APP_ENV === 'beta';
     const authStore = useAuthStore();
     const dashboardPreferencesStore = useDashboardPreferences();
     const supportStore = useSupportStore();
@@ -480,6 +489,7 @@ emits: ['close-menu', 'toggle-theme'],
       selectedArea,
       setArea,
       newDiscsAreaId,
+      isBetaEnvironment,
     };
   },
 });
