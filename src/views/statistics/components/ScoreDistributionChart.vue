@@ -1,127 +1,118 @@
-<template>
-  <div class="w-full h-72 sm:h-80">
-    <Bar v-if="loaded"
-      :key="`score-${isDark}`"
-      :data="chartData"
-      :options="chartOptions" />
-    <p v-else class="text-center text-gray-400">Cargando gráfico...</p>
-  </div>
-</template>
+<script setup lang="ts">
+import { computed } from "vue";
+import type { StatisticsScoreBucket } from "@/modules/statistics/types/statistics";
 
-<script lang="ts">
-import { defineComponent, ref, computed, watch, onMounted, onUnmounted } from "vue";
-import type { PropType } from "vue";
-import { Bar } from "vue-chartjs";
-import {
-  Chart as ChartJS,
-  Title,
-  Tooltip,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  type ChartOptions,
-} from "chart.js";
+const props = defineProps<{
+  scoreDistribution: StatisticsScoreBucket[];
+  scoredDiscs: number;
+  year: number;
+}>();
 
-ChartJS.register(Title, Tooltip, BarElement, CategoryScale, LinearScale);
+const numberFormatter = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
+const barColors = [
+  "bg-red-700", "bg-red-600", "bg-orange-600", "bg-orange-500", "bg-amber-500", "bg-yellow-500",
+  "bg-lime-600", "bg-lime-700", "bg-green-700", "bg-green-800", "bg-green-900",
+] as const;
+const buckets = computed(() => [...props.scoreDistribution].sort((a, b) => a.score - b.score));
+const bucketTotal = computed(() => buckets.value.reduce((total, bucket) => total + bucket.scoredDiscCount, 0));
+const largestBucket = computed(() => Math.max(0, ...buckets.value.map(bucket => bucket.scoredDiscCount)));
+const distributionMatchesSummary = computed(() => bucketTotal.value === props.scoredDiscs);
+const hasAllBuckets = computed(() => buckets.value.length === 11
+  && buckets.value.every((bucket, index) => bucket.score === index));
 
-// Degradado de marca (rv-pink -> rv-purple -> rv-blue) aplicado a la escala de notas 0-10.
-const GRADIENT_STOPS: [number, [number, number, number]][] = [
-  [0, [228, 110, 138]],   // #e46e8a
-  [0.45, [176, 102, 159]], // #b0669f
-  [1, [0, 100, 214]],      // #0064d6
-];
-
-function gradientColor(t: number): string {
-  const clamped = Math.min(1, Math.max(0, t));
-  let i = 0;
-  while (i < GRADIENT_STOPS.length - 2 && clamped > GRADIENT_STOPS[i + 1][0]) i++;
-  const [t0, c0] = GRADIENT_STOPS[i];
-  const [t1, c1] = GRADIENT_STOPS[i + 1];
-  const localT = t1 === t0 ? 0 : (clamped - t0) / (t1 - t0);
-  const [r, g, b] = c0.map((channel, idx) => Math.round(channel + (c1[idx] - channel) * localT));
-  return `rgb(${r}, ${g}, ${b})`;
+function bucketLabel(score: number): string {
+  return score === 10 ? "10 exacto" : `${score} hasta menos de ${score + 1}`;
 }
 
-export default defineComponent({
-  name: "ScoreDistributionChart",
-  components: { Bar },
-  props: {
-    scoreDistribution: {
-      type: Array as PropType<{ score: number; count: number }[]>,
-      required: true,
-    },
-  },
-  setup(props) {
-    const loaded = ref(false);
-    const isDark = ref(document.documentElement.classList.contains("dark"));
+function barHeight(count: number): string {
+  return count === 0 ? "0%" : `${Math.max(5, (count / largestBucket.value) * 100)}%`;
+}
 
-    const tickColor = computed(() => isDark.value ? "white" : "#374151");
-    const gridColor = computed(() => isDark.value ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)");
-
-    const chartOptions = computed<ChartOptions<"bar">>(() => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            title: (items) => `Nota ${items[0].label}`,
-            label: (item) => `${item.formattedValue} voto${item.formattedValue === '1' ? '' : 's'}`,
-          },
-        },
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: { color: tickColor.value, precision: 0 },
-          grid: { color: gridColor.value },
-        },
-        x: {
-          ticks: { color: tickColor.value },
-          grid: { display: false },
-        },
-      },
-    }));
-
-    const chartData = ref({
-      labels: [] as string[],
-      datasets: [{
-        label: "Votos",
-        backgroundColor: [] as string[],
-        data: [] as number[],
-        borderRadius: 4,
-        borderSkipped: false as const,
-        maxBarThickness: 32,
-      }],
-    });
-
-    const buildChart = (newData: { score: number; count: number }[]) => {
-      if (!newData.length) return;
-      const sorted = [...newData].sort((a, b) => a.score - b.score);
-      const maxScore = Math.max(10, ...sorted.map(item => item.score));
-      chartData.value = {
-        labels: sorted.map(item => item.score.toString()),
-        datasets: [{
-          label: "Votos",
-          backgroundColor: sorted.map(item => gradientColor(item.score / maxScore)),
-          data: sorted.map(item => item.count),
-          borderRadius: 4,
-          borderSkipped: false,
-          maxBarThickness: 32,
-        }],
-      };
-      loaded.value = true;
-    };
-
-    watch(() => props.scoreDistribution, buildChart, { immediate: true, deep: true });
-
-    const observer = new MutationObserver(() => {
-      isDark.value = document.documentElement.classList.contains("dark");
-    });
-    onMounted(() => observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] }));
-    onUnmounted(() => observer.disconnect());
-
-    return { chartData, chartOptions, isDark, loaded };
-  },
-});
+function barColor(score: number): string {
+  return barColors[score] ?? barColors[barColors.length - 1];
+}
 </script>
+
+<template>
+  <article class="rounded-2xl border border-gray-100 bg-white p-6 shadow-md dark:border-white/10 dark:bg-rv-navy">
+    <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Discos puntuados {{ year }}</h2>
+
+    <p v-if="scoredDiscs === 0" role="status" class="mt-5 rounded-xl bg-gray-50 p-4 text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300">
+      No hay discos con una puntuación vigente para mostrar en esta distribución.
+    </p>
+    <p v-if="scoredDiscs > 0 && buckets.length === 0" role="status" class="mt-5 rounded-xl bg-gray-50 p-4 text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300">
+      Hay {{ numberFormatter.format(scoredDiscs) }} discos con puntuación vigente, pero no hay buckets de distribución disponibles.
+    </p>
+    <template v-if="buckets.length > 0">
+      <ul aria-label="Discos puntuados por intervalo de nota" class="mt-5 grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-6 xl:grid-cols-11">
+        <li v-for="bucket in buckets" :key="bucket.score" class="min-w-0">
+          <article class="flex min-w-0 flex-col items-center text-center">
+            <div
+              class="score-chart relative flex h-24 w-full min-w-0 items-end justify-center overflow-visible rounded-t-lg border-b border-gray-200 bg-gray-50 outline-none dark:border-white/15 dark:bg-white/[0.02]"
+              role="img"
+              tabindex="0"
+              :aria-label="`${bucketLabel(bucket.score)}: ${numberFormatter.format(bucket.scoredDiscCount)} ${bucket.scoredDiscCount === 1 ? 'disco' : 'discos'}`"
+            >
+              <span class="score-tooltip rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-800 shadow-lg dark:border-white/10 dark:bg-rv-darkSurface dark:text-white">
+                {{ bucketLabel(bucket.score) }} · {{ numberFormatter.format(bucket.scoredDiscCount) }} {{ bucket.scoredDiscCount === 1 ? "disco" : "discos" }}
+              </span>
+              <div class="pointer-events-none absolute inset-0 flex flex-col justify-between" aria-hidden="true">
+                <span class="border-t border-gray-300/50 dark:border-white/10" />
+                <span class="border-t border-gray-300/50 dark:border-white/10" />
+                <span class="border-t border-gray-300/50 dark:border-white/10" />
+              </div>
+              <span
+                class="relative z-10 w-7 max-w-[55%] rounded-t-md transition-[height] duration-500 motion-reduce:transition-none"
+                :class="barColor(bucket.score)"
+                :style="{ height: barHeight(bucket.scoredDiscCount) }"
+                aria-hidden="true"
+              />
+            </div>
+            <span class="mt-2 text-xs font-semibold tabular-nums text-gray-700 dark:text-gray-200">{{ bucket.score }}</span>
+            <span class="sr-only">{{ bucketLabel(bucket.score) }} · {{ numberFormatter.format(bucket.scoredDiscCount) }} {{ bucket.scoredDiscCount === 1 ? "disco" : "discos" }}</span>
+          </article>
+        </li>
+      </ul>
+      <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
+        Total en los buckets: {{ numberFormatter.format(bucketTotal) }} · Discos puntuados: {{ numberFormatter.format(scoredDiscs) }}
+      </p>
+      <p v-if="!distributionMatchesSummary" role="status" class="mt-2 text-sm text-amber-800 dark:text-amber-300">
+        La suma de los buckets no coincide con el total de discos puntuados; se muestran los valores recibidos sin modificarlos.
+      </p>
+      <p v-if="!hasAllBuckets" role="status" class="mt-2 text-sm text-amber-800 dark:text-amber-300">
+        El backend no ha enviado los once buckets esperados; solo se muestran los intervalos recibidos.
+      </p>
+    </template>
+  </article>
+</template>
+
+<style scoped>
+.score-tooltip {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  z-index: 30;
+  max-width: calc(100vw - 3rem);
+  transform: translateX(-50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+  white-space: nowrap;
+}
+
+.score-chart:hover .score-tooltip,
+.score-chart:focus-visible .score-tooltip {
+  opacity: 1;
+}
+
+.score-chart:focus-visible {
+  outline: 2px solid #ec4899;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .score-tooltip {
+    transition: none;
+  }
+}
+</style>

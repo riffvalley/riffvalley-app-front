@@ -9,6 +9,7 @@
 - [Organización estructural de Identity](roadmap/identity-structure.md): inventario por archivo, ownership y plan de reorganización física sin cambios funcionales.
 - [Lógica de vistas Identity (I1-12)](roadmap/identity-logic.md): auditoría contrastada de siete vistas, extracciones acotadas y regresión funcional pendiente.
 - [Migración frontend al modelo de rol único](roadmap/roles.md): inventario, contratos/store, guards/navegación, administración de usuarios y regresión.
+- [Estadísticas — roadmap frontend (EST-FE-1–EST-FE-6)](roadmap/statistics.md): EST-FE-1 a EST-FE-6 y EST-FE-M1–M3 completadas; Estadísticas queda cerrada a nivel de implementación. La validación SQL PostgreSQL sigue pendiente en backend.
 - [Artists Management](roadmap/artists-management.md): seguimiento frontend de BC-ART-4.F.
 - [Catalog — Artistas (CAT-ART)](roadmap/catalog/cat-art-1-auditoria-artistas.md): CAT-ART-5 y CAT-ART-6 completadas; Artistas queda cerrado funcional y arquitectónicamente para el alcance acordado; CAT-ART-3 descartada. La [revisión final](roadmap/catalog/cat-art-5-revision-cierre.md) registra la auditoría de fronteras, evidencia y riesgos. [CAT-ART-2e — Filtro por género](roadmap/catalog/cat-art-2e-filtro-genero.md) documenta implementación y evidencia.
 - [CAT-ART-2a — Auditoría y seguimiento del modal](roadmap/catalog/cat-art-2a-auditoria-modal-artistas.md): auditoría, ficha compartida por ID y límites del orden de discografía.

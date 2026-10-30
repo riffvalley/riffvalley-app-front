@@ -2,7 +2,7 @@
 
   <div class="ss-wrapper" ref="wrap" v-bind="attrs">
 
-    <button type="button" class="ss-trigger" @click="toggle" ref="trigger">
+    <button type="button" class="ss-trigger" :aria-label="ariaLabel" aria-haspopup="listbox" :aria-expanded="open" @click="toggle" ref="trigger">
       <span class="ss-left">
 <span
   class="ss-text"
@@ -30,11 +30,12 @@
       <i class="fas fa-chevron-down ss-icon"></i>
     </button>
 
-    <div v-if="open" class="ss-menu" ref="menu" :style="menuStyle" @keydown.esc.prevent.stop="close">
+    <div v-if="open" class="ss-menu" ref="menu" :style="menuStyle" role="listbox" tabindex="-1" @keydown.esc.prevent.stop="close" @keydown.down.prevent="moveFocused(1)" @keydown.up.prevent="moveFocused(-1)" @keydown.enter.prevent="selectFocused">
       <div v-if="groupLabel" class="ss-group">{{ groupLabel }}</div>
       <ul class="ss-list" ref="list">
-        <li v-for="opt in options" :key="opt.value" :class="['ss-item', { active: opt.value === internalValue }]"
-          @click="select(opt.value)">
+        <li v-for="(opt, index) in options" :key="opt.value" :class="['ss-item', { active: opt.value === internalValue }]"
+          role="option" :aria-selected="opt.value === internalValue" tabindex="-1" :data-option-index="index"
+          @click="select(opt.value)" @keydown.enter.prevent.stop="select(opt.value)" @keydown.space.prevent.stop="select(opt.value)">
           <span class="ss-item-content">
             <span class="ss-label">{{ opt.label }}</span>
             <span v-if="opt.icon" class="ss-inline-icon" aria-hidden="true">
@@ -67,6 +68,7 @@ const props = defineProps<{
   options: Opt[];
   placeholder?: string;
   groupLabel?: string;
+  ariaLabel?: string;
 }>();
 const emit = defineEmits<{ (e: 'update:modelValue', v: string | number | null): void }>();
 
@@ -103,8 +105,33 @@ function positionMenu() {
     width: `${r.width}px`
   };
 }
-function toggle() { open.value = !open.value; if (open.value) nextTick(positionMenu); }
-function close() { open.value = false; }
+function toggle() {
+  open.value = !open.value;
+  if (open.value) {
+    nextTick(() => {
+      positionMenu();
+      const options = menu.value?.querySelectorAll<HTMLElement>("[role=option]");
+      const active = Array.from(options ?? []).find(option => option.getAttribute("aria-selected") === "true");
+      (active ?? options?.[0])?.focus();
+    });
+  }
+}
+function close(restoreFocus = true) {
+  open.value = false;
+  if (restoreFocus) nextTick(() => trigger.value?.focus());
+}
+function moveFocused(direction: number) {
+  const options = menu.value?.querySelectorAll<HTMLElement>("[role=option]");
+  if (!options?.length) return;
+  const focused = document.activeElement?.closest<HTMLElement>("[role=option]");
+  const current = Number(focused?.dataset.optionIndex ?? options.length - 1);
+  const next = (current + direction + options.length) % options.length;
+  options[next].focus();
+}
+function selectFocused() {
+  const focused = menu.value?.querySelector<HTMLElement>("[role=option]:focus");
+  if (focused) select(props.options[Number(focused.dataset.optionIndex)].value);
+}
 function onWindowMove() { if (open.value) positionMenu(); }
 function onOutside(e: MouseEvent) {
   if (!open.value) return;
@@ -282,48 +309,39 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-html.dark .ss-trigger,
-:global(html.dark) .ss-trigger {
+:global(html.dark .ss-trigger) {
   background: #404157 !important;
   border-color: rgba(255, 255, 255, 0.25) !important;
   color: #ffffff !important;
 }
 
-html.dark .ss-text,
-html.dark .ss-icon,
-html.dark .ss-inline-icon,
-:global(html.dark) .ss-text,
-:global(html.dark) .ss-icon,
-:global(html.dark) .ss-inline-icon {
+:global(html.dark .ss-text),
+:global(html.dark .ss-icon),
+:global(html.dark .ss-inline-icon) {
   color: #ffffff !important;
 }
 
-html.dark .ss-menu,
-:global(html.dark) .ss-menu {
+:global(html.dark .ss-menu) {
   background: #2a2b3d !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-html.dark .ss-group,
-:global(html.dark) .ss-group {
+:global(html.dark .ss-group) {
   background: #404157 !important;
   color: #ffffff !important;
   border-bottom-color: rgba(255, 255, 255, 0.15) !important;
 }
 
-html.dark .ss-item,
-:global(html.dark) .ss-item {
+:global(html.dark .ss-item) {
   background: #2a2b3d !important;
   color: #ffffff !important;
 }
 
-html.dark .ss-item:hover,
-:global(html.dark) .ss-item:hover {
+:global(html.dark .ss-item:hover) {
   background: #404157 !important;
 }
 
-html.dark .ss-item.active,
-:global(html.dark) .ss-item.active {
+:global(html.dark .ss-item.active) {
   background: #e46e8a !important;
   color: #ffffff !important;
 }

@@ -1,4 +1,4 @@
-import type { RatedDiscItem } from "@services/rates/rates";
+import type { StatisticsRatedDisc } from "@/modules/statistics/types/statistics";
 
 const FALLBACK_COLOR = "#6b7280";
 const NO_GENRE_LABEL = "Sin género";
@@ -18,11 +18,11 @@ export function textColorFor(hex: string): string {
 export interface GenreGroup {
   genre: string;
   color: string;
-  discs: RatedDiscItem[];
+  discs: StatisticsRatedDisc[];
 }
 
 /** Agrupa los discos por género (name), conservando su color real. */
-export function groupByGenre(discs: RatedDiscItem[]): GenreGroup[] {
+export function groupByGenre(discs: StatisticsRatedDisc[]): GenreGroup[] {
   const map = new Map<string, GenreGroup>();
   discs.forEach((disc) => {
     const genre = disc.genre?.name ?? NO_GENRE_LABEL;
@@ -36,7 +36,7 @@ export function groupByGenre(discs: RatedDiscItem[]): GenreGroup[] {
 }
 
 export interface GalaxyStar {
-  disc: RatedDiscItem;
+  disc: StatisticsRatedDisc;
   genre: string;
   color: string;
   /** Coordenadas de mundo, aprox. dentro de [-1, 1]. */
@@ -69,7 +69,7 @@ export interface Galaxy {
  * caótico. Determinista (mismo input -> mismo layout) para que no "salte" al
  * reabrir el modal.
  */
-export function buildGalaxy(discs: RatedDiscItem[]): Galaxy {
+export function buildGalaxy(discs: StatisticsRatedDisc[]): Galaxy {
   if (!discs.length) return { stars: [], sectors: [] };
 
   const groups = groupByGenre(discs);
@@ -96,8 +96,6 @@ export function buildGalaxy(discs: RatedDiscItem[]): Galaxy {
   const cellSize = MIN_DIST;
   const grid = new Map<string, { x: number; y: number }[]>();
   const cellKey = (x: number, y: number) => `${Math.floor(x / cellSize)}:${Math.floor(y / cellSize)}`;
-  const isTooClose = (x: number, y: number) => nearestDistance(x, y) < MIN_DIST;
-
   // Distancia al punto ya colocado más cercano (Infinity si no hay ninguno en
   // las celdas vecinas). Sirve para, si ningún candidato queda lo bastante
   // libre, quedarnos con "el menos malo" en vez de rendirnos.
@@ -148,9 +146,8 @@ export function buildGalaxy(discs: RatedDiscItem[]): Galaxy {
       let x = cx;
       let y = cy;
       let fallbackScore = -Infinity;
-      let placed = false;
 
-      for (let attempt = 0; attempt < MAX_TRIES && !placed; attempt++) {
+      for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
         const angle = rand() * TAU;
         const radius = Math.sqrt(rand()) * spread; // más denso hacia el centro de su propio género
         let candidateX = cx + Math.cos(angle) * radius;
@@ -169,7 +166,6 @@ export function buildGalaxy(discs: RatedDiscItem[]): Galaxy {
         if (nearest >= MIN_DIST) {
           x = candidateX;
           y = candidateY;
-          placed = true;
           break;
         }
         if (nearest > fallbackScore) {
