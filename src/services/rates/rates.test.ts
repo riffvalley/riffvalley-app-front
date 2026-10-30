@@ -12,6 +12,7 @@ import {
   getRatesArtistLastfm,
   getRatesTopArtists,
   getRatesByUser,
+  getDiscRates,
   type RatesArtistLastfmResponseDto,
   type RatesDashboardSummaryDto,
   type RatesGeographyTopResponseDto,
@@ -52,6 +53,17 @@ describe("getRatesDashboardSummary", () => {
     expect(get).toHaveBeenCalledOnce();
     expect(get).toHaveBeenCalledWith("/rates/dashboard-summary", { signal: controller.signal });
     expect(result).toEqual(responseBody);
+  });
+});
+
+describe("getDiscRates", () => {
+  it("forwards an optional cancellation signal when loading card ratings", async () => {
+    get.mockReset().mockResolvedValue({ data: [] });
+    const signal = new AbortController().signal;
+
+    await getDiscRates("disc-1", signal);
+
+    expect(get).toHaveBeenCalledWith("/rates/disc/disc-1", { signal });
   });
 });
 

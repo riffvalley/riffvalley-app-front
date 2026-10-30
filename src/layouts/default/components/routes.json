@@ -56,6 +56,14 @@
     "icon": "fa-solid fa-lightbulb"
   },
   {
+    "to": "/activity",
+    "label": "Actividad",
+    "activeClass": "bg-gray-700",
+    "type": "disc-app",
+    "requiredRole": "user",
+    "icon": "fa-solid fa-clock-rotate-left"
+  },
+  {
     "to": "/feedback",
     "label": "Feedback",
     "activeClass": "bg-gray-700",

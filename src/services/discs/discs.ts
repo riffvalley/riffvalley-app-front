@@ -73,6 +73,13 @@ export interface DiscsResponse {
 
 export type DiscListResponse = PaginatedResponse<Disc>;
 
+export async function getDiscById(id: string, signal?: AbortSignal): Promise<Disc> {
+  const response = await api.get<Disc>(`/discs/${encodeURIComponent(id)}`, {
+    ...(signal ? { signal } : {}),
+  });
+  return response.data;
+}
+
 export interface DiscsStatsResponse {
   discs: HomeRankedDisc[];
   totalDiscs: number;

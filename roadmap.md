@@ -9,6 +9,7 @@
 - [Organización estructural de Identity](roadmap/identity-structure.md): inventario por archivo, ownership y plan de reorganización física sin cambios funcionales.
 - [Lógica de vistas Identity (I1-12)](roadmap/identity-logic.md): auditoría contrastada de siete vistas, extracciones acotadas y regresión funcional pendiente.
 - [Migración frontend al modelo de rol único](roadmap/roles.md): inventario, contratos/store, guards/navegación, administración de usuarios y regresión.
+- [Actividad — roadmap frontend (ACT-FE-1–ACT-FE-6)](roadmap/activity.md): ACT-FE-1–ACT-FE-6 completadas y Actividad frontend cerrada para el alcance acordado. La integración PostgreSQL real de ACT-BE-5 sigue pendiente de verificación en backend.
 - [Estadísticas — roadmap frontend (EST-FE-1–EST-FE-6)](roadmap/statistics.md): EST-FE-1 a EST-FE-6 y EST-FE-M1–M3 completadas; Estadísticas queda cerrada a nivel de implementación. La validación SQL PostgreSQL sigue pendiente en backend.
 - [Solicitudes de discos (SD-1–SD-2 y mejora posterior SD-3)](roadmap/requests.md): Requests sigue **COMPLETADO Y CERRADO** desde SD-2; SD-3 se registra como mejora posterior de URLs y navegación, completada sin cambios a contratos backend.
 - [Feedback (FB-1–FB-2)](roadmap/feedback.md): auditoría y modularización completadas; Feedback queda **COMPLETADO Y CERRADO** para el alcance acordado.

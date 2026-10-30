@@ -181,8 +181,10 @@ export async function getRatesByUser(
   return response.data;
 }
 
-export async function getDiscRates(discId: string): Promise<DiscRate[]> {
-  const response = await api.get<DiscRate[]>(`/rates/disc/${discId}`);
+export async function getDiscRates(discId: string, signal?: AbortSignal): Promise<DiscRate[]> {
+  const response = await api.get<DiscRate[]>(`/rates/disc/${discId}`, {
+    ...(signal ? { signal } : {}),
+  });
 
   return response.data;
 }

@@ -111,6 +111,21 @@ describe("import options in sidebar", () => {
     },
   );
 
+  it.each(["user", "collaborator", "riffvalley", "superadmin"] as const)(
+    "shows exactly one Activity entry for %s and keeps Statistics navigation",
+    async (role) => {
+      const wrapper = await renderAs(role);
+      const activityEntries = wrapper.findAll('[data-to="/activity"]');
+      expect(activityEntries).toHaveLength(1);
+      expect(activityEntries[0]?.text()).toContain("Actividad");
+
+      const statisticsEntries = wrapper.findAll('[data-to="/statistics"]');
+      expect(statisticsEntries).toHaveLength(1);
+      expect(statisticsEntries[0]?.text()).toContain("Estadísticas");
+      wrapper.unmount();
+    },
+  );
+
   it("marks the canonical calendar entry active at /calendar", async () => {
     const wrapper = await renderAs("user", true);
     const entry = wrapper.find('a[href="/calendar"]');

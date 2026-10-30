@@ -23,6 +23,7 @@ El índice y el README son las entradas generales del frontend; arquitectura, co
 - [Lógica histórica de Identity](../../roadmap/identity-logic.md): auditoría y decisiones de iniciativa, conservadas para trazabilidad.
 - [Migración histórica de roles](../../roadmap/roles.md) y [su inventario](../../roadmap/roles-inventory.md): decisiones y matriz de regresión conservadas; la jerarquía y los guards vigentes están en la guía de Identity.
 - [Migración histórica de sesiones renovables](../../roadmap/renewable-sessions.md): decisiones de rollout y resultados conservados; el comportamiento actual de App está en la guía de Identity.
+- [Actividad — roadmap frontend (ACT-FE)](../../roadmap/activity.md): ACT-FE-1–ACT-FE-6 completadas; Actividad frontend cerrada para el alcance acordado. La verificación PostgreSQL real de ACT-BE-5 sigue pendiente en backend.
 
 Los roadmaps conservan su propósito histórico y de planificación. Una afirmación técnica dentro de ellos no se considera vigente automáticamente; consulta la fuente canónica enlazada para cada responsabilidad.
 

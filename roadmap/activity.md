@@ -1,0 +1,116 @@
+# Actividad — roadmap frontend (ACT-FE)
+
+## Alcance y estado
+
+Este roadmap cubre exclusivamente el frontend de la sección **Actividad** y su integración con `GET /api/activity/history`. La sección es independiente de Estadísticas y presenta eventos individuales de valoraciones. No modifica el backend.
+
+| Tarea | Estado | Dependencias |
+|---|---|---|
+| **ACT-FE-1 — Estructura inicial y navegación** | Completada en el checkout del 2026-10-29 | — |
+| **ACT-FE-2 — Integración HTTP y contratos** | Completada en el checkout del 2026-10-29 | ACT-FE-1 |
+| **ACT-FE-3 — Cronología por días y scroll infinito** | Completada en el checkout del 2026-10-29 | ACT-FE-2 |
+| **ACT-FE-4 — Filtro por fecha** | Completada en el checkout del 2026-10-29 | ACT-FE-3 |
+| **ACT-FE-5 — Verificación y cierre** | Completada en el checkout del 2026-10-29 | ACT-FE-2, ACT-FE-3, ACT-FE-4, ACT-FE-6 |
+| **ACT-FE-6 — Total diario de votos** | Completada en el checkout del 2026-10-29 | ACT-FE-3 y contrato ACT-BE-5 |
+
+## ACT-FE-1 — Estructura inicial y navegación
+
+**Estado: completada.** Se creó `src/modules/activity/presentation/views/ActivityView.vue`, con título, descripción y estado inicial informativo sin datos ficticios ni consumo HTTP. La ruta lazy `/activity` requiere autenticación y el rol mínimo `user`; la entrada «Actividad» aparece junto a Estadísticas para los cuatro roles de la jerarquía. La vista, router y sidebar tienen pruebas focalizadas. Estadísticas conserva su ruta y entrada.
+
+**Criterios de aceptación:** módulo con solo las carpetas necesarias; vista inicial en español, compatible con tema claro/oscuro y sin cronología; ruta autenticada con `requiresRole: "user"`; entrada única visible para `user`, `collaborator`, `riffvalley` y `superadmin`; Estadísticas y las demás entradas existentes conservadas.
+
+**Verificaciones focalizadas:** `pnpm exec vitest run src/router/activityPermissions.test.ts src/layouts/default/components/SidebarMenuPermissions.test.ts src/modules/activity/presentation/views/ActivityView.test.ts`; `pnpm run typecheck`; ESLint para los archivos fuente modificados; `git diff --check`; comprobación de enlaces Markdown modificados. No se ejecutan suites completas, E2E ni inspecciones visuales.
+
+## ACT-FE-2 — Integración HTTP y contratos
+
+**Estado: completada. Dependencia: ACT-FE-1.** La implementación queda en `src/modules/activity/types/activity.ts`, `api/activityApi.ts`, `application/useActivityHistory.ts` y `presentation/views/ActivityView.vue`, con pruebas focalizadas junto a cada pieza.
+
+**Contratos TypeScript:** `ActivityHistoryEvent` usa `id`, `type: "set" | "change"`, `occurredAt: string`, `previousValue`/`newValue` numéricos anulables y `disc` anulable. El disco refleja exactamente `id`, `title`, `artist`, `coverUrl` y `genre`; título, portada, artista, género y sus campos según DTO pueden ser nulos. `ActivityHistoryResponse` contiene `items`, `nextCursor: string | null` y `hasMore`. Los parámetros admitidos son `from`, `to`, `timeZone`, `type`, `q`, `limit` y `cursor`.
+
+**Adaptador HTTP:** `getActivityHistory` llama con el cliente autenticado compartido a `GET /activity/history` (base URL de API ya incluye `/api`), serializa solamente los parámetros definidos y reenvía `AbortSignal`. No envía `userId`, transforma timestamps, agrupa eventos ni consulta servicios legacy de Rates. El timestamp ISO se conserva como cadena original, incluidos microsegundos. Los errores Axios se propagan al manejo global.
+
+**Composable y caché:** `useActivityHistory` utiliza `useInfiniteQuery` de TanStack Query. La query solo se habilita con Identity autenticado e inicializado. La clave combina filtros normalizados, `userId` y `authSessionGeneration`; se comprueba de nuevo la sesión antes y después de la petición y se consume el `AbortSignal` para descartar/cancelar trabajo obsoleto. El ciclo global de Identity ya limpia la caché privada al cerrar/cambiar sesión. Expone eventos concatenados en memoria, carga, error, vacío, petición siguiente, `hasMore`, reintento y reinicio sin store global.
+
+**Cursores:** el tamaño predeterminado es 30. La primera página no manda cursor; las siguientes usan literalmente el `nextCursor` de backend, junto con los mismos filtros/tamaño. TanStack conserva páginas solo en caché de memoria y cancela según su ciclo de consulta; no se interpreta ni persiste el cursor. Hay guard local contra llamadas concurrentes de `loadMore`. Un 400 al continuar (cursor inválido/expirado, vigencia backend de 24 horas) reinicia las páginas y vuelve a consultar la primera; errores de red permanecen como error para poder reintentar. Los cambios de filtros generan otra clave y comienzan desde página uno. No se usa offset.
+
+**Vista:** solo muestra carga, error, historial vacío o un mensaje sencillo de carga correcta. No muestra eventos ni implementa cronología, agrupaciones, filtros o scroll visual.
+
+**Tests y verificaciones:** `activityApi.test.ts` cubre la construcción de parámetros, campos anulables, el timestamp sin transformación y propagación de errores; `useActivityHistory.test.ts` cubre inicio condicionado a Identity, primera página, continuación, fin, llamadas duplicadas, reset, cambio de filtros/usuario, respuestas obsoletas, red y cursor 400; `ActivityView.test.ts` cubre los cuatro estados y confirma que no se renderizan artículos. La prueba del frontend no verifica SQL ni comportamiento de una base backend.
+
+**Riesgos/limitaciones:** todo error HTTP 400 durante una petición con cursor se trata como cursor inválido y fuerza un reinicio, de acuerdo con el contrato de validación actual. El endpoint y la estructura se contrastaron con el DTO/controller/service backend locales; no se consulta ni modifica backend. La vista fue revisada estáticamente y por Impeccable; no se hizo inspección visual ni se afirma contraste observado en navegador.
+
+**Verificaciones focalizadas ejecutadas (2026-10-29):** `pnpm exec vitest run src/modules/activity/api/activityApi.test.ts src/modules/activity/application/useActivityHistory.test.ts src/modules/activity/presentation/views/ActivityView.test.ts` (3 archivos, 9 pruebas aprobadas); `pnpm run typecheck`; ESLint explícito sobre los siete archivos `.ts`/`.vue` de Activity modificados; `git diff --check` limitado a los archivos de este hito. La documentación nueva no añade enlaces Markdown. No se ejecutaron suites completas, E2E, build ni inspección visual.
+
+## ACT-FE-3 — Cronología por días y scroll infinito
+
+**Estado: completada. Dependencia: ACT-FE-2.** La vista de `/activity` compone `ActivityTimeline.vue`, que usa `ActivityDayGroup.vue` y `ActivityEventCard.vue`; la agrupación pura vive en `application/groupActivityEvents.ts`. La coordinación de páginas permanece en `useActivityHistory.ts`.
+
+**Agrupación:** convierte cada `occurredAt` original en una fecha del huso local mediante `Intl.DateTimeFormat` y `formatToParts`; no trunca en UTC ni calcula días sumando 24 horas. El orden del backend se conserva tanto entre grupos como dentro de cada grupo, páginas del mismo día se fusionan y los IDs repetidos se muestran una sola vez. Si falta una fecha parseable, el evento se conserva bajo «Fecha no disponible».
+
+**Presentación:** las filas muestran portada si existe, disco/artista disponibles, hora local y etiquetas «Voto» (verde) o «Cambio» (violeta), distinguibles también por texto. El texto usa únicamente `previousValue`/`newValue` históricos y expresa campos nulos como desconocidos; nunca consulta el Rate actual para construir la acción del evento. Los eventos sin disco siguen visibles. Los skeletons y mensajes diferencian carga inicial, vacío, error inicial, carga/error incremental y fin.
+
+**Tarjeta de disco:** «Ver disco» abre `ActivityDiscCardDialog.vue` y carga por ID con `getDiscById` (`GET /discs/:id` existente), junto con `getDiscRates`, para rellenar `@components/DiscCardComponent.vue` con los datos de catálogo y el estado actual del usuario. La consulta se precarga al pasar el ratón o enfocar el botón con teclado, usando la misma clave de TanStack Query y ventana fresca de un minuto que el diálogo. La tarjeta aparece en un diálogo local y al cerrarlo la cronología conserva montaje y paginación. Un evento con ID abre la tarjeta aunque su snapshot histórico carezca de título o artista. En el diálogo se muestran valores actuales de la tarjeta; la fila del historial mantiene exclusivamente las puntuaciones históricas del evento. Se amplió `getDiscRates` para aceptar `AbortSignal`.
+
+**Scroll infinito:** `ActivityTimeline.vue` observa el centinela con `IntersectionObserver` y margen de anticipación; desconecta cuando ya no hay cursor, hay error incremental o se desmonta. También conserva un botón de carga/reintento accesible por teclado, disponible como alternativa si el observer no existe. `useActivityHistory` bloquea solicitudes concurrentes y ya no ofrece un cursor que el backend repita en una página. Fallos de página conservan eventos anteriores y permiten reintentar; el tratamiento existente de cursor 400 vuelve a la primera página.
+
+**Tests y verificaciones (2026-10-29):** seis archivos Vitest focalizados, 23 pruebas aprobadas: agrupación en varias páginas, IDs repetidos, orden, límite local de medianoche y DST; tarjetas set/change/nulos/disco ausente/hora/modal; observer, carga manual sin soporte, fin, error/reintento y desmontaje; cursor repetido y retención de páginas al fallar. `pnpm run typecheck`, ESLint explícito para los archivos fuente Activity modificados y `pnpm build` pasan. Build mostró un aviso de Browserslist desactualizado, un aviso CSS (`.flex-[2]`) y un aviso de tamaño de bundle; sin comparación base no se atribuyen a este cambio. El diff-check limitado a 15 archivos del hito no encontró whitespace errors; `roadmap/activity.md` no tiene enlaces locales rotos. `impeccable detect --json` sobre vista/componentes devuelve `[]`. No hubo inspección visual, según alcance. El chequeo `pnpm run cycles` recorrió 427 módulos y no informó ciclos de Activity; la comparación fue informativa porque no pudo resolver un HEAD local. El grafo sí contiene un ciclo type-only en servicios legacy y dos imports no resueltos fuera de Activity (`@tanstack/query-core` y `vite.config.ts`); no se atribuyen a este cambio.
+
+**Riesgos/limitaciones:** `DiscCardComponent` es la tarjeta interactiva existente e incluye acciones de valoración/favorito/pendiente; el diálogo muestra el estado actual del usuario cargado desde Catalog/Rates, separado del texto histórico de la fila. El endpoint de detalle ya existente devuelve relaciones de catálogo; el frontend no altera su contrato. Los errores HTTP 400 al continuar siguen tratándose como cursor expirado/inválido por la lógica de ACT-FE-2. No se verificaron datos de producción ni comportamiento SQL.
+
+**Ajuste posterior de presentación (2026-10-29):** las acciones se rotulan «Voto» en verde y «Cambio» en violeta. «Ver disco» abre un diálogo con la tarjeta existente `DiscCardComponent`, rellenada con `GET /discs/:id` y la consulta de Rates por disco; además, precarga esos datos con hover o foco. El diálogo conserva el historial montado y limita el foco por teclado. La suite focalizada ejecutó los 10 archivos Activity/API compartidos (55 pruebas); tras añadir precarga se ejecutaron de nuevo las dos pruebas de tarjeta (7 pruebas). Pasaron typecheck, ESLint focalizado del módulo y build. El escaneo global de enlaces Markdown conserva seis fallos históricos fuera de `roadmap/activity.md`; este documento no contiene enlaces nuevos. Build conserva avisos existentes de Browserslist, una clase CSS legacy y tamaño de bundle.
+
+## ACT-FE-4 — Filtro por fecha
+
+**Estado: completada. Dependencia: ACT-FE-3.** El alcance contiene únicamente el filtro de fecha. La búsqueda textual y el filtrado por tipo quedan expresamente fuera de este hito.
+
+1. **Componente:** `ActivityDateFilter.vue`, componente de presentación local a Actividad, integrado bajo la descripción de `ActivityView.vue`. Mantiene controles compactos, etiquetados y operables por teclado; presenta variantes para tema claro/oscuro y un aviso explícito si el navegador no proporciona una zona IANA válida.
+2. **Modos:** los tres botones centrados son «Todas las fechas» (predeterminado), «Día concreto» (aplica al elegir una fecha válida) e «Intervalo» (requiere dos fechas reales y ordenadas antes de aplicar). Se quitó el encabezado «Fecha» y el texto de estado separado; las fechas activas permanecen en los controles del calendario. El filtro se puede limpiar desde el control o desde el estado vacío. No se aplican intervalos incompletos ni invertidos.
+3. **API:** `ActivityTimeline.vue` pasa `from`, `to` y `timeZone` a `useActivityHistory`, que los normaliza dentro de la clave de TanStack Query. Para un día, `from` y `to` llevan la misma fecha; para el intervalo, ambas fechas seleccionadas. La capa HTTP existente los serializa a `GET /api/activity/history`; no se filtran páginas ya cargadas y el tamaño permanece en 30.
+4. **Zona horaria:** `getBrowserIanaTimeZone()` obtiene y valida `Intl.DateTimeFormat().resolvedOptions().timeZone`; no inventa una zona alternativa. Sin zona válida se deshabilita la consulta y se informa al usuario. Se vuelve a comprobar al recuperar foco o visibilidad; el nombre activo se envía al backend y la misma zona se entrega a `groupActivityEventsByLocalDay`. Los valores de calendario son fechas civiles `YYYY-MM-DD` y se muestran sin convertirlos a instantes UTC, evitando desplazamientos de día.
+5. **Cursores y observer:** cada filtro/zona cambia la clave, por lo que TanStack comienza en la página uno y cancela la petición obsoleta mediante `AbortSignal`. La vista vuelve a montar la cronología al cambiar el filtro/zona, recreando el `IntersectionObserver` y conservando su carga incremental de páginas filtradas. El cursor opaco sigue sin interpretación.
+6. **Tests y verificaciones (2026-10-29):** siete archivos Vitest explícitos del módulo (29 pruebas aprobadas) cubren fecha predeterminada, selección de día/intervalo, incompletos, inválidos, intervalo invertido, limpieza, parámetros, paginación, abortado de respuesta anterior, observer filtrado, estados vacíos, cambio de zona y agrupación próxima a medianoche/DST. `pnpm run typecheck` y ESLint explícito sobre los archivos fuente afectados pasan. `git diff --check -- roadmap/activity.md src/modules/activity` pasa. `impeccable detect --json` sobre vista, filtro y cronología devuelve `[]`. No se ejecutaron build ni inspección visual, según el alcance acordado. Vitest informa que `caniuse-lite` está desactualizado; no se actualizó.
+7. **Limitaciones pendientes:** no se verificaron datos ni comportamiento real del backend, SQL o CI; el cambio de zona se detecta al recuperar foco/visibilidad porque el navegador no ofrece aquí un evento de cambio de zona uniforme. No hubo inspección visual de los temas. La carga incremental continúa dependiendo de la vigencia del cursor que define el backend y mantiene el tratamiento previo de errores 400.
+
+## ACT-FE-5 — Verificación y cierre
+
+**Estado: completada en el checkout del 2026-10-29. Dependencias: ACT-FE-2, ACT-FE-3, ACT-FE-4 y ACT-FE-6. Actividad queda COMPLETADA Y CERRADA para el alcance frontend acordado.** La revisión no encontró defectos bloqueantes ni dependencias indebidas que justifiquen cambios de código.
+
+### Resultado arquitectónico y funcional
+
+- `types/activity.ts` posee los contratos del endpoint; `api/activityApi.ts` adapta `GET /api/activity/history` con el Axios autenticado, parámetros explícitos y `AbortSignal`; `application/` contiene la query infinita, normalización de parámetros, agrupación por fecha civil local, validación de filtros y adaptación de la tarjeta. `presentation/` compone filtros, estados y cronología mediante props/eventos; los componentes no implementan transporte HTTP.
+- `useActivityHistory` usa TanStack Query con claves que aíslan usuario, generación de sesión, filtros y zona horaria. Usa cursor opaco del servidor, cancela peticiones obsoletas, bloquea cargas concurrentes y conserva páginas/contadores previos ante errores incrementales. Un cursor repetido cierra la paginación; un HTTP 400 al continuar reinicia desde la primera página según el contrato documentado.
+- La respuesta preserva `items`, `nextCursor`, `hasMore`, `dailySetCounts`, valores nulos y el `occurredAt` original. `set` y `change` conservan etiquetas y valores históricos; el frontend no reconstruye cambios con Rates actuales. Los detalles actuales del disco se cargan por ID solo en el diálogo.
+- Los contadores se derivan exclusivamente de `dailySetCounts`: no se cuentan eventos ni se suman páginas; una fecha repetida se reemplaza por el valor de la página posterior, y una clave ausente sigue siendo distinta de cero. Filtros y zona forman parte de la consulta; la sesión forma parte de la clave.
+- El filtro envía fechas civiles `YYYY-MM-DD` y la zona IANA también para «Todas las fechas». El mismo huso se usa para agrupar eventos mediante `Intl` y es la referencia para los contadores diarios. Fecha concreta, intervalo ordenado, limpieza y pausado ante zona no válida están cubiertos.
+- La ruta `/activity` mantiene autenticación y rol mínimo `user`; la entrada de navegación conserva el alcance de roles probado. Carga inicial, vacío, error inicial, carga/error incremental y fin del historial tienen mensajes diferenciados; la cronología incluye alternativa manual a `IntersectionObserver`, limpieza al desmontar y foco visible en controles.
+- La integración «Ver disco» usa el ID histórico y los servicios de disco/Rates ya existentes. No se modificó `DiscDetail`. La resolución por título/artista que aún puede usar `DiscDetail` permanece como mejora futura independiente; esta revisión no encontró una regresión adicional causada por Actividad.
+
+### Verificaciones de cierre (2026-10-29)
+
+- Vitest focalizado: `pnpm exec vitest run src/modules/activity src/router/activityPermissions.test.ts src/layouts/default/components/SidebarMenuPermissions.test.ts` — **14 archivos y 82 pruebas aprobados**.
+- `pnpm run typecheck` — aprobado con Node 24.22.1 y pnpm 11.28.8.
+- ESLint focalizado: `pnpm exec eslint src/modules/activity src/router/index.ts src/router/activityPermissions.test.ts src/layouts/default/components/SidebarMenuPermissions.test.ts` — aprobado.
+- Detector Impeccable en los cinco componentes/vista principales de Actividad — `[]`.
+- `git diff --check` — aprobado para el diff rastreado. Los archivos nuevos del módulo y el roadmap se contrastaron también por whitespace durante esta revisión; no se detectaron espacios finales.
+- `pnpm run markdown:links:delta` fue **informativo**, no aprobatorio: el checkout local con cambios requiere base/head completos y limpio. La comprobación completa del repositorio se registra por separado si encuentra enlaces históricos ajenos a este cambio.
+- No se ejecutaron suite completa, E2E, `pnpm verify`, build, navegador ni pruebas visuales. No se afirma inspección visual de tema claro/oscuro, contraste renderizado ni responsive. Build no era necesario porque el cierre no modificó código ejecutable.
+- No se consultaron datos de producción ni se atribuye validación a GitHub Actions. La integración PostgreSQL real de **ACT-BE-5 sigue pendiente de verificación en backend**; el frontend solo consume el contrato disponible y sus tests no acreditan la ejecución SQL real.
+
+### Limitaciones y trabajo fuera de alcance
+
+- Sigue pendiente verificar en backend la integración real con PostgreSQL de ACT-BE-5.
+- No hubo comprobación visual en navegador de ambos temas, responsive, contraste perceptual ni interacción real de foco/visibilidad.
+- La comparación delta de enlaces Markdown no pudo dar un resultado concluyente por el estado local del checkout; los enlaces de esta documentación se revisaron con el reporte completo.
+- La posible búsqueda por título/artista en el flujo general de `DiscDetail` queda como mejora independiente. No se refactorizó ese módulo ni se amplió la funcionalidad de Actividad.
+- La advertencia de Vitest sobre `caniuse-lite` desactualizado no se modificó y no bloquea el resultado focalizado.
+
+## ACT-FE-6 — Total diario de votos
+
+**Estado: completada en el checkout del 2026-10-29.** Esta tarea consume la ampliación ACT-BE-5 de `GET /api/activity/history`; no modifica backend, endpoint, filtros, cursor ni estructura de la cronología.
+
+1. **Contrato:** `ActivityHistoryResponse` incorpora `dailySetCounts: Record<string, number>`. `getActivityHistory` conserva el campo recibido sin transformación adicional. Cada valor es el total diario completo comunicado por backend, incluidos los ceros explícitos; la ausencia de una fecha no se interpreta como cero.
+2. **Zona horaria:** `ActivityTimeline.vue` incluye siempre la zona IANA validada en los parámetros, incluso con «Todas las fechas». La zona que genera `groupActivityEventsByLocalDay` se usa para la misma petición y las claves del mapa (`YYYY-MM-DD`) se consultan directamente con `group.dateKey`. Si no hay zona válida, la consulta sigue pausada y se conserva el aviso existente.
+3. **Páginas y caché:** `useActivityHistory` expone un mapa derivado de las páginas retenidas. Los contadores se conservan entre páginas; el valor de la página recibida más recientemente reemplaza el de una fecha repetida, sin sumar páginas ni contar eventos. La clave existente de TanStack Query mantiene aislados usuario/sesión, fechas y zona; cambiar fecha o zona inicia otra consulta. Un error incremental conserva páginas y contadores anteriores.
+4. **Presentación:** `ActivityDayGroup.vue` sitúa el total a la derecha de la fecha en texto secundario y moderado, con cabecera flexible para móvil y variantes claro/oscuro. Muestra «1 voto» o «N votos», incluido «0 votos» si el backend lo confirma. Si falta la clave de fecha, deja la cabecera sin cifra. No cuenta eventos `set` ni `change` en frontend y las tarjetas/chips de puntuación no cambian.
+5. **Tests y verificaciones (2026-10-29):** cuatro archivos Vitest ejecutados mediante rutas explícitas (28 pruebas aprobadas) cubren singular/plural/cero/ausencia, mapa vacío, días repetidos entre páginas, reemplazo por valor posterior, retención ante error incremental, reinicio por fecha/zona, aislamiento por sesión, envío de zona sin filtros y conservación del contrato HTTP. Los eventos `set` y `change` de los fixtures no intervienen en el total. Pasan `pnpm run typecheck` y ESLint explícito sobre los archivos Activity modificados. `git diff --check` comprobado directamente sobre los archivos de este hito; el checkout ya tenía el módulo y roadmap sin seguimiento. No se añadieron enlaces Markdown al roadmap. El detector `impeccable detect --json` sobre `ActivityTimeline.vue` y `ActivityDayGroup.vue` devuelve `[]`. Vitest muestra el aviso existente de `caniuse-lite` desactualizado. No se ejecutaron build, suite completa, E2E ni inspección visual, según el alcance.
+6. **Riesgos pendientes:** una fecha sin entrada en `dailySetCounts` se oculta intencionadamente y no se sustituye por un cálculo frontend; la coherencia de las fechas/totales depende del contrato de backend y de que reciba la zona IANA enviada. La revisión de Impeccable fue estática; no se observaron renders ni se midió contraste visual en navegador.

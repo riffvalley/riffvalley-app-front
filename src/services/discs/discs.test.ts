@@ -5,6 +5,7 @@ vi.mock("@services/api/api.ts", () => ({ default: { get } }));
 
 import {
   getDailyCoverFeatured,
+  getDiscById,
   getDiscOptions,
   getDiscs,
   getRandomDiscs,
@@ -20,6 +21,15 @@ describe("Catalog disc request wrappers", () => {
     await getRandomDiscs({ limit: 1 });
 
     expect(get).toHaveBeenCalledWith("/discs/random", { params: { limit: 1 } });
+  });
+
+  it("loads a catalog disc by id and forwards cancellation", async () => {
+    const signal = new AbortController().signal;
+    const disc = { id: "disc/1", name: "Disco", artist: { id: "artist-1", name: "Artista" } };
+    get.mockResolvedValueOnce({ data: disc });
+
+    await expect(getDiscById("disc/1", signal)).resolves.toEqual(disc);
+    expect(get).toHaveBeenCalledWith("/discs/disc%2F1", { signal });
   });
 
   it.each(["easy", "normal", "hard"] as const)(
