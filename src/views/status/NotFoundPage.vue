@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import StatusPageShell from "@components/status/StatusPageShell.vue";
-import { useAuthStore } from "@stores/auth/auth";
+import { useAuthStore } from "@/modules/identity/auth";
 
 const authStore = useAuthStore();
 </script>
