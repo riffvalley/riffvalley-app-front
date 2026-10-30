@@ -3,7 +3,7 @@
     <p>Comprobando tu sesión…</p>
   </main>
   <main
-    v-else-if="authStore.authStatus === 'error' && route.name !== 'Login'"
+    v-else-if="authStore.authStatus === 'error' && route.name !== 'Login' && !isStatusPage"
     class="min-h-screen flex items-center justify-center bg-gray-100 px-5 py-10 text-center dark:bg-rv-darkBg sm:px-8"
     role="alert"
   >
@@ -60,11 +60,11 @@
   <div v-else-if="authReady" id="app-container">
 
     <!-- FONDO OSCURO SOLO CUANDO EL MENÚ ESTÁ ABIERTO -->
-    <div v-if="menuVisible && !isLoginPage" class="fixed inset-0 bg-black bg-opacity-50 z-10"
+    <div v-if="menuVisible && !isStandalonePage" class="fixed inset-0 bg-black bg-opacity-50 z-10"
       @click="closeMenuHandler" />
 
     <!-- Sidebar (por encima del overlay) -->
-    <SidebarMenu v-if="!isLoginPage" :menuVisible="menuVisible" @close-menu="closeMenuHandler" class="z-20" />
+    <SidebarMenu v-if="!isStandalonePage" :menuVisible="menuVisible" @close-menu="closeMenuHandler" class="z-20" />
 
     <!-- Layout logic -->
     <component :is="layoutComponent">
@@ -113,17 +113,21 @@ export default defineComponent({
       }
     };
 
+    const standalonePageNames = ["Login", "Forbidden", "NotFound", "NationalReleasePublic"];
+    const isStandalonePage = computed(() =>
+      standalonePageNames.includes(String(route.name)) &&
+      !(["Forbidden", "NotFound"].includes(String(route.name)) && authStore.authStatus === "authenticated"),
+    );
+    const isStatusPage = computed(() => ["Maintenance", "NotFound"].includes(String(route.name)));
+
     const authReady = computed(() =>
       authStore.authStatus === "authenticated" || authStore.authStatus === "anonymous" ||
-      (authStore.authStatus === "error" && route.name === "Login"),
+      (authStore.authStatus === "error" && ["Login", "Maintenance", "NotFound", "NationalReleasePublic"].includes(String(route.name))),
     );
 
     const closeMenuHandler = () => {
       menuVisible.value = false;
     };
-
-    // Detectar si estamos en la página de login o mantenimiento (para ocultar sidebar)
-    const isLoginPage = computed(() => ["Login", "Maintenance", "NationalReleasePublic"].includes(route.name as string));
 
     watch(route, () => {
       menuVisible.value = false;
@@ -161,9 +165,10 @@ export default defineComponent({
       retrying,
       retryAuthInitialization,
       closeMenuHandler,
-      isLoginPage, // ✅ Nueva variable reactiva para detectar login
+      isStandalonePage,
+      isStatusPage,
       layoutComponent: computed(() => {
-        return ["Login", "Maintenance", "NationalReleasePublic"].includes(route.name as string) ? LoginLayout : DefaultLayout;
+        return isStandalonePage.value ? LoginLayout : DefaultLayout;
       }),
     };
   },
