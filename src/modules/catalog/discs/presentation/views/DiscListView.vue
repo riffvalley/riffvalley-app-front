@@ -21,11 +21,13 @@
         <DiscListAutocomplete
           :model-value="searchQuery"
           :selected-artist="selectedArtist"
+          :can-create-disc="canCreateDisc"
           @update:model-value="setSearchQuery"
           @select-artist="setSelectedArtist"
           @clear-artist="setSelectedArtist(null)"
           @select-disc="selectSuggestedDisc"
           @create-disc="showCreateDisc = true"
+          @request-disc="showRequestDisc = true"
         />
       </form>
       <SavedDiscFilterSelector
@@ -328,6 +330,7 @@
   </div>
 
   <CreateDiscModal v-if="showCreateDisc" @close="onCreateDiscModalClose" />
+  <RequestDiscModal v-if="showRequestDisc" @close="showRequestDisc = false" />
   <SavedDiscFilterModal
     v-if="savedFilterModalMode"
     :mode="savedFilterModalMode"
@@ -369,6 +372,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useQueryClient } from "@tanstack/vue-query";
 import DiscCard from "@components/DiscCardComponent.vue";
 import CreateDiscModal from "../components/CreateDiscModal.vue";
+import RequestDiscModal from "../components/RequestDiscModal.vue";
 import SimpleSelect from "@components/SimpleSelect.vue";
 import DiscListExplorationFilters from "../components/DiscListExplorationFilters.vue";
 import DiscListAutocomplete from "../components/DiscListAutocomplete.vue";
@@ -382,6 +386,8 @@ import { getDiscListDateSelection } from "../../application/discListDateFilters"
 import { areSavedDiscFilterCriteriaEqual, isEmptySavedDiscFilterCriteria } from "../../application/savedDiscFilterCriteria";
 import type { SavedDiscFilterCriteria } from "../../types/savedDiscFilter";
 import type { DiscListMode } from "../../types/discList";
+import { useAuthStore } from "@/modules/identity/auth";
+import { hasMinimumRole } from "@/modules/identity/shared";
 
 const {
   viewMode,
@@ -586,6 +592,9 @@ async function confirmSavedFilterAction() {
 
 const showScrollTop = ref(false);
 const showCreateDisc = ref(false);
+const showRequestDisc = ref(false);
+const authStore = useAuthStore();
+const canCreateDisc = computed(() => hasMinimumRole(authStore.role, "riffvalley"));
 const createdDiscNotice = ref("");
 const queryClient = useQueryClient();
 const loadMore = ref<HTMLElement | null>(null);
