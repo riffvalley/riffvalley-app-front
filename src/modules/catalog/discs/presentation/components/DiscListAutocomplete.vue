@@ -202,11 +202,20 @@
         >
           No se han encontrado sugerencias.
           <button
+            v-if="canCreateDisc"
             type="button"
             class="ml-1 rounded-full bg-rv-navy px-3 py-1 font-semibold text-white underline underline-offset-2 hover:bg-rv-navy/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:bg-gray-200 dark:text-rv-navy dark:hover:bg-gray-300 dark:focus-visible:outline-rv-pink"
             @click="emit('create-disc')"
           >
             Añadir disco
+          </button>
+          <button
+            v-else
+            type="button"
+            class="ml-1 rounded-full bg-rv-pink px-3 py-1 font-semibold text-rv-navy underline underline-offset-2 hover:bg-rv-pink/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+            @click="emit('request-disc')"
+          >
+            Solicitar disco
           </button>
         </p>
       </div>
@@ -227,6 +236,7 @@ import type {
 const props = defineProps<{
   modelValue: string;
   selectedArtist: DiscListSelectedArtist | null;
+  canCreateDisc: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -235,6 +245,7 @@ const emit = defineEmits<{
   "clear-artist": [];
   "select-disc": [disc: DiscListDiscSuggestion];
   "create-disc": [];
+  "request-disc": [];
 }>();
 
 const root = ref<HTMLElement | null>(null);
