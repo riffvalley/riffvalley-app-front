@@ -110,7 +110,7 @@ const INTERNAL_ROUTES = [
   { path: '/statistics', label: 'Estadísticas' },
   { path: '/calendar', label: 'Calendario' },
   { path: '/import', label: 'Importar' },
-  { path: '/petitions', label: 'Peticiones' },
+  { path: '/admin/disc-requests', label: 'Solicitudes de discos' },
   { path: '/articles', label: 'Artículos' },
   { path: '/recap', label: 'Resumen semanal' },
   { path: '/videos', label: 'Vídeos' },

@@ -48,24 +48,24 @@
     "icon": "fa-solid fa-chart-area"
   },
   {
-    "to": "/suggest",
-    "label": "Solicitud de discos",
+    "to": "/disc-requests",
+    "label": "Solicitar discos",
     "activeClass": "bg-gray-700",
     "type": "disc-app",
     "requiredRole": "user",
     "icon": "fa-solid fa-lightbulb"
   },
   {
-    "to": "/suggestions",
-    "label": "Bugs y Sugerencias",
+    "to": "/feedback",
+    "label": "Feedback",
     "activeClass": "bg-gray-700",
     "type": "disc-app",
     "requiredRole": "user",
     "icon": "fa-solid fa-bug"
   },
   {
-    "to": "/petitions",
-    "label": "Peticiones",
+    "to": "/admin/disc-requests",
+    "label": "Solicitudes de discos",
     "activeClass": "bg-gray-700",
     "type": "new-discs",
     "requiredRole": "riffvalley",

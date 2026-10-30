@@ -197,7 +197,7 @@
                 <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
                 {{ route.label }}
                 <span
-                  v-if="route.to === '/petitions' && pendingRequestsCount !== undefined && pendingRequestsCount > 0"
+                  v-if="route.to === '/admin/disc-requests' && pendingRequestsCount !== undefined && pendingRequestsCount > 0"
                   class="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1"
                 >
                   {{ pendingRequestsCount > 99 ? '99+' : pendingRequestsCount }}

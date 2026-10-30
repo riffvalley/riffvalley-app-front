@@ -121,12 +121,12 @@ describe("import options in sidebar", () => {
 
   it("shows only summary fields authorized for the role and subtracts locally read suggestions", async () => {
     const riffvalley = await renderAs("riffvalley");
-    expect(riffvalley.find('[data-to="/petitions"]').text()).toContain("4");
+    expect(riffvalley.find('[data-to="/admin/disc-requests"]').text()).toContain("4");
     expect(riffvalley.find('[data-to="/suggestions/management"] .bg-red-500').exists()).toBe(false);
     riffvalley.unmount();
 
     const superadmin = await renderAs("superadmin");
-    expect(superadmin.find('[data-to="/petitions"]').text()).toContain("4");
+    expect(superadmin.find('[data-to="/admin/disc-requests"]').text()).toContain("4");
     expect(superadmin.find('[data-to="/suggestions/management"]').text()).toContain("2");
     expect(superadmin.find('[data-to="/patch-notes"]').text()).toContain("version 1.8.4");
     superadmin.unmount();
@@ -135,8 +135,22 @@ describe("import options in sidebar", () => {
   it("does not treat omitted private fields as authorized zero counts", async () => {
     const wrapper = await renderAs("user");
 
-    expect(wrapper.find('[data-to="/petitions"]').exists()).toBe(false);
+    expect(wrapper.find('[data-to="/admin/disc-requests"]').exists()).toBe(false);
     expect(wrapper.find('[data-to="/suggestions/management"] .bg-red-500').exists()).toBe(false);
     wrapper.unmount();
+  });
+
+  it("uses canonical Requests and Feedback destinations with clear labels", async () => {
+    const user = await renderAs("user");
+    expect(user.find('[data-to="/disc-requests"]').text()).toContain("Solicitar discos");
+    expect(user.find('[data-to="/feedback"]').text()).toContain("Feedback");
+    expect(user.find('[data-to="/suggest"]').exists()).toBe(false);
+    expect(user.find('[data-to="/suggestions"]').exists()).toBe(false);
+    user.unmount();
+
+    const riffvalley = await renderAs("riffvalley");
+    expect(riffvalley.find('[data-to="/admin/disc-requests"]').text()).toContain("Solicitudes de discos");
+    expect(riffvalley.find('[data-to="/petitions"]').exists()).toBe(false);
+    riffvalley.unmount();
   });
 });

@@ -16,6 +16,8 @@ Actualmente `src/modules/` contiene `identity/`, dividido en `auth`, `account`, 
 
 La capacidad **Estadísticas** está cerrada en `src/modules/statistics/` y `src/views/statistics/`: `types/` refleja los DTOs anuales, `api/` usa Axios autenticado compartido, y `application/` coordina filtros y consultas TanStack Query aisladas por usuario, generación de sesión, año y zona horaria. La vista compone secciones presentacionales sin acceso directo al transporte; la galaxia se consulta solo al abrir su modal. El alcance y la validación frontend están en el [roadmap de Estadísticas](../../roadmap/statistics.md). La validación SQL PostgreSQL sigue pendiente en backend.
 
+La capacidad **Solicitudes de discos** está modularizada en `src/modules/requests/`: `api/` conserva sus siete operaciones sobre el Axios autenticado compartido, `types/` centraliza los DTOs existentes, `application/` posee consultas y mutaciones de TanStack Query aisladas por usuario y generación de sesión, y `presentation/views/` compone `/disc-requests` y `/admin/disc-requests`. Router conserva autenticación y roles mínimos `user` y `riffvalley`; `/suggest` y `/petitions` redirigen a esas rutas canónicas preservando query y hash. Feedback permanece en `/feedback`, con `/suggestions` como redirección de compatibilidad de navegación y sin cambios en su servicio HTTP. La recuperación de carga propia distingue error de lista vacía y permite reintentar. El [roadmap de Requests](../../roadmap/requests.md) registra el alcance, pruebas y límites de verificación del contrato.
+
 ## Responsabilidad por tipo de pieza
 
 | Pieza | Responsabilidad | Criterio práctico y excepción |

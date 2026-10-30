@@ -26,10 +26,10 @@
           <!-- Artista y Disco -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+              <label for="request-artist" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                 Artista <span class="text-rv-pink">*</span>
-              </label>
               <input
+                id="request-artist"
                 v-model="form.artistName"
                 type="text"
                 placeholder="Ej: Metallica"
@@ -38,12 +38,13 @@
                        placeholder:text-gray-400 dark:placeholder:text-gray-500
                        focus:outline-none focus:ring-2 focus:ring-rv-pink/40 focus:border-rv-pink/40 transition-colors"
               />
+              </label>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+              <label for="request-disc" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                 Disco <span class="text-rv-pink">*</span>
-              </label>
               <input
+                id="request-disc"
                 v-model="form.discName"
                 type="text"
                 placeholder="Ej: Master of Puppets"
@@ -52,15 +53,16 @@
                        placeholder:text-gray-400 dark:placeholder:text-gray-500
                        focus:outline-none focus:ring-2 focus:ring-rv-pink/40 focus:border-rv-pink/40 transition-colors"
               />
+              </label>
             </div>
           </div>
 
           <!-- Fecha -->
           <div>
-            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+            <label for="request-release-date" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
               Fecha de lanzamiento <span class="text-rv-pink">*</span>
-            </label>
             <input
+              id="request-release-date"
               v-model="form.releaseDate"
               type="date"
               min="2025-01-01"
@@ -68,14 +70,15 @@
                      text-gray-800 dark:text-white bg-white dark:bg-rv-darkSurface
                      focus:outline-none focus:ring-2 focus:ring-rv-pink/40 focus:border-rv-pink/40 transition-colors"
             />
+            </label>
           </div>
 
           <!-- Género y País -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+              <span class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                 Género
-              </label>
+              </span>
               <SearchableSelect
                 v-model="form.genreId"
                 :options="catalogStore.genres"
@@ -85,9 +88,9 @@
               />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+              <span class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                 País
-              </label>
+              </span>
               <SearchableSelect
                 v-model="form.countryId"
                 :options="catalogStore.countries"
@@ -150,9 +153,14 @@
         </div>
 
         <!-- Loading -->
-        <div v-if="loadingRequests" class="flex items-center justify-center gap-2 py-10 text-gray-400 dark:text-gray-500 text-sm">
+        <div v-if="requestsLoading" class="flex items-center justify-center gap-2 py-10 text-gray-400 dark:text-gray-500 text-sm">
           <i class="fa-solid fa-spinner fa-spin"></i>
           Cargando...
+        </div>
+
+        <div v-else-if="requestsError" class="py-12 text-center">
+          <p class="font-semibold text-red-600 dark:text-red-400 mb-3 text-sm">No se pudieron cargar tus solicitudes.</p>
+          <button type="button" @click="retryRequests" class="text-sm font-semibold text-rv-pink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink">Reintentar</button>
         </div>
 
         <!-- Empty -->
@@ -196,9 +204,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, onMounted } from 'vue';
+import { defineComponent, ref, reactive, computed } from 'vue';
 import { useQueryClient } from '@tanstack/vue-query';
-import { createRequest, getMyRequests, type DiscRequest } from '@services/requests/requests';
+import { useMyRequestsQuery, useRequestMutations } from '../../application/useRequests';
+import { requestErrorMessage } from '../../application/requestErrorMessage';
+import type { CreateRequestDto, DiscRequest } from '../../types/requests';
 import { useCatalogStore } from '@stores/catalog/catalog';
 import SwalService from '@services/swal/SwalService';
 import SearchableSelect from '@components/SearchableSelect.vue';
@@ -223,8 +233,12 @@ export default defineComponent({
 
     const submitting = ref(false);
     const validationError = ref('');
-    const myRequests = ref<DiscRequest[]>([]);
-    const loadingRequests = ref(false);
+    const myRequestsQuery = useMyRequestsQuery();
+    const mutations = useRequestMutations();
+    const myRequests = computed(() => myRequestsQuery.data.value ?? []);
+    const requestsLoading = computed(() => myRequestsQuery.isPending.value);
+    const requestsError = computed(() => myRequestsQuery.isError.value);
+    const retryRequests = () => myRequestsQuery.refetch();
 
     const resetForm = () => {
       form.discName = '';
@@ -253,35 +267,22 @@ export default defineComponent({
 
       submitting.value = true;
       try {
-        const dto: any = {
+        const dto: CreateRequestDto = {
           discName: form.discName.trim(),
           artistName: form.artistName.trim(),
           releaseDate: form.releaseDate,
+          ...(form.ep ? { ep: true } : {}),
+          ...(form.debut ? { debut: true } : {}),
+          ...(form.genreId ? { genreId: form.genreId } : {}),
+          ...(form.countryId ? { countryId: form.countryId } : {}),
         };
-        if (form.ep) dto.ep = true;
-        if (form.debut) dto.debut = true;
-        if (form.genreId) dto.genreId = form.genreId;
-        if (form.countryId) dto.countryId = form.countryId;
-
-        const newRequest = await mutateAndInvalidateSidebarSummary(queryClient, () => createRequest(dto));
-        myRequests.value.unshift(newRequest);
+        await mutateAndInvalidateSidebarSummary(queryClient, () => mutations.create.mutateAsync(dto));
         resetForm();
         SwalService.success('Petición enviada correctamente');
-      } catch (error: any) {
-        SwalService.error(error.response?.data?.message || 'Error al enviar la petición');
+      } catch (error: unknown) {
+        SwalService.error(requestErrorMessage(error, 'Error al enviar la petición'));
       } finally {
         submitting.value = false;
-      }
-    };
-
-    const fetchMyRequests = async () => {
-      loadingRequests.value = true;
-      try {
-        myRequests.value = await getMyRequests();
-      } catch {
-        // silencioso
-      } finally {
-        loadingRequests.value = false;
       }
     };
 
@@ -300,16 +301,15 @@ export default defineComponent({
         rejected: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
       })[status];
 
-    onMounted(() => {
-      fetchMyRequests();
-    });
-
     return {
       form,
       submitting,
       validationError,
       myRequests,
-      loadingRequests,
+      myRequestsQuery,
+      requestsLoading,
+      requestsError,
+      retryRequests,
       catalogStore,
       submitRequest,
       formatDate,
