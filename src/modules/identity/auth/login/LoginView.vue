@@ -240,6 +240,15 @@
       </div>
     </div>
 
+    <p
+      v-if="isBetaEnvironment"
+      data-testid="login-beta-version"
+      aria-label="Entorno beta, versión 4.0.0"
+      class="fixed bottom-3 right-3 z-50 rounded-full border border-rv-navy/20 bg-rv-navy px-3 py-1 text-xs font-bold tracking-wider text-white shadow-md dark:border-rv-purple/40 dark:bg-rv-purple"
+    >
+      BETA · 4.0.0
+    </p>
+
     <HowToUseModal v-if="showHowToUse" @close="showHowToUse = false" />
   </div>
 
@@ -262,6 +271,7 @@ export default defineComponent({
   components: { HowToUseModal, AccessRequestModal },
   setup() {
     const { username, password, loading, error, handleLogin } = useLoginForm();
+    const isBetaEnvironment = import.meta.env.VITE_APP_ENV === "beta";
     const showPassword = ref(false);
     const showHowToUse = ref(false);
     const showAccessRequest = ref(false);
@@ -376,6 +386,7 @@ export default defineComponent({
       loading,
       error,
       handleLogin,
+      isBetaEnvironment,
       showHowToUse,
       showAccessRequest,
       isDarkMode,
