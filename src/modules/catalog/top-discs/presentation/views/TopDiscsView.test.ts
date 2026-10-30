@@ -212,6 +212,43 @@ describe("TopDiscs Rankings view", () => {
     vi.unstubAllGlobals();
   });
 
+  it("shows a ranking made only of unrated pinned discs without the global empty state", async () => {
+    const pinnedDisc = { ...disc, voteCount: 0, averageRate: null, weightedScore: null };
+    get.mockImplementation((url: string) =>
+      url === "/discs/topDiscs/options"
+        ? Promise.resolve({ data: { countries: [], genres: [] } })
+        : Promise.resolve({
+            data: {
+              discs: [pinnedDisc],
+              totalDiscs: 1,
+              totalVotes: 0,
+              ratingDistribution: [],
+              topUsersByRates: [],
+              topUsersByCover: [],
+            },
+          })
+    );
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, staleTime: 0, gcTime: Infinity } },
+    });
+    const wrapper = mount(TopDiscsView, {
+      global: {
+        plugins: [createPinia(), [VueQueryPlugin, { queryClient }]],
+        stubs: { DiscCard: DiscCardStub, "font-awesome-icon": true, "router-link": true },
+      },
+    });
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="top-discs-featured-section"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="top-discs-grid-section"]').exists()).toBe(true);
+    expect(wrapper.findAll('[data-testid="disc-card"]')).toHaveLength(1);
+    expect(wrapper.text()).not.toContain("No hay discos para este periodo");
+
+    wrapper.unmount();
+    queryClient.clear();
+    vi.unstubAllGlobals();
+  });
+
   it("shows loading and error states and exposes ranking retry", async () => {
     let resolveRanking: ((value: { data: { discs: (typeof disc)[] } }) => void) | undefined;
     get.mockImplementation((url: string) => {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { faTrophy } from "@fortawesome/free-solid-svg-icons";
-import type { Disc } from "@services/discs/discs";
+import type { TopRankedDisc } from "../../types/topDiscs";
 import DiscCard from "@components/DiscCardComponent.vue";
 
 interface RatingSavedEvent {
@@ -11,7 +11,7 @@ interface RatingSavedEvent {
   coverChanged: boolean;
 }
 
-defineProps<{ discs: Disc[] }>();
+defineProps<{ discs: TopRankedDisc[] }>();
 const emit = defineEmits<{ "rating-saved": [event: RatingSavedEvent] }>();
 
 function medalClass(index: number): string {
@@ -54,6 +54,7 @@ function medalClass(index: number): string {
           :pendingId="disc.pendingId"
           :comment-count="disc.commentCount"
           :rateCount="disc.voteCount"
+          show-zero-average-rate
           :artistCountry="disc.artist?.country"
           :debut="disc.debut"
           @rating-saved="emit('rating-saved', $event)"

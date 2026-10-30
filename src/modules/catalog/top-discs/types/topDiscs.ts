@@ -1,5 +1,5 @@
 import type { Country, Genre } from "@services/catalog/catalog";
-import type { DiscsStatsResponse } from "@services/discs/discs";
+import type { Disc } from "@services/discs/discs";
 
 export interface TopDiscsFilterParams {
   dateRange?: [string, string];
@@ -16,7 +16,21 @@ export interface TopDiscsParams extends TopDiscsFilterParams {
 
 export type TopDiscsOptionsParams = TopDiscsFilterParams;
 
-export type TopDiscsResponse = DiscsStatsResponse;
+/** Contract specific to GET /discs/topDiscs; homeDiscs keeps its legacy DTO. */
+export type TopRankedDisc = Omit<Disc, "averageRate" | "voteCount"> & {
+  averageRate: number | null;
+  voteCount: number;
+  weightedScore: number | null;
+};
+
+export interface TopDiscsResponse {
+  discs: TopRankedDisc[];
+  totalDiscs: number;
+  totalVotes: number;
+  ratingDistribution: { rate: number; count: number }[];
+  topUsersByRates: unknown[];
+  topUsersByCover: unknown[];
+}
 
 export interface TopDiscsOptionsResponse {
   countries: Country[];

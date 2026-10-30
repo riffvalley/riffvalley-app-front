@@ -70,7 +70,7 @@
   shadow-sm mb-1">
             <p class="text-sm font-bold mt-1"
               :class="spoilerDisc ? 'text-rv-pink tracking-widest' : 'text-blue-600 dark:text-blue-300'">
-              {{ spoilerDisc ? '???' : (localAverageRate ? localAverageRate.toFixed(2) : "-") }}
+              {{ spoilerDisc ? '???' : (localAverageRate !== null && (showZeroAverageRate || localAverageRate !== 0) ? localAverageRate.toFixed(2) : "-") }}
             </p>
             <p class="text-xs text-rv-navy dark:text-gray-200">Disco</p>
           </div>
@@ -373,6 +373,7 @@ export default defineComponent({
     genreColor: { type: String, required: false, default: "grey" },
     link: { type: String, required: false, default: "" },
     averageRate: { type: Number, required: false, default: null },
+    showZeroAverageRate: { type: Boolean, required: false, default: false },
     averageCover: { type: Number, required: false, default: null },
     userDiscRate: { type: String, required: false, default: null },
     rate: { type: Number, required: false, default: null },

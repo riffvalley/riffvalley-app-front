@@ -6,6 +6,7 @@ import type {
   TopDiscsOptionsResponse,
   TopDiscsParams,
   TopDiscsResponse,
+  TopRankedDisc,
 } from "../types/topDiscs";
 import { normalizeTopDiscsFilterParams } from "../utils/normalizeParams";
 
@@ -16,6 +17,10 @@ type TopDiscsRequestParams = {
   country?: string;
   statsDateRange?: [string, string];
   distributionDateRange?: [string, string];
+};
+
+type TopDiscsApiResponse = Omit<TopDiscsResponse, "discs"> & {
+  discs: (Omit<TopRankedDisc, "weightedScore"> & { weightedScore: number | string | null })[];
 };
 
 function normalizeFilterParams(
@@ -63,11 +68,17 @@ export async function getTopDiscs(
   params: TopDiscsParams = {},
   signal?: AbortSignal
 ): Promise<TopDiscsResponse> {
-  const response = await api.get<TopDiscsResponse>("/discs/topDiscs", {
+  const response = await api.get<TopDiscsApiResponse>("/discs/topDiscs", {
     params: buildTopDiscsRequestParams(params),
     ...(signal ? { signal } : {}),
   });
-  return response.data;
+  return {
+    ...response.data,
+    discs: response.data.discs.map((disc) => ({
+      ...disc,
+      weightedScore: disc.weightedScore === null ? null : Number(disc.weightedScore),
+    })),
+  };
 }
 
 export async function getTopDiscsOptions(

@@ -82,7 +82,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, computed } from "vue";
 import { useQueryClient } from "@tanstack/vue-query";
-import type { Disc } from "@services/discs/discs";
+import type { TopRankedDisc } from "@/modules/catalog/top-discs/types/topDiscs";
 import TopDiscsHeader from "@/modules/catalog/top-discs/presentation/components/TopDiscsHeader.vue";
 import TopDiscsRanking from "@/modules/catalog/top-discs/presentation/components/TopDiscsRanking.vue";
 import { getAvailableYears } from "@helpers/dateConstants";
@@ -279,7 +279,7 @@ export default defineComponent({
       ...(selectedGenre.value ? { genreId: selectedGenre.value } : {}),
     }));
     const rankingQuery = useTopDiscsQuery(rankingParams, filters.canLoadRanking);
-    const discs = computed<Disc[]>(() => {
+    const discs = computed<TopRankedDisc[]>(() => {
       if (!filters.canLoadRanking.value) return [];
       return (rankingQuery.data.value?.discs ?? []).map((disc) => ({
         ...disc,

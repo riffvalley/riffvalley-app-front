@@ -118,6 +118,25 @@ describe("DiscCard rating-saved event", () => {
     mutateSummary.mockReset();
   });
 
+  it("renders dash for missing averages and preserves a valid ranked zero", () => {
+    const zero = mountCard({ averageRate: 0 });
+    expect(zero.wrapper.text()).toContain("-");
+    zero.wrapper.unmount();
+    zero.queryClient.clear();
+
+    const rankedZero = mountCard({ averageRate: 0, showZeroAverageRate: true });
+    expect(rankedZero.wrapper.text()).toContain("0.00");
+    rankedZero.wrapper.unmount();
+    rankedZero.queryClient.clear();
+
+    const unrated = mountCard({ averageRate: null, rateCount: 0 });
+    expect(unrated.wrapper.text()).toContain("-");
+    expect(unrated.wrapper.text()).not.toContain("NaN");
+    expect(unrated.wrapper.text()).not.toContain("undefined");
+    unrated.wrapper.unmount();
+    unrated.queryClient.clear();
+  });
+
   it("emits only after creating a musical rating succeeds", async () => {
     const { queryClient, wrapper } = mountCard();
     await submit(wrapper, "8");

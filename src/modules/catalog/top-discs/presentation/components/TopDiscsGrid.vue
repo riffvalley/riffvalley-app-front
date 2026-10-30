@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Disc } from "@services/discs/discs";
+import type { TopRankedDisc } from "../../types/topDiscs";
 import DiscCard from "@components/DiscCardComponent.vue";
 
 interface RatingSavedEvent {
@@ -10,7 +10,7 @@ interface RatingSavedEvent {
   coverChanged: boolean;
 }
 
-defineProps<{ discs: Disc[] }>();
+defineProps<{ discs: TopRankedDisc[] }>();
 const emit = defineEmits<{ "rating-saved": [event: RatingSavedEvent] }>();
 </script>
 
@@ -21,7 +21,7 @@ const emit = defineEmits<{ "rating-saved": [event: RatingSavedEvent] }>();
     data-testid="top-discs-grid-section"
     class="remaining-section"
   >
-    <ol class="remaining-grid" aria-label="Discos de las posiciones 4 a 11" start="4">
+    <ol class="remaining-grid" aria-label="Discos secundarios de la clasificación">
       <li v-for="disc in discs" :key="disc.id" class="remaining-item">
         <DiscCard
           :id="disc.id"
@@ -43,6 +43,7 @@ const emit = defineEmits<{ "rating-saved": [event: RatingSavedEvent] }>();
           :pendingId="disc.pendingId"
           :comment-count="disc.commentCount"
           :rateCount="disc.voteCount"
+          show-zero-average-rate
           :artistCountry="disc.artist?.country"
           :debut="disc.debut"
           @rating-saved="emit('rating-saved', $event)"

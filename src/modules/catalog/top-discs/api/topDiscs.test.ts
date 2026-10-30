@@ -51,6 +51,31 @@ describe("TopDiscs HTTP adapters", () => {
     });
   });
 
+  it("normalizes nullable ranked scores without converting null or zero", async () => {
+    const response = {
+      discs: [
+        { id: "pinned", voteCount: 0, averageRate: null, weightedScore: null },
+        { id: "zero-vote", voteCount: 1, averageRate: 0, weightedScore: "0" },
+        { id: "ranked", voteCount: 2, averageRate: 8.5, weightedScore: "8.25" },
+      ],
+      totalDiscs: 2,
+      totalVotes: 1,
+      ratingDistribution: [],
+      topUsersByRates: [],
+      topUsersByCover: [],
+    };
+    get.mockResolvedValueOnce({ data: response });
+
+    await expect(getTopDiscs()).resolves.toEqual({
+      ...response,
+      discs: [
+        response.discs[0],
+        { ...response.discs[1], weightedScore: 0 },
+        { ...response.discs[2], weightedScore: 8.25 },
+      ],
+    });
+  });
+
   it("uses the current Axios array serialization for calendar dates", () => {
     const url = axios.getUri({
       url: "/discs/topDiscs/options",
