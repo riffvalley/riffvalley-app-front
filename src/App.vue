@@ -3,7 +3,7 @@
     <p>Comprobando tu sesión…</p>
   </main>
   <main
-    v-else-if="authStore.authStatus === 'error' && route.name !== 'Login'"
+    v-else-if="authStore.authStatus === 'error' && route.name !== 'Login' && !isStatusPage"
     class="min-h-screen flex items-center justify-center bg-gray-100 px-5 py-10 text-center dark:bg-rv-darkBg sm:px-8"
     role="alert"
   >
@@ -104,9 +104,16 @@ export default defineComponent({
       }
     };
 
+    const standalonePageNames = ["Login", "Forbidden", "NotFound", "NationalReleasePublic"];
+    const isStandalonePage = computed(() =>
+      standalonePageNames.includes(String(route.name)) &&
+      !(["Forbidden", "NotFound"].includes(String(route.name)) && authStore.authStatus === "authenticated"),
+    );
+    const isStatusPage = computed(() => ["Maintenance", "NotFound"].includes(String(route.name)));
+
     const authReady = computed(() =>
       authStore.authStatus === "authenticated" || authStore.authStatus === "anonymous" ||
-      (authStore.authStatus === "error" && route.name === "Login"),
+      (authStore.authStatus === "error" && ["Login", "Maintenance", "NotFound", "NationalReleasePublic"].includes(String(route.name))),
     );
 
     return {
@@ -115,8 +122,10 @@ export default defineComponent({
       route,
       retrying,
       retryAuthInitialization,
+      isStandalonePage,
+      isStatusPage,
       layoutComponent: computed(() => {
-        return ["Login", "Maintenance", "NationalReleasePublic"].includes(route.name as string) ? LoginLayout : DefaultLayout;
+        return isStandalonePage.value ? LoginLayout : DefaultLayout;
       }),
     };
   },

@@ -51,15 +51,15 @@ describe("import route permissions", () => {
   });
 
   it.each(["user", "collaborator"] as const)(
-    "denies %s access to Manual and Excel",
+    "shows forbidden for %s on Manual and Excel",
     async (role) => {
-      expect((await navigateAs(role, "/import")).name).toBe("Home");
-      expect((await navigateAs(role, "/import-discs")).name).toBe("Home");
+      expect((await navigateAs(role, "/import")).name).toBe("Forbidden");
+      expect((await navigateAs(role, "/import-discs")).name).toBe("Forbidden");
     },
   );
 
   it("allows riffvalley to use Excel while denying Manual", async () => {
-    expect((await navigateAs("riffvalley", "/import")).name).toBe("Home");
+    expect((await navigateAs("riffvalley", "/import")).name).toBe("Forbidden");
     expect((await navigateAs("riffvalley", "/import-discs")).name).toBe(
       "ImportDiscs",
     );
