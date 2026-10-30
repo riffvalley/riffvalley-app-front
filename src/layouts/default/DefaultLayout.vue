@@ -59,7 +59,7 @@ export default {
     const route = useRoute();
     const { isDark, initTheme, toggleTheme } = useTheme();
 initTheme();
-    const isLoginPage = computed(() => ["Login", "Maintenance"].includes(route.name as string));
+    const isLoginPage = computed(() => route.name === "Login");
 
     // ✅ Alternar menú con botón de hamburguesa
     const toggleMenu = () => {

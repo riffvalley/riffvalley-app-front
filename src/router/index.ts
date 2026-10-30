@@ -35,7 +35,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/statistics",
     name: "Statistics",
-    component: () => import("@views/statistics/Statistics.vue"),
+    component: () => import("@views/maintenance/MaintenancePage.vue"),
     meta: { requiresAuth: true },
   },
   {
@@ -307,6 +307,18 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("@views/maintenance/MaintenancePage.vue"),
     meta: { requiresAuth: false },
   },
+  {
+    path: "/403",
+    name: "Forbidden",
+    component: () => import("@views/status/ForbiddenPage.vue"),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: "/:pathMatch(.*)*",
+    name: "NotFound",
+    component: () => import("@views/status/NotFoundPage.vue"),
+    meta: { requiresAuth: false },
+  },
 ];
 
 const router = createRouter({
@@ -319,20 +331,14 @@ router.beforeEach(async (to) => {
 
   const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
 
-  if (isMaintenance) {
-    if (to.name !== 'Maintenance') {
-      return { name: "Maintenance" };
-    }
-  } else {
-    if (to.name === 'Maintenance') {
-      return { name: "Home" };
-    }
+  if (isMaintenance && to.name !== "Maintenance") {
+    return { name: "Maintenance" };
   }
 
   const authStatus = await authStore.initializeAuth();
   if (authStatus === "error") {
     // Keep the existing password login reachable when session recovery is unavailable.
-    if (to.name === "Login") return true;
+    if (["Login", "Maintenance", "NotFound"].includes(String(to.name))) return true;
     // A temporary Identity failure must not be interpreted as an anonymous session.
     return false;
   }
@@ -342,11 +348,11 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.requiresAuth && !hasMinimumRole(authStore.role, "user")) {
-    return { name: "Login" };
+    return { name: "Forbidden" };
   }
 
   if (to.meta.requiresRole && !hasMinimumRole(authStore.role, to.meta.requiresRole)) {
-    return { name: "Home" };
+    return { name: "Forbidden" };
   }
 
   return true;
