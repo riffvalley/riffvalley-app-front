@@ -72,7 +72,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/feedback",
     name: "Feedback",
-    component: () => import("@views/suggestions/SuggestionsPage.vue"),
+    component: () => import("@/modules/feedback/presentation/views/FeedbackView.vue"),
     meta: { requiresAuth: true },
   },
   {
@@ -91,10 +91,15 @@ const routes: Array<RouteRecordRaw> = [
     redirect: (to) => ({ name: "Feedback", query: to.query, hash: to.hash }),
   },
   {
-    path: "/suggestions/management",
-    name: "SuggestionsManagement",
-    component: () => import("@views/suggestions/SuggestionsManagement.vue"),
+    path: "/admin/feedback",
+    name: "AdminFeedback",
+    component: () => import("@/modules/feedback/presentation/views/FeedbackManagementView.vue"),
     meta: { requiresAuth: true, requiresRole: "superadmin" },
+  },
+  {
+    path: "/suggestions/management",
+    name: "LegacySuggestionsManagement",
+    redirect: (to) => ({ name: "AdminFeedback", query: to.query, hash: to.hash }),
   },
   {
     path: "/recap",

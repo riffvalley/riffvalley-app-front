@@ -122,12 +122,12 @@ describe("import options in sidebar", () => {
   it("shows only summary fields authorized for the role and subtracts locally read suggestions", async () => {
     const riffvalley = await renderAs("riffvalley");
     expect(riffvalley.find('[data-to="/admin/disc-requests"]').text()).toContain("4");
-    expect(riffvalley.find('[data-to="/suggestions/management"] .bg-red-500').exists()).toBe(false);
+    expect(riffvalley.find('[data-to="/admin/feedback"] .bg-red-500').exists()).toBe(false);
     riffvalley.unmount();
 
     const superadmin = await renderAs("superadmin");
     expect(superadmin.find('[data-to="/admin/disc-requests"]').text()).toContain("4");
-    expect(superadmin.find('[data-to="/suggestions/management"]').text()).toContain("2");
+    expect(superadmin.find('[data-to="/admin/feedback"]').text()).toContain("2");
     expect(superadmin.find('[data-to="/patch-notes"]').text()).toContain("version 1.8.4");
     superadmin.unmount();
   });
@@ -136,7 +136,7 @@ describe("import options in sidebar", () => {
     const wrapper = await renderAs("user");
 
     expect(wrapper.find('[data-to="/admin/disc-requests"]').exists()).toBe(false);
-    expect(wrapper.find('[data-to="/suggestions/management"] .bg-red-500').exists()).toBe(false);
+    expect(wrapper.find('[data-to="/admin/feedback"] .bg-red-500').exists()).toBe(false);
     wrapper.unmount();
   });
 
