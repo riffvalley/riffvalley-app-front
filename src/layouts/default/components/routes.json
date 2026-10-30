@@ -48,20 +48,20 @@
     "icon": "fa-solid fa-chart-area"
   },
   {
-    "to": "/disc-requests",
-    "label": "Solicitar discos",
-    "activeClass": "bg-gray-700",
-    "type": "disc-app",
-    "requiredRole": "user",
-    "icon": "fa-solid fa-lightbulb"
-  },
-  {
     "to": "/activity",
     "label": "Actividad",
     "activeClass": "bg-gray-700",
     "type": "disc-app",
     "requiredRole": "user",
     "icon": "fa-solid fa-clock-rotate-left"
+  },
+  {
+    "to": "/disc-requests",
+    "label": "Solicitar discos",
+    "activeClass": "bg-gray-700",
+    "type": "disc-app",
+    "requiredRole": "user",
+    "icon": "fa-solid fa-lightbulb"
   },
   {
     "to": "/feedback",
