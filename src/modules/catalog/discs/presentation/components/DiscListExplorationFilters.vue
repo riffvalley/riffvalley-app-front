@@ -60,7 +60,7 @@
 
         <div
           v-if="selectedYear !== 0 && selectedMonth !== 0"
-          class="filter-control"
+          class="filter-control period-control"
           role="group"
           aria-labelledby="disc-list-period-label"
         >
@@ -109,7 +109,15 @@
           />
         </div>
 
-        <div v-if="showNoRatesFilter" class="filter-control no-rates-control">
+        <div
+          v-if="showNoRatesFilter"
+          class="filter-control no-rates-control"
+          role="group"
+          aria-labelledby="disc-list-no-rates-label"
+        >
+          <span id="disc-list-no-rates-label" class="text-gray-700 dark:text-gray-200"
+            >Sin votos</span
+          >
           <label class="no-rates-switch" title="Mostrar solo discos sin votos">
             <input
               type="checkbox"
@@ -396,12 +404,11 @@ onUnmounted(() => {
 }
 .genre-control,
 .country-control {
-  grid-column: 1 / -1;
+  grid-column: auto;
 }
 .no-rates-control {
-  grid-column: 1 / -1;
   align-self: stretch;
-  justify-content: center;
+  justify-content: flex-start;
 }
 .no-rates-switch {
   display: inline-flex;
@@ -460,34 +467,20 @@ onUnmounted(() => {
     grid-template-columns: repeat(6, minmax(0, 1fr));
     align-items: end;
   }
-  .filter-control {
-    grid-column: span 2;
-  }
   .genre-control {
-    grid-column: span 3;
-  }
-  .country-control {
     grid-column: span 2;
   }
-  .no-rates-control {
-    grid-column: span 1;
+  .exploration-grid:has(.period-control) {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 }
-@media (min-width: 1280px) {
+@media (max-width: 480px) {
   .exploration-grid {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
   }
-  .filter-control {
-    grid-column: span 2;
-  }
-  .genre-control {
-    grid-column: span 6;
-  }
+  .genre-control,
   .country-control {
-    grid-column: span 3;
-  }
-  .no-rates-control {
-    grid-column: span 3;
+    grid-column: auto;
   }
 }
 </style>
