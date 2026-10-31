@@ -272,7 +272,7 @@ describe("DiscList new backend integration", () => {
 
     const noRatesSwitch = wrapper.get<HTMLInputElement>('input[role="switch"]');
     expect(noRatesSwitch.attributes("aria-label")).toBe("Mostrar solo discos sin votos");
-    expect(wrapper.text()).not.toContain("Sin votos");
+    expect(wrapper.get(".no-rates-control #disc-list-no-rates-label").text()).toBe("Sin votos");
     expect(wrapper.get(".genre-control").element.compareDocumentPosition(noRatesSwitch.element) & Node.DOCUMENT_POSITION_FOLLOWING)
       .toBeTruthy();
 
