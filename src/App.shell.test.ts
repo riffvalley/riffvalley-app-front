@@ -101,6 +101,8 @@ describe("App shell composition", () => {
 
       expect(wrapper.text()).not.toContain("No hemos podido recuperar tu sesión");
       expect(wrapper.findComponent({ name: "RouterView" }).exists()).toBe(true);
+      expect(wrapper.findAllComponents(SidebarMenu)).toHaveLength(0);
+      expect(wrapper.find("button.menu-hamburguesa").exists()).toBe(false);
 
       wrapper.unmount();
     }

@@ -104,7 +104,14 @@ export default defineComponent({
       }
     };
 
-    const standalonePageNames = ["Login", "Forbidden", "NotFound", "NationalReleasePublic"];
+    const standalonePageNames = [
+      "Login",
+      "ForgotPassword",
+      "ResetPassword",
+      "Forbidden",
+      "NotFound",
+      "NationalReleasePublic",
+    ];
     const isStandalonePage = computed(() =>
       standalonePageNames.includes(String(route.name)) &&
       !(["Forbidden", "NotFound"].includes(String(route.name)) && authStore.authStatus === "authenticated"),
