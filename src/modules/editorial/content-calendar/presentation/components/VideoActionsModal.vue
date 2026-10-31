@@ -1,6 +1,6 @@
 <template>
     <div v-if="show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-        @click.self="$emit('close')">
+        @click.self="requestClose">
         <div class="bg-white dark:bg-rv-darkCard rounded-t-2xl sm:rounded-2xl p-5 sm:p-8 w-full sm:max-w-2xl shadow-2xl relative overflow-hidden max-h-[92vh] overflow-y-auto">
             <div class="absolute top-0 right-0 w-64 h-64 bg-violet-50 dark:bg-violet-900/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
@@ -16,18 +16,18 @@
                             {{ videoData.type }}
                         </span>
                     </div>
-                    <button @click="$emit('close')"
+                    <button @click="requestClose"
                         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-rv-darkSurface">
                         <i class="fa-solid fa-xmark text-xl"></i>
                     </button>
                 </div>
 
-                <div class="space-y-6">
+                <div class="space-y-6" :inert="saveStatus.saving">
                     <div>
                         <input v-model="formData.name" type="text"
                             class="w-full text-xl sm:text-3xl font-bold text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 border-none focus:ring-0 p-0 bg-transparent"
                             placeholder="Título del video..." />
-                        <button @click="$emit('navigate-kanban')"
+                        <button @click="$emit('navigate-kanban')" :disabled="saveStatus.saving"
                             class="mt-2 text-xs text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors flex items-center gap-1">
                             <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                             <span>Ver en tablero de videos</span>
@@ -123,7 +123,7 @@
                 </div>
 
                 <div class="flex flex-wrap justify-between items-center gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-100 dark:border-white/10">
-                    <button @click="$emit('delete')"
+                    <button @click="$emit('delete')" :disabled="saveStatus.saving"
                         class="group flex items-center gap-2 text-gray-400 hover:text-red-600 transition-colors px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                         title="Eliminar permanentemente">
                         <i class="fa-regular fa-trash-can text-lg group-hover:scale-110 transition-transform"></i>
@@ -131,13 +131,14 @@
                     </button>
 
                     <div class="flex gap-2 sm:gap-3">
-                        <button @click="$emit('close')"
+                        <button @click="requestClose" :disabled="saveStatus.saving"
                             class="px-4 py-2 sm:px-6 sm:py-2.5 bg-gray-100 dark:bg-rv-darkSurface text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-rv-darkBg font-medium rounded-xl transition-colors">
                             Cancelar
                         </button>
-                        <button @click="handleUpdate" :disabled="usersLoading || rvUsers.length === 0"
+                        <p v-if="saveStatus.message" :role="saveStatus.retryAvailable ? 'alert' : 'status'" class="text-sm text-red-600 dark:text-red-300" aria-live="polite">{{ saveStatus.message }}</p>
+                        <button @click="handleUpdate" :disabled="usersLoading || rvUsers.length === 0 || saveStatus.saving"
                             class="px-4 py-2 sm:px-6 sm:py-2.5 bg-rv-purple text-white font-medium rounded-xl hover:bg-rv-pink shadow-lg transition-all transform hover:-translate-y-0.5">
-                            Guardar Cambios
+                            {{ saveStatus.saving ? 'Guardando…' : saveStatus.message ? (saveStatus.retryAvailable ? 'Reintentar partes fallidas' : 'Revisar estado en servidor') : 'Guardar Cambios' }}
                         </button>
                     </div>
                 </div>
@@ -153,6 +154,7 @@ import { formatCalendarDateInput } from '../../utils/contentCalendarDates';
 import type { RvUser } from '@/modules/identity/users';
 import AssignableUsersFeedback from './AssignableUsersFeedback.vue';
 import type { ContentEditorData, VideoUpdateData } from '../../types/contentCalendar.types';
+import type { CompositeSaveStatus } from '../../application/useContentCalendarOperations';
 import { VIDEO_TYPES, VIDEO_STATUSES, type VideoStatus, type VideoType } from '@services/videos/videos';
 
 interface Props {
@@ -162,11 +164,11 @@ interface Props {
     usersLoading?: boolean;
     usersError?: boolean;
     usersRefreshing?: boolean;
-    videoUpdateError?: number;
+    saveStatus?: CompositeSaveStatus;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    videoUpdateError: 0,
+    saveStatus: () => ({ saving: false, message: '', retryAvailable: true }),
     usersLoading: false,
     usersError: false,
     usersRefreshing: false,
@@ -175,8 +177,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
     close: [];
     'retry-users': [];
-    update: [data: ContentEditorData];
-    'update-video': [data: VideoUpdateData];
+    save: [content: ContentEditorData, video: VideoUpdateData];
     delete: [];
     'navigate-kanban': [];
 }>();
@@ -185,6 +186,10 @@ const videoData = ref(props.content.video ?? null);
 
 function formatForInput(dateStr: string): string {
     return formatCalendarDateInput(dateStr);
+}
+
+function requestClose() {
+    if (!props.saveStatus.saving) emit('close');
 }
 
 function getStatusLabel(status: VideoStatus): string {
@@ -222,7 +227,8 @@ const formData = ref({
     editorId: video?.editorId || video?.editor?.id || ''
 });
 
-watch(() => props.content, (newContent) => {
+watch(() => props.content.id, () => {
+    const newContent = props.content;
     const v = newContent.video;
     videoData.value = v;
     initialUserId.value = v?.userId || v?.user?.id || '';
@@ -238,42 +244,28 @@ watch(() => props.content, (newContent) => {
         userId: v?.userId || v?.user?.id || '',
         editorId: v?.editorId || v?.editor?.id || ''
     };
-}, { deep: true });
-
-watch(() => props.videoUpdateError, () => {
-    const v = props.content.video;
-    const userId = v?.userId || v?.user?.id || '';
-    const editorId = v?.editorId || v?.editor?.id || '';
-    formData.value.userId = userId;
-    formData.value.editorId = editorId;
-    initialUserId.value = userId;
-    initialEditorId.value = editorId;
 });
 
 function handleUpdate() {
-    emit('update', {
+    const contentData: ContentEditorData = {
         type: formData.value.type,
         name: formData.value.name,
         notes: formData.value.notes,
         publicationDate: formData.value.publicationDate,
         authorId: formData.value.authorId
-    });
+    };
 
     const v = props.content.video;
     if (v?.id) {
-        const videoUpdate: Record<string, unknown> = {
+        const videoUpdate: VideoUpdateData = {
             videoId: v.id,
             name: formData.value.name,
             type: formData.value.videoType,
             status: formData.value.videoStatus
         };
-        if (formData.value.userId !== initialUserId.value) {
-            videoUpdate.userId = formData.value.userId || null;
-        }
-        if (formData.value.editorId !== initialEditorId.value) {
-            videoUpdate.editorId = formData.value.editorId || null;
-        }
-        emit('update-video', videoUpdate);
+        if (formData.value.userId !== initialUserId.value) videoUpdate.userId = formData.value.userId || undefined;
+        if (formData.value.editorId !== initialEditorId.value) videoUpdate.editorId = formData.value.editorId || undefined;
+        emit('save', contentData, videoUpdate);
     }
 }
 </script>

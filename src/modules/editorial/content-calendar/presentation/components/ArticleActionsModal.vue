@@ -1,6 +1,6 @@
 <template>
     <div v-if="show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-        @click.self="$emit('close')">
+        @click.self="requestClose">
         <div class="bg-white dark:bg-rv-darkCard rounded-t-2xl sm:rounded-2xl p-5 sm:p-8 w-full sm:max-w-2xl shadow-2xl relative overflow-hidden max-h-[92vh] overflow-y-auto">
             <div class="absolute top-0 right-0 w-64 h-64 bg-blue-50 dark:bg-rv-blue/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
@@ -16,18 +16,18 @@
                             {{ articleData.type }}
                         </span>
                     </div>
-                    <button @click="$emit('close')"
+                    <button @click="requestClose"
                         class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-rv-darkSurface">
                         <i class="fa-solid fa-xmark text-xl"></i>
                     </button>
                 </div>
 
-                <div class="space-y-6">
+                <div class="space-y-6" :inert="saveStatus.saving">
                     <div>
                         <input v-model="formData.name" type="text"
                             class="w-full text-xl sm:text-3xl font-bold text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 border-none focus:ring-0 p-0 bg-transparent"
                             placeholder="Título del artículo..." />
-                        <button @click="$emit('navigate-kanban')"
+                        <button @click="$emit('navigate-kanban')" :disabled="saveStatus.saving"
                             class="mt-2 text-xs text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1">
                             <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                             <span>Ver en tablero de artículos</span>
@@ -130,7 +130,7 @@
                 </div>
 
                 <div class="flex flex-wrap justify-between items-center gap-3 mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-100 dark:border-white/10">
-                    <button @click="$emit('delete')"
+                        <button @click="$emit('delete')" :disabled="saveStatus.saving"
                         class="group flex items-center gap-2 text-gray-400 hover:text-red-600 transition-colors px-4 py-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                         title="Eliminar permanentemente">
                         <i class="fa-regular fa-trash-can text-lg group-hover:scale-110 transition-transform"></i>
@@ -138,13 +138,14 @@
                     </button>
 
                     <div class="flex gap-2 sm:gap-3">
-                        <button @click="$emit('close')"
+                        <button @click="requestClose" :disabled="saveStatus.saving"
                             class="px-4 py-2 sm:px-6 sm:py-2.5 bg-gray-100 dark:bg-rv-darkSurface text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-rv-darkBg font-medium rounded-xl transition-colors">
                             Cancelar
                         </button>
-                        <button @click="handleUpdate" :disabled="usersLoading || rvUsers.length === 0"
+                        <p v-if="saveStatus.message" :role="saveStatus.retryAvailable ? 'alert' : 'status'" class="text-sm text-red-600 dark:text-red-300" aria-live="polite">{{ saveStatus.message }}</p>
+                        <button @click="handleUpdate" :disabled="usersLoading || rvUsers.length === 0 || saveStatus.saving"
                             class="px-4 py-2 sm:px-6 sm:py-2.5 bg-rv-purple text-white font-medium rounded-xl hover:bg-rv-pink shadow-lg transition-all transform hover:-translate-y-0.5">
-                            Guardar Cambios
+                            {{ saveStatus.saving ? 'Guardando…' : saveStatus.message ? (saveStatus.retryAvailable ? 'Reintentar partes fallidas' : 'Revisar estado en servidor') : 'Guardar Cambios' }}
                         </button>
                     </div>
                 </div>
@@ -160,6 +161,7 @@ import { formatCalendarDateInput } from '../../utils/contentCalendarDates';
 import type { RvUser } from '@/modules/identity/users';
 import AssignableUsersFeedback from './AssignableUsersFeedback.vue';
 import type { ContentEditorData, ArticleUpdateData } from '../../types/contentCalendar.types';
+import type { CompositeSaveStatus } from '../../application/useContentCalendarOperations';
 import { ARTICLE_TYPES, ARTICLE_STATES, type ArticleState, type ArticleType } from '@services/articles/articles';
 
 interface Props {
@@ -169,19 +171,20 @@ interface Props {
     usersLoading?: boolean;
     usersError?: boolean;
     usersRefreshing?: boolean;
+    saveStatus?: CompositeSaveStatus;
 }
 
 const props = withDefaults(defineProps<Props>(), {
     usersLoading: false,
     usersError: false,
     usersRefreshing: false,
+    saveStatus: () => ({ saving: false, message: '', retryAvailable: true }),
 });
 
 const emit = defineEmits<{
     close: [];
     'retry-users': [];
-    update: [data: ContentEditorData];
-    'update-article': [data: ArticleUpdateData];
+    save: [content: ContentEditorData, article: ArticleUpdateData];
     delete: [];
     'navigate-kanban': [];
 }>();
@@ -190,6 +193,10 @@ const articleData = ref(props.content.article);
 
 function formatForInput(dateStr: string): string {
     return formatCalendarDateInput(dateStr);
+}
+
+function requestClose() {
+    if (!props.saveStatus.saving) emit('close');
 }
 
 function getStatusLabel(status: ArticleState): string {
@@ -227,7 +234,8 @@ const formData = ref({
     editorId: props.content.article?.editorId || props.content.article?.editor?.id || ''
 });
 
-watch(() => props.content, (newContent) => {
+watch(() => props.content.id, () => {
+    const newContent = props.content;
     articleData.value = newContent.article;
     formData.value = {
         type: 'article',
@@ -241,19 +249,19 @@ watch(() => props.content, (newContent) => {
         userId: newContent.article?.userId || newContent.article?.user?.id || '',
         editorId: newContent.article?.editorId || newContent.article?.editor?.id || ''
     };
-}, { deep: true });
+});
 
 function handleUpdate() {
-    emit('update', {
+    const contentData: ContentEditorData = {
         type: formData.value.type,
         name: formData.value.name,
         notes: formData.value.notes,
         publicationDate: formData.value.publicationDate,
         authorId: formData.value.authorId
-    });
+    };
 
     if (props.content.article?.id) {
-        emit('update-article', {
+        emit('save', contentData, {
             articleId: props.content.article.id,
             name: formData.value.name,
             type: formData.value.articleType,

@@ -17,6 +17,7 @@ import {
   toContentCalendarEvents,
 } from "../../utils/contentCalendarEvents";
 import SwalService from "@services/swal/SwalService";
+import type { ContentMoveResult } from "../../application/useContentCalendarOperations";
 
 interface UseContentCalendarFullCalendarOptions {
   allContents: ComputedRef<Content[]>;
@@ -26,7 +27,10 @@ interface UseContentCalendarFullCalendarOptions {
   currentMonth: Ref<number>;
   backlogPanelRef: Ref<InstanceType<typeof BacklogPanel> | null>;
   onEventClick: (info: EventClickArg) => void | Promise<void>;
-  onBacklogDrop: (contentId: string, date: string | null) => void | Promise<void>;
+  onBacklogDrop: (
+    contentId: string,
+    date: string | null
+  ) => ContentMoveResult | Promise<ContentMoveResult>;
   onEventDrop: (info: EventDropArg) => void | Promise<void>;
 }
 
@@ -136,11 +140,20 @@ export function useContentCalendarFullCalendar(options: UseContentCalendarFullCa
       if (typeof eventData !== "object" || eventData === null || !("id" in eventData)) return;
       const contentId = eventData.id;
       if (typeof contentId !== "string" || !contentId) return;
-      await options.onBacklogDrop(contentId, info.dateStr);
-      info.draggedEl.parentNode?.removeChild(info.draggedEl);
+      const result = await options.onBacklogDrop(contentId, info.dateStr);
+      if (result.state === "confirmed" && result.destinationApplied) {
+        info.draggedEl.parentNode?.removeChild(info.draggedEl);
+      }
     },
     eventReceive: (info: EventReceiveArg) => info.event.remove(),
-    eventDrop: options.onEventDrop,
+    eventDrop: (info: EventDropArg) => {
+      // A calendar item dropped over the backlog is handled by eventDragStop below.
+      // Sending this callback too would issue a date update followed by a backlog update.
+      const backlogTarget = getBacklogDropTarget(options.backlogPanelRef);
+      if (info.jsEvent && isPointerOver(backlogTarget, info.jsEvent.clientX, info.jsEvent.clientY))
+        return;
+      return options.onEventDrop(info);
+    },
     eventDragStop: async (info: EventDragStopArg) => {
       const content = options.allContents.value.find(({ id }) => id === info.event.id);
       const backlogTarget = getBacklogDropTarget(options.backlogPanelRef);
@@ -159,11 +172,8 @@ export function useContentCalendarFullCalendar(options: UseContentCalendarFullCa
         return;
       }
 
-      try {
-        await options.onBacklogDrop(info.event.id, null);
-      } catch {
-        // Restore the server-backed calendar state after a failed move.
-      }
+      const result = await options.onBacklogDrop(info.event.id, null);
+      if (result.state === "rejected") info.revert();
     },
   }));
 

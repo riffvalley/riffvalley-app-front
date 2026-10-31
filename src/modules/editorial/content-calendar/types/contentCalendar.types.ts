@@ -24,8 +24,8 @@ export interface ArticleUpdateData {
   type: ArticleType;
   status: ArticleState;
   link: string;
-  userId: string;
-  editorId: string;
+  userId?: string;
+  editorId?: string;
 }
 
 export interface VideoUpdateData {
@@ -33,6 +33,6 @@ export interface VideoUpdateData {
   name: string;
   type: VideoType;
   status: VideoStatus;
-  userId: string;
-  editorId: string;
+  userId?: string;
+  editorId?: string;
 }

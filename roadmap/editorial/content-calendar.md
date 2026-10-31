@@ -2,7 +2,7 @@
 
 ## Estado y alcance
 
-**Estado:** auditoría inicial completada; roadmap actualizado el **2026-10-31** con seis decisiones de producto. **E-CC-1 a E-CC-6 y E-CC-11 completadas**; E-CC-7 a E-CC-10 siguen pendientes. `DEC-CC-1`, `DEC-CC-5` y `DEC-CC-6` están confirmadas; `DEC-CC-2` y `DEC-CC-3` ordenan investigación antes de decidir una política final. Para Content Calendar, DEC-CC-4 se concreta como consistencia del día programado; la hora no tiene relevancia funcional.
+**Estado:** auditoría inicial completada; roadmap actualizado el **2026-10-31** con seis decisiones de producto. **E-CC-1 a E-CC-8 y E-CC-11 completadas**; E-CC-9 y E-CC-10 siguen pendientes. `DEC-CC-1`, `DEC-CC-3`, `DEC-CC-5` y `DEC-CC-6` están confirmadas; `DEC-CC-2` conserva su investigación pendiente. Para Content Calendar, DEC-CC-4 se concreta como consistencia del día programado; la hora no tiene relevancia funcional.
 
 **Capacidad auditada:** ruta `/content-calendar` y su vista `src/views/contentCalendar/ContentCalendar.vue`, los componentes importados desde `src/views/contentCalendar/components/`, sus servicios y dependencias reales. Se inspeccionaron en solo lectura los módulos backend Contents y sus relaciones de escritura relevantes.
 
@@ -29,7 +29,7 @@ En backend, Contents ya está organizado en controller, fachada de servicio y se
 | Edición | Modal genérico envía `PATCH /contents/:id`; acciones especializadas actualizan campos de Article/Video/List y fechas/autor de Content. | Parcialmente distribuido entre Content y entidades relacionadas; errores de Article/Video son gestionados en handlers distintos. |
 | Programación y backlog | Drag desde backlog a calendario y entre fechas actualiza `publicationDate`/`backlog`; arrastrar al backlog elimina fecha. Radar con asignaciones no se puede mover; reunión/Radar/Best no pueden ir al backlog. | E-CC-4 conserva el `18:00Z` date-only del drag, que mantiene el día al extraer la fecha y es compatible con la API. Backlog conserva `publicationDate: null`; eventos programados son `allDay: true`. Tests frontend invocan callbacks FullCalendar simulados, no el motor real ni el backend. |
 | Consulta y detalle | Click en evento abre modal por tipo; Radar/Best carga detalles de List. Los enlaces permiten navegar a Reuniones, Artículos, Vídeos y detalle de Radar/Best. | Implementado con consultas puntuales acopladas a la vista. |
-| Eliminación | Confirmación y `DELETE /contents/:id`; el backend elimina también List/Reunion asociadas en los casos coordinados. Article/Video/Playlist asociados sobreviven a la eliminación de Content por diseño backend documentado. | Comportamiento actual confirmado por código, pero no política final: DEC-CC-3 exige estudiar ownership, cascadas, reutilización y huérfanos antes de aprobar cambios. |
+| Eliminación | Confirmación específica por tipo y `DELETE /contents/:id`; el backend conserva sus reglas aprobadas: elimina List para Radar/Best y Reunion para Reunion, pero conserva Article/Playlist/Video y List de Video. | E-CC-8 frontend completa el copy por tipo; no cambia política, endpoint ni contrato HTTP. |
 | Publicación y estado editorial | Calendario muestra fecha y colores por tipo. Los estados Article/Video y estado de List se editan desde modales, mediante APIs de esos módulos. | No hay un estado unificado de publicación de Content. `ready` existe en el backend, pero esta vista no lo consulta ni lo presenta; estado de entidad asociada y `Content.ready` son conceptos separados. |
 | Filtro «mis eventos» | Atenúa eventos/backlog ajenos y resalta los propios comparando `author.id` con Identity. | El comportamiento aprobado por DEC-CC-5 será ocultar los que no sean del usuario, tanto en calendario como backlog; autor nulo nunca cuenta como propio. Implementación pendiente. |
 
@@ -104,7 +104,7 @@ La tabla describe el comportamiento actual según entidades, ciclo de vida y API
 
 La eliminación de List desde Lists también busca un Content asociado y lo elimina antes de List; el flujo es coordinado en ambos sentidos. Article/Video/Playlist protegen su borrado cuando existe Content asociado, y dichos módulos permiten crear la relación de Content de forma manual. Se documenta así una diferencia real de ownership/ciclo de vida que no debe cambiarse sin revisar contratos y consumers.
 
-Para la política futura se deben distinguir tres comandos/intenciones: **desprogramar** (quitar fecha y pasar a backlog cuando las reglas del tipo lo permitan), **eliminar entrada de calendario** (retirar solo el vínculo/planificación) y **eliminar la entidad editorial** (borrar Article/Video/Playlist/List/Reunion y sus relaciones). Hoy `DELETE /contents/:id` no es solo “quitar de calendario” en Radar/Best/Reunion; para Article/Video/Playlist retira la relación y conserva la entidad. Para tipos con fecha obligatoria, desprogramar con fecha nula es rechazado; la UI ya prohíbe mover Reunion/Radar/Best al backlog. La política final sigue pendiente de E-CC-8.
+La política aprobada mantiene las consecuencias actuales de `DELETE /contents/:id` por tipo, con la corrección backend de Video ya implementada. El endpoint no convierte este borrado en tres comandos: **desprogramar** (quitar fecha y pasar a backlog cuando las reglas del tipo lo permitan), **eliminar entrada de calendario** y **eliminar entidad editorial** siguen teniendo intenciones distintas. Para Radar/Best/Reunion se eliminan recursos asociados según la matriz; Article/Video/Playlist sobreviven junto con las relaciones indicadas. Para tipos con fecha obligatoria, desprogramar con fecha nula es rechazado; la UI ya prohíbe mover Reunion/Radar/Best al backlog. E-CC-8 frontend únicamente presenta al usuario estos efectos antes de confirmar.
 
 ### Modelo de fechas
 
@@ -178,10 +178,10 @@ Las decisiones se incorporaron el **31 de octubre de 2026**. Esta tabla distingu
 |---|---|---|---|
 | DEC-CC-1 | Los tres GET de Contents requieren mínimo `riffvalley`. | **Confirmada; implementación pendiente.** | E-CC-3, autorización backend cross-repo y revisión de respuestas públicas transitivas. |
 | DEC-CC-2 | Evaluar utilidad, consumidores y eventual retirada de `Content.ready`. | **Investigación pendiente; política final abierta.** No está aprobada su eliminación. | E-CC-9a; retirada condicional solo tras aprobación posterior. |
-| DEC-CC-3 | Revisar reglas de eliminación antes de mantenerlas o cambiarlas. | **Investigación pendiente; política final abierta.** | Matriz inicial arriba; E-CC-8a/8b y eventual E-CC-8c. |
+| DEC-CC-3 | Revisar reglas de eliminación antes de mantenerlas o cambiarlas. | **Política aprobada e implementada:** conservar reglas por tipo; backend corrigió Video y frontend muestra las consecuencias. | Matriz de auditoría arriba, decisión backend en `content-lifecycle.md` y copy frontend en E-CC-8. |
 | DEC-CC-4 | Cada Content programado pertenece a un día civil de referencia (`Europe/Madrid`) y se representa como evento de día completo. La hora no tiene relevancia funcional. | **Confirmada e implementada en frontend.** Vista mensual y `allDay: true` se conservan. | E-CC-4 verifica estabilidad del día en creación, edición, drag/drop, backlog y navegación, sin introducir política horaria ni cambiar el contrato HTTP. |
 | DEC-CC-5 | «Mis eventos» oculta los ajenos en calendario y backlog; autor nulo nunca cuenta como propio. | **Confirmada; implementación pendiente.** | E-CC-9b; filtrado frontend derivado, sin mutar registros. |
-| DEC-CC-6 | Si una operación compuesta falla, dejar modal abierto, conservar datos y reintentar solo operaciones fallidas. | **Confirmada; implementación pendiente.** | E-CC-7, sin transacción distribuida. |
+| DEC-CC-6 | Si una operación compuesta falla, dejar modal abierto, conservar datos y reintentar solo operaciones fallidas. | **Confirmada e implementada.** | E-CC-7 coordina Content + Article/Video sin transacción distribuida. |
 
 ### Decisiones técnicas todavía necesarias
 
@@ -353,7 +353,7 @@ Las mutaciones `POST/PATCH/DELETE` de Contents, Lists, Asignaciones, Articles y 
 
 - **Dependencia backend condicional:** una tarea separada solo si se demuestra con medición que reducir bytes exige omitir relaciones/campos de las respuestas Contents y se puede definir una proyección compatible. No es requisito de esta planificación y no autoriza modificar contratos.
 
-#### E-CC-7 — Reintentar operaciones compuestas sin duplicar éxitos
+#### E-CC-7 — Operaciones editoriales, drag-and-drop y recuperación de errores
 
 - **Objetivo:** implementar DEC-CC-6 en Content + Article/Video y otras entidades que compartan el flujo modal.
 - **Problema que resuelve:** operaciones independientes notifican error mientras Content puede cerrar el modal; no hay estado de éxito/fallo por operación.
@@ -363,17 +363,69 @@ Las mutaciones `POST/PATCH/DELETE` de Contents, Lists, Asignaciones, Articles y 
 - **Criterios de aceptación:** operaciones pueden completar independientemente; retries no repiten éxitos; fallas pueden reintentarse conservando datos; el modal cierra solo al completar todo o acción explícita; resultado parcial se comunica correctamente.
 - **Tests necesarios:** éxito mixto, fallo parcial, retries selectivos, doble click, invalidación por dominio y tests de interacción/modal.
 - **Dependencia cross-repo:** frontend; backend solo si nueva evidencia demuestra que endpoint actual no permite una mutación idempotente y se aprueba tarea aparte.
+- **Estado:** **Completada** el 2026-10-31. No adelanta E-CC-8, E-CC-9 ni E-CC-10.
 
-#### E-CC-8 — Revisar política de eliminación antes de cambiarla
+**Auditoría del estado inicial:**
 
-- **Objetivo:** distinguir desprogramar, retirar entrada de agenda y eliminar entidad editorial.
-- **Problema que resuelve:** DELETE Content tiene efectos distintos por tipo; Reunion reutilizable puede tener varias referencias, y List guarda tracking local de WordPress.
-- **Alcance técnico:** **8a**, revisar ownership, FKs/cascades, consumidores, referencias compartidas, tests y efectos WordPress; confirmar matriz y filas históricas con lectura controlada. **8b**, proponer y dejar pendiente de aprobación una política por tipo y por cada una de las tres intenciones. **8c**, implementar solo tras aprobación explícita; cambiar backend/frontend únicamente según alcance aprobado y no crear endpoints por defecto.
-- **Dependencias:** 8a depende de E-CC-1; 8c de 8b y E-CC-2. 8a puede adelantarse antes de modularizar.
-- **Prioridad:** P1 investigación/decisión; P1 implementación condicional.
-- **Criterios de aceptación:** matriz aprobada para los siete tipos; borrar Content con relaciones compartidas conserva integridad; no se elimina contenido remoto de WordPress accidentalmente; copy refleja el efecto real.
-- **Tests necesarios:** matriz lifecycle/List coordinator, rollback Reunion compartida, cascada Points/asignaciones, delete-blocking Article/Video/Playlist y tests UI por comando elegido.
-- **Dependencia cross-repo:** análisis frontend/backend; implementación cross-repo condicional y puede implicar WordPress.
+- Backlog → calendario hacía PATCH del día seleccionado e invalidaba Contents, pero retiraba el nodo externo del backlog aunque el PATCH fallara. El elemento podía desaparecer de la presentación mientras el caché seguía describiéndolo como backlog.
+- Calendario → calendario enviaba únicamente `publicationDate` y `backlog: false`, preservando los demás campos y `allDay: true` en la proyección. El error de red sí invocaba `revert()`, pero no se distinguía un rechazo confirmado de una respuesta incierta.
+- Calendario → backlog podía disparar `eventDrop` y después `eventDragStop` para el mismo gesto. Los dos handlers iniciaban PATCH independientes; el handler de backlog absorbía errores, sin devolver un resultado al callback que conoce la reversión visual.
+- Los callbacks de FullCalendar y las consultas ya aislaban usuario, generación de sesión, rol y periodo, combinaban mes/backlog por ID y transportaban `AbortSignal`. No se necesitó cambiar query keys, endpoints, permisos ni transporte.
+- Article/Video emitían por separado los cambios de Content y de su entidad asociada. Ambos PATCH podían ejecutarse en paralelo y un guardado de Content podía cerrar el modal aunque Article/Video fallara. El Video además restablecía campos de asignación desde props al recibir su error, perdiendo los valores introducidos.
+
+**Reglas y contratos conservados:**
+
+| Tipo | Fecha obligatoria / backlog | Restricción de movimiento frontend |
+|---|---|---|
+| Article | Fecha opcional; puede permanecer en backlog. | Puede programarse, reprogramarse y volver al backlog. |
+| Photos | Fecha opcional; puede permanecer en backlog. | Puede programarse, reprogramarse y volver al backlog. |
+| Riff Valley Playlist | Fecha opcional; puede permanecer en backlog. | Puede programarse, reprogramarse y volver al backlog. |
+| Radar | Fecha obligatoria; no puede volver al backlog. | Si List tiene asignaciones, no se permite cambiar de fecha; el frontend conserva la reversión y el backend puede rechazar el PATCH. |
+| Best | Fecha obligatoria; no puede volver al backlog. | Puede cambiar de fecha con la fecha presente; el backend valida de nuevo. |
+| Video | Fecha opcional; puede permanecer en backlog. | Puede programarse, reprogramarse y volver al backlog. |
+| Reunion | Fecha obligatoria; no puede volver al backlog. | Puede cambiar de fecha manteniendo la fecha presente; el backend valida de nuevo. |
+
+El frontend aplica la validación de fecha existente en Create/Edit y el bloqueo existente de Radar con asignaciones. No se relajan reglas ni se inventan restricciones. El backend sigue siendo autoridad final para rechazos y no se alteró la semántica HTTP. `ready` no se elimina ni se usa para esta operación. La hora editorial sigue sin relevancia: FullCalendar serializa todos los eventos como `allDay: true`; el día se toma de la fecha civil elegida y no se introduce lógica horaria.
+
+**Correcciones y estrategia de persistencia/reversión:**
+
+1. Las mutaciones de movimiento se serializan por Content. Intentos concurrentes sobre el mismo ID se rechazan/revierten, mientras otros eventos siguen siendo utilizables.
+2. Backlog → calendario retira el nodo externo solo cuando el PATCH se confirma o un GET de reconciliación confirma el destino. `eventReceive` sigue eliminando el evento temporal creado por FullCalendar, independientemente del nodo fuente.
+3. Calendario → calendario envía solo `publicationDate` y `backlog: false`. Para el mismo drag sobre backlog, `eventDrop` detecta el destino y delega el único PATCH a `eventDragStop`. Rechazos HTTP 4xx invocan `revert()`; tras respuesta incierta se lee Content y se invalida el caché, dejando que la respuesta del servidor gobierne la posición.
+4. Calendario → backlog envía `publicationDate: null` y `backlog: true`. Los tipos de fecha obligatoria se revierten antes del PATCH. Un 4xx devuelve el evento a su origen; una respuesta incierta se reconcilia con `GET /contents/:id` antes de mostrar una posición confirmada.
+5. Los PATCH de movimiento son actualizaciones de campos existentes; no crean registros. Si tanto el PATCH como la lectura de reconciliación fallan, se conserva un bloqueo por Content y se invalida la consulta. La siguiente interacción intenta primero una lectura; si esta tiene éxito, refresca la posición y pide repetir el gesto antes de enviar otro PATCH. No se repite automáticamente una respuesta incierta.
+6. Tras cada éxito se invalida el prefijo de calendario limitado a la sesión capturada, que cubre simultáneamente los meses cacheados y backlog. Radar/Best invalida también los detalles de List bajo la misma identidad capturada. No se vacía la caché completa ni se insertan respuestas manuales fuera de TanStack Query.
+7. Cambios de sesión durante una petición invalidan únicamente la clave de la sesión que inició la operación y no muestran su toast de resultado en la sesión nueva. Navegar de mes mantiene la consulta por periodo; invalidación y respuestas obsoletas quedan aisladas por las query keys ya existentes.
+
+**Operaciones compuestas:**
+
+- Article y Video ahora envían un único evento tipado con los payloads de Content y entidad asociada. El coordinador registra ambos resultados por Content y por firma del payload; el modal solo se cierra cuando las dos partes quedan confirmadas.
+- Si falla una parte con un rechazo HTTP 4xx, el modal muestra el resultado parcial y conserva los campos. El botón reintenta exclusivamente la parte fallida; las operaciones confirmadas no se repiten. Se invalida el calendario después de cada PATCH que sí se confirmó.
+- Para errores sin respuesta o 5xx se consulta Content/Article/Video. Si el estado actual coincide con el payload, la operación se marca completa; si no coincide se permite reintentar tras la lectura; si la lectura también falla, el modal conserva un estado incierto y ofrece reconciliar de nuevo antes de repetir el PATCH.
+- Mientras el guardado está pendiente se muestra estado de guardado, se deshabilita el guardado duplicado y se impide cambiar el contenido modal. Cerrar modal, borrar y guardar no pueden competir; no se bloquea el resto del calendario.
+- No se encontró en esta vista un patrón modal compuesto con otra entidad aparte de Content + Article/Video. No se generalizó la coordinación para otros dominios.
+
+**Cobertura y verificación:**
+
+- Caracterización ampliada para fallos/éxitos de los tres movimientos, evento temporal `eventReceive`, día elegido, ausencia de doble PATCH al soltar sobre backlog, reversión 4xx, movimientos consecutivos, cambio de mes durante una mutación, reglas obligatorias, Radar asignado, ausencia de duplicados e invalidación. Se prueba reconciliación tras conexión perdida y el bloqueo de nuevos movimientos si falla también la lectura.
+- Casos Article/Video: ambos PATCH completados, Content completado con Article/Video fallido, retry exclusivo de la entidad fallida, modal abierto, payload de formulario conservado e invalidaciones. Un timeout con reconciliación fallida no se repite; una lectura posterior confirma el éxito sin duplicar el PATCH.
+- `TZ=UTC` y `TZ=Europe/Madrid`: suite focalizada Content Calendar + Contents service + permiso de ruta, **87 tests aprobados en cada zona horaria**. QueryClient aislado por las suites existentes y mocks de servicios controlados; no se usó backend ni navegador.
+- `pnpm run typecheck`, `pnpm build`, ESLint focalizado de TypeScript/tests, Prettier focalizado de TypeScript/tests y `git diff --check` aprobados. La build conserva avisos preexistentes de Browserslist, CSS `.flex-[2]` y chunk >500 KB.
+- ESLint sobre los tres SFC tocados mantiene **40 hallazgos legacy**, idénticos a HEAD: 4 en `ContentCalendar.vue`, 19 en `ArticleActionsModal.vue` y 17 en `VideoActionsModal.vue` (handlers de click y etiquetas/controles sin asociación). No aparecen hallazgos ESLint nuevos atribuibles a E-CC-7.
+- Prettier `--check` continúa señalando el roadmap y los tres SFC tocados; el mismo resultado aparece al revisar esas versiones en HEAD. Los TS y tests modificados sí pasan el formato focalizado. No se reformateó de forma masiva código legacy fuera del cambio funcional.
+- `pnpm run cycles` detecta el mismo ciclo type-only entre Articles, Contents, Videos y Playlists registrado en E-CC-11; el comparador local no pudo resolver HEAD y reporta comparación informativa. No hay ciclo runtime nuevo en el módulo Content Calendar. `git diff --check` no reporta whitespace problemático.
+- **Limitación:** FullCalendar está simulado en tests; se ejercitan sus callbacks públicos (incluidos `revert()` y `eventReceive`), no el motor real de drag ni una integración con el backend. Si el PATCH y el GET de reconciliación fallan ambos, el siguiente gesto inicia con una lectura de Content y no envía otro PATCH hasta reconciliar; no se afirma una transacción distribuida.
+
+#### E-CC-8 — Confirmaciones de eliminación por tipo
+
+- **Objetivo:** explicar las consecuencias reales de `DELETE /contents/:id` para cada tipo de Content antes de confirmar.
+- **Política backend:** E-CC-8a-BE completó la auditoría; E-CC-8b-BE aprobó conservar las reglas existentes por tipo; E-CC-8c-BE corrigió Video para conservar Video, List y su relación. Las tres fases backend están completadas y documentadas en `riffvalley-app-back/roadmap/editorial/content-lifecycle.md`. No se cambian endpoint, respuesta, permisos, esquema ni reglas en esta fase frontend.
+- **Mensajes implementados:** Article y Riff Valley Playlist explican que solo desaparece la planificación; Photos explica que se borra toda su entrada con notas y fechas; Radar/Best detallan la eliminación de List, asignaciones y tracking local, y que los discos sobreviven; Video explica que se conserva Video, List y asignaciones; Reunion avisa de la eliminación de reunión, puntos y entrada de calendario.
+- **Componentes:** `DeleteConfirmModal.vue` adapta título y descripción por tipo, identifica el contenido, asocia nombre y descripción al alertdialog, ofrece cancelación, estado pending y error accesible, y conserva Escape/foco de teclado. `ContentCalendar.vue` usa este diálogo desde modales editoriales y backlog, pasando tipo, nombre y estado; así desaparece el Swal genérico del backlog. `useContentCalendarOperations.ts` mantiene `deleteContent(id)`, la invalidación de Content Calendar y el feedback existente; protege solicitudes repetidas y reconcilia respuestas inciertas mediante `GET /contents/:id` antes de atribuir éxito o permitir repetir el DELETE.
+- **Tests añadidos:** `DeleteConfirmModal.test.ts` cubre los siete mensajes, asociación accesible, acciones de confirmar/cancelar, pending y errores. `ContentCalendar.characterization.test.ts` cubre la integración con DELETE, invalidación y cierre tras éxito, prevención de doble solicitud y diálogo abierto ante rechazo.
+- **Limitaciones:** las pruebas mockean los servicios y no verifican la política en backend real ni las consecuencias en base de datos; estas están cubiertas/documentadas por el repositorio backend. Sin prueba visual manual ni inspección responsive, según alcance.
+- **Verificaciones frontend:** la suite focalizada de nueve archivos (Content Calendar, servicio Contents, permisos de ruta y modales) pasa **101 tests en UTC y 101 en Europe/Madrid**, conservando y ampliando la baseline histórica de 87. `pnpm run typecheck`, `pnpm build` y `git diff --check` pasan. ESLint focalizado pasa en el modal, sus tests, operaciones y caracterización; el lint adicional de `ContentCalendar.vue` conserva cuatro errores legacy de handlers click sin teclado, ya documentados en la baseline de E-CC-7. Prettier pasa en el modal, sus tests, operaciones y caracterización. El check focalizado que incluye `ContentCalendar.vue` y este roadmap falla por formato preexistente: ambos también fallan al comprobar HEAD; no se reformató deuda legacy fuera del alcance. La build conserva avisos preexistentes de Browserslist, CSS `.flex-[2]` y tamaño de chunk.
+- **Estado:** **Completada** el 2026-10-31. No adelanta E-CC-9 ni E-CC-10.
 
 #### E-CC-9 — Investigar `ready` y aplicar filtro «Mis eventos»
 
@@ -401,14 +453,14 @@ La auditoría inicial permanece completada. Esta secuencia ordena el trabajo fut
 
 1. **Baseline:** E-CC-1 → E-CC-2.
 2. **Seguridad y exposición:** E-CC-3a (confirmar clientes desplegados) → E-CC-3b (GET autenticados) y E-CC-3c (proyección pública segura), coordinadas para no dejar una ruta indirecta equivalente.
-3. **Investigaciones que condicionan diseño:** E-CC-8a/8b (matriz y propuesta de borrado) y E-CC-9a (`ready`) pueden avanzar tras E-CC-1. La política de borrado y de `ready` requiere decisión posterior antes de ejecutar cambios condicionales.
+3. **Investigaciones que condicionan diseño:** E-CC-8 está completada. E-CC-9a (`ready`) puede avanzar tras E-CC-1; una eventual retirada del campo sigue requiriendo decisión posterior.
 4. **Consistencia del día y consultas:** E-CC-4 y E-CC-5 están completadas, con pruebas de fecha en UTC/Europe-Madrid y consultas en ambas zonas. E-CC-5 se implementó en la vista legacy, sin esperar a la reorganización estructural.
 5. **Estructura y optimización de carga:** E-CC-6 y E-CC-11 están completadas. E-CC-11 se ejecutó después de E-CC-6 y antes de E-CC-7; no es una dependencia funcional de las mutaciones de E-CC-7.
 6. **Operaciones compuestas:** E-CC-7 utiliza la invalidación de E-CC-5. No usar transacción distribuida.
 7. **Filtro confirmado:** E-CC-9b después de E-CC-5; puede implementarse frontend una vez estén disponibles las consultas autenticadas y la composición acordada.
-8. **Cambios sujetos a aprobación:** E-CC-8c y E-CC-9c únicamente después de aprobación expresa de sus políticas. E-CC-10 al final, tras los cambios aceptados.
+8. **Cambios sujetos a aprobación:** E-CC-9c únicamente después de aprobación expresa de su política. E-CC-10 al final, tras los cambios aceptados.
 
-**Dependencias cross-repo:** E-CC-3 afecta frontend y backend; 3c también toca las proyecciones públicas de Articles, Videos y Riff Valley Playlists. E-CC-4 queda en frontend mientras no exista evidencia integrada de desplazamiento del lado backend; cualquier corrección de storage/consulta sería una tarea independiente. E-CC-8a analiza ambos, y 8c puede cambiar backend/frontend si se aprueba. E-CC-9a/9c involucran frontend/backend; E-CC-11 y E-CC-7 son frontend. Una posible reducción de proyección/payload en Contents se evaluaría en tarea backend independiente solo con evidencia y definición de contrato aprobada.
+**Dependencias cross-repo:** E-CC-3 afecta frontend y backend; 3c también toca las proyecciones públicas de Articles, Videos y Riff Valley Playlists. E-CC-4 queda en frontend mientras no exista evidencia integrada de desplazamiento del lado backend; cualquier corrección de storage/consulta sería una tarea independiente. E-CC-8 queda completada en ambos repos: backend implementó la excepción de Video y frontend adaptó los mensajes, sin cambiar contratos. E-CC-9a/9c involucran frontend/backend; E-CC-11 y E-CC-7 son frontend. Una posible reducción de proyección/payload en Contents se evaluaría en tarea backend independiente solo con evidencia y definición de contrato aprobada.
 
 ## Verificaciones de la auditoría inicial
 

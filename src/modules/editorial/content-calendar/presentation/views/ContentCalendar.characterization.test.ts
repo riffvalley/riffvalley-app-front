@@ -13,6 +13,7 @@ import {
 } from "@services/contents/contents";
 import SwalService from "@services/swal/SwalService";
 import ContentCalendar from "./ContentCalendar.vue";
+import BacklogPanel from "../components/BacklogPanel.vue";
 import { formatCalendarDateInput } from "../../utils/contentCalendarDates";
 import { contentCalendarDeferredQueryKeys } from "../../application/contentCalendarDeferredQueries";
 import {
@@ -33,8 +34,8 @@ import { getListDetails } from "@services/list/list";
 
 const mocks = vi.hoisted(() => ({
   getContents: vi.fn(),
-  getContentById: vi.fn(),
   getContentsByMonth: vi.fn(),
+  getContentById: vi.fn(),
   createContent: vi.fn(),
   updateContent: vi.fn(),
   deleteContent: vi.fn(),
@@ -82,8 +83,8 @@ vi.mock("@/modules/identity/auth", () => ({ useAuthStore: () => mocks.authStore 
 vi.mock("@/modules/identity/users", () => ({ getRvUsers: mocks.getRvUsers }));
 vi.mock("@services/contents/contents", () => ({
   getContents: mocks.getContents,
-  getContentById: mocks.getContentById,
   getContentsByMonth: mocks.getContentsByMonth,
+  getContentById: mocks.getContentById,
   createContent: mocks.createContent,
   updateContent: mocks.updateContent,
   deleteContent: mocks.deleteContent,
@@ -122,6 +123,7 @@ type CalendarOptions = {
   eventReceive: (info: { event: { remove: () => void } }) => void;
   eventDrop: (info: {
     event: { id: string; startStr: string; extendedProps: Record<string, unknown> };
+    jsEvent?: { clientX: number; clientY: number };
     revert: () => void;
   }) => Promise<void>;
   eventDragStop: (info: {
@@ -181,6 +183,19 @@ describe("Content Calendar legacy characterization", () => {
     mocks.getContentsByMonth.mockResolvedValue(scheduledContentFixtures);
     mocks.createContent.mockResolvedValue(contentFixtures[0]);
     mocks.updateContent.mockResolvedValue(contentFixtures[0]);
+    mocks.getContentById.mockResolvedValue(contentFixtures[0]);
+    mocks.getArticle.mockResolvedValue({
+      id: "article-1",
+      name: "Artículo",
+      type: "articulo",
+      status: "editing",
+    });
+    mocks.getVideo.mockResolvedValue({
+      id: "video-1",
+      name: "Vídeo",
+      type: "best",
+      status: "editing",
+    });
     mocks.deleteContent.mockResolvedValue(undefined);
     mocks.getListDetails.mockResolvedValue({
       id: "list-radar",
@@ -437,49 +452,76 @@ describe("Content Calendar legacy characterization", () => {
     wrapper.unmount();
   });
 
-  it("updates Article fields through the Article owner without calling Content PATCH", async () => {
+  it("updates Content and Article and invalidates their calendar projection", async () => {
     const wrapper = mountCalendar();
     await flushPromises();
     await calendarOptions(wrapper).eventClick({ event: { id: "article-scheduled" } });
 
-    wrapper.findComponent(ArticleActionsModal).vm.$emit("update-article", {
-      articleId: "article-1",
-      name: "Título de artículo",
-      type: "interview",
-      status: "editing",
-      link: "https://example.test/article",
-      userId: "author-1",
-      editorId: "author-2",
-    });
+    wrapper.findComponent(ArticleActionsModal).vm.$emit(
+      "save",
+      {
+        type: "article",
+        name: "Título de artículo",
+        notes: "Nota editada",
+        publicationDate: "2026-10-31",
+        authorId: "author-1",
+      },
+      {
+        articleId: "article-1",
+        name: "Título de artículo",
+        type: "entrevista",
+        status: "editing",
+        link: "https://example.test/article",
+        userId: "author-1",
+        editorId: "author-2",
+      }
+    );
     await flushPromises();
 
     expect(mocks.updateArticle).toHaveBeenCalledWith("article-1", {
       name: "Título de artículo",
-      type: "interview",
+      type: "entrevista",
       status: "editing",
       link: "https://example.test/article",
       userId: "author-1",
       editorId: "author-2",
     });
+    expect(updateContent).toHaveBeenCalledWith("article-scheduled", {
+      type: "article",
+      name: "Título de artículo",
+      notes: "Nota editada",
+      publicationDate: "2026-10-31",
+      closeDate: null,
+      authorId: "author-1",
+    });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
     });
-    expect(updateContent).not.toHaveBeenCalled();
     wrapper.unmount();
   });
 
-  it("updates Video fields through the Video owner and forwards only supplied assignments", async () => {
+  it("updates Content and Video and forwards only changed assignments", async () => {
     const wrapper = mountCalendar();
     await flushPromises();
     await calendarOptions(wrapper).eventClick({ event: { id: "video-backlog" } });
 
-    wrapper.findComponent(VideoActionsModal).vm.$emit("update-video", {
-      videoId: "video-1",
-      name: "Título del vídeo",
-      type: "best",
-      status: "editing",
-      editorId: "author-2",
-    });
+    wrapper.findComponent(VideoActionsModal).vm.$emit(
+      "save",
+      {
+        type: "video",
+        name: "Título del vídeo",
+        notes: "Notas actualizadas",
+        publicationDate: "",
+        authorId: "author-1",
+      },
+      {
+        videoId: "video-1",
+        name: "Título del vídeo",
+        type: "best",
+        status: "editing",
+        editorId: "author-2",
+      }
+    );
     await flushPromises();
 
     expect(mocks.updateVideo).toHaveBeenCalledWith("video-1", {
@@ -488,10 +530,340 @@ describe("Content Calendar legacy characterization", () => {
       status: "editing",
       editorId: "author-2",
     });
+    expect(updateContent).toHaveBeenCalledWith("video-backlog", {
+      type: "video",
+      name: "Título del vídeo",
+      notes: "Notas actualizadas",
+      publicationDate: "",
+      closeDate: null,
+      authorId: "author-1",
+    });
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
     });
+    wrapper.unmount();
+  });
+
+  it("keeps the Article modal open after a partial save and retries only Article", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    await calendarOptions(wrapper).eventClick({ event: { id: "article-scheduled" } });
+    mocks.updateArticle.mockRejectedValueOnce({ response: { status: 400 } });
+    const contentData = {
+      type: "article" as const,
+      name: "Parcial",
+      notes: "Conservar",
+      publicationDate: "2026-10-31",
+      authorId: "author-1",
+    };
+    const articleData = {
+      articleId: "article-1",
+      name: "Parcial",
+      type: "entrevista" as const,
+      status: "editing" as const,
+      link: "",
+      userId: "author-1",
+      editorId: "author-2",
+    };
+
+    wrapper.findComponent(ArticleActionsModal).vm.$emit("save", contentData, articleData);
+    await flushPromises();
+    expect(wrapper.findComponent(ArticleActionsModal).props("show")).toBe(true);
+    expect(wrapper.findComponent(ArticleActionsModal).props("saveStatus")).toMatchObject({
+      saving: false,
+      retryAvailable: true,
+      message: expect.stringContaining("solo se repetirá la parte fallida"),
+    });
+    expect(updateContent).toHaveBeenCalledTimes(1);
+
+    wrapper.findComponent(ArticleActionsModal).vm.$emit("save", contentData, articleData);
+    await flushPromises();
+    expect(updateContent).toHaveBeenCalledTimes(1);
+    expect(mocks.updateArticle).toHaveBeenCalledTimes(2);
+    expect(wrapper.findComponent(ArticleActionsModal).props("show")).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("retries only Video after Content succeeds and Video fails", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    await calendarOptions(wrapper).eventClick({ event: { id: "video-backlog" } });
+    mocks.updateVideo.mockRejectedValueOnce({ response: { status: 400 } });
+    const contentData = {
+      type: "video" as const,
+      name: "Vídeo parcial",
+      notes: "Mantener",
+      publicationDate: "",
+      authorId: "author-1",
+    };
+    const videoData = {
+      videoId: "video-1",
+      name: "Vídeo parcial",
+      type: "best" as const,
+      status: "editing" as const,
+      editorId: "author-2",
+    };
+
+    wrapper.findComponent(VideoActionsModal).vm.$emit("save", contentData, videoData);
+    await flushPromises();
+    expect(wrapper.findComponent(VideoActionsModal).props("show")).toBe(true);
+    expect(updateContent).toHaveBeenCalledTimes(1);
+
+    wrapper.findComponent(VideoActionsModal).vm.$emit("save", contentData, videoData);
+    await flushPromises();
+    expect(updateContent).toHaveBeenCalledTimes(1);
+    expect(mocks.updateVideo).toHaveBeenCalledTimes(2);
+    expect(wrapper.findComponent(VideoActionsModal).props("show")).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("blocks retry after an uncertain Article timeout when reconciliation also fails", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    await calendarOptions(wrapper).eventClick({ event: { id: "article-scheduled" } });
+    mocks.updateArticle.mockRejectedValueOnce(new Error("timeout"));
+    mocks.getArticle.mockRejectedValueOnce(new Error("reconciliation unavailable"));
+    const contentData = {
+      type: "article" as const,
+      name: "Incierto",
+      notes: "Nota",
+      publicationDate: "2026-10-31",
+      authorId: "author-1",
+    };
+    const articleData = {
+      articleId: "article-1",
+      name: "Incierto",
+      type: "entrevista" as const,
+      status: "editing" as const,
+      link: "https://example.test",
+      userId: "author-1",
+      editorId: "author-2",
+    };
+
+    wrapper.findComponent(ArticleActionsModal).vm.$emit("save", contentData, articleData);
+    await flushPromises();
+
+    expect(mocks.updateArticle).toHaveBeenCalledOnce();
+    expect(mocks.getArticle).toHaveBeenCalledOnce();
+    expect(wrapper.findComponent(ArticleActionsModal).props("show")).toBe(true);
+    expect(wrapper.findComponent(ArticleActionsModal).props("saveStatus")).toMatchObject({
+      retryAvailable: false,
+      message: expect.stringContaining("no se puede confirmar"),
+    });
+    mocks.getArticle.mockResolvedValueOnce({
+      id: "article-1",
+      name: "Incierto",
+      type: "entrevista",
+      status: "editing",
+      link: "https://example.test",
+      userId: "author-1",
+      editorId: "author-2",
+    });
+    wrapper.findComponent(ArticleActionsModal).vm.$emit("save", contentData, articleData);
+    await flushPromises();
+    expect(mocks.updateArticle).toHaveBeenCalledOnce();
+    expect(mocks.getArticle).toHaveBeenCalledTimes(2);
+    expect(wrapper.findComponent(ArticleActionsModal).props("show")).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("does not remove an external Backlog item when its PATCH fails", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    mocks.updateContent.mockRejectedValueOnce({ response: { status: 400 } });
+    const draggedEl = document.createElement("div");
+    draggedEl.setAttribute("data-event", JSON.stringify({ id: "photos-backlog" }));
+    document.body.appendChild(draggedEl);
+
+    await calendarOptions(wrapper).drop({ draggedEl, dateStr: "2026-11-02" });
+    calendarOptions(wrapper).eventReceive({ event: { remove: vi.fn() } });
+
+    expect(draggedEl.parentNode).toBe(document.body);
+    expect(invalidateQueriesSpy).not.toHaveBeenCalled();
+    draggedEl.remove();
+    wrapper.unmount();
+  });
+
+  it("reconciles an external move after a lost PATCH response before removing its Backlog card", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    mocks.updateContent.mockRejectedValueOnce(new Error("connection lost"));
+    mocks.getContentById.mockResolvedValueOnce({
+      ...contentFixtures[1],
+      publicationDate: "2026-11-02T18:00:00.000Z",
+      backlog: false,
+    });
+    const draggedEl = document.createElement("div");
+    draggedEl.setAttribute("data-event", JSON.stringify({ id: "photos-backlog" }));
+    document.body.appendChild(draggedEl);
+
+    await calendarOptions(wrapper).drop({ draggedEl, dateStr: "2026-11-02" });
+
+    expect(mocks.getContentById).toHaveBeenCalledWith("photos-backlog");
+    expect(draggedEl.parentNode).toBeNull();
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
+    });
+    wrapper.unmount();
+  });
+
+  it("requires a successful read reconciliation before allowing another uncertain move", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    mocks.updateContent.mockRejectedValueOnce(new Error("connection lost"));
+    mocks.getContentById
+      .mockRejectedValueOnce(new Error("read unavailable"))
+      .mockResolvedValueOnce(contentFixtures[1]);
+    const draggedEl = document.createElement("div");
+    draggedEl.setAttribute("data-event", JSON.stringify({ id: "photos-backlog" }));
+    document.body.appendChild(draggedEl);
+
+    await calendarOptions(wrapper).drop({ draggedEl, dateStr: "2026-11-02" });
+    await calendarOptions(wrapper).drop({ draggedEl, dateStr: "2026-11-03" });
+
+    expect(mocks.updateContent).toHaveBeenCalledOnce();
+    expect(mocks.getContentById).toHaveBeenCalledTimes(2);
+    expect(draggedEl.parentNode).toBe(document.body);
+    draggedEl.remove();
+    wrapper.unmount();
+  });
+
+  it("rejects a second move while the first is pending", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    let finish!: (value: unknown) => void;
+    mocks.updateContent.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    const firstRevert = vi.fn();
+    const secondRevert = vi.fn();
+    const first = calendarOptions(wrapper).eventDrop({
+      event: { id: "article-scheduled", startStr: "2026-11-03", extendedProps: {} },
+      revert: firstRevert,
+    });
+    await calendarOptions(wrapper).eventDrop({
+      event: { id: "article-scheduled", startStr: "2026-11-04", extendedProps: {} },
+      revert: secondRevert,
+    });
+    expect(mocks.updateContent).toHaveBeenCalledOnce();
+    expect(secondRevert).toHaveBeenCalledOnce();
+    finish(contentFixtures[0]);
+    await first;
+    expect(firstRevert).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("keeps the month query independent when navigation happens during a pending move", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    let finish!: (value: unknown) => void;
+    mocks.updateContent.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    const options = calendarOptions(wrapper);
+    const pending = options.eventDrop({
+      event: { id: "article-scheduled", startStr: "2026-11-03", extendedProps: {} },
+      revert: vi.fn(),
+    });
+
+    options.datesSet({ view: { currentStart: new Date("2026-11-01T00:00:00.000Z") } });
+    await flushPromises();
+    expect(mocks.getContentsByMonth).toHaveBeenCalledWith(2026, 11, expect.any(AbortSignal));
+
+    finish(contentFixtures[0]);
+    await pending;
+    await flushPromises();
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
+    });
+    expect(eventContentFor(options).every((event) => event.allDay)).toBe(true);
+    wrapper.unmount();
+  });
+
+  it("reverts a failed calendar-to-calendar move", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    mocks.updateContent.mockRejectedValueOnce({ response: { status: 400 } });
+    const revert = vi.fn();
+    await calendarOptions(wrapper).eventDrop({
+      event: { id: "article-scheduled", startStr: "2026-11-04", extendedProps: {} },
+      revert,
+    });
+    expect(revert).toHaveBeenCalledOnce();
+    expect(invalidateQueriesSpy).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("reverts a failed calendar-to-backlog move", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    const target = wrapper
+      .findComponent(BacklogPanel)
+      .element.querySelector<HTMLElement>(".flex-1")!;
+    vi.spyOn(target, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 100,
+      bottom: 100,
+      width: 100,
+      height: 100,
+      toJSON: () => ({}),
+    });
+    mocks.updateContent.mockRejectedValueOnce({ response: { status: 400 } });
+    const revert = vi.fn();
+    await calendarOptions(wrapper).eventDragStop({
+      event: { id: "article-scheduled" },
+      jsEvent: { clientX: 10, clientY: 10 },
+      revert,
+    });
+    expect(revert).toHaveBeenCalledOnce();
+    expect(invalidateQueriesSpy).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("sends one PATCH when a calendar event is dropped over the Backlog", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    const target = wrapper
+      .findComponent(BacklogPanel)
+      .element.querySelector<HTMLElement>(".flex-1")!;
+    vi.spyOn(target, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      right: 100,
+      bottom: 100,
+      width: 100,
+      height: 100,
+      toJSON: () => ({}),
+    });
+    const options = calendarOptions(wrapper);
+    const revert = vi.fn();
+    await options.eventDrop({
+      event: { id: "article-scheduled", startStr: "2026-11-03", extendedProps: {} },
+      jsEvent: { clientX: 10, clientY: 10 },
+      revert,
+    });
     expect(updateContent).not.toHaveBeenCalled();
+    await options.eventDragStop({
+      event: { id: "article-scheduled" },
+      jsEvent: { clientX: 10, clientY: 10 },
+      revert,
+    });
+    expect(updateContent).toHaveBeenCalledOnce();
+    expect(updateContent).toHaveBeenCalledWith("article-scheduled", {
+      publicationDate: null,
+      backlog: true,
+    });
     wrapper.unmount();
   });
 
@@ -624,29 +996,110 @@ describe("Content Calendar legacy characterization", () => {
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
     });
     expect(wrapper.findComponent(DeleteConfirmModal).props("show")).toBe(false);
+    expect(mocks.success).toHaveBeenCalledWith("Entrada eliminada correctamente");
     expect(getContents).toHaveBeenCalledTimes(2);
     wrapper.unmount();
   });
 
-  it("respects the existing backlog delete confirmation result", async () => {
+  it("keeps deletion pending and sends only one DELETE while confirmation is repeated", async () => {
+    let resolveDelete!: () => void;
+    mocks.deleteContent.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (resolveDelete = resolve))
+    );
     const wrapper = mountCalendar();
     await flushPromises();
-    mocks.confirm.mockResolvedValueOnce({ isConfirmed: false });
+    await calendarOptions(wrapper).eventClick({ event: { id: "article-scheduled" } });
+    wrapper.findComponent(ArticleActionsModal).vm.$emit("delete");
+    await flushPromises();
+
+    const modal = wrapper.findComponent(DeleteConfirmModal);
+    modal.vm.$emit("confirm");
+    await flushPromises();
+    expect(modal.props("pending")).toBe(true);
+    modal.vm.$emit("confirm");
+    await flushPromises();
+    expect(mocks.deleteContent).toHaveBeenCalledTimes(1);
+
+    resolveDelete();
+    await flushPromises();
+    expect(modal.props("show")).toBe(false);
+    expect(modal.props("pending")).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("keeps the dialog open and exposes an error when DELETE is rejected", async () => {
+    mocks.deleteContent.mockRejectedValueOnce({ response: { status: 409 } });
+    const wrapper = mountCalendar();
+    await flushPromises();
+    await calendarOptions(wrapper).eventClick({ event: { id: "article-scheduled" } });
+    wrapper.findComponent(ArticleActionsModal).vm.$emit("delete");
+    await flushPromises();
+
+    const modal = wrapper.findComponent(DeleteConfirmModal);
+    modal.vm.$emit("confirm");
+    await flushPromises();
+
+    expect(mocks.deleteContent).toHaveBeenCalledWith("article-scheduled");
+    expect(modal.props("show")).toBe(true);
+    expect(modal.props("errorMessage")).toContain("No se pudo eliminar el contenido");
+    expect(mocks.error).toHaveBeenCalledWith("No se pudo eliminar el contenido");
+    expect(mocks.success).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it("reconciles an uncertain DELETE before treating a 404 as confirmed removal", async () => {
+    mocks.deleteContent.mockRejectedValueOnce(new Error("connection lost"));
+    mocks.getContentById
+      .mockRejectedValueOnce(new Error("reconciliation unavailable"))
+      .mockRejectedValueOnce({ response: { status: 404 } });
+    const wrapper = mountCalendar();
+    await flushPromises();
+    await calendarOptions(wrapper).eventClick({ event: { id: "article-scheduled" } });
+    wrapper.findComponent(ArticleActionsModal).vm.$emit("delete");
+    await flushPromises();
+
+    const modal = wrapper.findComponent(DeleteConfirmModal);
+    modal.vm.$emit("confirm");
+    await flushPromises();
+    expect(modal.props("show")).toBe(true);
+    expect(modal.props("errorMessage")).toContain("No se pudo comprobar el resultado");
+
+    modal.vm.$emit("confirm");
+    await flushPromises();
+    expect(mocks.deleteContent).toHaveBeenCalledTimes(1);
+    expect(mocks.getContentById).toHaveBeenCalledTimes(2);
+    expect(modal.props("show")).toBe(false);
+    expect(mocks.success).toHaveBeenCalledWith("Entrada eliminada correctamente");
+    wrapper.unmount();
+  });
+
+  it("uses the type-specific confirmation for backlog deletion", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
     wrapper
       .findComponent({ name: "BacklogPanel" })
       .vm.$emit("delete-content", backlogContentFixtures[0]);
     await flushPromises();
+    const modal = wrapper.findComponent(DeleteConfirmModal);
+    expect(modal.props("show")).toBe(true);
+    expect(modal.props("contentType")).toBe("photos");
+    expect(modal.props("contentName")).toBe(backlogContentFixtures[0].name);
+    modal.vm.$emit("cancel");
+    await flushPromises();
     expect(deleteContent).not.toHaveBeenCalled();
+    expect(modal.props("show")).toBe(false);
 
-    mocks.confirm.mockResolvedValueOnce({ isConfirmed: true });
     wrapper
       .findComponent({ name: "BacklogPanel" })
       .vm.$emit("delete-content", backlogContentFixtures[0]);
+    await flushPromises();
+    modal.vm.$emit("confirm");
     await flushPromises();
     expect(deleteContent).toHaveBeenCalledWith("photos-backlog");
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
     });
+    expect(modal.props("show")).toBe(false);
     wrapper.unmount();
   });
 

@@ -44,7 +44,7 @@ describe("VideoActionsModal relationship updates", () => {
       .find((button) => button.text().includes("Guardar Cambios"))!;
     await saveButton.trigger("click");
 
-    const payload = wrapper.emitted("update-video")?.[0]?.[0];
+    const payload = wrapper.emitted("save")?.[0]?.[1];
     expect(payload).toMatchObject({
       videoId: "video-1",
       name: "Título actualizado",
@@ -67,9 +67,9 @@ describe("VideoActionsModal relationship updates", () => {
       .find((button) => button.text().includes("Guardar Cambios"))!;
     await saveButton.trigger("click");
 
-    expect(wrapper.emitted("update-video")?.[0]?.[0]).toMatchObject({
+    expect(wrapper.emitted("save")?.[0]?.[1]).toMatchObject({
       videoId: "video-1",
-      userId: null,
+      userId: undefined,
       editorId: userId,
     });
 
@@ -84,23 +84,25 @@ describe("VideoActionsModal relationship updates", () => {
       .find((button) => button.text().includes("Guardar Cambios"))!;
     await saveButton.trigger("click");
 
-    const payload = wrapper.emitted("update-video")?.[0]?.[0];
+    const payload = wrapper.emitted("save")?.[0]?.[1];
     expect(payload).not.toHaveProperty("userId");
     expect(payload).not.toHaveProperty("editorId");
 
     wrapper.unmount();
   });
 
-  it("restores saved User and Editor values when the API update is rejected", async () => {
+  it("keeps entered User and Editor values available after a partial error", async () => {
     const wrapper = mountModal();
     const assignmentSelects = wrapper.findAll("select").slice(-2);
     await assignmentSelects[0].setValue("");
     await assignmentSelects[1].setValue("");
 
-    await wrapper.setProps({ videoUpdateError: 1 });
+    await wrapper.setProps({
+      saveStatus: { saving: false, message: "Falló el video", retryAvailable: true },
+    });
 
-    expect((assignmentSelects[0].element as HTMLSelectElement).value).toBe(userId);
-    expect((assignmentSelects[1].element as HTMLSelectElement).value).toBe(editorId);
+    expect((assignmentSelects[0].element as HTMLSelectElement).value).toBe("");
+    expect((assignmentSelects[1].element as HTMLSelectElement).value).toBe("");
     wrapper.unmount();
   });
 });
