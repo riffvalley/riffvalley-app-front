@@ -4,27 +4,29 @@ import type { EventDropArg } from "@fullcalendar/core";
 import {
   createContent,
   deleteContent,
-  isContentListAsignation,
   updateContent,
   type Content,
-  type ContentListAsignation,
 } from "@services/contents/contents";
 import { updateAsignationService } from "@services/asignation/asignation";
-import { deleteList, getListDetails, updateList } from "@services/list/list";
+import {
+  deleteList,
+  updateList,
+  type ListAsignationDetails,
+  type RadarListDetails,
+} from "@services/list/list";
 import { updateArticle } from "@services/articles/articles";
 import { updateVideo } from "@services/videos/videos";
 import SwalService from "@services/swal/SwalService";
-import { getRvUsers, type RvUser } from "@/modules/identity/users";
 import type {
   ArticleUpdateData,
   ContentEditorData,
-  ContentListDetails,
   CreateContentFormData,
   VideoUpdateData,
 } from "../types/contentCalendar.types";
 import { toCalendarApiDate } from "../utils/contentCalendarDates";
 import { getContentTypeLabel, toCalendarDate } from "../utils/contentCalendarEvents";
 import { contentCalendarQueryKeys } from "./contentCalendarQueries";
+import { contentCalendarDeferredQueryKeys } from "./contentCalendarDeferredQueries";
 
 interface ContentCalendarOperationsOptions {
   allContents: ComputedRef<Content[]>;
@@ -37,45 +39,12 @@ interface ContentCalendarOperationsOptions {
   contentToDelete: Ref<Content | null>;
   editingContentId: Ref<string | null>;
   editingContent: Ref<Content | ContentEditorData>;
-  radarDetails: Ref<ContentListDetails | null>;
-  loadingRadarDetails: Ref<boolean>;
   videoUpdateError: Ref<number>;
-  rvUsers: Ref<RvUser[]>;
-  currentUserId: () => string | null;
-  setDefaultAuthorIfEmpty: (userId: string) => void;
   resetCreateDraft: () => void;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
-}
-
-function isContentListDetails(value: unknown): value is ContentListDetails {
-  if (!isRecord(value) || typeof value.id !== "string" || typeof value.name !== "string")
-    return false;
-  const types = ["month", "week", "special", "video"];
-  const statuses = [
-    "new",
-    "assigned",
-    "not_started",
-    "in_progress",
-    "editing",
-    "ready",
-    "published",
-  ];
-  if (typeof value.type !== "string" || !types.includes(value.type)) return false;
-  if (
-    value.status !== undefined &&
-    value.status !== null &&
-    (typeof value.status !== "string" || !statuses.includes(value.status))
-  )
-    return false;
-  if (!Array.isArray(value.asignations) || !value.asignations.every(isContentListAsignation))
-    return false;
-  return ["listDate", "closeDate"].every(
-    (field) =>
-      value[field] === undefined || value[field] === null || typeof value[field] === "string"
-  );
 }
 
 function getHttpErrorMessage(error: unknown): string | string[] | undefined {
@@ -98,44 +67,31 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     });
   }
 
-  async function loadRadarDetails(content: Content) {
-    if ((content.type !== "radar" && content.type !== "best") || !content.list?.id) {
-      options.radarDetails.value = null;
-      return;
-    }
-
-    options.loadingRadarDetails.value = true;
-    try {
-      const response: unknown = await getListDetails(content.list.id);
-      if (isContentListDetails(response)) {
-        response.asignations.sort((a, b) => (a.position || 0) - (b.position || 0));
-        options.radarDetails.value = response;
-      }
-    } catch (error) {
-      console.error("Error loading radar details", error);
-      SwalService.error("Error cargando detalles de la lista");
-    } finally {
-      options.loadingRadarDetails.value = false;
-    }
+  function listDetailsQueryKey(listId: string) {
+    return contentCalendarDeferredQueryKeys.listDetails(options.session(), listId);
   }
 
-  async function loadAssignableUsers() {
-    try {
-      options.rvUsers.value = await getRvUsers();
-      const userId = options.currentUserId();
-      if (userId) options.setDefaultAuthorIfEmpty(userId);
-    } catch (error) {
-      console.error("Error loading RV users:", error);
-    }
+  async function invalidateListDetails(listId: string | null | undefined) {
+    if (!listId) return;
+    await queryClient.invalidateQueries({ queryKey: listDetailsQueryKey(listId), exact: true });
+  }
+
+  async function removeListDetails(listId: string | null | undefined) {
+    if (!listId) return;
+    await queryClient.removeQueries({ queryKey: listDetailsQueryKey(listId), exact: true });
   }
 
   async function handleBacklogDrop(contentId: string, date: string | null) {
+    const content = options.allContents.value.find((item) => item.id === contentId);
     try {
       await updateContent(contentId, {
         publicationDate: toCalendarDate(date),
         backlog: date === null,
       });
       await invalidateContentCalendarQueries();
+      if (content?.type === "radar" || content?.type === "best") {
+        await invalidateListDetails(content.list?.id);
+      }
       SwalService.success(date ? "Evento programado correctamente" : "Evento movido al backlog");
     } catch (error) {
       console.error("Error updating content date:", error);
@@ -157,6 +113,9 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
         backlog: false,
       });
       await invalidateContentCalendarQueries();
+      if (content?.type === "radar" || content?.type === "best") {
+        await invalidateListDetails(content.list?.id);
+      }
       SwalService.success("Evento reprogramado correctamente");
     } catch (error) {
       console.error("Error updating content date:", error);
@@ -207,6 +166,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     }
 
     try {
+      const previousContent = options.allContents.value.find((item) => item.id === contentId);
       await updateContent(contentId, {
         type: contentData.type,
         name: contentData.name,
@@ -219,6 +179,9 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
       options.showActionsModal.value = false;
       options.editingContentId.value = null;
       await invalidateContentCalendarQueries();
+      if (previousContent?.type === "radar" || previousContent?.type === "best") {
+        await invalidateListDetails(previousContent.list?.id);
+      }
       SwalService.success("Evento actualizado correctamente");
     } catch (error) {
       console.error("Error updating content:", error);
@@ -297,15 +260,28 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     }
   }
 
-  async function toggleAsignation(asignation: ContentListAsignation) {
+  async function toggleAsignation(asignation: ListAsignationDetails) {
     const nextDone = !asignation.done;
-    asignation.done = nextDone;
+    const listId = options.selectedContent.value?.list?.id;
+    const queryKey = listId ? listDetailsQueryKey(listId) : null;
+    const previousDetails = queryKey
+      ? queryClient.getQueryData<RadarListDetails>(queryKey)
+      : undefined;
+    if (queryKey && previousDetails) {
+      queryClient.setQueryData<RadarListDetails>(queryKey, {
+        ...previousDetails,
+        asignations: previousDetails.asignations.map((item) =>
+          item.id === asignation.id ? { ...item, done: nextDone } : item
+        ),
+      });
+    }
     try {
       await updateAsignationService(asignation.id, { done: nextDone });
       await invalidateContentCalendarQueries();
+      await invalidateListDetails(listId);
     } catch (error) {
       console.error("Error updating asignation", error);
-      asignation.done = !nextDone;
+      if (queryKey && previousDetails) queryClient.setQueryData(queryKey, previousDetails);
       SwalService.error("Error actualizando el estado de la asignación");
     }
   }
@@ -324,6 +300,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
       await deleteList(listId);
       SwalService.success("Lista eliminada correctamente");
       options.showActionsModal.value = false;
+      await removeListDetails(listId);
       await invalidateContentCalendarQueries();
     } catch (error) {
       console.error(error);
@@ -331,11 +308,12 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     }
   }
 
-  async function updateListStatus(list: ContentListDetails) {
+  async function updateListStatus(list: RadarListDetails) {
     if (!list.id) return;
     try {
       await updateList(list.id, { status: list.status });
       await invalidateContentCalendarQueries();
+      await invalidateListDetails(list.id);
       SwalService.success("Estado actualizado");
     } catch (error) {
       console.error("Error updating status:", error);
@@ -344,12 +322,12 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
   }
 
   async function updateRadarField(field: string, value: string) {
-    const details = options.radarDetails.value;
-    if (!details?.id) return;
+    const listId = options.selectedContent.value?.list?.id;
+    if (!listId) return;
     try {
-      await updateList(details.id, { [field]: value });
-      options.radarDetails.value = { ...details, [field]: value };
+      await updateList(listId, { [field]: value });
       await invalidateContentCalendarQueries();
+      await invalidateListDetails(listId);
       SwalService.success("Fecha actualizada correctamente");
     } catch (error) {
       console.error(`Error updating ${field}:`, error);
@@ -366,6 +344,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
         closeDate: closeDate ? toCalendarDate(closeDate) : null,
       });
       await invalidateContentCalendarQueries();
+      await invalidateListDetails(content.list?.id);
       SwalService.success("Fechas actualizadas");
     } catch (error) {
       console.error("Error updating dates:", error);
@@ -398,8 +377,6 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     handleUpdateContentAuthor,
     handleUpdateRadarDates,
     handleUpdateVideo,
-    loadAssignableUsers,
-    loadRadarDetails,
     toggleAsignation,
     updateListStatus,
     updateRadarField,

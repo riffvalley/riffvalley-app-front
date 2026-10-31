@@ -99,7 +99,10 @@
                 <!-- Autor -->
                 <div>
                     <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Autor</label>
+                    <AssignableUsersFeedback :loading="usersLoading" :error="usersError" :refreshing="usersRefreshing"
+                        @retry="emit('retry-users')" />
                     <select v-model="formData.authorId"
+                        :disabled="usersLoading || rvUsers.length === 0"
                         class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30">
                         <option value="">Seleccionar autor...</option>
                         <option v-for="user in rvUsers" :key="user.id" :value="user.id">{{ user.username }}</option>
@@ -134,18 +137,27 @@ import { ref, watch, computed } from 'vue';
 import type { Content } from '@services/contents/contents';
 import { formatCalendarDateInput } from '../../utils/contentCalendarDates';
 import type { RvUser } from '@/modules/identity/users';
+import AssignableUsersFeedback from './AssignableUsersFeedback.vue';
 import type { ContentEditorData } from '../../types/contentCalendar.types';
 
 interface Props {
     show: boolean;
     content: Content;
     rvUsers: RvUser[];
+    usersLoading?: boolean;
+    usersError?: boolean;
+    usersRefreshing?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    usersLoading: false,
+    usersError: false,
+    usersRefreshing: false,
+});
 
 const emit = defineEmits<{
     close: [];
+    'retry-users': [];
     update: [data: ContentEditorData];
     delete: [];
 }>();

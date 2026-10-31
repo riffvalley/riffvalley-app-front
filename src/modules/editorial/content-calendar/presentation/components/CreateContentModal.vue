@@ -34,7 +34,10 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Autor</label>
+                    <AssignableUsersFeedback :loading="usersLoading" :error="usersError" :refreshing="usersRefreshing"
+                        @retry="emit('retry-users')" />
                     <select v-model="formData.authorId"
+                        :disabled="usersLoading || rvUsers.length === 0"
                         class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2">
                         <option value="">Seleccionar autor...</option>
                         <option v-for="user in rvUsers" :key="user.id" :value="user.id">
@@ -165,7 +168,7 @@
                     class="px-4 py-2 bg-gray-100 dark:bg-rv-darkSurface text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-rv-darkBg rounded-lg transition-colors font-medium">
                     Cancelar
                 </button>
-                <button @click="handleCreate"
+                <button @click="handleCreate" :disabled="usersLoading || rvUsers.length === 0"
                     class="px-4 py-2 bg-rv-purple text-white rounded-lg hover:bg-rv-pink transition-colors">
                     Crear
                 </button>
@@ -178,6 +181,7 @@
 import { ref, watch } from 'vue';
 import type { ContentType } from '@services/contents/contents';
 import type { RvUser } from '@/modules/identity/users';
+import AssignableUsersFeedback from './AssignableUsersFeedback.vue';
 import type { CreateContentFormData } from '../../types/contentCalendar.types';
 import { MONTHS } from '@helpers/dateConstants';
 import { addCalendarDays, formatLocalCalendarDate } from '../../utils/contentCalendarDates';
@@ -185,12 +189,20 @@ import { addCalendarDays, formatLocalCalendarDate } from '../../utils/contentCal
 interface Props {
     show: boolean;
     rvUsers: RvUser[];
+    usersLoading?: boolean;
+    usersError?: boolean;
+    usersRefreshing?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    usersLoading: false,
+    usersError: false,
+    usersRefreshing: false,
+});
 
 const emit = defineEmits<{
     close: [];
+    'retry-users': [];
     create: [data: CreateContentFormData];
 }>();
 
@@ -208,7 +220,7 @@ const formData = ref({
 });
 
 // Watch for modal opening or type change to auto-fill name
-watch([() => props.show, () => formData.value.type], ([isOpen, type]) => {
+watch([() => props.show, () => formData.value.type, () => props.rvUsers], ([isOpen, type]) => {
     if (isOpen) {
         // Reset dates that might have been set by other types
         formData.value.listDate = '';

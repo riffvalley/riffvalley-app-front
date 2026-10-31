@@ -14,6 +14,7 @@ import {
 import SwalService from "@services/swal/SwalService";
 import ContentCalendar from "./ContentCalendar.vue";
 import { formatCalendarDateInput } from "../../utils/contentCalendarDates";
+import { contentCalendarDeferredQueryKeys } from "../../application/contentCalendarDeferredQueries";
 import {
   backlogContentFixtures,
   contentFixtures,
@@ -39,6 +40,11 @@ const mocks = vi.hoisted(() => ({
   deleteContent: vi.fn(),
   getRvUsers: vi.fn(),
   getListDetails: vi.fn(),
+  getArticle: vi.fn(),
+  getArticles: vi.fn(),
+  getVideo: vi.fn(),
+  getVideos: vi.fn(),
+  getAsignationsByListService: vi.fn(),
   updateArticle: vi.fn(),
   updateVideo: vi.fn(),
   updateAsignationService: vi.fn(),
@@ -87,9 +93,18 @@ vi.mock("@services/list/list", () => ({
   getListDetails: mocks.getListDetails,
   updateList: mocks.updateList,
 }));
-vi.mock("@services/articles/articles", () => ({ updateArticle: mocks.updateArticle }));
-vi.mock("@services/videos/videos", () => ({ updateVideo: mocks.updateVideo }));
+vi.mock("@services/articles/articles", () => ({
+  getArticle: mocks.getArticle,
+  getArticles: mocks.getArticles,
+  updateArticle: mocks.updateArticle,
+}));
+vi.mock("@services/videos/videos", () => ({
+  getVideo: mocks.getVideo,
+  getVideos: mocks.getVideos,
+  updateVideo: mocks.updateVideo,
+}));
 vi.mock("@services/asignation/asignation", () => ({
+  getAsignationsByListService: mocks.getAsignationsByListService,
   updateAsignationService: mocks.updateAsignationService,
 }));
 vi.mock("@services/swal/SwalService", () => ({
@@ -167,7 +182,12 @@ describe("Content Calendar legacy characterization", () => {
     mocks.createContent.mockResolvedValue(contentFixtures[0]);
     mocks.updateContent.mockResolvedValue(contentFixtures[0]);
     mocks.deleteContent.mockResolvedValue(undefined);
-    mocks.getListDetails.mockResolvedValue({ id: "list-radar", asignations: [] });
+    mocks.getListDetails.mockResolvedValue({
+      id: "list-radar",
+      name: "Radar",
+      type: "week",
+      asignations: [],
+    });
     mocks.confirm.mockResolvedValue({ isConfirmed: true });
   });
 
@@ -181,17 +201,79 @@ describe("Content Calendar legacy characterization", () => {
     expect(formatCalendarDateInput("2026-10-31T23:30:00.000Z")).toBe("2026-10-31");
   });
 
-  it("loads users, backlog and the current month, then merges both result sets by id", async () => {
+  it("loads only backlog and the current month initially, then merges both result sets by id", async () => {
     const wrapper = mountCalendar();
     await flushPromises();
 
-    expect(mocks.getRvUsers).toHaveBeenCalledOnce();
+    expect(mocks.getRvUsers).not.toHaveBeenCalled();
+    expect(mocks.getListDetails).not.toHaveBeenCalled();
+    expect(mocks.getArticle).not.toHaveBeenCalled();
+    expect(mocks.getArticles).not.toHaveBeenCalled();
+    expect(mocks.getVideo).not.toHaveBeenCalled();
+    expect(mocks.getVideos).not.toHaveBeenCalled();
+    expect(mocks.getAsignationsByListService).not.toHaveBeenCalled();
     expect(getContents).toHaveBeenCalledWith(true, expect.any(AbortSignal));
+    expect(getContents).toHaveBeenCalledOnce();
     expect(getContentsByMonth).toHaveBeenCalledWith(2026, 10, expect.any(AbortSignal));
+    expect(getContentsByMonth).toHaveBeenCalledOnce();
     const events = eventContentFor(calendarOptions(wrapper));
     expect(events.map(({ id }) => id)).toContain("article-scheduled");
     expect(events.map(({ id }) => id)).not.toContain("photos-backlog");
     expect(wrapper.findAll("[data-event]")).toHaveLength(backlogContentFixtures.length);
+    wrapper.unmount();
+  });
+
+  it("loads users only for a user form, reuses them in action modals, and keeps calendar data after a deferred error", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    expect(mocks.getRvUsers).not.toHaveBeenCalled();
+
+    wrapper.findComponent({ name: "BacklogPanel" }).vm.$emit("create-new");
+    await vi.waitFor(() => expect(mocks.getRvUsers).toHaveBeenCalledOnce());
+    await flushPromises();
+    expect(wrapper.findComponent(CreateContentModal).props("rvUsers")).toHaveLength(1);
+    wrapper.findComponent(CreateContentModal).vm.$emit("close");
+    await flushPromises();
+
+    await calendarOptions(wrapper).eventClick({ event: { id: "article-scheduled" } });
+    await flushPromises();
+    expect(mocks.getRvUsers).toHaveBeenCalledOnce();
+    expect(wrapper.findComponent(ArticleActionsModal).props("rvUsers")).toHaveLength(1);
+    expect(eventContentFor(calendarOptions(wrapper)).map(({ id }) => id)).toContain(
+      "article-scheduled"
+    );
+    wrapper.unmount();
+  });
+
+  it("keeps calendar and backlog available when a deferred users query fails", async () => {
+    mocks.getRvUsers.mockRejectedValue(new Error("identity unavailable"));
+    const wrapper = mountCalendar();
+    await flushPromises();
+    wrapper.findComponent({ name: "BacklogPanel" }).vm.$emit("create-new");
+    await vi.waitFor(() => expect(mocks.getRvUsers).toHaveBeenCalledOnce());
+    await flushPromises();
+
+    expect(wrapper.findAll("[data-event]")).toHaveLength(backlogContentFixtures.length);
+    expect(eventContentFor(calendarOptions(wrapper)).map(({ id }) => id)).toContain(
+      "article-scheduled"
+    );
+    expect(wrapper.text()).not.toContain("No se han podido cargar los contenidos");
+    wrapper.unmount();
+  });
+
+  it("keeps calendar and backlog available when a deferred List query fails", async () => {
+    mocks.getListDetails.mockRejectedValue(new Error("Lists unavailable"));
+    const wrapper = mountCalendar();
+    await flushPromises();
+    await calendarOptions(wrapper).eventClick({ event: { id: "radar-scheduled" } });
+    await flushPromises();
+
+    expect(mocks.getListDetails).toHaveBeenCalledOnce();
+    expect(wrapper.findAll("[data-event]")).toHaveLength(backlogContentFixtures.length);
+    expect(eventContentFor(calendarOptions(wrapper)).map(({ id }) => id)).toContain(
+      "article-scheduled"
+    );
+    expect(wrapper.text()).not.toContain("No se han podido cargar los contenidos");
     wrapper.unmount();
   });
 
@@ -432,7 +514,97 @@ describe("Content Calendar legacy characterization", () => {
       expect(wrapper.findComponent(modal).props("show")).toBe(true);
       await wrapper.findComponent(modal).vm.$emit("close");
     }
-    expect(getListDetails).toHaveBeenCalledWith("list-radar");
+    expect(mocks.getRvUsers).toHaveBeenCalledOnce();
+    expect(getListDetails).toHaveBeenCalledWith("list-radar", expect.any(AbortSignal));
+    expect(getListDetails).toHaveBeenCalledOnce();
+    wrapper.unmount();
+  });
+
+  it("invalidates the cached List details after a successful Radar status update", async () => {
+    const details = {
+      id: "list-radar",
+      name: "Radar",
+      type: "week",
+      status: "new",
+      asignations: [],
+    };
+    mocks.getListDetails.mockResolvedValue(details);
+    const wrapper = mountCalendar();
+    await flushPromises();
+    await calendarOptions(wrapper).eventClick({ event: { id: "radar-scheduled" } });
+    await flushPromises();
+
+    wrapper
+      .findComponent(RadarActionsModal)
+      .vm.$emit("update-status", { ...details, status: "assigned" });
+    await flushPromises();
+
+    expect(mocks.updateList).toHaveBeenCalledWith("list-radar", { status: "assigned" });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: contentCalendarDeferredQueryKeys.listDetails(
+        { userId: "author-1", generation: 1, role: "riffvalley" },
+        "list-radar"
+      ),
+      exact: true,
+    });
+    expect(mocks.getListDetails).toHaveBeenCalledTimes(2);
+    wrapper.unmount();
+  });
+
+  it("preserves cached List details when a List mutation fails", async () => {
+    const details = {
+      id: "list-radar",
+      name: "Radar",
+      type: "week",
+      status: "new",
+      asignations: [],
+    };
+    mocks.getListDetails.mockResolvedValue(details);
+    mocks.updateList.mockRejectedValueOnce(new Error("update failed"));
+    const wrapper = mountCalendar();
+    await flushPromises();
+    await calendarOptions(wrapper).eventClick({ event: { id: "radar-scheduled" } });
+    await flushPromises();
+
+    wrapper
+      .findComponent(RadarActionsModal)
+      .vm.$emit("update-status", { ...details, status: "assigned" });
+    await flushPromises();
+
+    const detailKey = contentCalendarDeferredQueryKeys.listDetails(
+      { userId: "author-1", generation: 1, role: "riffvalley" },
+      "list-radar"
+    );
+    expect(queryClients[0].getQueryData(detailKey)).toMatchObject({ status: "new" });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({ queryKey: detailKey, exact: true });
+    wrapper.unmount();
+  });
+
+  it("invalidates List details after an assignment is updated", async () => {
+    const details = {
+      id: "list-radar",
+      name: "Radar",
+      type: "week",
+      status: "new",
+      asignations: [{ id: "asignation-1", done: false, position: 1, description: "Revisar" }],
+    };
+    mocks.getListDetails.mockResolvedValue(details);
+    const wrapper = mountCalendar();
+    await flushPromises();
+    await calendarOptions(wrapper).eventClick({ event: { id: "radar-scheduled" } });
+    await flushPromises();
+
+    wrapper.findComponent(RadarActionsModal).vm.$emit("toggle-asignation", details.asignations[0]);
+    await flushPromises();
+
+    expect(mocks.updateAsignationService).toHaveBeenCalledWith("asignation-1", { done: true });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: contentCalendarDeferredQueryKeys.listDetails(
+        { userId: "author-1", generation: 1, role: "riffvalley" },
+        "list-radar"
+      ),
+      exact: true,
+    });
     wrapper.unmount();
   });
 

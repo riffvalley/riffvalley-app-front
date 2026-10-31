@@ -1,4 +1,4 @@
-import type { ContentList, ContentListAsignation, ContentType } from "@services/contents/contents";
+import type { ContentType } from "@services/contents/contents";
 import type { ArticleState, ArticleType } from "@services/articles/articles";
 import type { VideoStatus, VideoType } from "@services/videos/videos";
 
@@ -35,8 +35,4 @@ export interface VideoUpdateData {
   status: VideoStatus;
   userId: string;
   editorId: string;
-}
-
-export interface ContentListDetails extends ContentList {
-  asignations: ContentListAsignation[];
 }

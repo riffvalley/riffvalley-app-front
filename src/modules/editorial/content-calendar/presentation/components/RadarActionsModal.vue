@@ -38,8 +38,8 @@
                     </div>
 
                     <div v-if="radarDetails" class="relative">
-                        <select v-model="radarDetails.status" @change="$emit('update-status', radarDetails)"
-                            :class="getStatusClass(radarDetails.status)"
+                        <select :value="radarDetails.status" @change="handleStatusChange"
+                            :class="getStatusClass(radarDetails.status ?? '')"
                             class="appearance-none pl-4 pr-8 py-2 border rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors focus:ring-1 focus:ring-indigo-200 shadow-sm">
                             <option value="new" class="text-gray-900">Nueva</option>
                             <option value="assigned" class="text-gray-900">Asignada</option>
@@ -56,11 +56,20 @@
             </div>
 
             <div class="flex-1 overflow-y-auto mb-6 custom-scrollbar">
-                <div v-if="loading" class="flex justify-center py-10">
+                <div v-if="loading && !radarDetails" role="status" class="flex justify-center py-10">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-rv-purple"></div>
                 </div>
-
-                <div v-else-if="radarDetails && radarDetails.asignations && radarDetails.asignations.length > 0" class="overflow-x-auto">
+                <div v-else-if="error && !radarDetails" role="alert" class="py-8 text-center text-sm text-red-700 dark:text-red-300">
+                    No se han podido cargar los detalles de esta lista.
+                    <button class="ml-2 underline" @click="emit('retry-details')">Reintentar</button>
+                </div>
+                <template v-else>
+                <p v-if="loading" role="status" class="mb-3 text-xs text-gray-500 dark:text-gray-400">Actualizando detalles de la lista…</p>
+                <p v-else-if="error" role="alert" class="mb-3 text-xs text-red-700 dark:text-red-300">
+                    No se pudieron actualizar los detalles. Se muestran los datos guardados.
+                    <button class="ml-2 underline" @click="emit('retry-details')">Reintentar</button>
+                </p>
+                <div v-if="radarDetails && radarDetails.asignations.length > 0" class="overflow-x-auto">
                     <table class="w-full text-left border-collapse min-w-[500px]">
                         <thead>
                             <tr class="border-b border-gray-200 dark:border-white/10">
@@ -133,6 +142,7 @@
                 <div v-else class="text-center py-10 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-rv-darkSurface rounded-lg">
                     No hay asignaciones en esta lista.
                 </div>
+                </template>
             </div>
 
             <div class="flex flex-wrap justify-between items-center gap-2 sm:gap-3 pt-4 border-t border-gray-100 dark:border-white/10">
@@ -140,7 +150,9 @@
                     <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide whitespace-nowrap">
                         <i class="fa-regular fa-user mr-1"></i>Autor
                     </label>
+                    <AssignableUsersFeedback :loading="usersLoading" :error="usersError" :refreshing="usersRefreshing" @retry="emit('retry-users')" />
                     <select v-model="selectedAuthorId"
+                        :disabled="usersLoading || rvUsers.length === 0"
                         @change="emit('update-author', selectedAuthorId)"
                         class="border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg text-sm py-1.5 pl-2 pr-7">
                         <option value="">Sin autor</option>
@@ -180,30 +192,35 @@
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
 import type { RvUser } from '@/modules/identity/users';
-import type { ContentListAsignation } from '@services/contents/contents';
-
-interface RadarDetails {
-    listDate: string;
-    closeDate: string;
-    status: string;
-    asignations: ContentListAsignation[];
-}
+import type { ListAsignationDetails, RadarListDetails } from '@services/list/list';
+import AssignableUsersFeedback from './AssignableUsersFeedback.vue';
 
 interface Props {
     show: boolean;
     content: Content | null;
-    radarDetails: RadarDetails | null;
+    radarDetails: RadarListDetails | null;
     loading: boolean;
+    error?: boolean;
     rvUsers: RvUser[];
+    usersLoading?: boolean;
+    usersError?: boolean;
+    usersRefreshing?: boolean;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+    error: false,
+    usersLoading: false,
+    usersError: false,
+    usersRefreshing: false,
+});
 
 const emit = defineEmits<{
     close: [];
+    'retry-users': [];
+    'retry-details': [];
     'update-field': [field: string, value: string];
-    'update-status': [details: RadarDetails];
-    'toggle-asignation': [asig: ContentListAsignation];
+    'update-status': [details: RadarListDetails];
+    'toggle-asignation': [asig: ListAsignationDetails];
     'delete-list': [];
     'delete': [];
     'navigate-detail': [];
@@ -222,6 +239,13 @@ watch(() => props.content, (c) => {
     localStartDate.value = c?.publicationDate?.split('T')[0] ?? '';
     localEndDate.value = c?.closeDate?.split('T')[0] ?? '';
 });
+
+function handleStatusChange(event: Event) {
+    const details = props.radarDetails;
+    const target = event.target;
+    if (!details || !(target instanceof HTMLSelectElement)) return;
+    emit('update-status', { ...details, status: target.value });
+}
 
 function emitDates() {
     emit('update-dates', localStartDate.value, localEndDate.value || null);

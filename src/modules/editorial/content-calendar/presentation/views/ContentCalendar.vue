@@ -86,16 +86,22 @@
         </div>
 
         <!-- Modals -->
-        <CreateContentModal :show="showCreateModal" :rv-users="rvUsers" @close="showCreateModal = false"
-            @create="handleCreateContent" />
+        <CreateContentModal :show="showCreateModal" :rv-users="assignableUsersQuery.data.value ?? []"
+            :users-loading="assignableUsersLoading" :users-error="assignableUsersQuery.isError.value" :users-refreshing="assignableUsersRefreshing"
+            @retry-users="retryAssignableUsers" @close="showCreateModal = false" @create="handleCreateContent" />
 
-        <EditContentModal :show="showEditModal" :content="editingContent" :rv-users="rvUsers"
-            @close="showEditModal = false" @update="handleUpdateContent" @delete="confirmDeleteContent" />
+        <EditContentModal :show="showEditModal" :content="editingContent" :rv-users="assignableUsersQuery.data.value ?? []"
+            :users-loading="assignableUsersLoading" :users-error="assignableUsersQuery.isError.value" :users-refreshing="assignableUsersRefreshing"
+            @retry-users="retryAssignableUsers" @close="showEditModal = false" @update="handleUpdateContent" @delete="confirmDeleteContent" />
 
         <!-- Actions Modals -->
         <RadarActionsModal v-if="selectedContent?.type === 'radar' || selectedContent?.type === 'best'"
             :show="showActionsModal" :content="selectedContent" :radar-details="radarDetails"
-            :loading="loadingRadarDetails" :rv-users="rvUsers" @close="showActionsModal = false"
+            :loading="Boolean(selectedRadarListId) && (listDetailsQuery.isPending.value || listDetailsQuery.isFetching.value)"
+            :error="Boolean(selectedRadarListId) && listDetailsQuery.isError.value"
+            :rv-users="assignableUsersQuery.data.value ?? []"
+            :users-loading="assignableUsersLoading" :users-error="assignableUsersQuery.isError.value" :users-refreshing="assignableUsersRefreshing"
+            @retry-users="retryAssignableUsers" @retry-details="retryListDetails" @close="showActionsModal = false"
             @update-field="updateRadarField" @update-status="updateListStatus"
             @toggle-asignation="toggleAsignation" @delete-list="deleteRadarList"
             @delete="confirmDeleteContent" @navigate-detail="navigateToRadarDetail"
@@ -104,20 +110,28 @@
             @update-dates="handleUpdateRadarDates" />
 
         <PhotosActionsModal v-else-if="selectedContent?.type === 'photos'" :show="showActionsModal"
-            :content="selectedContent!" :rv-users="rvUsers" @close="showActionsModal = false"
+            :content="selectedContent!" :rv-users="assignableUsersQuery.data.value ?? []"
+            :users-loading="assignableUsersLoading" :users-error="assignableUsersQuery.isError.value" :users-refreshing="assignableUsersRefreshing"
+            @retry-users="retryAssignableUsers" @close="showActionsModal = false"
             @update="handleUpdateContent" @delete="confirmDeleteContent" />
 
         <ReunionActionsModal v-else-if="selectedContent?.type === 'reunion'" :show="showActionsModal"
-            :content="selectedContent!" :rv-users="rvUsers" @close="showActionsModal = false"
+            :content="selectedContent!" :rv-users="assignableUsersQuery.data.value ?? []"
+            :users-loading="assignableUsersLoading" :users-error="assignableUsersQuery.isError.value" :users-refreshing="assignableUsersRefreshing"
+            @retry-users="retryAssignableUsers" @close="showActionsModal = false"
             @update="handleUpdateContent" @delete="confirmDeleteContent" @navigate-reunions="goToReunions" />
 
         <ArticleActionsModal v-else-if="selectedContent?.type === 'article'" :show="showActionsModal"
-            :content="selectedContent!" :rv-users="rvUsers" @close="showActionsModal = false"
+            :content="selectedContent!" :rv-users="assignableUsersQuery.data.value ?? []"
+            :users-loading="assignableUsersLoading" :users-error="assignableUsersQuery.isError.value" :users-refreshing="assignableUsersRefreshing"
+            @retry-users="retryAssignableUsers" @close="showActionsModal = false"
             @update="handleUpdateContent" @update-article="handleUpdateArticle"
             @delete="confirmDeleteContent" @navigate-kanban="goToArticlesKanban" />
 
         <VideoActionsModal v-else-if="selectedContent?.type === 'video'" :show="showActionsModal"
-            :content="selectedContent!" :rv-users="rvUsers" :video-update-error="videoUpdateError"
+            :content="selectedContent!" :rv-users="assignableUsersQuery.data.value ?? []"
+            :users-loading="assignableUsersLoading" :users-error="assignableUsersQuery.isError.value" :users-refreshing="assignableUsersRefreshing"
+            @retry-users="retryAssignableUsers" :video-update-error="videoUpdateError"
             @close="showActionsModal = false"
             @update="handleUpdateContent" @update-video="handleUpdateVideo"
             @delete="confirmDeleteContent" @navigate-kanban="goToVideosKanban" />
@@ -138,8 +152,7 @@ import FullCalendar from '@fullcalendar/vue3';
 import type { EventClickArg } from '@fullcalendar/core';
 import type { ContentType, Content } from '@services/contents/contents';
 import { useAuthStore } from '@/modules/identity/auth';
-import type { RvUser } from '@/modules/identity/users';
-import type { ContentListDetails, ContentEditorData } from '../../types/contentCalendar.types';
+import type { ContentEditorData } from '../../types/contentCalendar.types';
 import SwalService from '@services/swal/SwalService';
 import { useRouter } from 'vue-router';
 
@@ -155,6 +168,7 @@ import GenericActionsModal from '../components/GenericActionsModal.vue';
 import LegendModal from '../components/LegendModal.vue';
 import DeleteConfirmModal from '../components/DeleteConfirmModal.vue';
 import { useContentCalendarQueries } from '../../application/contentCalendarQueries';
+import { useAssignableUsersQuery, useRadarListDetailsQuery } from '../../application/contentCalendarDeferredQueries';
 import { useContentCalendarOperations } from '../../application/useContentCalendarOperations';
 import { useContentCalendarFullCalendar } from '../composables/useContentCalendarFullCalendar';
 
@@ -174,7 +188,6 @@ const selectedContent = ref<Content | null>(null);
 const videoUpdateError = ref(0);
 const contentToDelete = ref<Content | null>(null);
 const editingContentId = ref<string | null>(null);
-const rvUsers = ref<RvUser[]>([]);
 const currentYear = ref(new Date().getFullYear());
 const currentMonth = ref(new Date().getMonth() + 1); // 1-12
 const { monthQuery, backlogQuery, allContents } = useContentCalendarQueries(
@@ -186,8 +199,46 @@ const { monthQuery, backlogQuery, allContents } = useContentCalendarQueries(
 );
 const backlogPanelRef = ref<InstanceType<typeof BacklogPanel> | null>(null);
 
-const radarDetails = ref<ContentListDetails | null>(null);
-const loadingRadarDetails = ref(false);
+const currentSession = () => ({
+    userId: authStore.userId,
+    generation: authStore.authSessionGeneration,
+    role: authStore.role,
+});
+const assignableUsersEnabled = computed(() =>
+    showCreateModal.value || showEditModal.value ||
+    (showActionsModal.value && ['radar', 'best', 'photos', 'reunion', 'article', 'video'].includes(selectedContent.value?.type ?? ''))
+);
+const assignableUsersQuery = useAssignableUsersQuery({ session: currentSession, enabled: assignableUsersEnabled });
+const assignableUsersLoading = computed(() =>
+    assignableUsersEnabled.value && assignableUsersQuery.data.value === undefined &&
+    (assignableUsersQuery.isPending.value || assignableUsersQuery.isFetching.value)
+);
+const assignableUsersRefreshing = computed(() =>
+    assignableUsersQuery.isFetching.value && assignableUsersQuery.data.value !== undefined
+);
+const selectedRadarListId = computed(() =>
+    showActionsModal.value && (selectedContent.value?.type === 'radar' || selectedContent.value?.type === 'best')
+        ? selectedContent.value.list?.id ?? null
+        : null
+);
+const listDetailsQuery = useRadarListDetailsQuery({
+    session: currentSession,
+    enabled: computed(() => Boolean(selectedRadarListId.value)),
+    listId: selectedRadarListId,
+});
+const radarDetails = computed(() => {
+    const requestedListId = selectedRadarListId.value;
+    const data = listDetailsQuery.data.value;
+    return requestedListId && data?.id === requestedListId ? data : null;
+});
+
+function retryAssignableUsers() {
+    void assignableUsersQuery.refetch();
+}
+
+function retryListDetails() {
+    void listDetailsQuery.refetch();
+}
 
 const newContent = ref({
     type: 'article' as ContentType,
@@ -201,6 +252,12 @@ const newContent = ref({
     selectedWeek: 1,
     selectedYear: new Date().getFullYear()
 });
+
+watch(assignableUsersQuery.data, (users) => {
+    if (users && !newContent.value.authorId && authStore.userId) {
+        newContent.value.authorId = authStore.userId;
+    }
+}, { immediate: true });
 
 const editingContent = ref<Content | ContentEditorData>({
     type: 'article' as ContentType,
@@ -264,14 +321,7 @@ const contentCalendarOperations = useContentCalendarOperations({
     contentToDelete,
     editingContentId,
     editingContent,
-    radarDetails,
-    loadingRadarDetails,
     videoUpdateError,
-    rvUsers,
-    currentUserId: () => authStore.userId,
-    setDefaultAuthorIfEmpty: (userId) => {
-        if (!newContent.value.authorId) newContent.value.authorId = userId;
-    },
     resetCreateDraft: resetNewContentDraft,
 });
 
@@ -287,8 +337,6 @@ const {
     handleUpdateContentAuthor,
     handleUpdateRadarDates,
     handleUpdateVideo,
-    loadAssignableUsers,
-    loadRadarDetails,
     toggleAsignation,
     updateListStatus,
     updateRadarField,
@@ -304,7 +352,6 @@ async function handleCalendarEventClick(info: EventClickArg) {
         editingContentId.value = content.id;
         editingContent.value = content;
     }
-    await loadRadarDetails(content);
 }
 
 const { calendarOptions, initBacklogDraggable } = useContentCalendarFullCalendar({
@@ -395,8 +442,7 @@ watch(showBacklog, async (isVisible) => {
     initBacklogDraggable();
 });
 
-onMounted(async () => {
-    await loadAssignableUsers();
+onMounted(() => {
     initBacklogDraggable();
 });
 

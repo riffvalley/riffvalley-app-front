@@ -16,8 +16,10 @@ export async function getUsers(signal?: AbortSignal): Promise<AdminUser[]> {
   return response.data;
 }
 
-export async function getRvUsers(): Promise<RvUser[]> {
-  const response = await api.get<RvUser[]>("/auth/usersRv");
+export async function getRvUsers(signal?: AbortSignal): Promise<RvUser[]> {
+  const response = signal
+    ? await api.get<RvUser[]>("/auth/usersRv", { signal })
+    : await api.get<RvUser[]>("/auth/usersRv");
   return response.data;
 }
 

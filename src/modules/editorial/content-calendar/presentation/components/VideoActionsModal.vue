@@ -79,7 +79,9 @@
                                     <label class="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                                         <i class="fa-regular fa-user"></i> Autor (Calendario)
                                     </label>
+                                    <AssignableUsersFeedback :loading="usersLoading" :error="usersError" :refreshing="usersRefreshing" @retry="emit('retry-users')" />
                                     <select v-model="formData.authorId"
+                                        :disabled="usersLoading || rvUsers.length === 0"
                                         class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkBg dark:text-gray-200 rounded-lg text-sm">
                                         <option value="">Seleccionar autor...</option>
                                         <option v-for="user in rvUsers" :key="user.id" :value="user.id">
@@ -93,6 +95,7 @@
                                         <i class="fa-solid fa-user"></i> Usuario asignado
                                     </label>
                                     <select v-model="formData.userId"
+                                        :disabled="usersLoading || rvUsers.length === 0"
                                         class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkBg dark:text-gray-200 rounded-lg text-sm">
                                         <option value="">Sin asignar</option>
                                         <option v-for="user in rvUsers" :key="user.id" :value="user.id">
@@ -106,6 +109,7 @@
                                         <i class="fa-solid fa-pen-nib"></i> Editor
                                     </label>
                                     <select v-model="formData.editorId"
+                                        :disabled="usersLoading || rvUsers.length === 0"
                                         class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkBg dark:text-gray-200 rounded-lg text-sm">
                                         <option value="">Sin editor</option>
                                         <option v-for="user in rvUsers" :key="user.id" :value="user.id">
@@ -131,7 +135,7 @@
                             class="px-4 py-2 sm:px-6 sm:py-2.5 bg-gray-100 dark:bg-rv-darkSurface text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-rv-darkBg font-medium rounded-xl transition-colors">
                             Cancelar
                         </button>
-                        <button @click="handleUpdate"
+                        <button @click="handleUpdate" :disabled="usersLoading || rvUsers.length === 0"
                             class="px-4 py-2 sm:px-6 sm:py-2.5 bg-rv-purple text-white font-medium rounded-xl hover:bg-rv-pink shadow-lg transition-all transform hover:-translate-y-0.5">
                             Guardar Cambios
                         </button>
@@ -147,6 +151,7 @@ import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
 import { formatCalendarDateInput } from '../../utils/contentCalendarDates';
 import type { RvUser } from '@/modules/identity/users';
+import AssignableUsersFeedback from './AssignableUsersFeedback.vue';
 import type { ContentEditorData, VideoUpdateData } from '../../types/contentCalendar.types';
 import { VIDEO_TYPES, VIDEO_STATUSES, type VideoStatus, type VideoType } from '@services/videos/videos';
 
@@ -154,13 +159,22 @@ interface Props {
     show: boolean;
     content: Content;
     rvUsers: RvUser[];
+    usersLoading?: boolean;
+    usersError?: boolean;
+    usersRefreshing?: boolean;
     videoUpdateError?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), { videoUpdateError: 0 });
+const props = withDefaults(defineProps<Props>(), {
+    videoUpdateError: 0,
+    usersLoading: false,
+    usersError: false,
+    usersRefreshing: false,
+});
 
 const emit = defineEmits<{
     close: [];
+    'retry-users': [];
     update: [data: ContentEditorData];
     'update-video': [data: VideoUpdateData];
     delete: [];
