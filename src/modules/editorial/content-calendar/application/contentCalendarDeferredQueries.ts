@@ -43,9 +43,13 @@ function sameSession(left: ContentCalendarSession, right: ContentCalendarSession
   );
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function isRadarListDetails(value: unknown): value is RadarListDetails {
-  if (typeof value !== "object" || value === null) return false;
-  const candidate = value as Record<string, unknown>;
+  if (!isRecord(value)) return false;
+  const candidate = value;
   const types = ["month", "week", "special", "video"];
   const statuses = [
     "new",
@@ -83,8 +87,8 @@ function isRadarListDetails(value: unknown): value is RadarListDetails {
     return false;
   }
   return candidate.asignations.every((asignation) => {
-    if (typeof asignation !== "object" || asignation === null) return false;
-    const item = asignation as Record<string, unknown>;
+    if (!isRecord(asignation)) return false;
+    const item = asignation;
     return (
       typeof item.id === "string" &&
       (typeof item.done === "boolean" || item.done === null) &&

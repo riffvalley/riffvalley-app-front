@@ -40,7 +40,6 @@ interface ContentCalendarOperationsOptions {
   contentToDelete: Ref<Content | null>;
   editingContentId: Ref<string | null>;
   editingContent: Ref<Content | ContentEditorData>;
-  resetCreateDraft: () => void;
 }
 
 export interface CompositeSaveStatus {
@@ -326,7 +325,6 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
         backlog: !data.publicationDate,
       });
       if (isCurrentSession(session)) {
-        options.resetCreateDraft();
         options.showCreateModal.value = false;
       }
       await invalidateContentCalendarQueries(session);
@@ -383,10 +381,6 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     }
   }
 
-  function hasHttpResponse(error: unknown): boolean {
-    return isRecord(error) && isRecord(error.response) && typeof error.response.status === "number";
-  }
-
   async function articleMatches(data: ArticleUpdateData): Promise<boolean> {
     const article = await getArticle(data.articleId);
     return (
@@ -424,10 +418,11 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
   }
 
   async function runCompositeSave(
-    kind: "article" | "video",
-    contentData: ContentEditorData,
-    relatedData: ArticleUpdateData | VideoUpdateData
+    save:
+      | { kind: "article"; contentData: ContentEditorData; relatedData: ArticleUpdateData }
+      | { kind: "video"; contentData: ContentEditorData; relatedData: VideoUpdateData }
   ): Promise<void> {
+    const { kind, contentData, relatedData } = save;
     const contentId = options.editingContentId.value;
     if (!contentId) return;
     const status = kind === "article" ? articleSaveStatus : videoSaveStatus;
@@ -458,8 +453,8 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
           if (!progress.relatedDone) {
             progress.relatedDone =
               kind === "article"
-                ? await articleMatches(relatedData as ArticleUpdateData)
-                : await videoMatches(relatedData as VideoUpdateData);
+                ? await articleMatches(relatedData)
+                : await videoMatches(relatedData);
           }
           progress.uncertain = false;
         } catch {
@@ -480,13 +475,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
           progress.contentDone = true;
           await invalidateContentCalendarQueries(session);
         } catch (error) {
-          if (
-            hasHttpResponse(error) &&
-            isRecord(error) &&
-            isRecord(error.response) &&
-            (error.response.status as number) >= 400 &&
-            (error.response.status as number) < 500
-          ) {
+          if (hasDefiniteRejection(error)) {
             contentFailed = true;
           } else {
             try {
@@ -501,7 +490,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
       if (!progress.relatedDone) {
         try {
           if (kind === "article") {
-            const data = relatedData as ArticleUpdateData;
+            const data = relatedData;
             await updateArticle(data.articleId, {
               name: data.name,
               type: data.type,
@@ -511,7 +500,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
               editorId: data.editorId || undefined,
             });
           } else {
-            const data = relatedData as VideoUpdateData;
+            const data = relatedData;
             const update: Record<string, unknown> = {
               name: data.name,
               type: data.type,
@@ -526,20 +515,14 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
           progress.relatedDone = true;
           await invalidateContentCalendarQueries(session);
         } catch (error) {
-          if (
-            hasHttpResponse(error) &&
-            isRecord(error) &&
-            isRecord(error.response) &&
-            (error.response.status as number) >= 400 &&
-            (error.response.status as number) < 500
-          ) {
+          if (hasDefiniteRejection(error)) {
             relatedFailed = true;
           } else {
             try {
               progress.relatedDone =
                 kind === "article"
-                  ? await articleMatches(relatedData as ArticleUpdateData)
-                  : await videoMatches(relatedData as VideoUpdateData);
+                  ? await articleMatches(relatedData)
+                  : await videoMatches(relatedData);
             } catch {
               progress.uncertain = true;
             }
@@ -583,11 +566,11 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     contentData: ContentEditorData,
     articleData: ArticleUpdateData
   ) {
-    return runCompositeSave("article", contentData, articleData);
+    return runCompositeSave({ kind: "article", contentData, relatedData: articleData });
   }
 
   function handleUpdateVideoAndContent(contentData: ContentEditorData, videoData: VideoUpdateData) {
-    return runCompositeSave("video", contentData, videoData);
+    return runCompositeSave({ kind: "video", contentData, relatedData: videoData });
   }
 
   async function executeDeleteContent() {

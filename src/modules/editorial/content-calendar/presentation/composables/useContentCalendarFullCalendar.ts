@@ -1,4 +1,4 @@
-import { computed, onMounted, onUnmounted, ref, type ComputedRef, type Ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, type ComputedRef } from "vue";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { Draggable } from "@fullcalendar/interaction";
 import type {
@@ -21,8 +21,6 @@ import type { ContentMoveResult } from "../../application/useContentCalendarOper
 
 interface UseContentCalendarFullCalendarOptions {
   allContents: ComputedRef<Content[]>;
-  userId: ComputedRef<string | null>;
-  showOnlyMyEvents: Ref<boolean>;
   currentYear: Ref<number>;
   currentMonth: Ref<number>;
   backlogPanelRef: Ref<InstanceType<typeof BacklogPanel> | null>;
@@ -83,17 +81,9 @@ export function useContentCalendarFullCalendar(options: UseContentCalendarFullCa
     },
     eventContent: (arg: EventContentArg) => {
       const { author, editor, notes } = readContentCalendarEventProps(arg.event.extendedProps);
-      const isMyEvent = Boolean(options.userId.value && author?.id === options.userId.value);
-      const shouldDim = options.showOnlyMyEvents.value && !isMyEvent;
-      const shouldHighlight = options.showOnlyMyEvents.value && isMyEvent;
       const container = document.createElement("div");
-      container.className = `flex items-center gap-1.5 p-1 overflow-hidden transition-all ${shouldDim ? "opacity-30" : "opacity-100"}`;
+      container.className = "flex items-center gap-1.5 p-1 overflow-hidden transition-all";
       if (notes) container.title = notes;
-      if (shouldHighlight) {
-        container.style.border = "2px solid #ef4444";
-        container.style.borderRadius = "4px";
-        container.style.boxShadow = "0 0 0 2px rgba(239, 68, 68, 0.2)";
-      }
 
       const avatarsContainer = document.createElement("div");
       avatarsContainer.className = "flex items-center -space-x-1.5 flex-shrink-0";

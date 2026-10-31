@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { flushPromises, mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
-import { unref } from "vue";
+import { reactive, unref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FullCalendar from "@fullcalendar/vue3";
 import {
@@ -31,6 +31,7 @@ import RadarActionsModal from "../components/RadarActionsModal.vue";
 import ReunionActionsModal from "../components/ReunionActionsModal.vue";
 import VideoActionsModal from "../components/VideoActionsModal.vue";
 import { getListDetails } from "@services/list/list";
+import { contentCalendarQueryKeys } from "../../application/contentCalendarQueries";
 
 const mocks = vi.hoisted(() => ({
   getContents: vi.fn(),
@@ -63,6 +64,7 @@ const mocks = vi.hoisted(() => ({
     role: "riffvalley",
   },
 }));
+const authState = reactive(mocks.authStore);
 let invalidateQueriesSpy!: ReturnType<typeof vi.spyOn<QueryClient, "invalidateQueries">>;
 const queryClients: QueryClient[] = [];
 
@@ -79,7 +81,7 @@ vi.mock("@fullcalendar/vue3", async () => {
 vi.mock("@fullcalendar/daygrid", () => ({ default: {} }));
 vi.mock("@fullcalendar/interaction", () => ({ default: {}, Draggable: class Draggable {} }));
 vi.mock("vue-router", () => ({ useRouter: () => ({ push: mocks.push }) }));
-vi.mock("@/modules/identity/auth", () => ({ useAuthStore: () => mocks.authStore }));
+vi.mock("@/modules/identity/auth", () => ({ useAuthStore: () => authState }));
 vi.mock("@/modules/identity/users", () => ({ getRvUsers: mocks.getRvUsers }));
 vi.mock("@services/contents/contents", () => ({
   getContents: mocks.getContents,
@@ -1103,25 +1105,97 @@ describe("Content Calendar legacy characterization", () => {
     wrapper.unmount();
   });
 
-  it("dims foreign calendar and backlog events when the legacy filter is enabled", async () => {
+  it("hides foreign and authorless calendar and backlog content when enabled", async () => {
+    mocks.getContents.mockResolvedValue([
+      ...backlogContentFixtures,
+      {
+        ...backlogContentFixtures[0]!,
+        id: "foreign-backlog",
+        author: { id: "author-2", username: "Editor" },
+      },
+    ]);
+    const wrapper = mountCalendar();
+    await flushPromises();
+    const queryClient = queryClients[queryClients.length - 1]!;
+    const backlogKey = contentCalendarQueryKeys.backlog("author-1", 1, "riffvalley");
+    const monthKey = contentCalendarQueryKeys.month("author-1", 1, "riffvalley", 2026, 10);
+    const cachedBefore = structuredClone({
+      backlog: queryClient.getQueryData(backlogKey),
+      month: queryClient.getQueryData(monthKey),
+    });
+    await wrapper.get('button[title="Mostrar solo mis eventos"]').trigger("click");
+
+    expect(eventContentFor(calendarOptions(wrapper)).map(({ id }) => id)).toEqual([
+      "article-scheduled",
+      "radar-scheduled",
+    ]);
+    expect(wrapper.findAll("[data-event]")).toHaveLength(1);
+    expect(wrapper.find('[data-event*="video-backlog"]').exists()).toBe(true);
+    expect(wrapper.find('[data-event*="photos-backlog"]').exists()).toBe(false);
+    expect(wrapper.find('[data-event*="foreign-backlog"]').exists()).toBe(false);
+    expect({
+      backlog: queryClient.getQueryData(backlogKey),
+      month: queryClient.getQueryData(monthKey),
+    }).toEqual(cachedBefore);
+    wrapper.unmount();
+  });
+
+  it("keeps the filter enabled across month navigation and applies refreshed query data", async () => {
     const wrapper = mountCalendar();
     await flushPromises();
     await wrapper.get('button[title="Mostrar solo mis eventos"]').trigger("click");
 
-    const options = calendarOptions(wrapper);
-    const foreignEvent = options.eventContent({
-      event: {
-        title: "Otro autor",
-        extendedProps: { author: { id: "author-2", username: "Editor" } },
+    calendarOptions(wrapper).datesSet({
+      view: { currentStart: new Date("2026-11-01T00:00:00.000Z") },
+    });
+    await flushPromises();
+    expect(mocks.getContentsByMonth).toHaveBeenCalledWith(2026, 11, expect.any(AbortSignal));
+    expect(eventContentFor(calendarOptions(wrapper)).map(({ id }) => id)).toEqual([
+      "article-scheduled",
+      "radar-scheduled",
+    ]);
+
+    mocks.getContentsByMonth.mockResolvedValueOnce([
+      { ...scheduledContentFixtures[0]!, id: "refreshed-own" },
+      {
+        ...scheduledContentFixtures[1]!,
+        id: "refreshed-foreign",
+        author: { id: "author-2", username: "Editor" },
       },
+    ]);
+    const queryClient = queryClients[queryClients.length - 1]!;
+    await queryClient.invalidateQueries({
+      queryKey: contentCalendarQueryKeys.month("author-1", 1, "riffvalley", 2026, 11),
     });
-    const ownEvent = options.eventContent({
-      event: { title: "Propio", extendedProps: { author: { id: "author-1", username: "Autora" } } },
-    });
-    expect((foreignEvent.domNodes[0] as HTMLElement).className).toContain("opacity-30");
-    expect((ownEvent.domNodes[0] as HTMLElement).style.border).toContain("2px");
-    expect(wrapper.findAll(".fc-event.opacity-30").length).toBeGreaterThan(0);
-    expect(wrapper.find('[data-event*="photos-backlog"]').classes()).toContain("opacity-30");
+    await flushPromises();
+    const refreshedIds = eventContentFor(calendarOptions(wrapper)).map(({ id }) => id);
+    expect(refreshedIds).toContain("refreshed-own");
+    expect(refreshedIds).not.toContain("refreshed-foreign");
+    expect(wrapper.get('button[title="Mostrar todos los eventos"]').exists()).toBe(true);
+    wrapper.unmount();
+  });
+
+  it("recomputes ownership when the authenticated user or session changes", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    await wrapper.get('button[title="Mostrar solo mis eventos"]').trigger("click");
+
+    authState.userId = "author-2";
+    authState.authSessionGeneration = 2;
+    await flushPromises();
+    expect(eventContentFor(calendarOptions(wrapper)).map(({ id }) => id)).toEqual([
+      "playlist-scheduled",
+      "best-scheduled",
+    ]);
+    expect(mocks.getContents).toHaveBeenCalledTimes(2);
+
+    authState.userId = null;
+    authState.authSessionGeneration = 3;
+    await flushPromises();
+    expect(eventContentFor(calendarOptions(wrapper))).toEqual([]);
+    expect(wrapper.find('button[title="Mostrar solo mis eventos"]').exists()).toBe(false);
+    authState.userId = "author-1";
+    authState.authSessionGeneration = 1;
     wrapper.unmount();
   });
 

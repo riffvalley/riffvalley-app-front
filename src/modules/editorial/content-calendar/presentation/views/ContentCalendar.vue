@@ -1,9 +1,11 @@
 <template>
   <div class="relative flex h-screen overflow-hidden bg-gray-50 dark:bg-rv-darkBg">
     <!-- Overlay móvil al abrir el backlog -->
-    <div
+    <button
       v-if="showBacklog"
-      class="fixed inset-0 bg-black/50 z-20 lg:hidden"
+      type="button"
+      class="fixed inset-0 bg-black/50 z-20 lg:hidden border-0 p-0"
+      aria-label="Cerrar backlog"
       @click="showBacklog = false"
     />
 
@@ -16,8 +18,6 @@
       <div v-if="showBacklog" class="fixed lg:relative inset-y-0 left-0 z-30 lg:z-auto shrink-0">
         <BacklogPanel
           :backlog-items="backlogItems"
-          :show-only-my-events="showOnlyMyEvents"
-          :user-id="authStore.userId"
           @create-new="openCreateModal"
           @edit-content="openEditModal"
           @delete-content="confirmDeleteFromBacklog"
@@ -76,8 +76,10 @@
 
       <div class="flex flex-1 overflow-hidden">
         <!-- Tab para abrir el backlog cuando está cerrado -->
-        <div
+        <button
           v-if="!showBacklog"
+          type="button"
+          aria-label="Mostrar backlog"
           @click="showBacklog = true"
           class="shrink-0 w-8 flex items-center justify-center bg-rv-pink/10 hover:bg-rv-pink dark:bg-rv-pink/10 dark:hover:bg-rv-pink cursor-pointer transition-all group"
           title="Mostrar backlog"
@@ -85,7 +87,7 @@
           <i
             class="fa-solid fa-chevron-right text-rv-pink group-hover:text-white text-xs transition-colors"
           ></i>
-        </div>
+        </button>
 
         <div class="rv-calendar-wrapper flex-1 overflow-auto p-3 sm:p-5">
           <div
@@ -136,7 +138,7 @@
               Actualizando backlog…
             </div>
             <p
-              v-if="monthQuery.data.value?.length === 0 && !monthQuery.isError.value"
+              v-if="visibleScheduledContents.length === 0 && !monthQuery.isError.value"
               class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400"
               role="status"
             >
@@ -324,6 +326,7 @@ import {
 } from "../../application/contentCalendarDeferredQueries";
 import { useContentCalendarOperations } from "../../application/useContentCalendarOperations";
 import { useContentCalendarFullCalendar } from "../composables/useContentCalendarFullCalendar";
+import { filterContentCalendarByAuthor } from "../../utils/contentCalendarFilters";
 
 const authStore = useAuthStore();
 const showOnlyMyEvents = ref(false);
@@ -347,6 +350,12 @@ const { monthQuery, backlogQuery, allContents } = useContentCalendarQueries(
   () => authStore.userId,
   () => authStore.authSessionGeneration,
   () => authStore.role
+);
+const visibleContents = computed(() =>
+  filterContentCalendarByAuthor(allContents.value, showOnlyMyEvents.value, authStore.userId)
+);
+const visibleScheduledContents = computed(() =>
+  visibleContents.value.filter((content) => !content.backlog)
 );
 const backlogPanelRef = ref<InstanceType<typeof BacklogPanel> | null>(null);
 
@@ -402,29 +411,6 @@ function retryListDetails() {
   void listDetailsQuery.refetch();
 }
 
-const newContent = ref({
-  type: "article" as ContentType,
-  name: "",
-  notes: "",
-  publicationDate: "",
-  closeDate: "",
-  authorId: "",
-  listDate: "",
-  selectedMonth: new Date().getMonth() + 1,
-  selectedWeek: 1,
-  selectedYear: new Date().getFullYear(),
-});
-
-watch(
-  assignableUsersQuery.data,
-  (users) => {
-    if (users && !newContent.value.authorId && authStore.userId) {
-      newContent.value.authorId = authStore.userId;
-    }
-  },
-  { immediate: true }
-);
-
 const editingContent = ref<Content | ContentEditorData>({
   type: "article" as ContentType,
   name: "",
@@ -435,7 +421,7 @@ const editingContent = ref<Content | ContentEditorData>({
 
 // Backlog items (content with backlog: true)
 const backlogItems = computed(() => {
-  return allContents.value
+  return visibleContents.value
     .filter((c) => c.backlog)
     .sort((a, b) => {
       // Primero ordenar por usuario: 'riff valley' primero
@@ -449,28 +435,6 @@ const backlogItems = computed(() => {
       return (a.name || "").localeCompare(b.name || "");
     });
 });
-
-// function handleDragStart(event: DragEvent, content: Content) {
-//     if (event.dataTransfer) {
-//         event.dataTransfer.effectAllowed = 'move';
-//         event.dataTransfer.setData('text/plain', content.id);
-//     }
-// }
-
-function resetNewContentDraft() {
-  newContent.value = {
-    type: "article",
-    name: "",
-    notes: "",
-    publicationDate: "",
-    closeDate: "",
-    authorId: "",
-    listDate: "",
-    selectedMonth: new Date().getMonth() + 1,
-    selectedWeek: 1,
-    selectedYear: new Date().getFullYear(),
-  };
-}
 
 const contentCalendarOperations = useContentCalendarOperations({
   allContents,
@@ -487,7 +451,6 @@ const contentCalendarOperations = useContentCalendarOperations({
   contentToDelete,
   editingContentId,
   editingContent,
-  resetCreateDraft: resetNewContentDraft,
 });
 
 const {
@@ -524,9 +487,7 @@ async function handleCalendarEventClick(info: EventClickArg) {
 }
 
 const { calendarOptions, initBacklogDraggable } = useContentCalendarFullCalendar({
-  allContents,
-  userId: computed(() => authStore.userId),
-  showOnlyMyEvents,
+  allContents: visibleContents,
   currentYear,
   currentMonth,
   backlogPanelRef,
