@@ -18,6 +18,12 @@ vi.mock("vue-router", () => ({
 import { SessionAuthError } from "@/modules/identity/auth/api/sessionAuth";
 import LoginPage from "./LoginView.vue";
 
+function mountLogin() {
+  return mount(LoginPage, {
+    global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
+  });
+}
+
 describe("LoginPage", () => {
   beforeEach(() => {
     login.mockReset();
@@ -41,9 +47,10 @@ describe("LoginPage", () => {
 
   it("renders the credential form and submits credentials before navigating home", async () => {
     login.mockResolvedValue(undefined);
-    const wrapper = mount(LoginPage);
+    const wrapper = mountLogin();
 
     expect(wrapper.find("form").exists()).toBe(true);
+    expect(wrapper.text()).toContain("¿Has olvidado tu contraseña?");
     await wrapper.get('input[placeholder="Usuario"]').setValue("Mara");
     await wrapper.get('input[placeholder="Contraseña"]').setValue("secret");
     await wrapper.get("form").trigger("submit");
@@ -62,7 +69,7 @@ describe("LoginPage", () => {
           resolveLogin = resolve;
         })
     );
-    const wrapper = mount(LoginPage);
+    const wrapper = mountLogin();
 
     await wrapper.get('input[placeholder="Usuario"]').setValue("Mara");
     await wrapper.get('input[placeholder="Contraseña"]').setValue("secret");
@@ -78,7 +85,7 @@ describe("LoginPage", () => {
 
   it("shows the existing invalid-credentials message and stays on login", async () => {
     login.mockRejectedValue(new SessionAuthError("Invalid credentials", "unauthenticated", 401));
-    const wrapper = mount(LoginPage);
+    const wrapper = mountLogin();
 
     await wrapper.get('input[placeholder="Usuario"]').setValue("Mara");
     await wrapper.get('input[placeholder="Contraseña"]').setValue("wrong");
@@ -92,7 +99,10 @@ describe("LoginPage", () => {
   });
 
   it("labels credentials and restores focus after the access dialog closes with Escape", async () => {
-    const wrapper = mount(LoginPage, { attachTo: document.body });
+    const wrapper = mount(LoginPage, {
+      attachTo: document.body,
+      global: { stubs: { RouterLink: { template: "<a><slot /></a>" } } },
+    });
     const username = wrapper.get("#login-username").element as HTMLInputElement;
     const password = wrapper.get("#login-password").element as HTMLInputElement;
     expect(document.querySelector('label[for="login-username"]')?.control).toBe(username);

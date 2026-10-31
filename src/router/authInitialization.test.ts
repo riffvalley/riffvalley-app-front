@@ -27,7 +27,11 @@ describe("router authentication bootstrap", () => {
 
   it("waits for refresh before deciding a protected initial navigation", async () => {
     let resolveRefresh!: (value: object) => void;
-    refresh.mockReturnValueOnce(new Promise((resolve) => { resolveRefresh = resolve; }));
+    refresh.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveRefresh = resolve;
+      })
+    );
     setActivePinia(createPinia());
 
     const navigation = router.push("/import");
@@ -75,5 +79,19 @@ describe("router authentication bootstrap", () => {
     await router.push("/login");
     await router.push("/password");
     expect(router.currentRoute.value.name).toBe("Login");
+  });
+
+  it("keeps both password recovery routes public, including during auth bootstrap errors", async () => {
+    refresh.mockRejectedValueOnce(new SessionAuthError("Unavailable", "unavailable", 503));
+    setActivePinia(createPinia());
+    await router.push("/forgot-password");
+    expect(router.currentRoute.value.name).toBe("ForgotPassword");
+    expect(router.currentRoute.value.meta.requiresAuth).toBeUndefined();
+
+    refresh.mockRejectedValueOnce(new SessionAuthError("Unavailable", "unavailable", 503));
+    setActivePinia(createPinia());
+    await router.push("/reset-password");
+    expect(router.currentRoute.value.name).toBe("ResetPassword");
+    expect(router.currentRoute.value.meta.requiresAuth).toBeUndefined();
   });
 });

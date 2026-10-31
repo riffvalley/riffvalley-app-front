@@ -53,7 +53,7 @@ Un contrato público es la superficie pequeña y deliberada que permite consumir
 
 Por defecto, las rutas a `api/`, `stores/`, `composables/`, `types/`, vistas, componentes y helpers internos son privadas para consumidores externos. Los imports profundos entre archivos del mismo owner son normales. Los tests pueden importar internals para verificar implementación; se evalúan aparte de las dependencias de producción.
 
-El checkout ya contiene `index.ts` para `identity/auth`, `account`, `users`, `activity` y `shared`. La mayoría de los cruces productivos usa estas entradas. Router importa directamente siete vistas/layouts de Identity para declarar rutas; el gate actual registra esos paths como excepciones de composición. Los exports, consumidores y dependencias concretos están descritos en la [guía canónica de Identity](modules/identity.md).
+El checkout ya contiene `index.ts` para `identity/auth`, `account`, `users`, `activity` y `shared`. La mayoría de los cruces productivos usa estas entradas. Router importa directamente las vistas/layouts de Identity necesarios para declarar rutas; el gate registra explícitamente cada path como excepción de composición. Los exports, consumidores y dependencias concretos están descritos en la [guía canónica de Identity](modules/identity.md).
 
 ### Composition roots y legacy
 

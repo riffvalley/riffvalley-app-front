@@ -41,6 +41,12 @@
         ],
         "createdAt": "2026-10-27T12:19:24.515Z",
         "reason": "User explicitly instructed in D-10d to keep the border-l-4 in AdventureModule.vue unchanged; this is a type-only task and the existing visual treatment is out of scope."
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-10-31T11:13:48.177Z",
+        "reason": "Usuario confirmó mantener Inter como tipografía global de Riff Valley."
       }
     ]
   }

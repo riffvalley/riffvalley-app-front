@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import axios, { AxiosError, AxiosHeaders, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
+import { AxiosError, AxiosHeaders, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
 import { flushPromises } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
@@ -208,19 +208,25 @@ describe("shared Axios auth refresh", () => {
     );
   });
 
-  it("does not attach a bearer token or refresh excluded auth endpoints", async () => {
+  it("does not attach a bearer token or refresh public auth endpoints", async () => {
     const store = useRenewableSession();
-    let sentAuthorization: unknown;
+    const sentAuthorization: unknown[] = [];
     api.defaults.adapter = async (config) => {
-      sentAuthorization = config.headers.Authorization;
+      sentAuthorization.push(config.headers.Authorization);
       throw unauthorized(config as InternalAxiosRequestConfig);
     };
 
     await expect(api.post("/auth/login", { username: "u", password: "p" })).rejects.toMatchObject({
       response: { status: 401 },
     });
+    await expect(
+      api.post("/auth/forgot-password", { email: "mara@example.com" })
+    ).rejects.toMatchObject({ response: { status: 401 } });
+    await expect(
+      api.post("/auth/reset-password", { token: "token", password: "secret" })
+    ).rejects.toMatchObject({ response: { status: 401 } });
 
-    expect(sentAuthorization).toBeUndefined();
+    expect(sentAuthorization).toEqual([undefined, undefined, undefined]);
     expect(refresh).not.toHaveBeenCalled();
     expect(store.isAuthenticated).toBe(true);
   });

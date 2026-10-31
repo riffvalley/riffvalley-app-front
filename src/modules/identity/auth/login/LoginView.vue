@@ -76,6 +76,15 @@
             </button>
           </div>
 
+          <div class="text-right -mt-1">
+            <router-link
+              :to="{ name: 'ForgotPassword' }"
+              class="text-sm font-medium text-rv-blueDark hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink rounded dark:text-blue-300"
+            >
+              ¿Has olvidado tu contraseña?
+            </router-link>
+          </div>
+
           <button
             type="submit"
             class="w-full bg-gradient-to-r from-[#0c6ddc] to-[#0a56b3] text-white font-bold py-1.5 sm:py-2 rounded-full shadow-md shadow-blue-900/25 hover:from-[#0a5fc2] hover:to-[#084a9a] hover:shadow-md hover:shadow-blue-900/40 hover:-translate-y-[1px] active:scale-[0.98] active:translate-y-0 active:shadow-md transition-transform transition-shadow transition-colors duration-200 ease-out focus:outline-none focus:ring-4 focus:ring-rv-blueDark/25"

@@ -264,6 +264,16 @@ const routes: Array<RouteRecordRaw> = [
     component: Login,
   },
   {
+    path: "/forgot-password",
+    name: "ForgotPassword",
+    component: () => import("@/modules/identity/auth/password-recovery/ForgotPasswordView.vue"),
+  },
+  {
+    path: "/reset-password",
+    name: "ResetPassword",
+    component: () => import("@/modules/identity/auth/password-recovery/ResetPasswordView.vue"),
+  },
+  {
     path: "/how-to-use",
     name: "HowToUse",
     component: () => import("@views/help/HowToUse.vue"),
@@ -418,7 +428,12 @@ router.beforeEach(async (to) => {
   const authStatus = await authStore.initializeAuth();
   if (authStatus === "error") {
     // Keep the existing password login reachable when session recovery is unavailable.
-    if (["Login", "Maintenance", "NotFound"].includes(String(to.name))) return true;
+    if (
+      ["Login", "ForgotPassword", "ResetPassword", "Maintenance", "NotFound"].includes(
+        String(to.name)
+      )
+    )
+      return true;
     // A temporary Identity failure must not be interpreted as an anonymous session.
     return false;
   }

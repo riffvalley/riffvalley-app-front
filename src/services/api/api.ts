@@ -45,12 +45,19 @@ export function configureApiAuth(session: ApiAuthSession): void {
   loginRedirect = null;
 }
 
-const SESSION_ENDPOINTS = ["/auth/csrf", "/auth/login", "/auth/refresh", "/auth/logout"];
+const PUBLIC_AUTH_ENDPOINTS = [
+  "/auth/csrf",
+  "/auth/login",
+  "/auth/refresh",
+  "/auth/logout",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+];
 
 function isSessionEndpoint(url?: string): boolean {
   if (!url) return false;
   const path = url.split("?")[0]?.replace(/\/+$/, "") ?? "";
-  return SESSION_ENDPOINTS.some((endpoint) => path.endsWith(endpoint));
+  return PUBLIC_AUTH_ENDPOINTS.some((endpoint) => path.endsWith(endpoint));
 }
 
 function redirectToLoginOnce(): void {

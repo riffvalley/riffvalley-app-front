@@ -15,6 +15,8 @@ const allowedOwnerDependencies = new Map([
 ]);
 const routerViewExceptions = new Set([
   "src/modules/identity/auth/login/LoginView.vue",
+  "src/modules/identity/auth/password-recovery/ForgotPasswordView.vue",
+  "src/modules/identity/auth/password-recovery/ResetPasswordView.vue",
   "src/modules/identity/account/password-change/PasswordChangeView.vue",
   "src/modules/identity/users/user-management/UserManagementView.vue",
   "src/modules/identity/activity/layout/UserStatisticsLayout.vue",

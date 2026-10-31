@@ -8,7 +8,7 @@ La raíz contiene cinco capacidades. Esta organización es la estructura vigente
 
 | Capacidad | Responsabilidad y límites |
 |---|---|
-| **Auth** | Login, restauración, renovación y cierre de sesión; estado Pinia de sesión; protocolo HTTP de sesión y coordinación entre pestañas. Posee la identidad activa, pero no las preferencias de cuenta ni los datos administrativos remotos. |
+| **Auth** | Login, restauración, renovación, cierre de sesión y recuperación pública de contraseña; estado Pinia de sesión; protocolo HTTP de sesión y coordinación entre pestañas. El token de recuperación y los campos del formulario viven solo en la vista y no forman parte del estado Auth. Posee la identidad activa, pero no las preferencias de cuenta ni los datos administrativos remotos. |
 | **Account** | Cambio de contraseña y preferencias de la propia cuenta, incluido el store persistido de configuración de dashboard. Auth puede aplicar las preferencias que recibe en el perfil, sin adquirir su ownership. |
 | **Users** | API, contratos y administración de usuarios. Posee la consulta administrativa de usuarios y sus mutaciones; `getRvUsers`/`getSuperusers` y sus tipos también sirven a pantallas legacy consumidoras. No posee el feed ni las estadísticas de actividad. |
 | **Activity** | Feed global de actividad, captura diaria de uso, estadísticas, detalle e inactividad; posee sus API, tipos y queries. Auth solicita la captura diaria y Users solicita la invalidación del dashboard mediante operaciones públicas de Activity. |
@@ -103,7 +103,7 @@ Los imports entre archivos del mismo owner son internos y válidos. Para cruces 
 Excepciones delimitadas:
 
 - `main.ts`, `App.vue` y `app/privateQueryCache.ts` componen la aplicación y consumen contratos públicos. Su rol de composition root no habilita imports privados.
-- `src/router/index.ts` importa directamente las siete vistas/layouts de Identity necesarios para declarar rutas. La excepción es solo para esos archivos de presentación; Router consume Auth y Shared mediante sus entradas públicas.
+- `src/router/index.ts` importa directamente las vistas/layouts de Identity necesarios para declarar rutas, incluidas Login, Password Change, Recovery, User Management y Activity. La excepción se limita a esos archivos de presentación enumerados en el gate; Router consume Auth y Shared mediante sus entradas públicas.
 - Tests del owner pueden importar internals para probar la implementación. Tests externos también pueden hacerlo cuando prueban deliberadamente un detalle concreto de integración o un sujeto aún legacy; se clasifican como tests y no como excepción de producción.
 
 Auth y Activity forman una **dependencia conceptual bidireccional**: Auth llama a Activity para la captura diaria y las consultas de Activity usan el estado Auth. Eso no equivale a un ciclo de imports runtime. El resultado local registrado en FQ-3.5.4 reportó un ciclo type-only en servicios legacy fuera de Identity y ningún ciclo runtime; la comparación incremental quedó informativa por un edge irresuelto en el grafo base. No se presenta como una comprobación nueva de esta tarea ni como validación remota.
