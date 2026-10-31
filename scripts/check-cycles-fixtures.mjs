@@ -25,6 +25,8 @@ const fixtures = {
   "alias-b.ts": 'import "@/views/__fq34-cycle-fixtures__/alias-a"; export const aliasB = true;\n',
   "test-a.test.ts": 'import "./test-b"; export const testA = true;\n',
   "test-b.ts": 'import "./test-a.test"; export const testB = true;\n',
+  "outside-src.test.ts": 'import "../../../vite.config"; export const outsideSrcTest = true;\n',
+  "unresolved.ts": 'import "./missing"; export const unresolved = true;\n',
   "valid-entry.ts": 'import "./valid-leaf"; export const validEntry = true;\n',
   "valid-leaf.ts": "export const validLeaf = true;\n",
 };
@@ -35,7 +37,11 @@ try {
     Object.entries(fixtures).map(([name, contents]) => writeFile(join(fixturePath, name), contents))
   );
   const scan = await scanGraph({ root: repositoryRoot, entries: [fixtureRelativePath] });
-  assert.deepEqual(scan.unresolved, [], "all relative and configured alias imports should resolve");
+  assert.deepEqual(
+    scan.unresolved,
+    [`${fixtureRelativePath}/unresolved.ts -> ./missing`],
+    "resolved imports from tests may leave src, while missing local imports remain unresolved"
+  );
   const cycles = describeCycles(scan.graph);
   const fixturesInCycle = (name) =>
     cycles.find((cycle) => cycle.nodes.some((node) => node.endsWith(`/${name}`)));
