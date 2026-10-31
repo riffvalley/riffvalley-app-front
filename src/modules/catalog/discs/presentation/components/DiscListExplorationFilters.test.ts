@@ -16,6 +16,7 @@ const baseProps = {
   selectedCountry: "",
   selectedGenres: [],
   noRatesOnly: false,
+  showNoRatesFilter: true,
   countries: [{ id: "country-a", name: "España", isoCode: "ES" }],
   genres: [
     { id: "genre-a", name: "Black Metal", color: null },
@@ -32,15 +33,19 @@ afterEach(() => {
 });
 
 describe("DiscListExplorationFilters", () => {
-  it("keeps the no-votes switch outside the filter controls and clears it with exploration", async () => {
+  it("shows only the no-votes switch after genres and clears it with exploration", async () => {
     localStorage.setItem("rv_default_year_filter", "all");
     const wrapper = mount(DiscListExplorationFilters, {
       props: { ...baseProps, noRatesOnly: true },
       global: { stubs: { SearchableSelect: CountrySelectStub } },
     });
 
-    expect(wrapper.find('input[role="switch"]').exists()).toBe(false);
+    const noRatesSwitch = wrapper.get<HTMLInputElement>('input[role="switch"]');
+    expect(noRatesSwitch.attributes("aria-label")).toBe("Mostrar solo discos sin votos");
     expect(wrapper.text()).not.toContain("Sin votos");
+    const genreControl = wrapper.get(".genre-control");
+    expect(genreControl.element.compareDocumentPosition(noRatesSwitch.element) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
     const clearButton = wrapper
       .findAll("button")
       .find((button) => button.text() === "Limpiar exploración");
@@ -72,9 +77,11 @@ describe("DiscListExplorationFilters", () => {
     const controls = wrapper.findAll(".filter-control");
     const countryIndex = controls.findIndex((control) => control.classes().includes("country-control"));
     const genreIndex = controls.findIndex((control) => control.classes().includes("genre-control"));
+    const noRatesIndex = controls.findIndex((control) => control.classes().includes("no-rates-control"));
 
     expect(countryIndex).toBeGreaterThanOrEqual(0);
     expect(countryIndex).toBeLessThan(genreIndex);
+    expect(genreIndex).toBeLessThan(noRatesIndex);
   });
 
   it("reflects canonical criteria in removable chips and delegates clearing to the parent", async () => {

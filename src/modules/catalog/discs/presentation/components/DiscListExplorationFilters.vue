@@ -108,6 +108,20 @@
             @update:model-value="emit('update:genres', $event)"
           />
         </div>
+
+        <div v-if="showNoRatesFilter" class="filter-control no-rates-control">
+          <label class="no-rates-switch">
+            <input
+              type="checkbox"
+              role="switch"
+              class="sr-only"
+              aria-label="Mostrar solo discos sin votos"
+              :checked="noRatesOnly"
+              @change="emit('update:no-rates', ($event.target as HTMLInputElement).checked)"
+            />
+            <span class="no-rates-switch-track" aria-hidden="true" />
+          </label>
+        </div>
       </div>
 
       <p v-if="optionsError" class="text-sm text-red-700 dark:text-red-300" role="alert">
@@ -205,6 +219,7 @@ const props = defineProps<{
   selectedCountry: string;
   selectedGenres: string[];
   noRatesOnly: boolean;
+  showNoRatesFilter: boolean;
   countries: CountryOption[];
   genres: GenreOption[];
   optionsLoading: boolean;
@@ -380,8 +395,54 @@ onUnmounted(() => {
   @apply outline-none ring-2 ring-rv-pink ring-offset-2;
 }
 .genre-control,
-.country-control {
+.country-control,
+.no-rates-control {
   grid-column: 1 / -1;
+}
+.no-rates-switch {
+  display: inline-flex;
+  width: fit-content;
+  cursor: pointer;
+}
+.no-rates-switch-track {
+  position: relative;
+  display: block;
+  width: 3rem;
+  height: 1.75rem;
+  border-radius: 9999px;
+  background: #d1d5db;
+  transition: background-color 160ms ease;
+}
+.no-rates-switch-track::before {
+  position: absolute;
+  top: 0.25rem;
+  left: 0.25rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  background: white;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  content: "";
+  transition: transform 160ms ease;
+}
+.no-rates-switch input:checked + .no-rates-switch-track {
+  background: #00021f;
+}
+.no-rates-switch input:checked + .no-rates-switch-track::before {
+  transform: translateX(1.25rem);
+}
+.no-rates-switch input:focus-visible + .no-rates-switch-track {
+  outline: 2px solid #e46e8a;
+  outline-offset: 2px;
+}
+.dark .no-rates-switch-track {
+  background: #27283c;
+}
+.dark .no-rates-switch input:checked + .no-rates-switch-track {
+  background: #e5e7eb;
+}
+.dark .no-rates-switch input:checked + .no-rates-switch-track::before {
+  background: #00021f;
 }
 .country-control :deep(.search_input_trigger) {
   height: 2.75rem;

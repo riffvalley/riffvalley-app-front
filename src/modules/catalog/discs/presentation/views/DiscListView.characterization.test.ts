@@ -258,20 +258,22 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  localStorage.clear();
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
 describe("DiscList new backend integration", () => {
-  it("shows an accessible no-votes switch below the title and requests eligible discs", async () => {
-    const wrapper = mountList();
+  it("shows an accessible no-votes switch after genres and requests eligible discs", async () => {
+    localStorage.setItem("rv_default_year_filter", "all");
+    const wrapper = mountList(true);
     await settle();
 
     const noRatesSwitch = wrapper.get<HTMLInputElement>('input[role="switch"]');
     expect(noRatesSwitch.attributes("aria-label")).toBe("Mostrar solo discos sin votos");
     expect(wrapper.text()).not.toContain("Sin votos");
-    expect(wrapper.find("h1").element.compareDocumentPosition(noRatesSwitch.element) & Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(wrapper.get(".genre-control").element.compareDocumentPosition(noRatesSwitch.element) & Node.DOCUMENT_POSITION_FOLLOWING)
       .toBeTruthy();
 
     await noRatesSwitch.setValue(true);
