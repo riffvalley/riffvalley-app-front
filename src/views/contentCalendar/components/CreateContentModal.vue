@@ -178,6 +178,7 @@
 import { ref, watch } from 'vue';
 import type { ContentType } from '@services/contents/contents';
 import type { RvUser } from '@/modules/identity/users';
+import type { CreateContentFormData } from '../contentCalendar.types';
 import { MONTHS } from '@helpers/dateConstants';
 
 interface Props {
@@ -189,7 +190,7 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
     close: [];
-    create: [data: any];
+    create: [data: CreateContentFormData];
 }>();
 
 const formData = ref({

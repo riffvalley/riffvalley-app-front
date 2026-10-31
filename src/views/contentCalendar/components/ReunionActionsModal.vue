@@ -98,6 +98,7 @@
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
 import type { RvUser } from '@/modules/identity/users';
+import type { ContentEditorData } from '../contentCalendar.types';
 
 interface Props {
     show: boolean;
@@ -109,7 +110,7 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
     close: [];
-    update: [data: any];
+    update: [data: ContentEditorData];
     delete: [];
     'navigate-reunions': [];
 }>();
@@ -137,7 +138,7 @@ const formData = ref({
     name: props.content.name,
     notes: props.content.notes || '',
     publicationDate: formatForInput(props.content.publicationDate || ''),
-    authorId: (props.content as any).authorId || props.content.author?.id || ''
+    authorId: props.content.author?.id || ''
 });
 
 watch(() => props.content, (newContent) => {
@@ -145,7 +146,7 @@ watch(() => props.content, (newContent) => {
         name: newContent.name,
         notes: newContent.notes || '',
         publicationDate: formatForInput(newContent.publicationDate || ''),
-        authorId: (newContent as any).authorId || newContent.author?.id || ''
+        authorId: newContent.author?.id || ''
     };
 }, { deep: true });
 

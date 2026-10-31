@@ -81,20 +81,20 @@
             @update-dates="handleUpdateRadarDates" />
 
         <PhotosActionsModal v-else-if="selectedContent?.type === 'photos'" :show="showActionsModal"
-            :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
+            :content="selectedContent!" :rv-users="rvUsers" @close="showActionsModal = false"
             @update="handleUpdateContent" @delete="confirmDeleteContent" />
 
         <ReunionActionsModal v-else-if="selectedContent?.type === 'reunion'" :show="showActionsModal"
-            :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
+            :content="selectedContent!" :rv-users="rvUsers" @close="showActionsModal = false"
             @update="handleUpdateContent" @delete="confirmDeleteContent" @navigate-reunions="goToReunions" />
 
         <ArticleActionsModal v-else-if="selectedContent?.type === 'article'" :show="showActionsModal"
-            :content="editingContent" :rv-users="rvUsers" @close="showActionsModal = false"
+            :content="selectedContent!" :rv-users="rvUsers" @close="showActionsModal = false"
             @update="handleUpdateContent" @update-article="handleUpdateArticle"
             @delete="confirmDeleteContent" @navigate-kanban="goToArticlesKanban" />
 
         <VideoActionsModal v-else-if="selectedContent?.type === 'video'" :show="showActionsModal"
-            :content="editingContent" :rv-users="rvUsers" :video-update-error="videoUpdateError"
+            :content="selectedContent!" :rv-users="rvUsers" :video-update-error="videoUpdateError"
             @close="showActionsModal = false"
             @update="handleUpdateContent" @update-video="handleUpdateVideo"
             @delete="confirmDeleteContent" @navigate-kanban="goToVideosKanban" />
@@ -114,11 +114,15 @@ import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
-import type { ContentType, Content } from '@services/contents/contents';
-import { getContents, createContent as createContentAPI, updateContent, deleteContent, getContentsByMonth } from '@services/contents/contents';
+import type { CalendarOptions, DatesSetArg, EventContentArg, EventClickArg, EventDropArg } from '@fullcalendar/core';
+import type { DropArg, EventReceiveArg, EventDragStopArg } from '@fullcalendar/interaction';
+import type { ContentType, Content, ContentAuthor } from '@services/contents/contents';
+import { getContents, createContent as createContentAPI, updateContent, deleteContent, getContentsByMonth, isContentListAsignation } from '@services/contents/contents';
 import { useAuthStore } from '@/modules/identity/auth';
 import { getRvUsers } from '@/modules/identity/users';
 import type { RvUser } from '@/modules/identity/users';
+import type { ContentListAsignation } from '@services/contents/contents';
+import type { ArticleUpdateData, VideoUpdateData, ContentListDetails, CreateContentFormData, ContentEditorData } from './contentCalendar.types';
 import SwalService from '@services/swal/SwalService';
 import { updateAsignationService } from '@services/asignation/asignation';
 import { deleteList, getListDetails, updateList } from '@services/list/list';
@@ -161,7 +165,7 @@ const currentYear = ref(new Date().getFullYear());
 const currentMonth = ref(new Date().getMonth() + 1); // 1-12
 const backlogPanelRef = ref<InstanceType<typeof BacklogPanel> | null>(null);
 
-const radarDetails = ref<any>(null);
+const radarDetails = ref<ContentListDetails | null>(null);
 const loadingRadarDetails = ref(false);
 
 const newContent = ref({
@@ -177,7 +181,7 @@ const newContent = ref({
     selectedYear: new Date().getFullYear()
 });
 
-const editingContent = ref<any>({
+const editingContent = ref<Content | ContentEditorData>({
     type: 'article' as ContentType,
     name: '',
     notes: '',
@@ -250,14 +254,14 @@ const calendarEvents = computed(() => {
                     contentType: c.type,
                     notes: c.notes,
                     author: c.author,
-                    editor: (c as any).article?.editor || (c as any).video?.editor || null,
+                    editor: c.article?.editor || c.video?.editor || null,
                     list: c.list
                 }
             };
         });
 });
 
-const calendarOptions = ref({
+const calendarOptions = ref<CalendarOptions>({
     plugins: [dayGridPlugin, interactionPlugin],
     initialView: 'dayGridMonth',
     locale: 'es',
@@ -273,7 +277,7 @@ const calendarOptions = ref({
     editable: true,
     droppable: true,
     events: calendarEvents,
-    datesSet: (dateInfo: any) => {
+    datesSet: (dateInfo: DatesSetArg) => {
         // When calendar view changes (month navigation)
         const viewDate = new Date(dateInfo.view.currentStart);
         const newYear = viewDate.getFullYear();
@@ -286,10 +290,11 @@ const calendarOptions = ref({
             loadContentsByMonth(newYear, newMonth);
         }
     },
-    eventContent: (arg: any) => {
-        const author = arg.event.extendedProps.author;
-        const editor = arg.event.extendedProps.editor;
-        const notes = arg.event.extendedProps.notes || '';
+    eventContent: (arg: EventContentArg) => {
+        const eventProps = readCalendarEventProps(arg.event.extendedProps);
+        const author = eventProps.author;
+        const editor = eventProps.editor;
+        const notes = eventProps.notes || '';
         const isMyEvent = authStore.userId && author?.id === authStore.userId;
         const shouldDim = showOnlyMyEvents.value && !isMyEvent;
         const shouldHighlight = showOnlyMyEvents.value && isMyEvent;
@@ -355,7 +360,7 @@ const calendarOptions = ref({
 
         return { domNodes: [container] };
     },
-    eventClick: async (info: any) => {
+    eventClick: async (info: EventClickArg) => {
         const contentId = info.event.id;
         const content = allContents.value.find(c => c.id === contentId);
         if (content) {
@@ -371,11 +376,11 @@ const calendarOptions = ref({
             if ((content.type === 'radar' || content.type === 'best') && content.list?.id) {
                 loadingRadarDetails.value = true;
                 try {
-                    const details = await getListDetails(content.list.id);
-                    if (details && details.asignations) {
-                        details.asignations.sort((a: any, b: any) => (a.position || 0) - (b.position || 0));
+                    const responseDetails: unknown = await getListDetails(content.list.id);
+                    if (isContentListDetails(responseDetails)) {
+                        responseDetails.asignations.sort((a, b) => (a.position || 0) - (b.position || 0));
+                        radarDetails.value = responseDetails;
                     }
-                    radarDetails.value = details;
                 } catch (e) {
                     console.error('Error loading radar details', e);
                     SwalService.error('Error cargando detalles de la lista');
@@ -387,7 +392,7 @@ const calendarOptions = ref({
             }
         }
     },
-    drop: async (info: any) => {
+    drop: async (info: DropArg) => {
         // info.draggedEl contains the element that was dropped
         // info.dateStr contains the date where it was dropped
         // The event data comes from data-event attribute correctly parsed by Draggable
@@ -402,10 +407,13 @@ const calendarOptions = ref({
         // or parsing the element yourself in 'drop'.
 
         // Let's rely on parsing the data-event attribute from the dragged element for simplicity and consistency with previous logic
-        const eventData = JSON.parse(info.draggedEl.getAttribute('data-event'));
+        const rawEventData = info.draggedEl.getAttribute('data-event');
+        if (!rawEventData) return;
+        const eventData: unknown = JSON.parse(rawEventData);
+        if (typeof eventData !== 'object' || eventData === null || !('id' in eventData)) return;
         const contentId = eventData.id;
 
-        if (contentId) {
+        if (typeof contentId === 'string' && contentId) {
             await handleDropToCalendar(contentId, info.dateStr);
             // We don't need to manually remove the element, Vue's reactivity will handle it 
             // when loadBacklogContents() is called and the item gains a date.
@@ -415,7 +423,7 @@ const calendarOptions = ref({
             info.draggedEl.parentNode?.removeChild(info.draggedEl);
         }
     },
-    eventReceive: (info: any) => {
+    eventReceive: (info: EventReceiveArg) => {
         // FullCalendar automatically adds an event to its internal state when an
         // external element is dropped (droppable: true). Since calendarEvents is a
         // reactive computed that drives all displayed events, this auto-added event
@@ -423,13 +431,13 @@ const calendarOptions = ref({
         // update (triggered by loadContentsByMonth after the API call) handle display.
         info.event.remove();
     },
-    eventDrop: async (info: any) => {
+    eventDrop: async (info: EventDropArg) => {
         const contentId = info.event.id;
         const newDate = info.event.startStr;
 
         // Check for Radar lock: if radar has asignations, prevent move
-        const extendedProps = info.event.extendedProps;
-        if (extendedProps.contentType === 'radar' && extendedProps.list?.asignations?.length > 0) {
+        const content = allContents.value.find((item) => item.id === info.event.id);
+        if (content?.type === 'radar' && content.list?.asignations && content.list.asignations.length > 0) {
             info.revert();
             SwalService.error('No se puede mover un Radar que ya tiene asignaciones.');
             return;
@@ -446,7 +454,7 @@ const calendarOptions = ref({
             SwalService.error('Error al mover el evento');
         }
     },
-    eventDragStop: async (info: any) => {
+    eventDragStop: async (info: EventDragStopArg) => {
         const jsEvent = info.jsEvent;
         const content = allContents.value.find(c => c.id === info.event.id);
 
@@ -482,7 +490,7 @@ const calendarOptions = ref({
             ) {
                 const contentId = info.event.id;
                 try {
-                    await handleDropToCalendar(contentId, null as any); // Send null to move to backlog
+                    await handleDropToCalendar(contentId, null); // Send null to move to backlog
                 } catch {
                     // Reload to restore consistent state
                     await loadBacklogContents();
@@ -529,7 +537,7 @@ function getContentTypeColor(type: ContentType) {
 // }
 
 // Converts a "YYYY-MM-DD" date string from FullCalendar to "YYYY-MM-DDT18:00:00.000Z".
-// Using 18:00 UTC avoids day-shift issues in any reasonable timezone (UTC-18 to UTC+5).
+// Using 18:00 UTC avoids day-shift issues across the supported timezone range.
 function toCalendarDate(dateStr: string | null): string | null {
     if (!dateStr) return null;
     // If it already has a time component, leave it as-is
@@ -553,7 +561,7 @@ async function handleDropToCalendar(contentId: string, dateStr: string | null) {
     }
 }
 
-async function handleCreateContent(data: any) {
+async function handleCreateContent(data: CreateContentFormData) {
     const contentData = data || newContent.value;
 
     if (!contentData.name || !contentData.authorId) return;
@@ -638,7 +646,7 @@ function goToVideosKanban() {
     router.push('/videos');
 }
 
-async function handleUpdateArticle(data: any) {
+async function handleUpdateArticle(data: ArticleUpdateData) {
     try {
         await updateArticle(data.articleId, {
             name: data.name,
@@ -654,7 +662,7 @@ async function handleUpdateArticle(data: any) {
     }
 }
 
-async function handleUpdateVideo(data: any) {
+async function handleUpdateVideo(data: VideoUpdateData) {
     try {
         const update: Record<string, unknown> = {
             name: data.name,
@@ -671,7 +679,7 @@ async function handleUpdateVideo(data: any) {
     } catch (error) {
         console.error('Error updating video:', error);
         videoUpdateError.value += 1;
-        const message = (error as any)?.response?.data?.message;
+        const message = getHttpErrorMessage(error);
         SwalService.error(Array.isArray(message) ? message.join(', ') : message || 'Error al actualizar el video');
     }
 }
@@ -733,7 +741,7 @@ async function handleDeleteFromBacklog(content: Content) {
     }
 }
 
-async function toggleAsignation(asig: any) {
+async function toggleAsignation(asig: ContentListAsignation) {
     const newState = !asig.done;
     // Optimistic UI update
     asig.done = newState;
@@ -770,7 +778,7 @@ async function deleteRadarList() {
     }
 }
 
-async function handleUpdateContent(data: any) {
+async function handleUpdateContent(data?: ContentEditorData) {
     const contentData = data || editingContent.value;
 
     if (!editingContentId.value || !contentData.name || !contentData.authorId) return;
@@ -821,9 +829,52 @@ function copyArtistAndDisc(artist: string, disc: string) {
     });
 }
 
+function getHttpErrorMessage(error: unknown): string | string[] | undefined {
+    if (typeof error !== 'object' || error === null || !('response' in error)) return undefined;
+    const response = error.response;
+    if (typeof response !== 'object' || response === null || !('data' in response)) return undefined;
+    const data = response.data;
+    if (typeof data !== 'object' || data === null || !('message' in data)) return undefined;
+    return typeof data.message === 'string' || (Array.isArray(data.message) && data.message.every((item) => typeof item === 'string'))
+        ? data.message
+        : undefined;
+}
+
+interface CalendarEventProps {
+    author?: ContentAuthor | null;
+    editor?: Pick<ContentAuthor, 'id' | 'username' | 'image'> | null;
+    notes?: string | null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null;
+}
+
+function isContentAuthor(value: unknown): value is ContentAuthor {
+    return isRecord(value) && typeof value.id === 'string' && typeof value.username === 'string';
+}
+
+function isContentListDetails(value: unknown): value is ContentListDetails {
+    if (!isRecord(value) || typeof value.id !== 'string' || typeof value.name !== 'string') return false;
+    const types: string[] = ['month', 'week', 'special', 'video'];
+    const statuses: string[] = ['new', 'assigned', 'not_started', 'in_progress', 'editing', 'ready', 'published'];
+    if (typeof value.type !== 'string' || !types.includes(value.type)) return false;
+    if (value.status !== undefined && value.status !== null && (typeof value.status !== 'string' || !statuses.includes(value.status))) return false;
+    if (!Array.isArray(value.asignations) || !value.asignations.every(isContentListAsignation)) return false;
+    return ['listDate', 'closeDate'].every((field) => value[field] === undefined || value[field] === null || typeof value[field] === 'string');
+}
+
+function readCalendarEventProps(value: unknown): CalendarEventProps {
+    if (!isRecord(value)) return { author: null, editor: null, notes: null };
+    const author = isContentAuthor(value.author) ? value.author : null;
+    const editor = isContentAuthor(value.editor) ? value.editor : null;
+    const notes = typeof value.notes === 'string' ? value.notes : null;
+    return { author, editor, notes };
+}
 
 
-async function updateListStatus(list: any) {
+
+async function updateListStatus(list: ContentListDetails) {
     if (!list || !list.id) return;
     try {
         await updateList(list.id, { status: list.status });
@@ -836,7 +887,7 @@ async function updateListStatus(list: any) {
     }
 }
 
-async function updateRadarField(field: string, value: any) {
+async function updateRadarField(field: string, value: string) {
     if (!radarDetails.value || !radarDetails.value.id) return;
     try {
         await updateList(radarDetails.value.id, { [field]: value });

@@ -133,6 +133,7 @@
 import { ref, watch, computed } from 'vue';
 import type { Content } from '@services/contents/contents';
 import type { RvUser } from '@/modules/identity/users';
+import type { ContentEditorData } from '../contentCalendar.types';
 
 interface Props {
     show: boolean;
@@ -144,7 +145,7 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
     close: [];
-    update: [data: any];
+    update: [data: ContentEditorData];
     delete: [];
 }>();
 

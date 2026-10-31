@@ -153,6 +153,7 @@
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
 import type { RvUser } from '@/modules/identity/users';
+import type { ContentEditorData, ArticleUpdateData } from '../contentCalendar.types';
 import { ARTICLE_TYPES, ARTICLE_STATES, type ArticleState, type ArticleType } from '@services/articles/articles';
 
 interface Props {
@@ -165,8 +166,8 @@ const props = defineProps<Props>();
 
 const emit = defineEmits<{
     close: [];
-    update: [data: any];
-    'update-article': [data: any];
+    update: [data: ContentEditorData];
+    'update-article': [data: ArticleUpdateData];
     delete: [];
     'navigate-kanban': [];
 }>();
@@ -219,7 +220,7 @@ const formData = ref({
     name: props.content.name,
     notes: props.content.notes || '',
     publicationDate: formatForInput(props.content.publicationDate || ''),
-    authorId: (props.content as any).authorId || props.content.author?.id || '',
+    authorId: props.content.author?.id || '',
     articleType: props.content.article?.type || 'articulo' as ArticleType,
     articleStatus: props.content.article?.status || 'not_started' as ArticleState,
     link: props.content.article?.link || '',
@@ -234,7 +235,7 @@ watch(() => props.content, (newContent) => {
         name: newContent.name,
         notes: newContent.notes || '',
         publicationDate: formatForInput(newContent.publicationDate || ''),
-        authorId: (newContent as any).authorId || newContent.author?.id || '',
+        authorId: newContent.author?.id || '',
         articleType: newContent.article?.type || 'articulo',
         articleStatus: newContent.article?.status || 'not_started',
         link: newContent.article?.link || '',

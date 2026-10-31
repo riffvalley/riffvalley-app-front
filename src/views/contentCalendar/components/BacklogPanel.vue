@@ -115,7 +115,7 @@ function getContentTypeBadge(type: string): string {
     return badges[type] || 'bg-gray-100 text-gray-700';
 }
 
-function getEditor(content: any): any {
+function getEditor(content: Content) {
     return content.article?.editor || content.video?.editor || null;
 }
 

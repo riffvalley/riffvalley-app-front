@@ -146,6 +146,7 @@
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
 import type { RvUser } from '@/modules/identity/users';
+import type { ContentEditorData, VideoUpdateData } from '../contentCalendar.types';
 import { VIDEO_TYPES, VIDEO_STATUSES, type VideoStatus, type VideoType } from '@services/videos/videos';
 
 interface Props {
@@ -159,13 +160,13 @@ const props = withDefaults(defineProps<Props>(), { videoUpdateError: 0 });
 
 const emit = defineEmits<{
     close: [];
-    update: [data: any];
-    'update-video': [data: any];
+    update: [data: ContentEditorData];
+    'update-video': [data: VideoUpdateData];
     delete: [];
     'navigate-kanban': [];
 }>();
 
-const videoData = ref((props.content as any).video);
+const videoData = ref(props.content.video ?? null);
 
 function formatForInput(dateStr: string): string {
     if (!dateStr) return '';
@@ -205,7 +206,7 @@ function getVideoTypeColor(type: VideoType): string {
     }
 }
 
-const video = (props.content as any).video;
+const video = props.content.video;
 const initialUserId = ref(video?.userId || video?.user?.id || '');
 const initialEditorId = ref(video?.editorId || video?.editor?.id || '');
 
@@ -214,7 +215,7 @@ const formData = ref({
     name: props.content.name,
     notes: props.content.notes || '',
     publicationDate: formatForInput(props.content.publicationDate || ''),
-    authorId: (props.content as any).authorId || props.content.author?.id || '',
+    authorId: props.content.author?.id || '',
     videoType: video?.type || 'best' as VideoType,
     videoStatus: video?.status || 'not_started' as VideoStatus,
     userId: video?.userId || video?.user?.id || '',
@@ -222,7 +223,7 @@ const formData = ref({
 });
 
 watch(() => props.content, (newContent) => {
-    const v = (newContent as any).video;
+    const v = newContent.video;
     videoData.value = v;
     initialUserId.value = v?.userId || v?.user?.id || '';
     initialEditorId.value = v?.editorId || v?.editor?.id || '';
@@ -231,7 +232,7 @@ watch(() => props.content, (newContent) => {
         name: newContent.name,
         notes: newContent.notes || '',
         publicationDate: formatForInput(newContent.publicationDate || ''),
-        authorId: (newContent as any).authorId || newContent.author?.id || '',
+        authorId: newContent.author?.id || '',
         videoType: v?.type || 'best',
         videoStatus: v?.status || 'not_started',
         userId: v?.userId || v?.user?.id || '',
@@ -240,7 +241,7 @@ watch(() => props.content, (newContent) => {
 }, { deep: true });
 
 watch(() => props.videoUpdateError, () => {
-    const v = (props.content as any).video;
+    const v = props.content.video;
     const userId = v?.userId || v?.user?.id || '';
     const editorId = v?.editorId || v?.editor?.id || '';
     formData.value.userId = userId;
@@ -258,7 +259,7 @@ function handleUpdate() {
         authorId: formData.value.authorId
     });
 
-    const v = (props.content as any).video;
+    const v = props.content.video;
     if (v?.id) {
         const videoUpdate: Record<string, unknown> = {
             videoId: v.id,

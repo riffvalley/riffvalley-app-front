@@ -180,12 +180,13 @@
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
 import type { RvUser } from '@/modules/identity/users';
+import type { ContentListAsignation } from '@services/contents/contents';
 
 interface RadarDetails {
     listDate: string;
     closeDate: string;
     status: string;
-    asignations: any[];
+    asignations: ContentListAsignation[];
 }
 
 interface Props {
@@ -202,7 +203,7 @@ const emit = defineEmits<{
     close: [];
     'update-field': [field: string, value: string];
     'update-status': [details: RadarDetails];
-    'toggle-asignation': [asig: any];
+    'toggle-asignation': [asig: ContentListAsignation];
     'delete-list': [];
     'delete': [];
     'navigate-detail': [];
