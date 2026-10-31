@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 describe("DiscListExplorationFilters", () => {
-  it("shows only the no-votes switch after genres and clears it with exploration", async () => {
+  it("labels the no-votes switch after genres and clears it with exploration", async () => {
     localStorage.setItem("rv_default_year_filter", "all");
     const wrapper = mount(DiscListExplorationFilters, {
       props: { ...baseProps, noRatesOnly: true },
@@ -43,7 +43,11 @@ describe("DiscListExplorationFilters", () => {
     const noRatesSwitch = wrapper.get<HTMLInputElement>('input[role="switch"]');
     expect(noRatesSwitch.attributes("aria-label")).toBe("Mostrar solo discos sin votos");
     expect(wrapper.get(".no-rates-switch").attributes("title")).toBe("Mostrar solo discos sin votos");
-    expect(wrapper.text()).not.toContain("Sin votos");
+    const noRatesControl = wrapper.get(".no-rates-control");
+    expect(noRatesControl.text()).toContain("Sin votos");
+    expect(noRatesControl.attributes("aria-labelledby")).toBe("disc-list-no-rates-label");
+    expect(noRatesControl.find("#disc-list-no-rates-label").text()).toBe("Sin votos");
+    expect(noRatesControl.element.parentElement).toBe(wrapper.get(".exploration-grid").element);
     const genreControl = wrapper.get(".genre-control");
     expect(genreControl.element.compareDocumentPosition(noRatesSwitch.element) & Node.DOCUMENT_POSITION_FOLLOWING)
       .toBeTruthy();
@@ -83,6 +87,7 @@ describe("DiscListExplorationFilters", () => {
     expect(countryIndex).toBeGreaterThanOrEqual(0);
     expect(countryIndex).toBeLessThan(genreIndex);
     expect(genreIndex).toBeLessThan(noRatesIndex);
+    expect(controls.every((control) => control.element.parentElement === wrapper.get(".exploration-grid").element)).toBe(true);
   });
 
   it("reflects canonical criteria in removable chips and delegates clearing to the parent", async () => {
