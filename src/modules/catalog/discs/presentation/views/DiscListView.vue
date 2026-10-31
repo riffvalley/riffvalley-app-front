@@ -5,6 +5,23 @@
     <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-rv-navy dark:text-white">
       <i class="fa-solid fa-compact-disc mr-3"></i>Discos
     </h1>
+    <div v-if="viewMode === 'all'" class="mb-4 flex justify-center">
+      <label class="inline-flex cursor-pointer rounded-full p-1">
+        <input
+          type="checkbox"
+          role="switch"
+          class="peer sr-only"
+          aria-label="Mostrar solo discos sin votos"
+          :aria-checked="noRatesOnly"
+          :checked="noRatesOnly"
+          @change="setNoRatesOnly(($event.target as HTMLInputElement).checked)"
+        />
+        <span
+          class="relative h-7 w-12 rounded-full bg-gray-300 transition-colors before:absolute before:left-1 before:top-1 before:h-5 before:w-5 before:rounded-full before:bg-white before:shadow-sm before:transition-transform peer-checked:bg-rv-navy peer-checked:before:translate-x-5 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-rv-pink dark:bg-rv-darkSurface dark:before:bg-gray-100 dark:peer-checked:bg-gray-200 dark:peer-checked:before:bg-rv-navy"
+          aria-hidden="true"
+        />
+      </label>
+    </div>
     <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
       Vota, guarda y descubre lanzamientos desde 2025 en adelante.
     </p>
@@ -72,7 +89,6 @@
       :selectedCountry="selectedCountry"
       :selectedGenres="selectedGenres"
       :noRatesOnly="noRatesOnly"
-      :showNoRatesFilter="viewMode === 'all'"
       :countries="options.countries"
       :genres="options.genres"
       :optionsLoading="optionsLoading"
