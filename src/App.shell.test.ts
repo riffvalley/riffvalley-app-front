@@ -89,6 +89,25 @@ describe("App shell composition", () => {
     wrapper.unmount();
   });
 
+  it("keeps password recovery pages visible when session initialization fails", async () => {
+    const authStore = useAuthStore(pinia);
+    authStore.$patch({ authStatus: "error", authInitializationError: "unavailable" });
+    const initializeAuth = vi.spyOn(authStore, "initializeAuth").mockResolvedValue("error");
+
+    for (const path of ["/forgot-password", "/reset-password"]) {
+      await router.push(path);
+      const wrapper = mountApp();
+      await flushPromises();
+
+      expect(wrapper.text()).not.toContain("No hemos podido recuperar tu sesión");
+      expect(wrapper.findComponent({ name: "RouterView" }).exists()).toBe(true);
+
+      wrapper.unmount();
+    }
+
+    initializeAuth.mockRestore();
+  });
+
   it("uses one overlay and releases the scroll lock when the menu closes", async () => {
     const wrapper = mountApp();
     await flushPromises();

@@ -3,7 +3,7 @@
     <p>Comprobando tu sesión…</p>
   </main>
   <main
-    v-else-if="authStore.authStatus === 'error' && route.name !== 'Login' && !isStatusPage"
+    v-else-if="authStore.authStatus === 'error' && route.name !== 'Login' && !isPasswordRecoveryPage && !isStatusPage"
     class="min-h-screen flex items-center justify-center bg-gray-100 px-5 py-10 text-center dark:bg-rv-darkBg sm:px-8"
     role="alert"
   >
@@ -110,16 +110,20 @@ export default defineComponent({
       !(["Forbidden", "NotFound"].includes(String(route.name)) && authStore.authStatus === "authenticated"),
     );
     const isStatusPage = computed(() => ["Maintenance", "NotFound"].includes(String(route.name)));
+    const isPasswordRecoveryPage = computed(() =>
+      ["ForgotPassword", "ResetPassword"].includes(String(route.name))
+    );
 
     const authReady = computed(() =>
       authStore.authStatus === "authenticated" || authStore.authStatus === "anonymous" ||
-      (authStore.authStatus === "error" && ["Login", "Maintenance", "NotFound", "NationalReleasePublic"].includes(String(route.name))),
+      (authStore.authStatus === "error" && ["Login", "ForgotPassword", "ResetPassword", "Maintenance", "NotFound", "NationalReleasePublic"].includes(String(route.name))),
     );
 
     return {
       authStore,
       authReady,
       route,
+      isPasswordRecoveryPage,
       retrying,
       retryAuthInitialization,
       isStandalonePage,
