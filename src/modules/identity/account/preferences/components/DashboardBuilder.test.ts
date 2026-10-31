@@ -166,7 +166,7 @@ describe("DashboardBuilder keyboard controls", () => {
     desktopConfig = makeConfig("desktop", registeredModules);
     mobileConfig = makeConfig("mobile", registeredModules);
     mocks.useDashboardConfig.mockImplementation((target: "desktop" | "mobile") =>
-      target === "desktop" ? desktopConfig : mobileConfig,
+      target === "desktop" ? desktopConfig : mobileConfig
     );
     const wrapper = mount(DashboardBuilder);
 

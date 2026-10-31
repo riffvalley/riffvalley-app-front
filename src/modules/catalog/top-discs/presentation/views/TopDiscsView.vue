@@ -75,17 +75,18 @@
       <button type="button" class="ml-2 underline" @click="retryRanking">Reintentar</button>
     </div>
 
-    <TopDiscsRanking v-else :discs="discs" />
+    <TopDiscsRanking v-else :discs="discs" @rating-saved="onRatingSaved" />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, computed } from "vue";
+import { useQueryClient } from "@tanstack/vue-query";
 import type { TopRankedDisc } from "@/modules/catalog/top-discs/types/topDiscs";
 import TopDiscsHeader from "@/modules/catalog/top-discs/presentation/components/TopDiscsHeader.vue";
 import TopDiscsRanking from "@/modules/catalog/top-discs/presentation/components/TopDiscsRanking.vue";
 import { getAvailableYears } from "@helpers/dateConstants";
-import { useTopDiscsQuery } from "@/modules/catalog/top-discs/composables/useTopDiscsQueries";
+import { topDiscsQueryKey, useTopDiscsQuery } from "@/modules/catalog/top-discs/composables/useTopDiscsQueries";
 import {
   useTopDiscsFilterCoordinator,
   type TopDiscsDateRange,
@@ -96,6 +97,12 @@ export default defineComponent({
   name: "RankingsPage",
   components: { TopDiscsHeader, TopDiscsRanking },
   setup() {
+    const queryClient = useQueryClient();
+    const onRatingSaved = (event: { musicalRateChanged: boolean }) => {
+      if (event.musicalRateChanged) {
+        void queryClient.invalidateQueries({ queryKey: topDiscsQueryKey });
+      }
+    };
     const filters = useTopDiscsFilterCoordinator();
     const {
       period: selectedPeriod,
@@ -331,6 +338,7 @@ export default defineComponent({
     });
 
     return {
+      onRatingSaved,
       discs,
       selectedPeriod,
       selectedRangeKey,

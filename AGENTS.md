@@ -33,6 +33,7 @@ Ejecuta pruebas proporcionales al cambio de comportamiento; typecheck para cambi
 
 ## Límites operativos
 
+- No hagas push directo a `origin/main`, `origin/dev` ni `origin/beta`, aunque el usuario pida publicar cambios. Publica la rama de trabajo y abre un PR por cada rama destino solicitada; integra los cambios mediante merge del PR después de comprobar sus gates. Si una rama destino ya contiene los commits, no inventes un PR vacío ni reescribas la rama remota: explica la situación y acuerda una reparación mediante PR si hace falta.
 - Conserva los cambios existentes que no pertenecen a la tarea y no amplíes su alcance.
 - No modifiques backend ni Wiki salvo petición explícita.
 - No ejecutes despliegues, migraciones ni operaciones remotas sin autorización explícita.
