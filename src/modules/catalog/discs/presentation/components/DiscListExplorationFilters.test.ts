@@ -42,6 +42,7 @@ describe("DiscListExplorationFilters", () => {
 
     const noRatesSwitch = wrapper.get<HTMLInputElement>('input[role="switch"]');
     expect(noRatesSwitch.attributes("aria-label")).toBe("Mostrar solo discos sin votos");
+    expect(wrapper.get(".no-rates-switch").attributes("title")).toBe("Mostrar solo discos sin votos");
     expect(wrapper.text()).not.toContain("Sin votos");
     const genreControl = wrapper.get(".genre-control");
     expect(genreControl.element.compareDocumentPosition(noRatesSwitch.element) & Node.DOCUMENT_POSITION_FOLLOWING)
