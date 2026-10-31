@@ -201,8 +201,8 @@ function retry(): void {
 
     <div v-else-if="summary" class="space-y-2.5 p-3 sm:p-4">
       <div class="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center text-[11px] leading-tight text-gray-700 dark:text-gray-300" aria-label="Indicadores de la semana">
-        <span class="whitespace-nowrap"><strong class="text-base font-bold tabular-nums text-purple-800 dark:text-purple-300">{{ summary.metrics.activeRates }}</strong> Rates activos <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">·</span></span>
-        <span class="whitespace-nowrap"><strong class="text-base font-bold tabular-nums text-rose-800 dark:text-rose-300">{{ summary.metrics.averageMusicalRate === null ? "—" : formatScore(summary.metrics.averageMusicalRate) }}</strong> Media musical <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">·</span></span>
+        <span class="whitespace-nowrap"><strong class="text-base font-bold tabular-nums text-purple-800 dark:text-purple-300">{{ summary.metrics.activeRates }}</strong> Votos <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">·</span></span>
+        <span class="whitespace-nowrap"><strong class="text-base font-bold tabular-nums text-rose-800 dark:text-rose-300">{{ summary.metrics.averageMusicalRate === null ? "—" : formatScore(summary.metrics.averageMusicalRate) }}</strong> Media <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">·</span></span>
         <span class="whitespace-nowrap"><strong class="text-base font-bold tabular-nums text-blue-800 dark:text-blue-300">{{ summary.metrics.distinctGenres }}</strong> Géneros</span>
       </div>
 
@@ -221,7 +221,7 @@ function retry(): void {
 
       <div class="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 min-[420px]:gap-4">
         <div class="min-w-0 text-center">
-          <p class="text-[9px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Mejor nota musical</p>
+          <p class="text-[9px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nota más alta</p>
           <template v-if="summary.metrics.bestRatedDisc">
             <div class="mt-0.5 flex min-w-0 flex-wrap items-baseline justify-center gap-x-1.5 text-xs leading-snug">
               <button
@@ -247,7 +247,7 @@ function retry(): void {
         </div>
 
         <div class="min-w-0 text-center">
-          <p class="text-[9px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Género dominante</p>
+          <p class="text-[9px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Género más votado</p>
           <p class="mt-0.5 break-words text-xs font-bold text-gray-900 dark:text-gray-100">
             <template v-if="summary.metrics.dominantGenre">
               {{ summary.metrics.dominantGenre.name }} · {{ summary.metrics.dominantGenre.activeRates }} votos

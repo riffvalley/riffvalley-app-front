@@ -122,16 +122,17 @@ describe("DashboardLatestVotesWidget", () => {
 
     expect(wrapper.text()).toContain("Tu semana musical");
     expect(wrapper.text()).toContain("26 oct – 1 nov");
-    expect(wrapper.text()).toContain("Rates activos");
+    expect(wrapper.text()).toContain("Votos");
     expect(wrapper.text()).toContain("3");
-    expect(wrapper.text()).toContain("Media musical");
+    expect(wrapper.text()).toContain("Media");
     expect(wrapper.text()).toContain("8,2");
     expect(wrapper.text()).toContain("Géneros");
     expect(wrapper.text()).toContain("Mejor disco");
     expect(wrapper.text()).toContain("Mejor artista");
     expect(wrapper.text()).toContain("Mejor disco — Mejor artista");
     expect(wrapper.text()).toContain("9,5");
-    expect(wrapper.text()).toContain("Género dominante");
+    expect(wrapper.text()).toContain("Nota más alta");
+    expect(wrapper.text()).toContain("Género más votado");
     expect(wrapper.text()).toContain("Rock");
     expect(wrapper.text()).toContain("Rock · 2 votos");
     expect(wrapper.find("li").text()).toContain("Disco 1 — Artista 1 (27 oct, 19:30)");
@@ -194,8 +195,8 @@ describe("DashboardLatestVotesWidget", () => {
 
     await vi.waitFor(() => expect(wrapper.text()).toContain("Sin actividad esta semana"));
 
-    expect(wrapper.text()).toContain("Rates activos");
-    expect(wrapper.text()).toContain("Media musical");
+    expect(wrapper.text()).toContain("Votos");
+    expect(wrapper.text()).toContain("Media");
     expect(wrapper.text()).toContain("—");
     expect(wrapper.text()).not.toContain("0,0");
     expect(wrapper.text()).toContain("Sin notas musicales esta semana");
@@ -299,7 +300,7 @@ describe("DashboardLatestVotesWidget", () => {
     const wrapper = mountWidget();
     await vi.waitFor(() => expect(getRatesDashboardSummary).toHaveBeenCalledOnce());
     expect(wrapper.get('[role="status"]').text()).toContain("Cargando");
-    expect(wrapper.text()).not.toContain("Rates activos");
+    expect(wrapper.text()).not.toContain("Votos");
     wrapper.unmount();
 
     getRatesDashboardSummary.mockRejectedValueOnce(new Error("HTTP failure"));
