@@ -279,7 +279,13 @@
 
   <div v-if="showComentsModal" class="fixed inset-0 flex items-center justify-center bg-rv-navy bg-opacity-50 z-50">
     <div class="p-4 relative max-w-3xl w-full">
-      <ComentsModal :disc-id="discData.id" :artist-name="artistName" :album-name="name" @close="closeComentsModal" />
+      <ComentsModal
+        :disc-id="discData.id"
+        :artist-name="artistName"
+        :album-name="name"
+        @count-updated="commentCount = $event"
+        @close="closeComentsModal"
+      />
     </div>
   </div>
 
@@ -355,6 +361,26 @@ interface RatingSavedEvent {
   coverChanged: boolean;
 }
 
+type DiscCardUpdateEvent =
+  | {
+      type: "rating";
+      discId: string;
+      rateId: string | null;
+      rate: number | null;
+      cover: number | null;
+      hasMusicalRate: boolean;
+      hasCover: boolean;
+      averageRate: number | null;
+      averageCover: number | null;
+      voteCount: number;
+    }
+  | {
+      type: "community";
+      discId: string;
+      favoriteId: string | null;
+      pendingId: string | null;
+    };
+
 export default defineComponent({
   components: { DiscDetail, ArtistDetail, ComentsModal, VotesModal, DiscCalendar }, // Add VotesModal
   emits: {
@@ -362,6 +388,7 @@ export default defineComponent({
       typeof payload.discId === "string" &&
       (payload.action === "created" || payload.action === "updated"),
     "community-updated": () => true,
+    "card-updated": (payload: DiscCardUpdateEvent) => typeof payload.discId === "string",
   },
   props: {
     id: { type: String, required: true },
@@ -415,10 +442,24 @@ export default defineComponent({
         const updatedVotes = await getDiscRates(props.id);
         const rates = updatedVotes.map((v: any) => Number(v.rate)).filter((r: number) => r > 0);
         const covers = updatedVotes.map((v: any) => Number(v.cover)).filter((c: number) => c > 0);
-        if (rates.length) localAverageRate.value = rates.reduce((a: number, b: number) => a + b, 0) / rates.length;
-        if (covers.length) localAverageCover.value = covers.reduce((a: number, b: number) => a + b, 0) / covers.length;
+        localAverageRate.value = rates.length
+          ? rates.reduce((a: number, b: number) => a + b, 0) / rates.length
+          : null;
+        localAverageCover.value = covers.length
+          ? covers.reduce((a: number, b: number) => a + b, 0) / covers.length
+          : null;
         rateCount.value = rates.length; // solo votos a disco (rate > 0)
+        return {
+          averageRate: localAverageRate.value,
+          averageCover: localAverageCover.value,
+          voteCount: rateCount.value,
+        };
       } catch { /* silently ignore, los valores anteriores se mantienen */ }
+      return {
+        averageRate: localAverageRate.value,
+        averageCover: localAverageCover.value,
+        voteCount: rateCount.value ?? 0,
+      };
     };
     const formattedDate = computed(() => {
       const date = new Date(props.releaseDate);
@@ -539,6 +580,12 @@ export default defineComponent({
         }
         triggerHeartAnim();
         emit("community-updated");
+        emit("card-updated", {
+          type: "community",
+          discId: props.id,
+          favoriteId: favoriteId.value,
+          pendingId: pendingId.value,
+        });
       } catch (error) {
         console.error("Error al cambiar el estado de favorito:", error);
         Swal.fire({
@@ -571,6 +618,12 @@ export default defineComponent({
         }
         triggerBookmarkAnim();
         emit("community-updated");
+        emit("card-updated", {
+          type: "community",
+          discId: props.id,
+          favoriteId: favoriteId.value,
+          pendingId: pendingId.value,
+        });
       } catch (error) {
         console.error("Error al cambiar el estado de pendiente:", error);
         Swal.fire({
@@ -674,11 +727,18 @@ export default defineComponent({
         if (payload.rate && payload.rate > 0)
           SwalService.successImage(payload.rate);
         else SwalService.success("Votación enviada con éxito");
-        try {
-          await refreshAverages(); // actualiza medias y contador en tiempo real
-        } catch {
-          // el voto ya se guardó; el refresco de medias es no crítico
-        }
+
+        const averages = await refreshAverages();
+        emit("card-updated", {
+          type: "rating",
+          discId: props.id,
+          rateId: userDiscRateId.value ?? null,
+          rate: payload.rate,
+          cover: payload.cover,
+          hasMusicalRate: payload.rate !== null && payload.rate > 0,
+          hasCover: payload.cover !== null && payload.cover > 0,
+          ...averages,
+        });
       } catch (error) {
         console.error("Error submitting rating:", error);
         Swal.fire({
@@ -719,7 +779,6 @@ export default defineComponent({
     };
     const closeComentsModal = () => {
       showComentsModal.value = false;
-      emit("community-updated");
     };
 
     const openSpotify = (webLink: string) => {

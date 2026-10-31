@@ -349,6 +349,23 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
     refreshGeneration.value += 1;
   }
 
+  function updateDisc(id: string, update: Partial<DiscListCardDisc>) {
+    const index = discs.value.findIndex((disc) => disc.id === id);
+    if (index === -1) return;
+    discs.value = discs.value.map((disc) =>
+      disc.id === id ? { ...disc, ...update } : disc
+    );
+  }
+
+  function removeDisc(id: string) {
+    const index = discs.value.findIndex((disc) => disc.id === id);
+    if (index === -1) return;
+    discs.value = discs.value.filter((disc) => disc.id !== id);
+    offset.value = Math.max(0, offset.value - 1);
+    totalItems.value = Math.max(0, totalItems.value - 1);
+    setTotalForMode(viewMode.value, totalItems.value);
+  }
+
   function retryOptions() {
     if (optionsLoading.value || !isAuthenticated.value) return;
     optionsSettledKey.value = null;
@@ -437,6 +454,8 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
     optionsReady,
     retryOptions,
     refresh,
+    updateDisc,
+    removeDisc,
     loadNextPage,
   };
 }

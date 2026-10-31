@@ -117,7 +117,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted, toRefs, nextTick } from "vue";
+import { defineComponent, ref, computed, onMounted, toRefs, nextTick, watch } from "vue";
 import CommentItem from "./CommentItem.vue";
 import { getDisccomments, postcommentService } from "@services/comments/comments";
 import SwalService from "@services/swal/SwalService";
@@ -179,13 +179,14 @@ export default defineComponent({
     artistName: { type: String, required: true },
     albumName:  { type: String, required: true },
   },
-  emits: ["close"],
+  emits: ["close", "count-updated"],
   setup(props, { emit }) {
     const comments       = ref<any[]>([]);
     const topCommentText = ref("");
     const inputRef       = ref<HTMLInputElement | null>(null);
 
     const totalComments = computed(() => countComments(comments.value));
+    watch(totalComments, (count) => emit("count-updated", count), { immediate: true });
 
     // --- Emoji picker ---
     const showEmojiPicker       = ref(false);

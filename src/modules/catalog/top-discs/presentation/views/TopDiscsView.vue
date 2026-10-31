@@ -75,21 +75,17 @@
       <button type="button" class="ml-2 underline" @click="retryRanking">Reintentar</button>
     </div>
 
-    <TopDiscsRanking v-else :discs="discs" @rating-saved="handleRatingSaved" />
+    <TopDiscsRanking v-else :discs="discs" />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, computed } from "vue";
-import { useQueryClient } from "@tanstack/vue-query";
 import type { TopRankedDisc } from "@/modules/catalog/top-discs/types/topDiscs";
 import TopDiscsHeader from "@/modules/catalog/top-discs/presentation/components/TopDiscsHeader.vue";
 import TopDiscsRanking from "@/modules/catalog/top-discs/presentation/components/TopDiscsRanking.vue";
 import { getAvailableYears } from "@helpers/dateConstants";
-import {
-  topDiscsQueryKey,
-  useTopDiscsQuery,
-} from "@/modules/catalog/top-discs/composables/useTopDiscsQueries";
+import { useTopDiscsQuery } from "@/modules/catalog/top-discs/composables/useTopDiscsQueries";
 import {
   useTopDiscsFilterCoordinator,
   type TopDiscsDateRange,
@@ -100,7 +96,6 @@ export default defineComponent({
   name: "RankingsPage",
   components: { TopDiscsHeader, TopDiscsRanking },
   setup() {
-    const queryClient = useQueryClient();
     const filters = useTopDiscsFilterCoordinator();
     const {
       period: selectedPeriod,
@@ -304,12 +299,6 @@ export default defineComponent({
     const setGenre = (genreId: string) => void filters.setGenre(genreId);
     const retryOptions = () => void filters.retryOptions();
     const retryRanking = () => rankingQuery.refetch();
-    const handleRatingSaved = (event: { musicalRateChanged: boolean }) => {
-      if (event.musicalRateChanged) {
-        void queryClient.invalidateQueries({ queryKey: topDiscsQueryKey });
-      }
-    };
-
     const showScrollTop = ref(false);
     const scrollSentinel = ref<HTMLElement | null>(null);
     let sentinelObserver: IntersectionObserver | null = null;
@@ -364,7 +353,6 @@ export default defineComponent({
       rankingLoading,
       rankingError,
       retryRanking,
-      handleRatingSaved,
       showScrollTop,
       scrollToTop,
       scrollSentinel,
