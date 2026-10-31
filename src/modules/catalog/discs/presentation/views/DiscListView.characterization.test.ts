@@ -264,6 +264,23 @@ afterEach(() => {
 });
 
 describe("DiscList new backend integration", () => {
+  it("shows an accessible no-votes switch below the title and requests eligible discs", async () => {
+    const wrapper = mountList();
+    await settle();
+
+    const noRatesSwitch = wrapper.get<HTMLInputElement>('input[role="switch"]');
+    expect(noRatesSwitch.attributes("aria-label")).toBe("Mostrar solo discos sin votos");
+    expect(wrapper.text()).not.toContain("Sin votos");
+    expect(wrapper.find("h1").element.compareDocumentPosition(noRatesSwitch.element) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+
+    await noRatesSwitch.setValue(true);
+    await settle();
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ eligibility: "noRates", offset: 0 })
+    );
+  });
+
   it("keeps the saved-filter label and control aligned with search and places states outside the control", async () => {
     let resolveSavedFilters!: (filters: []) => void;
     savedFiltersApi.getSavedDiscFilters.mockReturnValue(new Promise((resolve) => {

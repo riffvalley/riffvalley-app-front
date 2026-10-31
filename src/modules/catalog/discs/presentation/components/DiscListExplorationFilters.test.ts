@@ -16,7 +16,6 @@ const baseProps = {
   selectedCountry: "",
   selectedGenres: [],
   noRatesOnly: false,
-  showNoRatesFilter: true,
   countries: [{ id: "country-a", name: "España", isoCode: "ES" }],
   genres: [
     { id: "genre-a", name: "Black Metal", color: null },
@@ -33,23 +32,21 @@ afterEach(() => {
 });
 
 describe("DiscListExplorationFilters", () => {
-  it("toggles the compact no-votes filter and exposes it as a removable active filter", async () => {
+  it("keeps the no-votes switch outside the filter controls and clears it with exploration", async () => {
     localStorage.setItem("rv_default_year_filter", "all");
     const wrapper = mount(DiscListExplorationFilters, {
-      props: baseProps,
+      props: { ...baseProps, noRatesOnly: true },
       global: { stubs: { SearchableSelect: CountrySelectStub } },
     });
 
-    const noRatesCheckbox = wrapper.get('input[aria-label="Mostrar solo discos sin votos"]');
-    expect((noRatesCheckbox.element as HTMLInputElement).checked).toBe(false);
-    await noRatesCheckbox.setValue(true);
-    expect(wrapper.emitted("update:no-rates")).toEqual([[true]]);
-
-    await wrapper.setProps({ noRatesOnly: true });
-    expect((wrapper.get('input[aria-label="Mostrar solo discos sin votos"]')
-      .element as HTMLInputElement).checked).toBe(true);
-    await wrapper.get('button[aria-label="Quitar Sin votos"]').trigger("click");
-    expect(wrapper.emitted("update:no-rates")?.at(-1)).toEqual([false]);
+    expect(wrapper.find('input[role="switch"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("Sin votos");
+    const clearButton = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Limpiar exploración");
+    expect(clearButton).toBeDefined();
+    await clearButton?.trigger("click");
+    expect(wrapper.emitted("update:no-rates")).toEqual([[false]]);
   });
 
   it("shows two genre chips so the saved status can share the active-filter row", () => {
@@ -64,6 +61,20 @@ describe("DiscListExplorationFilters", () => {
       "Quitar Death Metal",
     ]);
     expect(wrapper.text()).toContain("+1 géneros");
+  });
+
+  it("places País before Géneros in the exploration controls", () => {
+    localStorage.setItem("rv_default_year_filter", "all");
+    const wrapper = mount(DiscListExplorationFilters, {
+      props: baseProps,
+      global: { stubs: { SearchableSelect: CountrySelectStub } },
+    });
+    const controls = wrapper.findAll(".filter-control");
+    const countryIndex = controls.findIndex((control) => control.classes().includes("country-control"));
+    const genreIndex = controls.findIndex((control) => control.classes().includes("genre-control"));
+
+    expect(countryIndex).toBeGreaterThanOrEqual(0);
+    expect(countryIndex).toBeLessThan(genreIndex);
   });
 
   it("reflects canonical criteria in removable chips and delegates clearing to the parent", async () => {

@@ -80,40 +80,6 @@
           </select>
         </div>
 
-        <div class="filter-control genre-control">
-          <span class="text-gray-700 dark:text-gray-200">Géneros</span>
-          <DiscListGenreSelect
-            :model-value="selectedGenres"
-            :options="genres"
-            :loading="optionsLoading"
-            @update:model-value="emit('update:genres', $event)"
-          />
-        </div>
-
-        <div
-          v-if="showNoRatesFilter"
-          class="filter-control no-rates-control"
-          role="group"
-          aria-labelledby="disc-list-no-rates-label"
-        >
-          <span id="disc-list-no-rates-label" class="text-gray-700 dark:text-gray-200">Sin votos</span>
-          <label
-            for="disc-list-no-rates"
-            class="no-rates-checkbox"
-            :class="{ 'is-selected': noRatesOnly }"
-          >
-            <input
-              id="disc-list-no-rates"
-              type="checkbox"
-              class="no-rates-checkbox-input"
-              :checked="noRatesOnly"
-              aria-label="Mostrar solo discos sin votos"
-              @change="emit('update:no-rates', ($event.target as HTMLInputElement).checked)"
-            />
-            <span>Activar filtro</span>
-          </label>
-        </div>
-
         <div
           class="filter-control country-control"
           role="group"
@@ -130,6 +96,16 @@
             trackby="id"
             :max="150"
             class="select-pill w-full"
+          />
+        </div>
+
+        <div class="filter-control genre-control">
+          <span class="text-gray-700 dark:text-gray-200">Géneros</span>
+          <DiscListGenreSelect
+            :model-value="selectedGenres"
+            :options="genres"
+            :loading="optionsLoading"
+            @update:model-value="emit('update:genres', $event)"
           />
         </div>
       </div>
@@ -150,43 +126,48 @@
     </div>
 
     <div
-      v-if="activeFilters.length || $slots.savedActions"
+      v-if="activeFilters.length || noRatesOnly || $slots.savedActions"
       class="flex flex-wrap items-center justify-between gap-3"
       aria-label="Filtros activos"
     >
-      <div v-if="activeFilters.length" class="flex min-w-0 flex-wrap items-center gap-2">
-      <span
-        v-for="filter in visibleFilters"
-        :key="filter.key"
-        class="inline-flex min-h-9 max-w-full items-center gap-1 rounded-full border border-rv-pink/30 bg-rv-pink/10 pl-3 pr-1 text-sm text-rv-navy dark:border-rv-pink/40 dark:bg-rv-pink/20 dark:text-white"
+      <div
+        v-if="activeFilters.length || noRatesOnly || searchQuery.trim()"
+        class="flex min-w-0 flex-wrap items-center gap-2"
       >
-        <span class="truncate">{{ filter.label }}</span>
+        <template v-if="activeFilters.length">
+          <span
+            v-for="filter in visibleFilters"
+            :key="filter.key"
+            class="inline-flex min-h-9 max-w-full items-center gap-1 rounded-full border border-rv-pink/30 bg-rv-pink/10 pl-3 pr-1 text-sm text-rv-navy dark:border-rv-pink/40 dark:bg-rv-pink/20 dark:text-white"
+          >
+            <span class="truncate">{{ filter.label }}</span>
+            <button
+              type="button"
+              class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-transparent hover:bg-rv-pink/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink"
+              :aria-label="`Quitar ${filter.label}`"
+              @click="removeFilter(filter.key)"
+            >
+              <i class="fa-solid fa-xmark text-xs" aria-hidden="true" />
+            </button>
+          </span>
+          <button
+            v-if="hiddenGenreCount > 0"
+            type="button"
+            class="min-h-9 rounded-full border border-gray-300 bg-transparent px-3 text-sm text-rv-navy hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:border-white/20 dark:text-white dark:hover:bg-rv-darkSurface"
+            :aria-expanded="showAllGenres"
+            @click="showAllGenres = !showAllGenres"
+          >
+            {{ showAllGenres ? "Mostrar menos" : `+${hiddenGenreCount} géneros` }}
+          </button>
+        </template>
         <button
+          v-if="activeFilters.length || noRatesOnly || searchQuery.trim()"
           type="button"
-          class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-transparent hover:bg-rv-pink/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink"
-          :aria-label="`Quitar ${filter.label}`"
-          @click="removeFilter(filter.key)"
+          class="min-h-9 bg-transparent px-2 text-sm font-medium text-rv-navy underline underline-offset-2 hover:text-rv-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:text-white"
+          @click="clearExploration"
         >
-          <i class="fa-solid fa-xmark text-xs" aria-hidden="true" />
+          Limpiar exploración
         </button>
-      </span>
-      <button
-        v-if="hiddenGenreCount > 0"
-        type="button"
-        class="min-h-9 rounded-full border border-gray-300 bg-transparent px-3 text-sm text-rv-navy hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:border-white/20 dark:text-white dark:hover:bg-rv-darkSurface"
-        :aria-expanded="showAllGenres"
-        @click="showAllGenres = !showAllGenres"
-      >
-        {{ showAllGenres ? "Mostrar menos" : `+${hiddenGenreCount} géneros` }}
-      </button>
-      <button
-        v-if="activeFilters.length || searchQuery.trim()"
-        type="button"
-        class="min-h-9 bg-transparent px-2 text-sm font-medium text-rv-navy underline underline-offset-2 hover:text-rv-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:text-white"
-        @click="clearExploration"
-      >
-        Limpiar exploración
-      </button>
       </div>
       <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
         <slot name="savedActions" />
@@ -224,7 +205,6 @@ const props = defineProps<{
   selectedCountry: string;
   selectedGenres: string[];
   noRatesOnly: boolean;
-  showNoRatesFilter: boolean;
   countries: CountryOption[];
   genres: GenreOption[];
   optionsLoading: boolean;
@@ -286,7 +266,6 @@ const activeFilters = computed(() => {
     const genre = props.genres.find((item) => item.id.toLowerCase() === id.toLowerCase());
     result.push({ key: `genre:${id}`, label: genre?.name ?? id });
   }
-  if (props.noRatesOnly) result.push({ key: "no-rates", label: "Sin votos" });
   return result;
 });
 const visibleFilters = computed(() => {
@@ -337,7 +316,6 @@ function selectPeriod(value: string | number | null) {
 function removeFilter(key: string) {
   if (key === "week") emit("update:week", null);
   else if (key === "country") emit("update:country", "");
-  else if (key === "no-rates") emit("update:no-rates", false);
   else
     emit(
       "update:genres",
@@ -401,39 +379,7 @@ onUnmounted(() => {
 .native-filter-select:focus-visible {
   @apply outline-none ring-2 ring-rv-pink ring-offset-2;
 }
-.genre-control {
-  grid-column: 1 / -1;
-}
-.no-rates-checkbox {
-  display: flex;
-  min-height: 2.75rem;
-  align-items: center;
-  gap: 0.75rem;
-  border: 1px solid rgb(209 213 219);
-  border-radius: 9999px;
-  padding: 0.5rem 1rem;
-  color: #00021f;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.25rem;
-  cursor: pointer;
-  @apply w-full bg-white dark:border-white/20 dark:bg-rv-darkCard dark:text-white;
-}
-.no-rates-checkbox:hover {
-  @apply bg-gray-100 dark:bg-rv-darkSurface;
-}
-.no-rates-checkbox.is-selected {
-  @apply border-rv-navy bg-rv-navy text-white dark:border-gray-200 dark:bg-gray-200 dark:text-rv-navy;
-}
-.no-rates-checkbox-input {
-  width: 1rem;
-  height: 1rem;
-  flex: 0 0 auto;
-  accent-color: #e46e8a;
-}
-.no-rates-checkbox-input:focus-visible {
-  @apply outline-none ring-2 ring-rv-pink ring-offset-2;
-}
+.genre-control,
 .country-control {
   grid-column: 1 / -1;
 }
