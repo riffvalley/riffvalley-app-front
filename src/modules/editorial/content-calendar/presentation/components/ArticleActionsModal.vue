@@ -2,18 +2,18 @@
     <div v-if="show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
         @click.self="$emit('close')">
         <div class="bg-white dark:bg-rv-darkCard rounded-t-2xl sm:rounded-2xl p-5 sm:p-8 w-full sm:max-w-2xl shadow-2xl relative overflow-hidden max-h-[92vh] overflow-y-auto">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-violet-50 dark:bg-violet-900/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+            <div class="absolute top-0 right-0 w-64 h-64 bg-blue-50 dark:bg-rv-blue/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
             <div class="relative z-10">
                 <div class="flex justify-between items-start mb-6">
                     <div class="flex items-center gap-2">
-                        <span class="px-2 py-1 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-bold uppercase tracking-wider rounded-md">
-                            Video
+                        <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider rounded-md">
+                            Artículo
                         </span>
-                        <span v-if="videoData?.type"
+                        <span v-if="articleData?.type"
                             class="px-2 py-1 text-xs font-bold uppercase tracking-wider rounded-md"
-                            :class="getVideoTypeColor(videoData.type)">
-                            {{ videoData.type }}
+                            :class="getArticleTypeColor(articleData.type)">
+                            {{ articleData.type }}
                         </span>
                     </div>
                     <button @click="$emit('close')"
@@ -26,11 +26,11 @@
                     <div>
                         <input v-model="formData.name" type="text"
                             class="w-full text-xl sm:text-3xl font-bold text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 border-none focus:ring-0 p-0 bg-transparent"
-                            placeholder="Título del video..." />
+                            placeholder="Título del artículo..." />
                         <button @click="$emit('navigate-kanban')"
-                            class="mt-2 text-xs text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors flex items-center gap-1">
+                            class="mt-2 text-xs text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-1">
                             <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-                            <span>Ver en tablero de videos</span>
+                            <span>Ver en tablero de artículos</span>
                         </button>
                     </div>
 
@@ -39,24 +39,31 @@
                             <div>
                                 <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Notas</label>
                                 <textarea v-model="formData.notes"
-                                    class="w-full border-0 bg-gray-50 dark:bg-rv-darkSurface rounded-xl px-4 py-3 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-violet-100 dark:focus:ring-violet-900/30 focus:bg-white dark:focus:bg-rv-darkBg transition-all resize-none text-sm leading-relaxed"
+                                    class="w-full border-0 bg-gray-50 dark:bg-rv-darkSurface rounded-xl px-4 py-3 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-100 dark:focus:ring-rv-blue/20 focus:bg-white dark:focus:bg-rv-darkBg transition-all resize-none text-sm leading-relaxed"
                                     rows="4"
-                                    placeholder="Notas sobre el video..."></textarea>
+                                    placeholder="Notas sobre el artículo..."></textarea>
                             </div>
 
                             <div>
-                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Tipo de video</label>
-                                <select v-model="formData.videoType"
+                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Tipo de artículo</label>
+                                <select v-model="formData.articleType"
                                     class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg text-sm">
-                                    <option v-for="t in VIDEO_TYPES" :key="t" :value="t">{{ t }}</option>
+                                    <option v-for="t in ARTICLE_TYPES" :key="t" :value="t">{{ t }}</option>
                                 </select>
                             </div>
 
                             <div>
+                                <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Enlace</label>
+                                <input v-model="formData.link" type="url"
+                                    class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg text-sm"
+                                    placeholder="https://..." />
+                            </div>
+
+                            <div>
                                 <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Estado</label>
-                                <select v-model="formData.videoStatus"
+                                <select v-model="formData.articleStatus"
                                     class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg text-sm">
-                                    <option v-for="s in VIDEO_STATUSES" :key="s" :value="s">{{ getStatusLabel(s) }}</option>
+                                    <option v-for="s in ARTICLE_STATES" :key="s" :value="s">{{ getStatusLabel(s) }}</option>
                                 </select>
                             </div>
                         </div>
@@ -70,7 +77,7 @@
                                     <input v-model="formData.publicationDate" type="date"
                                         class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkBg dark:text-gray-200 rounded-lg text-sm" />
                                     <button v-if="formData.publicationDate" @click="formData.publicationDate = ''"
-                                        class="text-xs text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 mt-2 flex items-center gap-1 transition-colors">
+                                        class="text-xs text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mt-2 flex items-center gap-1 transition-colors">
                                         <i class="fa-solid fa-arrow-rotate-left"></i> Mover a backlog
                                     </button>
                                 </div>
@@ -145,36 +152,35 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
-import { formatCalendarDateInput } from '../contentCalendarDates';
+import { formatCalendarDateInput } from '../../utils/contentCalendarDates';
 import type { RvUser } from '@/modules/identity/users';
-import type { ContentEditorData, VideoUpdateData } from '../contentCalendar.types';
-import { VIDEO_TYPES, VIDEO_STATUSES, type VideoStatus, type VideoType } from '@services/videos/videos';
+import type { ContentEditorData, ArticleUpdateData } from '../../types/contentCalendar.types';
+import { ARTICLE_TYPES, ARTICLE_STATES, type ArticleState, type ArticleType } from '@services/articles/articles';
 
 interface Props {
     show: boolean;
     content: Content;
     rvUsers: RvUser[];
-    videoUpdateError?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), { videoUpdateError: 0 });
+const props = defineProps<Props>();
 
 const emit = defineEmits<{
     close: [];
     update: [data: ContentEditorData];
-    'update-video': [data: VideoUpdateData];
+    'update-article': [data: ArticleUpdateData];
     delete: [];
     'navigate-kanban': [];
 }>();
 
-const videoData = ref(props.content.video ?? null);
+const articleData = ref(props.content.article);
 
 function formatForInput(dateStr: string): string {
     return formatCalendarDateInput(dateStr);
 }
 
-function getStatusLabel(status: VideoStatus): string {
-    const labels: Record<VideoStatus, string> = {
+function getStatusLabel(status: ArticleState): string {
+    const labels: Record<ArticleState, string> = {
         not_started: 'Not Started',
         in_progress: 'In Progress',
         editing: 'Reviewing',
@@ -184,57 +190,45 @@ function getStatusLabel(status: VideoStatus): string {
     return labels[status];
 }
 
-function getVideoTypeColor(type: VideoType): string {
+function getArticleTypeColor(type: ArticleType): string {
     switch (type) {
-        case 'best': return 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300';
-        case 'custom': return 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300';
-        default: return 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300';
+        case 'cronica': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300';
+        case 'festival': return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300';
+        case 'review': return 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300';
+        case 'entrevista': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300';
+        case 'articulo':
+        default: return 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300';
     }
 }
 
-const video = props.content.video;
-const initialUserId = ref(video?.userId || video?.user?.id || '');
-const initialEditorId = ref(video?.editorId || video?.editor?.id || '');
-
 const formData = ref({
-    type: 'video' as const,
+    type: 'article' as const,
     name: props.content.name,
     notes: props.content.notes || '',
     publicationDate: formatForInput(props.content.publicationDate || ''),
     authorId: props.content.author?.id || '',
-    videoType: video?.type || 'best' as VideoType,
-    videoStatus: video?.status || 'not_started' as VideoStatus,
-    userId: video?.userId || video?.user?.id || '',
-    editorId: video?.editorId || video?.editor?.id || ''
+    articleType: props.content.article?.type || 'articulo' as ArticleType,
+    articleStatus: props.content.article?.status || 'not_started' as ArticleState,
+    link: props.content.article?.link || '',
+    userId: props.content.article?.userId || props.content.article?.user?.id || '',
+    editorId: props.content.article?.editorId || props.content.article?.editor?.id || ''
 });
 
 watch(() => props.content, (newContent) => {
-    const v = newContent.video;
-    videoData.value = v;
-    initialUserId.value = v?.userId || v?.user?.id || '';
-    initialEditorId.value = v?.editorId || v?.editor?.id || '';
+    articleData.value = newContent.article;
     formData.value = {
-        type: 'video',
+        type: 'article',
         name: newContent.name,
         notes: newContent.notes || '',
         publicationDate: formatForInput(newContent.publicationDate || ''),
         authorId: newContent.author?.id || '',
-        videoType: v?.type || 'best',
-        videoStatus: v?.status || 'not_started',
-        userId: v?.userId || v?.user?.id || '',
-        editorId: v?.editorId || v?.editor?.id || ''
+        articleType: newContent.article?.type || 'articulo',
+        articleStatus: newContent.article?.status || 'not_started',
+        link: newContent.article?.link || '',
+        userId: newContent.article?.userId || newContent.article?.user?.id || '',
+        editorId: newContent.article?.editorId || newContent.article?.editor?.id || ''
     };
 }, { deep: true });
-
-watch(() => props.videoUpdateError, () => {
-    const v = props.content.video;
-    const userId = v?.userId || v?.user?.id || '';
-    const editorId = v?.editorId || v?.editor?.id || '';
-    formData.value.userId = userId;
-    formData.value.editorId = editorId;
-    initialUserId.value = userId;
-    initialEditorId.value = editorId;
-});
 
 function handleUpdate() {
     emit('update', {
@@ -245,21 +239,16 @@ function handleUpdate() {
         authorId: formData.value.authorId
     });
 
-    const v = props.content.video;
-    if (v?.id) {
-        const videoUpdate: Record<string, unknown> = {
-            videoId: v.id,
+    if (props.content.article?.id) {
+        emit('update-article', {
+            articleId: props.content.article.id,
             name: formData.value.name,
-            type: formData.value.videoType,
-            status: formData.value.videoStatus
-        };
-        if (formData.value.userId !== initialUserId.value) {
-            videoUpdate.userId = formData.value.userId || null;
-        }
-        if (formData.value.editorId !== initialEditorId.value) {
-            videoUpdate.editorId = formData.value.editorId || null;
-        }
-        emit('update-video', videoUpdate);
+            type: formData.value.articleType,
+            status: formData.value.articleStatus,
+            link: formData.value.link || undefined,
+            userId: formData.value.userId || undefined,
+            editorId: formData.value.editorId || undefined
+        });
     }
 }
 </script>

@@ -9,7 +9,7 @@ import {
   mergeContentsById,
   useContentCalendarQueries,
 } from "./contentCalendarQueries";
-import { contentFixtures } from "./contentFixtures";
+import { contentFixtures } from "../utils/contentFixtures";
 
 vi.mock("@services/contents/contents", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@services/contents/contents")>();

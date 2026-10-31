@@ -116,7 +116,8 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/content-calendar",
     name: "ContentCalendar",
-    component: () => import("@views/contentCalendar/ContentCalendar.vue"),
+    component: () =>
+      import("@/modules/editorial/content-calendar/presentation/views/ContentCalendar.vue"),
     meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {

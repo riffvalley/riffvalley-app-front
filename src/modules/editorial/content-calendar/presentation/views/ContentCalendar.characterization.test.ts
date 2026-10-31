@@ -13,21 +13,21 @@ import {
 } from "@services/contents/contents";
 import SwalService from "@services/swal/SwalService";
 import ContentCalendar from "./ContentCalendar.vue";
-import { formatCalendarDateInput } from "./contentCalendarDates";
+import { formatCalendarDateInput } from "../../utils/contentCalendarDates";
 import {
   backlogContentFixtures,
   contentFixtures,
   scheduledContentFixtures,
-} from "./contentFixtures";
-import ArticleActionsModal from "./components/ArticleActionsModal.vue";
-import CreateContentModal from "./components/CreateContentModal.vue";
-import DeleteConfirmModal from "./components/DeleteConfirmModal.vue";
-import EditContentModal from "./components/EditContentModal.vue";
-import GenericActionsModal from "./components/GenericActionsModal.vue";
-import PhotosActionsModal from "./components/PhotosActionsModal.vue";
-import RadarActionsModal from "./components/RadarActionsModal.vue";
-import ReunionActionsModal from "./components/ReunionActionsModal.vue";
-import VideoActionsModal from "./components/VideoActionsModal.vue";
+} from "../../utils/contentFixtures";
+import ArticleActionsModal from "../components/ArticleActionsModal.vue";
+import CreateContentModal from "../components/CreateContentModal.vue";
+import DeleteConfirmModal from "../components/DeleteConfirmModal.vue";
+import EditContentModal from "../components/EditContentModal.vue";
+import GenericActionsModal from "../components/GenericActionsModal.vue";
+import PhotosActionsModal from "../components/PhotosActionsModal.vue";
+import RadarActionsModal from "../components/RadarActionsModal.vue";
+import ReunionActionsModal from "../components/ReunionActionsModal.vue";
+import VideoActionsModal from "../components/VideoActionsModal.vue";
 import { getListDetails } from "@services/list/list";
 
 const mocks = vi.hoisted(() => ({

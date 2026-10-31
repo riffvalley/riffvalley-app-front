@@ -178,9 +178,9 @@
 import { ref, watch } from 'vue';
 import type { ContentType } from '@services/contents/contents';
 import type { RvUser } from '@/modules/identity/users';
-import type { CreateContentFormData } from '../contentCalendar.types';
+import type { CreateContentFormData } from '../../types/contentCalendar.types';
 import { MONTHS } from '@helpers/dateConstants';
-import { addCalendarDays, formatLocalCalendarDate } from '../contentCalendarDates';
+import { addCalendarDays, formatLocalCalendarDate } from '../../utils/contentCalendarDates';
 
 interface Props {
     show: boolean;

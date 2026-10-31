@@ -2,7 +2,7 @@
 
 ## Estado y alcance
 
-**Estado:** auditoría inicial completada; roadmap actualizado el **2026-10-31** con seis decisiones de producto. **E-CC-1, E-CC-2, E-CC-3, E-CC-4 y E-CC-5 completadas**; E-CC-6 en adelante siguen pendientes. `DEC-CC-1`, `DEC-CC-5` y `DEC-CC-6` están confirmadas; `DEC-CC-2` y `DEC-CC-3` ordenan investigación antes de decidir una política final. Para Content Calendar, DEC-CC-4 se concreta como consistencia del día programado; la hora no tiene relevancia funcional.
+**Estado:** auditoría inicial completada; roadmap actualizado el **2026-10-31** con seis decisiones de producto. **E-CC-1 a E-CC-6 completadas**; E-CC-7 en adelante siguen pendientes. `DEC-CC-1`, `DEC-CC-5` y `DEC-CC-6` están confirmadas; `DEC-CC-2` y `DEC-CC-3` ordenan investigación antes de decidir una política final. Para Content Calendar, DEC-CC-4 se concreta como consistencia del día programado; la hora no tiene relevancia funcional.
 
 **Capacidad auditada:** ruta `/content-calendar` y su vista `src/views/contentCalendar/ContentCalendar.vue`, los componentes importados desde `src/views/contentCalendar/components/`, sus servicios y dependencias reales. Se inspeccionaron en solo lectura los módulos backend Contents y sus relaciones de escritura relevantes.
 
@@ -14,7 +14,7 @@
 
 Content Calendar es una pantalla editorial de planificación que combina eventos fechados y un backlog en una vista FullCalendar. Permite crear, consultar por mes y backlog, editar y borrar registros `Content`, moverlos entre backlog y fechas mediante drag-and-drop, filtrar visualmente por autor actual, y abrir operaciones específicas para Radar/Best, fotos, reuniones, artículos y vídeos.
 
-La ruta y navegación son legacy: `src/router/index.ts` importa la vista desde `src/views/`, y `src/layouts/default/components/routes.json` la presenta como «Calendario RV». No existe `src/modules/editorial/` ni `content-calendar` en la arquitectura modular vigente. La vista de 1.251 líneas contiene estado, transporte, transformación de eventos, coordinación de FullCalendar, lógica CRUD y coordinación con varios dominios. Los componentes de modal ya están físicamente separados, pero no toda la coordinación ni los contratos están tipados con precisión. E-CC-1 añadió cobertura de contratos y flujos sin extraer lógica de producción.
+La auditoría inicial observó la vista legacy en `src/views/contentCalendar/ContentCalendar.vue`, con 1.251 líneas de estado, transporte, FullCalendar y operaciones. E-CC-6 ya la trasladó a `src/modules/editorial/content-calendar/`, separó coordinación de calendario y operaciones editoriales, y retiró esa ubicación legacy. La ruta y el sidebar conservan `/content-calendar` y «Calendario RV».
 
 En backend, Contents ya está organizado en controller, fachada de servicio y servicios de aplicación para consultas, creación y ciclo de vida. El backend tiene una auditoría propia completada, `riffvalley-app-back/roadmap/backend-cleanup/editorial/videos-contents.md` (BC-CNT-0 y BC-CNT-1–12). Sus decisiones/correcciones no se duplican aquí. No se identificó evidencia para reabrir esa reorganización.
 
@@ -37,13 +37,13 @@ En backend, Contents ya está organizado en controller, fachada de servicio y se
 
 ### Frontend
 
-- **Ruta y owner efectivo:** `src/router/index.ts` registra `ContentCalendar` y carga `src/views/contentCalendar/ContentCalendar.vue`. El sidebar define «Calendario RV» en `src/layouts/default/components/routes.json`.
-- **Composición:** `ContentCalendar.vue` compone FullCalendar, backlog, formularios, modales específicos por tipo, modal genérico, leyenda y confirmación de borrado. La vista también implementa acceso a API, carga/merge del estado remoto, mapeo de fechas/eventos, CRUD, drag/drop, resize y navegación.
-- **Estado:** `ref`/`computed` local para datos, selección, modales, filtro, mes/año y detalles. No se encontró Pinia propio de Content Calendar ni uso de TanStack Query para este estado remoto. Identity se consume mediante la entrada pública `@/modules/identity/auth`; la lista de usuarios viene de `@/modules/identity/users`.
-- **Transporte:** `src/services/contents/contents.ts` contiene interfaces y Axios para CRUD, `GET /contents`, `GET /contents/:id` y `GET /contents/by-month`. La vista además importa servicios legacy/públicos de asignaciones y Lists, y APIs de Articles y Videos.
+- **Ruta y owner efectivo:** `src/router/index.ts` registra `ContentCalendar` y carga `src/modules/editorial/content-calendar/presentation/views/ContentCalendar.vue`. El sidebar conserva «Calendario RV» en `src/layouts/default/components/routes.json`.
+- **Composición actual:** la vista modular compone FullCalendar, backlog, formularios y modales. `presentation/composables/useContentCalendarFullCalendar.ts` posee opciones, render de eventos, navegación mensual, selección, external drop, drag entre fechas y vuelta al backlog. `application/useContentCalendarOperations.ts` coordina consultas puntuales de detalle y operaciones editoriales. `application/contentCalendarQueries.ts` conserva las queries remotas de E-CC-5.
+- **Estado:** `ref`/`computed` local para selección, modales, filtro, mes/año y detalles; `application/contentCalendarQueries.ts` mantiene en TanStack Query los datos remotos de mes y backlog. Identity se consume mediante las entradas públicas `@/modules/identity/auth` y `@/modules/identity/users`.
+- **Transporte:** `src/services/contents/contents.ts` conserva interfaces y Axios para CRUD y consultas; `useContentCalendarOperations` coordina sus operaciones junto con las APIs existentes de asignaciones, Lists, Articles y Videos. La vista y los modales no invocan transporte directo.
 - **Dependencias de otros dominios realmente usadas:** Identity (sesión/rol/usuarios), Editorial Contents (registros y fechas), Lists (Radar/Best y asignaciones), Articles, Videos, Reunions y helper transversal `dateConstants` en el formulario de creación. No se observa dependencia de la API del calendario de lanzamientos.
-- **Contrato frontend incompleto:** `Content` en `services/contents/contents.ts` declara `article`, `list` y playlist, pero no `video`; tampoco expresa `ready` ni todas las relaciones opcionales de backend. La vista y modales compensan con `any`/casts. `CreateContentDto` omite `articleId`, `videoId` y `reunionId` aceptados por el backend; `UpdateContentDto` no incluye `listDate` y no modela explícitamente `reunionId: null`. `publicationDate` frontend es `string` requerido aunque la entidad y los DTOs backend permiten que no exista para contenido backlog.
-- **Duplicación/estado:** `loadContentsByMonth` y `loadBacklogContents` consultan por separado y preservan el conjunto contrario mediante `mergeContentsById`; ambos handlers capturan errores y solo los escriben a consola. No hay señal de cancelación/orden de solicitudes en cambios rápidos de mes.
+- **Contratos:** E-CC-2 alineó los tipos frontend de Contents y los DTOs con sus nulls, relaciones y payloads existentes; la API sigue siendo el owner del transporte. `types/contentCalendar.types.ts` contiene tipos de formulario/edición del calendario sin duplicar el contrato Content.
+- **Queries:** `contentCalendarQueries.ts` mantiene claves aisladas por usuario, generación y rol; ventana mensual y backlog independientes; deduplicación derivada por ID; `AbortSignal`; caché de 30 segundos; estados de carga/error/reintento e invalidación desde la coordinación de operaciones.
 
 ### Backend Contents
 
@@ -263,12 +263,34 @@ Se mantienen E-CC-1–10. Las subtareas separan investigación, decisión e impl
 #### E-CC-6 — Separar composición de vista y coordinación de aplicación
 
 - **Objetivo:** reducir el acoplamiento de la vista sin imponer estructura genérica.
-- **Problema que resuelve:** el componente de ruta reúne UI, side effects, transformación de evento, drag/drop y mutaciones de varios owners.
-- **Alcance técnico:** crear owner modular `src/modules/editorial/content-calendar/` solo para esta capacidad; mover la vista y piezas correspondientes de forma incremental; extraer la coordinación FullCalendar/operaciones de agenda a composable o application solo cuando tenga API cohesionada. Mantener modales específicos y APIs de los dominios vecinos en sus owners.
+- **Problema que resuelve:** el componente de ruta reunía UI, side effects, transformación de evento, drag/drop y mutaciones de varios owners.
+- **Alcance técnico:** crear owner modular `src/modules/editorial/content-calendar/`; trasladar vista, componentes, tipos, utilidades, queries, fixtures y pruebas; extraer FullCalendar y operaciones editoriales. Mantener las APIs de Contents, Lists, asignaciones, Articles, Videos e Identity en sus owners existentes.
 - **Dependencias:** E-CC-1, E-CC-2 y conclusión contractual de E-CC-4a; coordinar con E-CC-8a para no fijar semántica de borrado.
 - **Prioridad:** P2.
-- **Criterios de aceptación:** ruta y sidebar conservan path, nombre, guards y contrato; componentes de presentación no invocan transporte directo; imports entre módulos usan entradas públicas existentes; no aparecen ciclos ni una abstracción de calendario genérica.
-- **Tests necesarios:** repetir tests de E-CC-1 contra la nueva composición; límites de imports/ciclos existentes si cubren estos archivos; typecheck y build.
+- **Estructura final:**
+
+  ```text
+  src/modules/editorial/content-calendar/
+  ├── application/
+  │   ├── contentCalendarQueries.ts
+  │   ├── contentCalendarQueries.test.ts
+  │   └── useContentCalendarOperations.ts
+  ├── presentation/
+  │   ├── composables/useContentCalendarFullCalendar.ts
+  │   ├── views/ContentCalendar.vue
+  │   ├── views/ContentCalendar.characterization.test.ts
+  │   └── components/ (backlog y modales específicos)
+  ├── types/contentCalendar.types.ts
+  └── utils/ (fechas civiles, eventos FullCalendar y fixtures)
+  ```
+
+- **Responsabilidades y dependencias:** la vista conserva estado visual y composición. El composable de presentación usa tipos oficiales FullCalendar 6.1.19 y convierte Content en eventos `allDay: true`; mantiene month view, locale `es`, lunes, filtro actual, límites de movimiento, reversiones y fecha civil. La aplicación usa `contentCalendarQueries` para invalidar las claves de usuario/sesión/rol y conserva los GET de Contents bajo TanStack Query. `useContentCalendarOperations` consume servicios públicos existentes de Contents, Lists, asignaciones, Articles y Videos, e Identity Users continúa ofreciendo los autores asignables. No se añaden stores, transporte HTTP, API pública de calendario ni reglas de dominio de Articles/Videos/Lists.
+- **Router:** la carga diferida apunta al nuevo `presentation/views/ContentCalendar.vue`; path, nombre, guards, roles, metadata y entrada del sidebar permanecen sin cambios.
+- **Archivos legacy retirados:** se eliminó por completo `src/views/contentCalendar/`, incluidas vista, componentes, tipos, fechas, queries, fixtures y tests. Sus consumidores internos se trasladaron; la prueba contractual de Contents ahora importa el fixture modular. No quedan referencias de producción a esa ruta.
+- **Tests adaptados:** caracterización de la vista y tests de `VideoActionsModal` están junto a presentación; tests de Query y fixtures/fechas quedan dentro del módulo. Se mantienen clientes Query aislados. La caracterización trasladada conserva contratos de CRUD, fechas, all-day, queries, drag/drop, restricciones, filtro, modales y navegación.
+- **Verificación (2026-10-31):** 61 tests focalizados pasan en UTC y 61 en Europe/Madrid (58 baseline E-CC-5 más 3 pruebas de permisos/ruta). `pnpm run typecheck` y `pnpm run build` pasan; build mantiene avisos existentes de Browserslist, selector CSS y tamaño de chunks. ESLint de los nuevos archivos TypeScript pasa; la vista conserva 4 errores legacy de accesibilidad en sus dos handlers de click y el chequeo ampliado muestra 119 hallazgos de accesibilidad en los SFC migrados. Prettier pasa en nuevos archivos de aplicación, FullCalendar, eventos, queries, fechas, tipos y fixtures, y en los tests trasladados; los SFC legacy y algunos archivos/documentos preexistentes aún marcan formato. `git diff --check` pasa. `pnpm run cycles` encuentra un ciclo type-only entre servicios legacy Contents/Articles/Videos/Playlists, sin nodos del nuevo módulo. `pnpm run cycles:required` no puede comparar la delta porque este checkout no proporciona referencias base/head; no se declara evidencia incremental de ciclos. No se usó backend real ni navegador.
+- **Riesgos/deuda pendiente:** la lista de usuarios asignables y las APIs de Lists/asignaciones/Articles/Videos mantienen servicios legacy actuales; no se migra su transporte. Los componentes migrados conservan hallazgos de accesibilidad anteriores. Fallos parciales y reintentos siguen en E-CC-7; políticas de borrado en E-CC-8; filtro «mis eventos» y mejoras futuras mantienen sus tareas asignadas. No se implementaron errores parciales, cambios de permisos, filtros ni política de borrado.
+- **Estado:** **Completada**. E-CC-7 no se inicia.
 
 #### E-CC-5 — Migrar Content Calendar a TanStack Query
 
@@ -283,7 +305,7 @@ Se mantienen E-CC-1–10. Las subtareas separan investigación, decisión e impl
 - **Gestión de errores:** agenda y backlog mantienen estados separados. La vista muestra carga inicial, actualización, error con reintento y ausencia real de agenda vacía; si una fuente falla, la otra conserva sus datos disponibles. Las consultas puntuales de detalle de List continúan con el manejo del owner legacy.
 - **Cobertura añadida:** tests de claves por periodo/identidad/generación/rol, independencia de backlog, reutilización de caché al volver a un mes, datos disponibles durante la actualización, señal/cancelación de consulta obsoleta, respuestas fuera de orden, loading/error/reintento, deduplicación no mutante, invalidación en CRUD/movimientos y forwarding de `AbortSignal` en los servicios. Se verifica que los resultados viven en Query sin plugin Pinia. La caracterización existente conserva fechas civiles, `allDay`, drag/drop, permisos, enlaces y filtro legacy.
 - **Verificación (2026-10-31):** Vitest focalizado: **58 tests pasan** con `TZ=UTC` y **58** con `TZ=Europe/Madrid`; no se usa backend/DB real. `pnpm run typecheck`, `pnpm build` y `git diff --check` pasan. ESLint de los archivos nuevos y tests pasa; el gate focalizado completo mantiene los mismos **5 hallazgos legacy** que HEAD: `ContentsByMonthResponse` vacío en `contents.ts` y dos pares de handlers de click accesibles ya existentes en `ContentCalendar.vue`. Prettier de los archivos nuevos y tests pasa; el chequeo focalizado completo marca los mismos tres archivos que HEAD (`contents.ts`, `ContentCalendar.vue` y este roadmap). Build muestra avisos ya existentes de Browserslist desactualizado, selector CSS y chunks grandes. No se hicieron comprobaciones visuales.
-- **Limitaciones pendientes para E-CC-6:** la vista sigue en `src/views/contentCalendar/ContentCalendar.vue` y aún compone UI, FullCalendar y coordinación; las consultas/mutaciones no se movieron a un owner modular. Las lecturas de Lists, asignaciones y usuarios siguen sus mecanismos actuales. Esta tarea no adelanta esa reorganización.
+- **Limitaciones identificadas antes de E-CC-6 y resueltas por esa tarea:** la vista legacy aún reunía UI, FullCalendar y coordinación, y las operaciones no tenían owner modular. Las consultas puntuales de Lists y asignaciones conservan sus mecanismos existentes; los autores asignables ahora se cargan desde el coordinador de aplicación mediante la entrada pública de Identity Users.
 - **Estado:** **Completada**. No inicia E-CC-6.
 
 ### Fase 4 — Operaciones editoriales y cleanup

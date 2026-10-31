@@ -2,13 +2,13 @@
     <div v-if="show" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
         @click.self="$emit('close')">
         <div class="bg-white dark:bg-rv-darkCard rounded-t-2xl sm:rounded-2xl p-5 sm:p-8 w-full sm:max-w-2xl shadow-2xl relative overflow-hidden max-h-[92vh] overflow-y-auto">
-            <div class="absolute top-0 right-0 w-64 h-64 bg-orange-50 dark:bg-orange-900/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+            <div class="absolute top-0 right-0 w-64 h-64 bg-pink-50 dark:bg-rv-pink/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
 
             <div class="relative z-10">
                 <div class="flex justify-between items-start mb-6">
                     <div class="flex items-center gap-2">
-                        <span class="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 text-xs font-bold uppercase tracking-wider rounded-md">
-                            Reunión
+                        <span class="px-2 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 text-xs font-bold uppercase tracking-wider rounded-md">
+                            Fotos
                         </span>
                     </div>
                     <button @click="$emit('close')"
@@ -21,12 +21,7 @@
                     <div>
                         <input v-model="formData.name" type="text"
                             class="w-full text-xl sm:text-3xl font-bold text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 border-none focus:ring-0 p-0 bg-transparent"
-                            placeholder="Título de la reunión..." />
-                        <button @click="$emit('navigate-reunions')"
-                            class="mt-2 text-xs text-gray-400 hover:text-orange-600 dark:hover:text-orange-400 transition-colors flex items-center gap-1">
-                            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-                            <span>Ver en página de reuniones</span>
-                        </button>
+                            placeholder="Título del álbum..." />
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -34,9 +29,9 @@
                             <div>
                                 <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Notas</label>
                                 <textarea v-model="formData.notes"
-                                    class="w-full border-0 bg-gray-50 dark:bg-rv-darkSurface rounded-xl px-4 py-3 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-orange-100 dark:focus:ring-orange-900/30 focus:bg-white dark:focus:bg-rv-darkBg transition-all resize-none text-sm leading-relaxed"
+                                    class="w-full border-0 bg-gray-50 dark:bg-rv-darkSurface rounded-xl px-4 py-3 text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-pink-100 dark:focus:ring-rv-pink/20 focus:bg-white dark:focus:bg-rv-darkBg transition-all resize-none text-sm leading-relaxed"
                                     rows="6"
-                                    placeholder="Añade detalles sobre la reunión (agenda, temas a tratar...)"></textarea>
+                                    placeholder="Añade detalles sobre las fotos (ubicación, banda, fotógrafo...)"></textarea>
                             </div>
                         </div>
 
@@ -44,13 +39,14 @@
                             <div class="bg-gray-50 dark:bg-rv-darkSurface rounded-xl p-5 space-y-5">
                                 <div>
                                     <label class="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                                        <i class="fa-regular fa-calendar"></i> Fecha de Reunión <span class="text-red-600">*</span>
+                                        <i class="fa-regular fa-calendar"></i> Fecha de Publicación
                                     </label>
                                     <input v-model="formData.publicationDate" type="date"
                                         class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkBg dark:text-gray-200 rounded-lg text-sm" />
-                                    <p class="text-xs text-amber-600 dark:text-amber-500 mt-2">
-                                        ⚠️ Las reuniones requieren fecha obligatoria
-                                    </p>
+                                    <button v-if="formData.publicationDate" @click="formData.publicationDate = ''"
+                                        class="text-xs text-gray-400 hover:text-pink-600 dark:hover:text-rv-pink mt-2 flex items-center gap-1 transition-colors">
+                                        <i class="fa-solid fa-arrow-rotate-left"></i> Mover a backlog
+                                    </button>
                                 </div>
 
                                 <div>
@@ -97,9 +93,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
-import { formatCalendarDateInput } from '../contentCalendarDates';
+import { formatCalendarDateInput } from '../../utils/contentCalendarDates';
 import type { RvUser } from '@/modules/identity/users';
-import type { ContentEditorData } from '../contentCalendar.types';
+import type { ContentEditorData } from '../../types/contentCalendar.types';
 
 interface Props {
     show: boolean;
@@ -113,7 +109,6 @@ const emit = defineEmits<{
     close: [];
     update: [data: ContentEditorData];
     delete: [];
-    'navigate-reunions': [];
 }>();
 
 function formatForInput(dateStr: string): string {
@@ -121,6 +116,7 @@ function formatForInput(dateStr: string): string {
 }
 
 const formData = ref({
+    type: 'photos' as const,
     name: props.content.name,
     notes: props.content.notes || '',
     publicationDate: formatForInput(props.content.publicationDate || ''),
@@ -129,19 +125,13 @@ const formData = ref({
 
 watch(() => props.content, (newContent) => {
     formData.value = {
+        type: 'photos',
         name: newContent.name,
         notes: newContent.notes || '',
         publicationDate: formatForInput(newContent.publicationDate || ''),
         authorId: newContent.author?.id || ''
     };
 }, { deep: true });
-
-watch(() => formData.value.publicationDate, (newDate) => {
-    if (newDate) {
-        const [year, month, day] = newDate.split('-');
-        if (year && month && day) formData.value.name = `Reunión del ${day}/${month}`;
-    }
-});
 
 function handleUpdate() {
     emit('update', { ...formData.value });

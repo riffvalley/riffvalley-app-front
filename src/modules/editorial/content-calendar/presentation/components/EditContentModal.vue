@@ -132,9 +132,9 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import type { Content } from '@services/contents/contents';
-import { formatCalendarDateInput } from '../contentCalendarDates';
+import { formatCalendarDateInput } from '../../utils/contentCalendarDates';
 import type { RvUser } from '@/modules/identity/users';
-import type { ContentEditorData } from '../contentCalendar.types';
+import type { ContentEditorData } from '../../types/contentCalendar.types';
 
 interface Props {
     show: boolean;

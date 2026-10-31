@@ -19,7 +19,7 @@ import {
   getContentsByMonth,
   updateContent,
 } from "./contents";
-import { contentFixtures } from "@views/contentCalendar/contentFixtures";
+import { contentFixtures } from "@/modules/editorial/content-calendar/utils/contentFixtures";
 import type { CreateContentDto, UpdateContentDto } from "./contents";
 
 type Assert<T extends true> = T;
