@@ -40,14 +40,14 @@ describe("DiscListExplorationFilters", () => {
       global: { stubs: { SearchableSelect: CountrySelectStub } },
     });
 
-    const noRatesButton = wrapper.get('button[aria-label="Mostrar solo discos sin votos"]');
-    expect(noRatesButton.attributes("aria-pressed")).toBe("false");
-    await noRatesButton.trigger("click");
+    const noRatesCheckbox = wrapper.get('input[aria-label="Mostrar solo discos sin votos"]');
+    expect((noRatesCheckbox.element as HTMLInputElement).checked).toBe(false);
+    await noRatesCheckbox.setValue(true);
     expect(wrapper.emitted("update:no-rates")).toEqual([[true]]);
 
     await wrapper.setProps({ noRatesOnly: true });
-    expect(wrapper.get('button[aria-label="Mostrar solo discos sin votos"]').attributes("aria-pressed"))
-      .toBe("true");
+    expect((wrapper.get('input[aria-label="Mostrar solo discos sin votos"]')
+      .element as HTMLInputElement).checked).toBe(true);
     await wrapper.get('button[aria-label="Quitar Sin votos"]').trigger("click");
     expect(wrapper.emitted("update:no-rates")?.at(-1)).toEqual([false]);
   });

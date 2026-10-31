@@ -80,6 +80,40 @@
           </select>
         </div>
 
+        <div class="filter-control genre-control">
+          <span class="text-gray-700 dark:text-gray-200">Géneros</span>
+          <DiscListGenreSelect
+            :model-value="selectedGenres"
+            :options="genres"
+            :loading="optionsLoading"
+            @update:model-value="emit('update:genres', $event)"
+          />
+        </div>
+
+        <div
+          v-if="showNoRatesFilter"
+          class="filter-control no-rates-control"
+          role="group"
+          aria-labelledby="disc-list-no-rates-label"
+        >
+          <span id="disc-list-no-rates-label" class="text-gray-700 dark:text-gray-200">Sin votos</span>
+          <label
+            for="disc-list-no-rates"
+            class="no-rates-checkbox"
+            :class="{ 'is-selected': noRatesOnly }"
+          >
+            <input
+              id="disc-list-no-rates"
+              type="checkbox"
+              class="no-rates-checkbox-input"
+              :checked="noRatesOnly"
+              aria-label="Mostrar solo discos sin votos"
+              @change="emit('update:no-rates', ($event.target as HTMLInputElement).checked)"
+            />
+            <span>Activar filtro</span>
+          </label>
+        </div>
+
         <div
           class="filter-control country-control"
           role="group"
@@ -97,30 +131,6 @@
             :max="150"
             class="select-pill w-full"
           />
-        </div>
-
-        <div class="filter-control genre-control">
-          <span class="text-gray-700 dark:text-gray-200">Géneros</span>
-          <div class="genre-filter-row">
-            <DiscListGenreSelect
-              :model-value="selectedGenres"
-              :options="genres"
-              :loading="optionsLoading"
-              class="min-w-0 flex-1"
-              @update:model-value="emit('update:genres', $event)"
-            />
-            <button
-              v-if="showNoRatesFilter"
-              type="button"
-              class="no-rates-filter"
-              :aria-pressed="noRatesOnly"
-              aria-label="Mostrar solo discos sin votos"
-              @click="emit('update:no-rates', !noRatesOnly)"
-            >
-              <i class="fa-solid fa-star" aria-hidden="true" />
-              Sin votos
-            </button>
-          </div>
         </div>
       </div>
 
@@ -394,35 +404,34 @@ onUnmounted(() => {
 .genre-control {
   grid-column: 1 / -1;
 }
-.genre-filter-row {
+.no-rates-checkbox {
   display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 0.5rem;
-}
-.no-rates-filter {
-  display: inline-flex;
   min-height: 2.75rem;
-  flex: 0 0 auto;
   align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
+  gap: 0.75rem;
   border: 1px solid rgb(209 213 219);
   border-radius: 9999px;
-  padding: 0.5rem 0.75rem;
+  padding: 0.5rem 1rem;
   color: #00021f;
   font-size: 0.75rem;
   font-weight: 600;
-  transition: background-color 150ms ease, border-color 150ms ease;
-  @apply bg-white dark:border-white/20 dark:bg-rv-darkCard dark:text-white;
+  line-height: 1.25rem;
+  cursor: pointer;
+  @apply w-full bg-white dark:border-white/20 dark:bg-rv-darkCard dark:text-white;
 }
-.no-rates-filter:hover {
+.no-rates-checkbox:hover {
   @apply bg-gray-100 dark:bg-rv-darkSurface;
 }
-.no-rates-filter[aria-pressed="true"] {
+.no-rates-checkbox.is-selected {
   @apply border-rv-navy bg-rv-navy text-white dark:border-gray-200 dark:bg-gray-200 dark:text-rv-navy;
 }
-.no-rates-filter:focus-visible {
+.no-rates-checkbox-input {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  accent-color: #e46e8a;
+}
+.no-rates-checkbox-input:focus-visible {
   @apply outline-none ring-2 ring-rv-pink ring-offset-2;
 }
 .country-control {
