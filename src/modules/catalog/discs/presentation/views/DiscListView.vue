@@ -304,8 +304,7 @@
         :comment-count="disc.commentCount"
         :rateCount="disc.voteCount"
         :debut="disc.debut"
-        @rating-saved="refresh"
-        @community-updated="refresh"
+        @card-updated="handleCardUpdated"
       />
     </div>
 
@@ -421,6 +420,8 @@ const {
   optionsError,
   retryOptions,
   refresh,
+  updateDisc,
+  removeDisc,
 } = useDiscListCoordinator();
 
 const savedFilterState = useSavedDiscFilters();
@@ -611,6 +612,60 @@ const modeSelection = computed({
 function selectSuggestedDisc(disc: { title: string }) {
   setSelectedArtist(null);
   setSearchQuery(disc.title);
+}
+
+type DiscCardUpdateEvent =
+  | {
+      type: "rating";
+      discId: string;
+      rateId: string | null;
+      rate: number | null;
+      cover: number | null;
+      hasMusicalRate: boolean;
+      hasCover: boolean;
+      averageRate: number | null;
+      averageCover: number | null;
+      voteCount: number;
+    }
+  | {
+      type: "community";
+      discId: string;
+      favoriteId: string | null;
+      pendingId: string | null;
+    };
+
+function handleCardUpdated(event: DiscCardUpdateEvent) {
+  const disc = discs.value.find(({ id }) => id === event.discId);
+  if (!disc) return;
+
+  if (event.type === "rating") {
+    const previouslyHadRate = (disc.userRate?.rate ?? 0) > 0;
+    const previouslyHadCover = (disc.userRate?.cover ?? 0) > 0;
+    const noLongerMatchesUnvotedMode =
+      viewMode.value === "all" &&
+      ((orderBy.value === "UNVOTED:rate" && event.hasMusicalRate && !previouslyHadRate) ||
+        (orderBy.value === "UNVOTED:cover" && event.hasCover && !previouslyHadCover));
+
+    updateDisc(event.discId, {
+      averageRate: event.averageRate,
+      averageCover: event.averageCover,
+      voteCount: event.voteCount,
+      userRate: event.rateId
+        ? { id: event.rateId, rate: event.rate, cover: event.cover }
+        : disc.userRate,
+    });
+    if (noLongerMatchesUnvotedMode) removeDisc(event.discId);
+    return;
+  }
+
+  const noLongerMatchesCommunityMode =
+    (viewMode.value === "favorites" && !event.favoriteId) ||
+    (viewMode.value === "pendientes" && !event.pendingId);
+  updateDisc(event.discId, {
+    favoriteId: event.favoriteId,
+    pendingId: event.pendingId,
+  });
+  if (noLongerMatchesCommunityMode) removeDisc(event.discId);
 }
 
 function onCreateDiscModalClose(result: { createdDisc: { id: string } | null }) {
