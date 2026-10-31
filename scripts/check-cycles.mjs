@@ -27,6 +27,10 @@ function normalizePath(filePath) {
   return filePath.split(sep).join("/");
 }
 
+function isTestFile(filePath) {
+  return /(?:^|\/)(__tests__\/|.*\.(?:test|spec)\.[cm]?[jt]sx?$)/.test(filePath);
+}
+
 export async function scanGraph({ root = repositoryRoot, entries = ["src"] } = {}) {
   const absoluteRoot = resolve(root);
   const tsConfigPath = join(absoluteRoot, "tsconfig.app.json");
@@ -69,6 +73,8 @@ export async function scanGraph({ root = repositoryRoot, entries = ["src"] } = {
             to: target,
             typeOnly: dependency.typeOnly === true || dependency.preCompilationOnly === true,
           });
+        } else if (isTestFile(source)) {
+          externalDependencyCount += 1;
         } else {
           outOfSourceDependencyCount += 1;
           unresolved.push(`${source} -> ${dependency.module} (resolved outside src: ${target})`);

@@ -1,6 +1,6 @@
 import { computed, type Ref } from "vue";
 import { useQuery, type QueryClient } from "@tanstack/vue-query";
-import type { QueryFunctionContext } from "@tanstack/query-core";
+import type { QueryFunctionContext } from "@tanstack/vue-query";
 import {
   getCommunityDashboardStats,
   type CommunityDashboardStatsResponse,
