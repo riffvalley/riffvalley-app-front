@@ -78,6 +78,19 @@ describe("DiscList HTTP adapter", () => {
     });
   });
 
+  it("sends noRates eligibility alongside the selected sort for the all-disc list", () => {
+    expect(buildDiscListParams({ ...request, eligibility: "noRates", offset: 0 })).toMatchObject({
+      mode: "all",
+      sort: "releaseDateAsc",
+      eligibility: "noRates",
+      offset: 0,
+      limit: 20,
+    });
+    expect(
+      buildDiscListParams({ ...request, mode: "rates", eligibility: "noRates" }).eligibility
+    ).toBeUndefined();
+  });
+
   it.each(["all", "rates", "covers", "comments", "favorites", "pendientes"] as const)(
     "forwards an exact artist ID through %s list and contextual options",
     (mode) => {

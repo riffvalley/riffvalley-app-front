@@ -15,6 +15,8 @@ const baseProps = {
   selectedWeek: null,
   selectedCountry: "",
   selectedGenres: [],
+  noRatesOnly: false,
+  showNoRatesFilter: true,
   countries: [{ id: "country-a", name: "España", isoCode: "ES" }],
   genres: [
     { id: "genre-a", name: "Black Metal", color: null },
@@ -31,6 +33,25 @@ afterEach(() => {
 });
 
 describe("DiscListExplorationFilters", () => {
+  it("toggles the compact no-votes filter and exposes it as a removable active filter", async () => {
+    localStorage.setItem("rv_default_year_filter", "all");
+    const wrapper = mount(DiscListExplorationFilters, {
+      props: baseProps,
+      global: { stubs: { SearchableSelect: CountrySelectStub } },
+    });
+
+    const noRatesButton = wrapper.get('button[aria-label="Mostrar solo discos sin votos"]');
+    expect(noRatesButton.attributes("aria-pressed")).toBe("false");
+    await noRatesButton.trigger("click");
+    expect(wrapper.emitted("update:no-rates")).toEqual([[true]]);
+
+    await wrapper.setProps({ noRatesOnly: true });
+    expect(wrapper.get('button[aria-label="Mostrar solo discos sin votos"]').attributes("aria-pressed"))
+      .toBe("true");
+    await wrapper.get('button[aria-label="Quitar Sin votos"]').trigger("click");
+    expect(wrapper.emitted("update:no-rates")?.at(-1)).toEqual([false]);
+  });
+
   it("shows two genre chips so the saved status can share the active-filter row", () => {
     localStorage.setItem("rv_default_year_filter", "all");
     const wrapper = mount(DiscListExplorationFilters, {

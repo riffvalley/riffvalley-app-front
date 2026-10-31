@@ -71,6 +71,8 @@
       :selectedWeek="selectedWeek"
       :selectedCountry="selectedCountry"
       :selectedGenres="selectedGenres"
+      :noRatesOnly="noRatesOnly"
+      :showNoRatesFilter="viewMode === 'all'"
       :countries="options.countries"
       :genres="options.genres"
       :optionsLoading="optionsLoading"
@@ -79,6 +81,7 @@
       @update:week="setSelectedWeek"
       @update:country="setCountry"
       @update:genres="setGenres"
+      @update:no-rates="setNoRatesOnly"
       @update:search="setSearchQuery"
       @retry-options="retryOptions"
     >
@@ -397,6 +400,8 @@ const {
   setGenres,
   selectedCountry,
   setCountry,
+  noRatesOnly,
+  setNoRatesOnly,
   selectedArtist,
   setSelectedArtist,
   setSearchQuery,

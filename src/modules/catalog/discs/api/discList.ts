@@ -17,7 +17,7 @@ export interface DiscListHttpParams {
   artistId?: string;
   genreIds?: string;
   sort?: string;
-  eligibility?: "unvotedRate" | "unvotedCover";
+  eligibility?: "unvotedRate" | "unvotedCover" | "noRates";
   offset?: number;
   limit?: number;
 }
@@ -62,6 +62,7 @@ export function buildDiscListParams(request: DiscListRequest): DiscListHttpParam
     ...(request.artistId ? { artistId: request.artistId } : {}),
     ...(genreIds.length ? { genreIds: genreIds.join(",") } : {}),
     ...getSort(request.mode, request.orderBy),
+    ...(request.mode === "all" && request.eligibility ? { eligibility: request.eligibility } : {}),
     offset: request.offset,
     limit: request.limit,
   };

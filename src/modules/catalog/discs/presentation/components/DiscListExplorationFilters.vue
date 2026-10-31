@@ -101,12 +101,26 @@
 
         <div class="filter-control genre-control">
           <span class="text-gray-700 dark:text-gray-200">Géneros</span>
-          <DiscListGenreSelect
-            :model-value="selectedGenres"
-            :options="genres"
-            :loading="optionsLoading"
-            @update:model-value="emit('update:genres', $event)"
-          />
+          <div class="genre-filter-row">
+            <DiscListGenreSelect
+              :model-value="selectedGenres"
+              :options="genres"
+              :loading="optionsLoading"
+              class="min-w-0 flex-1"
+              @update:model-value="emit('update:genres', $event)"
+            />
+            <button
+              v-if="showNoRatesFilter"
+              type="button"
+              class="no-rates-filter"
+              :aria-pressed="noRatesOnly"
+              aria-label="Mostrar solo discos sin votos"
+              @click="emit('update:no-rates', !noRatesOnly)"
+            >
+              <i class="fa-solid fa-star" aria-hidden="true" />
+              Sin votos
+            </button>
+          </div>
         </div>
       </div>
 
@@ -199,6 +213,8 @@ const props = defineProps<{
   selectedWeek: Range;
   selectedCountry: string;
   selectedGenres: string[];
+  noRatesOnly: boolean;
+  showNoRatesFilter: boolean;
   countries: CountryOption[];
   genres: GenreOption[];
   optionsLoading: boolean;
@@ -209,6 +225,7 @@ const emit = defineEmits<{
   "update:week": [value: Range];
   "update:country": [value: string];
   "update:genres": [value: string[]];
+  "update:no-rates": [value: boolean];
   "update:search": [value: string];
   "retry-options": [];
 }>();
@@ -259,6 +276,7 @@ const activeFilters = computed(() => {
     const genre = props.genres.find((item) => item.id.toLowerCase() === id.toLowerCase());
     result.push({ key: `genre:${id}`, label: genre?.name ?? id });
   }
+  if (props.noRatesOnly) result.push({ key: "no-rates", label: "Sin votos" });
   return result;
 });
 const visibleFilters = computed(() => {
@@ -271,7 +289,8 @@ const activeFilterCount = computed(
   () =>
     Number(Boolean(props.selectedWeek)) +
     Number(Boolean(props.selectedCountry)) +
-    props.selectedGenres.length
+    props.selectedGenres.length +
+    Number(props.noRatesOnly)
 );
 
 function defaultYear() {
@@ -308,6 +327,7 @@ function selectPeriod(value: string | number | null) {
 function removeFilter(key: string) {
   if (key === "week") emit("update:week", null);
   else if (key === "country") emit("update:country", "");
+  else if (key === "no-rates") emit("update:no-rates", false);
   else
     emit(
       "update:genres",
@@ -319,6 +339,7 @@ function clearExploration() {
   emit("update:week", null);
   emit("update:country", "");
   emit("update:genres", []);
+  emit("update:no-rates", false);
 }
 function onYearPreferenceChanged(event: Event) {
   const value = (event as CustomEvent).detail;
@@ -372,6 +393,37 @@ onUnmounted(() => {
 }
 .genre-control {
   grid-column: 1 / -1;
+}
+.genre-filter-row {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+.no-rates-filter {
+  display: inline-flex;
+  min-height: 2.75rem;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid rgb(209 213 219);
+  border-radius: 9999px;
+  padding: 0.5rem 0.75rem;
+  color: #00021f;
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: background-color 150ms ease, border-color 150ms ease;
+  @apply bg-white dark:border-white/20 dark:bg-rv-darkCard dark:text-white;
+}
+.no-rates-filter:hover {
+  @apply bg-gray-100 dark:bg-rv-darkSurface;
+}
+.no-rates-filter[aria-pressed="true"] {
+  @apply border-rv-navy bg-rv-navy text-white dark:border-gray-200 dark:bg-gray-200 dark:text-rv-navy;
+}
+.no-rates-filter:focus-visible {
+  @apply outline-none ring-2 ring-rv-pink ring-offset-2;
 }
 .country-control {
   grid-column: 1 / -1;

@@ -77,6 +77,30 @@ afterEach(() => {
 });
 
 describe("useDiscListCoordinator", () => {
+  it("requests and clears the no-votes eligibility filter", async () => {
+    const loader = vi.fn(async (request: DiscListRequest) => page(request, [], 0));
+    const { coordinator, scope } = setup(loader);
+    scopes.push(scope);
+    await settle();
+
+    coordinator.setNoRatesOnly(true);
+    await settle();
+    expect(loader).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        mode: "all",
+        eligibility: "noRates",
+        offset: 0,
+      })
+    );
+
+    coordinator.setMode("favorites");
+    await settle();
+    expect(coordinator.noRatesOnly.value).toBe(false);
+    expect(loader).toHaveBeenLastCalledWith(
+      expect.not.objectContaining({ eligibility: "noRates" })
+    );
+  });
+
   it("retains the latest A→B→C intent and discards out-of-order results and errors", async () => {
     const requests: Array<{
       request: DiscListRequest;

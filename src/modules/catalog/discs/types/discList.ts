@@ -42,6 +42,7 @@ export interface DiscListSelectedArtist {
 export interface DiscListRequest extends DiscListFilters {
   mode: DiscListMode;
   orderBy: string;
+  eligibility?: "noRates";
   offset: number;
   limit: number;
 }

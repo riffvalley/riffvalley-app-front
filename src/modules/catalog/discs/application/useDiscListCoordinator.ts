@@ -54,6 +54,7 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
   const selectedWeek = shallowRef<[string, string] | null>(null);
   const selectedGenres = ref<string[]>([]);
   const selectedCountry = ref("");
+  const noRatesOnly = ref(false);
   const selectedArtist = ref<DiscListSelectedArtist | null>(null);
   const orderBy = ref(DEFAULT_ORDER);
   const offset = ref(0);
@@ -91,6 +92,7 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
       searchQuery.value.trim(),
       selectedWeek.value,
       selectedCountry.value,
+      noRatesOnly.value,
       selectedArtist.value?.id ?? "",
       normalizedGenres.value,
       orderBy.value,
@@ -150,6 +152,7 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
       genreIds: normalizedGenres.value,
       countryId: selectedCountry.value,
       ...(selectedArtist.value ? { artistId: selectedArtist.value.id } : {}),
+      ...(viewMode.value === "all" && noRatesOnly.value ? { eligibility: "noRates" as const } : {}),
       orderBy: orderBy.value,
       offset: pageOffset,
       limit: PAGE_SIZE,
@@ -296,6 +299,7 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
   function setMode(mode: DiscListMode) {
     if (viewMode.value === mode) return;
     lastFilterAction = "context";
+    noRatesOnly.value = false;
     viewMode.value = mode;
     orderBy.value = DEFAULT_ORDER_BY_MODE[mode];
   }
@@ -304,6 +308,11 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
     if (selectedCountry.value === countryId) return;
     lastFilterAction = "country";
     selectedCountry.value = countryId;
+  }
+
+  function setNoRatesOnly(enabled: boolean) {
+    if (noRatesOnly.value === enabled) return;
+    noRatesOnly.value = enabled;
   }
 
   function setGenres(ids: string[]) {
@@ -428,6 +437,8 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
     setGenres,
     selectedCountry,
     setCountry,
+    noRatesOnly,
+    setNoRatesOnly,
     selectedArtist,
     setSelectedArtist,
     orderBy,
