@@ -110,7 +110,7 @@
         </div>
 
         <div v-if="showNoRatesFilter" class="filter-control no-rates-control">
-          <label class="no-rates-switch">
+          <label class="no-rates-switch" title="Mostrar solo discos sin votos">
             <input
               type="checkbox"
               role="switch"
@@ -395,9 +395,13 @@ onUnmounted(() => {
   @apply outline-none ring-2 ring-rv-pink ring-offset-2;
 }
 .genre-control,
-.country-control,
+.country-control {
+  grid-column: 1 / -1;
+}
 .no-rates-control {
   grid-column: 1 / -1;
+  align-self: stretch;
+  justify-content: center;
 }
 .no-rates-switch {
   display: inline-flex;
@@ -460,10 +464,13 @@ onUnmounted(() => {
     grid-column: span 2;
   }
   .genre-control {
-    grid-column: span 4;
+    grid-column: span 3;
   }
   .country-control {
     grid-column: span 2;
+  }
+  .no-rates-control {
+    grid-column: span 1;
   }
 }
 @media (min-width: 1280px) {
@@ -474,9 +481,12 @@ onUnmounted(() => {
     grid-column: span 2;
   }
   .genre-control {
-    grid-column: span 3;
+    grid-column: span 6;
   }
   .country-control {
+    grid-column: span 3;
+  }
+  .no-rates-control {
     grid-column: span 3;
   }
 }
