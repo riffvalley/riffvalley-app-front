@@ -12,13 +12,16 @@ const { getRatesTopArtists, getRatesArtistSummary, getRatesArtistLastfm } = vi.h
   getRatesArtistSummary: vi.fn(),
   getRatesArtistLastfm: vi.fn(),
 }));
+const getArtistDetails = vi.hoisted(() => vi.fn());
 vi.mock("@services/rates/rates", async (importOriginal) => {
   const original = await importOriginal<typeof import("@services/rates/rates")>();
   return { ...original, getRatesTopArtists, getRatesArtistSummary, getRatesArtistLastfm };
 });
+vi.mock("@/modules/catalog/artists/api/artistDetails", () => ({ getArtistDetails }));
 
 import DashboardFavoriteArtistsWidget from "./DashboardFavoriteArtistsWidget.vue";
 import DashboardWidgetGrid from "../../../components/DashboardWidgetGrid.vue";
+import type { ArtistDetailsDto } from "@/modules/catalog/artists/types/artistApi";
 
 const artists: RatesTopArtistDto[] = Array.from({ length: 8 }, (_, index) => ({
   id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
@@ -58,6 +61,15 @@ function modalElement<T extends HTMLElement>(selector: string): T {
 
 describe("DashboardFavoriteArtistsWidget", () => {
   beforeEach(() => {
+    getArtistDetails.mockReset().mockImplementation(async (artistId: string) => ({
+      id: artistId,
+      name: artists.find(({ id }) => id === artistId)?.name ?? "Artista",
+      image: null,
+      description: null,
+      country: null,
+      genres: [],
+      discs: [],
+    } satisfies ArtistDetailsDto));
     getRatesTopArtists.mockReset().mockResolvedValue({ artists });
     getRatesArtistSummary.mockReset().mockImplementation(async (artistId: string) => {
       const selectedArtist = artists.find(({ id }) => id === artistId)!;
@@ -123,7 +135,7 @@ describe("DashboardFavoriteArtistsWidget", () => {
     await flushPromises();
 
     expect(getRatesTopArtists).toHaveBeenCalledOnce();
-    expect(modalElement("[role='dialog'] h2").textContent).toBe("Tu historia con Artista 1");
+    expect(modalElement("[role='dialog'] h2").textContent).toBe("Artista 1");
     expect(modalElement<HTMLImageElement>("[role='dialog'] img").src).toBe("https://images.example/1.jpg");
     expect(document.activeElement).toBe(modalElement("[role='dialog'] button"));
 
@@ -139,7 +151,7 @@ describe("DashboardFavoriteArtistsWidget", () => {
     await wrapper.get("button[aria-label='Ver detalles de Artista 2']").trigger("keydown", { key: "Enter" });
     await flushPromises();
 
-    expect(modalElement("[role='dialog'] h2").textContent).toBe("Tu historia con Artista 2");
+    expect(modalElement("[role='dialog'] h2").textContent).toBe("Artista 2");
     expect(document.body.querySelector("[role='dialog'] img")).toBeNull();
     await modalElement<HTMLButtonElement>("[role='dialog'] button").click();
     await flushPromises();
@@ -162,42 +174,7 @@ describe("DashboardFavoriteArtistsWidget", () => {
     expect(getRatesArtistLastfm.mock.calls[0]?.[1]).toBeInstanceOf(AbortSignal);
   });
 
-  it("expands the single-disc card in the artist modal without opening another modal or requesting more data", async () => {
-    const catalogArtistId = "00000000-0000-4000-8000-000000000201";
-    const disc = {
-      id: "00000000-0000-4000-8000-000000000202",
-      name: "Disco similar",
-      image: null,
-      releaseYear: 2022,
-      releaseDate: "2022-01-01",
-      link: null,
-      ep: false,
-      debut: false,
-      genre: null,
-      averageRate: null,
-      averageCover: null,
-      voteCount: 0,
-      commentCount: 0,
-      userRate: null,
-      favoriteId: null,
-      pendingId: null,
-    };
-    getRatesArtistLastfm.mockResolvedValueOnce({
-      artistId: artists[0]!.id,
-      status: "available",
-      biography: null,
-      tags: [],
-      similarArtists: [{
-        name: "Artista catalogado",
-        url: "https://www.last.fm/music/Artista+catalogado",
-        catalogArtistId,
-        catalogDiscCount: 1,
-        catalogDiscs: [disc],
-      }],
-      listeners: null,
-      playCount: null,
-      lastfmUrl: null,
-    });
+  it("opens the shared artist details modal without nesting dialogs", async () => {
     const wrapper = mount(DashboardFavoriteArtistsWidget, {
       attachTo: document.body,
       global: { plugins: [authenticatedPinia()] },
@@ -207,12 +184,9 @@ describe("DashboardFavoriteArtistsWidget", () => {
     await wrapper.get("button[aria-label='Ver detalles de Artista 1']").trigger("click");
     await flushPromises();
     expect(document.body.querySelector("[role='dialog']")).not.toBeNull();
-    modalElement<HTMLButtonElement>("[data-test='similar-artist-toggle']").click();
-    await flushPromises();
-    expect(modalElement("[data-test='similar-artist-disc-name']").textContent).toBe(disc.name);
+    expect(document.body.querySelector("[data-test='artist-details-dialog']")).not.toBeNull();
     expect(document.body.querySelectorAll("[role='dialog']")).toHaveLength(1);
-    expect(document.body.querySelector("[data-test='selected-catalog-disc']")).toBeNull();
-    await modalElement<HTMLButtonElement>("button[aria-label='Cerrar historia del artista']").click();
+    await modalElement<HTMLButtonElement>("button[aria-label='Cerrar ficha del artista']").click();
     await flushPromises();
     expect(document.body.style.overflow).toBe("");
     expect(getRatesArtistLastfm).toHaveBeenCalledOnce();

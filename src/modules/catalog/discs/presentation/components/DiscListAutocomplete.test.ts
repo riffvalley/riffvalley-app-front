@@ -39,7 +39,11 @@ const results = {
 };
 
 function mountAutocomplete(
-  props: { modelValue?: string; selectedArtist?: { id: string; name: string } | null } = {}
+  props: {
+    modelValue?: string;
+    selectedArtist?: { id: string; name: string } | null;
+    canCreateDisc?: boolean;
+  } = {}
 ) {
   const pinia = createPinia();
   setActivePinia(pinia);
@@ -53,7 +57,7 @@ function mountAutocomplete(
     defaultOptions: { queries: { retry: false, gcTime: 0, staleTime: 60_000 } },
   });
   return mount(DiscListAutocomplete, {
-    props: { modelValue: "", selectedArtist: null, ...props },
+    props: { modelValue: "", selectedArtist: null, canCreateDisc: false, ...props },
     global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] },
     attachTo: document.body,
   });
@@ -153,7 +157,7 @@ describe("DiscListAutocomplete", () => {
 
   it("offers adding a disc only in the empty suggestions state", async () => {
     api.getDiscListSuggestions.mockResolvedValueOnce({ artists: [], discs: [] });
-    const wrapper = mountAutocomplete();
+    const wrapper = mountAutocomplete({ canCreateDisc: true });
     await typeQuery(wrapper, "new record");
     await advanceDebounce();
 
@@ -233,7 +237,8 @@ describe("DiscListAutocomplete", () => {
     expect(wrapper.emitted("select-disc")?.[0]).toEqual([results.discs[0]]);
 
     await input.trigger("focus");
-    document.body.dispatchEvent(new Event("pointerdown", { bubbles: true }));
+    expect(input.attributes("aria-expanded")).toBe("true");
+    document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
     await flushPromises();
     expect(wrapper.get("input").attributes("aria-expanded")).toBe("false");
     wrapper.unmount();

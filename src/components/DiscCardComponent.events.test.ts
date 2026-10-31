@@ -201,14 +201,14 @@ describe("DiscCard rating-saved event", () => {
     consoleError.mockRestore();
   });
 
-  it("emits a Community update after favorite, pending, and comment-modal changes", async () => {
+  it("emits a Community update after favorite and pending changes", async () => {
     const { queryClient, wrapper } = mountCard();
     await (wrapper.vm as unknown as { toggleHeart: () => Promise<void> }).toggleHeart();
     await (wrapper.vm as unknown as { toggleBookmark: () => Promise<void> }).toggleBookmark();
     (wrapper.vm as unknown as { closeComentsModal: () => void }).closeComentsModal();
     await flushPromises();
 
-    expect(wrapper.emitted("community-updated")).toHaveLength(3);
+    expect(wrapper.emitted("community-updated")).toHaveLength(2);
     expect(postFavoriteService).toHaveBeenCalledWith({ discId: "disc-1" });
     expect(postPendingService).toHaveBeenCalledWith({ discId: "disc-1" });
     wrapper.unmount();

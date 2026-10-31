@@ -67,7 +67,7 @@ const SimpleSelectStub = defineComponent({
 
 const DiscCardStub = defineComponent({
   name: "DiscCard",
-  emits: ["rating-saved", "community-updated"],
+  emits: ["rating-saved", "card-updated"],
   props: [
     "id",
     "name",
@@ -166,6 +166,7 @@ function mountList(useRealExplorationFilters = false) {
     authStatus: "authenticated",
     token: "session-token",
     userId: "user-a",
+    role: "riffvalley",
     authSessionGeneration: 1,
   });
   return mount(DiscList, {
@@ -619,7 +620,7 @@ describe("DiscList new backend integration", () => {
       "Jord"
     );
     expect(wrapper.find('[data-testid="suggested-disc-detail"]').exists()).toBe(false);
-    expect(api.getDiscListPage).toHaveBeenCalledTimes(beforeSelect + 1);
+    expect(api.getDiscListPage).toHaveBeenCalledTimes(beforeSelect);
     expect(api.getDiscListPage).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: "Jord", offset: 0 })
     );
@@ -777,18 +778,21 @@ describe("DiscList new backend integration", () => {
     wrapper.unmount();
   });
 
-  it("refreshes only this list and its options after a card Community mutation", async () => {
+  it("updates community state in this list without refetching after a card mutation", async () => {
     const wrapper = mountList();
     await settle();
     const pageCallsBefore = api.getDiscListPage.mock.calls.length;
     const optionCallsBefore = api.getDiscListOptions.mock.calls.length;
-    wrapper.findComponent(DiscCardStub).vm.$emit("community-updated");
+    wrapper.findComponent(DiscCardStub).vm.$emit("card-updated", {
+      type: "community",
+      discId: "all-first",
+      favoriteId: "favorite-updated",
+      pendingId: null,
+    });
     await settle();
-    expect(api.getDiscListPage).toHaveBeenCalledTimes(pageCallsBefore + 1);
-    expect(api.getDiscListOptions).toHaveBeenCalledTimes(optionCallsBefore + 1);
-    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
-      expect.objectContaining({ mode: "all", offset: 0 })
-    );
+    expect(api.getDiscListPage).toHaveBeenCalledTimes(pageCallsBefore);
+    expect(api.getDiscListOptions).toHaveBeenCalledTimes(optionCallsBefore);
+    expect(wrapper.findComponent(DiscCardStub).props("favoriteId")).toBe("favorite-updated");
     wrapper.unmount();
   });
 });

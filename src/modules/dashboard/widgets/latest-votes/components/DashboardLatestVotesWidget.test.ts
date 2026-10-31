@@ -125,7 +125,7 @@ describe("DashboardLatestVotesWidget", () => {
     expect(wrapper.text()).toContain("Votos");
     expect(wrapper.text()).toContain("3");
     expect(wrapper.text()).toContain("Media");
-    expect(wrapper.text()).toContain("8,2");
+    expect(wrapper.text()).toContain("8,15");
     expect(wrapper.text()).toContain("Géneros");
     expect(wrapper.text()).toContain("Mejor disco");
     expect(wrapper.text()).toContain("Mejor artista");
