@@ -67,6 +67,17 @@ describe("Contents HTTP contract", () => {
     }
   );
 
+  it("forwards AbortSignal to GET /contents without changing the filter contract", async () => {
+    const controller = new AbortController();
+
+    await getContents(true, controller.signal);
+
+    expect(get).toHaveBeenCalledWith("/contents", {
+      params: { backlog: true },
+      signal: controller.signal,
+    });
+  });
+
   it("GET /contents/:id interpolates the supplied id without changing it", async () => {
     get.mockResolvedValueOnce({ data: responseData[0] });
     await expect(getContentById("content-1")).resolves.toBe(responseData[0]);
@@ -77,6 +88,17 @@ describe("Contents HTTP contract", () => {
     await expect(getContentsByMonth(2026, 10)).resolves.toBe(responseData);
     expect(get).toHaveBeenCalledWith("/contents/by-month", {
       params: { year: 2026, month: 10 },
+    });
+  });
+
+  it("forwards AbortSignal to GET /contents/by-month", async () => {
+    const controller = new AbortController();
+
+    await getContentsByMonth(2026, 10, controller.signal);
+
+    expect(get).toHaveBeenCalledWith("/contents/by-month", {
+      params: { year: 2026, month: 10 },
+      signal: controller.signal,
     });
   });
 

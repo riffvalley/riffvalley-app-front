@@ -65,9 +65,9 @@
                         Fecha de publicación
                         <span v-if="['reunion', 'radar', 'best'].includes(formData.type)" class="text-red-500 ml-0.5">*</span>
                     </label>
-                    <input v-model="formData.publicationDate" type="datetime-local"
+                    <input v-model="formData.publicationDate" type="date"
                         class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30"
-                        :min="formData.type === 'radar' && formData.listDate ? formatDateTime(formData.listDate) : undefined" />
+                        :min="formData.type === 'radar' && formData.listDate ? formData.listDate.split('T')[0] : undefined" />
                     <button v-if="formData.publicationDate && !['reunion', 'radar', 'best'].includes(formData.type)"
                         @click="formData.publicationDate = ''"
                         class="mt-1.5 text-xs text-gray-400 hover:text-rv-purple dark:hover:text-rv-pink transition-colors flex items-center gap-1">
@@ -132,6 +132,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import type { Content } from '@services/contents/contents';
+import { formatCalendarDateInput } from '../contentCalendarDates';
 import type { RvUser } from '@/modules/identity/users';
 import type { ContentEditorData } from '../contentCalendar.types';
 
@@ -165,22 +166,7 @@ const typeBadgeClass = computed(() => ({
 }[formData.value.type] ?? 'bg-gray-100 text-gray-600'));
 
 function formatForInput(dateStr: string): string {
-    if (!dateStr) return '';
-    if (dateStr.endsWith('Z')) {
-        if (dateStr.endsWith('T00:00:00.000Z') || dateStr.endsWith('T00:00:00Z')) {
-            return dateStr.slice(0, 16);
-        }
-        const date = new Date(dateStr);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-    }
-    if (dateStr.length >= 16) return dateStr.slice(0, 16);
-    if (dateStr.length === 10) return dateStr + 'T00:00';
-    return dateStr;
+    return formatCalendarDateInput(dateStr);
 }
 
 const formData = ref({
@@ -211,15 +197,7 @@ function handleUpdate() {
 
 function formatDisplayDate(dateStr: string): string {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
+    const [year, month, day] = dateStr.split('T')[0].split('-');
     return `${day}/${month}/${year}`;
-}
-
-function formatDateTime(dateStr: string): string {
-    if (!dateStr) return '';
-    return dateStr + 'T00:00';
 }
 </script>

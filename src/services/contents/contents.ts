@@ -135,9 +135,10 @@ export interface UpdateContentDto {
 export interface ContentsByMonthResponse extends Array<Content> { }
 
 // Services
-export async function getContents(backlog?: boolean): Promise<Content[]> {
+export async function getContents(backlog?: boolean, signal?: AbortSignal): Promise<Content[]> {
     const response = await api.get<Content[]>("/contents", {
         params: backlog !== undefined ? { backlog } : undefined,
+        signal,
     });
     return response.data;
 }
@@ -166,12 +167,14 @@ export async function deleteContent(id: string): Promise<void> {
 
 export async function getContentsByMonth(
     year: number,
-    month: number
+    month: number,
+    signal?: AbortSignal
 ): Promise<Content[]> {
     const response = await api.get<Content[]>(
         `/contents/by-month`,
         {
             params: { year, month },
+            signal,
         }
     );
     return response.data;

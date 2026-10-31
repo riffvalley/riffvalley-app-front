@@ -56,6 +56,29 @@
 
                 <div class="rv-calendar-wrapper flex-1 overflow-auto p-3 sm:p-5">
                     <div class="bg-white dark:bg-rv-darkCard rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
+                        <div v-if="monthQuery.isPending.value" role="status" class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                            Cargando contenidos del calendario…
+                        </div>
+                        <div v-else-if="monthQuery.isError.value" role="alert" class="px-4 py-3 text-sm text-red-700 dark:text-red-300">
+                            No se han podido cargar los contenidos de este mes.
+                            <button class="ml-2 underline" @click="monthQuery.refetch()">Reintentar</button>
+                        </div>
+                        <div v-else-if="monthQuery.isFetching.value" role="status" class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+                            Actualizando contenidos…
+                        </div>
+                        <div v-if="backlogQuery.isPending.value" role="status" class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+                            Cargando backlog…
+                        </div>
+                        <div v-else-if="backlogQuery.isError.value" role="alert" class="px-4 py-2 text-sm text-red-700 dark:text-red-300">
+                            No se ha podido cargar el backlog.
+                            <button class="ml-2 underline" @click="backlogQuery.refetch()">Reintentar</button>
+                        </div>
+                        <div v-else-if="backlogQuery.isFetching.value" role="status" class="px-4 py-1 text-xs text-gray-500 dark:text-gray-400">
+                            Actualizando backlog…
+                        </div>
+                        <p v-if="monthQuery.data.value?.length === 0 && !monthQuery.isError.value" class="px-4 py-2 text-sm text-gray-500 dark:text-gray-400" role="status">
+                            No hay contenidos programados para este periodo.
+                        </p>
                         <FullCalendar :options="calendarOptions" ref="calendarRef" />
                     </div>
                 </div>
@@ -116,8 +139,9 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { Draggable } from '@fullcalendar/interaction';
 import type { CalendarOptions, DatesSetArg, EventContentArg, EventClickArg, EventDropArg } from '@fullcalendar/core';
 import type { DropArg, EventReceiveArg, EventDragStopArg } from '@fullcalendar/interaction';
+import { useQueryClient } from '@tanstack/vue-query';
 import type { ContentType, Content, ContentAuthor } from '@services/contents/contents';
-import { getContents, createContent as createContentAPI, updateContent, deleteContent, getContentsByMonth, isContentListAsignation } from '@services/contents/contents';
+import { createContent as createContentAPI, updateContent, deleteContent, isContentListAsignation } from '@services/contents/contents';
 import { useAuthStore } from '@/modules/identity/auth';
 import { getRvUsers } from '@/modules/identity/users';
 import type { RvUser } from '@/modules/identity/users';
@@ -142,9 +166,12 @@ import VideoActionsModal from './components/VideoActionsModal.vue';
 import GenericActionsModal from './components/GenericActionsModal.vue';
 import LegendModal from './components/LegendModal.vue';
 import DeleteConfirmModal from './components/DeleteConfirmModal.vue';
+import { toCalendarApiDate } from './contentCalendarDates';
+import { contentCalendarQueryKeys, useContentCalendarQueries } from './contentCalendarQueries';
 
 
 const authStore = useAuthStore();
+const queryClient = useQueryClient();
 const showOnlyMyEvents = ref(false);
 const showBacklog = ref(window.innerWidth >= 1024);
 
@@ -158,11 +185,17 @@ const showDeleteModal = ref(false);
 const selectedContent = ref<Content | null>(null);
 const videoUpdateError = ref(0);
 const contentToDelete = ref<Content | null>(null);
-const allContents = ref<Content[]>([]);
 const editingContentId = ref<string | null>(null);
 const rvUsers = ref<RvUser[]>([]);
 const currentYear = ref(new Date().getFullYear());
 const currentMonth = ref(new Date().getMonth() + 1); // 1-12
+const { monthQuery, backlogQuery, allContents } = useContentCalendarQueries(
+    currentYear,
+    currentMonth,
+    () => authStore.userId,
+    () => authStore.authSessionGeneration,
+    () => authStore.role,
+);
 const backlogPanelRef = ref<InstanceType<typeof BacklogPanel> | null>(null);
 
 const radarDetails = ref<ContentListDetails | null>(null);
@@ -189,8 +222,15 @@ const editingContent = ref<Content | ContentEditorData>({
     authorId: ''
 });
 
-const mergeContentsById = (...collections: Content[][]): Content[] =>
-    [...new Map(collections.flat().map(content => [content.id, content])).values()];
+async function invalidateContentCalendarQueries() {
+    await queryClient.invalidateQueries({
+        queryKey: contentCalendarQueryKeys.root(
+            authStore.userId,
+            authStore.authSessionGeneration,
+            authStore.role,
+        ),
+    });
+}
 
 // Backlog items (content with backlog: true)
 const backlogItems = computed(() => {
@@ -287,7 +327,6 @@ const calendarOptions = ref<CalendarOptions>({
         if (newYear !== currentYear.value || newMonth !== currentMonth.value) {
             currentYear.value = newYear;
             currentMonth.value = newMonth;
-            loadContentsByMonth(newYear, newMonth);
         }
     },
     eventContent: (arg: EventContentArg) => {
@@ -415,8 +454,7 @@ const calendarOptions = ref<CalendarOptions>({
 
         if (typeof contentId === 'string' && contentId) {
             await handleDropToCalendar(contentId, info.dateStr);
-            // We don't need to manually remove the element, Vue's reactivity will handle it 
-            // when loadBacklogContents() is called and the item gains a date.
+            // Vue's reactivity removes the item from the backlog after invalidation.
             // But if FullCalendar adds the event automatically, we might have duplication until refresh.
             // 'droppable: true' makes FC render the event immediately.
             // We'll let the refresh syncing handle the final state.
@@ -428,7 +466,7 @@ const calendarOptions = ref<CalendarOptions>({
         // external element is dropped (droppable: true). Since calendarEvents is a
         // reactive computed that drives all displayed events, this auto-added event
         // creates a duplicate ghost. Remove it immediately and let the reactive
-        // update (triggered by loadContentsByMonth after the API call) handle display.
+        // update (triggered by Query after invalidation) handle display.
         info.event.remove();
     },
     eventDrop: async (info: EventDropArg) => {
@@ -445,8 +483,7 @@ const calendarOptions = ref<CalendarOptions>({
 
         try {
             await updateContent(contentId, { publicationDate: toCalendarDate(newDate), backlog: false });
-            await loadBacklogContents();
-            await loadContentsByMonth(currentYear.value, currentMonth.value);
+            await invalidateContentCalendarQueries();
             SwalService.success('Evento reprogramado correctamente');
         } catch (error) {
             console.error('Error updating content date:', error);
@@ -493,8 +530,7 @@ const calendarOptions = ref<CalendarOptions>({
                     await handleDropToCalendar(contentId, null); // Send null to move to backlog
                 } catch {
                     // Reload to restore consistent state
-                    await loadBacklogContents();
-                    await loadContentsByMonth(currentYear.value, currentMonth.value);
+                    await invalidateContentCalendarQueries();
                 }
             }
         }
@@ -551,9 +587,7 @@ async function handleDropToCalendar(contentId: string, dateStr: string | null) {
             publicationDate: toCalendarDate(dateStr),
             backlog: dateStr === null
         });
-        // Reload both backlog and current month
-        await loadBacklogContents();
-        await loadContentsByMonth(currentYear.value, currentMonth.value);
+        await invalidateContentCalendarQueries();
         SwalService.success(dateStr ? 'Evento programado correctamente' : 'Evento movido al backlog');
     } catch (error) {
         console.error('Error updating content date:', error);
@@ -579,7 +613,7 @@ async function handleCreateContent(data: CreateContentFormData) {
             type: contentData.type,
             name: contentData.name,
             notes: contentData.notes || undefined,
-            publicationDate: contentData.publicationDate ? new Date(contentData.publicationDate).toISOString() : undefined,
+            publicationDate: toCalendarApiDate(contentData.publicationDate),
             closeDate: contentData.closeDate || undefined,
             authorId: contentData.authorId,
             listDate: contentData.listDate || undefined,
@@ -599,10 +633,7 @@ async function handleCreateContent(data: CreateContentFormData) {
             selectedYear: new Date().getFullYear()
         };
         showCreateModal.value = false;
-        // Reload backlog since new content might be created without date
-        await loadBacklogContents();
-        // Also reload current month to preserve scheduled events
-        await loadContentsByMonth(currentYear.value, currentMonth.value);
+        await invalidateContentCalendarQueries();
         SwalService.success('Evento creado correctamente');
     } catch (error) {
         console.error('Error creating content:', error);
@@ -627,8 +658,7 @@ function openEditModal(content: Content) {
 
 function toggleMyEventsFilter() {
     showOnlyMyEvents.value = !showOnlyMyEvents.value;
-    // Force calendar to re-render by triggering reactivity
-    allContents.value = [...allContents.value];
+    calendarRef.value?.getApi?.()?.rerenderEvents?.();
 }
 
 function goToReunions() {
@@ -656,6 +686,7 @@ async function handleUpdateArticle(data: ArticleUpdateData) {
             userId: data.userId,
             editorId: data.editorId
         });
+        await invalidateContentCalendarQueries();
     } catch (error) {
         console.error('Error updating article:', error);
         SwalService.error('Error al actualizar el artículo');
@@ -676,6 +707,7 @@ async function handleUpdateVideo(data: VideoUpdateData) {
             update.editorId = data.editorId;
         }
         await updateVideo(data.videoId, update);
+        await invalidateContentCalendarQueries();
     } catch (error) {
         console.error('Error updating video:', error);
         videoUpdateError.value += 1;
@@ -708,13 +740,9 @@ async function executeDeleteContent() {
 
     try {
         await deleteContent(contentToDelete.value.id);
-        // Remove from local state
-        allContents.value = allContents.value.filter(c => c.id !== contentToDelete.value!.id);
         showDeleteModal.value = false;
         contentToDelete.value = null;
-        // Reload data
-        await loadBacklogContents();
-        await loadContentsByMonth(currentYear.value, currentMonth.value);
+        await invalidateContentCalendarQueries();
         SwalService.success('Evento eliminado correctamente');
     } catch (error) {
         console.error('Error deleting content:', error);
@@ -732,8 +760,7 @@ async function handleDeleteFromBacklog(content: Content) {
 
     try {
         await deleteContent(content.id);
-        allContents.value = allContents.value.filter(c => c.id !== content.id);
-        await loadBacklogContents();
+        await invalidateContentCalendarQueries();
         SwalService.success('Evento eliminado correctamente');
     } catch (error) {
         console.error('Error deleting content:', error);
@@ -748,6 +775,7 @@ async function toggleAsignation(asig: ContentListAsignation) {
 
     try {
         await updateAsignationService(asig.id, { done: newState });
+        await invalidateContentCalendarQueries();
     } catch (e) {
         console.error('Error updating asignation', e);
         asig.done = !newState; // Revert
@@ -770,7 +798,7 @@ async function deleteRadarList() {
             SwalService.success('Lista eliminada correctamente');
             showActionsModal.value = false;
             // Reload calendar
-            await loadContentsByMonth(currentYear.value, currentMonth.value);
+            await invalidateContentCalendarQueries();
         } catch (e) {
             console.error(e);
             SwalService.error('Error eliminando la lista');
@@ -795,7 +823,7 @@ async function handleUpdateContent(data?: ContentEditorData) {
             type: contentData.type,
             name: contentData.name,
             notes: contentData.notes || undefined,
-            publicationDate: contentData.publicationDate ? new Date(contentData.publicationDate).toISOString() : null,
+            publicationDate: toCalendarApiDate(contentData.publicationDate) ?? null,
             closeDate: contentData.closeDate || null,
             authorId: contentData.authorId
         });
@@ -803,9 +831,7 @@ async function handleUpdateContent(data?: ContentEditorData) {
         showEditModal.value = false;
         showActionsModal.value = false;
         editingContentId.value = null;
-        // Reload both backlog and current month
-        await loadBacklogContents();
-        await loadContentsByMonth(currentYear.value, currentMonth.value);
+        await invalidateContentCalendarQueries();
         SwalService.success('Evento actualizado correctamente');
     } catch (error) {
         console.error('Error updating content:', error);
@@ -878,8 +904,7 @@ async function updateListStatus(list: ContentListDetails) {
     if (!list || !list.id) return;
     try {
         await updateList(list.id, { status: list.status });
-        await loadBacklogContents();
-        await loadContentsByMonth(currentYear.value, currentMonth.value);
+        await invalidateContentCalendarQueries();
         SwalService.success('Estado actualizado');
     } catch (error) {
         console.error('Error updating status:', error);
@@ -892,7 +917,7 @@ async function updateRadarField(field: string, value: string) {
     try {
         await updateList(radarDetails.value.id, { [field]: value });
         radarDetails.value = { ...radarDetails.value, [field]: value };
-        await loadContentsByMonth(currentYear.value, currentMonth.value);
+        await invalidateContentCalendarQueries();
         SwalService.success('Fecha actualizada correctamente');
     } catch (error) {
         console.error(`Error updating ${field}:`, error);
@@ -908,11 +933,7 @@ async function handleUpdateRadarDates(publicationDate: string, closeDate: string
             publicationDate: toCalendarDate(publicationDate),
             closeDate: closeDate ? toCalendarDate(closeDate) : null
         });
-        const item = allContents.value.find(c => c.id === contentId);
-        if (item) {
-            item.publicationDate = toCalendarDate(publicationDate)!;
-            item.closeDate = closeDate ? toCalendarDate(closeDate) : null;
-        }
+        await invalidateContentCalendarQueries();
         SwalService.success('Fechas actualizadas');
     } catch (error) {
         console.error('Error updating dates:', error);
@@ -926,18 +947,7 @@ async function handleUpdateContentAuthor(authorId: string) {
     const contentId = selectedContent.value.id;
     try {
         await updateContent(contentId, { authorId });
-        const item = allContents.value.find(c => c.id === contentId);
-        if (item) {
-            const user = rvUsers.value.find((u) => u.id === authorId);
-            if (user) {
-                item.author = {
-                    id: user.id,
-                    username: user.username,
-                    isActive: item.author.isActive,
-                    image: user.image,
-                };
-            }
-        }
+        await invalidateContentCalendarQueries();
         SwalService.success('Autor actualizado');
     } catch (error) {
         console.error('Error updating author:', error);
@@ -954,31 +964,6 @@ async function loadRvUsers() {
         }
     } catch (error) {
         console.error('Error loading RV users:', error);
-    }
-}
-
-async function loadContentsByMonth(year: number, month: number) {
-    try {
-        const monthContents = await getContentsByMonth(year, month);
-
-        // Keep backlog items and add new month contents
-        const currentBacklog = allContents.value.filter(c => c.backlog);
-        const scheduledItems = monthContents.filter(c => !c.backlog && c.publicationDate);
-
-        allContents.value = mergeContentsById(currentBacklog, scheduledItems);
-    } catch (error) {
-        console.error('Error loading contents by month:', error);
-    }
-}
-
-async function loadBacklogContents() {
-    try {
-        const backlog = await getContents(true);
-        // Preserve existing scheduled items while updating backlog
-        const scheduledItems = allContents.value.filter(c => !c.backlog && c.publicationDate);
-        allContents.value = mergeContentsById(backlog, scheduledItems);
-    } catch (error) {
-        console.error('Error loading backlog contents:', error);
     }
 }
 
@@ -1014,8 +999,6 @@ const onResize = () => {
 
 onMounted(async () => {
     await loadRvUsers();
-    await loadBacklogContents();
-    await loadContentsByMonth(currentYear.value, currentMonth.value);
     initDraggable();
     window.addEventListener('resize', onResize);
     // Aplica el formato correcto al montar

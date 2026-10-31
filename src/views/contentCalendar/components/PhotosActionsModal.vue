@@ -41,7 +41,7 @@
                                     <label class="flex items-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                                         <i class="fa-regular fa-calendar"></i> Fecha de Publicación
                                     </label>
-                                    <input v-model="formData.publicationDate" type="datetime-local"
+                                    <input v-model="formData.publicationDate" type="date"
                                         class="w-full border-gray-200 dark:border-white/20 dark:bg-rv-darkBg dark:text-gray-200 rounded-lg text-sm" />
                                     <button v-if="formData.publicationDate" @click="formData.publicationDate = ''"
                                         class="text-xs text-gray-400 hover:text-pink-600 dark:hover:text-rv-pink mt-2 flex items-center gap-1 transition-colors">
@@ -93,6 +93,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { Content } from '@services/contents/contents';
+import { formatCalendarDateInput } from '../contentCalendarDates';
 import type { RvUser } from '@/modules/identity/users';
 import type { ContentEditorData } from '../contentCalendar.types';
 
@@ -111,22 +112,7 @@ const emit = defineEmits<{
 }>();
 
 function formatForInput(dateStr: string): string {
-    if (!dateStr) return '';
-    if (dateStr.endsWith('Z')) {
-        if (dateStr.endsWith('T00:00:00.000Z') || dateStr.endsWith('T00:00:00Z')) {
-            return dateStr.slice(0, 16);
-        }
-        const date = new Date(dateStr);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${year}-${month}-${day}T${hours}:${minutes}`;
-    }
-    if (dateStr.length >= 16) return dateStr.slice(0, 16);
-    if (dateStr.length === 10) return dateStr + 'T00:00';
-    return dateStr;
+    return formatCalendarDateInput(dateStr);
 }
 
 const formData = ref({

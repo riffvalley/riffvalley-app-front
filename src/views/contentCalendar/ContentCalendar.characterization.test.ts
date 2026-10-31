@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import { flushPromises, mount } from "@vue/test-utils";
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { unref } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import FullCalendar from "@fullcalendar/vue3";
@@ -12,6 +13,7 @@ import {
 } from "@services/contents/contents";
 import SwalService from "@services/swal/SwalService";
 import ContentCalendar from "./ContentCalendar.vue";
+import { formatCalendarDateInput } from "./contentCalendarDates";
 import {
   backlogContentFixtures,
   contentFixtures,
@@ -46,8 +48,16 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
   error: vi.fn(),
   confirm: vi.fn(),
-  authStore: { userId: "author-1", username: "Autora", image: undefined as string | undefined },
+  authStore: {
+    userId: "author-1",
+    username: "Autora",
+    image: undefined as string | undefined,
+    authSessionGeneration: 1,
+    role: "riffvalley",
+  },
 }));
+let invalidateQueriesSpy!: ReturnType<typeof vi.spyOn<QueryClient, "invalidateQueries">>;
+const queryClients: QueryClient[] = [];
 
 vi.mock("@fullcalendar/vue3", async () => {
   const { defineComponent, h } = await import("vue");
@@ -121,8 +131,14 @@ function eventContentFor(options: CalendarOptions) {
 }
 
 function mountCalendar() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+  });
+  queryClients.push(queryClient);
+  invalidateQueriesSpy = vi.spyOn(queryClient, "invalidateQueries");
   return mount(ContentCalendar, {
     global: {
+      plugins: [[VueQueryPlugin, { queryClient }]],
       stubs: {
         CreateContentModal: true,
         EditContentModal: true,
@@ -157,6 +173,12 @@ describe("Content Calendar legacy characterization", () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    queryClients.forEach((client) => client.clear());
+    queryClients.length = 0;
+  });
+
+  it("formats API timestamps for a date input without changing their calendar date", () => {
+    expect(formatCalendarDateInput("2026-10-31T23:30:00.000Z")).toBe("2026-10-31");
   });
 
   it("loads users, backlog and the current month, then merges both result sets by id", async () => {
@@ -164,12 +186,30 @@ describe("Content Calendar legacy characterization", () => {
     await flushPromises();
 
     expect(mocks.getRvUsers).toHaveBeenCalledOnce();
-    expect(getContents).toHaveBeenCalledWith(true);
-    expect(getContentsByMonth).toHaveBeenCalledWith(2026, 10);
+    expect(getContents).toHaveBeenCalledWith(true, expect.any(AbortSignal));
+    expect(getContentsByMonth).toHaveBeenCalledWith(2026, 10, expect.any(AbortSignal));
     const events = eventContentFor(calendarOptions(wrapper));
     expect(events.map(({ id }) => id)).toContain("article-scheduled");
     expect(events.map(({ id }) => id)).not.toContain("photos-backlog");
     expect(wrapper.findAll("[data-event]")).toHaveLength(backlogContentFixtures.length);
+    wrapper.unmount();
+  });
+
+  it("shows a monthly query error with retry and recovers without treating it as an empty month", async () => {
+    mocks.getContentsByMonth
+      .mockRejectedValueOnce(new Error("HTTP unavailable"))
+      .mockResolvedValueOnce(scheduledContentFixtures);
+    const wrapper = mountCalendar();
+    await flushPromises();
+
+    expect(wrapper.get('[role="alert"]').text()).toContain("No se han podido cargar");
+    expect(wrapper.get('[role="alert"]').text()).not.toContain("No hay contenidos");
+    await wrapper.get('[role="alert"] button').trigger("click");
+    await flushPromises();
+
+    expect(mocks.getContentsByMonth).toHaveBeenCalledTimes(2);
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain("No hay contenidos programados");
     wrapper.unmount();
   });
 
@@ -216,30 +256,28 @@ describe("Content Calendar legacy characterization", () => {
     wrapper.unmount();
   });
 
-  it("uses browser-local Date getters at a UTC month boundary when navigating FullCalendar", async () => {
+  it("loads the month represented by FullCalendar currentStart at a month boundary", async () => {
     const wrapper = mountCalendar();
     await flushPromises();
-    const start = new Date("2026-10-31T23:00:00.000Z");
+    const start = new Date(2026, 10, 1);
     const callsBeforeNavigation = vi.mocked(getContentsByMonth).mock.calls.length;
 
     calendarOptions(wrapper).datesSet({ view: { currentStart: start } });
     await flushPromises();
 
-    expect(getContentsByMonth).toHaveBeenLastCalledWith(start.getFullYear(), start.getMonth() + 1);
-    expect(vi.mocked(getContentsByMonth).mock.calls.length - callsBeforeNavigation).toBe(
-      start.getMonth() === 9 ? 0 : 1
-    );
+    expect(getContentsByMonth).toHaveBeenLastCalledWith(2026, 11, expect.any(AbortSignal));
+    expect(vi.mocked(getContentsByMonth).mock.calls.length - callsBeforeNavigation).toBe(1);
     wrapper.unmount();
   });
 
-  it("creates Content using browser-local datetime parsing and omits blank optional values", async () => {
+  it("creates Content with the selected calendar day and omits blank optional values", async () => {
     const wrapper = mountCalendar();
     await flushPromises();
     const form = {
       type: "article",
       name: "Nuevo artículo",
       notes: "",
-      publicationDate: "2026-10-31T19:45",
+      publicationDate: "2026-10-31T00:30",
       closeDate: "",
       authorId: "author-1",
     };
@@ -251,34 +289,16 @@ describe("Content Calendar legacy characterization", () => {
       type: "article",
       name: "Nuevo artículo",
       notes: undefined,
-      publicationDate: new Date("2026-10-31T19:45").toISOString(),
+      publicationDate: "2026-10-31",
       closeDate: undefined,
       authorId: "author-1",
       listDate: undefined,
       backlog: false,
     });
     expect(wrapper.findComponent(CreateContentModal).props("show")).toBe(false);
-    wrapper.unmount();
-  });
-
-  it("serializes a datetime-local value in a DST gap using the browser runtime's Date normalization", async () => {
-    const wrapper = mountCalendar();
-    await flushPromises();
-    const form = {
-      type: "article",
-      name: "Artículo en cambio horario",
-      authorId: "author-1",
-      publicationDate: "2026-03-29T02:30",
-    };
-
-    wrapper.findComponent(CreateContentModal).vm.$emit("create", form);
-    await flushPromises();
-
-    expect(createContent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        publicationDate: new Date("2026-03-29T02:30").toISOString(),
-      })
-    );
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
+    });
     wrapper.unmount();
   });
 
@@ -303,7 +323,7 @@ describe("Content Calendar legacy characterization", () => {
     }
   );
 
-  it("edits a backlog item with ISO conversion and explicit null closeDate", async () => {
+  it("edits a backlog item without shifting its selected day and clears closeDate", async () => {
     const wrapper = mountCalendar();
     await flushPromises();
     // Emit through the BacklogPanel's public edit event to avoid depending on its serialized HTML attribute.
@@ -314,7 +334,7 @@ describe("Content Calendar legacy characterization", () => {
       type: "photos",
       name: "Fotos editadas",
       notes: "",
-      publicationDate: "2026-11-02T08:15",
+      publicationDate: "2026-11-02T00:30",
       closeDate: "",
       authorId: "author-2",
     });
@@ -324,11 +344,14 @@ describe("Content Calendar legacy characterization", () => {
       type: "photos",
       name: "Fotos editadas",
       notes: undefined,
-      publicationDate: new Date("2026-11-02T08:15").toISOString(),
+      publicationDate: "2026-11-02",
       closeDate: null,
       authorId: "author-2",
     });
     expect(wrapper.findComponent(EditContentModal).props("show")).toBe(false);
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
+    });
     wrapper.unmount();
   });
 
@@ -356,6 +379,9 @@ describe("Content Calendar legacy characterization", () => {
       userId: "author-1",
       editorId: "author-2",
     });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
+    });
     expect(updateContent).not.toHaveBeenCalled();
     wrapper.unmount();
   });
@@ -379,6 +405,9 @@ describe("Content Calendar legacy characterization", () => {
       type: "best",
       status: "editing",
       editorId: "author-2",
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
     });
     expect(updateContent).not.toHaveBeenCalled();
     wrapper.unmount();
@@ -407,7 +436,7 @@ describe("Content Calendar legacy characterization", () => {
     wrapper.unmount();
   });
 
-  it("confirms calendar deletion through the confirmation modal and reloads data", async () => {
+  it("confirms calendar deletion and invalidates Content Calendar queries", async () => {
     const wrapper = mountCalendar();
     await flushPromises();
     await calendarOptions(wrapper).eventClick({ event: { id: "article-scheduled" } });
@@ -419,6 +448,9 @@ describe("Content Calendar legacy characterization", () => {
     await flushPromises();
 
     expect(deleteContent).toHaveBeenCalledWith("article-scheduled");
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
+    });
     expect(wrapper.findComponent(DeleteConfirmModal).props("show")).toBe(false);
     expect(getContents).toHaveBeenCalledTimes(2);
     wrapper.unmount();
@@ -440,6 +472,9 @@ describe("Content Calendar legacy characterization", () => {
       .vm.$emit("delete-content", backlogContentFixtures[0]);
     await flushPromises();
     expect(deleteContent).toHaveBeenCalledWith("photos-backlog");
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
+    });
     wrapper.unmount();
   });
 
@@ -483,6 +518,9 @@ describe("Content Calendar legacy characterization", () => {
     });
     expect(remove).toHaveBeenCalledWith(draggedEl);
     expect(removeEvent).toHaveBeenCalledOnce();
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
+    });
     draggedEl.remove();
     wrapper.unmount();
   });
@@ -506,6 +544,9 @@ describe("Content Calendar legacy characterization", () => {
       backlog: false,
     });
     expect(revert).not.toHaveBeenCalled();
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
+    });
     wrapper.unmount();
   });
 
@@ -522,6 +563,9 @@ describe("Content Calendar legacy characterization", () => {
     expect(updateContent).toHaveBeenCalledWith("article-scheduled", {
       publicationDate: null,
       backlog: true,
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
     });
     wrapper.unmount();
   });

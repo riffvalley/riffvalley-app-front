@@ -88,10 +88,10 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Fecha de Publicación <span class="text-red-600">*</span>
                             </label>
-                            <input v-model="formData.publicationDate" type="datetime-local"
+                            <input v-model="formData.publicationDate" type="date"
                                 class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
                                 :class="{ 'border-red-500': !formData.publicationDate }"
-                                :min="formData.listDate ? formatDateTime(formData.listDate) : undefined" />
+                                :min="formData.listDate || undefined" />
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -136,7 +136,7 @@
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Fecha de Publicación <span v-if="formData.type === 'best'" class="text-red-600">*</span>
                         </label>
-                        <input v-model="formData.publicationDate" type="datetime-local"
+                        <input v-model="formData.publicationDate" type="date"
                             class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
                             :class="{ 'border-red-500': formData.type === 'best' && !formData.publicationDate }" />
                         <p v-if="formData.type === 'best'" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -151,7 +151,7 @@
                         Fecha de Publicación
                         <span v-if="formData.type === 'reunion'" class="text-red-600">*</span>
                     </label>
-                    <input v-model="formData.publicationDate" type="datetime-local"
+                    <input v-model="formData.publicationDate" type="date"
                         class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
                         :class="{ 'border-red-500': formData.type === 'reunion' && !formData.publicationDate }" />
                     <p v-if="formData.type === 'reunion'" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -180,6 +180,7 @@ import type { ContentType } from '@services/contents/contents';
 import type { RvUser } from '@/modules/identity/users';
 import type { CreateContentFormData } from '../contentCalendar.types';
 import { MONTHS } from '@helpers/dateConstants';
+import { addCalendarDays, formatLocalCalendarDate } from '../contentCalendarDates';
 
 interface Props {
     show: boolean;
@@ -264,7 +265,7 @@ function getFridayOfWeek(month: number, week: number, year: number): string {
     const friday = new Date(monday);
     friday.setDate(friday.getDate() + 4);
 
-    return friday.toISOString().split('T')[0];
+    return formatLocalCalendarDate(friday);
 }
 
 function updateRadarListDate() {
@@ -273,24 +274,14 @@ function updateRadarListDate() {
     const monthName = getMonthName(formData.value.selectedMonth);
     formData.value.name = `Discos ${monthName} Semana ${formData.value.selectedWeek}`;
 
-    const listDateObj = new Date(formData.value.listDate);
-    const saturday = new Date(listDateObj);
-    saturday.setDate(saturday.getDate() + 1);
-    formData.value.publicationDate = saturday.toISOString().split('T')[0] + 'T12:00';
-
-    const sunday = new Date(listDateObj);
-    sunday.setDate(sunday.getDate() + 2);
-    formData.value.closeDate = sunday.toISOString().split('T')[0];
-}
-
-function formatDateTime(dateStr: string): string {
-    if (!dateStr) return '';
-    return dateStr + 'T00:00';
+    const saturday = addCalendarDays(formData.value.listDate, 1);
+    formData.value.publicationDate = saturday;
+    formData.value.closeDate = addCalendarDays(formData.value.listDate, 2);
 }
 
 function updateBestVideoListDate() {
     const date = new Date(formData.value.selectedYear, formData.value.selectedMonth - 1, 15);
-    formData.value.listDate = date.toISOString().split('T')[0];
+    formData.value.listDate = formatLocalCalendarDate(date);
 
     if (formData.value.type === 'best') {
         const monthName = getMonthName(formData.value.selectedMonth);
@@ -301,10 +292,8 @@ function updateBestVideoListDate() {
         const daysUntilThursday = (4 - dayOfWeek + 7) % 7;
 
         nextMonth.setDate(nextMonth.getDate() + daysUntilThursday);
-        nextMonth.setHours(19, 0, 0, 0);
-
-        const localDate = new Date(nextMonth.getTime() - nextMonth.getTimezoneOffset() * 60000);
-        formData.value.publicationDate = localDate.toISOString().slice(0, 16);
+        const date = formatLocalCalendarDate(nextMonth);
+        formData.value.publicationDate = date;
     }
 }
 
@@ -321,10 +310,7 @@ function handleYearChange() {
 
 function formatDisplayDate(dateStr: string): string {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
+    const [year, month, day] = dateStr.split('T')[0].split('-');
     return `${day}/${month}/${year}`;
 }
 
