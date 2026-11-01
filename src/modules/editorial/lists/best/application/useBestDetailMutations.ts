@@ -11,6 +11,8 @@ import {
 import { updateDisc } from "@services/discs/discs";
 import { generateBestDiscsWpPost, updateList, type ListUpdatePayload } from "@services/list/list";
 import { bestDetailQueryKeys } from "./bestDetailQueries";
+import { editorialClientId } from "@/shared/realtime/editorialClientId";
+import { LIST_ASSIGNMENT_MUTATION_KEY } from "../../shared/application/listsRealtime";
 
 export function useBestDetailMutations(listId: MaybeRefOrGetter<string>) {
   const queryClient = useQueryClient();
@@ -42,15 +44,19 @@ export function useBestDetailMutations(listId: MaybeRefOrGetter<string>) {
     Promise.all([refreshAssignments(), refreshCatalog(), refreshCalendarList()]);
 
   const assign = useMutation({
-    mutationFn: (payload: CreateAsignationPayload) => postAsignationService(payload),
+    mutationKey: LIST_ASSIGNMENT_MUTATION_KEY,
+    mutationFn: (payload: CreateAsignationPayload) =>
+      postAsignationService(payload, editorialClientId),
     onSuccess: refreshAssignmentsAndCatalog,
   });
   const updateAssignment = useMutation({
+    mutationKey: LIST_ASSIGNMENT_MUTATION_KEY,
     mutationFn: ({ id, payload }: { id: string; payload: UpdateAsignationPayload }) =>
       updateAsignationService(id, payload),
     onSuccess: refreshAssignmentsAndCatalog,
   });
   const removeAssignment = useMutation({
+    mutationKey: LIST_ASSIGNMENT_MUTATION_KEY,
     mutationFn: (id: string) => deleteAsignationService(id),
     onSuccess: refreshAssignmentsAndCatalog,
   });

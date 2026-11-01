@@ -18,27 +18,21 @@
       {
         "rule": "side-tab",
         "value": "*",
-        "files": [
-          "src/views/homePage/components/NewsFeed.vue"
-        ],
+        "files": ["src/views/homePage/components/NewsFeed.vue"],
         "createdAt": "2026-10-15T15:34:27.001Z",
         "reason": "User confirmed: keep the colored left border to distinguish news sources in the home feed"
       },
       {
         "rule": "border-accent-on-rounded",
         "value": "*",
-        "files": [
-          "src/modules/identity/views/UserStatisticsLayout.vue"
-        ],
+        "files": ["src/modules/identity/views/UserStatisticsLayout.vue"],
         "createdAt": "2026-10-24T16:28:20.707Z",
         "reason": "Agent: the bottom border is the required selected-tab indicator; this element is a navigation tab, not a rounded card"
       },
       {
         "rule": "side-tab",
         "value": "*",
-        "files": [
-          "src/views/dashboard/components/AdventureModule.vue"
-        ],
+        "files": ["src/views/dashboard/components/AdventureModule.vue"],
         "createdAt": "2026-10-27T12:19:24.515Z",
         "reason": "User explicitly instructed in D-10d to keep the border-l-4 in AdventureModule.vue unchanged; this is a type-only task and the existing visual treatment is out of scope."
       },
@@ -51,11 +45,36 @@
       {
         "rule": "ai-color-palette",
         "value": "*",
-        "files": [
-          "src/modules/editorial/radar-best-lists/presentation/views/RadarDetailView.vue"
-        ],
+        "files": ["src/modules/editorial/radar-best-lists/presentation/views/RadarDetailView.vue"],
         "createdAt": "2026-11-01T12:44:32.378Z",
         "reason": "User explicitly requested no Radar redesign in RM-3; this preserved purple/cyan palette was part of the existing Radar detail presentation."
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "src/modules/editorial/radar-best-lists/presentation/views/BestListDetailView.vue"
+        ],
+        "createdAt": "2026-11-01T16:14:04.942Z",
+        "reason": "Agent: the 2px bottom border marks the selected navigation tab; this rule misclassifies the rounded tab indicator as a card border"
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "src/modules/editorial/lists/radar/presentation/views/RadarDetailView.vue"
+        ],
+        "createdAt": "2026-11-01T18:09:57.579Z",
+        "reason": "User stated Radar's finished design is out of scope for RM-5c-FE and explicitly prohibited redesign; preserve its existing violet header palette."
+      },
+      {
+        "rule": "border-accent-on-rounded",
+        "value": "*",
+        "files": [
+          "src/modules/editorial/lists/best/presentation/views/BestListDetailView.vue"
+        ],
+        "createdAt": "2026-11-01T18:09:57.586Z",
+        "reason": "User stated Best's finished design is out of scope for RM-5c-FE and explicitly prohibited redesign; these borders are existing selected-tab indicators."
       }
     ]
   }

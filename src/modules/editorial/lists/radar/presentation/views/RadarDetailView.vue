@@ -261,12 +261,14 @@ import {
 } from "@/modules/editorial/lists/radar/application/radarDetailQueries";
 import RadarAssignments from "../components/RadarAssignments.vue";
 import RadarDiscCatalog from "../components/RadarDiscCatalog.vue";
+import { useListsRealtime } from "@/modules/editorial/lists/shared/application/useListsRealtime";
 
 const route = useRoute();
 const router = useRouter();
 const queryClient = useQueryClient();
 const auth = useAuthStore();
 const listId = computed(() => String(route.params.id ?? ""));
+useListsRealtime(listId, "week");
 const detailQuery = useRadarDetailQuery(listId);
 const list = shallowRef<RadarListDetails | null>(null);
 const loading = computed(() => detailQuery.isPending.value);

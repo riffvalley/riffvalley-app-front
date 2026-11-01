@@ -247,13 +247,20 @@ describe("Radar detail queries", () => {
     await mutations.toggleFeatured({ discId: "disc-1", pinned: true });
     await mutations.toggleFeatured({ discId: "disc-1", pinned: false });
 
-    expect(postAsignationService).toHaveBeenCalledWith({
-      userId: "editor-a",
-      discId: "disc-1",
-      listId: "radar-a",
-      genre: "Rock",
-    });
-    expect(updateAsignationService).toHaveBeenCalledWith("assignment-1", { position: 3 });
+    expect(postAsignationService).toHaveBeenCalledWith(
+      {
+        userId: "editor-a",
+        discId: "disc-1",
+        listId: "radar-a",
+        genre: "Rock",
+      },
+      expect.any(String)
+    );
+    expect(updateAsignationService).toHaveBeenCalledWith(
+      "assignment-1",
+      { position: 3 },
+      expect.any(String)
+    );
     expect(deleteAsignationService).toHaveBeenCalledWith("assignment-1");
     expect(updateDisc).toHaveBeenNthCalledWith(1, "disc-1", { pinned: true });
     expect(updateDisc).toHaveBeenNthCalledWith(2, "disc-1", { pinned: false });

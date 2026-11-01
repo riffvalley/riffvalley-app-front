@@ -195,7 +195,8 @@ describe("RadarDiscCatalog", () => {
       .trigger("click");
     await flushPromises();
     expect(postAsignationService).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: "editor", discId: "one", listId: "list-1" })
+      expect.objectContaining({ userId: "editor", discId: "one", listId: "list-1" }),
+      expect.any(String)
     );
 
     await wrapper
