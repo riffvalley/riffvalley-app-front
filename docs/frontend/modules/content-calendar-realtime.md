@@ -2,8 +2,11 @@
 
 El módulo consume `GET /api/contents/events` mientras `ContentCalendar.vue` está montado. El contrato fuente es el SSE v2 de `riffvalley-app-back/roadmap/editorial/content-calendar-realtime.md`; el frontend solo lo consume y no cambia backend ni Identity.
 
+**Estado: primera fase SSE de Content Calendar completada y cerrada el 2026-11-01.** El propietario del proyecto confirmó personalmente que SSE v2 funciona en Heroku, incluida la actualización entre editores y los toasts descriptivos. La confirmación comprende conexión SSE autenticada, recepción de eventos, actualización mediante TanStack Query, toasts Vue Sonner y funcionamiento general del calendario; no representa pruebas de carga ni acredita escenarios específicos adicionales.
+
 ## Arquitectura y ciclo de vida
 
+- El backend expone `GET /api/contents/events`, protegido por Bearer JWT y los roles `riffvalley`/`superadmin`. El publisher RxJS en memoria publica el contrato exclusivo v2 después del commit y una vez por operación lógica, incluyendo cambios indirectos de Lists que modifican Content. Usa heartbeat de 25 s y duración máxima de 10 min; la primera fase no añade Redis ni persistencia.
 - `application/contentsEventsClient.ts` posee un único Fetch `ReadableStream` por vista/sesión, Bearer en cabecera, `credentials: omit`, renovación a través de `authStore.renewSession`, backoff con jitter, recuperación tras EOF y respuesta 401/403.
 - `application/contentsInvalidateParser.ts` procesa frames parciales y UTF-8 incremental. Acepta únicamente `event: contents.invalidate` con `type: "contents.invalidate"`, `version: 2` y `reason: "initial" | "change"`; valida acción, actor, descriptor de Content, fechas civiles, campos y `sourceId`. Un envelope v1, JSON malformado, evento desconocido o heartbeat no llega al coordinador.
 - `application/useContentCalendarRealtime.ts` enlaza el stream al montaje, Identity, rol/generación, Query, cambios pendientes y Sonner. Logout, cambio de identidad/rol/generación o desmontaje abortan y limpian stream, listener y timer. La pérdida de red aborta; reconectar invalida de nuevo para recuperar por HTTP.
@@ -52,8 +55,12 @@ Se reutiliza Vue Sonner 2.0.9: arriba a la derecha, uno visible, 3 segundos, ico
 
 Las pruebas enfocadas conservan los casos de SSE-4 y verifican parser exclusivo v2/rechazo v1, flujo inicial, transporte Bearer, refresh, 401/403, EOF/backoff, cancelación/sesión/rol, cada acción, actor de sistema, metadatos incompletos, días civiles, cambios de año, backlog, comparación visible, filtro «Mis eventos», refetch exitoso/sin cambios/fallido, origen igual/ajeno y dos pestañas del mismo usuario, eventos duplicados/agrupados, protección de operaciones pendientes y encabezado de mutaciones.
 
-Las pruebas y gates locales realizados para SSE-6b-FE están registrados en `roadmap/editorial/content-calendar-realtime.md`. No equivalen a Actions de GitHub ni a la validación integrada final SSE-5. No se hizo inspección visual manual de toasts, conforme a la petición; la verificación visual queda para la persona solicitante.
+Las pruebas y gates locales realizados para SSE-6b-FE están registrados en `roadmap/editorial/content-calendar-realtime.md`. No equivalen a Actions de GitHub. La aceptación integrada funcional de SSE-5 es la confirmación del propietario en Heroku descrita arriba, no una inspección visual manual realizada por el agente.
+
+La aceptación funcional integrada de SSE-5 se cerró por la confirmación del propietario en Heroku. El benchmark de 12/50/100/500 conexiones, las mediciones cuantitativas de memoria/CPU/latencia y los ensayos de estrés/reconexión masiva no constan como realizados. Se aplazan conscientemente a **SSE-OPS-1 — Benchmark operativo**, un seguimiento separado que no bloquea la fase funcional del MVP.
 
 ## Limitaciones
 
 `sourceId` es opcional y efímero. Si backend o una ruta de mutación no lo propaga, no se puede confirmar el origen de forma fiable; se conserva la supresión durante mutaciones locales pendientes y no se ocultan indiscriminadamente los eventos del mismo usuario. El canal no guarda ni reproduce eventos: la reconexión recupera el estado actual por HTTP. Un toast confirma cambio visible tras refetch, no evita conflictos concurrentes. Consultas de meses no activos quedan stale hasta reactivarse.
+
+No hay historial de actividad ni entrega de eventos a usuarios desconectados. Futuras mejoras de interfaz del calendario se planificarán como tareas independientes y no reabren E-CC ni esta fase SSE. Posibles ampliaciones del canal (notificaciones personales, Web Push, persistencia, ámbitos de suscripción o distribución multi-dyno) quedan fuera del alcance cerrado.
