@@ -218,6 +218,25 @@ describe("Contents HTTP contract", () => {
     });
   });
 
+  it("sends the Reunions origin header when creating Reunion Content and preserves the calendar header", async () => {
+    const sourceId = "tab-ephemeral-id";
+    const payload = {
+      type: "reunion" as const,
+      name: "Reunión editorial",
+      publicationDate: "2026-11-01T12:00:00.000Z",
+      authorId: "author-1",
+    };
+
+    await createContent(payload, sourceId);
+
+    expect(post).toHaveBeenCalledWith("/contents", payload, {
+      headers: {
+        "X-Content-Calendar-Client-Id": sourceId,
+        "X-Riff-Valley-Client-Id": sourceId,
+      },
+    });
+  });
+
   it.each([
     ["GET /contents", () => getContents()],
     ["GET /contents/:id", () => getContentById("content-1")],
