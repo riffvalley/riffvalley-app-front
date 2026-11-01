@@ -325,6 +325,7 @@ import {
   useRadarListDetailsQuery,
 } from "../../application/contentCalendarDeferredQueries";
 import { useContentCalendarOperations } from "../../application/useContentCalendarOperations";
+import { useContentCalendarRealtime } from "../../application/useContentCalendarRealtime";
 import { useContentCalendarFullCalendar } from "../composables/useContentCalendarFullCalendar";
 import { filterContentCalendarByAuthor } from "../../utils/contentCalendarFilters";
 
@@ -472,6 +473,19 @@ const {
   updateListStatus,
   updateRadarField,
 } = contentCalendarOperations;
+
+useContentCalendarRealtime({
+  auth: authStore,
+  enabled: computed(
+    () =>
+      authStore.authStatus === "authenticated" &&
+      Boolean(authStore.userId) &&
+      Boolean(authStore.token)
+  ),
+  visibleContents,
+  pendingOperationCount,
+  showOnlyMyEvents: computed(() => showOnlyMyEvents.value),
+});
 
 async function handleCalendarEventClick(info: EventClickArg) {
   if (pendingOperationCount.value > 0) return;

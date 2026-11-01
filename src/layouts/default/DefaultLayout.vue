@@ -28,6 +28,15 @@
       <slot />
     </main>
 
+    <Toaster
+      position="top-right"
+      :theme="isDark ? 'dark' : 'light'"
+      :duration="3000"
+      :visible-toasts="1"
+      :close-button="false"
+      container-aria-label="Notificaciones"
+    />
+
     <!-- Overlay -->
     <div v-if="menuVisible" class="overlay fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden" @click="closeMenu">
       <transition name="fade-slide" appear>
@@ -46,12 +55,14 @@
 import { onBeforeUnmount, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import SidebarMenu from "./components/SidebarMenu.vue";
+import { Toaster } from "vue-sonner";
 import { useTheme } from "@/composables/useTheme";
 
 export default {
   name: "DefaultLayout",
   components: {
     SidebarMenu,
+    Toaster,
   },
   setup() {
     const menuVisible = ref(false);
