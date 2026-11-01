@@ -211,11 +211,11 @@ async function publishToWordPress() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50/50 p-4 dark:bg-rv-darkBg md:p-6">
-    <div class="mx-auto max-w-7xl">
+  <div class="-m-6 min-h-screen bg-gray-50/50 px-2 pb-4 pt-20 dark:bg-rv-darkBg md:m-0 md:p-6">
+    <div class="mx-auto w-full min-w-0 max-w-7xl">
       <button
         type="button"
-        class="mb-6 flex min-h-11 items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-gray-700 shadow-sm transition-colors hover:bg-gray-100 dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-300 dark:hover:bg-rv-darkSurface"
+        class="mb-6 flex min-h-11 max-w-full flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-left text-gray-700 shadow-sm transition-colors hover:bg-gray-100 dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-300 dark:hover:bg-rv-darkSurface"
         @click="goBack"
       >
         <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>Volver a Mejores del Mes
@@ -248,7 +248,7 @@ async function publishToWordPress() {
           >
             <i class="fa-solid fa-compact-disc text-8xl text-white" aria-hidden="true"></i>
           </div>
-          <div class="relative z-10 px-5 py-5 md:px-6">
+          <div class="relative z-10 p-3 sm:p-5 md:px-6">
             <div
               class="flex min-w-0 flex-col justify-between gap-4 md:flex-row md:items-center md:gap-6"
             >
@@ -302,7 +302,7 @@ async function publishToWordPress() {
                   </select>
                 </div>
                 <div
-                  class="flex min-h-11 items-center overflow-hidden rounded-lg border border-indigo-200 bg-white/70 dark:border-white/5 dark:bg-black/20"
+                  class="flex min-h-11 min-w-0 max-w-full items-center overflow-hidden rounded-lg border border-indigo-200 bg-white/70 dark:border-white/5 dark:bg-black/20"
                 >
                   <span
                     class="border-r border-indigo-100 bg-indigo-50 px-3 py-2 dark:border-white/5 dark:bg-white/5"
@@ -314,7 +314,7 @@ async function publishToWordPress() {
                     id="best-release-date"
                     type="date"
                     :value="formatDateForInput(list.releaseDate)"
-                    class="h-full w-auto cursor-pointer border-0 bg-transparent px-3 py-1.5 text-sm font-bold text-gray-700 transition-colors hover:bg-indigo-50 focus:ring-0 dark:text-white dark:hover:bg-white/5"
+                    class="h-full w-auto min-w-0 max-w-full cursor-pointer border-0 bg-transparent px-3 py-1.5 text-sm font-bold text-gray-700 transition-colors hover:bg-indigo-50 focus:ring-0 dark:text-white dark:hover:bg-white/5"
                     title="Fecha de publicación obligatoria"
                     aria-label="Fecha de publicación obligatoria"
                     required
@@ -322,7 +322,7 @@ async function publishToWordPress() {
                   />
                 </div>
                 <div
-                  class="flex min-h-11 items-center overflow-hidden rounded-lg border border-indigo-200 bg-white/70 dark:border-white/5 dark:bg-black/20"
+                  class="flex min-h-11 min-w-0 max-w-full items-center overflow-hidden rounded-lg border border-indigo-200 bg-white/70 dark:border-white/5 dark:bg-black/20"
                 >
                   <span
                     class="border-r border-indigo-100 bg-indigo-50 px-3 py-2 dark:border-white/5 dark:bg-white/5"
@@ -334,7 +334,7 @@ async function publishToWordPress() {
                     id="best-list-date"
                     type="date"
                     :value="formatDateForInput(list.listDate)"
-                    class="h-full w-auto cursor-pointer border-0 bg-transparent px-3 py-1.5 text-sm font-bold text-gray-700 transition-colors hover:bg-indigo-50 focus:ring-0 dark:text-white dark:hover:bg-white/5"
+                    class="h-full w-auto min-w-0 max-w-full cursor-pointer border-0 bg-transparent px-3 py-1.5 text-sm font-bold text-gray-700 transition-colors hover:bg-indigo-50 focus:ring-0 dark:text-white dark:hover:bg-white/5"
                     title="Fecha de lista (opcional)"
                     aria-label="Fecha de lista (opcional)"
                     @change="updateOptionalDate"
@@ -349,14 +349,14 @@ async function publishToWordPress() {
           class="best-assignment-sheet overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm dark:border-white/10 dark:bg-rv-darkCard"
         >
           <div
-            class="flex items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-white/10 md:px-5 md:py-4"
+            class="flex min-w-0 flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-3 dark:border-white/10 md:px-5 md:py-4"
           >
             <div
               class="flex h-7 w-7 items-center justify-center rounded-lg bg-rv-purple/10 dark:bg-rv-purple/20"
             >
               <i class="fa-solid fa-users-viewfinder text-xs text-rv-purple" aria-hidden="true"></i>
             </div>
-            <h2 class="text-base font-bold text-gray-900 dark:text-white">Asignaciones</h2>
+            <h2 class="min-w-0 text-base font-bold text-gray-900 dark:text-white">Asignaciones</h2>
             <span
               v-if="assignmentCount !== null"
               class="ml-auto inline-flex min-h-8 items-center gap-1.5 rounded-full bg-rv-gradient px-3.5 text-xs font-bold text-white shadow-sm ring-1 ring-white/25"

@@ -117,7 +117,7 @@ async function saveMetadata(payload: {
 </script>
 
 <template>
-  <div>
+  <div class="w-full min-w-0">
     <div v-if="assignmentsQuery.isPending.value" role="status" class="best-query-state">
       Cargando asignaciones…
     </div>
@@ -289,10 +289,13 @@ async function saveMetadata(payload: {
 }
 .best-assignment-grid {
   display: grid;
+  width: 100%;
+  min-width: 0;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
   gap: 0.75rem;
 }
 .best-assignment-card {
+  width: 100%;
   min-width: 0;
   max-width: 25rem;
   overflow: hidden;

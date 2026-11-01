@@ -507,6 +507,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+:deep(.news-prose p + p) {
+  margin-top: 0.75em;
+}
+
 :deep(.news-prose a) {
   color: #0c6ddc;
   text-decoration: underline;
