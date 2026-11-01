@@ -48,7 +48,6 @@ describe("Radar list view", () => {
     return mount(RadarListsView, {
       global: {
         plugins: [[VueQueryPlugin, { queryClient }]],
-        stubs: { CollapsibleSection: { template: "<section><slot /></section>" } },
       },
     });
   }
@@ -148,5 +147,28 @@ describe("Radar list view", () => {
     await flushPromises();
     await wrapper.findComponent(RadarListCard).trigger("click");
     expect(push).toHaveBeenCalledWith("/discos/radar/radar-1");
+  });
+
+  it("keeps the future Radar section collapsed until its heading is opened", async () => {
+    getCurrentWeeklyLists.mockResolvedValue([
+      currentRadar,
+      { id: "future-1", name: "Radar futuro", type: "week", listDate: "2098-11-06" },
+    ]);
+    getPastWeeklyLists.mockResolvedValue([
+      { id: "past-1", name: "Radar anterior", type: "week", listDate: "2020-11-06" },
+    ]);
+    const wrapper = mountView();
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Futuras");
+    expect(wrapper.text()).toContain("Radar futuro");
+    expect(wrapper.text()).toContain("Anteriores");
+    expect(wrapper.text()).toContain("Radar anterior");
+    const futureToggle = wrapper
+      .findAll("button[aria-expanded]")
+      .find((button) => button.text().includes("Futuras"))!;
+    expect(futureToggle.attributes("aria-expanded")).toBe("false");
+    await futureToggle.trigger("click");
+    expect(futureToggle.attributes("aria-expanded")).toBe("true");
   });
 });

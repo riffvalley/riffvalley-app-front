@@ -46,9 +46,20 @@ export interface RadarListDetails {
   name: string;
   type: "month" | "week" | "special" | "video";
   status?: string | null;
+  releaseDate?: string | null;
   listDate?: string | null;
   closeDate?: string | null;
   asignations: ListAsignationDetails[];
+  wpWeeklyPosts?: WeeklyWpPostRecord[];
+}
+
+export interface ListUpdatePayload {
+  name?: string;
+  type?: "month" | "week" | "special" | "video";
+  status?: string | null;
+  releaseDate?: string | null;
+  listDate?: string | null;
+  closeDate?: string | null;
 }
 
 export async function postList(payload: any): Promise<void> {
@@ -66,7 +77,11 @@ export async function getListDetails(
   return response.data;
 }
 
-export async function updateList(id: string, data: any, sourceId?: string): Promise<any> {
+export async function updateList(
+  id: string,
+  data: ListUpdatePayload,
+  sourceId?: string
+): Promise<RadarListDetails> {
   const config = sourceId ? { headers: { "X-Content-Calendar-Client-Id": sourceId } } : undefined;
   const response = config
     ? await api.patch(`/lists/${id}`, data, config)

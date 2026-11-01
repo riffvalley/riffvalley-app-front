@@ -315,7 +315,8 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/discos/radar/:id",
     name: "RadarDetalle",
-    component: () => import("@views/discos/RadarDetalle.vue"),
+    component: () =>
+      import("@/modules/editorial/radar-best-lists/presentation/views/RadarDetailView.vue"),
     meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {

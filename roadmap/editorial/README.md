@@ -4,6 +4,7 @@ Este índice agrupa auditorías y roadmaps de capacidades editoriales frontend. 
 
 - [Content Calendar en tiempo real (SSE-4)](content-calendar-realtime.md): consumidor frontend del contrato backend; SSE-4 completada, SSE-5 no iniciada.
 - [Reunions y Points (R-1-BE–R-5)](reunions.md): backend y frontend completados, SSE aceptado manualmente; estado global CERRADO.
+- [Radar y Mejores del Mes (RM-1–RM-5)](radar-mejores.md): RM-1 auditada con validación frontend de períodos; la petición 400 desplegada requiere URL/segmentos para confirmar sus valores de entrada. RM-2–RM-5 no iniciadas.
 
 ## Alcance conocido
 

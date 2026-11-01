@@ -17,10 +17,12 @@ export interface GenresResponse {
 // Obtener la lista de géneros con paginación
 export async function getGenres(
   limit: number,
-  offset: number
+  offset: number,
+  signal?: AbortSignal
 ): Promise<GenresResponse> {
   const response = await api.get<GenresResponse>("/genres", {
-    params: { limit, offset }, // Usa limit y offset según PaginationDto
+    params: { limit, offset },
+    ...(signal ? { signal } : {}),
   });
   return response.data;
 }
