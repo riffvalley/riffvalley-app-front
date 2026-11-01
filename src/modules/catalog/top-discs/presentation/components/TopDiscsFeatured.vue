@@ -1,18 +1,10 @@
 <script setup lang="ts">
 import { faTrophy } from "@fortawesome/free-solid-svg-icons";
-import type { TopRankedDisc } from "../../types/topDiscs";
+import type { TopDiscsCardUpdateEvent, TopRankedDisc } from "../../types/topDiscs";
 import DiscCard from "@components/DiscCardComponent.vue";
 
-interface RatingSavedEvent {
-  discId: string;
-  action: "created" | "updated";
-  musicalRateChanged: boolean;
-  hasMusicalRate: boolean;
-  coverChanged: boolean;
-}
-
 defineProps<{ discs: TopRankedDisc[] }>();
-const emit = defineEmits<{ "rating-saved": [event: RatingSavedEvent] }>();
+const emit = defineEmits<{ "card-updated": [event: TopDiscsCardUpdateEvent] }>();
 
 function medalClass(index: number): string {
   if (index === 0) return "medal-gold";
@@ -57,7 +49,7 @@ function medalClass(index: number): string {
           show-zero-average-rate
           :artistCountry="disc.artist?.country"
           :debut="disc.debut"
-          @rating-saved="emit('rating-saved', $event)"
+          @card-updated="emit('card-updated', $event)"
         />
       </li>
     </ol>

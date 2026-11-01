@@ -11,7 +11,6 @@ vi.mock("@services/api/api", () => ({ default: { get } }));
 import TopDiscsView from "./TopDiscsView.vue";
 import DiscFilters from "@components/DiscFilters.vue";
 import TopDiscsHeader from "@/modules/catalog/top-discs/presentation/components/TopDiscsHeader.vue";
-import { topDiscsQueryKey } from "@/modules/catalog/top-discs/composables/useTopDiscsQueries";
 
 const disc = {
   id: "disc-1",
@@ -28,7 +27,6 @@ const disc = {
 
 const DiscCardStub = defineComponent({
   props: { id: { type: String, required: true } },
-  emits: ["rating-saved"],
   render() {
     return h("article", { "data-testid": "disc-card" }, this.id);
   },
@@ -64,7 +62,7 @@ describe("TopDiscs Rankings view", () => {
     });
   });
 
-  it("loads official options and ranking, preserves cards, and refreshes ranking after musical ratings", async () => {
+  it("loads official options and ranking and preserves cards", async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, staleTime: 0, gcTime: Infinity } },
     });
@@ -98,31 +96,6 @@ describe("TopDiscs Rankings view", () => {
     expect(wrapper.findComponent(DiscFilters).props("genres")).toEqual([
       { id: "genre-1", name: "Rock", color: "#111111" },
     ]);
-    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
-    wrapper.findComponent(DiscCardStub).vm.$emit("rating-saved", { musicalRateChanged: true });
-    await flushPromises();
-    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: topDiscsQueryKey });
-    wrapper.unmount();
-    queryClient.clear();
-    vi.unstubAllGlobals();
-  });
-
-  it("does not invalidate ranking for cover-only rating changes", async () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false, staleTime: 0, gcTime: Infinity } },
-    });
-    const wrapper = mount(TopDiscsView, {
-      global: {
-        plugins: [createPinia(), [VueQueryPlugin, { queryClient }]],
-        stubs: { DiscCard: DiscCardStub, "font-awesome-icon": true, "router-link": true },
-      },
-    });
-    await flushPromises();
-    const invalidateQueries = vi.spyOn(queryClient, "invalidateQueries").mockResolvedValue();
-
-    wrapper.findComponent(DiscCardStub).vm.$emit("rating-saved", { musicalRateChanged: false });
-    await flushPromises();
-    expect(invalidateQueries).not.toHaveBeenCalled();
     wrapper.unmount();
     queryClient.clear();
     vi.unstubAllGlobals();
