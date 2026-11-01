@@ -8,7 +8,13 @@ const api = vi.hoisted(() => ({
 
 vi.mock("@services/api/api.ts", () => ({ default: api }));
 
-import { getUsers, postUserService, updateUserService, updateUserSuperAdminService } from "./users";
+import {
+  getRvUsers,
+  getUsers,
+  postUserService,
+  updateUserService,
+  updateUserSuperAdminService,
+} from "./users";
 
 describe("Identity account HTTP contracts", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -29,6 +35,15 @@ describe("Identity account HTTP contracts", () => {
     await getUsers(controller.signal);
 
     expect(api.get).toHaveBeenCalledWith("/auth/users", { signal: controller.signal });
+  });
+
+  it("forwards cancellation to the existing assignable RV users endpoint", async () => {
+    const controller = new AbortController();
+    api.get.mockResolvedValue({ data: [] });
+
+    await getRvUsers(controller.signal);
+
+    expect(api.get).toHaveBeenCalledWith("/auth/usersRv", { signal: controller.signal });
   });
 
   it("updates the signed-in profile through the existing PATCH /auth contract", async () => {

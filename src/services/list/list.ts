@@ -1,12 +1,42 @@
 import api from "@services/api/api.ts";
 
+export interface ListAsignationDetails {
+  id: string;
+  done: boolean | null;
+  position: number | null;
+  description: string | null;
+  disc?: {
+    name?: string | null;
+    link?: string | null;
+    image?: string | null;
+    artist?: { name?: string | null } | null;
+  } | null;
+  user?: { id?: string; username?: string; image?: string | null } | null;
+}
+
+/** List projection consumed by the existing Radar/Best actions modal. */
+export interface RadarListDetails {
+  id: string;
+  name: string;
+  type: "month" | "week" | "special" | "video";
+  status?: string | null;
+  listDate?: string | null;
+  closeDate?: string | null;
+  asignations: ListAsignationDetails[];
+}
+
 export async function postList(payload: any): Promise<void> {
   const response = await api.post("/lists", payload);
   return response.data;
 }
 
-export async function getListDetails(listId: string): Promise<any> {
-  const response = await api.get<any>(`/lists/${listId}`); // Usamos la ruta correcta para obtener un detalle específico
+export async function getListDetails(
+  listId: string,
+  signal?: AbortSignal
+): Promise<RadarListDetails> {
+  const response = signal
+    ? await api.get<RadarListDetails>(`/lists/${listId}`, { signal })
+    : await api.get<RadarListDetails>(`/lists/${listId}`);
   return response.data;
 }
 
@@ -80,9 +110,13 @@ export interface WeeklyWpPostRecord {
 }
 
 export async function createWpPosts(id: string, position?: number): Promise<CreateWpPostsResponse> {
-  const response = await api.post<CreateWpPostsResponse>(`/lists/${id}/wp-posts`, {}, {
-    params: position ? { position } : undefined,
-  });
+  const response = await api.post<CreateWpPostsResponse>(
+    `/lists/${id}/wp-posts`,
+    {},
+    {
+      params: position ? { position } : undefined,
+    }
+  );
   return response.data;
 }
 
