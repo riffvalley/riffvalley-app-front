@@ -2,7 +2,6 @@ import api from "@services/api/api";
 import type { RiffValleyPlaylist } from "@services/riff-valley-playlists/riffValleyPlaylists";
 import type { Article } from "@services/articles/articles";
 import type { Video } from "@services/videos/videos";
-import type { Reunion } from "@services/reunions/reunions";
 import type { RvUser } from "@/modules/identity/users";
 
 // Interfaces
@@ -50,7 +49,7 @@ export type ContentArticle = Pick<Article, "id" | "editor" | "type" | "status" |
 export type ContentVideo = Pick<Video, "id" | "editor" | "type" | "status" | "user" | "userId" | "editorId">;
 export type ContentPlaylist = Pick<RiffValleyPlaylist, "id" | "name">;
 /** Reunion is not loaded by Contents query responses; this type covers when it is included. */
-export type ContentReunion = Pick<Reunion, "id">;
+export type ContentReunion = { id: string };
 
 export interface Content {
     id: string;
@@ -132,7 +131,7 @@ export interface UpdateContentDto {
     backlog?: boolean;
 }
 
-export interface ContentsByMonthResponse extends Array<Content> { }
+export type ContentsByMonthResponse = Content[];
 
 // Services
 export async function getContents(backlog?: boolean, signal?: AbortSignal): Promise<Content[]> {
@@ -148,12 +147,15 @@ export async function getContentById(id: string): Promise<Content> {
     return response.data;
 }
 
-function contentCalendarSourceConfig(sourceId?: string) {
-    return sourceId ? { headers: { "X-Content-Calendar-Client-Id": sourceId } } : undefined;
+function contentCalendarSourceConfig(sourceId?: string, includeReunionsHeader = false) {
+    return sourceId ? { headers: {
+        "X-Content-Calendar-Client-Id": sourceId,
+        ...(includeReunionsHeader ? { "X-Riff-Valley-Client-Id": sourceId } : {}),
+    } } : undefined;
 }
 
 export async function createContent(data: CreateContentDto, sourceId?: string): Promise<Content> {
-    const config = contentCalendarSourceConfig(sourceId);
+    const config = contentCalendarSourceConfig(sourceId, data.type === "reunion");
     const response = config
         ? await api.post<Content>("/contents", data, config)
         : await api.post<Content>("/contents", data);
