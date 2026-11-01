@@ -13,7 +13,7 @@
 | R-4-FE | COMPLETADA | Módulo, contratos tipados, TanStack Query, mutaciones, borradores, SSE y Vue Sonner. |
 | R-5 | COMPLETADA | Verificaciones integradas registradas y cierre aceptado por el usuario. |
 
-El detalle histórico y los contratos del backend están en el [roadmap backend de Reunions](../../../riffvalley-app-back/roadmap/editorial/reunions.md) y su [contrato TypeScript R-3b](../../../riffvalley-app-back/src/editorial/reunions/realtime/contracts/reunions-event.contract.ts). El backend se consultó en modo lectura y no se modificó en esta ejecución.
+El detalle histórico y los contratos del backend están en el [roadmap backend de Reunions](https://github.com/riffvalley/riffvalley-app-back/blob/main/roadmap/editorial/reunions.md) y su [contrato TypeScript R-3b](https://github.com/riffvalley/riffvalley-app-back/blob/main/src/editorial/reunions/realtime/contracts/reunions-event.contract.ts). El backend se consultó en modo lectura y no se modificó en esta ejecución.
 
 ## Aceptación y evidencia de cierre
 
