@@ -308,7 +308,8 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/discos/radar",
     name: "RadarNovedades",
-    component: () => import("@views/discos/RadarNovedades.vue"),
+    component: () =>
+      import("@/modules/editorial/radar-best-lists/presentation/views/RadarListsView.vue"),
     meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
@@ -320,7 +321,8 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/discos/mejores",
     name: "MejoresDiscos",
-    component: () => import("@views/discos/MejoresDiscos.vue"),
+    component: () =>
+      import("@/modules/editorial/radar-best-lists/presentation/views/BestListsView.vue"),
     meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
