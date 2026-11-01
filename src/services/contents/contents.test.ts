@@ -195,6 +195,29 @@ describe("Contents HTTP contract", () => {
     expect(remove).toHaveBeenCalledWith("/contents/content-1");
   });
 
+  it("sends an optional calendar source ID only as a mutation header", async () => {
+    const sourceId = "tab-ephemeral-id";
+    const payload = { type: "photos" as const, name: "Fotos", authorId: "author-1" };
+
+    await createContent(payload, sourceId);
+    await updateContent("content-1", { name: "Editado" }, sourceId);
+    await deleteContent("content-1", sourceId);
+
+    expect(post).toHaveBeenCalledWith("/contents", payload, {
+      headers: { "X-Content-Calendar-Client-Id": sourceId },
+    });
+    expect(patch).toHaveBeenCalledWith(
+      "/contents/content-1",
+      { name: "Editado" },
+      {
+        headers: { "X-Content-Calendar-Client-Id": sourceId },
+      }
+    );
+    expect(remove).toHaveBeenCalledWith("/contents/content-1", {
+      headers: { "X-Content-Calendar-Client-Id": sourceId },
+    });
+  });
+
   it.each([
     ["GET /contents", () => getContents()],
     ["GET /contents/:id", () => getContentById("content-1")],

@@ -80,8 +80,11 @@ export async function createVideo(dto: CreateVideoDto): Promise<Video> {
     return data;
 }
 
-export async function updateVideo(id: string, dto: UpdateVideoDto): Promise<Video> {
-    const { data } = await api.patch<Video>(`/videos/${id}`, dto);
+export async function updateVideo(id: string, dto: UpdateVideoDto, sourceId?: string): Promise<Video> {
+    const config = sourceId ? { headers: { "X-Content-Calendar-Client-Id": sourceId } } : undefined;
+    const { data } = config
+        ? await api.patch<Video>(`/videos/${id}`, dto, config)
+        : await api.patch<Video>(`/videos/${id}`, dto);
     return data;
 }
 

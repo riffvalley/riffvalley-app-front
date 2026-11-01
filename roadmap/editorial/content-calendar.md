@@ -455,6 +455,7 @@ El frontend aplica la validación de fecha existente en Create/Edit y el bloqueo
 - **Criterios de aceptación:** no hay `any` ni código comentado obsoleto nuevo/preexistente dentro del scope acordado; no cambian los contratos y pasan los gates aplicables.
 - **Tests necesarios:** suite focalizada de Content Calendar, typecheck, lint focalizado y build.
 - **Estado:** **Completada** el 2026-10-31. Cierra la refactorización técnica frontend de Content Calendar; no inicia SSE ni altera contratos, endpoints, permisos, fechas o reglas editoriales.
+
 - **Código limpiado:** se retiró el helper comentado `handleDragStart` de `ContentCalendar.vue`, el borrador `newContent` sin consumidores y su watcher/reset duplicados, y el callback `resetCreateDraft` que solo mantenía ese estado muerto. Se confirmó que no quedan consumidores frontend de `src/views/contentCalendar/` ni referencias productivas a esa ruta.
 - **Archivos revisados/limpiados:** `application/contentCalendarDeferredQueries.ts`, `application/useContentCalendarOperations.ts`, `presentation/views/ContentCalendar.vue`, `presentation/composables/useContentCalendarFullCalendar.ts` y el nuevo `presentation/composables/useDialogFocus.ts` con su test. ESLint/Prettier cubren también todas las vistas, componentes, tipos y utilidades del módulo; Prettier normalizó los SFC `ArticleActionsModal.vue`, `BacklogPanel.vue`, `CreateContentModal.vue`, `EditContentModal.vue`, `GenericActionsModal.vue`, `LegendModal.vue`, `PhotosActionsModal.vue`, `RadarActionsModal.vue`, `ReunionActionsModal.vue` y `VideoActionsModal.vue`.
 - **Tipos y responsabilidades:** el guardado compuesto Article/Video ahora usa una unión discriminada y elimina casts de `ArticleUpdateData`/`VideoUpdateData`; la clasificación de rechazos reutiliza el guard existente. La validación diferida de detalles de Lists usa un guard de objeto antes de indexar datos desconocidos. No hay `any` productivo; las aserciones restantes tipan claves `as const` y literales controlados, no conversiones inseguras. La vista conserva composición; TanStack Query posee datos remotos; los servicios de Contents, Lists, Articles, Videos, asignaciones y Reunions conservan sus contratos y transporte. Los cruces de módulo usan solo las entradas públicas de Identity; no hay imports profundos de otras capacidades.
@@ -489,3 +490,9 @@ La auditoría inicial permanece completada. Esta secuencia ordena el trabajo fut
 - No se modificó código funcional ni se tocó la auditoría backend-cleanup. La validación visual queda pendiente del usuario, según la restricción de alcance.
 
 La ejecución de E-CC-1 y sus gates está registrada en su tarea arriba. Las comprobaciones de ese cierre no alteran el alcance ni el estado de E-CC-2–E-CC-10.
+
+## SSE-4 — Consumidor frontend de cambios en tiempo real
+
+- **Estado:** **Completada localmente** el 2026-11-01. La implementación frontend y evidencia se documentan en [Content Calendar en tiempo real](content-calendar-realtime.md); la fuente contractual backend es `riffvalley-app-back/roadmap/editorial/content-calendar-realtime.md`.
+- Solo consume el endpoint SSE existente. Mantiene TanStack Query y la política editorial vigente; no modifica backend ni calendario de lanzamientos de discos.
+- **SSE-5 no iniciada.**

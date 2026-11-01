@@ -95,8 +95,11 @@ export async function createArticle(dto: CreateArticleDto): Promise<Article> {
     return data;
 }
 
-export async function updateArticle(id: string, dto: UpdateArticleDto): Promise<Article> {
-    const { data } = await api.patch<Article>(`/articles/${id}`, dto);
+export async function updateArticle(id: string, dto: UpdateArticleDto, sourceId?: string): Promise<Article> {
+    const config = sourceId ? { headers: { "X-Content-Calendar-Client-Id": sourceId } } : undefined;
+    const { data } = config
+        ? await api.patch<Article>(`/articles/${id}`, dto, config)
+        : await api.patch<Article>(`/articles/${id}`, dto);
     return data;
 }
 

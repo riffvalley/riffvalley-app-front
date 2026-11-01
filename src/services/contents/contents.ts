@@ -148,21 +148,34 @@ export async function getContentById(id: string): Promise<Content> {
     return response.data;
 }
 
-export async function createContent(data: CreateContentDto): Promise<Content> {
-    const response = await api.post<Content>("/contents", data);
+function contentCalendarSourceConfig(sourceId?: string) {
+    return sourceId ? { headers: { "X-Content-Calendar-Client-Id": sourceId } } : undefined;
+}
+
+export async function createContent(data: CreateContentDto, sourceId?: string): Promise<Content> {
+    const config = contentCalendarSourceConfig(sourceId);
+    const response = config
+        ? await api.post<Content>("/contents", data, config)
+        : await api.post<Content>("/contents", data);
     return response.data;
 }
 
 export async function updateContent(
     id: string,
-    data: UpdateContentDto
+    data: UpdateContentDto,
+    sourceId?: string
 ): Promise<Content> {
-    const response = await api.patch<Content>(`/contents/${id}`, data);
+    const config = contentCalendarSourceConfig(sourceId);
+    const response = config
+        ? await api.patch<Content>(`/contents/${id}`, data, config)
+        : await api.patch<Content>(`/contents/${id}`, data);
     return response.data;
 }
 
-export async function deleteContent(id: string): Promise<void> {
-    await api.delete(`/contents/${id}`);
+export async function deleteContent(id: string, sourceId?: string): Promise<void> {
+    const config = contentCalendarSourceConfig(sourceId);
+    if (config) await api.delete(`/contents/${id}`, config);
+    else await api.delete(`/contents/${id}`);
 }
 
 export async function getContentsByMonth(

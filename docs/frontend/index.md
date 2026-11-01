@@ -19,6 +19,7 @@ El índice y el README son las entradas generales del frontend; arquitectura, co
 - [Convenciones frontend](conventions.md): requisitos, comandos, controles, hooks y límites de validación vigentes.
 - [Sistema de diseño](../design-system.md): guía canónica de estilos para desarrollos actuales y futuros; el [roadmap de Dashboard](../../roadmap/dashboard.md) registra la auditoría y las correcciones aceptadas. Dashboard está cerrado; DS-4e–DS-4j se descartaron y DS-5 se canceló por decisión del usuario.
 - [Módulo Identity](modules/identity.md): ownership, exports públicos, sesión, permisos y dependencias vigentes.
+- [Tiempo real de Content Calendar](modules/content-calendar-realtime.md): cliente SSE-4, integración con Identity, reconexión, invalidación Query y política de notificaciones.
 - [Roadmap histórico de arquitectura](../../roadmap/frontend-architecture.md): análisis, decisiones y planificación de iteraciones, conservados para trazabilidad.
 - [Estructura histórica de Identity](../../roadmap/identity-structure.md): inventario y reorganización conservados; la estructura y los contratos vigentes están en la página canónica del módulo.
 - [Lógica histórica de Identity](../../roadmap/identity-logic.md): auditoría y decisiones de iniciativa, conservadas para trazabilidad.

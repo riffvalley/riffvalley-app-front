@@ -79,6 +79,9 @@ importers:
       vue-router:
         specifier: ^4.5.0
         version: 4.5.0(vue@3.5.13(typescript@5.6.3))
+      vue-sonner:
+        specifier: ^2.0.9
+        version: 2.0.9
       vue-sweetalert2:
         specifier: ^5.0.11
         version: 5.0.11(vue@3.5.13(typescript@5.6.3))
@@ -3708,6 +3711,20 @@ packages:
     peerDependencies:
       vue: 3.5.13
 
+  vue-sonner@2.0.9:
+    resolution: {integrity: sha512-i6BokNlNDL93fpzNxN/LZSn6D6MzlO+i3qXt6iVZne3x1k7R46d5HlFB4P8tYydhgqOrRbIZEsnRd3kG7qGXyw==}
+    peerDependencies:
+      '@nuxt/kit': ^4.0.3
+      '@nuxt/schema': ^4.0.3
+      nuxt: ^4.0.3
+    peerDependenciesMeta:
+      '@nuxt/kit':
+        optional: true
+      '@nuxt/schema':
+        optional: true
+      nuxt:
+        optional: true
+
   vue-sweetalert2@5.0.11:
     resolution: {integrity: sha512-agujdlcNeLb4Fj0/V3qgR7bEVBN8IzWFoDBP/vrSgbEGl9pjMmxnv32V3lxB0SZtQh6tL6R/UZ+C3q8tzsJbNg==}
     peerDependencies:
@@ -7145,6 +7162,8 @@ snapshots:
     dependencies:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.13(typescript@5.6.3)
+
+  vue-sonner@2.0.9: {}
 
   vue-sweetalert2@5.0.11(vue@3.5.13(typescript@5.6.3)):
     dependencies:

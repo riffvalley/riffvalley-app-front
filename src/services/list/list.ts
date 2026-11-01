@@ -40,8 +40,11 @@ export async function getListDetails(
   return response.data;
 }
 
-export async function updateList(id: string, data: any): Promise<any> {
-  const response = await api.patch(`/lists/${id}`, data);
+export async function updateList(id: string, data: any, sourceId?: string): Promise<any> {
+  const config = sourceId ? { headers: { "X-Content-Calendar-Client-Id": sourceId } } : undefined;
+  const response = config
+    ? await api.patch(`/lists/${id}`, data, config)
+    : await api.patch(`/lists/${id}`, data);
   return response.data;
 }
 
@@ -136,8 +139,10 @@ export async function generateBestDiscsWpPost(id: string): Promise<BestDiscsWpPo
   return response.data;
 }
 
-export async function deleteList(id: string): Promise<void> {
-  await api.delete(`/lists/${id}`);
+export async function deleteList(id: string, sourceId?: string): Promise<void> {
+  const config = sourceId ? { headers: { "X-Content-Calendar-Client-Id": sourceId } } : undefined;
+  if (config) await api.delete(`/lists/${id}`, config);
+  else await api.delete(`/lists/${id}`);
 }
 
 // Obtener listas de video actuales

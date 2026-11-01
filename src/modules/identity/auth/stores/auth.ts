@@ -27,6 +27,10 @@ export type LogoutOutcome =
   | { revocation: "unconfirmed"; error: SessionAuthError };
 
 const initializationPromises = new WeakMap<object, Promise<AuthStatus>>();
+const renewalPromises = new WeakMap<
+  object,
+  { generation: number; promise: Promise<RenewSessionResult> }
+>();
 
 const USER_ROLE_SET: ReadonlySet<string> = new Set(USER_ROLES);
 
@@ -240,19 +244,11 @@ export const useAuthStore = defineStore("auth", {
       }
     },
 
-    async renewSession(
-      expectedGeneration = this.authSessionGeneration
-    ): Promise<RenewSessionResult> {
-      if (
-        expectedGeneration !== this.authSessionGeneration ||
-        this.authStatus !== "authenticated" ||
-        this.sessionMode !== "renewable"
-      ) {
-        return "stale";
-      }
+    renewSession(expectedGeneration = this.authSessionGeneration): Promise<RenewSessionResult> {
+      const existingRenewal = renewalPromises.get(this);
+      if (existingRenewal?.generation === expectedGeneration) return existingRenewal.promise;
 
-      try {
-        const session = await sessionAuthTransport.refresh();
+      const renewal = (async (): Promise<RenewSessionResult> => {
         if (
           expectedGeneration !== this.authSessionGeneration ||
           this.authStatus !== "authenticated" ||
@@ -260,49 +256,66 @@ export const useAuthStore = defineStore("auth", {
         ) {
           return "stale";
         }
-        if (
-          !session.token ||
-          !session.user?.id ||
-          !session.user.username ||
-          !isUserRole(session.user.role)
-        ) {
-          throw new SessionAuthError(
-            "La respuesta de Identity no coincide con el contrato de sesión.",
-            "protocol-error",
-            null
-          );
-        }
 
-        applyRenewableProfile(this, session.user, session.token);
-        this.authInitializationError = null;
-        clearPersistedCredentials();
-        return "renewed";
-      } catch (error: unknown) {
-        if (expectedGeneration !== this.authSessionGeneration) return "stale";
-        if (error instanceof SessionAuthError && error.category === "coordination-unavailable") {
-          // The access token was rejected, and this tab cannot safely renew the shared cookie.
-          // Clear only local state; do not broadcast a logout or revoke the backend session.
-          clearLocalAuthState(this);
-          return "unauthenticated";
-        }
-        if (error instanceof SessionAuthError && error.category === "unauthenticated") {
-          clearAndBroadcastAuthLogout(this);
-          return "unauthenticated";
-        }
+        try {
+          const session = await sessionAuthTransport.refresh();
+          if (
+            expectedGeneration !== this.authSessionGeneration ||
+            this.authStatus !== "authenticated" ||
+            this.sessionMode !== "renewable"
+          ) {
+            return "stale";
+          }
+          if (
+            !session.token ||
+            !session.user?.id ||
+            !session.user.username ||
+            !isUserRole(session.user.role)
+          ) {
+            throw new SessionAuthError(
+              "La respuesta de Identity no coincide con el contrato de sesión.",
+              "protocol-error",
+              null
+            );
+          }
 
-        this.authInitializationError =
-          error instanceof SessionAuthError
-            ? error.category === "rate-limited" ||
-              error.category === "unavailable" ||
-              error.category === "network-error" ||
-              error.category === "forbidden" ||
-              error.category === "protocol-error" ||
-              error.category === "coordination-unavailable"
-              ? error.category
-              : "http-error"
-            : "network-error";
-        throw error;
-      }
+          applyRenewableProfile(this, session.user, session.token);
+          this.authInitializationError = null;
+          clearPersistedCredentials();
+          return "renewed";
+        } catch (error: unknown) {
+          if (expectedGeneration !== this.authSessionGeneration) return "stale";
+          if (error instanceof SessionAuthError && error.category === "coordination-unavailable") {
+            // The access token was rejected, and this tab cannot safely renew the shared cookie.
+            // Clear only local state; do not broadcast a logout or revoke the backend session.
+            clearLocalAuthState(this);
+            return "unauthenticated";
+          }
+          if (error instanceof SessionAuthError && error.category === "unauthenticated") {
+            clearAndBroadcastAuthLogout(this);
+            return "unauthenticated";
+          }
+
+          this.authInitializationError =
+            error instanceof SessionAuthError
+              ? error.category === "rate-limited" ||
+                error.category === "unavailable" ||
+                error.category === "network-error" ||
+                error.category === "forbidden" ||
+                error.category === "protocol-error" ||
+                error.category === "coordination-unavailable"
+                ? error.category
+                : "http-error"
+              : "network-error";
+          throw error;
+        }
+      })();
+      renewalPromises.set(this, { generation: expectedGeneration, promise: renewal });
+      const clearRenewal = () => {
+        if (renewalPromises.get(this)?.promise === renewal) renewalPromises.delete(this);
+      };
+      void renewal.then(clearRenewal, clearRenewal);
+      return renewal;
     },
   },
   getters: {

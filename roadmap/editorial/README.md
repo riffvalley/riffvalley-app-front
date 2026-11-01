@@ -2,6 +2,8 @@
 
 Este índice agrupa auditorías y roadmaps de capacidades editoriales frontend. Editorial es un dominio futuro de organización, no una autorización para fusionar capacidades que hoy tienen contratos y owners distintos.
 
+- [Content Calendar en tiempo real (SSE-4)](content-calendar-realtime.md): consumidor frontend del contrato backend; SSE-4 completada, SSE-5 no iniciada.
+
 ## Alcance conocido
 
 - [Content Calendar (E-CC)](content-calendar.md): auditoría del calendario editorial `/content-calendar`, sus consumidores reales y plan de trabajo. No corresponde al calendario de lanzamientos de discos.

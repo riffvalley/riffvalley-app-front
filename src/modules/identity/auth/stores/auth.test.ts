@@ -480,4 +480,28 @@ describe("renewable auth store", () => {
 
     expect(notifyAppDailyActivity).not.toHaveBeenCalled();
   });
+
+  it("shares concurrent refreshes for the same session generation", async () => {
+    const store = useAuthStore();
+    store.$patch({
+      token: "memory-access-token",
+      username: "Mara",
+      userId: "42",
+      role: "riffvalley",
+      authStatus: "authenticated",
+      sessionMode: "renewable",
+    });
+    let finishRefresh!: (value: typeof renewableSession) => void;
+    refresh.mockReturnValue(
+      new Promise((resolve) => {
+        finishRefresh = resolve;
+      })
+    );
+
+    const first = store.renewSession();
+    const second = store.renewSession();
+    expect(refresh).toHaveBeenCalledOnce();
+    finishRefresh(renewableSession);
+    await expect(Promise.all([first, second])).resolves.toEqual(["renewed", "renewed"]);
+  });
 });
