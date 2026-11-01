@@ -165,6 +165,7 @@ export async function getRatesByUser(
   country?: string,
   type?: string,
   orderBy?: string,
+  signal?: AbortSignal
 ): Promise<PaginatedResponse<UserDiscRateListItem>> {
   const response = await api.get<PaginatedResponse<UserDiscRateListItem>>("/rates", {
     params: {
@@ -177,6 +178,7 @@ export async function getRatesByUser(
       type,
       orderBy,
     },
+    ...(signal ? { signal } : {}),
   });
   return response.data;
 }

@@ -1,5 +1,31 @@
 import api from "@services/api/api.ts";
 
+export interface ListSummary {
+  id: string;
+  name: string;
+  type: "month" | "week" | "special" | "video";
+  status?: string | null;
+  listDate?: string | null;
+  releaseDate?: string | null;
+  closeDate?: string | null;
+  asignations?: Array<{
+    id: string;
+    user?: { id?: string; username?: string; image?: string | null } | null;
+  }>;
+}
+
+function assertValidYear(year: number): void {
+  if (!Number.isInteger(year) || year < 100 || year > 275759) {
+    throw new RangeError("List year must be an integer from 100 through 275759.");
+  }
+}
+
+function assertValidMonth(month: number): void {
+  if (!Number.isInteger(month) || month < 1 || month > 12) {
+    throw new RangeError("List month must be an integer from 1 through 12.");
+  }
+}
+
 export interface ListAsignationDetails {
   id: string;
   done: boolean | null;
@@ -20,9 +46,22 @@ export interface RadarListDetails {
   name: string;
   type: "month" | "week" | "special" | "video";
   status?: string | null;
+  releaseDate?: string | null;
   listDate?: string | null;
   closeDate?: string | null;
+  wpPostId?: number | null;
+  wpPostUrl?: string | null;
   asignations: ListAsignationDetails[];
+  wpWeeklyPosts?: WeeklyWpPostRecord[] | null;
+}
+
+export interface ListUpdatePayload {
+  name?: string;
+  type?: "month" | "week" | "special" | "video";
+  status?: string | null;
+  releaseDate?: string | null;
+  listDate?: string | null;
+  closeDate?: string | null;
 }
 
 export async function postList(payload: any): Promise<void> {
@@ -40,7 +79,11 @@ export async function getListDetails(
   return response.data;
 }
 
-export async function updateList(id: string, data: any, sourceId?: string): Promise<any> {
+export async function updateList(
+  id: string,
+  data: ListUpdatePayload,
+  sourceId?: string
+): Promise<RadarListDetails> {
   const config = sourceId ? { headers: { "X-Content-Calendar-Client-Id": sourceId } } : undefined;
   const response = config
     ? await api.patch(`/lists/${id}`, data, config)
@@ -60,26 +103,44 @@ export async function getLists(
 }
 
 // Obtener listas semanales actuales
-export async function getCurrentWeeklyLists(): Promise<any> {
-  const response = await api.get<any>("/lists/weekly/current");
+export async function getCurrentWeeklyLists(signal?: AbortSignal): Promise<ListSummary[]> {
+  const response = signal
+    ? await api.get<ListSummary[]>("/lists/weekly/current", { signal })
+    : await api.get<ListSummary[]>("/lists/weekly/current");
   return response.data;
 }
 
 // Obtener listas semanales pasadas por año y mes
-export async function getPastWeeklyLists(year: number, month: number): Promise<any> {
-  const response = await api.get<any>(`/lists/weekly/past/${year}/${month}`);
+export async function getPastWeeklyLists(
+  year: number,
+  month: number,
+  signal?: AbortSignal
+): Promise<ListSummary[]> {
+  assertValidYear(year);
+  assertValidMonth(month);
+  const response = signal
+    ? await api.get<ListSummary[]>(`/lists/weekly/past/${year}/${month}`, { signal })
+    : await api.get<ListSummary[]>(`/lists/weekly/past/${year}/${month}`);
   return response.data;
 }
 
 // Obtener listas mensuales actuales
-export async function getCurrentMonthlyLists(): Promise<any> {
-  const response = await api.get<any>("/lists/month/current");
+export async function getCurrentMonthlyLists(signal?: AbortSignal): Promise<ListSummary[]> {
+  const response = signal
+    ? await api.get<ListSummary[]>("/lists/month/current", { signal })
+    : await api.get<ListSummary[]>("/lists/month/current");
   return response.data;
 }
 
 // Obtener listas mensuales pasadas por año
-export async function getPastMonthlyLists(year: number): Promise<any> {
-  const response = await api.get<any>(`/lists/month/past/${year}`);
+export async function getPastMonthlyLists(
+  year: number,
+  signal?: AbortSignal
+): Promise<ListSummary[]> {
+  assertValidYear(year);
+  const response = signal
+    ? await api.get<ListSummary[]>(`/lists/month/past/${year}`, { signal })
+    : await api.get<ListSummary[]>(`/lists/month/past/${year}`);
   return response.data;
 }
 

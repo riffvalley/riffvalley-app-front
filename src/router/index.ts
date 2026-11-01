@@ -308,25 +308,28 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/discos/radar",
     name: "RadarNovedades",
-    component: () => import("@views/discos/RadarNovedades.vue"),
+    component: () =>
+      import("@/modules/editorial/lists/radar/presentation/views/RadarListsView.vue"),
     meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/discos/radar/:id",
     name: "RadarDetalle",
-    component: () => import("@views/discos/RadarDetalle.vue"),
+    component: () =>
+      import("@/modules/editorial/lists/radar/presentation/views/RadarDetailView.vue"),
     meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/discos/mejores",
     name: "MejoresDiscos",
-    component: () => import("@views/discos/MejoresDiscos.vue"),
+    component: () => import("@/modules/editorial/lists/best/presentation/views/BestListsView.vue"),
     meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
     path: "/discos/mejores/:id",
     name: "MejoresDetalle",
-    component: () => import("@views/discos/MejoresDetalle.vue"),
+    component: () =>
+      import("@/modules/editorial/lists/best/presentation/views/BestListDetailView.vue"),
     meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
@@ -345,7 +348,8 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/artists",
     name: "ArtistManagement",
-    component: () => import("@/modules/catalog/artists/presentation/views/ArtistManagementView.vue"),
+    component: () =>
+      import("@/modules/catalog/artists/presentation/views/ArtistManagementView.vue"),
     meta: { requiresAuth: true, requiresRole: "user" },
   },
   {
@@ -410,11 +414,15 @@ function watchActiveRouteAuthorization(authStore: AuthStore) {
         if (router.currentRoute.value.meta.requiresAuth) {
           void router.replace({ name: "Login" });
         }
-      } else if (requiredRole && status === "authenticated" && !hasMinimumRole(role, requiredRole)) {
+      } else if (
+        requiredRole &&
+        status === "authenticated" &&
+        !hasMinimumRole(role, requiredRole)
+      ) {
         void router.replace({ name: "Forbidden" });
       }
     },
-    { flush: "sync" },
+    { flush: "sync" }
   );
 }
 
@@ -422,7 +430,7 @@ router.beforeEach(async (to) => {
   const authStore = useAuthStore();
   watchActiveRouteAuthorization(authStore);
 
-  const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === 'true';
+  const isMaintenance = import.meta.env.VITE_MAINTENANCE_MODE === "true";
 
   if (isMaintenance && to.name !== "Maintenance") {
     return { name: "Maintenance" };
