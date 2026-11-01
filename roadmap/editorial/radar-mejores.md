@@ -234,7 +234,6 @@ Se añadieron validaciones runtime en el transporte frontend para las funciones 
 - El mismo tamaño de 300 y la ausencia de espacio artificial se aplican a `BestDiscCatalog.vue`. El detalle de Radar también normaliza `wpWeeklyPosts: null` como lista vacía antes de buscar publicaciones; el backend puede devolver ese valor en radares nuevos y antes provocaba una excepción durante el render.
 - `RadarDiscCatalog.test.ts` y `radarDetailQueries.test.ts` cubren los contadores/iconos, grupos cerrados, selector buscable completo, filtros, paginación y desmontaje del observer. Las verificaciones focalizadas se registran en el resumen de esta extensión; no se realizó revisión visual manual.
 
-
 ## RM-4b — Separación de archivos Radar y Mejores del Mes
 
 **Estado histórico de RM-4b:** completada localmente el 2026-11-01. El cierre documental posterior consta en RM-5.
@@ -245,7 +244,7 @@ Se añadieron validaciones runtime en el transporte frontend para las funciones 
 - No se modificaron interfaces funcionales, CSS, query keys, mutaciones, contratos, comportamiento ni código backend. Radar y Best no tienen imports de componentes específicos entre sí; ambos consumen solo los componentes compartidos descritos.
 - Vitest focalizado: 142 tests pasan en 17 archivos. Typecheck, build, ESLint focalizado, Prettier focalizado sobre el módulo y `git diff --check` pasan. `cycles` detecta un ciclo type-only preexistente entre servicios legacy y su comparación es informativa porque HEAD local no se pudo resolver; Identity informa 0 violaciones y 0 imports locales sin resolver, con comparación igualmente informativa. El build conserva avisos de Browserslist desactualizado, selector CSS `.flex-[2]` durante minificación y chunk principal de 708 kB; no se atribuyen a esta reorganización. No se realizaron comprobaciones visuales manuales ni se afirma ejecución de GitHub Actions.
 
-## RM-5 — Cierre documental definitivo
+## RM-5 — Cierre funcional previo a la integración SSE (histórico)
 
 **Estado:** COMPLETADA. El usuario confirma que las correcciones funcionales y visuales de Radar y Mejores del Mes están terminadas, acepta el diseño actual y la separación arquitectónica, y autoriza expresamente cerrar esta iniciativa. Esta aceptación funcional es independiente de las verificaciones automatizadas históricas: no implica que se hayan repetido pruebas en RM-5 ni que se hayan inspeccionado manualmente todos los casos o realizado una nueva revisión en navegador.
 
@@ -277,4 +276,33 @@ Los siguientes resultados son históricos y corresponden a ejecuciones de sus re
 - Los avisos observados en build —Browserslist desactualizado, `.flex-[2]` durante la minificación CSS y chunk de aproximadamente 708 kB— se registran sin atribuirlos a esta refactorización.
 - Los gates cuya comparación con `HEAD` o referencias base quedó incompleta no se reclasifican como satisfactorios. Estas limitaciones no abren tareas ni fases dentro de este roadmap cerrado.
 
-**Cierre:** RM-1, RM-2, RM-2b, RM-3, RM-4, RM-4b y RM-5 están COMPLETADAS. El estado global es **RADAR Y MEJORES DEL MES — CERRADO**. No se crea RM-6; cualquier mejora futura se gestionará como una tarea independiente.
+Este cierre registró la aceptación previa de las vistas, antes de incorporar RM-5c-FE. La fase de tiempo real continúa en el apartado siguiente y el roadmap global permanece abierto hasta RM-5d.
+
+## RM-5c-FE — SSE descriptivo para Radar y Mejores del Mes
+
+**Estado:** COMPLETADA localmente el 2026-11-01. RM-5d permanece PENDIENTE; el roadmap global no se cierra en esta entrega.
+
+### Integración
+
+- El frontend consume `GET /api/lists/events` con `lists.invalidate` v1, reutilizando `authenticatedEventsClient`, `readSseMessages`, `editorialClientId` y la renovación/backoff de Identity. El contrato backend de referencia es `riffvalley-app-back/roadmap/editorial/lists-realtime.md` y `riffvalley-app-back/src/editorial/lists/realtime/contracts/lists-event.contract.ts`; el código backend solo se consultó en modo lectura.
+- El parser tipado acepta únicamente el envelope v1 del contrato: evento inicial, las cinco acciones descriptivas (`assignment.created`, `assignment.placed`, `assignment.moved`, `assignment.unplaced`, `assignment.deleted`) y fallback genérico con `list` opcional. Valida referencias, identidad, posiciones y acciones; admite `previousPosition: null → newPosition > 0` como primera colocación Radar y borrados con la posición anterior nullable. Rechaza versiones y propiedades no admitidas. No incorpora negociación ni un contrato legacy.
+- `useListsRealtime` se monta una vez en cada vista individual y se cierra al cambiar `:id`, sesión, autorización o desmontar. También aborta al perder conectividad y vuelve a recuperar el estado tras EOF/reconexión. Los listados generales no montan el cliente.
+- Los eventos se filtran por ID y tipo `week`/`month`. El fallback identificado invalida solo el detalle coincidente; si no identifica el ámbito, invalida únicamente queries activas de asignaciones Lists, sin toasts. El evento inicial y la reconexión recuperan por HTTP sin avisos.
+- Radar invalida `radarDetailQueries.assignments` y las queries activas del catálogo Radar de la lista afectada, para actualizar paneles, bandeja y marcas del catálogo. Best invalida `bestDetailQueries.assignments`; el catálogo infinito no se reinicia ni vuelve a pedir sus páginas. No se modifican las query keys ni se parchea caché con el payload SSE.
+- Las invalidaciones se agrupan en 180 ms. Las descripciones solo se muestran tras refetch exitoso y cambio confirmado en asignaciones visibles. Eventos de esta pestaña, fallback, evento inicial, errores HTTP, resultados sin cambios y operaciones locales pendientes no generan toast. Las ráfagas muestran un texto neutro agregado, sin atribuirlas a una sola persona. Se reutiliza Vue Sonner y el toaster existente.
+- `X-Riff-Valley-Client-Id` usa el UUID efímero compartido por pestaña. Se envía en altas desde Radar y Best, y en PATCH Radar solo cuando cambia `position`; las demás peticiones conservan su llamada anterior.
+- El formateador textual distingue actor y usuario asignado. Soporta alta en Radar/Best, colocación desde `null` o `0`, movimiento, retorno explícito a posición `0` y eliminación atribuida al actor; `null` no se interpreta como bandeja. El artista procede de `artistName`; no se renderiza HTML.
+
+### Preservación y limitaciones
+
+- Radar conserva el estado local existente: el refetch no reinicia la selección móvil, los paneles creados en sesión ni las posiciones/huecos; el máximo persistido solo amplía los paneles disponibles. Se mantiene el límite y los controles existentes.
+- Best conserva pestaña, collapsibles, filtros, scroll y páginas de catálogo; la sincronización solo consulta asignaciones. No se altera votación, WordPress ni tarjetas.
+- El backend usa un stream global en memoria, sin replay ni distribución entre instancias. EOF y reconexión recuperan el estado actual desde HTTP; no hay historial de eventos. La comprobación de toast confirma cambios en el query de asignaciones, no conflictos de edición.
+- No se realizaron inspecciones visuales, capturas, pruebas responsive manuales ni validación real en GitHub Actions, según el alcance acordado.
+
+### Tests y verificaciones
+
+- Se añadieron pruebas del parser v1 (initial, cinco acciones, fallback, contrato inválido/versión incorrecta), mensajes e identidades, comparación posterior al refetch, autenticación/origen del cliente, cabeceras de mutación y coordinador (filtrado, cambios de ruta/sesión, fallback, confirmación HTTP, eliminación sin toast, agrupación y cierre).
+- Vitest focalizado: 219 tests aprobados en 29 archivos durante la pasada conjunta de Lists, Content Calendar, Reunions y transporte SSE compartido; las suites nuevas de Lists aportan 32 tests en 5 archivos y el transporte SSE compartido añade 3 tests (incluidos en el total). No se suman cifras solapadas.
+- Typecheck, ESLint y Prettier focalizados, build y `git diff --check` aprobados. Algunos tests de vistas emitieron avisos DNS de peticiones que intentaron acceder a `backend.riffvalley.es`; las 28 suites terminaron aprobadas. El build conserva avisos de Browserslist desactualizado, selector CSS `.flex-[2]` y chunk principal de unos 709 kB, sin comparación base que permita atribuirlos a RM-5c-FE.
+- Los fixtures de ciclos y fronteras Identity pasan. El diagnóstico local de ciclos encuentra 0 edges sin resolver y un componente type-only preexistente en servicios legacy; las comparaciones de ciclos y Identity son informativas porque no se pudo resolver `HEAD` local. Identity informa 0 violaciones de producción y 0 imports locales sin resolver. No se afirma ejecución en GitHub Actions.
