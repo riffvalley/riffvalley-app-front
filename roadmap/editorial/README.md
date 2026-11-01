@@ -3,7 +3,7 @@
 Este índice agrupa auditorías y roadmaps de capacidades editoriales frontend. Editorial es un dominio futuro de organización, no una autorización para fusionar capacidades que hoy tienen contratos y owners distintos.
 
 - [Content Calendar en tiempo real (SSE-4)](content-calendar-realtime.md): consumidor frontend del contrato backend; SSE-4 completada, SSE-5 no iniciada.
-- [Reunions y Points (R-4-FE)](reunions.md): módulo frontend, estado Query y sincronización SSE descriptiva; R-4-FE completada, R-5 pendiente.
+- [Reunions y Points (R-1-BE–R-5)](reunions.md): backend y frontend completados, SSE aceptado manualmente; estado global CERRADO.
 
 ## Alcance conocido
 

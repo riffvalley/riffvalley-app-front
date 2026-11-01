@@ -1,19 +1,26 @@
-# R-4-FE — Refactorización frontend de Reunions y Points
+# R-5 — Cierre definitivo de Reunions y Points
 
 ## Estado
 
-**Completada el 2026-11-01 en `riffvalley-app-front`.** R-4-FE modulariza y tipa la experiencia existente, adopta TanStack Query como estado remoto y conecta la sección a la versión descriptiva definitiva del stream. No se avanzó a R-5.
+**Reunions y Points: CERRADO el 2026-11-01.** R-1-BE, R-2-BE, R-3-BE, R-3b-BE, R-4-FE y R-5 están completadas. El usuario confirmó que el SSE funciona correctamente en su validación manual y acepta la sincronización en tiempo real. Esta aceptación no atribuye comprobación individual de cada escenario funcional.
 
 | Fase | Estado | Alcance |
 |---|---|---|
-| R-1-BE | Completada en backend | Auditoría de contratos, modelo y permisos. |
-| R-2-BE | Completada en backend | Caracterización/refactor localizado sin cambiar rutas HTTP. |
-| R-3-BE | Completada en backend | Infraestructura SSE autenticada y acotada a Reunions. |
-| R-3b-BE | Completada en backend | Contrato SSE descriptivo definitivo v1. |
-| R-4-FE | Completada aquí | Módulo frontend, Query, operaciones, transporte SSE compartido, borradores, toasts y pruebas. |
-| R-5 | Pendiente | Validación integrada frontend/backend y cierre coordinado. |
+| R-1-BE | COMPLETADA | Auditoría de contratos, modelo y permisos. |
+| R-2-BE | COMPLETADA | Caracterización/refactor localizado sin cambiar rutas HTTP. |
+| R-3-BE | COMPLETADA | Infraestructura SSE autenticada y acotada a Reunions. |
+| R-3b-BE | COMPLETADA | Contrato SSE descriptivo definitivo v1. |
+| R-4-FE | COMPLETADA | Módulo, contratos tipados, TanStack Query, mutaciones, borradores, SSE y Vue Sonner. |
+| R-5 | COMPLETADA | Verificaciones integradas registradas y cierre aceptado por el usuario. |
 
-El detalle histórico y los contratos del backend están en el [roadmap backend de Reunions](../../../riffvalley-app-back/roadmap/editorial/reunions.md) y su [contrato TypeScript R-3b](../../../riffvalley-app-back/src/editorial/reunions/realtime/contracts/reunions-event.contract.ts). El backend se consultó en modo lectura.
+El detalle histórico y los contratos del backend están en el [roadmap backend de Reunions](../../../riffvalley-app-back/roadmap/editorial/reunions.md) y su [contrato TypeScript R-3b](../../../riffvalley-app-back/src/editorial/reunions/realtime/contracts/reunions-event.contract.ts). El backend se consultó en modo lectura y no se modificó en esta ejecución.
+
+## Aceptación y evidencia de cierre
+
+- **Aceptación manual comunicada por el usuario:** el SSE funciona correctamente y se acepta la sincronización en tiempo real de Reunions. No se documenta una comprobación individual de todas las acciones ni se atribuyen pruebas de navegador al agente.
+- **Evidencia técnica backend previa (R-3b-BE):** `pnpm run verify` aprobó 275 suites y 2.695 tests (31 suites y 165 tests omitidos por configuración), typecheck, build y gates técnicos sin nuevas infracciones. Las suites focalizadas de Reunions, Contents, Content Calendar y CORS aprobaron 16 suites y 146 casos; Prettier y `git diff --check` también pasaron.
+- **Evidencia técnica frontend previa (R-4-FE):** las pruebas focalizadas aprobaron 106 tests en 13 archivos con `TZ=UTC` y, por separado, 106 tests en los mismos 13 archivos con `TZ=Europe/Madrid`. Typecheck, build, ESLint y Prettier focalizados y `git diff --check` pasaron. `pnpm run cycles` no encontró edges locales sin resolver; `pnpm run identity:boundaries` no encontró infracciones actuales.
+- Los resultados anteriores pertenecen a R-3b-BE y R-4-FE, no a esta actualización documental R-5. Las dos ejecuciones de zona horaria son validaciones del mismo conjunto, no 212 tests distintos.
 
 ## Arquitectura frontend final
 
@@ -103,10 +110,16 @@ Cobertura focalizada añadida para contratos/mappers/endpoints, keys y aislamien
 
 Los gates estructurales locales no equivalen a comparar una ejecución de GitHub Actions. No se hicieron pruebas visuales manuales en navegador, conforme a la validación reservada al usuario.
 
-## Limitaciones y tareas pendientes
+## Limitaciones conocidas no bloqueantes
 
 - El backend devuelve el conjunto completo; no pagina en servidor. La vista conserva filtros/paginación local existente.
 - Points no tiene una consulta independiente porque la vista no necesita una; todos sus datos se recuperan con Reunion.
 - Dos editores siguen sujetos a la semántica HTTP existente para conflictos simultáneos; no hay bloqueo o versionado.
-- R-5 sigue pendiente: integración coordinada, publicación/rollback y comprobación real del alcance multi-instancia del publisher en backend. Este trabajo frontend no cambia backend ni despliega.
-- El ciclo de vida de diez minutos/reconexión y la disponibilidad entre instancias conservan las limitaciones documentadas por backend; no se añadió replay, Redis, WebSocket ni historial.
+- Los publishers SSE se mantienen en memoria y solo distribuyen eventos dentro de una misma instancia de proceso. No hay distribución entre dynos o réplicas; si el despliegue adopta ese modelo será necesaria infraestructura adicional. No se añade Redis ni otro broker como parte del cierre.
+- SSE no mantiene historial ni replay; la reconexión recupera estado mediante HTTP y TanStack Query.
+- El ciclo de vida de diez minutos/reconexión y la disponibilidad entre instancias conservan las limitaciones documentadas por backend; no se añadió WebSocket ni historial.
+- Deuda preexistente ajena a Reunions: ciclo de tipos entre Contents/Articles/Videos/Playlists; advertencias de CSS, chunks y Browserslist; enlaces Markdown históricos o externos; y modos `required` de los gates que no pudieron calcular el delta al faltar referencias base/head. No son bloqueos ni nuevas tareas de Reunions.
+
+## Cierre documental coordinado
+
+Este roadmap frontend registra R-5 como COMPLETADA y el estado global de Reunions como CERRADO. El roadmap backend citado arriba se mantuvo intacto por el límite de repositorio. En una actualización documental separada allí hay que cambiar su resumen, tabla de estado y párrafos finales que aún marcan R-4-FE y R-5 pendientes; las propuestas antiguas quedan superadas por la arquitectura y el contrato efectivamente implementados en R-3b-BE/R-4-FE. La limitación multi-instancia debe permanecer como conocida, no como fase pendiente.
