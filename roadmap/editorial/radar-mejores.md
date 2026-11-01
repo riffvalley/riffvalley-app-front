@@ -1,10 +1,10 @@
 # Radar y Mejores del Mes — RM-1–RM-5
 
-Iniciativa acotada a los listados `/discos/radar` y `/discos/mejores` y, en fases posteriores, sus vistas individuales. Lists es una dependencia del dominio Editorial; este trabajo no rediseña Lists en general. Las vistas de detalle no se modifican en RM-1.
+Iniciativa acotada a los listados `/discos/radar` y `/discos/mejores` y sus vistas individuales. Lists es una capacidad del dominio Editorial; este trabajo no rediseña Lists en general. Las descripciones de cada fase conservan su evidencia histórica; el cierre RM-5 al final de este documento es la fuente del estado definitivo.
 
 ## Dependencias y ownership observados
 
-- **Frontend:** ambas rutas están declaradas en `src/router/index.ts`; requieren sesión y rol `riffvalley`. Desde RM-2, listados y, tras RM-3, detalle Radar pertenecen a `src/modules/editorial/radar-best-lists/`. RM-4 traslada también el detalle mensual a ese módulo, con componentes y lógica propios de Mejores.
+- **Frontend:** ambas rutas están declaradas en `src/router/index.ts`; requieren sesión y rol `riffvalley`. Desde RM-2, listados y, tras RM-3, detalle Radar pertenecen a `src/modules/editorial/lists/`. RM-4 traslada también el detalle mensual a ese módulo, con componentes y lógica propios de Mejores.
 - **Backend:** `ListsController` declara las rutas de lectura de calendario; `ListsService` delega las consultas a `ListCalendarService`, que consulta `Repository<List>`. Lists filtra por tipo y fechas, sin consultar Contents para obtener los listados.
 - Cada `List` tiene asignaciones eager. Cada asignación carga eager sus relaciones con User y Disc. Contents sincroniza sus fechas con Lists en operaciones de escritura, pero no forma parte de estas respuestas de calendario.
 - Los handlers backend de lectura de calendario no declaran `@Auth()` ni requisito de rol; el guard de frontend no protege el endpoint. Se registra como comportamiento existente, sin cambios de permisos en RM-1.
@@ -49,8 +49,8 @@ Se añadieron validaciones runtime en el transporte frontend para las funciones 
 
 ### Arquitectura y ownership
 
-- `/discos/radar` y `/discos/mejores` ahora cargan las vistas desde `src/modules/editorial/radar-best-lists/presentation/views/`; las rutas y metadatos existentes de sesión y rol `riffvalley` se mantienen.
-- `application/useRadarBestListsQueries.ts` posee las consultas remotas, sus validaciones, aislamiento de sesión y claves; `application/radarListClassification.ts` centraliza la transformación temporal propia de Radar. Los filtros siguen aislados por vista en composables de presentación y no se comparten entre semánticas distintas. La capa no añade Pinia ni un transporte paralelo.
+- `/discos/radar` y `/discos/mejores` ahora cargan las vistas desde `src/modules/editorial/lists/{radar,best}/presentation/views/`; las rutas y metadatos existentes de sesión y rol `riffvalley` se mantienen.
+- `shared/application/useRadarBestListsQueries.ts` posee las consultas remotas, sus validaciones, aislamiento de sesión y claves; `radar/application/radarListClassification.ts` centraliza la transformación temporal propia de Radar. Los filtros siguen aislados por vista en composables de presentación y no se comparten entre semánticas distintas. La capa no añade Pinia ni un transporte paralelo.
 - El servicio común `src/services/list/list.ts` sigue siendo el owner HTTP de Lists y acepta `AbortSignal` en las cuatro operaciones de calendario que consumen los listados. Los endpoints y formas de petición no cambian; se conservan las guardas runtime de RM-1.
 - `RadarListCard` se trasladó al módulo por ser presentación exclusiva de Radar; `CollapsibleSection` también pertenece al módulo porque es compartido entre las dos vistas. Los estilos y tarjetas específicas de Mejores no se generalizan.
 - No se modificaron las vistas individuales, operaciones editoriales, Content Calendar, Contents ni el backend.
@@ -82,16 +82,17 @@ Se añadieron validaciones runtime en el transporte frontend para las funciones 
 - Verificaciones locales: Vitest focalizado y typecheck pasan. ESLint pasa para el módulo, tests, ruta y tests del servicio; `list.ts` conserva `any` en métodos ajenos a estos listados, por lo que ESLint de ese servicio completo informa 11 hallazgos de `no-explicit-any`. ESLint del servicio con esa regla excluida pasa. Prettier pasa en el módulo y servicio compartido; el check de `src/router/index.ts` falla también sobre `HEAD` por formato fuera de los cambios. `pnpm build` pasa y muestra avisos sobre Browserslist, el selector CSS `.flex-[2]` y un chunk principal mayor de 500 kB; sin una comparación de build base no se atribuyen esos avisos al cambio. Fixtures de ciclos y fixtures de enlaces Markdown pasan. El diagnóstico normal de ciclos encuentra 0 edges locales irresueltos y un componente de ciclos type-only en servicios legacy; la comparación es informativa al no poder resolver local HEAD. `markdown:links:delta` es informativo porque exige base/head completos y un checkout limpio. `git diff --check` pasa.
 - El detector mecánico Impeccable informa tres clases Indigo/gradiente ya presentes en la presentación conservada de Mejores; se mantienen para no rediseñar las tarjetas. No se hizo comprobación visual manual en navegador ni responsive, según el alcance solicitado. Las verificaciones locales no acreditan GitHub Actions.
 
-## Fases
+## Fases y estado definitivo
 
-- **RM-1 — Auditoría y reparación del error 400.** Completada; el 400 desplegado no se reprodujo y no se atribuyeron valores de petición sin evidencia.
-- **RM-2 — Refactorización y estabilización de ambos listados.** Completada localmente según el registro anterior.
-- **RM-2b — Listado Radar visible por semanas y días.** Cerrada localmente; registrada en la fase de estabilización del listado.
-- **RM-3 — Refactorización de la vista individual de Radar.** Completada localmente el 2026-11-01; Radar tiene componentes propios de asignaciones y catálogo, y conserva sus queries/mutaciones TanStack Query.
-- **RM-4 — Refactorización integral de Mejores del Mes.** Completada localmente; `/discos/mejores/:id` queda en el módulo editorial, con TanStack Query, tarjetas propias con la identidad visual aprobada de Radar, pestaña `Mis votos` inicial, catálogo mensual desplegable y carga incremental estable.
-- **RM-5 — Validación integrada y cierre.** Ejecutar al completar las fases anteriores; no iniciada.
+- **RM-1 — Auditoría y reparación del error 400:** COMPLETADA.
+- **RM-2 — Refactorización y estabilización de ambos listados:** COMPLETADA.
+- **RM-2b — Listado Radar visible por semanas y días:** COMPLETADA.
+- **RM-3 — Refactorización de la vista individual de Radar:** COMPLETADA.
+- **RM-4 — Refactorización integral de Mejores del Mes:** COMPLETADA.
+- **RM-4b — Reorganización interna del módulo Lists:** COMPLETADA.
+- **RM-5 — Cierre documental:** COMPLETADA.
 
-RM-5 permanece pendiente. No se avanzó a esa fase.
+**Estado global: RADAR Y MEJORES DEL MES — CERRADO.** No hay fases abiertas en esta iniciativa ni se crea RM-6. Las mejoras futuras, si se solicitan, se gestionarán como tareas independientes.
 
 ## RM-2b — Listado Radar visible por semanas y días
 
@@ -125,11 +126,11 @@ RM-5 permanece pendiente. No se avanzó a esa fase.
 
 ## RM-3 — Separación definitiva de Radar y Mejores del Mes
 
-**Estado:** completada localmente el 2026-11-01. Radar queda aislado de los componentes editoriales legacy de asignaciones y catálogo; RM-4 y RM-5 no se abordan en este trabajo.
+**Estado histórico de RM-3:** completada localmente el 2026-11-01. En esa fase, Mejores del Mes y el cierre documental aún quedaban fuera de alcance; ambos se completaron posteriormente en RM-4 y RM-5.
 
 ### Ownership de Radar
 
-- `/discos/radar/:id` conserva ruta, permisos y comportamiento aceptado. La implementación individual vive en `src/modules/editorial/radar-best-lists/presentation/views/RadarDetailView.vue` y ahora monta `RadarAssignments.vue` y `RadarDiscCatalog.vue`, ambos propios del módulo. No importa `src/views/list/components/AsignationList.vue` ni `DiscByDate.vue`.
+- `/discos/radar/:id` conserva ruta, permisos y comportamiento aceptado. La implementación individual vive en `src/modules/editorial/lists/radar/presentation/views/RadarDetailView.vue` y ahora monta `RadarAssignments.vue` y `RadarDiscCatalog.vue`, ambos propios del módulo. No importa `src/views/list/components/AsignationList.vue` ni `DiscByDate.vue`.
 - `RadarAssignments.vue` posee la presentación y la interacción de grupos, bandeja, movimientos, drag & drop, selector táctil, navegación móvil y publicación WordPress por posición. `RadarDiscCatalog.vue` posee catálogo semanal, grupos diarios, filtros, carga incremental y controles de asignación/destacado. Los tipos del flujo se definen en `types/radarAssignment.ts`; el helper civil semanal vive en `utils/editorialWeek.ts` y sus reglas RM-2b se mantienen.
 - Se preservan los paneles Radar 1 y 2, huecos hasta la posición positiva persistida máxima, `position = 0` como bandeja, paneles manuales locales, ausencia de renumeración y máximo de cuatro asignaciones por panel. También se conserva el estado de carga/error, el comportamiento de recarga, la navegación móvil y la presentación desktop/mobile aprobada.
 - La publicación WordPress por panel, asociación con `wpWeeklyPosts`, publicación/actualización, estados, errores y evento `wp-published` siguen en la implementación Radar. El catálogo mantiene sus filas y acciones validadas, fechas civiles, agrupación semanal/diaria, filtros y paginación.
@@ -143,7 +144,7 @@ RM-5 permanece pendiente. No se avanzó a esa fase.
 ### Consumidores legacy y deuda aceptada
 
 - A fecha de cierre de RM-3, `AsignationList.vue` y `DiscByDate.vue` seguían sirviendo Mejores del Mes, `/videos/list/:id`, `/list/edit/:id` y otros flujos legacy. RM-4 retira la dependencia de Mejores; ambos componentes se conservan para Vídeos y EditList. Los modos `remoteRadar` y ramas de TanStack Query de Radar ya se habían retirado en RM-3.
-- El componente legacy de asignaciones mantiene la lógica semanal usada por EditList como deuda independiente; no se reescribe EditList ni se moderniza Mejores. La separación duplica temporalmente presentación y algunos helpers para mantener propiedad de dominio clara. RM-4 y RM-5 siguen pendientes según el estado de las fases.
+- El componente legacy de asignaciones mantiene la lógica semanal usada por EditList como deuda independiente; no se reescribe EditList ni se moderniza Mejores. La separación duplica temporalmente presentación y algunos helpers para mantener propiedad de dominio clara. En el cierre de RM-3, RM-4 y RM-5 seguían pendientes; su estado definitivo consta en la sección de fases.
 
 ### Pruebas y verificaciones
 
@@ -164,11 +165,11 @@ RM-5 permanece pendiente. No se avanzó a esa fase.
 
 ## RM-4 — Refactorización integral de Mejores del Mes
 
-**Estado:** completada localmente el 2026-11-01. No se inicia RM-5.
+**Estado histórico de RM-4:** completada localmente el 2026-11-01. El cierre documental se realizó posteriormente en RM-5.
 
 ### Arquitectura y ownership
 
-- `/discos/mejores/:id` carga `BestListDetailView.vue` desde `src/modules/editorial/radar-best-lists/presentation/views/`. La vista conserva sesión, rol, navegación y los campos editoriales existentes. `BestAssignments.vue`, `BestDiscCatalog.vue` y `BestVotes.vue` son componentes propios; no importan componentes completos ni lógica de Radar.
+- `/discos/mejores/:id` carga `BestListDetailView.vue` desde `src/modules/editorial/lists/best/presentation/views/`. La vista conserva sesión, rol, navegación y los campos editoriales existentes. `BestAssignments.vue`, `BestDiscCatalog.vue` y `BestVotes.vue` son componentes propios; no importan componentes completos ni lógica de Radar.
 - `MejoresAsignationList.vue` sigue siendo compartido por Vídeos; `DiscByDate.vue` sigue siendo compartido por Vídeos y EditList. Ninguno se modificó ni se eliminó. `MisVotosMes.vue` se retiró porque su único consumidor era el detalle migrado.
 - El detalle dejó de leer asignaciones y usuarios desde stores Pinia. Las consultas remotas pertenecen a TanStack Query; borradores, filtros, usuario elegido y expansión de grupos son estado efímero local. Identity conserva la autenticación y el acceso a usuarios asignables por sus contratos públicos.
 - No se cambió Radar. Los componentes RM-4 copian/adaptan la identidad visual definitiva de sus tarjetas: portada y Spotify debajo, título y metadatos, artista/género/país y controles editoriales. En móvil, la portada/Spotify y metadatos permanecen legibles; Usuario, Editar y Validar se agrupan y Eliminar mantiene un objetivo táctil independiente. Los nombres largos pueden partir línea sin ampliar el viewport.
@@ -197,7 +198,7 @@ RM-5 permanece pendiente. No se avanzó a esa fase.
 ### Deuda y límites
 
 - Se conserva `any` preexistente en operaciones ajenas al flujo mensual de `list.ts` y `rates.ts`; el cambio solo añade cancelación opcional al transporte de votos. No se modifica backend, endpoints, permisos ni votación.
-- RM-5 queda pendiente para una solicitud posterior. No hay trabajo de RM-5 incluido en esta fase.
+- En el momento de cerrar RM-4, el cierre documental quedaba para una fase posterior; RM-5 registra ese cierre.
 
 ## Ajustes móviles y visuales de Radar posteriores a RM-3
 
@@ -232,3 +233,48 @@ RM-5 permanece pendiente. No se avanzó a esa fase.
 - El catálogo conserva carga incremental con sentinel, sin espacio artificial de scroll, y solicita páginas de 300 discos (offsets 0, 300, 600...). El scroll descendente cerca del sentinel sigue solicitando páginas aunque los collapsibles no aumenten la altura, con guards por página en vuelo y reintento de errores.
 - El mismo tamaño de 300 y la ausencia de espacio artificial se aplican a `BestDiscCatalog.vue`. El detalle de Radar también normaliza `wpWeeklyPosts: null` como lista vacía antes de buscar publicaciones; el backend puede devolver ese valor en radares nuevos y antes provocaba una excepción durante el render.
 - `RadarDiscCatalog.test.ts` y `radarDetailQueries.test.ts` cubren los contadores/iconos, grupos cerrados, selector buscable completo, filtros, paginación y desmontaje del observer. Las verificaciones focalizadas se registran en el resumen de esta extensión; no se realizó revisión visual manual.
+
+
+## RM-4b — Separación de archivos Radar y Mejores del Mes
+
+**Estado histórico de RM-4b:** completada localmente el 2026-11-01. El cierre documental posterior consta en RM-5.
+
+- RM-4b trasladó la ubicación anterior `src/modules/editorial/radar-best-lists/` a `src/modules/editorial/lists/`, organizado en `radar/`, `best/` y `shared/`. La ruta anterior solo se menciona como historial. Las vistas, componentes, queries, mutaciones, composables, utilidades, tipos y tests exclusivos de Radar o Mejores quedaron bajo su área.
+- `shared/application/useRadarBestListsQueries.ts` mantiene las queries de los dos listados y sus claves existentes. `shared/presentation/components/CollapsibleSection.vue` y `ListQueryStatus.vue` siguen compartidos por ambos listados. El botón de Spotify utilizado por las tarjetas de asignación de ambos detalles se conserva una sola vez como `shared/presentation/components/DiscSpotifyButton.vue`. El transporte Lists permanece en `src/services/list/list.ts`; no se duplicó ni trasladó.
+- Se actualizaron imports relativos, Router y `router/importPermissions.test.ts`; las rutas `/discos/radar`, `/discos/radar/:id`, `/discos/mejores` y `/discos/mejores/:id`, sus nombres, guards y lazy loading se conservan. El test legacy `src/views/list/components/AsignationList.test.ts` ahora importa la mutación Radar desde la ubicación nueva; los componentes compartidos legacy para Vídeos/EditList no se modificaron.
+- No se modificaron interfaces funcionales, CSS, query keys, mutaciones, contratos, comportamiento ni código backend. Radar y Best no tienen imports de componentes específicos entre sí; ambos consumen solo los componentes compartidos descritos.
+- Vitest focalizado: 142 tests pasan en 17 archivos. Typecheck, build, ESLint focalizado, Prettier focalizado sobre el módulo y `git diff --check` pasan. `cycles` detecta un ciclo type-only preexistente entre servicios legacy y su comparación es informativa porque HEAD local no se pudo resolver; Identity informa 0 violaciones y 0 imports locales sin resolver, con comparación igualmente informativa. El build conserva avisos de Browserslist desactualizado, selector CSS `.flex-[2]` durante minificación y chunk principal de 708 kB; no se atribuyen a esta reorganización. No se realizaron comprobaciones visuales manuales ni se afirma ejecución de GitHub Actions.
+
+## RM-5 — Cierre documental definitivo
+
+**Estado:** COMPLETADA. El usuario confirma que las correcciones funcionales y visuales de Radar y Mejores del Mes están terminadas, acepta el diseño actual y la separación arquitectónica, y autoriza expresamente cerrar esta iniciativa. Esta aceptación funcional es independiente de las verificaciones automatizadas históricas: no implica que se hayan repetido pruebas en RM-5 ni que se hayan inspeccionado manualmente todos los casos o realizado una nueva revisión en navegador.
+
+### Arquitectura y contratos finales
+
+- El owner es `src/modules/editorial/lists/`, dividido en `radar/`, `best/` y `shared/`. Radar y Best mantienen vistas individuales, catálogos, asignaciones, mutaciones, tipos, utilidades y componentes específicos bajo su propia área; no dependen directamente entre sí.
+- `shared/application/useRadarBestListsQueries.ts` contiene las queries de los listados Radar y Best. `shared/presentation/components/` contiene las piezas compartidas existentes: `CollapsibleSection.vue`, `DiscSpotifyButton.vue` y `ListQueryStatus.vue`. No se añaden abstracciones compartidas nuevas. El transporte HTTP general de Lists sigue en `src/services/list/list.ts`.
+- Se conservan `/discos/radar`, `/discos/radar/:id`, `/discos/mejores` y `/discos/mejores/:id`, con sus guards, parámetros, navegación y lazy loading. Los contratos backend y endpoints permanecen intactos; no se introducen APIs nuevas.
+
+### Funcionalidad aceptada
+
+- **Radar:** listado con filtros de año y mes, TanStack Query y estados separados de carga, vacío y error; catálogo semanal visible sin desplegables, agrupado de lunes a domingo con cabeceras diarias; paneles, bandeja `position = 0`, posiciones persistidas, paneles mínimos Radar 1 y Radar 2, creación local mediante `Nuevo Radar`, movimientos y máximo de cuatro discos por panel; tarjetas definitivas, comportamiento móvil aceptado y publicación WordPress por posición. Se conservan la no renumeración de posiciones y los huecos entre paneles.
+- **Mejores del Mes:** listado con filtro anual, TanStack Query y estados separados de carga, vacío y error; detalle modularizado y tarjetas independientes con la identidad visual definitiva de Radar; `Mis votos` como pestaña inicial y `Selección de discos`; catálogo mensual agrupado por fechas, collapsibles, `useInfiniteQuery`, control de páginas y deduplicación; asignaciones, votos, edición de metadatos, estados `done`, destacados y publicación WordPress mensual. El diseño móvil está corregido y aceptado. Best no incorpora reglas de paneles Radar.
+
+### Evidencia técnica conservada
+
+Los siguientes resultados son históricos y corresponden a ejecuciones de sus respectivas fases; las cifras se solapan y **no representan una suma de tests únicos**:
+
+- RM-2: 43 tests aprobados en 5 archivos.
+- RM-4: 124 tests aprobados en 16 archivos; typecheck, build y verificaciones focalizadas correctos según el registro de la fase.
+- RM-4b: 142 tests aprobados en 17 archivos; typecheck, build, ESLint y Prettier focalizados correctos, `git diff --check` correcto, sin imports locales irresueltos y sin nuevas infracciones de fronteras Identity.
+- En RM-4b, la comparación de ciclos y de límites Identity quedó como informativa por no poder resolver `HEAD` local/base en las condiciones del checkout. Se detectó un ciclo type-only histórico en servicios legacy; no se atribuye a Lists. No hay evidencia de validación por GitHub Actions.
+
+### Limitaciones y deuda fuera del cierre
+
+- El endpoint `/discs/date` no admite búsqueda ni género como filtros de servidor. El filtrado del catálogo de Mejores opera sobre los discos ya cargados; se conserva sin cambios.
+- El error 400 desplegado que motivó RM-1 no se reprodujo con los parámetros inspeccionados y no se obtuvo la URL/segmentos exactos de aquella petición. La auditoría no atribuyó una causa sin esa evidencia; el dato queda como antecedente, sin reabrir una fase ni crear trabajo en este roadmap.
+- Persisten usos `any` anteriores en métodos de servicios ajenos al alcance. También se conserva la deuda del componente legacy de asignaciones utilizado por EditList. No se amplía la refactorización para limpiarlos.
+- Los avisos observados en build —Browserslist desactualizado, `.flex-[2]` durante la minificación CSS y chunk de aproximadamente 708 kB— se registran sin atribuirlos a esta refactorización.
+- Los gates cuya comparación con `HEAD` o referencias base quedó incompleta no se reclasifican como satisfactorios. Estas limitaciones no abren tareas ni fases dentro de este roadmap cerrado.
+
+**Cierre:** RM-1, RM-2, RM-2b, RM-3, RM-4, RM-4b y RM-5 están COMPLETADAS. El estado global es **RADAR Y MEJORES DEL MES — CERRADO**. No se crea RM-6; cualquier mejora futura se gestionará como una tarea independiente.
