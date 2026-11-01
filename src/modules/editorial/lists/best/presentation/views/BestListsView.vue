@@ -138,13 +138,16 @@
           :error="currentError"
           @retry="currentQuery.refetch()"
         />
-        <div v-if="currentHasResults" class="flex flex-wrap justify-center gap-6 py-4">
+        <div
+          v-if="currentHasResults"
+          class="flex flex-col items-center gap-6 py-4 sm:flex-row sm:flex-wrap sm:justify-center"
+        >
           <button
             type="button"
             v-for="list in currentLists"
             :key="list.id"
             :aria-label="`Abrir ${list.name}`"
-            class="group w-full sm:w-[26rem] bg-white dark:bg-rv-darkCard rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-white/10 overflow-hidden cursor-pointer flex flex-col text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+            class="group w-full max-w-[26rem] min-w-0 bg-white dark:bg-rv-darkCard rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-white/10 overflow-hidden cursor-pointer flex flex-col text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
             @click="goToListDetail(list.id)"
           >
             <div class="p-6 flex-1 flex flex-col">
