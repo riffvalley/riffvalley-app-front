@@ -384,16 +384,19 @@ describe("Content Calendar legacy characterization", () => {
     wrapper.findComponent(CreateContentModal).vm.$emit("create", form);
     await flushPromises();
 
-    expect(createContent).toHaveBeenCalledWith({
-      type: "article",
-      name: "Nuevo artículo",
-      notes: undefined,
-      publicationDate: "2026-10-31",
-      closeDate: undefined,
-      authorId: "author-1",
-      listDate: undefined,
-      backlog: false,
-    });
+    expect(createContent).toHaveBeenCalledWith(
+      {
+        type: "article",
+        name: "Nuevo artículo",
+        notes: undefined,
+        publicationDate: "2026-10-31",
+        closeDate: undefined,
+        authorId: "author-1",
+        listDate: undefined,
+        backlog: false,
+      },
+      expect.any(String)
+    );
     expect(wrapper.findComponent(CreateContentModal).props("show")).toBe(false);
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
@@ -429,24 +432,32 @@ describe("Content Calendar legacy characterization", () => {
     const backlog = wrapper.findComponent({ name: "BacklogPanel" });
     backlog.vm.$emit("edit-content", backlogContentFixtures[0]);
     await flushPromises();
-    wrapper.findComponent(EditContentModal).vm.$emit("update", {
-      type: "photos",
-      name: "Fotos editadas",
-      notes: "",
-      publicationDate: "2026-11-02T00:30",
-      closeDate: "",
-      authorId: "author-2",
-    });
+    wrapper.findComponent(EditContentModal).vm.$emit(
+      "update",
+      {
+        type: "photos",
+        name: "Fotos editadas",
+        notes: "",
+        publicationDate: "2026-11-02T00:30",
+        closeDate: "",
+        authorId: "author-2",
+      },
+      expect.any(String)
+    );
     await flushPromises();
 
-    expect(updateContent).toHaveBeenCalledWith("photos-backlog", {
-      type: "photos",
-      name: "Fotos editadas",
-      notes: undefined,
-      publicationDate: "2026-11-02",
-      closeDate: null,
-      authorId: "author-2",
-    });
+    expect(updateContent).toHaveBeenCalledWith(
+      "photos-backlog",
+      {
+        type: "photos",
+        name: "Fotos editadas",
+        notes: undefined,
+        publicationDate: "2026-11-02",
+        closeDate: null,
+        authorId: "author-2",
+      },
+      expect.any(String)
+    );
     expect(wrapper.findComponent(EditContentModal).props("show")).toBe(false);
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
@@ -480,22 +491,30 @@ describe("Content Calendar legacy characterization", () => {
     );
     await flushPromises();
 
-    expect(mocks.updateArticle).toHaveBeenCalledWith("article-1", {
-      name: "Título de artículo",
-      type: "entrevista",
-      status: "editing",
-      link: "https://example.test/article",
-      userId: "author-1",
-      editorId: "author-2",
-    });
-    expect(updateContent).toHaveBeenCalledWith("article-scheduled", {
-      type: "article",
-      name: "Título de artículo",
-      notes: "Nota editada",
-      publicationDate: "2026-10-31",
-      closeDate: null,
-      authorId: "author-1",
-    });
+    expect(mocks.updateArticle).toHaveBeenCalledWith(
+      "article-1",
+      {
+        name: "Título de artículo",
+        type: "entrevista",
+        status: "editing",
+        link: "https://example.test/article",
+        userId: "author-1",
+        editorId: "author-2",
+      },
+      expect.any(String)
+    );
+    expect(updateContent).toHaveBeenCalledWith(
+      "article-scheduled",
+      {
+        type: "article",
+        name: "Título de artículo",
+        notes: "Nota editada",
+        publicationDate: "2026-10-31",
+        closeDate: null,
+        authorId: "author-1",
+      },
+      expect.any(String)
+    );
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
     });
@@ -526,20 +545,28 @@ describe("Content Calendar legacy characterization", () => {
     );
     await flushPromises();
 
-    expect(mocks.updateVideo).toHaveBeenCalledWith("video-1", {
-      name: "Título del vídeo",
-      type: "best",
-      status: "editing",
-      editorId: "author-2",
-    });
-    expect(updateContent).toHaveBeenCalledWith("video-backlog", {
-      type: "video",
-      name: "Título del vídeo",
-      notes: "Notas actualizadas",
-      publicationDate: "",
-      closeDate: null,
-      authorId: "author-1",
-    });
+    expect(mocks.updateVideo).toHaveBeenCalledWith(
+      "video-1",
+      {
+        name: "Título del vídeo",
+        type: "best",
+        status: "editing",
+        editorId: "author-2",
+      },
+      expect.any(String)
+    );
+    expect(updateContent).toHaveBeenCalledWith(
+      "video-backlog",
+      {
+        type: "video",
+        name: "Título del vídeo",
+        notes: "Notas actualizadas",
+        publicationDate: "",
+        closeDate: null,
+        authorId: "author-1",
+      },
+      expect.any(String)
+    );
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
     });
@@ -862,10 +889,14 @@ describe("Content Calendar legacy characterization", () => {
       revert,
     });
     expect(updateContent).toHaveBeenCalledOnce();
-    expect(updateContent).toHaveBeenCalledWith("article-scheduled", {
-      publicationDate: null,
-      backlog: true,
-    });
+    expect(updateContent).toHaveBeenCalledWith(
+      "article-scheduled",
+      {
+        publicationDate: null,
+        backlog: true,
+      },
+      expect.any(String)
+    );
     wrapper.unmount();
   });
 
@@ -913,7 +944,11 @@ describe("Content Calendar legacy characterization", () => {
       .vm.$emit("update-status", { ...details, status: "assigned" });
     await flushPromises();
 
-    expect(mocks.updateList).toHaveBeenCalledWith("list-radar", { status: "assigned" });
+    expect(mocks.updateList).toHaveBeenCalledWith(
+      "list-radar",
+      { status: "assigned" },
+      expect.any(String)
+    );
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: contentCalendarDeferredQueryKeys.listDetails(
         { userId: "author-1", generation: 1, role: "riffvalley" },
@@ -993,7 +1028,7 @@ describe("Content Calendar legacy characterization", () => {
     wrapper.findComponent(DeleteConfirmModal).vm.$emit("confirm");
     await flushPromises();
 
-    expect(deleteContent).toHaveBeenCalledWith("article-scheduled");
+    expect(deleteContent).toHaveBeenCalledWith("article-scheduled", expect.any(String));
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
     });
@@ -1041,7 +1076,7 @@ describe("Content Calendar legacy characterization", () => {
     modal.vm.$emit("confirm");
     await flushPromises();
 
-    expect(mocks.deleteContent).toHaveBeenCalledWith("article-scheduled");
+    expect(mocks.deleteContent).toHaveBeenCalledWith("article-scheduled", expect.any(String));
     expect(modal.props("show")).toBe(true);
     expect(modal.props("errorMessage")).toContain("No se pudo eliminar el contenido");
     expect(mocks.error).toHaveBeenCalledWith("No se pudo eliminar el contenido");
@@ -1097,7 +1132,7 @@ describe("Content Calendar legacy characterization", () => {
     await flushPromises();
     modal.vm.$emit("confirm");
     await flushPromises();
-    expect(deleteContent).toHaveBeenCalledWith("photos-backlog");
+    expect(deleteContent).toHaveBeenCalledWith("photos-backlog", expect.any(String));
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
     });
@@ -1119,10 +1154,13 @@ describe("Content Calendar legacy characterization", () => {
     const queryClient = queryClients[queryClients.length - 1]!;
     const backlogKey = contentCalendarQueryKeys.backlog("author-1", 1, "riffvalley");
     const monthKey = contentCalendarQueryKeys.month("author-1", 1, "riffvalley", 2026, 10);
-    const cachedBefore = structuredClone({
-      backlog: queryClient.getQueryData(backlogKey),
-      month: queryClient.getQueryData(monthKey),
-    });
+    const cachedBefore = structuredClone(
+      {
+        backlog: queryClient.getQueryData(backlogKey),
+        month: queryClient.getQueryData(monthKey),
+      },
+      expect.any(String)
+    );
     await wrapper.get('button[title="Mostrar solo mis eventos"]').trigger("click");
 
     expect(eventContentFor(calendarOptions(wrapper)).map(({ id }) => id)).toEqual([
@@ -1145,9 +1183,12 @@ describe("Content Calendar legacy characterization", () => {
     await flushPromises();
     await wrapper.get('button[title="Mostrar solo mis eventos"]').trigger("click");
 
-    calendarOptions(wrapper).datesSet({
-      view: { currentStart: new Date("2026-11-01T00:00:00.000Z") },
-    });
+    calendarOptions(wrapper).datesSet(
+      {
+        view: { currentStart: new Date("2026-11-01T00:00:00.000Z") },
+      },
+      expect.any(String)
+    );
     await flushPromises();
     expect(mocks.getContentsByMonth).toHaveBeenCalledWith(2026, 11, expect.any(AbortSignal));
     expect(eventContentFor(calendarOptions(wrapper)).map(({ id }) => id)).toEqual([
@@ -1211,10 +1252,14 @@ describe("Content Calendar legacy characterization", () => {
     const removeEvent = vi.fn();
     calendarOptions(wrapper).eventReceive({ event: { remove: removeEvent } });
 
-    expect(updateContent).toHaveBeenCalledWith("photos-backlog", {
-      publicationDate: "2026-11-02T18:00:00.000Z",
-      backlog: false,
-    });
+    expect(updateContent).toHaveBeenCalledWith(
+      "photos-backlog",
+      {
+        publicationDate: "2026-11-02T18:00:00.000Z",
+        backlog: false,
+      },
+      expect.any(String)
+    );
     expect(remove).toHaveBeenCalledWith(draggedEl);
     expect(removeEvent).toHaveBeenCalledOnce();
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
@@ -1238,10 +1283,14 @@ describe("Content Calendar legacy characterization", () => {
       revert,
     });
 
-    expect(updateContent).toHaveBeenCalledWith("article-scheduled", {
-      publicationDate: "2026-11-03T18:00:00.000Z",
-      backlog: false,
-    });
+    expect(updateContent).toHaveBeenCalledWith(
+      "article-scheduled",
+      {
+        publicationDate: "2026-11-03T18:00:00.000Z",
+        backlog: false,
+      },
+      expect.any(String)
+    );
     expect(revert).not.toHaveBeenCalled();
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
@@ -1259,10 +1308,14 @@ describe("Content Calendar legacy characterization", () => {
       revert: vi.fn(),
     });
 
-    expect(updateContent).toHaveBeenCalledWith("article-scheduled", {
-      publicationDate: null,
-      backlog: true,
-    });
+    expect(updateContent).toHaveBeenCalledWith(
+      "article-scheduled",
+      {
+        publicationDate: null,
+        backlog: true,
+      },
+      expect.any(String)
+    );
     expect(invalidateQueriesSpy).toHaveBeenCalledWith({
       queryKey: ["editorial", "contents", "content-calendar", "author-1", 1, "riffvalley"],
     });

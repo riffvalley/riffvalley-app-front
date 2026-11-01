@@ -28,6 +28,7 @@ import { toCalendarApiDate } from "../utils/contentCalendarDates";
 import { getContentTypeLabel, toCalendarDate } from "../utils/contentCalendarEvents";
 import { contentCalendarQueryKeys } from "./contentCalendarQueries";
 import { contentCalendarDeferredQueryKeys } from "./contentCalendarDeferredQueries";
+import { contentCalendarClientId } from "./contentsEventsClient";
 
 interface ContentCalendarOperationsOptions {
   allContents: ComputedRef<Content[]>;
@@ -210,10 +211,14 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     }
     if (!startContentOperation(contentId)) return { state: "rejected" };
     try {
-      await updateContent(contentId, {
-        publicationDate: toCalendarDate(date),
-        backlog: date === null,
-      });
+      await updateContent(
+        contentId,
+        {
+          publicationDate: toCalendarDate(date),
+          backlog: date === null,
+        },
+        contentCalendarClientId
+      );
       await invalidateContentCalendarQueries(session);
       if (content?.type === "radar" || content?.type === "best") {
         await invalidateListDetails(content.list?.id, session);
@@ -268,10 +273,14 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
 
     startContentOperation(info.event.id);
     try {
-      await updateContent(info.event.id, {
-        publicationDate: toCalendarDate(info.event.startStr),
-        backlog: false,
-      });
+      await updateContent(
+        info.event.id,
+        {
+          publicationDate: toCalendarDate(info.event.startStr),
+          backlog: false,
+        },
+        contentCalendarClientId
+      );
       await invalidateContentCalendarQueries(session);
       if (content?.type === "radar" || content?.type === "best") {
         await invalidateListDetails(content.list?.id, session);
@@ -314,16 +323,19 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     isCreatingContent = true;
     pendingOperationCount.value += 1;
     try {
-      await createContent({
-        type: data.type,
-        name: data.name,
-        notes: data.notes || undefined,
-        publicationDate: toCalendarApiDate(data.publicationDate),
-        closeDate: data.closeDate || undefined,
-        authorId: data.authorId,
-        listDate: data.listDate || undefined,
-        backlog: !data.publicationDate,
-      });
+      await createContent(
+        {
+          type: data.type,
+          name: data.name,
+          notes: data.notes || undefined,
+          publicationDate: toCalendarApiDate(data.publicationDate),
+          closeDate: data.closeDate || undefined,
+          authorId: data.authorId,
+          listDate: data.listDate || undefined,
+          backlog: !data.publicationDate,
+        },
+        contentCalendarClientId
+      );
       if (isCurrentSession(session)) {
         options.showCreateModal.value = false;
       }
@@ -355,14 +367,18 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     if (!startContentOperation(contentId)) return;
     try {
       const previousContent = options.allContents.value.find((item) => item.id === contentId);
-      await updateContent(contentId, {
-        type: contentData.type,
-        name: contentData.name,
-        notes: contentData.notes || undefined,
-        publicationDate: toCalendarApiDate(contentData.publicationDate) ?? null,
-        closeDate: contentData.closeDate || null,
-        authorId: contentData.authorId,
-      });
+      await updateContent(
+        contentId,
+        {
+          type: contentData.type,
+          name: contentData.name,
+          notes: contentData.notes || undefined,
+          publicationDate: toCalendarApiDate(contentData.publicationDate) ?? null,
+          closeDate: contentData.closeDate || null,
+          authorId: contentData.authorId,
+        },
+        contentCalendarClientId
+      );
       if (isCurrentSession(session)) {
         options.showEditModal.value = false;
         options.showActionsModal.value = false;
@@ -471,7 +487,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
       }
       if (!progress.contentDone) {
         try {
-          await updateContent(contentId, contentPatch);
+          await updateContent(contentId, contentPatch, contentCalendarClientId);
           progress.contentDone = true;
           await invalidateContentCalendarQueries(session);
         } catch (error) {
@@ -491,14 +507,18 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
         try {
           if (kind === "article") {
             const data = relatedData;
-            await updateArticle(data.articleId, {
-              name: data.name,
-              type: data.type,
-              status: data.status,
-              link: data.link || undefined,
-              userId: data.userId || undefined,
-              editorId: data.editorId || undefined,
-            });
+            await updateArticle(
+              data.articleId,
+              {
+                name: data.name,
+                type: data.type,
+                status: data.status,
+                link: data.link || undefined,
+                userId: data.userId || undefined,
+                editorId: data.editorId || undefined,
+              },
+              contentCalendarClientId
+            );
           } else {
             const data = relatedData;
             const update: Record<string, unknown> = {
@@ -510,7 +530,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
               update.userId = data.userId || null;
             if (Object.prototype.hasOwnProperty.call(data, "editorId"))
               update.editorId = data.editorId || null;
-            await updateVideo(data.videoId, update);
+            await updateVideo(data.videoId, update, contentCalendarClientId);
           }
           progress.relatedDone = true;
           await invalidateContentCalendarQueries(session);
@@ -620,7 +640,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
         }
       }
 
-      await deleteContent(content.id);
+      await deleteContent(content.id, contentCalendarClientId);
       await confirmDeleted();
     } catch (error) {
       console.error("Error deleting content:", error);
@@ -712,7 +732,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     if (!result.isConfirmed) return;
     const session = options.session();
     try {
-      await deleteList(listId);
+      await deleteList(listId, contentCalendarClientId);
       if (isCurrentSession(session)) {
         SwalService.success("Lista eliminada correctamente");
         options.showActionsModal.value = false;
@@ -729,7 +749,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     if (!list.id) return;
     const session = options.session();
     try {
-      await updateList(list.id, { status: list.status });
+      await updateList(list.id, { status: list.status }, contentCalendarClientId);
       await invalidateContentCalendarQueries(session);
       await invalidateListDetails(list.id, session);
       if (isCurrentSession(session)) SwalService.success("Estado actualizado");
@@ -744,7 +764,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     if (!listId) return;
     const session = options.session();
     try {
-      await updateList(listId, { [field]: value });
+      await updateList(listId, { [field]: value }, contentCalendarClientId);
       await invalidateContentCalendarQueries(session);
       await invalidateListDetails(listId, session);
       if (isCurrentSession(session)) SwalService.success("Fecha actualizada correctamente");
@@ -759,10 +779,14 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     if (!content) return;
     const session = options.session();
     try {
-      await updateContent(content.id, {
-        publicationDate: toCalendarDate(publicationDate),
-        closeDate: closeDate ? toCalendarDate(closeDate) : null,
-      });
+      await updateContent(
+        content.id,
+        {
+          publicationDate: toCalendarDate(publicationDate),
+          closeDate: closeDate ? toCalendarDate(closeDate) : null,
+        },
+        contentCalendarClientId
+      );
       await invalidateContentCalendarQueries(session);
       await invalidateListDetails(content.list?.id, session);
       if (isCurrentSession(session)) SwalService.success("Fechas actualizadas");
@@ -777,7 +801,7 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
     if (!content) return;
     const session = options.session();
     try {
-      await updateContent(content.id, { authorId });
+      await updateContent(content.id, { authorId }, contentCalendarClientId);
       await invalidateContentCalendarQueries(session);
       if (isCurrentSession(session)) SwalService.success("Autor actualizado");
     } catch (error) {
