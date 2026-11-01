@@ -237,12 +237,12 @@
 import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import type { ListSummary } from "@services/list/list";
-import CollapsibleSection from "../components/CollapsibleSection.vue";
-import ListQueryStatus from "../components/ListQueryStatus.vue";
+import CollapsibleSection from "../../../shared/presentation/components/CollapsibleSection.vue";
+import ListQueryStatus from "../../../shared/presentation/components/ListQueryStatus.vue";
 import {
   useBestCurrentListsQuery,
   useBestPastListsQuery,
-} from "../../application/useRadarBestListsQueries";
+} from "../../../shared/application/useRadarBestListsQueries";
 import { useBestListFilters } from "../composables/useBestListFilters";
 
 const router = useRouter();

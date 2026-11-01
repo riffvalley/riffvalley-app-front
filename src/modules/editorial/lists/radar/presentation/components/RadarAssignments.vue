@@ -566,7 +566,7 @@ import { useAuthStore } from "@/modules/identity/auth";
 import type { EditorialAsignation, UpdateAsignationPayload } from "@services/asignation/asignation";
 import type { RvUser } from "@/modules/identity/users";
 import type { RadarAssignment } from "../../types/radarAssignment";
-import RadarDiscSpotifyButton from "./RadarDiscSpotifyButton.vue";
+import RadarDiscSpotifyButton from "../../../shared/presentation/components/DiscSpotifyButton.vue";
 import DiscDescriptionModal from "@views/list/components/DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
 import { createWpPosts, type WeeklyWpPostRecord } from "@services/list/list";
@@ -1527,6 +1527,87 @@ export default defineComponent({
 @media (min-width: 1024px) {
   .radar-mobile-navigation {
     display: none;
+  }
+
+  .radar-card-header {
+    grid-template-columns: 44px minmax(0, 1fr) 36px;
+    gap: 0.5rem;
+    padding: 0.5rem 0.65rem 0;
+  }
+
+  .radar-card-header-with-close {
+    grid-template-columns: 44px minmax(0, 1fr) 36px 36px;
+  }
+
+  .radar-card-image {
+    width: 44px;
+    height: 44px;
+    font-size: 1rem;
+  }
+
+  .radar-card-spotify {
+    width: 36px;
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: 0.5rem;
+  }
+
+  .radar-card-close,
+  .radar-delete-control,
+  .radar-validate-control {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+    min-height: 36px;
+    flex-basis: 36px;
+    border-radius: 0.5rem;
+  }
+
+  .radar-card-details {
+    gap: 0.35rem;
+    margin: 0.45rem 0.65rem 0.6rem;
+    padding-top: 0.4rem;
+  }
+
+  .radar-editorial-controls {
+    gap: 0.5rem;
+  }
+
+  .radar-assignee-control {
+    min-height: 36px;
+    padding: 0 0.5rem;
+  }
+
+  .radar-assignee-avatar {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
+  }
+
+  .radar-assignee-name {
+    font-size: 0.7rem;
+  }
+
+  .radar-edit-control {
+    min-height: 36px;
+    gap: 0.3rem;
+    padding: 0 0.55rem;
+    font-size: 0.7rem;
+  }
+
+  .radar-card-move-row {
+    grid-template-columns: auto minmax(0, 1fr) 36px;
+    gap: 0.5rem;
+  }
+
+  .radar-card-move-row > span {
+    font-size: 0.7rem;
+  }
+
+  .radar-move-select {
+    min-height: 36px;
+    padding: 0 0.45rem;
+    font-size: 0.7rem;
   }
 }
 </style>

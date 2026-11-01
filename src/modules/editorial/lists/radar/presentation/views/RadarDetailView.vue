@@ -254,11 +254,11 @@ import {
   type WpPost,
 } from "@services/list/list";
 import SwalService from "@services/swal/SwalService";
-import { radarBestListsQueryKey } from "@/modules/editorial/radar-best-lists/application/useRadarBestListsQueries";
+import { radarBestListsQueryKey } from "@/modules/editorial/lists/shared/application/useRadarBestListsQueries";
 import {
   radarDetailQueryKeys,
   useRadarDetailQuery,
-} from "@/modules/editorial/radar-best-lists/application/radarDetailQueries";
+} from "@/modules/editorial/lists/radar/application/radarDetailQueries";
 import RadarAssignments from "../components/RadarAssignments.vue";
 import RadarDiscCatalog from "../components/RadarDiscCatalog.vue";
 

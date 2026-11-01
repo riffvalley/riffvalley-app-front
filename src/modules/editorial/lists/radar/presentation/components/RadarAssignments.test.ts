@@ -53,7 +53,7 @@ vi.mock("@services/swal/SwalService", () => ({
 }));
 vi.mock("@services/list/list", () => ({ createWpPosts }));
 vi.mock("@services/asignation/asignation", () => ({ getAsignationsByListService }));
-vi.mock("@/modules/editorial/radar-best-lists/application/useRadarDetailMutations", () => ({
+vi.mock("@/modules/editorial/lists/radar/application/useRadarDetailMutations", () => ({
   useRadarDetailMutations: () => radarMutations,
 }));
 vi.mock("@/modules/identity/users", () => ({ getRvUsers }));
@@ -61,7 +61,7 @@ vi.mock("sweetalert2", () => ({ default: { fire: vi.fn() } }));
 
 import RadarAssignments from "./RadarAssignments.vue";
 import { useAuthStore } from "@/modules/identity/auth";
-import { radarDetailQueryKeys } from "@/modules/editorial/radar-best-lists/application/radarDetailQueries";
+import { radarDetailQueryKeys } from "@/modules/editorial/lists/radar/application/radarDetailQueries";
 
 function makeAsignation(id: string, position: number) {
   return {

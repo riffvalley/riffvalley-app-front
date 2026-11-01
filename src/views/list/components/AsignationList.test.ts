@@ -51,7 +51,7 @@ vi.mock("@services/swal/SwalService", () => ({
 }));
 vi.mock("@services/list/list", () => ({ createWpPosts }));
 vi.mock("@services/asignation/asignation", () => ({ getAsignationsByListService }));
-vi.mock("@/modules/editorial/radar-best-lists/application/useRadarDetailMutations", () => ({
+vi.mock("@/modules/editorial/lists/radar/application/useRadarDetailMutations", () => ({
   useRadarDetailMutations: () => radarMutations,
 }));
 vi.mock("@/modules/identity/users", () => ({ getRvUsers }));

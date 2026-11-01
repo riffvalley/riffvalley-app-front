@@ -146,12 +146,12 @@ import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { MONTHS } from "@helpers/dateConstants";
 import RadarListCard from "../components/RadarListCard.vue";
-import CollapsibleSection from "../components/CollapsibleSection.vue";
-import ListQueryStatus from "../components/ListQueryStatus.vue";
+import CollapsibleSection from "../../../shared/presentation/components/CollapsibleSection.vue";
+import ListQueryStatus from "../../../shared/presentation/components/ListQueryStatus.vue";
 import {
   useRadarCurrentListsQuery,
   useRadarPastListsQuery,
-} from "../../application/useRadarBestListsQueries";
+} from "../../../shared/application/useRadarBestListsQueries";
 import { classifyRadarLists } from "../../application/radarListClassification";
 import { useRadarListFilters } from "../composables/useRadarListFilters";
 

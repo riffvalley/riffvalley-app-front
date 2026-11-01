@@ -5,8 +5,8 @@ import router from "./index";
 import { useAuthStore } from "@/modules/identity/auth";
 import type { UserRole } from "@/modules/identity/shared";
 import TopDiscsView from "@/modules/catalog/top-discs/presentation/views/TopDiscsView.vue";
-import RadarDetailView from "@/modules/editorial/radar-best-lists/presentation/views/RadarDetailView.vue";
-import BestListDetailView from "@/modules/editorial/radar-best-lists/presentation/views/BestListDetailView.vue";
+import RadarDetailView from "@/modules/editorial/lists/radar/presentation/views/RadarDetailView.vue";
+import BestListDetailView from "@/modules/editorial/lists/best/presentation/views/BestListDetailView.vue";
 
 describe("import route permissions", () => {
   beforeEach(async () => {
@@ -77,21 +77,17 @@ describe("import route permissions", () => {
     async (role) => {
       expect((await navigateAs(role, "/import")).name).toBe("Forbidden");
       expect((await navigateAs(role, "/import-discs")).name).toBe("Forbidden");
-    },
+    }
   );
 
   it("allows riffvalley to use Excel while denying Manual", async () => {
     expect((await navigateAs("riffvalley", "/import")).name).toBe("Forbidden");
-    expect((await navigateAs("riffvalley", "/import-discs")).name).toBe(
-      "ImportDiscs",
-    );
+    expect((await navigateAs("riffvalley", "/import-discs")).name).toBe("ImportDiscs");
   });
 
   it("allows superadmin to use both import routes", async () => {
     expect((await navigateAs("superadmin", "/import")).name).toBe("Import");
-    expect((await navigateAs("superadmin", "/import-discs")).name).toBe(
-      "ImportDiscs",
-    );
+    expect((await navigateAs("superadmin", "/import-discs")).name).toBe("ImportDiscs");
   });
 
   it("keeps user administration restricted to superadmin", async () => {
@@ -134,7 +130,9 @@ describe("import route permissions", () => {
     }
 
     expect((await navigateAs("superadmin", "/users/stats/users")).name).toBe("UserStatsUsers");
-    expect((await navigateAs("superadmin", "/users/stats/inactivity")).name).toBe("UserStatsInactivity");
+    expect((await navigateAs("superadmin", "/users/stats/inactivity")).name).toBe(
+      "UserStatsInactivity"
+    );
   });
 
   it("keeps administrative inactivity restricted to superadmin", async () => {
@@ -147,7 +145,9 @@ describe("import route permissions", () => {
   it("keeps administrative activity restricted to superadmin", async () => {
     expect((await navigateAs("user", "/users/activity")).name).toBe("Forbidden");
     expect((await navigateAs("riffvalley", "/users/activity")).name).toBe("Forbidden");
-    expect((await navigateAs("superadmin", "/users/activity?userId=member-1")).name).toBe("UserStatsUsers");
+    expect((await navigateAs("superadmin", "/users/activity?userId=member-1")).name).toBe(
+      "UserStatsUsers"
+    );
     expect(router.currentRoute.value.path).toBe("/users/stats/users");
     expect(router.currentRoute.value.query.userId).toBe("member-1");
   });

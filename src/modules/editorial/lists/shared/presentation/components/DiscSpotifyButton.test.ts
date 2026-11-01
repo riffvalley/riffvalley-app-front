@@ -10,7 +10,7 @@ const { error, resolveSpotifyAlbum } = vi.hoisted(() => ({
 vi.mock("@services/swal/SwalService", () => ({ default: { error } }));
 vi.mock("@services/spotify/spotifyLookup", () => ({ resolveSpotifyAlbum }));
 
-import RadarDiscSpotifyButton from "./RadarDiscSpotifyButton.vue";
+import RadarDiscSpotifyButton from "./DiscSpotifyButton.vue";
 
 describe("RadarDiscSpotifyButton", () => {
   beforeEach(() => {
