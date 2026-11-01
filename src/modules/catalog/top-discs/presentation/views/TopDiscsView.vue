@@ -82,6 +82,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, computed } from "vue";
 import { useQueryClient } from "@tanstack/vue-query";
+import { useAuthStore } from "@/modules/identity/auth";
 import type {
   TopDiscsCardUpdateEvent,
   TopDiscsResponse,
@@ -90,7 +91,10 @@ import type {
 import TopDiscsHeader from "@/modules/catalog/top-discs/presentation/components/TopDiscsHeader.vue";
 import TopDiscsRanking from "@/modules/catalog/top-discs/presentation/components/TopDiscsRanking.vue";
 import { getAvailableYears } from "@helpers/dateConstants";
-import { useTopDiscsQuery } from "@/modules/catalog/top-discs/composables/useTopDiscsQueries";
+import {
+  topDiscsQueryKeyForSession,
+  useTopDiscsQuery,
+} from "@/modules/catalog/top-discs/composables/useTopDiscsQueries";
 import {
   useTopDiscsFilterCoordinator,
   type TopDiscsDateRange,
@@ -102,6 +106,7 @@ export default defineComponent({
   components: { TopDiscsHeader, TopDiscsRanking },
   setup() {
     const queryClient = useQueryClient();
+    const authStore = useAuthStore();
     const filters = useTopDiscsFilterCoordinator();
     const {
       period: selectedPeriod,
@@ -279,9 +284,16 @@ export default defineComponent({
       ...(selectedCountry.value ? { countryId: selectedCountry.value } : {}),
       ...(selectedGenre.value ? { genreId: selectedGenre.value } : {}),
     }));
+    const rankingQueryKey = computed(() =>
+      topDiscsQueryKeyForSession(
+        rankingParams.value,
+        authStore.userId,
+        authStore.authSessionGeneration
+      )
+    );
     const rankingQuery = useTopDiscsQuery(rankingParams, filters.canLoadRanking);
     const handleCardUpdated = (event: TopDiscsCardUpdateEvent) => {
-      queryClient.setQueryData<TopDiscsResponse>(rankingQuery.queryKey.value, (current) => {
+      queryClient.setQueryData<TopDiscsResponse>(rankingQueryKey.value, (current) => {
         if (!current) return current;
 
         return {
