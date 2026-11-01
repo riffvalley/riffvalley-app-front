@@ -99,6 +99,34 @@ describe("getRatesByUser", () => {
       },
     });
   });
+
+  it("forwards an optional cancellation signal", async () => {
+    const signal = new AbortController().signal;
+    await getRatesByUser(
+      500,
+      0,
+      undefined,
+      ["2026-10-01", "2026-10-31"],
+      undefined,
+      undefined,
+      "rate",
+      "rate.rate:DESC",
+      signal
+    );
+    expect(get).toHaveBeenCalledWith("/rates", {
+      params: {
+        limit: 500,
+        offset: 0,
+        query: undefined,
+        dateRange: ["2026-10-01", "2026-10-31"],
+        genre: undefined,
+        country: undefined,
+        type: "rate",
+        orderBy: "rate.rate:DESC",
+      },
+      signal,
+    });
+  });
 });
 
 describe("getRatesGeographyTop", () => {

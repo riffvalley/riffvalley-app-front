@@ -79,7 +79,7 @@ function makeAsignation(id: string, position: number) {
   };
 }
 
-function mountList() {
+function mountList(wpWeeklyPosts?: null) {
   const pinia = createPinia();
   setActivePinia(pinia);
   useAuthStore().$patch({
@@ -90,7 +90,7 @@ function mountList() {
     authSessionGeneration: 2,
   });
   return mount(RadarAssignments, {
-    props: { listId: "list-1" },
+    props: { listId: "list-1", ...(wpWeeklyPosts === null ? { wpWeeklyPosts } : {}) },
     global: {
       plugins: [pinia, [VueQueryPlugin, { queryClient }]],
       stubs: {
@@ -140,6 +140,14 @@ describe("RadarAssignments groups", () => {
   it("shows exactly Radar 1 and Radar 2 when there are no assignments", () => {
     const wrapper = mountList();
     expect(radarHeadings(wrapper)).toEqual(["Radar 1", "Radar 2"]);
+    wrapper.unmount();
+  });
+
+  it("renders new Radar lists when WordPress weekly posts are null", async () => {
+    const wrapper = mountList(null);
+    await flushPromises();
+    expect(radarHeadings(wrapper)).toEqual(["Radar 1", "Radar 2"]);
+    expect(wrapper.text()).not.toContain("Borrador");
     wrapper.unmount();
   });
 
@@ -335,6 +343,8 @@ describe("RadarAssignments groups", () => {
     await flushPromises();
 
     const card = wrapper.get(".radar-assignment-card[draggable='true']");
+    expect(card.classes()).toContain("self-center");
+    expect(card.classes()).toContain("w-full");
     const cover = card.get(".radar-card-cover");
     const spotify = cover.get(
       'button[aria-label="Abrir A Very Long Album Title That Must Remain Discoverable en Spotify"]'
