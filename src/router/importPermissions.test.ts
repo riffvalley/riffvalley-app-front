@@ -6,6 +6,7 @@ import { useAuthStore } from "@/modules/identity/auth";
 import type { UserRole } from "@/modules/identity/shared";
 import TopDiscsView from "@/modules/catalog/top-discs/presentation/views/TopDiscsView.vue";
 import RadarDetailView from "@/modules/editorial/radar-best-lists/presentation/views/RadarDetailView.vue";
+import BestListDetailView from "@/modules/editorial/radar-best-lists/presentation/views/BestListDetailView.vue";
 
 describe("import route permissions", () => {
   beforeEach(async () => {
@@ -51,6 +52,16 @@ describe("import route permissions", () => {
     expect(route?.path).toBe("/discos/radar/:id");
     expect(route?.meta).toMatchObject({ requiresAuth: true, requiresRole: "riffvalley" });
     expect(route?.components?.default).toBe(RadarDetailView);
+  });
+
+  it("keeps the Mejores detail route behind the riffvalley guard and loads its editorial module view", async () => {
+    expect((await navigateAs("user", "/discos/mejores/best-1")).name).toBe("Forbidden");
+    expect((await navigateAs("riffvalley", "/discos/mejores/best-1")).name).toBe("MejoresDetalle");
+
+    const route = router.getRoutes().find(({ name }) => name === "MejoresDetalle");
+    expect(route?.path).toBe("/discos/mejores/:id");
+    expect(route?.meta).toMatchObject({ requiresAuth: true, requiresRole: "riffvalley" });
+    expect(route?.components?.default).toBe(BestListDetailView);
   });
 
   it("redirects Rankings to Login when the active session is cleared", async () => {

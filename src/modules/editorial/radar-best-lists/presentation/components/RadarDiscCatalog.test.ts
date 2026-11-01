@@ -4,19 +4,19 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getDiscsDated, updateDisc, getRvUsers, getGenres, postAsignationService } = vi.hoisted(
+const { getDiscsDated, updateDisc, getRvUsers, getAllGenres, postAsignationService } = vi.hoisted(
   () => ({
     getDiscsDated: vi.fn(),
     updateDisc: vi.fn(),
     getRvUsers: vi.fn(),
-    getGenres: vi.fn(),
+    getAllGenres: vi.fn(),
     postAsignationService: vi.fn(),
   })
 );
 
 vi.mock("@services/discs/discs", () => ({ getDiscsDated, updateDisc }));
 vi.mock("@/modules/identity/users", () => ({ getRvUsers }));
-vi.mock("@services/genres/genres", () => ({ getGenres }));
+vi.mock("@services/genres/genres", () => ({ getAllGenres }));
 vi.mock("@services/asignation/asignation", () => ({
   postAsignationService,
   updateAsignationService: vi.fn(),
@@ -33,7 +33,7 @@ vi.mock("@services/swal/SwalService", () => ({
 }));
 
 import RadarDiscCatalog from "./RadarDiscCatalog.vue";
-import DiscFilters from "@components/DiscFilters.vue";
+import DiscListGenreSelect from "@/modules/catalog/discs/presentation/components/DiscListGenreSelect.vue";
 import { useAuthStore } from "@/modules/identity/auth";
 
 let queryClient: QueryClient;
@@ -75,7 +75,6 @@ function mountDiscList() {
     global: {
       plugins: [pinia, [VueQueryPlugin, { queryClient }]],
       stubs: {
-        SearchableSelect: true,
         SimpleSelect: true,
         SpotifyArtistButton: true,
         CircleFlags: true,
@@ -86,11 +85,14 @@ function mountDiscList() {
 
 class TestIntersectionObserver {
   static observers: TestIntersectionObserver[] = [];
+  disconnected = false;
   constructor(public callback: IntersectionObserverCallback) {
     TestIntersectionObserver.observers.push(this);
   }
   observe() {}
-  disconnect() {}
+  disconnect() {
+    this.disconnected = true;
+  }
   unobserve() {}
   trigger(isIntersecting: boolean) {
     this.callback(
@@ -107,6 +109,7 @@ describe("RadarDiscCatalog", () => {
     });
     vi.resetAllMocks();
     TestIntersectionObserver.observers = [];
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 0 });
     vi.stubGlobal("IntersectionObserver", TestIntersectionObserver);
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
       top: 1000,
@@ -124,11 +127,11 @@ describe("RadarDiscCatalog", () => {
     );
     updateDisc.mockResolvedValue({});
     getRvUsers.mockResolvedValue([{ id: "editor", username: "Editor" }]);
-    getGenres.mockResolvedValue({ data: [{ id: "genre-1", name: "Rock", color: "#123456" }] });
+    getAllGenres.mockResolvedValue([{ id: "genre-1", name: "Rock", color: "#123456" }]);
     postAsignationService.mockResolvedValue({ id: "asignation-new" });
   });
 
-  it("renders the weekly rows inside day groups, with Friday open by default", async () => {
+  it("renders weekly day groups with counts and icons, all closed by default", async () => {
     const wrapper = mountDiscList();
     await flushPromises();
     expect(wrapper.text()).toContain("Album One");
@@ -139,8 +142,13 @@ describe("RadarDiscCatalog", () => {
     const dayGroups = wrapper.findAll("details");
     expect(dayGroups).toHaveLength(1);
     const friday = dayGroups.find((group) => group.find("summary").text().includes("Viernes"))!;
-    expect((friday.element as HTMLDetailsElement).open).toBe(true);
+    expect((friday.element as HTMLDetailsElement).open).toBe(false);
+    expect(friday.find(".radar-day-count").text()).toBe("2");
+    expect(friday.find(".fa-calendar").exists()).toBe(true);
+    expect(friday.find(".day-chevron").exists()).toBe(true);
+    const observer = TestIntersectionObserver.observers[0];
     wrapper.unmount();
+    expect(observer.disconnected).toBe(true);
   });
 
   it("shows a loading status while the disc request is pending", async () => {
@@ -168,7 +176,9 @@ describe("RadarDiscCatalog", () => {
     expect(wrapper.text()).toContain("United States of America");
     expect(wrapper.text()).toContain("Asignar");
     expect(wrapper.text()).toContain("Destacar");
-    expect(wrapper.findComponent(DiscFilters).exists()).toBe(true);
+    expect(wrapper.findComponent(DiscListGenreSelect).exists()).toBe(true);
+    expect(wrapper.findAll('input[type="search"]')).toHaveLength(1);
+    expect(wrapper.find('[aria-label="País"]').exists()).toBe(false);
     expect(wrapper.findAll("li")).toHaveLength(2);
     expect(wrapper.findComponent({ name: "SpotifyArtistButton" }).exists()).toBe(true);
     expect(wrapper.findComponent({ name: "CircleFlags" }).exists()).toBe(true);
@@ -197,6 +207,28 @@ describe("RadarDiscCatalog", () => {
     wrapper.unmount();
   });
 
+  it("shows the full searchable genre catalog and only search and genre filters", async () => {
+    const allGenres = Array.from({ length: 180 }, (_, index) => ({
+      id: `genre-${index}`,
+      name: `Genre ${index}`,
+      color: "#123456",
+    }));
+    getAllGenres.mockResolvedValue(allGenres);
+    const wrapper = mountDiscList();
+    await flushPromises();
+
+    expect(wrapper.findComponent(DiscListGenreSelect).props("options")).toHaveLength(180);
+    expect(wrapper.get('input[aria-label="Buscar disco o artista"]')).toBeDefined();
+    expect(wrapper.find('[aria-label="País"]').exists()).toBe(false);
+    await wrapper
+      .getComponent(DiscListGenreSelect)
+      .get('button[aria-haspopup="listbox"]')
+      .trigger("click");
+    await flushPromises();
+    expect(wrapper.get('input[aria-label="Buscar géneros"]')).toBeDefined();
+    wrapper.unmount();
+  });
+
   it("shows the release date and assignment state in the Radar catalog cards", async () => {
     getDiscsDated.mockResolvedValue(
       response([
@@ -221,12 +253,53 @@ describe("RadarDiscCatalog", () => {
     expect(wrapper.find(".disc-country-label").classes()).not.toContain("group-hover:opacity-100");
     expect(wrapper.findAll(".disc-catalog-item")).toHaveLength(1);
     expect(wrapper.findAll(".disc-catalog-actions select")).toHaveLength(1);
-    const loadMore = wrapper.get(".radar-load-more");
-    await loadMore.trigger("click");
+    expect(wrapper.find(".radar-catalog-scroll-spacer").exists()).toBe(false);
+    TestIntersectionObserver.observers[0].trigger(true);
     await flushPromises();
     expect(getDiscsDated).toHaveBeenCalledWith(
-      50,
-      50,
+      300,
+      300,
+      expect.any(Array),
+      undefined,
+      expect.any(AbortSignal)
+    );
+    wrapper.unmount();
+  });
+
+  it("continues paginating during one downward scroll while the sentinel remains near", async () => {
+    getDiscsDated
+      .mockResolvedValueOnce(response([disc("first-page", "First page")]))
+      .mockResolvedValueOnce(response([disc("second-page", "Second page")]))
+      .mockResolvedValueOnce({ data: [], totalItems: 2 });
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({
+      top: 500,
+      bottom: 501,
+      left: 0,
+      right: 1,
+      width: 1,
+      height: 1,
+      x: 0,
+      y: 500,
+      toJSON: () => ({}),
+    });
+    const wrapper = mountDiscList();
+    await flushPromises();
+
+    Object.defineProperty(window, "scrollY", { configurable: true, value: 100 });
+    window.dispatchEvent(new Event("scroll"));
+    await vi.waitFor(() => expect(getDiscsDated).toHaveBeenCalledTimes(3));
+    expect(getDiscsDated).toHaveBeenNthCalledWith(
+      2,
+      300,
+      300,
+      expect.any(Array),
+      undefined,
+      expect.any(AbortSignal)
+    );
+    expect(getDiscsDated).toHaveBeenNthCalledWith(
+      3,
+      300,
+      600,
       expect.any(Array),
       undefined,
       expect.any(AbortSignal)
@@ -304,15 +377,15 @@ describe("RadarDiscCatalog", () => {
     );
     const dayGroups = wrapper.findAll("details");
     expect(dayGroups).toHaveLength(2);
-    expect(dayGroups.filter((group) => (group.element as HTMLDetailsElement).open)).toHaveLength(1);
+    expect(dayGroups.filter((group) => (group.element as HTMLDetailsElement).open)).toHaveLength(0);
     const friday = dayGroups.find((group) => group.find("summary").text().includes("Viernes"))!;
-    expect((friday.element as HTMLDetailsElement).open).toBe(true);
+    expect((friday.element as HTMLDetailsElement).open).toBe(false);
     const monday = dayGroups.find((group) => group.find("summary").text().includes("Lunes"))!;
     expect((monday.element as HTMLDetailsElement).open).toBe(false);
     await monday.find("summary").trigger("click");
     expect((monday.element as HTMLDetailsElement).open).toBe(true);
     expect(getDiscsDated).toHaveBeenCalledWith(
-      50,
+      300,
       0,
       ["2026-10-05T00:00:00.000Z", "2026-10-11T23:59:59.999Z"],
       undefined,
@@ -342,14 +415,15 @@ describe("RadarDiscCatalog", () => {
     expect(wrapper.text()).not.toContain("Album Two");
 
     await wrapper.get('input[placeholder="Buscar álbum o artista..."]').setValue("");
-    wrapper.findComponent(DiscFilters).vm.$emit("update:selectedGenre", "genre-2");
+    wrapper.findComponent(DiscListGenreSelect).vm.$emit("update:modelValue", ["genre-2"]);
     await flushPromises();
     expect(wrapper.text()).toContain("Album Two");
     expect(wrapper.text()).not.toContain("Album One");
+    expect(wrapper.get(".radar-catalog-results").classes()).toContain("min-h-[50vh]");
     wrapper.unmount();
   });
 
-  it("allows a fresh request after reaching the end and resetting filters", async () => {
+  it("allows a fresh request after reaching the end when search changes", async () => {
     getDiscsDated
       .mockResolvedValueOnce(response([disc("first", "First page")]))
       .mockResolvedValueOnce({ data: [], totalItems: 1 })
@@ -362,11 +436,11 @@ describe("RadarDiscCatalog", () => {
     await flushPromises();
     expect(getDiscsDated).toHaveBeenCalledTimes(2);
 
-    wrapper.findComponent(DiscFilters).vm.$emit("resetAndFetch");
+    await wrapper.get('input[aria-label="Buscar disco o artista"]').setValue("After");
     await flushPromises();
     expect(getDiscsDated).toHaveBeenCalledTimes(3);
     expect(getDiscsDated).toHaveBeenLastCalledWith(
-      50,
+      300,
       0,
       expect.arrayContaining([expect.any(String), expect.any(String)]),
       undefined,
@@ -385,7 +459,7 @@ describe("RadarDiscCatalog", () => {
     await wrapper.get('input[placeholder="Buscar álbum o artista..."]').setValue("Artist");
     await vi.waitFor(() => expect(getDiscsDated).toHaveBeenCalledTimes(2));
     expect(getDiscsDated).toHaveBeenLastCalledWith(
-      50,
+      300,
       0,
       expect.any(Array),
       undefined,

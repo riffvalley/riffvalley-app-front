@@ -14,7 +14,7 @@ import type {
   DiscListSelectedArtist,
 } from "../types/discList";
 
-const PAGE_SIZE = 20;
+export const DISC_LIST_PAGE_SIZE = 50;
 const DEFAULT_ORDER = "disc.releaseDate:DESC,artist.name:ASC";
 const DEFAULT_ORDER_BY_MODE: Record<DiscListMode, string> = {
   all: DEFAULT_ORDER,
@@ -155,7 +155,7 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
       ...(viewMode.value === "all" && noRatesOnly.value ? { eligibility: "noRates" as const } : {}),
       orderBy: orderBy.value,
       offset: pageOffset,
-      limit: PAGE_SIZE,
+      limit: DISC_LIST_PAGE_SIZE,
     };
   }
 
@@ -202,7 +202,7 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
       else discs.value = [...discs.value, ...result.data];
       totalItems.value = result.totalItems;
       setTotalForMode(result.mode, result.totalItems);
-      offset.value = pageOffset + PAGE_SIZE;
+      offset.value = pageOffset + DISC_LIST_PAGE_SIZE;
     } catch (requestError) {
       if (!disposed && requestGeneration === resultGeneration && identity === queryIdentity.value) {
         error.value = requestError;
@@ -341,12 +341,13 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
   }
 
   function applySavedCriteria(criteria: SavedDiscFilterCriteria) {
-    const yearRange = criteria.yearFrom === null && criteria.yearTo === null
-      ? null
-      : [
-          getDiscListYearRange(criteria.yearFrom ?? 1)[0],
-          getDiscListYearRange(criteria.yearTo ?? 9999)[1],
-        ] as [string, string];
+    const yearRange =
+      criteria.yearFrom === null && criteria.yearTo === null
+        ? null
+        : ([
+            getDiscListYearRange(criteria.yearFrom ?? 1)[0],
+            getDiscListYearRange(criteria.yearTo ?? 9999)[1],
+          ] as [string, string]);
     lastFilterAction = "refresh";
     selectedGenres.value = normalizeGenreIds(criteria.genreIds);
     selectedCountry.value = criteria.countryId ?? "";
@@ -361,9 +362,7 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
   function updateDisc(id: string, update: Partial<DiscListCardDisc>) {
     const index = discs.value.findIndex((disc) => disc.id === id);
     if (index === -1) return;
-    discs.value = discs.value.map((disc) =>
-      disc.id === id ? { ...disc, ...update } : disc
-    );
+    discs.value = discs.value.map((disc) => (disc.id === id ? { ...disc, ...update } : disc));
   }
 
   function removeDisc(id: string) {

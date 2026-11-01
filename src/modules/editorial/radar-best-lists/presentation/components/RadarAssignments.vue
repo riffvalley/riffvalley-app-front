@@ -140,7 +140,7 @@
             tabindex="-1"
             draggable="true"
             @dragstart="onDragStart(asignation, $event)"
-            class="radar-assignment-card bg-white dark:bg-rv-darkSurface rounded-xl shadow-sm border border-gray-200 dark:border-white/10 group flex flex-col cursor-grab active:cursor-grabbing relative overflow-hidden hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-all duration-200"
+            class="radar-assignment-card self-center w-full bg-white dark:bg-rv-darkSurface rounded-xl shadow-sm border border-gray-200 dark:border-white/10 group flex flex-col cursor-grab active:cursor-grabbing relative overflow-hidden hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500/40 transition-all duration-200"
           >
             <div class="radar-card-header radar-card-header-with-close">
               <div class="radar-card-cover">
@@ -373,7 +373,7 @@
           tabindex="-1"
           draggable="true"
           @dragstart="onDragStart(asignation, $event)"
-          class="radar-assignment-card bg-white dark:bg-rv-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-white/10 group flex flex-col cursor-grab active:cursor-grabbing hover:shadow-md hover:border-gray-300 dark:hover:border-white/20 transition-all duration-200 overflow-hidden"
+          class="radar-assignment-card self-center w-full bg-white dark:bg-rv-darkCard rounded-xl shadow-sm border border-gray-200 dark:border-white/10 group flex flex-col cursor-grab active:cursor-grabbing hover:shadow-md hover:border-gray-300 dark:hover:border-white/20 transition-all duration-200 overflow-hidden"
         >
           <div class="radar-card-header">
             <div class="radar-card-cover">
@@ -554,7 +554,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, watch, computed, nextTick } from "vue";
+import { defineComponent, ref, reactive, watch, computed, nextTick, type PropType } from "vue";
 import { useQueryClient } from "@tanstack/vue-query";
 import {
   useRadarAssignableUsersQuery,
@@ -576,7 +576,10 @@ export default defineComponent({
   name: "RadarAssignments",
   props: {
     listId: { type: String, required: true },
-    wpWeeklyPosts: { type: Array as () => WeeklyWpPostRecord[], default: () => [] },
+    wpWeeklyPosts: {
+      type: Array as PropType<WeeklyWpPostRecord[] | null>,
+      default: () => [],
+    },
   },
   emits: ["wp-published"],
   components: { RadarDiscSpotifyButton, DiscDescriptionModal },
@@ -822,7 +825,7 @@ export default defineComponent({
     };
 
     const getWeeklyWpPost = (group: number) =>
-      props.wpWeeklyPosts.find((post) => post.position === group) || null;
+      (props.wpWeeklyPosts ?? []).find((post) => post.position === group) || null;
     const publishingRadar = reactive<Record<number, boolean>>({});
     const publishRadarToWordPress = async (group: number) => {
       if (publishingRadar[group]) return;

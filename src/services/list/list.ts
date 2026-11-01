@@ -49,8 +49,10 @@ export interface RadarListDetails {
   releaseDate?: string | null;
   listDate?: string | null;
   closeDate?: string | null;
+  wpPostId?: number | null;
+  wpPostUrl?: string | null;
   asignations: ListAsignationDetails[];
-  wpWeeklyPosts?: WeeklyWpPostRecord[];
+  wpWeeklyPosts?: WeeklyWpPostRecord[] | null;
 }
 
 export interface ListUpdatePayload {

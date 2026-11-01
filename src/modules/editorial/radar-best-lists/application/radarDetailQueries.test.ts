@@ -10,7 +10,7 @@ const {
   getAsignationsByListService,
   getDiscsDated,
   getRvUsers,
-  getGenres,
+  getAllGenres,
   postAsignationService,
   updateAsignationService,
   deleteAsignationService,
@@ -20,7 +20,7 @@ const {
   getAsignationsByListService: vi.fn(),
   getDiscsDated: vi.fn(),
   getRvUsers: vi.fn(),
-  getGenres: vi.fn(),
+  getAllGenres: vi.fn(),
   postAsignationService: vi.fn(),
   updateAsignationService: vi.fn(),
   deleteAsignationService: vi.fn(),
@@ -36,10 +36,11 @@ vi.mock("@services/asignation/asignation", () => ({
 }));
 vi.mock("@services/discs/discs", () => ({ getDiscsDated, updateDisc }));
 vi.mock("@/modules/identity/users", () => ({ getRvUsers }));
-vi.mock("@services/genres/genres", () => ({ getGenres }));
+vi.mock("@services/genres/genres", () => ({ getAllGenres }));
 
 import { useAuthStore } from "@/modules/identity/auth";
 import {
+  RADAR_CATALOG_PAGE_SIZE,
   radarDetailQueryKeys,
   useRadarAssignableUsersQuery,
   useRadarAssignmentsQuery,
@@ -81,11 +82,11 @@ describe("Radar detail queries", () => {
       totalItems: 0,
       totalPages: 0,
       currentPage: 1,
-      limit: 50,
+      limit: RADAR_CATALOG_PAGE_SIZE,
       data: [],
     });
     getRvUsers.mockResolvedValue([]);
-    getGenres.mockResolvedValue({ data: [] });
+    getAllGenres.mockResolvedValue([]);
     postAsignationService.mockResolvedValue({ id: "assignment-new" });
     updateAsignationService.mockResolvedValue({ id: "assignment-1" });
     deleteAsignationService.mockResolvedValue(undefined);
@@ -175,7 +176,7 @@ describe("Radar detail queries", () => {
       totalItems: 1,
       totalPages: 1,
       currentPage: 1,
-      limit: 50,
+      limit: RADAR_CATALOG_PAGE_SIZE,
       data: [{ releaseDate: "2026-10-09", discs: [] }],
     });
     const query = mountQueries(() =>
@@ -183,7 +184,7 @@ describe("Radar detail queries", () => {
     );
     await vi.waitFor(() => expect(query.data.value?.pages).toHaveLength(1));
     expect(getDiscsDated).toHaveBeenCalledWith(
-      50,
+      RADAR_CATALOG_PAGE_SIZE,
       0,
       ["2026-10-12T00:00:00.000Z", "2026-10-18T23:59:59.999Z"],
       undefined,
@@ -193,8 +194,8 @@ describe("Radar detail queries", () => {
     await query.fetchNextPage();
     expect(getDiscsDated).toHaveBeenNthCalledWith(
       2,
-      50,
-      50,
+      RADAR_CATALOG_PAGE_SIZE,
+      RADAR_CATALOG_PAGE_SIZE,
       expect.any(Array),
       undefined,
       expect.any(AbortSignal)
@@ -203,7 +204,7 @@ describe("Radar detail queries", () => {
 
   it("loads assignable users and genres as query data", async () => {
     getRvUsers.mockResolvedValue([{ id: "editor-a", username: "Editor" }]);
-    getGenres.mockResolvedValue({ data: [{ id: "rock", name: "Rock", color: "#123456" }] });
+    getAllGenres.mockResolvedValue([{ id: "rock", name: "Rock", color: "#123456" }]);
     const queries = mountQueries(() => ({
       users: useRadarAssignableUsersQuery(),
       genres: useRadarGenresQuery(),
@@ -213,7 +214,7 @@ describe("Radar detail queries", () => {
     );
     expect(queries.users.data.value?.[0].id).toBe("editor-a");
     expect(getRvUsers).toHaveBeenCalledWith(expect.any(AbortSignal));
-    expect(getGenres).toHaveBeenCalledWith(150, 0, expect.any(AbortSignal));
+    expect(getAllGenres).toHaveBeenCalledWith(expect.any(AbortSignal));
   });
 
   it("centralizes assignment, move, removal and featured mutations and invalidates dependent queries after success", async () => {

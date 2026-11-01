@@ -5,10 +5,11 @@ import { getRvUsers, type RvUser } from "@/modules/identity/users";
 import { getListDetails, type RadarListDetails } from "@services/list/list";
 import { getAsignationsByListService } from "@services/asignation/asignation";
 import { getDiscsDated, type DiscsResponse } from "@services/discs/discs";
-import { getGenres, type Genre } from "@services/genres/genres";
+import { getAllGenres, type Genre } from "@services/genres/genres";
 import { getEditorialWeekRange, toEditorialWeekApiDate } from "../utils/editorialWeek";
 
 export const radarDetailQueryRoot = ["editorial", "radar-best-lists", "radar-detail"] as const;
+export const RADAR_CATALOG_PAGE_SIZE = 300;
 
 export interface RadarSession {
   userId: string | null;
@@ -124,9 +125,9 @@ export function useRadarGenresQuery(enabledOverride: MaybeRefOrGetter<boolean> =
     queryFn: async ({ queryKey, signal }): Promise<Genre[]> => {
       const requested = { userId: queryKey[4] as string | null, generation: queryKey[5] as number };
       assertSession(requested, session.value, signal);
-      const response = await getGenres(150, 0, signal);
+      const genres = await getAllGenres(signal);
       assertSession(requested, session.value, signal);
-      return response.data;
+      return genres;
     },
   });
 }
@@ -162,7 +163,7 @@ export function useRadarDiscCatalogQuery(
       const week = getEditorialWeekRange(requestedKey[5] as string);
       if (!week) throw new Error("La fecha editorial del Radar no es válida.");
       const response = await getDiscsDated(
-        50,
+        RADAR_CATALOG_PAGE_SIZE,
         pageParam,
         [toEditorialWeekApiDate(week.start), toEditorialWeekApiDate(week.end, true)],
         undefined,
@@ -172,7 +173,7 @@ export function useRadarDiscCatalogQuery(
       return response;
     },
     getNextPageParam: (lastPage, pages) =>
-      lastPage.data.length > 0 ? pages.length * 50 : undefined,
+      lastPage.data.length > 0 ? pages.length * RADAR_CATALOG_PAGE_SIZE : undefined,
   });
   return { ...query, queryKey };
 }

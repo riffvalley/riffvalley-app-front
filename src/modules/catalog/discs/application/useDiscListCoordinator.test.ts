@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { effectScope, nextTick } from "vue";
 import { useAuthStore } from "@/modules/identity/auth";
 import type { DiscListRequest, DiscListResult } from "../types/discList";
-import { useDiscListCoordinator } from "./useDiscListCoordinator";
+import { DISC_LIST_PAGE_SIZE, useDiscListCoordinator } from "./useDiscListCoordinator";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -18,9 +18,9 @@ function deferred<T>() {
 function page(request: DiscListRequest, ids: string[], totalItems: number): DiscListResult {
   const metadata = {
     totalItems,
-    totalPages: Math.ceil(totalItems / 20),
-    currentPage: Math.floor(request.offset / 20) + 1,
-    limit: 20,
+    totalPages: Math.ceil(totalItems / DISC_LIST_PAGE_SIZE),
+    currentPage: Math.floor(request.offset / DISC_LIST_PAGE_SIZE) + 1,
+    limit: DISC_LIST_PAGE_SIZE,
   };
   if (request.mode === "comments") return { mode: "comments", comments: [], ...metadata };
   return {
@@ -220,7 +220,7 @@ describe("useDiscListCoordinator", () => {
           totalItems: 1,
           totalPages: 1,
           currentPage: 1,
-          limit: 20,
+          limit: DISC_LIST_PAGE_SIZE,
         });
         currentRequest?.response.resolve({
           mode: "comments",
@@ -228,7 +228,7 @@ describe("useDiscListCoordinator", () => {
           totalItems: 1,
           totalPages: 1,
           currentPage: 1,
-          limit: 20,
+          limit: DISC_LIST_PAGE_SIZE,
         });
       } else {
         previousModeRequest?.response.resolve(
@@ -261,11 +261,11 @@ describe("useDiscListCoordinator", () => {
     scopes.push(scope);
     await settle();
 
-    requests[0]!.response.resolve(page(requests[0]!.request, ["user-a-first"], 41));
+    requests[0]!.response.resolve(page(requests[0]!.request, ["user-a-first"], 301));
     await settle();
     const pendingPage = coordinator.loadNextPage();
     await settle();
-    expect(requests.map(({ request }) => request.offset)).toEqual([0, 20]);
+    expect(requests.map(({ request }) => request.offset)).toEqual([0, DISC_LIST_PAGE_SIZE]);
 
     authStore.$patch({
       authStatus: "anonymous",
@@ -284,7 +284,7 @@ describe("useDiscListCoordinator", () => {
     expect(coordinator.error.value).toBeNull();
     expect(requests).toHaveLength(2);
 
-    requests[1]!.response.resolve(page(requests[1]!.request, ["stale-user-a-page"], 41));
+    requests[1]!.response.resolve(page(requests[1]!.request, ["stale-user-a-page"], 301));
     await pendingPage;
     expect(coordinator.discs.value).toEqual([]);
     expect(coordinator.totalItems.value).toBe(0);
@@ -361,35 +361,35 @@ describe("useDiscListCoordinator", () => {
     });
     scopes.push(scope);
     await settle();
-    requests[0]!.response.resolve(page(requests[0]!.request, ["user-a-first"], 41));
+    requests[0]!.response.resolve(page(requests[0]!.request, ["user-a-first"], 301));
     await settle();
 
     const pendingPage = coordinator.loadNextPage();
     await settle();
     authStore.$patch({ userId: "user-b", authSessionGeneration: 2 });
     await settle();
-    expect(requests.map(({ request }) => request.offset)).toEqual([0, 20, 0]);
+    expect(requests.map(({ request }) => request.offset)).toEqual([0, DISC_LIST_PAGE_SIZE, 0]);
     expect(coordinator.discs.value).toEqual([]);
     expect(coordinator.offset.value).toBe(0);
 
-    requests[1]!.response.resolve(page(requests[1]!.request, ["stale-user-a-page"], 41));
+    requests[1]!.response.resolve(page(requests[1]!.request, ["stale-user-a-page"], 301));
     await pendingPage;
     requests[2]!.response.resolve(page(requests[2]!.request, ["user-b-first"], 1));
     await settle();
     expect(coordinator.discs.value.map(({ id }) => id)).toEqual(["user-b-first"]);
     expect(coordinator.totalItems.value).toBe(1);
     expect(coordinator.totalDisc.value).toBe(1);
-    expect(coordinator.offset.value).toBe(20);
+    expect(coordinator.offset.value).toBe(DISC_LIST_PAGE_SIZE);
   });
 
-  it("deduplicates additional pages, advances by 20, and stops at the final offset", async () => {
+  it("deduplicates additional pages, advances by 50, and stops at the final offset", async () => {
     const firstPage = deferred<DiscListResult>();
     const nextPage = deferred<DiscListResult>();
     const loader = vi
       .fn<(request: DiscListRequest) => Promise<DiscListResult>>()
       .mockImplementationOnce(() => firstPage.promise)
       .mockImplementationOnce(() => nextPage.promise)
-      .mockImplementationOnce(async (request) => page(request, [], 41));
+      .mockImplementationOnce(async (request) => page(request, [], 150));
     const { coordinator, scope } = setup(loader);
     scopes.push(scope);
     await settle();
@@ -397,24 +397,28 @@ describe("useDiscListCoordinator", () => {
     await coordinator.loadNextPage();
     expect(loader).toHaveBeenCalledTimes(1);
     expect(coordinator.loadingInitial.value).toBe(true);
-    firstPage.resolve(page(loader.mock.calls[0]![0], ["first"], 41));
+    firstPage.resolve(page(loader.mock.calls[0]![0], ["first"], 150));
     await settle();
-    expect(coordinator.offset.value).toBe(20);
-    expect(coordinator.totalItems.value).toBe(41);
+    expect(coordinator.offset.value).toBe(DISC_LIST_PAGE_SIZE);
+    expect(coordinator.totalItems.value).toBe(150);
     const pageRequest = coordinator.loadNextPage();
     const duplicateRequest = coordinator.loadNextPage();
     await settle();
-    expect(loader.mock.calls.map(([request]) => request.offset)).toEqual([0, 20]);
+    expect(loader.mock.calls.map(([request]) => request.offset)).toEqual([0, DISC_LIST_PAGE_SIZE]);
     expect(coordinator.loadingMore.value).toBe(true);
 
-    nextPage.resolve(page(loader.mock.calls[1]![0], ["second"], 41));
+    nextPage.resolve(page(loader.mock.calls[1]![0], ["second"], 150));
     await Promise.all([pageRequest, duplicateRequest]);
-    expect(coordinator.offset.value).toBe(40);
+    expect(coordinator.offset.value).toBe(DISC_LIST_PAGE_SIZE * 2);
     expect(coordinator.discs.value.map(({ id }) => id)).toEqual(["first", "second"]);
 
     await coordinator.loadNextPage();
-    expect(loader.mock.calls.map(([request]) => request.offset)).toEqual([0, 20, 40]);
-    expect(coordinator.offset.value).toBe(60);
+    expect(loader.mock.calls.map(([request]) => request.offset)).toEqual([
+      0,
+      DISC_LIST_PAGE_SIZE,
+      DISC_LIST_PAGE_SIZE * 2,
+    ]);
+    expect(coordinator.offset.value).toBe(DISC_LIST_PAGE_SIZE * 3);
     expect(coordinator.hasMore.value).toBe(false);
   });
 
@@ -423,8 +427,8 @@ describe("useDiscListCoordinator", () => {
     const requests: DiscListRequest[] = [];
     const loader = vi.fn((request: DiscListRequest) => {
       requests.push(request);
-      if (request.offset === 20) return laterPage.promise;
-      return Promise.resolve(page(request, [request.query || "initial"], 50));
+      if (request.offset === DISC_LIST_PAGE_SIZE) return laterPage.promise;
+      return Promise.resolve(page(request, [request.query || "initial"], 301));
     });
     const { coordinator, scope } = setup(loader);
     scopes.push(scope);
@@ -436,14 +440,14 @@ describe("useDiscListCoordinator", () => {
 
     expect(requests.map(({ offset, query }) => [offset, query])).toEqual([
       [0, ""],
-      [20, ""],
+      [DISC_LIST_PAGE_SIZE, ""],
       [0, "filtered"],
     ]);
-    expect(coordinator.offset.value).toBe(20);
-    laterPage.resolve(page(requests[1]!, ["stale-page"], 50));
+    expect(coordinator.offset.value).toBe(DISC_LIST_PAGE_SIZE);
+    laterPage.resolve(page(requests[1]!, ["stale-page"], 301));
     await pendingPage;
     expect(coordinator.discs.value.map(({ id }) => id)).toEqual(["filtered"]);
-    expect(coordinator.offset.value).toBe(20);
+    expect(coordinator.offset.value).toBe(DISC_LIST_PAGE_SIZE);
   });
 
   it("clears the active mode total on a switch and counts empty results as complete", async () => {
@@ -457,7 +461,11 @@ describe("useDiscListCoordinator", () => {
 
     coordinator.setMode("covers");
     await settle();
-    expect(loader.mock.calls[1]?.[0]).toMatchObject({ mode: "covers", offset: 0, limit: 20 });
+    expect(loader.mock.calls[1]?.[0]).toMatchObject({
+      mode: "covers",
+      offset: 0,
+      limit: DISC_LIST_PAGE_SIZE,
+    });
     expect(coordinator.discs.value).toEqual([]);
     expect(coordinator.totalCovers.value).toBe(0);
     expect(coordinator.isEmpty.value).toBe(true);
@@ -676,7 +684,7 @@ describe("useDiscListCoordinator", () => {
   });
 
   it("applies saved criteria atomically while preserving search, artist, mode, order and resetting pagination", async () => {
-    const loader = vi.fn(async (request: DiscListRequest) => page(request, [], 45));
+    const loader = vi.fn(async (request: DiscListRequest) => page(request, [], 601));
     const optionsLoader = vi.fn().mockResolvedValue({ countries: [], genres: [] });
     const { coordinator, scope } = setup(loader, true, optionsLoader);
     scopes.push(scope);
@@ -688,7 +696,7 @@ describe("useDiscListCoordinator", () => {
     coordinator.setSelectedWeek(["2025-01-01T00:00:00.000Z", "2025-01-31T23:59:59.999Z"]);
     await settle();
     await coordinator.loadNextPage();
-    expect(coordinator.offset.value).toBe(40);
+    expect(coordinator.offset.value).toBe(DISC_LIST_PAGE_SIZE * 2);
 
     coordinator.applySavedCriteria({
       genreIds: ["GENRE-B", "genre-a", "genre-a"],
@@ -698,21 +706,28 @@ describe("useDiscListCoordinator", () => {
     });
     await settle();
 
-    expect(loader).toHaveBeenLastCalledWith(expect.objectContaining({
-      mode: "favorites",
-      query: "MØL",
-      artistId: "artist-a",
-      orderBy: "disc.releaseDate:ASC,artist.name:ASC",
-      genreIds: ["genre-a", "genre-b"],
-      countryId: "country-saved",
-      dateRange: ["2025-01-01T00:00:00.000Z", "2026-12-31T23:59:59.999Z"],
-      offset: 0,
-    }));
-    expect(coordinator.offset.value).toBe(20);
-    expect(optionsLoader).toHaveBeenLastCalledWith(expect.objectContaining({
-      mode: "favorites", query: "MØL", artistId: "artist-a", countryId: "country-saved",
-      genreIds: ["genre-a", "genre-b"],
-    }));
+    expect(loader).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        mode: "favorites",
+        query: "MØL",
+        artistId: "artist-a",
+        orderBy: "disc.releaseDate:ASC,artist.name:ASC",
+        genreIds: ["genre-a", "genre-b"],
+        countryId: "country-saved",
+        dateRange: ["2025-01-01T00:00:00.000Z", "2026-12-31T23:59:59.999Z"],
+        offset: 0,
+      })
+    );
+    expect(coordinator.offset.value).toBe(DISC_LIST_PAGE_SIZE);
+    expect(optionsLoader).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        mode: "favorites",
+        query: "MØL",
+        artistId: "artist-a",
+        countryId: "country-saved",
+        genreIds: ["genre-a", "genre-b"],
+      })
+    );
   });
 
   it("preserves one-sided saved year bounds instead of narrowing them to one year", async () => {
@@ -723,15 +738,21 @@ describe("useDiscListCoordinator", () => {
 
     coordinator.applySavedCriteria({ genreIds: [], countryId: null, yearFrom: 2025, yearTo: null });
     await settle();
-    expect(loader).toHaveBeenLastCalledWith(expect.objectContaining({
-      dateRange: ["2025-01-01T00:00:00.000Z", "9999-12-31T23:59:59.999Z"], offset: 0,
-    }));
+    expect(loader).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        dateRange: ["2025-01-01T00:00:00.000Z", "9999-12-31T23:59:59.999Z"],
+        offset: 0,
+      })
+    );
 
     coordinator.applySavedCriteria({ genreIds: [], countryId: null, yearFrom: null, yearTo: 2026 });
     await settle();
-    expect(loader).toHaveBeenLastCalledWith(expect.objectContaining({
-      dateRange: ["0001-01-01T00:00:00.000Z", "2026-12-31T23:59:59.999Z"], offset: 0,
-    }));
+    expect(loader).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        dateRange: ["0001-01-01T00:00:00.000Z", "2026-12-31T23:59:59.999Z"],
+        offset: 0,
+      })
+    );
   });
 
   it("refreshes results and contextual options without dropping the current filters", async () => {

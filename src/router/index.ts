@@ -329,7 +329,8 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/discos/mejores/:id",
     name: "MejoresDetalle",
-    component: () => import("@views/discos/MejoresDetalle.vue"),
+    component: () =>
+      import("@/modules/editorial/radar-best-lists/presentation/views/BestListDetailView.vue"),
     meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
