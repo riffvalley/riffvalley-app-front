@@ -14,7 +14,7 @@ export const useAsignationStore = defineStore("asignation", {
     async loadAsignations(listId: string) {
       try {
         const response = await getAsignationsByListService(listId);
-        this.asignations = response.data;
+        this.asignations = response;
       } catch (error) {
         console.error("Error loading asignations:", error);
         throw error;

@@ -4,7 +4,7 @@ Iniciativa acotada a los listados `/discos/radar` y `/discos/mejores` y, en fase
 
 ## Dependencias y ownership observados
 
-- **Frontend:** ambas rutas están declaradas en `src/router/index.ts`; requieren sesión y rol `riffvalley`. Desde RM-2, los listados pertenecen a `src/modules/editorial/radar-best-lists/` y consumen el servicio compartido `src/services/list/list.ts`. Las vistas individuales siguen en `src/views/discos/` hasta RM-3/RM-4.
+- **Frontend:** ambas rutas están declaradas en `src/router/index.ts`; requieren sesión y rol `riffvalley`. Desde RM-2, los listados pertenecen a `src/modules/editorial/radar-best-lists/` y consumen el servicio compartido `src/services/list/list.ts`. Tras RM-3, el detalle Radar también pertenece a ese módulo; el detalle de Mejores del Mes conserva su ubicación legacy y queda fuera del alcance de RM-4.
 - **Backend:** `ListsController` declara las rutas de lectura de calendario; `ListsService` delega las consultas a `ListCalendarService`, que consulta `Repository<List>`. Lists filtra por tipo y fechas, sin consultar Contents para obtener los listados.
 - Cada `List` tiene asignaciones eager. Cada asignación carga eager sus relaciones con User y Disc. Contents sincroniza sus fechas con Lists en operaciones de escritura, pero no forma parte de estas respuestas de calendario.
 - Los handlers backend de lectura de calendario no declaran `@Auth()` ni requisito de rol; el guard de frontend no protege el endpoint. Se registra como comportamiento existente, sin cambios de permisos en RM-1.
@@ -86,8 +86,104 @@ Se añadieron validaciones runtime en el transporte frontend para las funciones 
 
 - **RM-1 — Auditoría y reparación del error 400.** Completada; el 400 desplegado no se reprodujo y no se atribuyeron valores de petición sin evidencia.
 - **RM-2 — Refactorización y estabilización de ambos listados.** Completada localmente según el registro anterior.
-- **RM-3 — Refactorización de la vista individual de Radar.** Posterior e independiente; no iniciada.
-- **RM-4 — Refactorización de la vista individual de Mejores del Mes.** Posterior e independiente; no iniciada.
+- **RM-2b — Listado Radar visible por semanas y días.** Cerrada localmente; registrada en la fase de estabilización del listado.
+- **RM-3 — Refactorización de la vista individual de Radar.** Completada localmente el 2026-11-01; Radar tiene componentes propios de asignaciones y catálogo, y conserva sus queries/mutaciones TanStack Query.
+- **RM-4 — Rediseño móvil de la vista individual de Radar.** Pendiente de cierre de fase tras la separación RM-3; la interfaz móvil actual de Radar se conserva sin cambios en esta tarea.
 - **RM-5 — Validación integrada y cierre.** Ejecutar al completar las fases anteriores; no iniciada.
 
-RM-3, RM-4 y RM-5 permanecen pendientes. El cierre integrado de RM-5 depende de las vistas individuales posteriores y de su validación propia; completar RM-2 no inicia esas fases.
+RM-4 y RM-5 permanecen pendientes para el ciclo de trabajo posterior. El detalle de Mejores del Mes queda como trabajo independiente.
+
+## RM-2b — Listado Radar visible por semanas y días
+
+**Estado:** cerrada localmente el 2026-11-01; la extracción posterior RM-3 trasladó la implementación Radar a su módulo propio.
+
+### Contrato y fechas
+
+- La revisión del `List` real confirma que no existe un campo numérico `List.week`: `week` es el valor de `List.type`. La fecha editorial disponible es `List.listDate` (timestamp nullable); por eso el lunes y domingo se calculan desde su fecha civil, no desde un número de semana ni desde el nombre de la lista.
+- La utilidad pura y tipada `src/views/list/utils/editorialWeek.ts` extrae `YYYY-MM-DD` sin convertir el timestamp a la zona local, calcula el lunes con `(díaUTC + 6) % 7`, y genera siete fechas civiles consecutivas con aritmética UTC. La consulta conserva `GET /discs/date` y sus parámetros: lunes a las 00:00 y domingo a las 23:59:59.999 UTC, para incluir ambos días enteros.
+- El día del disco se obtiene de `Disc.releaseDate`, que está presente en cada disco devuelto por `getDiscsDated`; no se usa el índice del disco, `Asignation.createdAt` ni la fecha de la lista para ubicar filas. Fechas inválidas o fuera de la semana no reciben una fecha inventada y no se colocan en ninguno de los siete grupos.
+- Las cabeceras de días con discos usan `Lunes DD-MM` hasta `Domingo DD-MM`, en orden cronológico. Cada día visible es desplegable; viernes empieza abierto y los otros días con discos cerrados. Los días sin discos no se muestran ni crean filas ficticias.
+
+### Presentación y regresiones preservadas
+
+- Las secciones Futuras y Anteriores de `/discos/radar` conservan sus `CollapsibleSection` y el estado inicial cerrado. Esas secciones muestran listas Radar; después de RM-3 el catálogo de Radar pertenece a `RadarDiscCatalog.vue`.
+- En el catálogo semanal Radar, `RadarDiscCatalog.vue` presenta los días con discos como desplegables nativos, con viernes abierto por defecto cuando tiene discos. Las filas conservan su marcado, clases, tamaños y separadores: género, artista y disco, Spotify, EP, bandera/país, selector, Asignar/Actualizar y Destacar. `DiscByDate.vue` mantiene el comportamiento semanal legacy requerido por otros consumidores, incluido EditList.
+- Se oculta el encabezado general de semana (`Discs for Week: Semana del ...`); las fechas diarias quedan como cabeceras de la lista. Mejores del Mes conserva su encabezado.
+- En el cierre original de RM-2b no se cambió `AsignationList.vue` ni la vista individual; RM-3 trasladó después el catálogo y las asignaciones Radar a componentes propios. Se conservan paneles Radar 1/2, posiciones persistidas, huecos, acciones, filtros y carga incremental (`resetAndFetch` vuelve a `hasMore = true`). Mejores del Mes no cambia.
+
+### Tests y verificaciones
+
+- Tests de fechas: semana normal, cruce de mes y año, fechas en ISO semanas 1/52/53, transiciones horarias de marzo/octubre, siete cabeceras y formato, orden y rango de fechas civiles.
+- Tests de agrupación/presentación: uso del `releaseDate` propio, varios discos el mismo día, omisión de días vacíos, exclusión de fechas fuera de la semana, filas inmediatas y controles de asignación/destacado. Tras RM-3, estos casos de Radar se cubren en `RadarDiscCatalog.test.ts` y `RadarAssignments.test.ts`; `DiscByDate.test.ts` y `AsignationList.test.ts` protegen los comportamientos legacy, incluidos Video, Mejores y EditList.
+- Vitest focalizado: 32 tests pasan bajo `TZ=UTC`; los 14 tests de fechas y catálogo también pasan bajo `TZ=Europe/Madrid`.
+- Typecheck (`pnpm run typecheck`), Prettier focalizado, build y `git diff --check` pasan. ESLint focalizado sin cambios de reglas reporta 15 `no-explicit-any` en `DiscByDate.vue`; el `HEAD` previo reporta los mismos 15 hallazgos. ESLint focalizado con esa regla desactivada pasa, sin errores nuevos del cambio. El build avisa de datos Browserslist antiguos, un selector `.flex-[2]` y un chunk principal mayor de 500 kB; no se atribuyen esos avisos a RM-2b sin comparar una build base. Vitest: 31 tests focalizados pasan en UTC; fechas y catálogo (13 tests) también pasan en Europe/Madrid. No se inspecciona en navegador ni se atribuyen resultados de GitHub Actions.
+
+### Limitaciones
+
+- Como `List.week` numérico no forma parte del contrato, el cálculo depende de `listDate` y no puede validar una numeración ISO recibida del backend. Los discos con `releaseDate` inválida o fuera del intervalo de la consulta no se asignan a días; no se fabrican fechas para esos casos.
+- Un día aparece en la lista cuando tiene discos que coinciden con los filtros activos; mientras hay carga, el contenido aún no recibido no se representa como un grupo vacío.
+
+## RM-3 — Separación definitiva de Radar y Mejores del Mes
+
+**Estado:** completada localmente el 2026-11-01. Radar queda aislado de los componentes editoriales legacy de asignaciones y catálogo; RM-4 y RM-5 no se abordan en este trabajo.
+
+### Ownership de Radar
+
+- `/discos/radar/:id` conserva ruta, permisos y comportamiento aceptado. La implementación individual vive en `src/modules/editorial/radar-best-lists/presentation/views/RadarDetailView.vue` y ahora monta `RadarAssignments.vue` y `RadarDiscCatalog.vue`, ambos propios del módulo. No importa `src/views/list/components/AsignationList.vue` ni `DiscByDate.vue`.
+- `RadarAssignments.vue` posee la presentación y la interacción de grupos, bandeja, movimientos, drag & drop, selector táctil, navegación móvil y publicación WordPress por posición. `RadarDiscCatalog.vue` posee catálogo semanal, grupos diarios, filtros, carga incremental y controles de asignación/destacado. Los tipos del flujo se definen en `types/radarAssignment.ts`; el helper civil semanal vive en `utils/editorialWeek.ts` y sus reglas RM-2b se mantienen.
+- Se preservan los paneles Radar 1 y 2, huecos hasta la posición positiva persistida máxima, `position = 0` como bandeja, paneles manuales locales, ausencia de renumeración y máximo de cuatro asignaciones por panel. También se conserva el estado de carga/error, el comportamiento de recarga, la navegación móvil y la presentación desktop/mobile aprobada.
+- La publicación WordPress por panel, asociación con `wpWeeklyPosts`, publicación/actualización, estados, errores y evento `wp-published` siguen en la implementación Radar. El catálogo mantiene sus filas y acciones validadas, fechas civiles, agrupación semanal/diaria, filtros y paginación.
+
+### Estado remoto y contratos
+
+- Radar conserva `useRadarDetailQuery`, `useRadarAssignmentsQuery`, `useRadarDiscCatalogQuery`, `useRadarAssignableUsersQuery`, `useRadarGenresQuery` y `useRadarDetailMutations` en `application/`. Las consultas mantienen Query keys, aislamiento por usuario y generación de sesión, `AbortSignal` y comprobaciones de sesión; las mutaciones conservan invalidaciones de asignaciones, catálogo, listados y Content Calendar.
+- Las asignaciones, usuarios y catálogo de Radar no usan los stores Pinia legacy. El borrador de campos de lista, filtros y selección, estado de interacción y paneles manuales permanecen locales. El destacado sigue escribiendo la propiedad global `Disc.pinned`; no se duplica como estado de asignación.
+- No se implementaron llamadas HTTP nuevas ni se modificó el contrato WordPress. Continúan los servicios y DTOs HTTP compartidos neutrales, incluyendo el transporte `GET /discs/date` y los servicios de asignación/lista necesarios para las mutaciones.
+
+### Consumidores legacy y deuda aceptada
+
+- `AsignationList.vue` y `DiscByDate.vue` se conservan para Mejores del Mes, `/videos/list/:id`, `/list/edit/:id` y otros flujos legacy activos. Se retiraron de ambos los modos `remoteRadar` y las ramas que conectaban TanStack Query de Radar; sus stores/servicios y contratos legacy siguen atendiendo a esos consumidores.
+- El componente legacy de asignaciones mantiene la lógica semanal usada por EditList como deuda independiente; no se reescribe EditList ni se moderniza Mejores. La separación duplica temporalmente presentación y algunos helpers para mantener propiedad de dominio clara. RM-4 y RM-5 siguen pendientes según el estado de las fases.
+
+### Pruebas y verificaciones
+
+- Cobertura focalizada actualizada: vista y queries Radar; paneles mínimos, posiciones persistidas y huecos, bandeja, paneles manuales, movimientos, drag & drop, selectores táctiles, capacidad cuatro, WordPress y metadatos; catálogo y agrupación diaria, filtros, paginación y estados; regresiones legacy para Mejores, Video y EditList. `MejoresDetalle.test.ts`, `VideoListDetalle.test.ts`, `EditList.test.ts`, `AsignationList.test.ts` y `DiscByDate.test.ts` protegen consumidores que siguen en modo legacy.
+- Verificaciones finales de esta separación: Vitest focalizado, suites RM-2/RM-2b, typecheck, build, ESLint y Prettier focalizados, fixtures/gates estructurales disponibles y `git diff --check`. No se hizo validación visual en navegador ni se afirma ejecución de GitHub Actions.
+- Se conserva la deuda histórica de lint/formato y los avisos del build fuera de Radar; se reportan por separado en la entrega final, sin atribuirlos al cambio si no hay comparación fiable. Los gates comparativos que necesiten base/head completos se identifican como no concluyentes.
+
+### Corrección visual localizada de las tarjetas de asignación
+
+- Sin reabrir la separación arquitectónica RM-3, `RadarAssignments.vue` reorganiza las tarjetas para alinear título y metadatos con la portada, colocar Spotify debajo de esta y agrupar usuario, Editar y Validar en una fila compacta. Se retiraron los botones de copiar imagen y copiar texto, junto con sus handlers exclusivos.
+- La X de una asignación activa conserva su operación de mover a la bandeja y ocupa una columna propia de la cabecera para no superponerse al título en móvil. Mover a, el selector y Eliminar permanecen juntos; la eliminación conserva confirmación. Se respetan las áreas táctiles y los estados validado/pendiente.
+- La revisión solicitada en Chrome mostró título y metadatos centrados y controles estirados. En escritorio la tarjeta queda limitada a 380 px, la cabecera presenta portada e información a la izquierda y Spotify y la X a la derecha; los títulos largos pueden ocupar dos líneas. El usuario asignado, Editar y Validar forman un grupo compacto. En móvil la cabecera usa tres columnas: portada/Spotify, título/artista con la bandera junto al nombre y X/género. El pill conserva un ancho mínimo y queda separado verticalmente de la X. Los botones editoriales usan una fila para el usuario y otra para Editar/Validar; «Mover a» queda encima del selector y la papelera. Bajo 360 px la cabecera se adapta a dos columnas para conservar espacio de lectura. La navegación entre paneles y las alternativas táctiles existentes permanecen sin cambios; no se rediseñaron los paneles ni el catálogo.
+- En el catálogo semanal Radar, las acciones de cada disco se distribuyen en columnas con separación en escritorio. En tabletas se apilan en filas; en móvil el selector y Asignar/Actualizar comparten fila y Destacar queda en una fila propia. Los controles siguen teniendo altura táctil y no cambian sus acciones.
+- Los estados del catálogo usan colores más visibles: azul para asignado, amarillo para destacado y un degradado azul-cyan-amarillo para la combinación. Los textos de estado mantienen tonos neutros legibles y los iconos refuerzan el estado en claro y oscuro.
+- El botón Spotify de las tarjetas de asignación Radar abre el enlace del álbum cuando el disco ya tiene una URL válida; si falta o apunta a otro servicio, resuelve el álbum con `resolveSpotifyAlbum(nombre, artista)` y abre el resultado. Ya no busca el perfil del artista.
+- Se conservan movimientos, drag & drop, capacidad cuatro, destacado, edición de metadatos, publicación WordPress y sus invalidaciones. No cambian queries, mutaciones ni contratos.
+- `RadarAssignments.test.ts` cubre portada/metadatos, Spotify, ausencia de controles de copia, acciones editoriales, movimiento y eliminación con confirmación, bandeja y navegación móvil. En la ejecución focalizada pasaron los 27 tests; ESLint, Prettier y typecheck focalizados pasaron. El build pasó; mantiene avisos existentes de Browserslist desactualizado, selector CSS `.flex-[2]` durante minificación y un chunk mayor de 500 kB, sin comparación base para atribuirlos. `git diff --check` pasó. La inspección en Chrome fue local, no equivale a una ejecución de GitHub Actions.
+
+## RM-4 — Rediseño móvil de la vista individual de Radar
+
+**Estado:** pendiente de cierre de fase tras la separación RM-3. La implementación móvil existente se conserva; esta tarea no cambia contratos, endpoints, queries ni comportamiento visual.
+
+### Auditoría móvil y decisiones de UX
+
+- La cabecera combinaba título, estado y tres fechas en una sola fila de controles; a anchuras pequeñas las fechas competían con la identificación de la lista. La cabecera ahora prioriza nombre y estado, y agrupa las fechas en un desplegable móvil con campos de ancho completo. Desktop conserva sus controles de fecha en línea.
+- `AsignationList.vue` pintaba simultáneamente todos los paneles Radar y la Bandeja, aun cuando cada tarjeta seguía una composición compacta de escritorio. El drag & drop era el principal movimiento desde los paneles y la Bandeja ofrecía botones numéricos diminutos; una tarjeta de Radar solo tenía una acción pequeña para volver a `position = 0`.
+- En móvil, los paneles pasan a una vista individual elegida mediante botones segmentados con ocupación `n/4`. La Bandeja se mantiene seleccionable incluso vacía, el cambio de panel es inmediato y «Nuevo Radar» está siempre visible. Al mover desde una tarjeta, el selector puede elegir Bandeja o cualquier Radar disponible y enfoca el panel de destino. Drag & drop permanece en desktop y no es necesario para completar la gestión móvil.
+- Las tarjetas de asignación mantienen artista, disco, usuario, destacado/editorial y acciones actuales. Los controles de movimiento, usuario, edición, check, copiado y eliminación tienen áreas táctiles ampliadas; las acciones no dependen de hover. Los destinos completos se deshabilitan en el selector y la validación existente sigue mostrando el error `4/4` si se intenta mover a un Radar lleno.
+- Tras la revisión del usuario, la fila que reúne persona asignada, edición y hecho se reorganizó en móvil como un control de tres columnas alineadas: persona con nombre visible, edición y check con fondos y bordes coherentes y objetivos de 44 px. Por debajo de 360 px, la persona ocupa una primera línea y edición/check quedan juntas debajo, para no truncar el nombre. En escritorio conserva la disposición previa.
+- Un ajuste posterior da más anchura al nombre de la persona asignada en las tarjetas de escritorio. En el catálogo Radar, los discos asignados reciben acento naranja, los destacados conservan verde y los que están asignados y destacados usan morado; el estado normal mantiene la tarjeta neutra. La etiqueta de asignación adopta naranja o morado según el caso combinado.
+- `RadarDiscCatalog.vue` conserva la presentación móvil aceptada, carga incremental, filtros y mutaciones de Radar. `DiscByDate.vue` se mantiene para consumidores legacy y no tiene un modo `remoteRadar`.
+- La página mantiene el orden cabecera → asignaciones → catálogo y reduce espaciado móvil. «Eliminar radar» y las fechas quedan subordinados visualmente sin eliminar operaciones. El título reduce su tamaño en móvil para caber incluso a 320 px. Las acciones secundarias de cada asignación se agrupan bajo «Más acciones» y la bandeja no duplica el acceso a «Nuevo Radar».
+- A petición posterior, se revisó la vista real en Chrome con anchos de 320, 375, 390 y 430 px y en escritorio a 1440 px. No apareció desplazamiento horizontal; búsqueda y filtros permanecieron legibles en columna; tarjetas de catálogo y selectores de movimiento quedaron dentro del viewport. La navegación móvil desaparece en escritorio, donde siguen visibles los paneles en dos columnas. La revisión encontró y corrigió el contraste de «Mover a» en modo oscuro y el título truncado a 320 px. No se guardaron capturas como artefactos.
+
+### Tests y verificaciones
+
+- La cobertura de Radar vive en `RadarDetailView.test.ts`, `RadarAssignments.test.ts` y `RadarDiscCatalog.test.ts`: navegación móvil y ocupación, bandeja, «Nuevo Radar», movimientos táctiles, persistencia de posiciones, bloqueo 4/4, drag & drop desktop, metadatos, acciones, filtros y carga incremental. `AsignationList.test.ts` y `DiscByDate.test.ts` cubren únicamente sus consumidores legacy.
+- Vitest focalizado: 34 tests pasan en 3 archivos, incluidos los estados visuales del catálogo y la agrupación accesible de usuario/editar/hecho. `pnpm run typecheck` pasa y `pnpm build` pasa. Prettier y `git diff --check` pasan. ESLint de los seis archivos focalizados mantiene cuatro hallazgos preexistentes de `no-static-element-interactions` en zonas/cards de drag & drop; los otros controles accesibles nuevos pasan. Build muestra avisos ya presentes del repo: datos Browserslist desactualizados, selector `.flex-[2]` durante minificación CSS y chunk principal mayor de 500 kB; no se atribuyen a RM-4 sin comparación fiable con build base. Chrome confirmó el nombre ampliado en escritorio y la composición de los controles a 320 px; los estilos de los tres estados se cubren con tests estructurales. No se validó en GitHub Actions.
+
+### Límites
+
+- No se detectó ninguna limitación backend que requiera cambios: las operaciones existentes actualizan `Asignation.position`, y el frontend conserva el límite cuatro y el error de destino lleno. Ningún archivo de `riffvalley-app-back` fue modificado.
+- Los componentes legacy `AsignationList.vue` y `DiscByDate.vue` siguen en uso por Mejores del Mes, Video y EditList; no contienen los componentes ni el modo remoto de Radar. La vista individual de Mejores del Mes permanece como trabajo independiente.

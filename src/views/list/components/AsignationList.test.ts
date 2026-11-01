@@ -1,5 +1,7 @@
 // @vitest-environment happy-dom
 import { flushPromises, mount } from "@vue/test-utils";
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
+import { createPinia, setActivePinia } from "pinia";
 import { reactive } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,7 +11,15 @@ type TestAsignation = {
   [key: string]: unknown;
 };
 
-const { asignationStore, userStore, error, createWpPosts } = vi.hoisted(() => ({
+const {
+  asignationStore,
+  userStore,
+  error,
+  createWpPosts,
+  getAsignationsByListService,
+  getRvUsers,
+  radarMutations,
+} = vi.hoisted(() => ({
   asignationStore: {
     asignations: [] as TestAsignation[],
     addAsignation: vi.fn(),
@@ -19,7 +29,18 @@ const { asignationStore, userStore, error, createWpPosts } = vi.hoisted(() => ({
   userStore: { usersRv: [] as Array<{ id: string; username: string }>, loadRvUsers: vi.fn() },
   error: vi.fn(),
   createWpPosts: vi.fn(),
+  getAsignationsByListService: vi.fn(),
+  getRvUsers: vi.fn(),
+  radarMutations: {
+    assign: vi.fn(),
+    updateAssignment: vi
+      .fn<(args: { id: string; payload: { position?: number } }) => Promise<void>>()
+      .mockResolvedValue(undefined),
+    removeAssignment: vi.fn(),
+    toggleFeatured: vi.fn(),
+  },
 }));
+let queryClient: QueryClient;
 
 vi.mock("@stores/asignation/asignation", () => ({
   useAsignationStore: () => asignationStore,
@@ -29,9 +50,15 @@ vi.mock("@services/swal/SwalService", () => ({
   default: { error, success: vi.fn() },
 }));
 vi.mock("@services/list/list", () => ({ createWpPosts }));
+vi.mock("@services/asignation/asignation", () => ({ getAsignationsByListService }));
+vi.mock("@/modules/editorial/radar-best-lists/application/useRadarDetailMutations", () => ({
+  useRadarDetailMutations: () => radarMutations,
+}));
+vi.mock("@/modules/identity/users", () => ({ getRvUsers }));
 vi.mock("sweetalert2", () => ({ default: { fire: vi.fn() } }));
 
 import AsignationList from "./AsignationList.vue";
+import { useAuthStore } from "@/modules/identity/auth";
 
 function makeAsignation(id: string, position: number) {
   return {
@@ -49,10 +76,20 @@ function makeAsignation(id: string, position: number) {
   };
 }
 
-function mountList() {
+function mountList(props: { type?: string } = {}) {
+  const pinia = createPinia();
+  setActivePinia(pinia);
+  useAuthStore().$patch({
+    authStatus: "authenticated",
+    token: "test-token",
+    userId: "editor",
+    role: "riffvalley",
+    authSessionGeneration: 2,
+  });
   return mount(AsignationList, {
-    props: { type: "week", listId: "list-1" },
+    props: { type: "week", listId: "list-1", ...props },
     global: {
+      plugins: [pinia, [VueQueryPlugin, { queryClient }]],
       stubs: {
         SpotifyArtistButton: true,
         DiscDescriptionModal: true,
@@ -69,15 +106,37 @@ function radarHeadings(wrapper: ReturnType<typeof mount>) {
     .filter((heading) => heading.startsWith("Radar "));
 }
 
-describe("AsignationList Radar groups", () => {
+function newRadarButton(wrapper: ReturnType<typeof mount>) {
+  return wrapper.findAll("button").find((button) => button.text().includes("Nuevo Radar"))!;
+}
+
+describe("AsignationList legacy groups", () => {
   beforeEach(() => {
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    });
     vi.clearAllMocks();
     asignationStore.asignations = reactive([]) as unknown as TestAsignation[];
     userStore.usersRv = [{ id: "editor-1", username: "Editor" }];
+    getAsignationsByListService.mockResolvedValue([]);
+    getRvUsers.mockResolvedValue([]);
     asignationStore.updateAsignationStore.mockImplementation(async (updated: TestAsignation) => {
       const index = asignationStore.asignations.findIndex((item) => item.id === updated.id);
-      if (index >= 0) asignationStore.asignations[index] = { ...asignationStore.asignations[index], ...updated };
+      if (index >= 0)
+        asignationStore.asignations[index] = { ...asignationStore.asignations[index], ...updated };
     });
+  });
+
+  it("keeps the monthly legacy table without Radar panel controls", async () => {
+    asignationStore.asignations.push(makeAsignation("month-item", 0));
+    const wrapper = mountList({ type: "month" });
+    await flushPromises();
+    expect(wrapper.find("table").exists()).toBe(true);
+    expect(wrapper.text()).toContain("Disc month-item");
+    expect(
+      wrapper.findAll("h4").filter((heading) => heading.text().startsWith("Radar "))
+    ).toHaveLength(0);
+    wrapper.unmount();
   });
 
   it("shows exactly Radar 1 and Radar 2 when there are no assignments", () => {
@@ -104,7 +163,9 @@ describe("AsignationList Radar groups", () => {
   });
 
   it("does not let position 0 assignments create more radar groups", async () => {
-    asignationStore.asignations.push(...Array.from({ length: 12 }, (_, i) => makeAsignation(String(i), 0)));
+    asignationStore.asignations.push(
+      ...Array.from({ length: 12 }, (_, i) => makeAsignation(String(i), 0))
+    );
     const wrapper = mountList();
     await flushPromises();
     expect(radarHeadings(wrapper)).toEqual(["Radar 1", "Radar 2"]);
@@ -123,16 +184,16 @@ describe("AsignationList Radar groups", () => {
 
   it("adds Radar 3 and Radar 4 with repeated Nuevo Radar clicks", async () => {
     const wrapper = mountList();
-    await wrapper.get("button").trigger("click");
+    await newRadarButton(wrapper).trigger("click");
     expect(radarHeadings(wrapper)).toEqual(["Radar 1", "Radar 2", "Radar 3"]);
-    await wrapper.get("button").trigger("click");
+    await newRadarButton(wrapper).trigger("click");
     expect(radarHeadings(wrapper)).toEqual(["Radar 1", "Radar 2", "Radar 3", "Radar 4"]);
     wrapper.unmount();
   });
 
   it("keeps a manually added empty group when the assignment store updates", async () => {
     const wrapper = mountList();
-    await wrapper.get("button").trigger("click");
+    await newRadarButton(wrapper).trigger("click");
     asignationStore.asignations.push(makeAsignation("inbox", 0));
     await flushPromises();
     expect(radarHeadings(wrapper)).toEqual(["Radar 1", "Radar 2", "Radar 3"]);
@@ -141,7 +202,7 @@ describe("AsignationList Radar groups", () => {
 
   it("drops an empty manually added group after remount when no position was persisted", async () => {
     const firstMount = mountList();
-    await firstMount.get("button").trigger("click");
+    await newRadarButton(firstMount).trigger("click");
     expect(radarHeadings(firstMount)).toEqual(["Radar 1", "Radar 2", "Radar 3"]);
     firstMount.unmount();
 
@@ -156,10 +217,14 @@ describe("AsignationList Radar groups", () => {
     asignationStore.asignations.push(inbox);
     const wrapper = mountList();
     await flushPromises();
-    await (wrapper.vm as unknown as { moveTo: (asignation: TestAsignation, position: number) => Promise<void> }).moveTo(inbox, 3);
+    await (
+      wrapper.vm as unknown as {
+        moveTo: (asignation: TestAsignation, position: number) => Promise<void>;
+      }
+    ).moveTo(inbox, 3);
     await flushPromises();
     expect(asignationStore.updateAsignationStore).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "inbox", position: 3 }),
+      expect.objectContaining({ id: "inbox", position: 3 })
     );
     expect(radarHeadings(wrapper)).toEqual(["Radar 1", "Radar 2", "Radar 3"]);
     wrapper.unmount();
@@ -171,7 +236,11 @@ describe("AsignationList Radar groups", () => {
     asignationStore.asignations.push(...assignments, inbox);
     const wrapper = mountList();
     await flushPromises();
-    await (wrapper.vm as unknown as { moveTo: (asignation: TestAsignation, position: number) => Promise<void> }).moveTo(inbox, 1);
+    await (
+      wrapper.vm as unknown as {
+        moveTo: (asignation: TestAsignation, position: number) => Promise<void>;
+      }
+    ).moveTo(inbox, 1);
     expect(asignationStore.updateAsignationStore).not.toHaveBeenCalled();
     expect(error).toHaveBeenCalledWith("El Radar 1 ya está completo (4/4).");
     wrapper.unmount();
@@ -181,7 +250,7 @@ describe("AsignationList Radar groups", () => {
     asignationStore.asignations.push(
       makeAsignation("one", 1),
       makeAsignation("two", 2),
-      makeAsignation("three", 3),
+      makeAsignation("three", 3)
     );
     const wrapper = mountList();
     await flushPromises();
