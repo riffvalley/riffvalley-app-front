@@ -11,6 +11,8 @@ import {
 } from "@services/asignation/asignation";
 import { updateDisc } from "@services/discs/discs";
 import { radarDetailQueryKeys } from "./radarDetailQueries";
+import { editorialClientId } from "@/shared/realtime/editorialClientId";
+import { LIST_ASSIGNMENT_MUTATION_KEY } from "../../shared/application/listsRealtime";
 
 export function useRadarDetailMutations(listId: MaybeRefOrGetter<string>) {
   const queryClient = useQueryClient();
@@ -39,19 +41,27 @@ export function useRadarDetailMutations(listId: MaybeRefOrGetter<string>) {
     });
 
   const assign = useMutation({
-    mutationFn: (payload: CreateAsignationPayload) => postAsignationService(payload),
+    mutationKey: LIST_ASSIGNMENT_MUTATION_KEY,
+    mutationFn: (payload: CreateAsignationPayload) =>
+      postAsignationService(payload, editorialClientId),
     onSuccess: async () => {
       await Promise.all([refreshAssignments(), refreshCatalog(), refreshCalendarList()]);
     },
   });
   const updateAssignment = useMutation({
+    mutationKey: LIST_ASSIGNMENT_MUTATION_KEY,
     mutationFn: ({ id, payload }: { id: string; payload: UpdateAsignationPayload }) =>
-      updateAsignationService(id, payload),
+      updateAsignationService(
+        id,
+        payload,
+        payload.position !== undefined ? editorialClientId : undefined
+      ),
     onSuccess: async () => {
       await Promise.all([refreshAssignments(), refreshCatalog(), refreshCalendarList()]);
     },
   });
   const removeAssignment = useMutation({
+    mutationKey: LIST_ASSIGNMENT_MUTATION_KEY,
     mutationFn: (id: string) => deleteAsignationService(id),
     onSuccess: async () => {
       await Promise.all([refreshAssignments(), refreshCatalog(), refreshCalendarList()]);
