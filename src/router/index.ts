@@ -246,14 +246,16 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: "list",
         name: "ReunionsList",
-        component: () => import("@views/reunions/ListReunion.vue"),
+        component: () =>
+          import("@/modules/editorial/reunions/presentation/views/ReunionsListView.vue"),
         meta: { requiresAuth: true, requiresRole: "riffvalley" },
         props: true,
       },
       {
         path: ":id",
         name: "EditReunion",
-        component: () => import("@views/reunions/EditReunion.vue"),
+        component: () =>
+          import("@/modules/editorial/reunions/presentation/views/ReunionDetailView.vue"),
         meta: { requiresAuth: true, requiresRole: "riffvalley" },
         props: true,
       },
