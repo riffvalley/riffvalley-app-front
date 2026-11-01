@@ -1,0 +1,343 @@
+<template>
+  <div
+    v-if="show"
+    class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-3 sm:px-0"
+  >
+    <button
+      type="button"
+      class="absolute inset-0 w-full h-full border-0 bg-transparent p-0"
+      aria-label="Cerrar diálogo"
+      @click="$emit('close')"
+    ></button>
+    <div
+      class="bg-white dark:bg-rv-darkCard rounded-2xl w-full sm:max-w-md shadow-2xl max-h-[92vh] overflow-y-auto relative z-10"
+      ref="dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cc-dialog-title-editcontentmodal"
+      tabindex="-1"
+    >
+      <!-- Cabecera -->
+      <div
+        class="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 dark:border-white/10"
+      >
+        <div class="flex items-center gap-2">
+          <span
+            class="px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider"
+            :class="typeBadgeClass"
+          >
+            {{ typeLabel }}
+          </span>
+          <h3
+            class="text-base font-bold text-gray-900 dark:text-white"
+            id="cc-dialog-title-editcontentmodal"
+          >
+            Editar evento
+          </h3>
+        </div>
+        <button
+          @click="$emit('close')"
+          aria-label="Cerrar diálogo"
+          class="w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-rv-darkSurface transition-all"
+        >
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <!-- Cuerpo -->
+      <div class="px-5 py-4 space-y-4">
+        <!-- Tipo -->
+        <div>
+          <span
+            id="cc-label-editcontentmodal-1"
+            class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5"
+            >Tipo</span
+          >
+          <select
+            v-model="formData.type"
+            class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30 disabled:opacity-50"
+            :disabled="formData.type === 'riff_valley_playlist'"
+            aria-labelledby="cc-label-editcontentmodal-1"
+          >
+            <option value="article">Artículo</option>
+            <option value="photos">Fotos</option>
+            <option value="radar">Radar</option>
+            <option value="best">Mejores Discos</option>
+            <option value="video">Video</option>
+            <option value="reunion">Reunión</option>
+            <option value="riff_valley_playlist" v-if="formData.type === 'riff_valley_playlist'">
+              Playlist de Riff Valley
+            </option>
+          </select>
+          <p v-if="formData.type === 'riff_valley_playlist'" class="text-xs text-gray-400 mt-1">
+            El tipo no se puede cambiar para playlists de Riff Valley.
+          </p>
+        </div>
+
+        <!-- Nombre -->
+        <div>
+          <span
+            id="cc-label-editcontentmodal-2"
+            class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5"
+            >Nombre</span
+          >
+          <input
+            v-model="formData.name"
+            type="text"
+            class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30 disabled:opacity-50"
+            :disabled="formData.type === 'riff_valley_playlist'"
+            placeholder="Título del contenido"
+            aria-labelledby="cc-label-editcontentmodal-2"
+          />
+          <p v-if="formData.type === 'riff_valley_playlist'" class="text-xs text-gray-400 mt-1">
+            El nombre no se puede editar para playlists de Riff Valley.
+          </p>
+        </div>
+
+        <!-- Notas -->
+        <div>
+          <span
+            id="cc-label-editcontentmodal-3"
+            class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5"
+            >Notas</span
+          >
+          <textarea
+            v-model="formData.notes"
+            class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30 resize-none"
+            rows="3"
+            placeholder="Descripción o notas..."
+            aria-labelledby="cc-label-editcontentmodal-3"
+          ></textarea>
+        </div>
+
+        <!-- Fecha de publicación -->
+        <div>
+          <span
+            id="cc-label-editcontentmodal-4"
+            class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5"
+          >
+            Fecha de publicación
+            <span
+              v-if="['reunion', 'radar', 'best'].includes(formData.type)"
+              class="text-red-500 ml-0.5"
+              >*</span
+            >
+          </span>
+          <input
+            v-model="formData.publicationDate"
+            type="date"
+            class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30"
+            :min="
+              formData.type === 'radar' && formData.listDate
+                ? formData.listDate.split('T')[0]
+                : undefined
+            "
+            aria-labelledby="cc-label-editcontentmodal-4"
+          />
+          <button
+            v-if="formData.publicationDate && !['reunion', 'radar', 'best'].includes(formData.type)"
+            @click="formData.publicationDate = ''"
+            class="mt-1.5 text-xs text-gray-400 hover:text-rv-purple dark:hover:text-rv-pink transition-colors flex items-center gap-1"
+          >
+            <i class="fa-solid fa-arrow-rotate-left text-[10px]"></i>
+            Mover a backlog
+          </button>
+          <p
+            v-if="['reunion', 'radar', 'best'].includes(formData.type)"
+            class="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1"
+          >
+            <i class="fa-solid fa-triangle-exclamation text-[10px]"></i>
+            Este tipo requiere fecha obligatoria
+          </p>
+        </div>
+
+        <!-- Radar: fecha lista + cierre -->
+        <div v-if="formData.type === 'radar'" class="space-y-3">
+          <div
+            v-if="formData.listDate"
+            class="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl px-3 py-2.5"
+          >
+            <i class="fa-regular fa-calendar text-indigo-400 text-xs"></i>
+            <span class="text-xs text-indigo-700 dark:text-indigo-300 font-medium">
+              Fecha de lista: {{ formatDisplayDate(formData.listDate) }}
+            </span>
+          </div>
+          <div>
+            <span
+              id="cc-label-editcontentmodal-5"
+              class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5"
+              >Fecha cierre</span
+            >
+            <input
+              v-model="formData.closeDate"
+              type="date"
+              class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30"
+              :min="
+                formData.publicationDate
+                  ? formData.publicationDate.split('T')[0]
+                  : formData.listDate
+                    ? formData.listDate
+                    : undefined
+              "
+              aria-labelledby="cc-label-editcontentmodal-5"
+            />
+          </div>
+        </div>
+
+        <!-- Autor -->
+        <div>
+          <span
+            id="cc-label-editcontentmodal-6"
+            class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5"
+            >Autor</span
+          >
+          <AssignableUsersFeedback
+            :loading="usersLoading"
+            :error="usersError"
+            :refreshing="usersRefreshing"
+            @retry="emit('retry-users')"
+          />
+          <select
+            v-model="formData.authorId"
+            :disabled="usersLoading || rvUsers.length === 0"
+            class="w-full bg-gray-50 dark:bg-rv-darkSurface border-0 rounded-xl px-3 py-2.5 text-sm text-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-rv-purple/30"
+            aria-labelledby="cc-label-editcontentmodal-6"
+          >
+            <option value="">Seleccionar autor...</option>
+            <option v-for="user in rvUsers" :key="user.id" :value="user.id">
+              {{ user.username }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div
+        class="flex flex-wrap justify-between items-center gap-3 px-5 pb-5 pt-3 border-t border-gray-100 dark:border-white/10"
+      >
+        <button
+          @click="$emit('delete')"
+          class="group flex items-center gap-2 text-gray-400 hover:text-red-600 transition-colors px-3 py-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20"
+        >
+          <i
+            class="fa-regular fa-trash-can text-base group-hover:scale-110 transition-transform"
+          ></i>
+          <span class="text-sm font-medium">Eliminar</span>
+        </button>
+        <div class="flex gap-2">
+          <button
+            @click="$emit('close')"
+            class="px-4 py-2 bg-gray-100 dark:bg-rv-darkSurface text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-rv-darkBg rounded-xl transition-colors font-medium text-sm"
+          >
+            Cancelar
+          </button>
+          <button
+            @click="handleUpdate"
+            class="px-4 py-2 bg-rv-purple hover:bg-rv-pink text-white rounded-xl transition-colors font-semibold text-sm shadow-sm hover:-translate-y-0.5 transform"
+          >
+            Guardar cambios
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useDialogFocus } from "../composables/useDialogFocus";
+import { ref, watch, computed } from "vue";
+import type { Content } from "@services/contents/contents";
+import { formatCalendarDateInput } from "../../utils/contentCalendarDates";
+import type { RvUser } from "@/modules/identity/users";
+import AssignableUsersFeedback from "./AssignableUsersFeedback.vue";
+import type { ContentEditorData } from "../../types/contentCalendar.types";
+
+interface Props {
+  show: boolean;
+  content: Content;
+  rvUsers: RvUser[];
+  usersLoading?: boolean;
+  usersError?: boolean;
+  usersRefreshing?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  usersLoading: false,
+  usersError: false,
+  usersRefreshing: false,
+});
+const { dialog } = useDialogFocus(() => props.show);
+
+const emit = defineEmits<{
+  close: [];
+  "retry-users": [];
+  update: [data: ContentEditorData];
+  delete: [];
+}>();
+
+const typeLabel = computed(
+  () =>
+    ({
+      article: "Artículo",
+      photos: "Fotos",
+      riff_valley_playlist: "Playlist de Riff Valley",
+      radar: "Radar",
+      best: "Mejores del Mes",
+      video: "Video",
+      reunion: "Reunión",
+    })[formData.value.type] ?? formData.value.type
+);
+
+const typeBadgeClass = computed(
+  () =>
+    ({
+      article: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
+      photos: "bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300",
+      riff_valley_playlist: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300",
+      radar: "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300",
+      best: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300",
+      video: "bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300",
+      reunion: "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300",
+    })[formData.value.type] ?? "bg-gray-100 text-gray-600"
+);
+
+function formatForInput(dateStr: string): string {
+  return formatCalendarDateInput(dateStr);
+}
+
+const formData = ref({
+  type: props.content.type,
+  name: props.content.name,
+  notes: props.content.notes || "",
+  publicationDate: formatForInput(props.content.publicationDate || ""),
+  closeDate: props.content.closeDate ? props.content.closeDate.split("T")[0] : "",
+  authorId: props.content.author?.id || "",
+  listDate: props.content.list?.listDate || "",
+});
+
+watch(
+  () => props.content,
+  (newContent) => {
+    formData.value = {
+      type: newContent.type,
+      name: newContent.name,
+      notes: newContent.notes || "",
+      publicationDate: formatForInput(newContent.publicationDate || ""),
+      closeDate: newContent.closeDate ? newContent.closeDate.split("T")[0] : "",
+      authorId: newContent.author?.id || "",
+      listDate: newContent.list?.listDate || "",
+    };
+  },
+  { deep: true }
+);
+
+function handleUpdate() {
+  emit("update", { ...formData.value });
+}
+
+function formatDisplayDate(dateStr: string): string {
+  if (!dateStr) return "";
+  const [year, month, day] = dateStr.split("T")[0].split("-");
+  return `${day}/${month}/${year}`;
+}
+</script>

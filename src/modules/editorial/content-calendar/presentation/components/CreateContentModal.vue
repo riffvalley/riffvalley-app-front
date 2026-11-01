@@ -1,0 +1,483 @@
+<template>
+  <div
+    v-if="show"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+  >
+    <button
+      type="button"
+      class="absolute inset-0 w-full h-full border-0 bg-transparent p-0"
+      aria-label="Cerrar diálogo"
+      @click="$emit('close')"
+    ></button>
+    <div
+      class="bg-white dark:bg-rv-darkCard rounded-lg p-6 w-full max-w-2xl shadow-xl relative z-10"
+      ref="dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cc-dialog-title-createcontentmodal"
+      tabindex="-1"
+    >
+      <h3
+        class="text-lg font-bold mb-4 text-gray-900 dark:text-white"
+        id="cc-dialog-title-createcontentmodal"
+      >
+        Nuevo Contenido
+      </h3>
+
+      <div class="space-y-4">
+        <div>
+          <span
+            id="cc-label-createcontentmodal-1"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >Tipo</span
+          >
+          <select
+            v-model="formData.type"
+            class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+            aria-labelledby="cc-label-createcontentmodal-1"
+          >
+            <option value="article">Artículo</option>
+            <option value="photos">Fotos</option>
+            <option value="radar">Radar</option>
+            <option value="best">Mejores Discos</option>
+            <option value="video">Video</option>
+            <option value="reunion">Reunión</option>
+          </select>
+        </div>
+
+        <div>
+          <span
+            id="cc-label-createcontentmodal-2"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >Nombre</span
+          >
+          <input
+            v-model="formData.name"
+            type="text"
+            class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+            placeholder="Título del contenido"
+            aria-labelledby="cc-label-createcontentmodal-2"
+          />
+        </div>
+
+        <div>
+          <span
+            id="cc-label-createcontentmodal-3"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >Notas</span
+          >
+          <textarea
+            v-model="formData.notes"
+            class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+            rows="3"
+            placeholder="Descripción o notas..."
+            aria-labelledby="cc-label-createcontentmodal-3"
+          ></textarea>
+        </div>
+
+        <div>
+          <span
+            id="cc-label-createcontentmodal-4"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >Autor</span
+          >
+          <AssignableUsersFeedback
+            :loading="usersLoading"
+            :error="usersError"
+            :refreshing="usersRefreshing"
+            @retry="emit('retry-users')"
+          />
+          <select
+            v-model="formData.authorId"
+            :disabled="usersLoading || rvUsers.length === 0"
+            class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+            aria-labelledby="cc-label-createcontentmodal-4"
+          >
+            <option value="">Seleccionar autor...</option>
+            <option v-for="user in rvUsers" :key="user.id" :value="user.id">
+              {{ user.username }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Radar: Year + Month + Week selectors -->
+        <div v-if="formData.type === 'radar'" class="space-y-4">
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <span
+                id="cc-label-createcontentmodal-5"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Año <span class="text-red-600">*</span>
+              </span>
+              <select
+                v-model="formData.selectedYear"
+                @change="handleYearChange"
+                class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+                aria-labelledby="cc-label-createcontentmodal-5"
+              >
+                <option :value="2025">2025</option>
+                <option :value="2026">2026</option>
+              </select>
+            </div>
+            <div>
+              <span
+                id="cc-label-createcontentmodal-6"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Mes <span class="text-red-600">*</span>
+              </span>
+              <select
+                v-model="formData.selectedMonth"
+                @change="updateRadarListDate"
+                class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+                aria-labelledby="cc-label-createcontentmodal-6"
+              >
+                <option v-for="month in 12" :key="month" :value="month">
+                  {{ getMonthName(month) }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <span
+                id="cc-label-createcontentmodal-7"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Semana <span class="text-red-600">*</span>
+              </span>
+              <select
+                v-model="formData.selectedWeek"
+                @change="updateRadarListDate"
+                class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+                aria-labelledby="cc-label-createcontentmodal-7"
+              >
+                <option
+                  v-for="week in getWeeksInMonth(formData.selectedMonth, formData.selectedYear)"
+                  :key="week"
+                  :value="week"
+                >
+                  Semana {{ week }}
+                </option>
+              </select>
+            </div>
+          </div>
+          <div v-if="formData.listDate" class="text-sm text-gray-600 dark:text-gray-400">
+            📅 Fecha de lista: <strong>{{ formatDisplayDate(formData.listDate) }}</strong>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <span
+                id="cc-label-createcontentmodal-8"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Fecha de Publicación <span class="text-red-600">*</span>
+              </span>
+              <input
+                v-model="formData.publicationDate"
+                type="date"
+                class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+                :class="{ 'border-red-500': !formData.publicationDate }"
+                :min="formData.listDate || undefined"
+                aria-labelledby="cc-label-createcontentmodal-8"
+              />
+            </div>
+            <div>
+              <span
+                id="cc-label-createcontentmodal-9"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Fecha Cierre
+              </span>
+              <input
+                v-model="formData.closeDate"
+                type="date"
+                class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+                :min="
+                  formData.publicationDate
+                    ? formData.publicationDate.split('T')[0]
+                    : formData.listDate
+                      ? formData.listDate
+                      : undefined
+                "
+                aria-labelledby="cc-label-createcontentmodal-9"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Best/Video: Year + Month selector -->
+        <div v-else-if="['best', 'video'].includes(formData.type)" class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <span
+                id="cc-label-createcontentmodal-10"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Año <span class="text-red-600">*</span>
+              </span>
+              <select
+                v-model="formData.selectedYear"
+                @change="handleYearChange"
+                class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+                aria-labelledby="cc-label-createcontentmodal-10"
+              >
+                <option :value="2025">2025</option>
+                <option :value="2026">2026</option>
+              </select>
+            </div>
+            <div>
+              <span
+                id="cc-label-createcontentmodal-11"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Mes <span class="text-red-600">*</span>
+              </span>
+              <select
+                v-model="formData.selectedMonth"
+                @change="updateBestVideoListDate"
+                class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+                aria-labelledby="cc-label-createcontentmodal-11"
+              >
+                <option v-for="month in 12" :key="month" :value="month">
+                  {{ getMonthName(month) }}
+                </option>
+              </select>
+            </div>
+          </div>
+          <div v-if="formData.listDate" class="text-sm text-gray-600 dark:text-gray-400">
+            📅 Fecha de lista: <strong>{{ formatDisplayDate(formData.listDate) }}</strong> (día 15
+            del mes)
+          </div>
+          <div>
+            <span
+              id="cc-label-createcontentmodal-12"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Fecha de Publicación
+              <span v-if="formData.type === 'best'" class="text-red-600">*</span>
+            </span>
+            <input
+              v-model="formData.publicationDate"
+              type="date"
+              class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+              :class="{ 'border-red-500': formData.type === 'best' && !formData.publicationDate }"
+              aria-labelledby="cc-label-createcontentmodal-12"
+            />
+            <p
+              v-if="formData.type === 'best'"
+              class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+            >
+              Este tipo de contenido requiere una fecha obligatoria
+            </p>
+          </div>
+        </div>
+
+        <!-- Other types: Regular publication date -->
+        <div v-else>
+          <span
+            id="cc-label-createcontentmodal-13"
+            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+          >
+            Fecha de Publicación
+            <span v-if="formData.type === 'reunion'" class="text-red-600">*</span>
+          </span>
+          <input
+            v-model="formData.publicationDate"
+            type="date"
+            class="w-full border border-gray-300 dark:border-white/20 dark:bg-rv-darkSurface dark:text-gray-200 rounded-lg px-3 py-2"
+            :class="{ 'border-red-500': formData.type === 'reunion' && !formData.publicationDate }"
+            aria-labelledby="cc-label-createcontentmodal-13"
+          />
+          <p
+            v-if="formData.type === 'reunion'"
+            class="text-xs text-gray-500 dark:text-gray-400 mt-1"
+          >
+            Este tipo de contenido requiere una fecha obligatoria
+          </p>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 mt-6">
+        <button
+          @click="$emit('close')"
+          class="px-4 py-2 bg-gray-100 dark:bg-rv-darkSurface text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-rv-darkBg rounded-lg transition-colors font-medium"
+        >
+          Cancelar
+        </button>
+        <button
+          @click="handleCreate"
+          :disabled="usersLoading || rvUsers.length === 0"
+          class="px-4 py-2 bg-rv-purple text-white rounded-lg hover:bg-rv-pink transition-colors"
+        >
+          Crear
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useDialogFocus } from "../composables/useDialogFocus";
+import { ref, watch } from "vue";
+import type { ContentType } from "@services/contents/contents";
+import type { RvUser } from "@/modules/identity/users";
+import AssignableUsersFeedback from "./AssignableUsersFeedback.vue";
+import type { CreateContentFormData } from "../../types/contentCalendar.types";
+import { MONTHS } from "@helpers/dateConstants";
+import { addCalendarDays, formatLocalCalendarDate } from "../../utils/contentCalendarDates";
+
+interface Props {
+  show: boolean;
+  rvUsers: RvUser[];
+  usersLoading?: boolean;
+  usersError?: boolean;
+  usersRefreshing?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  usersLoading: false,
+  usersError: false,
+  usersRefreshing: false,
+});
+const { dialog } = useDialogFocus(() => props.show);
+
+const emit = defineEmits<{
+  close: [];
+  "retry-users": [];
+  create: [data: CreateContentFormData];
+}>();
+
+const formData = ref({
+  type: "article" as ContentType,
+  name: "",
+  notes: "",
+  publicationDate: "",
+  closeDate: "",
+  authorId: "",
+  listDate: "",
+  selectedMonth: new Date().getMonth() + 1,
+  selectedWeek: 1,
+  selectedYear: new Date().getFullYear(),
+});
+
+// Watch for modal opening or type change to auto-fill name
+watch([() => props.show, () => formData.value.type, () => props.rvUsers], ([isOpen, type]) => {
+  if (isOpen) {
+    // Reset dates that might have been set by other types
+    formData.value.listDate = "";
+    formData.value.closeDate = "";
+
+    if (type === "radar") {
+      updateRadarListDate();
+    } else if (["best", "video"].includes(type)) {
+      updateBestVideoListDate();
+    }
+
+    // Auto-select RiffValley user
+    const riffValleyUser = props.rvUsers.find((u) => u.username === "RiffValley");
+    if (riffValleyUser && !formData.value.authorId) {
+      formData.value.authorId = riffValleyUser.id;
+    }
+  }
+});
+
+function getMonthName(month: number): string {
+  return MONTHS[month - 1];
+}
+
+function getWeeksInMonth(month: number, year: number): number {
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+
+  let current = new Date(firstDay);
+  const dayOfWeek = current.getDay();
+  const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek) % 7;
+  if (daysUntilMonday > 0) {
+    current.setDate(current.getDate() + daysUntilMonday);
+  }
+
+  let weekCount = 0;
+  while (current <= lastDay) {
+    weekCount++;
+    current.setDate(current.getDate() + 7);
+  }
+
+  return weekCount || 1;
+}
+
+function getFridayOfWeek(month: number, week: number, year: number): string {
+  const firstDay = new Date(year, month - 1, 1);
+
+  let monday = new Date(firstDay);
+  const dayOfWeek = monday.getDay();
+  const daysUntilMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek) % 7;
+  monday.setDate(monday.getDate() + daysUntilMonday);
+
+  monday.setDate(monday.getDate() + (week - 1) * 7);
+
+  const friday = new Date(monday);
+  friday.setDate(friday.getDate() + 4);
+
+  return formatLocalCalendarDate(friday);
+}
+
+function updateRadarListDate() {
+  formData.value.listDate = getFridayOfWeek(
+    formData.value.selectedMonth,
+    formData.value.selectedWeek,
+    formData.value.selectedYear
+  );
+
+  const monthName = getMonthName(formData.value.selectedMonth);
+  formData.value.name = `Discos ${monthName} Semana ${formData.value.selectedWeek}`;
+
+  const saturday = addCalendarDays(formData.value.listDate, 1);
+  formData.value.publicationDate = saturday;
+  formData.value.closeDate = addCalendarDays(formData.value.listDate, 2);
+}
+
+function updateBestVideoListDate() {
+  const date = new Date(formData.value.selectedYear, formData.value.selectedMonth - 1, 15);
+  formData.value.listDate = formatLocalCalendarDate(date);
+
+  if (formData.value.type === "best") {
+    const monthName = getMonthName(formData.value.selectedMonth);
+    formData.value.name = `Mejores Discos de ${monthName}`;
+
+    const nextMonth = new Date(formData.value.selectedYear, formData.value.selectedMonth, 1);
+    const dayOfWeek = nextMonth.getDay();
+    const daysUntilThursday = (4 - dayOfWeek + 7) % 7;
+
+    nextMonth.setDate(nextMonth.getDate() + daysUntilThursday);
+    const date = formatLocalCalendarDate(nextMonth);
+    formData.value.publicationDate = date;
+  }
+}
+
+function handleYearChange() {
+  formData.value.selectedMonth = 1;
+  formData.value.selectedWeek = 1;
+
+  if (formData.value.type === "radar") {
+    updateRadarListDate();
+  } else if (["best", "video"].includes(formData.value.type)) {
+    updateBestVideoListDate();
+  }
+}
+
+function formatDisplayDate(dateStr: string): string {
+  if (!dateStr) return "";
+  const [year, month, day] = dateStr.split("T")[0].split("-");
+  return `${day}/${month}/${year}`;
+}
+
+function handleCreate() {
+  emit("create", { ...formData.value });
+}
+
+// Initialize listDate on mount
+if (props.show) {
+  updateBestVideoListDate();
+  updateRadarListDate();
+}
+</script>
