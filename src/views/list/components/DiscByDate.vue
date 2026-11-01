@@ -13,26 +13,20 @@
       No discs found for the selected {{ type }}.
     </div>
     <div v-else>
-      <!-- Lista de discos agrupados -->
-      <div v-for="(group, index) in filteredDiscs" :key="group.start || group.releaseDate" class="mb-8">
+      <!-- Lista continua de discos, agrupada por fecha -->
+      <div v-for="group in filteredDiscs" :key="group.start || group.releaseDate" class="mb-8">
         <!-- Encabezado del grupo -->
-        <div class="flex justify-between items-center bg-gray-200 dark:bg-rv-navy px-4 py-2 rounded cursor-pointer"
-          @click="toggleGroup(index)">
+        <div class="flex justify-between items-center bg-gray-200 dark:bg-rv-navy px-4 py-2 rounded">
           <h3 class="text-xl font-bold">
             {{ type === "week" ? `${group.start}` : group.releaseDate }}
           </h3>
-          <i :class="groupState[index] ? 'fas fa-chevron-up' : 'fas fa-chevron-down'
-            " class="text-xl"></i>
         </div>
 
-        <!-- Contenido del grupo -->
-        <transition name="fade-slide" mode="out-in">
-
-          <div v-if="groupState[index]" class="mt-4">
+        <div class="mt-4">
             <ul>
               <li v-for="disc in group.discs" :key="disc.id"
                   class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border-b gap-2 transition-colors"
-                  :class="disc.pinned ? 'border-l-4 border-l-green-400 bg-green-50 dark:bg-green-900/10' : ''">
+                  :class="disc.pinned ? 'bg-green-50 dark:bg-green-900/10' : ''">
 
                 <!-- Info del disco -->
                 <div class="flex items-center gap-2 flex-wrap min-w-0">
@@ -70,7 +64,7 @@
 
                 <!-- Acciones -->
                 <div class="flex items-center gap-2 flex-wrap">
-                  <select v-model="selectedUser[disc.id]" class="border rounded px-2 py-1 text-sm flex-1 sm:flex-none sm:w-36 bg-white text-gray-900">
+                  <select v-model="selectedUser[disc.id]" :aria-label="`Asignar ${disc.name} a un usuario`" class="border rounded px-2 py-1 text-sm flex-1 sm:flex-none sm:w-36 bg-white text-gray-900">
                     <option value="" disabled>Seleccionar</option>
                     <option v-for="user in users" :key="user.id" :value="user.id">
                       {{ user.username }}
@@ -92,8 +86,7 @@
                 </div>
               </li>
             </ul>
-          </div>
-        </transition>
+        </div>
       </div>
     </div>
     <div ref="scrollObserver" class="h-1 text-center py-6">
@@ -111,16 +104,15 @@ import {
   watch,
   computed,
   nextTick,
+  type PropType,
 } from "vue";
 import { getDiscsDated, updateDisc } from "@services/discs/discs";
 import { getRvUsers } from "@/modules/identity/users";
 import type { RvUser } from "@/modules/identity/users";
 import { getGenres } from "@services/genres/genres"; // Importa getGenres
 import SwalService from "@services/swal/SwalService";
-import { obtenerEnlaceArtistaSpotify } from "@helpers/SpotifyFunctions";
 import { postAsignationService } from "@services/asignation/asignation";
 import { useAsignationStore } from "@stores/asignation/asignation";
-import { updateAsignationService } from "@services/asignation/asignation";
 import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import DiscFilters from "@components/DiscFilters.vue"; // Importa DiscFilters
 
@@ -148,7 +140,6 @@ export default defineComponent({
   setup(props) {
     const discs = ref<any[]>([]);
     const users = ref<RvUser[]>([]);
-    const groupState = reactive({});
     const loading = ref(false);
     const hasMore = ref(true);
     const page = ref(1);
@@ -306,10 +297,6 @@ export default defineComponent({
       }
     };
 
-    const toggleGroup = (index: number) => {
-      groupState[index] = !groupState[index];
-    };
-
     const assignUser = async (discId: string) => {
       // ... (resto del código de assignUser, sin cambios) ...
       const userId = selectedUser[discId];
@@ -409,6 +396,7 @@ export default defineComponent({
     const resetAndFetch = () => {
       page.value = 1;
       discs.value = []; // Limpia los discos existentes
+      hasMore.value = true;
       fetchDiscs();
     };
 
@@ -494,12 +482,10 @@ export default defineComponent({
 
     return {
       discs,
-      groupState,
       loading,
       hasMore,
       page,
       formattedDate,
-      toggleGroup,
       scrollObserver,
       users,
       selectedUser,
@@ -516,20 +502,3 @@ export default defineComponent({
   },
 });
 </script>
-
-<style scoped>
-.fade-slide-enter-active,
-.fade-slide-leave-active {
-  transition: all 0.6s ease;
-}
-
-.fade-slide-enter-from {
-  opacity: 0;
-  transform: translateY(-15px);
-}
-
-.fade-slide-leave-to {
-  opacity: 0;
-  transform: translateY(-15px);
-}
-</style>

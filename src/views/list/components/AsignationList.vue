@@ -442,16 +442,26 @@ export default defineComponent({
 
     const draggedItem = ref<any>(null);
     const dragOverGroup = ref<number | null>(null);
-    const availablePositionsCount = ref(1);
+    const availablePositionsCount = ref(2);
 
     watch(
       () => asignationStore.asignations,
       (newAsignations) => {
         asignations.value = newAsignations.map((a: any) => ({ ...a, position: a.position ?? 0 }));
-        if (props.type === 'week' && asignations.value.length > 0) {
-          const maxPos = Math.max(...asignations.value.map(a => a.position));
-          const calculatedneeded = Math.ceil(asignations.value.length / 4);
-          availablePositionsCount.value = Math.max(maxPos, calculatedneeded, 1);
+        if (props.type === 'week') {
+          const maxPersistedPosition = asignations.value.reduce(
+            (maxPosition, asignation) =>
+              asignation.position > 0
+                ? Math.max(maxPosition, asignation.position)
+                : maxPosition,
+            2,
+          );
+          // Keep manually-created empty panels for this mounted session.
+          // Persisted positions can still extend the sequence after a reload.
+          availablePositionsCount.value = Math.max(
+            availablePositionsCount.value,
+            maxPersistedPosition,
+          );
         }
       },
       { immediate: true, deep: true }
