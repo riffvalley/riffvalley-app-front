@@ -9,12 +9,14 @@ import { useBestDetailMutations } from "../../application/useBestDetailMutations
 import BestAssignments from "../components/BestAssignments.vue";
 import BestDiscCatalog from "../components/BestDiscCatalog.vue";
 import BestVotes from "../components/BestVotes.vue";
+import { useListsRealtime } from "@/modules/editorial/lists/shared/application/useListsRealtime";
 
 type BestListDetails = RadarListDetails & { wpPostId?: number | null; wpPostUrl?: string | null };
 type DetailTab = "votos" | "seleccion";
 const route = useRoute();
 const router = useRouter();
 const listId = computed(() => String(route.params.id ?? ""));
+useListsRealtime(listId, "month");
 const detailQuery = useBestDetailQuery(listId);
 const mutations = useBestDetailMutations(listId);
 const list = computed(() => detailQuery.data.value as BestListDetails | undefined);

@@ -50,9 +50,14 @@ export interface UpdateAsignationPayload {
 }
 
 export async function postAsignationService(
-  payload: CreateAsignationPayload
+  payload: CreateAsignationPayload,
+  clientId?: string
 ): Promise<EditorialAsignation> {
-  const response = await api.post<EditorialAsignation>("/asignations", payload);
+  const response = clientId
+    ? await api.post<EditorialAsignation>("/asignations", payload, {
+        headers: { "X-Riff-Valley-Client-Id": clientId },
+      })
+    : await api.post<EditorialAsignation>("/asignations", payload);
   return response.data;
 }
 
@@ -72,8 +77,13 @@ export async function deleteAsignationService(id: string): Promise<void> {
 
 export async function updateAsignationService(
   id: string,
-  data: UpdateAsignationPayload
+  data: UpdateAsignationPayload,
+  clientId?: string
 ): Promise<EditorialAsignation> {
-  const response = await api.patch<EditorialAsignation>(`/asignations/${id}`, data);
+  const response = clientId
+    ? await api.patch<EditorialAsignation>(`/asignations/${id}`, data, {
+        headers: { "X-Riff-Valley-Client-Id": clientId },
+      })
+    : await api.patch<EditorialAsignation>(`/asignations/${id}`, data);
   return response.data;
 }
