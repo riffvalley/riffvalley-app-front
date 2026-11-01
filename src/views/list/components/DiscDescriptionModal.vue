@@ -483,6 +483,10 @@ html.dark .modal-btn-cancel:hover {
   font-size: 0.95rem;
 }
 
+.quill-wrapper :deep(.ql-editor p + p) {
+  margin-top: 0.75em;
+}
+
 .quill-wrapper :deep(.ql-editor.ql-blank::before) {
   font-style: normal;
 }
