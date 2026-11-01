@@ -75,18 +75,22 @@
       <button type="button" class="ml-2 underline" @click="retryRanking">Reintentar</button>
     </div>
 
-    <TopDiscsRanking v-else :discs="discs" @rating-saved="onRatingSaved" />
+    <TopDiscsRanking v-else :discs="discs" @card-updated="handleCardUpdated" />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, computed } from "vue";
 import { useQueryClient } from "@tanstack/vue-query";
-import type { TopRankedDisc } from "@/modules/catalog/top-discs/types/topDiscs";
+import type {
+  TopDiscsCardUpdateEvent,
+  TopDiscsResponse,
+  TopRankedDisc,
+} from "@/modules/catalog/top-discs/types/topDiscs";
 import TopDiscsHeader from "@/modules/catalog/top-discs/presentation/components/TopDiscsHeader.vue";
 import TopDiscsRanking from "@/modules/catalog/top-discs/presentation/components/TopDiscsRanking.vue";
 import { getAvailableYears } from "@helpers/dateConstants";
-import { topDiscsQueryKey, useTopDiscsQuery } from "@/modules/catalog/top-discs/composables/useTopDiscsQueries";
+import { useTopDiscsQuery } from "@/modules/catalog/top-discs/composables/useTopDiscsQueries";
 import {
   useTopDiscsFilterCoordinator,
   type TopDiscsDateRange,
@@ -98,11 +102,6 @@ export default defineComponent({
   components: { TopDiscsHeader, TopDiscsRanking },
   setup() {
     const queryClient = useQueryClient();
-    const onRatingSaved = (event: { musicalRateChanged: boolean }) => {
-      if (event.musicalRateChanged) {
-        void queryClient.invalidateQueries({ queryKey: topDiscsQueryKey });
-      }
-    };
     const filters = useTopDiscsFilterCoordinator();
     const {
       period: selectedPeriod,
@@ -281,6 +280,35 @@ export default defineComponent({
       ...(selectedGenre.value ? { genreId: selectedGenre.value } : {}),
     }));
     const rankingQuery = useTopDiscsQuery(rankingParams, filters.canLoadRanking);
+    const handleCardUpdated = (event: TopDiscsCardUpdateEvent) => {
+      queryClient.setQueryData<TopDiscsResponse>(rankingQuery.queryKey.value, (current) => {
+        if (!current) return current;
+
+        return {
+          ...current,
+          discs: current.discs.map((disc) => {
+            if (disc.id !== event.discId) return disc;
+            if (event.type === "rating") {
+              return {
+                ...disc,
+                averageRate: event.averageRate,
+                averageCover: event.averageCover,
+                voteCount: event.voteCount,
+                userRate: event.rateId
+                  ? { id: event.rateId, rate: event.rate, cover: event.cover }
+                  : disc.userRate,
+              };
+            }
+
+            return {
+              ...disc,
+              userFavoriteId: event.favoriteId,
+              pendingId: event.pendingId,
+            };
+          }),
+        };
+      });
+    };
     const discs = computed<TopRankedDisc[]>(() => {
       if (!filters.canLoadRanking.value) return [];
       return (rankingQuery.data.value?.discs ?? []).map((disc) => ({
@@ -338,8 +366,8 @@ export default defineComponent({
     });
 
     return {
-      onRatingSaved,
       discs,
+      handleCardUpdated,
       selectedPeriod,
       selectedRangeKey,
       selectedYear,

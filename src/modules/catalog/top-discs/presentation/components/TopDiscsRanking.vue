@@ -1,20 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { TopRankedDisc } from "../../types/topDiscs";
+import type { TopDiscsCardUpdateEvent, TopRankedDisc } from "../../types/topDiscs";
 import { separateTopDiscs } from "../separateTopDiscs";
 import TopDiscsFeatured from "./TopDiscsFeatured.vue";
 import TopDiscsGrid from "./TopDiscsGrid.vue";
 
-interface RatingSavedEvent {
-  discId: string;
-  action: "created" | "updated";
-  musicalRateChanged: boolean;
-  hasMusicalRate: boolean;
-  coverChanged: boolean;
-}
-
 const props = defineProps<{ discs: TopRankedDisc[] }>();
-const emit = defineEmits<{ "rating-saved": [event: RatingSavedEvent] }>();
+const emit = defineEmits<{ "card-updated": [event: TopDiscsCardUpdateEvent] }>();
 
 const sections = computed(() => separateTopDiscs(props.discs));
 const hasDiscs = computed(() => props.discs.length > 0);
@@ -22,8 +14,8 @@ const hasDiscs = computed(() => props.discs.length > 0);
 
 <template>
   <div v-if="hasDiscs" class="ranking-sections">
-    <TopDiscsFeatured :discs="sections.featured" @rating-saved="emit('rating-saved', $event)" />
-    <TopDiscsGrid :discs="sections.secondary" @rating-saved="emit('rating-saved', $event)" />
+    <TopDiscsFeatured :discs="sections.featured" @card-updated="emit('card-updated', $event)" />
+    <TopDiscsGrid :discs="sections.secondary" @card-updated="emit('card-updated', $event)" />
   </div>
   <p v-else role="status" class="py-8 text-center text-gray-600 dark:text-gray-300">
     No hay discos para este periodo y estos filtros.
