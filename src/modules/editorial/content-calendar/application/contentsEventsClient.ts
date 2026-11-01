@@ -4,7 +4,7 @@ import {
 } from "./contentsInvalidateParser";
 import { createReconnectDelay } from "./contentCalendarRealtime";
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "");
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? "/api").replace(/\/+$/, "");
 export const contentsEventsUrl = `${apiBaseUrl}/contents/events`;
 // One ephemeral ID per loaded tab; stream and calendar mutations share this origin.
 export const contentCalendarClientId = crypto.randomUUID();
