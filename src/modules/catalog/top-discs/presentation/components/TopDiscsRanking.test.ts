@@ -18,7 +18,6 @@ const DiscCardStub = defineComponent({
     artistName: String,
     link: String,
   },
-  emits: ["rating-saved"],
   render() {
     return h("article", { "data-testid": "disc-card" }, this.id);
   },
@@ -168,7 +167,7 @@ describe("TopDiscsRanking", () => {
     wrapper.unmount();
   });
 
-  it("preserves Community card inputs and forwards events from both blocks", () => {
+  it("preserves Community card inputs", () => {
     const wrapper = mountRanking(makeDiscs(4));
     const cards = wrapper.findAllComponents(DiscCardStub);
     expect(cards[0].props()).toMatchObject({
@@ -180,18 +179,6 @@ describe("TopDiscsRanking", () => {
       artistName: "Artista 1",
       link: "https://music.test/1",
     });
-    const firstEvent = {
-      discId: "disc-1",
-      action: "updated" as const,
-      musicalRateChanged: true,
-      hasMusicalRate: true,
-      coverChanged: false,
-    };
-    const gridEvent = { ...firstEvent, discId: "disc-4" };
-    cards[0].vm.$emit("rating-saved", firstEvent);
-    cards[3].vm.$emit("rating-saved", gridEvent);
-
-    expect(wrapper.emitted("rating-saved")).toEqual([[firstEvent], [gridEvent]]);
     wrapper.unmount();
   });
 });

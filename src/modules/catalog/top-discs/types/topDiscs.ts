@@ -32,6 +32,26 @@ export interface TopDiscsResponse {
   topUsersByCover: unknown[];
 }
 
+export type TopDiscsCardUpdateEvent =
+  | {
+      type: "rating";
+      discId: string;
+      rateId: string | null;
+      rate: number | null;
+      cover: number | null;
+      hasMusicalRate: boolean;
+      hasCover: boolean;
+      averageRate: number | null;
+      averageCover: number | null;
+      voteCount: number;
+    }
+  | {
+      type: "community";
+      discId: string;
+      favoriteId: string | null;
+      pendingId: string | null;
+    };
+
 export interface TopDiscsOptionsResponse {
   countries: Country[];
   genres: Genre[];
