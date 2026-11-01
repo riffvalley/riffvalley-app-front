@@ -18,6 +18,15 @@ export interface Disc {
   releaseDate: string;
   artist: Artist;
   verified: boolean;
+  pinned?: boolean;
+  hasExistingAsignation?: boolean;
+  artistCountry?: { id: string; name: string; isoCode?: string } | null;
+  country?: { id: string; name: string; isoCode?: string } | null;
+  asignations?: Array<{
+    id: string;
+    user?: { id?: string; username?: string } | null;
+    list?: { id: string } | null;
+  }>;
   /** Legacy alias present in some catalog payloads; `/discs/random` returns `ep`. */
   EP?: boolean;
   ep?: boolean;
@@ -93,8 +102,9 @@ export interface DiscsStatsResponse {
 export async function getDiscsDated(
   limit: number,
   offset: number,
-  dateRange?: any,
-  country?: string
+  dateRange?: string[],
+  country?: string,
+  signal?: AbortSignal
 ): Promise<DiscsResponse> {
   const response = await api.get<DiscsResponse>("/discs/date", {
     params: {
@@ -103,6 +113,7 @@ export async function getDiscsDated(
       dateRange,
       ...(country && { country, countryId: country })
     },
+    ...(signal ? { signal } : {}),
   });
 
   return response.data;

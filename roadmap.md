@@ -3,6 +3,7 @@
 - [Migración del frontend principal a Cloudflare (CF-1–CF-4)](roadmap/cloudflare-migration.md): CF-1–CF-3 completadas; CF-4 detenida tras HTTP 522, con el CNAME anterior restaurado pero el hostname aún sin recuperar.
 - [Documentación del frontend](docs/frontend/index.md): índice de fuentes canónicas y roadmaps históricos.
 - [Editorial — frontend](roadmap/editorial/README.md): índice de iniciativas editoriales; Content Calendar (E-CC) auditado y con roadmap pendiente de revisión.
+- [Radar y Mejores del Mes (RM-1–RM-5)](roadmap/editorial/radar-mejores.md): RM-1, RM-2, RM-2b, RM-3, RM-4, RM-4b y RM-5 completadas; Radar y Mejores del Mes están oficialmente cerrados. El roadmap conserva aceptación, arquitectura, evidencia histórica y limitaciones.
 - [Content Calendar en tiempo real (SSE-4)](roadmap/editorial/content-calendar-realtime.md): consumidor SSE y sincronización de calendario completados; SSE-5 permanece sin iniciar.
 - [Sistema de diseño frontend (DS-1–DS-5)](roadmap/dashboard.md): guía visual disponible para futuros desarrollos; fase de Dashboard cerrada por decisión del usuario. DS-1–DS-3 y DS-4a–DS-4d completadas; DS-4e–DS-4j descartadas y DS-5 cancelada (no se presentan como implementadas).
 - [Layout y Sidebar (L-0–L-7)](roadmap/layout.md): auditorías, integración del resumen, limpieza legacy y regresión/cierre local completados con limitaciones documentadas.

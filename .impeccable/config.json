@@ -47,6 +47,15 @@
         "value": "inter",
         "createdAt": "2026-10-31T11:13:48.177Z",
         "reason": "Usuario confirmó mantener Inter como tipografía global de Riff Valley."
+      },
+      {
+        "rule": "ai-color-palette",
+        "value": "*",
+        "files": [
+          "src/modules/editorial/radar-best-lists/presentation/views/RadarDetailView.vue"
+        ],
+        "createdAt": "2026-11-01T12:44:32.378Z",
+        "reason": "User explicitly requested no Radar redesign in RM-3; this preserved purple/cyan palette was part of the existing Radar detail presentation."
       }
     ]
   }

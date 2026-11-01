@@ -1,9 +1,12 @@
 // @vitest-environment happy-dom
 import { flushPromises, mount } from "@vue/test-utils";
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
+import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import RadarDetalle from "./RadarDetalle.vue";
+import RadarDetailView from "./RadarDetailView.vue";
 import { getListDetails, updateList } from "@services/list/list";
 import SwalService from "@services/swal/SwalService";
+import { useAuthStore } from "@/modules/identity/auth";
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
 
@@ -46,29 +49,55 @@ const radar = {
   wpWeeklyPosts: [],
 };
 
-describe("RadarDetalle", () => {
+let pinia: ReturnType<typeof createPinia>;
+let queryClient: QueryClient;
+
+describe("RadarDetailView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    pinia = createPinia();
+    setActivePinia(pinia);
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    });
+    useAuthStore().$patch({
+      authStatus: "authenticated",
+      isAuthenticated: true,
+      userId: "editor-1",
+      token: "token",
+      role: "riffvalley",
+      authSessionGeneration: 1,
+    });
     vi.mocked(getListDetails).mockResolvedValue({ ...radar });
     vi.mocked(updateList).mockResolvedValue({});
   });
 
   it("no presenta un control para editar la descripción de List", async () => {
-    const wrapper = mount(RadarDetalle, {
-      global: { stubs: { AsignationList: true, DiscsByDate: true } },
+    const wrapper = mount(RadarDetailView, {
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: { RadarAssignments: true, RadarDiscCatalog: true },
+      },
     });
     await flushPromises();
 
     expect(wrapper.find('input[placeholder="Añade una descripción..."]').exists()).toBe(false);
-    expect(wrapper.findAll("input")).toHaveLength(4);
-    expect(wrapper.findComponent({ name: "AsignationList" }).exists()).toBe(true);
+    expect(wrapper.findAll("input")).toHaveLength(7);
+    expect(wrapper.find(".radar-mobile-dates").exists()).toBe(true);
+    expect(wrapper.find(".radar-mobile-dates summary").text()).toContain("Fechas editoriales");
+    expect(wrapper.findComponent({ name: "RadarAssignments" }).exists()).toBe(true);
+    expect(wrapper.findComponent({ name: "RadarAssignments" }).props("listId")).toBe("radar-1");
+    expect(wrapper.findComponent({ name: "RadarDiscCatalog" }).props("listId")).toBe("radar-1");
 
     wrapper.unmount();
   });
 
   it("mantiene los PATCH de nombre, estado y fechas sin enviar description", async () => {
-    const wrapper = mount(RadarDetalle, {
-      global: { stubs: { AsignationList: true, DiscsByDate: true } },
+    const wrapper = mount(RadarDetailView, {
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: { RadarAssignments: true, RadarDiscCatalog: true },
+      },
     });
     await flushPromises();
 
@@ -79,7 +108,7 @@ describe("RadarDetalle", () => {
     await wrapper.get("select").setValue("assigned");
     await flushPromises();
 
-    const dates = wrapper.findAll('input[type="date"]');
+    const dates = wrapper.findAll('.hidden input[type="date"]');
     await dates[0].setValue("2026-10-10");
     await flushPromises();
     await dates[1].setValue("2026-10-13");
@@ -101,8 +130,11 @@ describe("RadarDetalle", () => {
 
   it("sigue mostrando un error cuando falla el guardado", async () => {
     vi.mocked(updateList).mockRejectedValueOnce(new Error("Request failed"));
-    const wrapper = mount(RadarDetalle, {
-      global: { stubs: { AsignationList: true, DiscsByDate: true } },
+    const wrapper = mount(RadarDetailView, {
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: { RadarAssignments: true, RadarDiscCatalog: true },
+      },
     });
     await flushPromises();
 
@@ -117,12 +149,15 @@ describe("RadarDetalle", () => {
   });
 
   it("bloquea una fecha editorial vacía o inválida y conserva el valor anterior", async () => {
-    const wrapper = mount(RadarDetalle, {
-      global: { stubs: { AsignationList: true, DiscsByDate: true } },
+    const wrapper = mount(RadarDetailView, {
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: { RadarAssignments: true, RadarDiscCatalog: true },
+      },
     });
     await flushPromises();
 
-    const input = wrapper.get('input[aria-label="Fecha de publicación obligatoria"]');
+    const input = wrapper.findAll('input[aria-label="Fecha de publicación obligatoria"]')[0];
     input.element.value = "";
     await input.trigger("change");
 
@@ -145,22 +180,25 @@ describe("RadarDetalle", () => {
   });
 
   it("no guarda una fecha editorial sin cambios y envía null al vaciar fechas opcionales", async () => {
-    const wrapper = mount(RadarDetalle, {
-      global: { stubs: { AsignationList: true, DiscsByDate: true } },
+    const wrapper = mount(RadarDetailView, {
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: { RadarAssignments: true, RadarDiscCatalog: true },
+      },
     });
     await flushPromises();
 
-    const releaseDate = wrapper.get('input[aria-label="Fecha de publicación obligatoria"]');
+    const releaseDate = wrapper.findAll('input[aria-label="Fecha de publicación obligatoria"]')[0];
     await releaseDate.trigger("change");
     expect(updateList).not.toHaveBeenCalled();
 
-    const listDate = wrapper.get('input[aria-label="Fecha de lista"]');
+    const listDate = wrapper.findAll('input[aria-label="Fecha de lista"]')[0];
     listDate.element.value = "";
     await listDate.trigger("change");
     await flushPromises();
     expect(updateList).toHaveBeenCalledWith("radar-1", { listDate: null });
 
-    const closeDate = wrapper.get('input[aria-label="Fecha de cierre"]');
+    const closeDate = wrapper.findAll('input[aria-label="Fecha de cierre"]')[0];
     closeDate.element.value = "";
     await closeDate.trigger("change");
     await flushPromises();
