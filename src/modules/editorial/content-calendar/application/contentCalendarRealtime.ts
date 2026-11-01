@@ -1,5 +1,6 @@
 import type { Content } from "@services/contents/contents";
 import type { ContentsInvalidateChangeEvent } from "./contentsInvalidateParser";
+export { createReconnectDelay } from "@/shared/realtime/reconnectDelay";
 
 type VisibleContent = Pick<
   Content,
@@ -133,9 +134,4 @@ export function formatEditorialBatchToast(
         ? `${actors.join(" y ")} han realizado`
         : "Varios editores han realizado";
   return `${actorPrefix} varios cambios visibles en el calendario.`;
-}
-
-export function createReconnectDelay(attempt: number, random = Math.random): number {
-  const base = Math.min(30_000, 500 * 2 ** Math.min(attempt, 6));
-  return Math.round(base * (0.75 + random() * 0.5));
 }
