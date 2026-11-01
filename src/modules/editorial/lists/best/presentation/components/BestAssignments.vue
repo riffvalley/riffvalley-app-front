@@ -7,7 +7,7 @@ import {
 import { useBestDetailMutations } from "../../application/useBestDetailMutations";
 import type { EditorialAsignation, UpdateAsignationPayload } from "@services/asignation/asignation";
 import type { RvUser } from "@/modules/identity/users";
-import RadarDiscSpotifyButton from "./RadarDiscSpotifyButton.vue";
+import DiscSpotifyButton from "../../../shared/presentation/components/DiscSpotifyButton.vue";
 import DiscDescriptionModal from "@views/list/components/DiscDescriptionModal.vue";
 import SwalService from "@services/swal/SwalService";
 
@@ -138,7 +138,7 @@ async function saveMetadata(payload: {
                 <img v-if="assignment.disc.image" :src="assignment.disc.image" alt="" />
                 <span v-else aria-hidden="true">{{ assignment.disc.artist.name.charAt(0) }}</span>
               </div>
-              <RadarDiscSpotifyButton
+              <DiscSpotifyButton
                 :disc-name="assignment.disc.name"
                 :artist-name="assignment.disc.artist.name"
                 :album-url="assignment.disc.link"

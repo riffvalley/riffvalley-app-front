@@ -79,7 +79,7 @@ describe("BestAssignments", () => {
             props: ["country", "showFlagName"],
             template: '<svg data-testid="country-flag" :country="country" :class="$attrs.class" />',
           },
-          RadarDiscSpotifyButton: {
+          DiscSpotifyButton: {
             template: '<button class="best-card-spotify" aria-label="Spotify">Spotify</button>',
           },
         },
@@ -126,7 +126,7 @@ describe("BestAssignments", () => {
     ];
     const wrapper = mount(BestAssignments, {
       props: { listId: "best-1" },
-      global: { stubs: { CircleFlags: true, RadarDiscSpotifyButton: true } },
+      global: { stubs: { CircleFlags: true, DiscSpotifyButton: true } },
     });
     await flushPromises();
     expect(wrapper.get(".best-card-country [country='es']").exists()).toBe(true);
@@ -136,7 +136,7 @@ describe("BestAssignments", () => {
   it("updates validation, user and metadata through editorial mutations", async () => {
     const wrapper = mount(BestAssignments, {
       props: { listId: "best-1" },
-      global: { stubs: { CircleFlags: true, RadarDiscSpotifyButton: true } },
+      global: { stubs: { CircleFlags: true, DiscSpotifyButton: true } },
     });
     await flushPromises();
     await wrapper
@@ -172,7 +172,7 @@ describe("BestAssignments", () => {
   it("asks for confirmation before removing an assignment", async () => {
     const wrapper = mount(BestAssignments, {
       props: { listId: "best-1" },
-      global: { stubs: { CircleFlags: true, RadarDiscSpotifyButton: true } },
+      global: { stubs: { CircleFlags: true, DiscSpotifyButton: true } },
     });
     await flushPromises();
     await wrapper
