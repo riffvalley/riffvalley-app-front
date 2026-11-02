@@ -404,6 +404,34 @@ describe("Content Calendar legacy characterization", () => {
     wrapper.unmount();
   });
 
+  it("creates backlog Content without sending an empty publication date", async () => {
+    const wrapper = mountCalendar();
+    await flushPromises();
+    wrapper.findComponent(CreateContentModal).vm.$emit("create", {
+      type: "article",
+      name: "Prueba Backlog",
+      notes: "",
+      publicationDate: "",
+      closeDate: "",
+      authorId: "author-1",
+    });
+    await flushPromises();
+
+    expect(createContent).toHaveBeenCalledWith(
+      {
+        type: "article",
+        name: "Prueba Backlog",
+        notes: undefined,
+        closeDate: undefined,
+        authorId: "author-1",
+        listDate: undefined,
+        backlog: true,
+      },
+      expect.any(String)
+    );
+    wrapper.unmount();
+  });
+
   it.each(["radar", "best", "reunion"])(
     "requires a publication date when creating %s",
     async (type) => {
