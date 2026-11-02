@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import api from "@/services/api/api";
+import { venueResolutionFixtures } from "@/modules/events-festivals/api/__fixtures__/entityResolutionFixtures";
 import {
   getAdministrativeRegions,
   getVenueImportCountries,
@@ -106,25 +107,56 @@ describe("venue import API adapters", () => {
     expect(post).toHaveBeenCalledWith("/venues/import-batch", payload, { signal: undefined });
   });
 
-  it("resolves exact venue names by locality in batches capped at 100", async () => {
-    const response = {
-      results: [
-        {
-          name: "Sala",
-          localityId: "locality-id",
-          venue: { id: "venue-id", name: "Sala Canónica" },
-        },
-      ],
-    };
+  it("resolves exact venue names by locality, validates indexes, and retains ambiguity", async () => {
+    const venues = venueResolutionFixtures.map(({ name, localityId }) => ({ name, localityId }));
+    const response = { results: [...venueResolutionFixtures].reverse() };
     const post = vi.spyOn(api, "post").mockResolvedValue({ data: response } as never);
-    const venues = [{ name: "Sala", localityId: "locality-id" }];
     const signal = new AbortController().signal;
 
-    await expect(resolveVenueBatch(venues, signal)).resolves.toEqual(response.results);
+    await expect(resolveVenueBatch(venues, signal)).resolves.toEqual(venueResolutionFixtures);
     expect(post).toHaveBeenCalledWith("/venues/resolve-batch", { venues }, { signal });
+    expect(venueResolutionFixtures[0]?.status).toBe("existing");
+    expect(venueResolutionFixtures[1]).toMatchObject({ status: "new", venue: null });
+    expect(venueResolutionFixtures[2]).toMatchObject({
+      status: "ambiguous",
+      code: "VENUE_AMBIGUOUS",
+      venue: null,
+    });
+  });
+
+  it("rejects empty physical venue names and oversized batches before the request", async () => {
+    const post = vi.spyOn(api, "post");
+    const venues = [{ name: "Sala", localityId: "locality-id" }];
+    await expect(resolveVenueBatch([{ name: "  ", localityId: "locality-id" }])).rejects.toThrow(
+      "nombre no vacío"
+    );
     await expect(resolveVenueBatch(Array.from({ length: 101 }, () => venues[0]!))).rejects.toThrow(
       "como máximo 100"
     );
-    expect(post).toHaveBeenCalledTimes(1);
+    expect(post).not.toHaveBeenCalled();
   });
+
+  it("rejects malformed responses instead of treating them as new venues", async () => {
+    vi.spyOn(api, "post").mockResolvedValue({
+      data: { results: [{ index: 0, name: "Sala", localityId: "locality-id", status: "new" }] },
+    } as never);
+    await expect(
+      resolveVenueBatch([{ name: "Sala", localityId: "locality-id" }])
+    ).rejects.toMatchObject({
+      name: "IndexedBatchProtocolError",
+    });
+  });
+
+  it.each([new Error("offline"), { response: { status: 503 } }])(
+    "preserves transport errors",
+    async (failure) => {
+      vi.spyOn(api, "post").mockRejectedValue(failure);
+      await expect(
+        resolveVenueBatch(
+          [{ name: "Sala", localityId: "locality-id" }],
+          new AbortController().signal
+        )
+      ).rejects.toBe(failure);
+    }
+  );
 });

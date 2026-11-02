@@ -1,14 +1,18 @@
 import api from "@/services/api/api";
+import {
+  ENTITY_RESOLUTION_BATCH_LIMIT,
+  IndexedBatchProtocolError,
+  orderIndexedResults,
+} from "@/services/api/indexedBatch";
 import type { CountriesResponse, Country } from "@/services/countries/countries";
 import type {
   AdministrativeRegion,
   ResolveLocalityResponse,
   VenueImportBatchResponse,
+  VenueResolutionBatchRequest,
   VenueResolutionResult,
   VenueType,
 } from "../types/venueImport";
-
-const VENUE_RESOLUTION_BATCH_SIZE = 100;
 
 export async function getVenueImportCountries(signal?: AbortSignal): Promise<Country[]> {
   const countries: Country[] = [];
@@ -73,19 +77,69 @@ export async function importVenueBatch(
 }
 
 export async function resolveVenueBatch(
-  venues: Array<{ name: string; localityId: string }>,
+  venues: VenueResolutionBatchRequest["venues"],
   signal?: AbortSignal
 ): Promise<VenueResolutionResult[]> {
-  if (venues.length > VENUE_RESOLUTION_BATCH_SIZE) {
+  if (venues.length > ENTITY_RESOLUTION_BATCH_LIMIT) {
     throw new RangeError("La resolución admite como máximo 100 salas por petición.");
   }
-  const { data } = await api.post<{ results: VenueResolutionResult[] }>(
-    "/venues/resolve-batch",
-    { venues },
-    { signal }
-  );
-  if (!Array.isArray(data.results) || data.results.length !== venues.length) {
-    throw new Error("La respuesta de resolución de salas no coincide con la petición.");
+  if (venues.some(({ name }) => !name.trim())) {
+    throw new RangeError("La resolución exacta de salas requiere un nombre no vacío.");
   }
-  return data.results;
+  const { data } = await api.post<unknown>("/venues/resolve-batch", { venues }, { signal });
+
+  if (!isRecord(data) || !Array.isArray(data.results)) {
+    throw new IndexedBatchProtocolError("La respuesta de resolución de salas no contiene results.");
+  }
+  const results: VenueResolutionResult[] = [];
+  for (const result of data.results) {
+    if (!isVenueResolutionResult(result)) {
+      throw new IndexedBatchProtocolError("La respuesta de resolución de salas está malformada.");
+    }
+    results.push(result);
+  }
+  return orderIndexedResults(
+    venues,
+    results,
+    (input, result) => input.name === result.name && input.localityId === result.localityId
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isVenueCandidate(value: unknown): value is { id: string; name: string } {
+  return isRecord(value) && typeof value.id === "string" && typeof value.name === "string";
+}
+
+function isVenueResolutionResult(value: unknown): value is VenueResolutionResult {
+  if (
+    !isRecord(value) ||
+    !Number.isInteger(value.index) ||
+    typeof value.name !== "string" ||
+    typeof value.localityId !== "string" ||
+    !Array.isArray(value.candidates) ||
+    !value.candidates.every(isVenueCandidate)
+  ) {
+    return false;
+  }
+
+  switch (value.status) {
+    case "existing":
+      return (
+        isVenueCandidate(value.venue) &&
+        value.candidates.length === 1 &&
+        value.candidates[0]?.id === value.venue.id &&
+        value.candidates[0]?.name === value.venue.name
+      );
+    case "new":
+      return value.venue === null && value.candidates.length === 0;
+    case "ambiguous":
+      return (
+        value.venue === null && value.code === "VENUE_AMBIGUOUS" && value.candidates.length > 1
+      );
+    default:
+      return false;
+  }
 }

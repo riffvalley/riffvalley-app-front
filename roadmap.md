@@ -3,7 +3,7 @@
 - [Migración del frontend principal a Cloudflare (CF-1–CF-4)](roadmap/cloudflare-migration.md): CF-1–CF-3 completadas; CF-4 detenida tras HTTP 522, con el CNAME anterior restaurado pero el hostname aún sin recuperar.
 - [Documentación del frontend](docs/frontend/index.md): índice de fuentes canónicas y roadmaps históricos.
 - [Editorial — frontend](roadmap/editorial/README.md): índice de iniciativas editoriales; Content Calendar (E-CC) auditado y con roadmap pendiente de revisión.
-- [Conciertos y festivales](roadmap/events-festivals.md): CON-F01–CON-F04 implementadas en frontend, pendientes de validación; fases backend e integración sin iniciar.
+- [Conciertos y festivales](roadmap/events-festivals.md): prototipo CON-F01–CON-F07, auditoría frontend CON-F08a y roadmap de integración CON-F08b–CON-F09; consultar la [arquitectura canónica del importador](docs/frontend/modules/events-festivals-importer.md).
 - [Salas y recintos (VEN-F01–VEN-F04 y VEN-I01)](roadmap/venues.md): VEN-F01, VEN-F02 y VEN-F03a implementadas y verificadas localmente, pendientes de validación del usuario; VEN-F03b, VEN-F04 y VEN-I01 no iniciadas.
 - [Radar y Mejores del Mes (RM-1–RM-5)](roadmap/editorial/radar-mejores.md): RM-1, RM-2, RM-2b, RM-3, RM-4, RM-4b y RM-5 completadas; Radar y Mejores del Mes están oficialmente cerrados. El roadmap conserva aceptación, arquitectura, evidencia histórica y limitaciones.
 - [Content Calendar en tiempo real (SSE-4)](roadmap/editorial/content-calendar-realtime.md): consumidor SSE y sincronización de calendario completados; SSE-5 permanece sin iniciar.

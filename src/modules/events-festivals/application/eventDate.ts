@@ -1,6 +1,11 @@
-import type { EventImportRow } from "./useEventImportRows";
-
 export type EventDateField = "startDate" | "endDate";
+
+export interface EventDateValidationRow {
+  startDate: string | null;
+  startDateDraft: string;
+  endDate: string | null;
+  endDateDraft: string;
+}
 
 export function parseCalendarDate(value: string): string | null {
   const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/u.exec(value.trim());
@@ -22,7 +27,7 @@ export function formatCalendarDate(value: string | null): string {
   return match ? `${match[3]}/${match[2]}/${match[1]}` : "";
 }
 
-export function getDateCellError(row: EventImportRow, field: EventDateField): string {
+export function getDateCellError(row: EventDateValidationRow, field: EventDateField): string {
   const draft = row[`${field}Draft`];
   if (draft && !parseCalendarDate(draft)) return "Usa una fecha válida en formato DD/MM/YYYY.";
   if (field === "endDate" && row.startDate && row.endDate && row.endDate < row.startDate) {

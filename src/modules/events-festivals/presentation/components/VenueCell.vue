@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { nextTick, ref, useTemplateRef, watch } from "vue";
-import type { EventImportRow, VenueResolutionStatus } from "../../application/useEventImportRows";
+import type { AdministrativeRegion } from "@/modules/venues";
+import type { EventGeographyState, EventImportRow } from "../../application/useEventImportRows";
 
 const props = defineProps<{
   row: EventImportRow;
-  status: VenueResolutionStatus;
+  state: EventGeographyState;
+  regions: AdministrativeRegion[];
   rowNumber: number;
 }>();
 
@@ -12,6 +14,9 @@ const emit = defineEmits<{
   update: [value: string];
   commit: [];
   retry: [];
+  retryLocality: [];
+  selectRegion: [regionId: string];
+  selectLocality: [localityId: string];
 }>();
 
 const editing = ref(!props.row.venue.venueId);
@@ -65,26 +70,111 @@ function stopEditing() {
       @keydown.enter.prevent="($event.target as HTMLInputElement).blur()"
     />
     <span
-      v-if="status === 'resolving'"
+      v-if="state.localityStatus === 'resolving' || state.venueStatus === 'resolving'"
       class="text-xs text-gray-500 dark:text-gray-400"
       role="status"
     >
       Buscando…
     </span>
     <span
-      v-else-if="status === 'ambiguous'"
-      class="text-xs text-amber-700 dark:text-amber-300"
+      v-else-if="state.localityStatus === 'existing'"
+      class="text-xs text-emerald-700 dark:text-emerald-300"
       role="status"
     >
-      Varias salas; completa City o Province.
+      Localidad encontrada
     </span>
     <span
-      v-else-if="status === 'error'"
+      v-else-if="state.localityStatus === 'new'"
+      class="text-xs text-sky-700 dark:text-sky-300"
+      role="status"
+    >
+      Localidad nueva
+    </span>
+    <span
+      v-if="
+        state.localityStatus === 'new' &&
+        state.localityResult?.status === 'new' &&
+        state.localityResult.requiresAdministrativeRegionId
+      "
+      class="w-full text-xs text-amber-700 dark:text-amber-300"
+      role="status"
+    >
+      Selecciona la región administrativa
+      <select
+        :value="row.administrativeRegionId ?? ''"
+        :aria-label="`Región administrativa, fila ${rowNumber}`"
+        class="mt-1 min-h-8 w-full rounded border border-gray-300 bg-white px-2 text-xs text-gray-900 dark:border-white/20 dark:bg-rv-darkSurface dark:text-white"
+        @change="emit('selectRegion', ($event.target as HTMLSelectElement).value)"
+      >
+        <option value="">Seleccionar región…</option>
+        <option v-for="region in regions" :key="region.id" :value="region.id">
+          {{ region.name }}
+        </option>
+      </select>
+    </span>
+    <span
+      v-if="state.localityStatus === 'ambiguous'"
+      class="w-full text-xs text-amber-700 dark:text-amber-300"
+      role="status"
+    >
+      Localidad ambigua
+      <select
+        :aria-label="`Candidatos de localidad, fila ${rowNumber}`"
+        class="mt-1 min-h-8 w-full rounded border border-gray-300 bg-white px-2 text-xs text-gray-900 dark:border-white/20 dark:bg-rv-darkSurface dark:text-white"
+        @change="emit('selectLocality', ($event.target as HTMLSelectElement).value)"
+      >
+        <option value="">Seleccionar localidad…</option>
+        <option
+          v-for="candidate in state.localityCandidates"
+          :key="candidate.id"
+          :value="candidate.id"
+        >
+          {{ candidate.name }} · {{ candidate.province ?? candidate.administrativeRegion.name }} ·
+          {{ candidate.country.name }}
+        </option>
+      </select>
+    </span>
+    <span
+      v-else-if="state.venueStatus === 'existing'"
+      class="text-xs text-emerald-700 dark:text-emerald-300"
+      role="status"
+      >Recinto encontrado</span
+    >
+    <span
+      v-else-if="state.venueStatus === 'new'"
+      class="text-xs text-sky-700 dark:text-sky-300"
+      role="status"
+      >Recinto nuevo</span
+    >
+    <span
+      v-else-if="state.venueStatus === 'ambiguous'"
+      class="text-xs text-amber-700 dark:text-amber-300"
+      role="status"
+      >Recinto ambiguo</span
+    >
+    <span
+      v-if="
+        state.localityStatus === 'invalid' ||
+        state.localityStatus === 'error' ||
+        state.venueStatus === 'error'
+      "
       class="inline-flex items-center gap-1 text-xs text-red-700 dark:text-red-300"
       role="status"
     >
-      No se pudo buscar.
-      <button type="button" class="font-semibold underline" @click="emit('retry')">
+      {{
+        state.localityStatus === "invalid"
+          ? `Localidad no válida (${state.localityResult?.status === "invalid" ? state.localityResult.code : ""}).`
+          : "Error de resolución."
+      }}
+      <button
+        v-if="state.localityStatus === 'error' || state.localityStatus === 'invalid'"
+        type="button"
+        class="font-semibold underline"
+        @click="emit('retryLocality')"
+      >
+        Reintentar
+      </button>
+      <button v-else type="button" class="font-semibold underline" @click="emit('retry')">
         Reintentar
       </button>
     </span>

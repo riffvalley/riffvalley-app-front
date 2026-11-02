@@ -1,36 +1,19 @@
 import api from "@services/api/api";
+import { ENTITY_RESOLUTION_BATCH_LIMIT } from "@/services/api/indexedBatch";
+import { validateArtistResolutionPayload } from "./entityResolution";
+import type { ArtistResolutionResult } from "./entityResolutionContracts";
 
-export interface ResolvedArtist {
-  id: string;
-  name: string;
-}
-
-export interface ArtistResolutionResult {
-  name: string;
-  artist: ResolvedArtist | null;
-}
-
-interface ResolveArtistsBatchResponse {
-  results: ArtistResolutionResult[];
-}
+export type { ArtistResolutionResult, ResolvedArtist } from "./entityResolutionContracts";
 
 export async function resolveArtistsBatch(
   names: string[],
   signal?: AbortSignal
 ): Promise<ArtistResolutionResult[]> {
-  if (names.length > 100) {
+  if (names.length > ENTITY_RESOLUTION_BATCH_LIMIT) {
     throw new RangeError("La resolución admite como máximo 100 artistas por petición.");
   }
 
-  const { data } = await api.post<ResolveArtistsBatchResponse>(
-    "/artists/resolve-batch",
-    { names },
-    { signal }
-  );
+  const { data } = await api.post<unknown>("/artists/resolve-batch", { names }, { signal });
 
-  if (!Array.isArray(data.results) || data.results.length !== names.length) {
-    throw new Error("La respuesta de resolución de artistas no coincide con la petición.");
-  }
-
-  return data.results;
+  return validateArtistResolutionPayload(data, names);
 }

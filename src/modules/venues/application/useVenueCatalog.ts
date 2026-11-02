@@ -9,11 +9,12 @@ import {
   VENUE_CATALOG_PAGE_SIZE,
 } from "../api/venueCatalog";
 import type { UpdateVenueCatalogPayload, VenueCatalogFilters } from "../types/venueCatalog";
+import {
+  venueCatalogCountriesQueryKey,
+  venueCatalogRegionsQueryKey,
+} from "./importCatalogQueryKeys";
 
 export const venueCatalogQueryKey = ["venues", "catalog"] as const;
-export const venueCatalogCountriesQueryKey = ["venues", "import", "countries"] as const;
-export const venueCatalogRegionsQueryKey = (countryId: string) =>
-  ["venues", "import", "regions", countryId] as const;
 export const venueCatalogLocalitiesQueryKey = (countryId: string, regionId: string) =>
   [...venueCatalogQueryKey, "locality-options", countryId, regionId] as const;
 

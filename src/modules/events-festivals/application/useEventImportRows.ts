@@ -1,11 +1,21 @@
+import type { QueryClient } from "@tanstack/vue-query";
 import { onScopeDispose, reactive, ref } from "vue";
+import type { ArtistResolutionResult } from "../api/artistResolution";
+import type { VenueResolutionResult } from "@/modules/venues";
+import type {
+  LocalityInspectionResult,
+  LocalityResolutionCandidate,
+  TourResolutionResult,
+  EntityCandidate,
+} from "../api/entityResolutionContracts";
+import { splitLineupNames } from "./lineupText";
+import { useEventEntityResolution } from "./useEventEntityResolution";
 import {
-  resolveArtistsBatch,
-  type ArtistResolutionResult,
-  type ResolvedArtist,
-} from "../api/artistResolution";
-import { searchVenueNames, type VenueNameLookup } from "@/modules/venues";
-import { lineupNameCacheKey, splitLineupNames } from "./lineupText";
+  localityIdentity,
+  useEventGeographyResolution,
+  venueIdentity,
+} from "./useEventGeographyResolution";
+import { tourResolutionKey, useEventTourResolution } from "./useEventTourResolution";
 import { formatCalendarDate, parseCalendarDate, type EventDateField } from "./eventDate";
 import type { EventType } from "./eventType";
 
@@ -29,9 +39,31 @@ export interface EventImportRow {
   otherInfo: string;
   city: string;
   province: string;
+  administrativeRegionId: string | null;
 }
 
-export type VenueResolutionStatus = "idle" | "resolving" | "ambiguous" | "error";
+export type LocalityResolutionStatus =
+  "idle" | "resolving" | "existing" | "new" | "ambiguous" | "invalid" | "error";
+export type VenueResolutionStatus =
+  "idle" | "resolving" | "existing" | "new" | "ambiguous" | "error";
+export interface EventGeographyState {
+  localityStatus: LocalityResolutionStatus;
+  localityCandidates: LocalityResolutionCandidate[];
+  selectedLocality: LocalityResolutionCandidate | null;
+  localityResult: LocalityInspectionResult | null;
+  localityError: string | null;
+  venueStatus: VenueResolutionStatus;
+  venueCandidates: VenueResolutionResult["candidates"];
+  venueError: string | null;
+}
+
+export interface EventTourState {
+  status: "idle" | "resolving" | "existing" | "new" | "ambiguous" | "invalid" | "error";
+  result: TourResolutionResult | null;
+  selectedCandidateId: string | null;
+  confirmedTourId: string | null;
+  error: string | null;
+}
 
 export type LineupDraftStatus = "idle" | "resolving" | "error";
 export type LineupItemStatus = "resolving" | "error";
@@ -40,94 +72,55 @@ export interface LineupCellState {
   draft: string;
   draftStatus: LineupDraftStatus;
   itemStatus: Record<string, LineupItemStatus>;
+  draftError: string | null;
+  itemResolution: Record<string, ArtistResolutionResult | { status: "error"; message: string }>;
 }
 
 const INITIAL_ROW_COUNT = 5;
-const RESOLUTION_DEBOUNCE_MS = 450;
-const ARTIST_BATCH_SIZE = 100;
-const VENUE_RESOLUTION_DEBOUNCE_MS = 450;
+const emptyGeographyState = (): EventGeographyState => ({
+  localityStatus: "idle",
+  localityCandidates: [],
+  selectedLocality: null,
+  localityResult: null,
+  localityError: null,
+  venueStatus: "idle",
+  venueCandidates: [],
+  venueError: null,
+});
 
-export function normalizeVenueSearch(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/gu, "")
-    .trim()
-    .replace(/\s+/gu, " ")
-    .toLocaleLowerCase("und");
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
-function compatibleVenues(
-  venues: VenueNameLookup[],
-  city: string,
-  province: string,
-  name: string
-): VenueNameLookup[] {
-  const normalizedName = normalizeVenueSearch(name);
-  const normalizedCity = normalizeVenueSearch(city);
-  const normalizedProvince = normalizeVenueSearch(province);
-  return venues.filter(
-    (venue) =>
-      normalizeVenueSearch(venue.name) === normalizedName &&
-      (!normalizedCity || normalizeVenueSearch(venue.locality.name) === normalizedCity) &&
-      (!normalizedProvince ||
-        normalizeVenueSearch(venue.locality.province ?? "") === normalizedProvince)
+function isResolutionCancelled(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (("name" in error && (error.name === "AbortError" || error.name === "CancelledError")) ||
+      ("message" in error && error.message === "CancelledError"))
   );
 }
 
-function chunks<T>(items: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    result.push(items.slice(index, index + size));
-  }
-  return result;
-}
-
-export function useEventImportRows() {
+export function useEventImportRows(queryClient: QueryClient) {
   let nextRowId = 1;
   let nextLineupItemKey = 1;
   let disposed = false;
 
   const lineupStates = reactive<Record<string, LineupCellState>>({});
   const rows = ref<EventImportRow[]>([]);
-  const resolvedArtists = new Map<string, ResolvedArtist | null>();
-  const draftTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  const draftControllers = new Map<string, AbortController>();
+  const artistResolution = useEventEntityResolution(queryClient);
+  const geographyResolution = useEventGeographyResolution(queryClient);
+  const tourResolution = useEventTourResolution(queryClient);
   const draftVersions = new Map<string, number>();
-  const itemTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  const itemControllers = new Map<string, AbortController>();
   const itemVersions = new Map<string, number>();
-  const venueStates = reactive<Record<string, VenueResolutionStatus>>({});
-  const venueTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const geographyStates = reactive<Record<string, EventGeographyState>>({});
+  const tourStates = reactive<Record<string, EventTourState>>({});
+  const tourVersions = new Map<string, number>();
+  const confirmedTours = new Map<string, string>();
   const venueVersions = new Map<string, number>();
-  const venueSearches = new Map<string, Promise<VenueNameLookup[]>>();
-
-  async function resolveNames(names: string[], signal: AbortSignal) {
-    const uncachedNames: string[] = [];
-    const seen = new Set<string>();
-
-    for (const name of names) {
-      const key = lineupNameCacheKey(name);
-      if (!resolvedArtists.has(key) && !seen.has(key)) {
-        seen.add(key);
-        uncachedNames.push(name);
-      }
-    }
-
-    for (const batch of chunks(uncachedNames, ARTIST_BATCH_SIZE)) {
-      const results = await resolveArtistsBatch(batch, signal);
-      results.forEach((result, index) => {
-        const requestedName = batch[index];
-        if (requestedName !== undefined) {
-          resolvedArtists.set(lineupNameCacheKey(requestedName), result.artist);
-        }
-      });
-    }
-
-    return names.map((name): ArtistResolutionResult["artist"] => {
-      const resolved = resolvedArtists.get(lineupNameCacheKey(name));
-      return resolved ?? null;
-    });
-  }
+  const localityVersions = new Map<string, number>();
+  const localityTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  let countryId = "";
 
   function createRow(): EventImportRow {
     const row: EventImportRow = {
@@ -144,21 +137,39 @@ export function useEventImportRows() {
       otherInfo: "",
       city: "",
       province: "",
+      administrativeRegionId: null,
     };
-    lineupStates[row.id] = { draft: "", draftStatus: "idle", itemStatus: {} };
-    venueStates[row.id] = "idle";
+    lineupStates[row.id] = {
+      draft: "",
+      draftStatus: "idle",
+      itemStatus: {},
+      draftError: null,
+      itemResolution: {},
+    };
+    geographyStates[row.id] = emptyGeographyState();
+    tourStates[row.id] = emptyTourState();
     return row;
   }
 
-  function createLineupItem(name: string, artist: ResolvedArtist | null): LineupItem {
+  function createLineupItem(name: string, result: ArtistResolutionResult): LineupItem {
     return {
       key: `lineup-item-${nextLineupItemKey++}`,
-      name: artist?.name ?? name,
-      artistId: artist?.id ?? null,
+      name,
+      artistId: result.status === "existing" ? result.artist.id : null,
     };
   }
 
   rows.value = Array.from({ length: INITIAL_ROW_COUNT }, createRow);
+
+  function emptyTourState(): EventTourState {
+    return {
+      status: "idle",
+      result: null,
+      selectedCandidateId: null,
+      confirmedTourId: null,
+      error: null,
+    };
+  }
 
   function nextVersion(versions: Map<string, number>, key: string) {
     const version = (versions.get(key) ?? 0) + 1;
@@ -167,20 +178,10 @@ export function useEventImportRows() {
   }
 
   function cancelDraftWork(rowId: string) {
-    const timer = draftTimers.get(rowId);
-    if (timer) clearTimeout(timer);
-    draftTimers.delete(rowId);
-    draftControllers.get(rowId)?.abort();
-    draftControllers.delete(rowId);
     return nextVersion(draftVersions, rowId);
   }
 
   function cancelItemWork(itemKey: string) {
-    const timer = itemTimers.get(itemKey);
-    if (timer) clearTimeout(timer);
-    itemTimers.delete(itemKey);
-    itemControllers.get(itemKey)?.abort();
-    itemControllers.delete(itemKey);
     return nextVersion(itemVersions, itemKey);
   }
 
@@ -192,116 +193,348 @@ export function useEventImportRows() {
     return rows.value.find((row) => row.id === rowId);
   }
 
+  function cancelTourWork(rowId: string) {
+    const version = nextVersion(tourVersions, rowId);
+    const state = tourStates[rowId];
+    if (state) Object.assign(state, emptyTourState());
+    return version;
+  }
+
+  async function resolveTour(rowId: string, version: number, immediate = false) {
+    const row = findRow(rowId);
+    const state = tourStates[rowId];
+    const requestedName = row?.event ?? "";
+    if (!row || row.type !== "tour" || !requestedName.trim() || !state || disposed) return;
+    state.status = "resolving";
+    state.error = null;
+    try {
+      const [result] = await tourResolution.resolve([requestedName], immediate);
+      const current = findRow(rowId);
+      if (
+        !current ||
+        current.type !== "tour" ||
+        tourResolutionKey(current.event) !== tourResolutionKey(requestedName) ||
+        tourVersions.get(rowId) !== version ||
+        disposed
+      )
+        return;
+      if (!result) return;
+      state.result = result;
+      state.status = result.status;
+      state.selectedCandidateId = result.status === "existing" ? result.entity.id : null;
+      const confirmedId = confirmedTours.get(tourResolutionKey(requestedName));
+      const candidates =
+        result.status === "existing"
+          ? [result.entity]
+          : result.status === "ambiguous"
+            ? result.candidates
+            : [];
+      state.confirmedTourId = candidates.some((candidate) => candidate.id === confirmedId)
+        ? (confirmedId ?? null)
+        : null;
+    } catch (error) {
+      if (
+        !disposed &&
+        tourVersions.get(rowId) === version &&
+        findRow(rowId)?.type === "tour" &&
+        tourResolutionKey(findRow(rowId)?.event ?? "") === tourResolutionKey(requestedName)
+      ) {
+        state.status = "error";
+        state.error = errorMessage(error);
+      }
+    }
+  }
+
+  function scheduleTourResolution(rowId: string, immediate = false) {
+    const row = findRow(rowId);
+    if (!row || row.type !== "tour" || !row.event.trim()) return;
+    const version = cancelTourWork(rowId);
+    const state = tourStates[rowId];
+    if (state) state.status = "resolving";
+    void resolveTour(rowId, version, immediate);
+  }
+
   function findItem(rowId: string, itemKey: string) {
     return findRow(rowId)?.lineup.find((item) => item.key === itemKey);
   }
 
   function cancelVenueWork(rowId: string) {
-    const timer = venueTimers.get(rowId);
-    if (timer) clearTimeout(timer);
-    venueTimers.delete(rowId);
-    venueStates[rowId] = "idle";
+    const state = geographyStates[rowId];
+    if (state) {
+      state.venueStatus = "idle";
+      state.venueCandidates = [];
+      state.venueError = null;
+    }
     return nextVersion(venueVersions, rowId);
   }
 
-  function venueCandidates(name: string) {
-    const key = normalizeVenueSearch(name);
-    const existing = venueSearches.get(key);
-    if (existing) return existing;
-    const request = searchVenueNames(name.trim()).catch((error: unknown) => {
-      venueSearches.delete(key);
-      throw error;
-    });
-    venueSearches.set(key, request);
-    return request;
-  }
-
-  async function resolveVenue(rowId: string, version: number) {
+  async function resolveVenue(rowId: string, version: number, immediate = false) {
     const row = findRow(rowId);
-    const name = row?.venue.name.trim() ?? "";
-    if (!row || !name || disposed || venueVersions.get(rowId) !== version) return;
-    venueStates[rowId] = "resolving";
+    const state = geographyStates[rowId];
+    const requestedName = row?.venue.name ?? "";
+    const localityId = row?.venue.localityId;
+    if (
+      !row ||
+      !state ||
+      !requestedName.trim() ||
+      !localityId ||
+      disposed ||
+      venueVersions.get(rowId) !== version
+    )
+      return;
+    state.venueStatus = "resolving";
+    state.venueError = null;
     try {
-      const candidates = await venueCandidates(name);
+      const [result] = await geographyResolution.resolveVenues(
+        [{ name: requestedName, localityId }],
+        immediate
+      );
       const current = findRow(rowId);
       if (
         !current ||
         disposed ||
         venueVersions.get(rowId) !== version ||
-        current.venue.name.trim() !== name
+        venueIdentity({ name: current.venue.name, localityId: current.venue.localityId ?? "" }) !==
+          venueIdentity({ name: requestedName, localityId: localityId ?? "" }) ||
+        current.venue.localityId !== localityId ||
+        countryId !== state.localityResult?.input.countryId
       )
         return;
-      const matches = compatibleVenues(candidates, current.city, current.province, name);
-      if (matches.length === 1) {
-        const match = matches[0]!;
-        current.venue = { name: match.name, venueId: match.id, localityId: match.locality.id };
-        current.city = match.locality.name;
-        current.province = match.locality.province ?? "";
-        venueStates[rowId] = "idle";
-      } else {
-        venueStates[rowId] = matches.length > 1 ? "ambiguous" : "idle";
+      if (!result) return;
+      state.venueStatus = result.status;
+      state.venueCandidates = result.candidates;
+      current.venue.venueId = result.status === "existing" ? result.venue.id : null;
+    } catch (error) {
+      if (!disposed && venueVersions.get(rowId) === version) {
+        state.venueStatus = "error";
+        state.venueError = errorMessage(error);
       }
-    } catch {
-      if (!disposed && venueVersions.get(rowId) === version) venueStates[rowId] = "error";
     }
   }
 
-  function scheduleVenueResolution(rowId: string) {
+  async function resolveLocality(rowId: string, version: number, immediate = false) {
+    const row = findRow(rowId);
+    const state = geographyStates[rowId];
+    if (
+      !row ||
+      !state ||
+      !countryId ||
+      !row.city.trim() ||
+      disposed ||
+      localityVersions.get(rowId) !== version
+    )
+      return;
+    const input = {
+      name: row.city,
+      countryId,
+      ...(row.administrativeRegionId ? { administrativeRegionId: row.administrativeRegionId } : {}),
+      ...(row.province.trim() ? { province: row.province } : {}),
+    };
+    state.localityStatus = "resolving";
+    state.localityResult = null;
+    state.localityCandidates = [];
+    state.localityError = null;
+    try {
+      const [result] = await geographyResolution.resolveLocalities([input], immediate);
+      const current = findRow(rowId);
+      if (
+        !current ||
+        disposed ||
+        localityVersions.get(rowId) !== version ||
+        localityIdentity({
+          name: current.city,
+          countryId,
+          ...(current.administrativeRegionId
+            ? { administrativeRegionId: current.administrativeRegionId }
+            : {}),
+          ...(current.province.trim() ? { province: current.province } : {}),
+        }) !== localityIdentity(input) ||
+        countryId !== input.countryId
+      )
+        return;
+      if (!result) return;
+      state.localityResult = result;
+      state.localityStatus = result.status;
+      if (result.status === "ambiguous") state.localityCandidates = result.candidates;
+      if (result.status === "existing") {
+        state.selectedLocality = result.locality;
+        current.venue.localityId = result.locality.id;
+        if (current.venue.name.trim()) {
+          const venueVersion = nextVersion(venueVersions, rowId);
+          void resolveVenue(rowId, venueVersion);
+        }
+      } else {
+        current.venue.localityId = null;
+        current.venue.venueId = null;
+        cancelVenueWork(rowId);
+      }
+    } catch (error) {
+      if (!disposed && localityVersions.get(rowId) === version) {
+        state.localityStatus = "error";
+        state.localityError = errorMessage(error);
+      }
+    }
+  }
+
+  function scheduleLocalityResolution(rowId: string, immediate = false) {
     const row = findRow(rowId);
     if (!row) return;
-    const version = cancelVenueWork(rowId);
-    if (!row.venue.name.trim()) return;
-    venueTimers.set(
-      rowId,
-      setTimeout(() => {
-        venueTimers.delete(rowId);
-        void resolveVenue(rowId, version);
-      }, VENUE_RESOLUTION_DEBOUNCE_MS)
-    );
+    const timer = localityTimers.get(rowId);
+    if (timer) clearTimeout(timer);
+    localityTimers.delete(rowId);
+    cancelVenueWork(rowId);
+    const version = nextVersion(localityVersions, rowId);
+    const state = geographyStates[rowId];
+    if (state) {
+      state.localityStatus = "idle";
+      state.localityCandidates = [];
+      state.selectedLocality = null;
+      state.localityResult = null;
+      state.localityError = null;
+    }
+    row.venue.venueId = null;
+    row.venue.localityId = null;
+    if (!countryId || !row.city.trim()) return;
+    if (immediate) {
+      void resolveLocality(rowId, version, true);
+    } else {
+      localityTimers.set(
+        rowId,
+        setTimeout(() => {
+          localityTimers.delete(rowId);
+          void resolveLocality(rowId, version);
+        }, 450)
+      );
+    }
   }
 
   function updateVenue(rowId: string, name: string) {
     const row = findRow(rowId);
     if (!row || row.venue.name === name) return;
+    const previousIdentity = row.venue.localityId
+      ? venueIdentity({ name: row.venue.name, localityId: row.venue.localityId })
+      : null;
+    const nextIdentity = row.venue.localityId
+      ? venueIdentity({ name, localityId: row.venue.localityId })
+      : null;
+    if (previousIdentity && previousIdentity === nextIdentity) {
+      row.venue.name = name;
+      return;
+    }
     cancelVenueWork(rowId);
-    row.venue = { name, venueId: null, localityId: null };
-    scheduleVenueResolution(rowId);
+    row.venue.name = name;
+    row.venue.venueId = null;
+    const state = geographyStates[rowId];
+    if (state) {
+      state.venueStatus = "idle";
+      state.venueCandidates = [];
+      state.venueError = null;
+    }
+    if (row.venue.localityId && name.trim()) {
+      const version = venueVersions.get(rowId)!;
+      void resolveVenue(rowId, version);
+    }
   }
 
   function updateCity(rowId: string, city: string) {
     const row = findRow(rowId);
     if (!row || row.city === city) return;
+    const previousIdentity = localityIdentity({
+      name: row.city,
+      countryId,
+      ...(row.administrativeRegionId ? { administrativeRegionId: row.administrativeRegionId } : {}),
+      ...(row.province.trim() ? { province: row.province } : {}),
+    });
     row.city = city;
-    row.venue.venueId = null;
-    row.venue.localityId = null;
-    scheduleVenueResolution(rowId);
+    const nextIdentity = localityIdentity({
+      name: city,
+      countryId,
+      ...(row.administrativeRegionId ? { administrativeRegionId: row.administrativeRegionId } : {}),
+      ...(row.province.trim() ? { province: row.province } : {}),
+    });
+    if (previousIdentity === nextIdentity) return;
+    scheduleLocalityResolution(rowId);
   }
 
   function updateProvince(rowId: string, province: string) {
     const row = findRow(rowId);
     if (!row || row.province === province) return;
+    const previousIdentity = localityIdentity({
+      name: row.city,
+      countryId,
+      ...(row.administrativeRegionId ? { administrativeRegionId: row.administrativeRegionId } : {}),
+      ...(row.province.trim() ? { province: row.province } : {}),
+    });
     row.province = province;
-    row.venue.venueId = null;
-    row.venue.localityId = null;
-    scheduleVenueResolution(rowId);
+    const nextIdentity = localityIdentity({
+      name: row.city,
+      countryId,
+      ...(row.administrativeRegionId ? { administrativeRegionId: row.administrativeRegionId } : {}),
+      ...(province.trim() ? { province } : {}),
+    });
+    if (previousIdentity === nextIdentity) return;
+    scheduleLocalityResolution(rowId);
   }
 
   function commitVenue(rowId: string) {
     const row = findRow(rowId);
-    if (!row?.venue.name.trim()) return;
-    const timer = venueTimers.get(rowId);
-    if (timer) clearTimeout(timer);
-    venueTimers.delete(rowId);
-    void resolveVenue(rowId, venueVersions.get(rowId) ?? 0);
+    if (!row?.venue.name.trim() || !row.venue.localityId) return;
+    void resolveVenue(rowId, venueVersions.get(rowId) ?? 0, true);
   }
 
   function retryVenue(rowId: string) {
-    if (!findRow(rowId)?.venue.name.trim()) return;
+    if (!findRow(rowId)?.venue.name.trim() || !findRow(rowId)?.venue.localityId) return;
     const version = cancelVenueWork(rowId);
-    void resolveVenue(rowId, version);
+    void resolveVenue(rowId, version, true);
   }
 
-  async function resolveDraft(rowId: string, version: number) {
+  function retryLocality(rowId: string) {
+    if (!findRow(rowId)?.city.trim()) return;
+    scheduleLocalityResolution(rowId, true);
+  }
+
+  function invalidateGeographicAssociations(nextCountryId = countryId) {
+    const countryChanged = countryId !== nextCountryId;
+    if (!countryChanged) return;
+    countryId = nextCountryId;
+    for (const row of rows.value) {
+      if (countryChanged) row.administrativeRegionId = null;
+      scheduleLocalityResolution(row.id);
+    }
+  }
+
+  function selectAdministrativeRegion(rowId: string, regionId: string) {
+    const row = findRow(rowId);
+    if (!row) return;
+    if (row.administrativeRegionId === (regionId || null)) return;
+    row.administrativeRegionId = regionId || null;
+    scheduleLocalityResolution(rowId, true);
+  }
+
+  function selectLocalityCandidate(rowId: string, localityId: string) {
+    const row = findRow(rowId);
+    const state = geographyStates[rowId];
+    const candidate = state?.localityCandidates.find(({ id }) => id === localityId);
+    if (!row || !state || !candidate) return;
+    const version = cancelVenueWork(rowId);
+    row.venue.localityId = candidate.id;
+    row.venue.venueId = null;
+    state.localityStatus = "existing";
+    state.selectedLocality = candidate;
+    state.localityCandidates = [];
+    if (state.localityResult?.status === "ambiguous") {
+      state.localityResult = {
+        index: state.localityResult.index,
+        input: state.localityResult.input,
+        status: "existing",
+        locality: candidate,
+        candidates: [],
+      };
+    }
+    if (row.venue.name.trim()) void resolveVenue(rowId, version, true);
+  }
+
+  async function resolveDraft(rowId: string, version: number, immediate = false) {
     const state = lineupStates[rowId];
     const row = findRow(rowId);
     if (!state || !row || !isCurrentDraft(rowId, version)) return;
@@ -316,30 +549,38 @@ export function useEventImportRows() {
 
     if (state.draftStatus === "resolving") return;
 
-    const controller = new AbortController();
-    draftControllers.set(rowId, controller);
     state.draftStatus = "resolving";
+    state.draftError = null;
 
     try {
-      const artists = await resolveNames(names, controller.signal);
-      if (!isCurrentDraft(rowId, version) || state.draft !== draft || controller.signal.aborted) {
+      const results = await artistResolution.resolve(names, immediate);
+      if (!isCurrentDraft(rowId, version) || state.draft !== draft || artistResolution.isDisposed) {
         return;
       }
 
-      row.lineup.push(
-        ...names.map((name, index) => createLineupItem(name, artists[index] ?? null))
-      );
+      row.lineup.push(...names.map((name, index) => createLineupItem(name, results[index]!)));
+      row.lineup.slice(-names.length).forEach((item, index) => {
+        state.itemResolution[item.key] = results[index]!;
+      });
       state.draft = "";
       state.draftStatus = "idle";
-    } catch {
-      if (!isCurrentDraft(rowId, version) || controller.signal.aborted) return;
+    } catch (error: unknown) {
+      if (!isCurrentDraft(rowId, version)) return;
+      if (isResolutionCancelled(error)) {
+        state.draftStatus = "idle";
+        return;
+      }
       state.draftStatus = "error";
-    } finally {
-      if (draftControllers.get(rowId) === controller) draftControllers.delete(rowId);
+      state.draftError = errorMessage(error);
     }
   }
 
-  async function resolveEditedItem(rowId: string, itemKey: string, version: number) {
+  async function resolveEditedItem(
+    rowId: string,
+    itemKey: string,
+    version: number,
+    immediate = false
+  ) {
     const state = lineupStates[rowId];
     const item = findItem(rowId, itemKey);
     if (!state || !item || disposed || itemVersions.get(itemKey) !== version) return;
@@ -347,16 +588,14 @@ export function useEventImportRows() {
     const name = item.name.trim();
     if (!name) return;
 
-    const controller = new AbortController();
-    itemControllers.set(itemKey, controller);
     state.itemStatus[itemKey] = "resolving";
 
     try {
-      const [artist] = await resolveNames([name], controller.signal);
+      const [result] = await artistResolution.resolve([name], immediate);
       const currentItem = findItem(rowId, itemKey);
       if (
         disposed ||
-        controller.signal.aborted ||
+        artistResolution.isDisposed ||
         itemVersions.get(itemKey) !== version ||
         !currentItem ||
         currentItem.name.trim() !== name
@@ -364,14 +603,17 @@ export function useEventImportRows() {
         return;
       }
 
-      currentItem.name = artist?.name ?? name;
-      currentItem.artistId = artist?.id ?? null;
+      currentItem.artistId = result?.status === "existing" ? result.artist.id : null;
+      state.itemResolution[itemKey] = result!;
       delete state.itemStatus[itemKey];
-    } catch {
-      if (disposed || controller.signal.aborted || itemVersions.get(itemKey) !== version) return;
+    } catch (error: unknown) {
+      if (disposed || itemVersions.get(itemKey) !== version) return;
+      if (isResolutionCancelled(error)) {
+        delete state.itemStatus[itemKey];
+        return;
+      }
       state.itemStatus[itemKey] = "error";
-    } finally {
-      if (itemControllers.get(itemKey) === controller) itemControllers.delete(itemKey);
+      state.itemResolution[itemKey] = { status: "error", message: errorMessage(error) };
     }
   }
 
@@ -381,12 +623,78 @@ export function useEventImportRows() {
 
   function updateEvent(rowId: string, event: string) {
     const row = findRow(rowId);
-    if (row) row.event = event;
+    if (!row || row.event === event) return;
+    const previousIdentity = row.type === "tour" ? tourResolutionKey(row.event) : null;
+    row.event = event;
+    const nextIdentity = row.type === "tour" ? tourResolutionKey(event) : null;
+    if (previousIdentity && previousIdentity === nextIdentity) return;
+    cancelTourWork(rowId);
+    if (previousIdentity) removeUnusedTourConfirmation(previousIdentity);
+    if (row.type === "tour" && event.trim()) scheduleTourResolution(rowId);
   }
 
   function updateType(rowId: string, type: EventType) {
     const row = findRow(rowId);
-    if (row) row.type = type;
+    if (!row || row.type === type) return;
+    const previousIdentity = row.type === "tour" ? tourResolutionKey(row.event) : null;
+    cancelTourWork(rowId);
+    row.type = type;
+    if (previousIdentity) removeUnusedTourConfirmation(previousIdentity);
+    if (type === "tour" && row.event.trim()) scheduleTourResolution(rowId);
+  }
+
+  function removeUnusedTourConfirmation(identity: string) {
+    if (!rows.value.some((row) => row.type === "tour" && tourResolutionKey(row.event) === identity))
+      confirmedTours.delete(identity);
+  }
+
+  function retryTour(rowId: string) {
+    const row = findRow(rowId);
+    if (row?.type === "tour" && row.event.trim()) scheduleTourResolution(rowId, true);
+  }
+
+  function selectTourCandidate(rowId: string, candidateId: string) {
+    const state = tourStates[rowId];
+    if (
+      !state ||
+      state.status !== "ambiguous" ||
+      !state.result ||
+      state.result.status !== "ambiguous"
+    )
+      return;
+    if (state.result.candidates.some((candidate) => candidate.id === candidateId))
+      state.selectedCandidateId = candidateId;
+  }
+
+  function confirmTour(rowId: string) {
+    const row = findRow(rowId);
+    const source = tourStates[rowId];
+    if (!row || row.type !== "tour" || !source?.result) return;
+    const result = source.result;
+    const candidates: readonly EntityCandidate[] =
+      result.status === "existing"
+        ? [result.entity]
+        : result.status === "ambiguous"
+          ? result.candidates
+          : [];
+    const selected = candidates.find((candidate) => candidate.id === source.selectedCandidateId);
+    if (!selected) return;
+    const identity = tourResolutionKey(row.event);
+    confirmedTours.set(identity, selected.id);
+    for (const candidateRow of rows.value) {
+      if (candidateRow.type !== "tour" || tourResolutionKey(candidateRow.event) !== identity)
+        continue;
+      const state = tourStates[candidateRow.id];
+      if (!state?.result || state.result.status !== result.status) continue;
+      if (state.result.status === "existing" && state.result.entity.id !== selected.id) continue;
+      if (
+        state.result.status === "ambiguous" &&
+        !state.result.candidates.some((candidate) => candidate.id === selected.id)
+      )
+        continue;
+      state.selectedCandidateId = selected.id;
+      state.confirmedTourId = selected.id;
+    }
   }
 
   function updateTypeRange(startIndex: number, values: (EventType | null)[]) {
@@ -454,23 +762,18 @@ export function useEventImportRows() {
     const version = cancelDraftWork(rowId);
     state.draft = draft;
     state.draftStatus = "idle";
+    state.draftError = null;
     if (!splitLineupNames(draft).length) return;
-
-    draftTimers.set(
-      rowId,
-      setTimeout(() => {
-        draftTimers.delete(rowId);
-        void resolveDraft(rowId, version);
-      }, RESOLUTION_DEBOUNCE_MS)
-    );
+    void resolveDraft(rowId, version);
   }
 
   function commitLineupDraft(rowId: string) {
     const state = lineupStates[rowId];
-    if (!state || state.draftStatus === "resolving" || state.draftStatus === "error") return;
-    const timer = draftTimers.get(rowId);
-    if (timer) clearTimeout(timer);
-    draftTimers.delete(rowId);
+    if (!state || state.draftStatus === "error") return;
+    if (state.draftStatus === "resolving") {
+      artistResolution.flush();
+      return;
+    }
     void resolveDraft(rowId, draftVersions.get(rowId) ?? 0);
   }
 
@@ -478,8 +781,9 @@ export function useEventImportRows() {
     const state = lineupStates[rowId];
     if (!state || !splitLineupNames(state.draft).length) return;
     state.draftStatus = "idle";
+    state.draftError = null;
     const version = cancelDraftWork(rowId);
-    void resolveDraft(rowId, version);
+    void resolveDraft(rowId, version, true);
   }
 
   function updateLineupItemName(rowId: string, itemKey: string, name: string) {
@@ -490,16 +794,11 @@ export function useEventImportRows() {
     item.name = name;
     item.artistId = null;
     delete state.itemStatus[itemKey];
+    delete state.itemResolution[itemKey];
     const version = cancelItemWork(itemKey);
     if (!name.trim()) return;
 
-    itemTimers.set(
-      itemKey,
-      setTimeout(() => {
-        itemTimers.delete(itemKey);
-        void resolveEditedItem(rowId, itemKey, version);
-      }, RESOLUTION_DEBOUNCE_MS)
-    );
+    void resolveEditedItem(rowId, itemKey, version);
   }
 
   function commitLineupItemName(rowId: string, itemKey: string) {
@@ -517,13 +816,12 @@ export function useEventImportRows() {
       item.artistId ||
       state.itemStatus[itemKey] === "resolving" ||
       state.itemStatus[itemKey] === "error"
-    )
+    ) {
+      if (state.itemStatus[itemKey] === "resolving") artistResolution.flush();
       return;
+    }
 
-    const timer = itemTimers.get(itemKey);
-    if (timer) clearTimeout(timer);
-    itemTimers.delete(itemKey);
-    void resolveEditedItem(rowId, itemKey, itemVersions.get(itemKey) ?? 0);
+    void resolveEditedItem(rowId, itemKey, itemVersions.get(itemKey) ?? 0, true);
   }
 
   function retryLineupItem(rowId: string, itemKey: string) {
@@ -532,7 +830,7 @@ export function useEventImportRows() {
     const state = lineupStates[rowId];
     if (state) delete state.itemStatus[itemKey];
     const version = cancelItemWork(itemKey);
-    void resolveEditedItem(rowId, itemKey, version);
+    void resolveEditedItem(rowId, itemKey, version, true);
   }
 
   function removeLineupItem(rowId: string, itemKey: string) {
@@ -543,43 +841,66 @@ export function useEventImportRows() {
     itemVersions.delete(itemKey);
     row.lineup = row.lineup.filter((item) => item.key !== itemKey);
     delete state.itemStatus[itemKey];
+    delete state.itemResolution[itemKey];
   }
 
   function removeRow(rowId: string) {
     const row = findRow(rowId);
     if (!row) return;
+    const tourIdentity = row.type === "tour" ? tourResolutionKey(row.event) : null;
     cancelDraftWork(rowId);
     cancelVenueWork(rowId);
+    const localityTimer = localityTimers.get(rowId);
+    if (localityTimer) clearTimeout(localityTimer);
+    localityTimers.delete(rowId);
     draftVersions.delete(rowId);
+    localityVersions.delete(rowId);
+    venueVersions.delete(rowId);
     for (const item of row.lineup) cancelItemWork(item.key);
     for (const item of row.lineup) itemVersions.delete(item.key);
     rows.value = rows.value.filter((candidate) => candidate.id !== rowId);
     delete lineupStates[rowId];
-    delete venueStates[rowId];
+    delete geographyStates[rowId];
+    delete tourStates[rowId];
+    nextVersion(tourVersions, rowId);
+    tourVersions.delete(rowId);
+    if (tourIdentity) removeUnusedTourConfirmation(tourIdentity);
+  }
+
+  function setRowCount(count: number): boolean {
+    if (!Number.isInteger(count) || count < 0) return false;
+
+    while (rows.value.length < count) addRow();
+    while (rows.value.length > count) {
+      const lastRow = rows.value.at(-1);
+      if (!lastRow) break;
+      removeRow(lastRow.id);
+    }
+
+    return true;
   }
 
   onScopeDispose(() => {
     disposed = true;
-    for (const timer of draftTimers.values()) clearTimeout(timer);
-    for (const timer of itemTimers.values()) clearTimeout(timer);
-    for (const timer of venueTimers.values()) clearTimeout(timer);
-    for (const controller of draftControllers.values()) controller.abort();
-    for (const controller of itemControllers.values()) controller.abort();
-    draftTimers.clear();
-    itemTimers.clear();
-    venueTimers.clear();
-    draftControllers.clear();
-    itemControllers.clear();
+    localityTimers.forEach(clearTimeout);
+    localityTimers.clear();
+    artistResolution.dispose();
+    geographyResolution.dispose();
+    tourResolution.dispose();
   });
 
   return {
     rows,
     lineupStates,
-    venueStates,
+    geographyStates,
+    tourStates,
     addRow,
     updateEvent,
     updateType,
     updateTypeRange,
+    retryTour,
+    confirmTour,
+    selectTourCandidate,
     updateTextField,
     updateTextRange,
     updateDate,
@@ -587,8 +908,12 @@ export function useEventImportRows() {
     updateVenue,
     updateCity,
     updateProvince,
+    invalidateGeographicAssociations,
+    selectAdministrativeRegion,
+    selectLocalityCandidate,
     commitVenue,
     retryVenue,
+    retryLocality,
     updateLineupDraft,
     commitLineupDraft,
     retryLineupDraft,
@@ -597,5 +922,6 @@ export function useEventImportRows() {
     retryLineupItem,
     removeLineupItem,
     removeRow,
+    setRowCount,
   };
 }

@@ -1,15 +1,57 @@
 // @vitest-environment happy-dom
 import { flushPromises, mount } from "@vue/test-utils";
+import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { nextTick } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import EventsFestivalsImportView from "./EventsFestivalsImportView.vue";
 
-const { resolveArtistsBatchMock, searchVenueNamesMock } = vi.hoisted(() => ({
+const {
+  resolveArtistsBatchMock,
+  searchVenueNamesMock,
+  inspectLocalitiesMock,
+  inspectToursMock,
+  resolveVenuesMock,
+  countriesMock,
+  regionsMock,
+} = vi.hoisted(() => ({
   resolveArtistsBatchMock: vi.fn(),
   searchVenueNamesMock: vi.fn(),
+  inspectLocalitiesMock: vi.fn(),
+  inspectToursMock: vi.fn(),
+  resolveVenuesMock: vi.fn(),
+  countriesMock: vi.fn(),
+  regionsMock: vi.fn(),
 }));
 vi.mock("../../api/artistResolution", () => ({ resolveArtistsBatch: resolveArtistsBatchMock }));
-vi.mock("@/modules/venues", () => ({ searchVenueNames: searchVenueNamesMock }));
+vi.mock("../../api/entityResolution", () => ({
+  inspectLocalitiesBatch: inspectLocalitiesMock,
+  inspectToursBatch: inspectToursMock,
+}));
+vi.mock("@/modules/venues", () => ({
+  resolveVenueBatch: resolveVenuesMock,
+  getVenueImportCountries: countriesMock,
+  getAdministrativeRegions: regionsMock,
+  venueCatalogCountriesQueryKey: ["venues", "import", "countries"],
+  venueCatalogRegionsQueryKey: (countryId: string) => ["venues", "import", "regions", countryId],
+}));
+
+const allowedCountries = [
+  ["ES", "España"],
+  ["PT", "Portugal"],
+  ["FR", "Francia"],
+  ["DE", "Alemania"],
+  ["GB", "Reino Unido"],
+  ["BE", "Bélgica"],
+  ["NL", "Países Bajos"],
+  ["IT", "Italia"],
+].map(([isoCode, name]) => ({ id: `country-${isoCode}`, isoCode, name }));
+
+function mountImportView() {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return mount(EventsFestivalsImportView, {
+    global: { plugins: [[VueQueryPlugin, { queryClient }]] },
+  });
+}
 
 async function paste(input: HTMLInputElement, text: string) {
   const event = new Event("paste", { bubbles: true, cancelable: true });
@@ -21,23 +63,66 @@ async function paste(input: HTMLInputElement, text: string) {
 describe("EventsFestivalsImportView", () => {
   beforeEach(() => {
     resolveArtistsBatchMock.mockReset().mockImplementation(async (names: string[]) =>
-      names.map((name) => ({
+      names.map((name, index) => ({
+        index,
         name,
+        status: name === "Banda Desconocida" ? "new" : "existing",
         artist:
           name === "Banda Desconocida" ? null : { id: `id-${name}`, name: `${name} Canonical` },
+        candidates: [],
       }))
     );
     searchVenueNamesMock.mockReset().mockResolvedValue([]);
+    inspectLocalitiesMock
+      .mockReset()
+      .mockImplementation(
+        async ({
+          localities,
+        }: {
+          localities: Array<{ name: string; countryId: string; province?: string }>;
+        }) => ({
+          results: localities.map((input, index) => ({
+            index,
+            input,
+            status: "existing",
+            locality: {
+              id: "locality-1",
+              name: input.name,
+              province: input.province ?? null,
+              country: { id: input.countryId, name: "España" },
+              administrativeRegion: { id: "region-1", name: "Cataluña" },
+            },
+            candidates: [],
+          })),
+        })
+      );
+    inspectToursMock.mockReset().mockImplementation(async ({ names }: { names: string[] }) => ({
+      results: names.map((name, index) => ({ index, name, status: "new", candidates: [] })),
+    }));
+    resolveVenuesMock
+      .mockReset()
+      .mockImplementation(async (venues: Array<{ name: string; localityId: string }>) =>
+        venues.map((input, index) => ({
+          index,
+          ...input,
+          status: "existing",
+          venue: { id: "venue-1", name: input.name },
+          candidates: [{ id: "venue-1", name: input.name }],
+        }))
+      );
+    countriesMock.mockReset().mockResolvedValue(allowedCountries);
+    regionsMock.mockReset().mockResolvedValue([]);
   });
 
-  it("renders the requested editable columns in order", () => {
-    const wrapper = mount(EventsFestivalsImportView);
+  it("renders the requested editable columns in order", async () => {
+    const wrapper = mountImportView();
+    await flushPromises();
     const headers = wrapper.findAll("th[scope='col']").map((header) => header.text());
 
     expect(wrapper.get("h1").text()).toBe("Importador de conciertos y festivales");
     expect(headers.slice(1, 11)).toEqual([
       "Type",
-      "Event",
+      "Event / Name",
       "Lineup",
       "Start Date",
       "End Date (opcional)",
@@ -56,10 +141,296 @@ describe("EventsFestivalsImportView", () => {
     );
     expect(wrapper.get('select[aria-label="Type, fila 1"]').text()).toContain("Concierto");
     expect(wrapper.get('select[aria-label="Type, fila 1"]').text()).toContain("Festival");
+    expect(wrapper.get('select[aria-label="Type, fila 1"]').text()).toContain("Tour");
+  });
+
+  it("pastes Tour as a type and preserves Name while changing types", async () => {
+    const wrapper = mountImportView();
+    await flushPromises();
+    const type = wrapper.get<HTMLSelectElement>('select[aria-label="Type, fila 1"]');
+    await type.setValue("tour");
+    const name = wrapper.get<HTMLInputElement>('input[aria-label="Name (gira), fila 1"]');
+    await name.setValue("Septicflesh European Tour 2027");
+    await type.setValue("festival");
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 1"]').element.value).toBe(
+      "Septicflesh European Tour 2027"
+    );
+    await paste(type.element, "tour\nconcert");
+    expect(wrapper.get<HTMLSelectElement>('select[aria-label="Type, fila 1"]').element.value).toBe(
+      "tour"
+    );
+    expect(
+      wrapper.get<HTMLInputElement>('input[aria-label="Name (gira), fila 1"]').element.value
+    ).toBe("Septicflesh European Tour 2027");
+  });
+
+  it("shares a tour lookup and its explicit confirmation across equivalent rows", async () => {
+    const wrapper = mountImportView();
+    await flushPromises();
+    inspectToursMock.mockImplementation(async ({ names }: { names: string[] }) => ({
+      results: names.map((name, index) => ({
+        index,
+        name,
+        status: "existing",
+        code: "TOUR_CONFIRMATION_REQUIRED",
+        entity: { id: "tour-uuid", name: "Septicflesh European Tour 2027" },
+        candidates: [],
+      })),
+    }));
+    vi.useFakeTimers();
+    for (const rowNumber of [1, 2]) {
+      await wrapper
+        .get<HTMLSelectElement>(`select[aria-label="Type, fila ${rowNumber}"]`)
+        .setValue("tour");
+      await wrapper
+        .get<HTMLInputElement>(`input[aria-label="Name (gira), fila ${rowNumber}"]`)
+        .setValue(
+          rowNumber === 1 ? "Septicflesh European Tour 2027" : "  SEPTICFLESH   EUROPEAN TOUR 2027 "
+        );
+    }
+    await vi.advanceTimersByTimeAsync(450);
+    await flushPromises();
+    expect(inspectToursMock).toHaveBeenCalledTimes(1);
+    expect(inspectToursMock).toHaveBeenCalledWith(
+      { names: ["Septicflesh European Tour 2027"] },
+      expect.anything()
+    );
+    expect(wrapper.text()).toContain("Gira existente: Septicflesh European Tour 2027");
+    const confirmButtons = wrapper
+      .findAll("button")
+      .filter((button) => button.text() === "Utilizar esta gira");
+    await confirmButtons[0]?.trigger("click");
+    await nextTick();
+    expect(
+      wrapper.findAll("span[role='status']").filter((item) => item.text() === "Confirmada")
+    ).toHaveLength(2);
+
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Name (gira), fila 1"]')
+      .setValue("Otra gira 2027");
+    await nextTick();
+    expect(
+      wrapper.findAll("span[role='status']").filter((item) => item.text() === "Confirmada")
+    ).toHaveLength(1);
+    vi.useRealTimers();
+  });
+
+  it("keeps ambiguous candidates selectable and makes technical errors retryable", async () => {
+    const wrapper = mountImportView();
+    await flushPromises();
+    inspectToursMock.mockImplementation(async ({ names }: { names: string[] }) => ({
+      results: names.map((name, index) =>
+        name === "Gira ambigua"
+          ? {
+              index,
+              name,
+              status: "ambiguous",
+              code: "TOUR_AMBIGUOUS",
+              candidates: [
+                { id: "tour-a", name: "Gira ambigua A" },
+                { id: "tour-b", name: "Gira ambigua B" },
+              ],
+            }
+          : { index, name, status: "invalid", code: "TOUR_NAME_INVALID", candidates: [] }
+      ),
+    }));
+    vi.useFakeTimers();
+    for (const [rowNumber, value] of [
+      [1, "Gira ambigua"],
+      [2, "Nombre inválido"],
+    ] as const) {
+      await wrapper
+        .get<HTMLSelectElement>(`select[aria-label="Type, fila ${rowNumber}"]`)
+        .setValue("tour");
+      await wrapper
+        .get<HTMLInputElement>(`input[aria-label="Name (gira), fila ${rowNumber}"]`)
+        .setValue(value);
+    }
+    await vi.advanceTimersByTimeAsync(450);
+    await flushPromises();
+    expect(wrapper.text()).toContain("Hay varias candidatas. Elige una gira:");
+    expect(wrapper.text()).toContain("Nombre de gira no válido.");
+    const candidate = wrapper.get<HTMLSelectElement>(
+      'select[aria-label="Candidata de gira, fila 1"]'
+    );
+    await candidate.setValue("tour-b");
+    const confirm = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Utilizar esta gira");
+    await confirm?.trigger("click");
+    expect(wrapper.text()).toContain("Confirmada");
+    inspectToursMock
+      .mockRejectedValueOnce(new Error("Sin conexión"))
+      .mockImplementation(async ({ names }: { names: string[] }) => ({
+        results: names.map((name, index) => ({ index, name, status: "new", candidates: [] })),
+      }));
+    await wrapper.get<HTMLSelectElement>('select[aria-label="Type, fila 3"]').setValue("tour");
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Name (gira), fila 3"]')
+      .setValue("Gira recuperable");
+    await vi.advanceTimersByTimeAsync(450);
+    await flushPromises();
+    expect(wrapper.text()).toContain("No se pudo resolver la gira: Sin conexión");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Reintentar")
+      ?.trigger("click");
+    await flushPromises();
+    expect(wrapper.text()).toContain("Gira nueva; se preparará para la importación.");
+    vi.useRealTimers();
+  });
+
+  it("does not apply a stale Tour response and does not resolve Tour for price edits", async () => {
+    const wrapper = mountImportView();
+    await flushPromises();
+    const requests: Array<{
+      names: string[];
+      resolve: (value: { results: Array<Record<string, unknown>> }) => void;
+    }> = [];
+    inspectToursMock.mockImplementation(
+      ({ names }: { names: string[] }) =>
+        new Promise((resolve) => requests.push({ names, resolve }))
+    );
+    vi.useFakeTimers();
+    await wrapper.get<HTMLSelectElement>('select[aria-label="Type, fila 1"]').setValue("tour");
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Name (gira), fila 1"]')
+      .setValue("Gira antigua");
+    await vi.advanceTimersByTimeAsync(450);
+    await flushPromises();
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Name (gira), fila 1"]')
+      .setValue("Gira actual");
+    await vi.advanceTimersByTimeAsync(450);
+    await flushPromises();
+    expect(requests.map(({ names }) => names)).toEqual([["Gira antigua"], ["Gira actual"]]);
+    requests[0]?.resolve({
+      results: [
+        {
+          index: 0,
+          name: "Gira antigua",
+          status: "existing",
+          code: "TOUR_CONFIRMATION_REQUIRED",
+          entity: { id: "old-id", name: "Gira antigua" },
+          candidates: [],
+        },
+      ],
+    });
+    await flushPromises();
+    requests[1]?.resolve({
+      results: [{ index: 0, name: "Gira actual", status: "new", candidates: [] }],
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain("Gira nueva; se preparará para la importación.");
+    expect(wrapper.text()).not.toContain("Gira existente: Gira antigua");
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Price, fila 1 (opcional)"]')
+      .setValue("25 €");
+    await vi.advanceTimersByTimeAsync(900);
+    expect(inspectToursMock).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("selects Spain by its backend UUID and lists only available allowed countries in configured order", async () => {
+    countriesMock.mockResolvedValueOnce([
+      { id: "country-IT", isoCode: "IT", name: "Italia" },
+      { id: "country-TR", isoCode: "TR", name: "Turquía" },
+      { id: "country-ES", isoCode: "ES", name: "Spain localized" },
+      { id: "country-PT", isoCode: "PT", name: "Portugal" },
+      { id: "country-GR", isoCode: "GR", name: "Grecia" },
+      { id: "country-GB", isoCode: "GB", name: "United Kingdom" },
+      { id: "country-RU", isoCode: "RU", name: "Rusia" },
+    ]);
+    const wrapper = mountImportView();
+    await flushPromises();
+    const country = wrapper.get<HTMLSelectElement>("#event-import-country");
+
+    expect(country.element.value).toBe("country-ES");
+    expect(Array.from(country.element.options).map(({ text }) => text)).toEqual([
+      "España",
+      "Portugal",
+      "Reino Unido",
+      "Italia",
+    ]);
+    expect(country.element.options[0]?.value).toBe("country-ES");
+    expect(wrapper.text()).not.toContain("Grecia");
+    expect(wrapper.text()).not.toContain("Turquía");
+    expect(wrapper.text()).not.toContain("Rusia");
+  });
+
+  it("keeps the user's country selection and all row text when country context changes", async () => {
+    const wrapper = mountImportView();
+    await flushPromises();
+    await wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 1"]').setValue("Festival");
+    await wrapper.get<HTMLInputElement>('input[aria-label="Venue, fila 1"]').setValue("Sala Norte");
+    await wrapper.get<HTMLInputElement>('input[aria-label="City, fila 1"]').setValue("Lisboa");
+    await wrapper.get<HTMLInputElement>('input[aria-label="Province, fila 1"]').setValue("Lisboa");
+
+    const country = wrapper.get<HTMLSelectElement>("#event-import-country");
+    await country.setValue("country-PT");
+    await flushPromises();
+
+    expect(country.element.value).toBe("country-PT");
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 1"]').element.value).toBe(
+      "Festival"
+    );
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Venue, fila 1"]').element.value).toBe(
+      "Sala Norte"
+    );
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="City, fila 1"]').element.value).toBe(
+      "Lisboa"
+    );
+    expect(
+      wrapper.get<HTMLInputElement>('input[aria-label="Province, fila 1"]').element.value
+    ).toBe("Lisboa");
+  });
+
+  it("shows an unavailable Spain configuration without selecting a fabricated country ID", async () => {
+    countriesMock.mockResolvedValueOnce([{ id: "country-PT", isoCode: "PT", name: "Portugal" }]);
+    const wrapper = mountImportView();
+    await flushPromises();
+
+    expect(wrapper.get<HTMLSelectElement>("#event-import-country").element.value).toBe("");
+    expect(wrapper.text()).toContain("España (ES)");
+    expect(wrapper.get<HTMLSelectElement>("#event-import-country").text()).toContain("Portugal");
+  });
+
+  it("shows loading without reporting the country catalog missing before it resolves", async () => {
+    let finishCatalog: ((countries: typeof allowedCountries) => void) | undefined;
+    countriesMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        finishCatalog = resolve;
+      })
+    );
+    const wrapper = mountImportView();
+
+    expect(wrapper.find('[role="status"]').text()).toContain("Cargando catálogo");
+    expect(wrapper.text()).not.toContain("No están disponibles en el catálogo");
+    finishCatalog?.(allowedCountries);
+    await flushPromises();
+    expect(wrapper.get<HTMLSelectElement>("#event-import-country").element.value).toBe(
+      "country-ES"
+    );
+  });
+
+  it("shows a recoverable catalog error and allows retry", async () => {
+    countriesMock.mockRejectedValueOnce(new Error("catalog unavailable"));
+    const wrapper = mountImportView();
+    await flushPromises();
+
+    expect(wrapper.find('[role="alert"]').text()).toContain("No se pudo cargar el catálogo");
+    await wrapper.get("button").trigger("click");
+    await flushPromises();
+
+    expect(countriesMock).toHaveBeenCalledTimes(2);
+    expect(wrapper.get<HTMLSelectElement>("#event-import-country").element.value).toBe(
+      "country-ES"
+    );
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
   });
 
   it("changes Type independently per row and retains it while editing other cells", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const firstType = wrapper.get<HTMLSelectElement>('select[aria-label="Type, fila 1"]');
     const secondType = wrapper.get<HTMLSelectElement>('select[aria-label="Type, fila 2"]');
 
@@ -74,8 +445,32 @@ describe("EventsFestivalsImportView", () => {
     expect(wrapper.get('select[aria-label="Type, fila 1"]').element.value).toBe("festival");
   });
 
+  it("adjusts the total number of rows with the numeric control", async () => {
+    const wrapper = mountImportView();
+    const rowCount = wrapper.get<HTMLInputElement>('input[aria-label="Número de filas"]');
+
+    expect(rowCount.element.value).toBe("5");
+    await rowCount.setValue("3");
+    expect(wrapper.findAll("tbody tr")).toHaveLength(3);
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Número de filas"]').element.value).toBe(
+      "3"
+    );
+
+    await wrapper.get<HTMLInputElement>('input[aria-label="Número de filas"]').setValue("6");
+    expect(wrapper.findAll("tbody tr")).toHaveLength(6);
+    expect(wrapper.get<HTMLSelectElement>('select[aria-label="Type, fila 6"]').element.value).toBe(
+      "concert"
+    );
+
+    await wrapper.get<HTMLInputElement>('input[aria-label="Número de filas"]').setValue("0");
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Número de filas"]').element.value).toBe(
+      "0"
+    );
+    expect(wrapper.text()).toContain("No hay filas");
+  });
+
   it("pastes valid Type values case-insensitively, warns on invalid values, and preserves rows and fields", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const firstType = wrapper.get<HTMLSelectElement>('select[aria-label="Type, fila 1"]');
     await wrapper
       .get<HTMLInputElement>('input[aria-label="Event, fila 1"]')
@@ -124,7 +519,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("edits Price and Other Info independently as optional free text", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const price = wrapper.get<HTMLInputElement>('input[aria-label="Price, fila 1 (opcional)"]');
     const otherInfo = wrapper.get<HTMLInputElement>(
       'input[aria-label="Other Info, fila 1 (opcional)"]'
@@ -143,7 +538,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("pastes Price and Other Info ranges across rows, retaining blank cells and other columns", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const price = wrapper.get<HTMLInputElement>('input[aria-label="Price, fila 1 (opcional)"]');
     await wrapper
       .get<HTMLInputElement>('input[aria-label="Price, fila 1 (opcional)"]')
@@ -188,7 +583,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("pastes multiple Other Info rows without touching Price or later columns", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const otherInfo = wrapper.get<HTMLInputElement>(
       'input[aria-label="Other Info, fila 5 (opcional)"]'
     );
@@ -224,7 +619,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("edits and normalizes a date, allows an optional end date, and validates date order", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const start = wrapper.get<HTMLInputElement>('input[aria-label="Start Date, fila 1"]');
     const end = wrapper.get<HTMLInputElement>('input[aria-label="End Date, fila 1 (opcional)"]');
 
@@ -241,7 +636,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("keeps invalid date text editable and shows a cell error", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const start = wrapper.get<HTMLInputElement>('input[aria-label="Start Date, fila 1"]');
     await start.setValue("29/02/2026");
     expect(start.element.value).toBe("29/02/2026");
@@ -250,7 +645,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("pastes one date and a two-column multirow range, preserving blanks and other data", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const start = wrapper.get<HTMLInputElement>('input[aria-label="Start Date, fila 1"]');
     await wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 1"]').setValue("Fila uno");
     await wrapper.get<HTMLInputElement>('input[aria-label="Venue, fila 1"]').setValue("Sala uno");
@@ -297,7 +692,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("adds rows when a pasted date range extends beyond the existing table", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const startRow5 = wrapper.get<HTMLInputElement>('input[aria-label="Start Date, fila 5"]');
     await paste(startRow5.element, "3/2/2026\t4/2/2026\n5/2/2026\t6/2/2026");
 
@@ -313,7 +708,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("pastes a single column only into its starting date field and leaves later rows untouched", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const endRow2 = wrapper.get<HTMLInputElement>(
       'input[aria-label="End Date, fila 2 (opcional)"]'
     );
@@ -330,31 +725,27 @@ describe("EventsFestivalsImportView", () => {
     ).toBe("");
   });
 
-  it("edits and pastes Venue, City and Province independently and resolves the canonical venue", async () => {
-    searchVenueNamesMock.mockResolvedValue([
-      {
-        id: "venue-1",
-        name: "Sala Apolo",
-        locality: {
-          id: "locality-1",
-          name: "Barcelona",
-          province: "Barcelona",
-          administrativeRegion: {
-            id: "region-1",
-            name: "Cataluña",
-            country: { id: "country-1", name: "España" },
-          },
-        },
-      },
-    ]);
-    const wrapper = mount(EventsFestivalsImportView);
+  it("resolves Locality before Venue while keeping City, Province and entered Venue text", async () => {
+    const wrapper = mountImportView();
+    await flushPromises();
+    vi.useFakeTimers();
+    await wrapper.get<HTMLInputElement>('input[aria-label="City, fila 1"]').setValue("Barcelona");
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Province, fila 1"]')
+      .setValue("Barcelona");
     const venueInput = wrapper.get<HTMLInputElement>('input[aria-label="Venue, fila 1"]');
-    await venueInput.setValue("Sala Apolo");
+    await venueInput.setValue("  Sala Apolo  ");
     await venueInput.trigger("blur");
+    await vi.advanceTimersByTimeAsync(1350);
     await flushPromises();
 
-    expect(searchVenueNamesMock).toHaveBeenCalledWith("Sala Apolo");
-    expect(wrapper.find('button[aria-label="Editar Sala Apolo, Venue fila 1"]').exists()).toBe(
+    expect(inspectLocalitiesMock).toHaveBeenCalledTimes(1);
+    expect(resolveVenuesMock).toHaveBeenCalledWith(
+      [{ name: "  Sala Apolo  ", localityId: "locality-1" }],
+      expect.anything()
+    );
+    expect(searchVenueNamesMock).not.toHaveBeenCalled();
+    expect(wrapper.find('button[aria-label="Editar   Sala Apolo  , Venue fila 1"]').exists()).toBe(
       true
     );
     expect(wrapper.get<HTMLInputElement>('input[aria-label="City, fila 1"]').element.value).toBe(
@@ -372,10 +763,11 @@ describe("EventsFestivalsImportView", () => {
     expect(
       wrapper.get<HTMLInputElement>('input[aria-label="Province, fila 1"]').element.value
     ).toBe("Girona");
+    vi.useRealTimers();
   });
 
   it("edits Event and Lineup independently and allows Event to stay empty", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const firstEvent = wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 1"]');
     const firstLineup = wrapper.get<HTMLInputElement>(
       'input[aria-label="Añadir artistas a Lineup, fila 1"]'
@@ -391,7 +783,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("adds blank rows and deletes one without losing other rows", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     await wrapper
       .get<HTMLInputElement>('input[aria-label="Event, fila 1"]')
       .setValue("Gira XX Aniversario");
@@ -447,7 +839,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("renders resolved artists as pills and leaves unknown artists editable", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const lineupInput = wrapper.get<HTMLInputElement>(
       'input[aria-label="Añadir artistas a Lineup, fila 1"]'
     );
@@ -455,13 +847,13 @@ describe("EventsFestivalsImportView", () => {
     await lineupInput.trigger("blur");
     await flushPromises();
 
-    expect(wrapper.find('button[aria-label="Editar Architects Canonical"]').exists()).toBe(true);
-    expect(wrapper.find('button[aria-label="Editar Spiritbox Canonical"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Editar Architects"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Editar Spiritbox"]').exists()).toBe(true);
     expect(
       wrapper.get<HTMLInputElement>('input[aria-label="Artista 3 de Lineup, fila 1"]').element.value
     ).toBe("Banda Desconocida");
-    expect(wrapper.text()).toContain("Architects Canonical");
-    expect(wrapper.text()).toContain("Spiritbox Canonical");
+    expect(wrapper.text()).toContain("Architects");
+    expect(wrapper.text()).toContain("Spiritbox");
 
     const addArtistInput = wrapper.get<HTMLInputElement>(
       'input[aria-label="Añadir artistas a Lineup, fila 1"]'
@@ -469,28 +861,28 @@ describe("EventsFestivalsImportView", () => {
     await addArtistInput.setValue("Loathe");
     await addArtistInput.trigger("blur");
     await flushPromises();
-    expect(wrapper.find('button[aria-label="Editar Loathe Canonical"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Editar Loathe"]').exists()).toBe(true);
 
-    await wrapper.get('button[aria-label="Editar Architects Canonical"]').trigger("click");
+    await wrapper.get('button[aria-label="Editar Architects"]').trigger("click");
     const editArtistInput = wrapper.get<HTMLInputElement>(
       'input[aria-label="Artista 1 de Lineup, fila 1"]'
     );
     await editArtistInput.setValue("Altered Band");
     await editArtistInput.trigger("blur");
     await flushPromises();
-    expect(wrapper.find('button[aria-label="Editar Altered Band Canonical"]').exists()).toBe(true);
+    expect(wrapper.find('button[aria-label="Editar Altered Band"]').exists()).toBe(true);
 
     await wrapper
-      .get('button[aria-label="Eliminar Altered Band Canonical de Lineup, fila 1"]')
+      .get('button[aria-label="Eliminar Altered Band de Lineup, fila 1"]')
       .trigger("click");
-    expect(wrapper.find('button[aria-label="Editar Altered Band Canonical"]').exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Editar Altered Band"]').exists()).toBe(false);
     expect(
       wrapper.get<HTMLInputElement>('input[aria-label="Artista 2 de Lineup, fila 1"]').element.value
     ).toBe("Banda Desconocida");
   });
 
   it("allows clearing cells and removing the last rows", async () => {
-    const wrapper = mount(EventsFestivalsImportView);
+    const wrapper = mountImportView();
     const eventInput = wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 1"]');
     const lineupInput = wrapper.get<HTMLInputElement>(
       'input[aria-label="Añadir artistas a Lineup, fila 1"]'

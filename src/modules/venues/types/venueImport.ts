@@ -30,10 +30,43 @@ export interface VenueImportRow {
   result: VenueImportResult | null;
 }
 
-export interface VenueResolutionResult {
+export interface VenueResolutionInput {
   name: string;
   localityId: string;
-  venue: { id: string; name: string } | null;
+}
+
+interface VenueResolutionResultBase extends VenueResolutionInput {
+  index: number;
+}
+
+export type VenueResolutionResult =
+  | (VenueResolutionResultBase & {
+      status: "existing";
+      venue: { id: string; name: string };
+      candidates: [{ id: string; name: string }];
+    })
+  | (VenueResolutionResultBase & {
+      status: "new";
+      venue: null;
+      candidates: [];
+    })
+  | (VenueResolutionResultBase & {
+      status: "ambiguous";
+      code: "VENUE_AMBIGUOUS";
+      venue: null;
+      candidates: [
+        { id: string; name: string },
+        { id: string; name: string },
+        ...Array<{ id: string; name: string }>,
+      ];
+    });
+
+export interface VenueResolutionBatchRequest {
+  venues: VenueResolutionInput[];
+}
+
+export interface VenueResolutionBatchResponse {
+  results: VenueResolutionResult[];
 }
 
 export interface VenueImportBatchResponse {

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import type {
   EventImportRow,
+  EventGeographyState,
+  EventTourState,
   LineupCellState,
-  VenueResolutionStatus,
 } from "../../application/useEventImportRows";
+import type { AdministrativeRegion } from "@/modules/venues";
 import LineupCell from "./LineupCell.vue";
 import VenueCell from "./VenueCell.vue";
 import { getDateCellError, type EventDateField } from "../../application/eventDate";
@@ -15,12 +17,17 @@ type EventTextField = "price" | "otherInfo";
 const props = defineProps<{
   rows: EventImportRow[];
   lineupStates: Record<string, LineupCellState>;
-  venueStates: Record<string, VenueResolutionStatus>;
+  geographyStates: Record<string, EventGeographyState>;
+  tourStates: Record<string, EventTourState>;
+  regions: AdministrativeRegion[];
 }>();
 const invalidTypePaste = reactive<Record<string, string>>({});
 
 const emit = defineEmits<{
   updateEvent: [id: string, value: string];
+  confirmTour: [id: string];
+  retryTour: [id: string];
+  selectTourCandidate: [id: string, candidateId: string];
   updateType: [id: string, value: EventType];
   updateTypeRange: [startIndex: number, values: (EventType | null)[]];
   updateTextField: [id: string, field: EventTextField, value: string];
@@ -32,6 +39,9 @@ const emit = defineEmits<{
   updateProvince: [id: string, value: string];
   commitVenue: [id: string];
   retryVenue: [id: string];
+  retryLocality: [id: string];
+  selectRegion: [id: string, regionId: string];
+  selectLocality: [id: string, localityId: string];
   updateLineupDraft: [id: string, value: string];
   commitLineupDraft: [id: string];
   retryLineupDraft: [id: string];
@@ -130,7 +140,7 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
             scope="col"
             class="border-b-2 border-r-2 border-gray-300 px-4 py-3 dark:border-white/20"
           >
-            Event
+            Event / Name
           </th>
           <th
             scope="col"
@@ -230,7 +240,7 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
                 :id="`type-error-${row.id}`"
                 class="px-1 pt-1 text-xs text-red-700 dark:text-red-300"
               >
-                Tipo inválido «{{ invalidTypePaste[row.id] }}». Usa Concierto o Festival.
+                Tipo inválido «{{ invalidTypePaste[row.id] }}». Usa Concierto, Festival o Tour.
               </p>
             </div>
           </td>
@@ -238,11 +248,116 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
             <input
               :value="row.event"
               type="text"
-              :aria-label="`Event, fila ${index + 1}`"
+              :aria-label="
+                row.type === 'tour' ? `Name (gira), fila ${index + 1}` : `Event, fila ${index + 1}`
+              "
+              :aria-required="row.type !== 'concert'"
+              :placeholder="row.type === 'concert' ? 'Opcional' : 'Obligatorio'"
               autocomplete="off"
               class="min-h-10 w-full rounded-sm border border-transparent bg-transparent px-3 text-sm text-gray-900 outline-none transition focus-visible:border-rv-purple focus-visible:ring-2 focus-visible:ring-rv-purple/30 dark:text-white"
               @input="emit('updateEvent', row.id, ($event.target as HTMLInputElement).value)"
             />
+            <div
+              v-if="row.type === 'tour' && tourStates[row.id]?.status !== 'idle'"
+              class="space-y-1 px-2 pb-1 text-xs"
+            >
+              <p
+                v-if="tourStates[row.id]?.status === 'resolving'"
+                role="status"
+                class="text-gray-600 dark:text-gray-300"
+              >
+                Resolviendo gira…
+              </p>
+              <template v-else-if="tourStates[row.id]?.status === 'existing'">
+                <p class="text-amber-800 dark:text-amber-200">
+                  Gira existente:
+                  {{
+                    tourStates[row.id]?.result?.status === "existing"
+                      ? tourStates[row.id]?.result.entity.name
+                      : ""
+                  }}
+                </p>
+                <button
+                  type="button"
+                  class="rounded font-semibold text-rv-navy underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-purple dark:text-gray-200"
+                  @click="emit('confirmTour', row.id)"
+                >
+                  Utilizar esta gira
+                </button>
+                <span
+                  v-if="tourStates[row.id]?.confirmedTourId"
+                  role="status"
+                  class="ml-2 text-green-800 dark:text-green-300"
+                  >Confirmada</span
+                >
+              </template>
+              <template v-else-if="tourStates[row.id]?.status === 'ambiguous'">
+                <p class="block text-amber-800 dark:text-amber-200">
+                  Hay varias candidatas. Elige una gira:
+                </p>
+                <select
+                  :value="tourStates[row.id]?.selectedCandidateId ?? ''"
+                  :aria-label="`Candidata de gira, fila ${index + 1}`"
+                  class="min-h-9 max-w-full rounded border border-gray-300 bg-white px-2 text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-purple dark:border-white/20 dark:bg-rv-darkSurface dark:text-white"
+                  @change="
+                    emit('selectTourCandidate', row.id, ($event.target as HTMLSelectElement).value)
+                  "
+                >
+                  <option value="" disabled>Selecciona una candidata</option>
+                  <template v-if="tourStates[row.id]?.result?.status === 'ambiguous'">
+                    <option
+                      v-for="candidate in tourStates[row.id].result.candidates"
+                      :key="candidate.id"
+                      :value="candidate.id"
+                    >
+                      {{ candidate.name }}
+                    </option>
+                  </template>
+                </select>
+                <button
+                  type="button"
+                  :disabled="!tourStates[row.id]?.selectedCandidateId"
+                  class="rounded font-semibold text-rv-navy underline enabled:focus-visible:outline enabled:focus-visible:outline-2 enabled:focus-visible:outline-rv-purple disabled:opacity-50 dark:text-gray-200"
+                  @click="emit('confirmTour', row.id)"
+                >
+                  Utilizar esta gira
+                </button>
+                <span
+                  v-if="tourStates[row.id]?.confirmedTourId"
+                  role="status"
+                  class="ml-2 text-green-800 dark:text-green-300"
+                  >Confirmada</span
+                >
+              </template>
+              <p
+                v-else-if="tourStates[row.id]?.status === 'new'"
+                role="status"
+                class="text-gray-600 dark:text-gray-300"
+              >
+                Gira nueva; se preparará para la importación.
+              </p>
+              <p
+                v-else-if="tourStates[row.id]?.status === 'invalid'"
+                role="alert"
+                class="text-red-700 dark:text-red-300"
+              >
+                Nombre de gira no válido.
+              </p>
+              <div
+                v-else-if="tourStates[row.id]?.status === 'error'"
+                role="alert"
+                class="text-red-700 dark:text-red-300"
+              >
+                <p>No se pudo resolver la gira: {{ tourStates[row.id]?.error }}</p>
+                <button
+                  type="button"
+                  class="font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-purple"
+                  @click="emit('retryTour', row.id)"
+                >
+                  Reintentar
+                </button>
+              </div>
+            </div>
           </td>
           <td class="border-b-2 border-r-2 border-gray-300 p-1 dark:border-white/20">
             <LineupCell
@@ -319,11 +434,15 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
           <td class="border-b-2 border-r-2 border-gray-300 p-1 dark:border-white/20">
             <VenueCell
               :row="row"
-              :status="venueStates[row.id] ?? 'idle'"
+              :state="geographyStates[row.id]!"
+              :regions="regions"
               :row-number="index + 1"
               @update="emit('updateVenue', row.id, $event)"
               @commit="emit('commitVenue', row.id)"
               @retry="emit('retryVenue', row.id)"
+              @retry-locality="emit('retryLocality', row.id)"
+              @select-region="emit('selectRegion', row.id, $event)"
+              @select-locality="emit('selectLocality', row.id, $event)"
             />
           </td>
           <td class="border-b-2 border-r-2 border-gray-300 p-1 dark:border-white/20">

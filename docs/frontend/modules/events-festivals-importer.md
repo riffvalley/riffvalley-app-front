@@ -1,0 +1,342 @@
+# Importador de conciertos y festivales
+
+Documento canónico de auditoría, diseño y estado para CON-F08a, CON-F08b.1–F08b.7 y CON-F08c.1–F08c.2. F08b.2 incorpora transporte y factories de TanStack Query; F08b.3 añade el contexto de país; F08b.4 conecta Artist, F08b.5 Locality → Venue, F08b.6 Tour y F08b.7 consolida invalidación y concurrencia.
+
+## Estado actual
+
+La vista `/concerts-festivals/import` se compone en `src/modules/events-festivals/presentation/views/EventsFestivalsImportView.vue`. La vista coordina `EventImportTable` con `useEventImportRows`; la ruta/permiso se declaran en Router.
+
+| Capacidad                      | Estado observado                                                                                                                                                                                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tabla editable y pegado TSV    | Implementados: tipo, Event/Name, lineup, fechas, venue, city, province, price y otherInfo; pegado de rangos por campo. Type admite `concert`, `festival` y `tour`; el orden de columnas no cambia.                                                                                                |
+| Identidad visual               | `event-row-N`, estable solo durante la instancia, secuencial y no UUID.                                                                                                                                                                                                                           |
+| Lineup                         | Draft separado, `+`, artistas individuales editables, orden y claves locales estables.                                                                                                                                                                                                            |
+| Artist                         | `POST /api/artists/resolve-batch`, lotes únicos de hasta 100, debounce global de 450 ms; un coordinador por tabla comparte claves pendientes entre filas y ventanas. TanStack Query conserva respuestas frescas 15 s; no hay caché remota Map.                                                    |
+| Venue                          | Solo se inspecciona por `POST /api/venues/resolve-batch` después de obtener un `localityId`; identidad `localityId + nombre`, candidatos ambiguos conservados y texto original intacto.                                                                                                           |
+| Locality/administrative region | `POST /api/localities/inspect-batch`, identidad por país, nombre, región y provincia contextual; existente/nueva/ambigua/inválida/error permanecen distintos. Las regiones aparecen bajo demanda si una Locality nueva las exige.                                                                 |
+| Tour                           | `tour` es un tipo de entrada local que representa un concierto dentro de una gira, no un tipo persistido de Event. `Name` es obligatorio y representa la gira; se resuelve por batch, se confirma explícitamente si existe y los resultados nuevos/ambiguos/inválidos/error siguen diferenciados. |
+| Persistencia                   | CON-F08c.2 conecta `POST /api/events/import-batch`; cada respuesta se correlaciona con su UUID `rowId`, muestra resultados parciales y conserva las filas en la tabla para CON-F08c.3.                                                                                                            |
+| TanStack Query/Pinia           | Artist, Locality, Venue y Tour usan factories de Query. El QueryCache conserva resultados frescos 15 s; las colas Map temporales solo comparten promesas pendientes. No se introduce Pinia.                                                                                                       |
+
+El checkout inspeccionado contiene cambios locales preexistentes en `useEventImportRows.ts`, su vista y tests: permiten ajustar el número de filas desde un control numérico y añadir `setRowCount`. Se preservaron y no se consideran trabajo de CON-F08a.
+
+### Reutilización auditada
+
+- `application/useEventImportRows.ts`: owner de edición, filas, pegado, versiones y aplicación local de resultados; delega la coordinación remota de Artist.
+- `application/useEventEntityResolution.ts` y `useEventGeographyResolution.ts`: coordinadores separados por responsabilidad; ambos agrupan hasta 100, deduplican trabajo pendiente y reutilizan QueryCache fresco.
+- `presentation/components/EventImportTable.vue`: tabla, delegación de rangos/pegado; conservar como base.
+- `LineupCell.vue` y `VenueCell.vue`: editores con props/eventos.
+- `api/entityResolution.ts` y `modules/venues/api/venueImport.ts`: adaptadores batch existentes; `searchVenueNames` queda fuera del flujo nuevo.
+- `modules/venues/api/venueImport.ts`: catálogo completo paginado de países, regiones administrativas paginadas, y servicios compartidos; las keys de ambos catálogos conservan el namespace existente `venues/import`.
+- `lineupText.ts`, `eventDate.ts`, `eventType.ts`: separación y validación/formateo.
+- Tests en `application/useEventImportRows.test.ts`, `presentation/views/EventsFestivalsImportView.test.ts`, `api/artistResolution.test.ts` y `lineupText.test.ts`: cubren buena parte de edición/resolución actual. `src/services/imports` es legacy ajeno a la persistencia de este importador.
+
+El composable es el owner funcional correcto aunque concentra edición y resolución. En F08b extraer solo la coordinación que lo justifique (`application/useEventEntityResolution.ts`); no rehacer la tabla ni crear un módulo genérico.
+
+## Auditoría de resolución actual
+
+### Artistas
+
+`resolveNames()` deduplica dentro de una llamada y trocea por 100. Cachea resultados y `null` en un Map con `lineupNameCacheKey`. No comparte promesas pendientes entre llamadas: dos filas que buscan simultáneamente Septicflesh pueden hacer dos requests y los drafts independientes no se agregan en una ventana global. La edición cancela timer/AbortController, aumenta versión y comprueba texto actual; se descartan respuestas obsoletas.
+
+El endpoint recibe `{ names }` y responde `{results}` con `index`, entrada original, estado, candidatos y el campo legacy `artist`. `artist: null` puede ser `new`, `ambiguous` o `invalid`; el adapter valida forma y correlación y devuelve las entidades por índice. Antes de F08b.4 la vista solo leía `artist` y mantenía una caché Map local.
+
+### Venue y Locality — comportamiento sustituido en CON-F08b.5
+
+`venueSearches` comparte promesas pendientes y exitosas por nombre normalizado en vida de vista; fallos salen de caché. Pero `searchVenueNames` no propaga AbortSignal, realiza búsqueda substring global paginada y luego compara igualdad exacta en frontend. Puede recorrer páginas por cada nombre distinto; localidad/ciudad/provincia no forman parte de la clave remota. Versiones protegen la fila, pero no cancelan la búsqueda compartida.
+
+La normalización actual de Venue quita diacríticos, compacta espacios y usa minúsculas `und`. Backend usa `normalizeGeography` para Venue/Locality/Tour y `normalizeMusicName`/variantes para Artist. No unificar claves ni fusionar por igualdad aproximada; respetar normalizador y ambigüedad de cada contrato.
+
+Antes de F08b.5 el importador no resolvía Locality directamente y buscaba Venue en el catálogo global. Esa implementación se retiró del flujo de edición.
+
+## Implementación CON-F08b.5
+
+`useEventGeographyResolution` mantiene colas independientes para Locality y Venue, sin caché remota propia. Agrupa identidades únicas en una ventana de 450 ms y lotes de hasta 100; las factories guardan los resultados en TanStack Query durante 15 s. Identidad de Locality: `countryId`, nombre normalizado solo por trim/espacios/case, `administrativeRegionId` y provincia contextual. Identidad de Venue: `localityId` y nombre con la misma normalización conservadora. Las ediciones que cambian solo formato conservan UUID, candidatos y resultado y no consultan de nuevo. No se equiparan alias distintos en el cliente ni se confirman coincidencias aproximadas.
+
+El flujo usa el país global y resuelve primero `inspect-batch`; solo `existing` o una selección explícita de candidato aporta `localityId` al resolver Venue. `new` conserva City/Province y no crea Locality; si el backend requiere región, muestra el catálogo del país y conserva el UUID seleccionado. `ambiguous` retiene candidatos y no elige el primero. `invalid` conserva el código y nunca se convierte en `new`. El error técnico conserva datos y permite reintento. En esta tarea no se llama a `localities/resolve` ni a Nominatim.
+
+Venue vacío no se consulta. Venue `new` conserva texto y deja `venueId` vacío para que la importación posterior gestione creación/genérico. Venue `existing` conserva el UUID pero no reemplaza el nombre escrito ni modifica City/Province. Venue ambiguo retiene candidatos sin selección automática.
+
+Editar City, Province o Country limpia la identidad Locality y el Venue dependiente, conserva texto geográfico y datos de Artist, fechas, precio y Tour; Country también limpia la región seleccionada. Editar Venue limpia únicamente su asociación. Las revisiones de Locality y Venue son independientes. La aplicación de respuestas comprueba fila existente, revisión, texto y país; Venue vuelve a comprobar `localityId` y nombre exacto introducido. El borrado no cancela una consulta aún compartida por otras filas y una respuesta no recrea la fila borrada.
+
+La selección contextual de región se muestra en VenueCell para una Locality nueva que la exige. La selección explícita de candidato Locality conserva UUID y el objeto candidato geográfico en estado de fila. No se añade una columna persistente ni se implementa el panel general de conflictos.
+
+### Invalidación transversal CON-F08b.7
+
+TanStack Query es la autoridad de caché y reutilización de resultados remotos. Artist, Locality/Venue y Tour tienen coordinadores por tabla que conservan únicamente solicitudes agrupadas y promesas en vuelo; al finalizar, la entrada pendiente se elimina. Los resultados `existing`, `new`, `ambiguous` e `invalid` proceden de QueryCache y los errores técnicos no se cachean como resultado negativo. El estado de fila conserva la proyección vigente de estado/candidatos necesaria para representar el resultado asociado y permitir su selección explícita, junto con texto, UUID, revisiones de trabajo y confirmaciones; esa proyección se limpia al invalidar identidad o borrar la fila y nunca se usa para reutilizar una consulta.
+
+| Edición                       | Artist             | Locality                      | Venue                         | Tour                                                             |
+| ----------------------------- | ------------------ | ----------------------------- | ----------------------------- | ---------------------------------------------------------------- |
+| Aparición de Artist en Lineup | Solo esa aparición | Conservar                     | Conservar                     | Conservar                                                        |
+| Name, si no es Tour           | Conservar          | Conservar                     | Conservar                     | Conservar                                                        |
+| Name con `type=tour`          | Conservar          | Conservar                     | Conservar                     | Reconsultar solo si cambia identidad Tour                        |
+| City                          | Conservar          | Invalidar si cambia identidad | Invalidar dependiente         | Conservar                                                        |
+| Province                      | Conservar          | Reevaluar si cambia contexto  | Invalidar dependiente         | Conservar                                                        |
+| Venue                         | Conservar          | Conservar                     | Invalidar si cambia identidad | Conservar                                                        |
+| Country                       | Conservar          | Invalidar                     | Invalidar                     | Conservar                                                        |
+| Fechas, Price, Other Info     | Conservar          | Conservar                     | Conservar                     | Conservar                                                        |
+| Type                          | Conservar          | Conservar                     | Conservar                     | Aplicar solo si es Tour; al salir se invalida asociación de fila |
+
+Las identidades de Locality/Venue consideran solo equivalencias conservadoras (espacios y mayúsculas/minúsculas), Tour usa su clave normalizada geográfica. Cambiar el texto manteniendo la identidad actualiza el borrador visible sin invalidar UUID/candidatos ni solicitar de nuevo. País es global para el lote: cambiarlo conserva City, Province, Venue y Artist, limpia `administrativeRegionId` y asociaciones Locality/Venue, y la respuesta del país anterior queda bloqueada por la revisión y el país vigentes.
+
+Venue solo se inspecciona cuando hay nombre no vacío y UUID de Locality existente o escogida explícitamente. Locality nueva conserva texto/región pero no tiene UUID; Locality ambigua conserva candidatos sin seleccionar y no habilita Venue. Cambiar la identidad Locality siempre limpia `venueId`, incluso si el nombre Venue permanece igual. El Venue genérico se delega a importación futura.
+
+Antes de aplicar una respuesta, la fila exige seguir presente y coincidir la revisión, el tipo/campo, el texto y las dependencias capturadas. Artist además comprueba la clave de aparición; Tour comprueba tipo e identidad; Venue comprueba nombre, UUID Locality y país del resultado; Locality comprueba país, City, Province y región. El borrado/recorte invalida revisiones y retira estado, sin cancelar una petición compartida por otras filas. Las respuestas tardías pueden quedar en QueryCache bajo su clave original, pero no actualizan otra clave ni recrean filas.
+
+Tour existente requiere confirmación explícita. La confirmación se indexa por identidad Tour equivalente y solo se comparte con resultados que contengan ese UUID. Cambiar Name a otra identidad limpia la asociación de esa fila; cambiar Type la hace inaplicable. Una confirmación aún usada por otra fila equivalente se puede compartir al volver a Tour; si ninguna fila conserva esa identidad, se elimina. Artistas y datos geográficos no infieren ni eliminan una confirmación Tour válida.
+
+## Contratos backend verificados
+
+Se consultaron los roadmaps pedidos en el checkout hermano `riffvalley-app-back/roadmap/concerts-festivals/{importer,import-audit,domain,import-performance}.md`, además de DTOs/controllers/services de Artist, Venue, Locality, Tour y Events. Son contratos del snapshot local, no certificación de despliegue remoto.
+
+| Contrato                                  | Disponibilidad y forma confirmada                                                                                                                                                                                                                                                                                                                                                                                |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/artists/resolve-batch`         | Público, `{names}` → `results` con `index`, `name`, `status`, `candidates` y `artist` legacy. Estados `existing                                                                                                                                                                                                                                                                                                  | new | ambiguous | invalid`; `ARTIST_AMBIGUOUS`y`ARTIST_NAME_INVALID`; candidato `{id,name}`. `artist`es objeto solo para`existing`, y `null` en los demás estados. |
+| `POST /api/localities/inspect-batch`      | Público, `{localities:[{name,countryId,administrativeRegionId?,province?}]}` → `results` con `index`, `input`, estado, candidatos y entidad encontrada. `LOCALITY_AMBIGUOUS`, `LOCALITY_COUNTRY_NOT_FOUND`, `LOCALITY_REGION_NOT_FOUND`, `LOCALITY_REGION_COUNTRY_MISMATCH`; localidad nueva indica `requiresAdministrativeRegionId`. Busca nombre y alias en el país, acotando con región/provincia contextual. |
+| `POST /api/tours/resolve-batch`           | Público, `{names}` → `results` con `index`, `name`, `status`, `candidates`; coincidencia exacta normalizada. `existing` incluye `entity` y `TOUR_CONFIRMATION_REQUIRED`; `new` no trae entidad; varias coincidencias dan `TOUR_AMBIGUOUS`, nombre vacío `TOUR_NAME_INVALID`.                                                                                                                                     |
+| `POST /api/venues/resolve-batch`          | Público, `{venues:[{name,localityId}]}` → `results` con `index`, `name`, `localityId`, `venue`, `status`, `candidates`; coincidencia exacta normalizada dentro de localidad. Ambigüedad defensiva: `VENUE_AMBIGUOUS`. No es búsqueda global.                                                                                                                                                                     |
+| `GET /api/venues`                         | Público/paginado; query y filtros país/región/localidad; incluye Locality, AdministrativeRegion y Country. Query es búsqueda, no resolver exacto.                                                                                                                                                                                                                                                                |
+| `POST /api/localities/resolve`            | JWT/rol `riffvalley`; singular y geográfico. No usar como consulta pura cacheable.                                                                                                                                                                                                                                                                                                                               |
+| Países/regiones                           | `GET /api/countries`; `GET /api/administrative-regions?countryId=…`, paginados; reutilizables con Query.                                                                                                                                                                                                                                                                                                         |
+| Tours                                     | Además del catálogo paginado y `GET /api/tours/:id`, CON-B04g ofrece `POST /api/tours/resolve-batch` read-only.                                                                                                                                                                                                                                                                                                  |
+| `POST /api/events/import-batch`           | Disponible, JWT/rol `riffvalley`; sobre `batchId`, `countryId`, hasta 100 filas.                                                                                                                                                                                                                                                                                                                                 |
+| `POST /api/events/:eventId/import-lineup` | Disponible, JWT/rol `riffvalley`; recibe `batchId`, `rowId`, `sourceRow` original con `countryId` y `artists` confirmados.                                                                                                                                                                                                                                                                                       |
+
+### IDs, requeridos y resultados
+
+- Importación batch usa UUID `batchId` y `rowId`; el recibo identifica editor/lote/fila. `artistId`, `tourId` y otros IDs son referencias que backend revalida contra nombre/contexto.
+- Aun con UUID de entidad resuelto, siguen requeridos `countryId` por lote, `rowId`, tipo, `startDate`, `city`; `name` es requerido para festival/tour. Lineup se puede omitir; si se envía, cada item requiere name. `administrativeRegionId` solo es obligatorio cuando Locality no existe. Province es contexto. Venue vacío permite genérico; Venue con nombre desconocido puede crearse durante importación. Fin, provincia, gira, precio e información son opcionales conforme al DTO.
+- La fila `type: tour` se persiste como Event concert enlazado al Tour. `Event.tourId` aplica a conciertos; las giras en festival pertenecen a EventArtist. No inferir relaciones por lineup.
+- Tour existente devuelve `TOUR_CONFIRMATION_REQUIRED`; exige `tourId` explícito. Nueva gira se crea durante la importación y filas equivalentes pueden compartirla tras confirmar una fila. Se usa `normalizeGeography`, índice único y no hay merge heurístico.
+- Resultados de batch son por fila, en orden: `created | conflict | invalid | failed`. Created incluye `eventId`, IDs reutilizables y replay. Conflicto puede incluir código, referencias entre filas, eventos candidatos y artistas coincidentes/añadibles. IDs explícitos se revalidan en backend.
+- Códigos observados incluyen `TOUR_CONFIRMATION_REQUIRED`, `IMPORT_IDEMPOTENCY_CONFLICT`, `ROW_VALIDATION_FAILED`, `EVENT_DATE_INVALID`, `IMPORT_ROW_FAILED`, `IMPORT_PREFLIGHT_FAILED`. Lineup incluye `IMPORT_CONFLICT_STALE`, `IMPORT_PARTICIPATION_INCOMPATIBLE`, `IMPORT_ARTIST_AMBIGUOUS`, `IMPORT_OPERATION_ID_REUSED`; éxito `{status:"updated",eventId,addedArtists,existingArtists}`. HTTP auth/UUID/DTO usa excepciones Nest (401/403/400/404); no inferir que código de fila equivale a HTTP. Confirmar matriz HTTP exacta desde controller fixtures al implementar adaptador.
+- Lineup requiere `sourceRow` original para revalidar. Añade solo ausentes al final; no reemplaza lineup ni Event. Las nuevas participaciones reciben `tourId=null`, incluso en festival.
+
+## CON-F08c.1 — Preparación y snapshots
+
+`application/eventImportPreparation.ts` prepara `ImportBatchRequest` con la forma documentada para CON-B04d: `{ batchId, countryId, rows }`; cada fila admite `rowId`, `type`, `name?`, `lineup?` (`{name, artistId?}`), `startDate`, `endDate?`, `venue?`, `city`, `province?`, `administrativeRegionId?`, `tourId?`, `price?` y `otherInfo?`. Los opcionales vacíos se omiten; los textos no vacíos se conservan literalmente. Las fechas se envían como `YYYY-MM-DD`. No se incluyen `rowKey`, `revision`, `localityId` ni `venueId`: las dos últimas referencias no aparecen como propiedades admitidas en el listado del DTO disponible. Locality y Venue se representan con City/Province y Venue textuales; el único UUID geográfico enviado es `administrativeRegionId`.
+
+El checkout local de `riffvalley-app-back` disponible durante CON-F08c.1 está en `feat/prosineck-scraper`: no contiene los DTOs, controller ni `ImportRowReceiptsService` de Events. La forma anterior se contrastó con la auditoría documental local y con esta auditoría frontend, que había registrado la revisión de CON-B04d, pero no se pudo volver a comprobar contra código backend ni confirmar la política exacta de recibos. Esto queda como dependencia contractual pendiente antes de F08c.2; el frontend no modifica backend.
+
+La identidad visual es `row.id` (`event-row-N`), estable al reordenar y durante la vida del editor, pero no se envía. El preparador emite `operationRowId` como UUID en DTO `rowId`; también genera UUID `batchId`. La revisión incrementa al cambiar la proyección efectiva del payload. Borradores de formato de fecha, estados visuales y claves de aparición del lineup no alteran la operación. Si cambia país o contenido efectivo (incluidas asociaciones Artist/Tour enviadas), se obtiene otra identidad de fila. El mismo contenido y país reutilizan identidad y snapshot para retry.
+
+El `batchId` corresponde al conjunto de `operationRowId` elegibles bajo el mismo país, sin depender del orden visual; un conjunto o país distinto recibe otro UUID. Un retry exacto reutiliza el snapshot previamente guardado con su orden de envío. Corregir una fila produce otra identidad y no muta snapshots anteriores que una integración futura pueda tener en vuelo. Snapshot y DTO se copian sin referencias a arrays/objetos editables y quedan congelados; conservan orden, `rowKey`, `operationRowId`, revisión y DTO por fila. `isCurrent(snapshot, rowKey, current)` comprueba existencia, país, revisión e identidad y permite ignorar resultados de una operación vieja o de una fila borrada.
+
+La preparación parcial permite hasta 100 filas válidas. Devuelve `eligibleRows`, `pendingRows` con motivos, `errors`, `correlation` de `rowKey` a `operationRowId`, y `payload`/`snapshot` o `null` cuando no hay filas elegibles. Filas adicionales quedan pendientes por límite; no se altera el borrador. La validación cubre país UUID disponible, tipo, fecha date-only y orden de fechas, City, Name de Festival/Tour, estado y UUID actual de Artist, estado inequívoco de Locality/Venue, país contextual, región requerida para Locality nueva y confirmación explícita de Tour existente o ambiguo seleccionado. Artist nuevo omite `artistId`; Venue/Locality nuevos conservan texto sin materialización; estados ambiguos, inválidos o errores técnicos nunca se reinterpretan como entidades nuevas. Venue vacío se omite para delegar el recinto genérico al contrato.
+
+CON-F08c.1 solo prepara datos en memoria. No llama `POST /api/events/import-batch`, no crea entidades, no retira filas ni ejecuta la importación. F08c.2 debe pasar el `payload` capturado sin reconstruirlo, conservar `snapshot` durante el vuelo y usar `isCurrent` antes de reconciliar cada resultado; F08c.3 decidirá la retirada. Riesgos abiertos: confirmar contra el DTO ejecutable y los recibos backend, confirmar explícitamente la semántica de opcionales vacíos/Venue genérico y definir partición de más de 100 filas válidas en operaciones sucesivas.
+
+### Garantías y límites de los inspectores
+
+Los DTOs/controllers y servicios de CON-B04g están presentes en el checkout local `riffvalley-app-back`; la revisión confirma endpoints públicos de lectura y lotes con máximo 100 entradas. Los servicios no crean entidades ni geocodifican. Las respuestas conservan el índice original y una salida por entrada, incluso si los nombres se repiten. Esta verificación corresponde al checkout local; no certifica el backend desplegado.
+
+Artist expone el candidato inequívoco en el campo legacy `artist`; `null` por sí solo no significa entidad nueva. Locality devuelve candidatos con país, región administrativa y provincia para distinguir homónimos. La provincia limita candidatos cuando coincide o está vacía en el catálogo; `administrativeRegionId` limita al contexto indicado. Un resultado `new` con región ausente marca `requiresAdministrativeRegionId: true`. Tour resuelve por igualdad de `normalizeGeography`, sin búsqueda parcial. Venue solo busca nombre normalizado dentro de `localityId` y excluye recintos genéricos; sus ambigüedades defensivas devuelven todos los candidatos. La inspección es una fotografía del catálogo, no una reserva; persistencia revalida IDs y condiciones.
+
+### Tipos HTTP y correlación (CON-F08b.1)
+
+`api/entityResolutionContracts.ts` define DTOs discriminados de Artist, Locality y Tour; el DTO de Venue pertenece a `modules/venues/types/venueImport.ts` y se consume desde su API pública. Son contratos de transporte inmutables, separados del estado de edición que se añadirá después. Los estados y códigos se restringen a los observados en backend. Artist conserva `artist` en todos los estados: objeto en `existing`, `null` en `new`, `ambiguous` e `invalid`. El adaptador actual sigue pudiendo leer ese campo; la aplicación no debe inferir `new` desde `null`.
+
+Todos los lotes admiten hasta 100 entradas. Los DTOs del backend fijan también las longitudes y formatos de entrada (UUID para IDs; nombre de Venue/Tour hasta 180 caracteres, Artist hasta 100 y Locality hasta 150). Los tipos reflejan esas formas, mientras que la constante `ENTITY_RESOLUTION_BATCH_LIMIT` deja el tope común disponible al transporte de F08b.2.
+
+`orderIndexedResults` acepta respuestas fuera de orden y las coloca en orden de entrada. Exige el mismo número de elementos, índices enteros en `[0, inputCount)`, sin repetidos, cobertura completa y que el contenido devuelto coincida con la entrada señalada por el índice. Como cada posición se conserva, nombres repetidos no se deduplican en el contrato. Cualquier incumplimiento lanza un error de protocolo; nunca se asigna una respuesta a otra fila ni se traduce el fallo a una entidad nueva. Artist, Locality y Tour usan el validador compartido; Venue aplica la misma correlación en su módulo.
+
+Un Tour `existing` con `TOUR_CONFIRMATION_REQUIRED` contiene el UUID en `entity`, pero no confirma su reutilización. La factory de F08b.2 solo recupera la respuesta; F08b.6 guardará confirmación explícita en estado local. El DTO HTTP no lleva ni presupone esa decisión.
+
+### Adaptadores y Query (CON-F08b.2)
+
+`api/artistResolution.ts` conserva su firma usada por el editor y valida el contrato ampliado mediante `api/entityResolution.ts`. Ese API adapta Locality y Tour; Venue se mantiene en `modules/venues/api/venueImport.ts`, que valida el contrato bajo su owner. Los cuatro usan Axios autenticado, pasan `AbortSignal` y rechazan lotes mayores de 100. Venue vacío se rechaza localmente; nunca se etiqueta como `new`.
+
+`application/entityResolutionQueries.ts` expone factories de `queryOptions` y claves con namespace `events-festivals/entity-resolution` y tipo `artist`, `locality`, `venue` o `tour`. Las claves incluyen arrays en orden original y conservan duplicados: nombres en Artist/Tour, campos completos en Locality, y nombre + `localityId` en Venue. Se usan valores de entrada exactos; el frontend no aplica normalización aproximada.
+
+Las factories fijan `staleTime: 15 s`: permite compartir peticiones pendientes y resultados frescos entre editores, y hace que un resultado `new` pueda volver a consultarse pronto tras cambios en el catálogo remoto. No agregan un Map ni disparan consultas por fila. Query deduplica por query key; F08b.4 añade coordinación de identidades pendientes cuando los lotes tienen keys distintas.
+
+Fallos Axios/red/HTTP se propagan sin convertirse en entidades. `IndexedBatchProtocolError` identifica envelope o resultado malformado, cantidad/índice/correlación incorrectos y no se reintenta. Las queries permiten como máximo un reintento ante fallo de red o HTTP 5xx. La cancelación llega a Axios y no produce resultados cacheables.
+
+### Contexto geográfico global (CON-F08b.3)
+
+La cabecera de `EventsFestivalsImportView` usa `EventImportCountrySelector`; `useEventImportGeography` mantiene el UUID seleccionado en estado local de la instancia. Todas las filas comparten un país. España (`ES`) se selecciona al resolver correctamente el catálogo, salvo que falte; el UUID se obtiene del backend y un refetch no reemplaza la elección posterior del usuario. Si España falta, la selección queda vacía, se informa la configuración y solo se pueden elegir opciones permitidas realmente presentes.
+
+La configuración local `application/importGeography.ts` limita y ordena las opciones por ISO: España (ES), Portugal (PT), Francia (FR), Alemania (DE), Reino Unido (GB), Bélgica (BE), Países Bajos (NL) e Italia (IT). No incluye Grecia, Turquía ni Rusia. El filtro usa `isoCode`, no el nombre traducido; la etiqueta de presentación procede de la configuración. El backend conserva su catálogo completo.
+
+El adaptador compartido `getVenueImportCountries` consume `GET /api/countries` y pagina hasta completar `totalItems`; la query reutiliza `venues/import/countries`, staleTime de 5 minutos y la caché existente de Venue. No hay consulta por fila. Error de red muestra reintento; catálogo vacío o países admitidos ausentes no fabrican opciones ni UUID.
+
+Las regiones reutilizan `getAdministrativeRegions` (`GET /api/administrative-regions?countryId=…`, paginado) y la key compartida `venues/import/regions/{countryId}`. La consulta se mantiene desactivada hasta `loadRegions()` y solo puede pedir el país seleccionado. `regions`/`regionsQuery` quedan listos para F08b.5/F08d; aún no hay región seleccionada por fila y no se requiere región para localidades ya existentes.
+
+Al cambiar el país se conserva todo el texto y la identidad de Artist/Tour. `useEventImportRows.invalidateGeographicAssociations()` cancela temporizadores y avanza versiones de Venue para descartar respuestas antiguas, elimina solo `venueId`/`localityId` y conserva `venue.name`, City y Province. Volver a un país anterior no restaura asociaciones de fila. La búsqueda paginada actual de Venue sigue activa sin cambios de integración; su adaptación al contexto país/localidad llega en F08b.5.
+
+## Arquitectura propuesta
+
+Mantener `events-festivals` como owner y presentación existente. No introducir Pinia ni una segunda caché remota.
+
+| Área                       | Responsabilidad futura                                                                                           |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Vista                      | Componer tabla, selección de país/región y acciones de lote/resultados.                                          |
+| Tabla y celdas actuales    | Seguir editando; añadir estados/acciones con props y eventos tipados.                                            |
+| `useEventImportRows`       | Draft, edición, pegado, claves visuales y preservación. Extraer solo si la complejidad lo exige.                 |
+| `useEventEntityResolution` | Dependencias, lote de claves únicas, invalidación, confirmaciones, generación y correlación por fila.            |
+| API/tipos del módulo       | DTO de transporte y resultado tipado; no filtrar contrato HTTP a componentes.                                    |
+| TanStack Query             | Única caché remota, deduplicación por query key/contexto, loading/error/cancelación. `queryFn` consume `signal`. |
+| Mutación/import adapter    | Snapshot, envío batch y expansión separados, adaptación por fila y errores HTTP.                                 |
+| Pinia                      | No interviene: Query ya posee server state; interacción efímera sigue local.                                     |
+
+Resolver claves únicas en ventanas por lotes ≤100, y además agrupar por `countryId` cuando aplique. Query es la cache remota con staleTime explícito; el composable conserva draft, candidata, UUID provisional/confirmado y estado por fila. No mantener Map permanente de respuestas remotas duplicado sobre Query. No cachear fallo como ausencia. Respuesta posicional incoherente se trata como fallo de protocolo sin perder texto. Para 100 filas, recolectar claves y enviar lotes; no disparar una query por fila.
+
+## Modelo de filas, identidad e idempotencia
+
+Separar `rowKey` visual estable, `batchId` UUID lógico, `operationRowId` UUID del recibo, revisión/hash del contenido y estados. `rowKey` no se envía al backend. `batchId` se conserva para retry exacto del mismo lote. `operationRowId` permanece con snapshot y retry idéntico; al cambiar cualquier campo hasheado se genera UUID nuevo antes del siguiente envío. Si cambia conjunto/contexto de lote, generar nuevo `batchId`. Congelar snapshot mientras se envía; una edición durante vuelo crea revisión nueva y nunca acepta sobre ella un resultado de versión antigua. Aplicar `created` solo a la revisión correlacionada. El backend rechaza misma identidad con contenido distinto (`IMPORT_IDEMPOTENCY_CONFLICT`). Replay `created` confirma persistencia sin duplicar.
+
+La expansión usa recibo con operation `expand-lineup` y UUID de operación propio; retry exacto conserva los mismos, edición confirmada nueva genera identidad nueva. Backend distingue `create-event` y `expand-lineup`.
+
+No usar enum plano que pierda problemas simultáneos. Ejes recomendados:
+
+- `edit`: editing/dirty/clean.
+- `resolution` por entidad: idle/pending/resolved/new/ambiguous/confirmation-required/error con UUID o identidad provisional y candidatos.
+- `validation[]`: errores/conflictos múltiples y campos asociados.
+- `persistence`: not-submitted/submitting/created/conflict/invalid/failed/replayed/expanding/expanded.
+
+## Resolución incremental y respuestas obsoletas
+
+| Entidad/claves                                                         | Cambios que invalidan                                                                                 |
+| ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Artist: normalización `normalizeMusicName`/variantes backend           | Solo el artista editado. Nunca price, fecha, Venue o Tour.                                            |
+| Tour: `normalizeGeography(name)`                                       | Solo Tour; compartir confirmación o identidad provisional equivalente entre filas; no cambiar lineup. |
+| Locality: país + región si aplica + nombre/alias; province es contexto | City/country/region invalidan localidad y Venue dependiente. Artist/Tour se conservan.                |
+| Venue: `localityId + normalizeGeography(name)`                         | Venue nuevo o Locality dependiente. Venue genérico es estado separado.                                |
+
+Price/otherInfo/fechas no resuelven entidades (fechas sí revalidan conflicto). Cambiar tipo revalida aplicabilidad, conserva y marca datos pendientes: concierto/tour usan gira del Event; festivales soportan gira por EventArtist pero batch no documenta aún asignación por actuación. No borrar silenciosamente. `tour` necesita nombre de gira.
+
+Usar AbortSignal de Query, invalidación/cancelación por query key y una generación/revisión local. Antes de aplicar respuesta comprobar key, rowKey y revisión actuales. Respuesta antigua puede alimentar su key válida de caché, pero no cambiar el draft o asociación de otra clave. Borrar fila cancela observadores/trabajo y no revive la fila. Mutación captura snapshot y correlaciona `rowKey + operationRowId + batchId`.
+
+## Matriz de resultados y acciones
+
+| Resultado                    | Tabla/acción                                                                                                                                             |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `created`                    | Retirar solo tras confirmar persistencia y snapshot vigente.                                                                                             |
+| Replay idempotente `created` | Tratar como ya persistida; retirar solo fila/snapshot correlacionado.                                                                                    |
+| Conflicto entre filas        | Conservar ambas; referencias cruzadas simétricas; corregir o descartar explícitamente.                                                                   |
+| Conflicto con Event          | Conservar; mostrar candidatos backend; selección propone ampliación, no modifica evento.                                                                 |
+| Festival duplicado/solapado  | Mostrar coincidencia/candidatos; no fusionar. Corregir, descartar o ampliar solo si está soportado/confirmado.                                           |
+| `invalid`                    | Conservar; resaltar campos indicados; corrección, no retry técnico.                                                                                      |
+| `failed`/red                 | Conservar snapshot/IDs; permitir retry exacto; no dar por persistido.                                                                                    |
+| Tour existente               | Solicitar confirmación explícita de ID antes de importar.                                                                                                |
+| Tour nuevo repetido          | Compartir identidad provisional; materializar al importar, sin consultas repetidas.                                                                      |
+| Locality ambigua             | Conservar y seleccionar candidato distinguido por país/región/province.                                                                                  |
+| Locality nueva               | Requerir AdministrativeRegion existente; no llamar geocoder por fila.                                                                                    |
+| Venue existente              | Retener ID real y locality; no buscar de nuevo mientras key válida.                                                                                      |
+| Venue desconocido/vacío      | Permitir nombre libre para creación al importar; vacío permite Venue genérico.                                                                           |
+| Artist nuevo inequívoco      | Permitir creación backend; conservar UUID al recibirlo.                                                                                                  |
+| Artist ambiguo               | Selección de candidato cuando contrato lo permita; no tratarlo como inexistente.                                                                         |
+| Lineup ampliable             | Mostrar artistas ausentes y pedir confirmación; enviar solo seleccionados al endpoint separado.                                                          |
+| `IMPORT_CONFLICT_STALE`      | Conservar fila/selección, refrescar candidatos y analizar de nuevo; no retry a ciegas.                                                                   |
+| HTTP 401/403/400/404         | Conservar lote; distinguir sesión, permiso, DTO y recurso. No reintentar automáticamente 400/403. Conflictos HTTP concretos quedan por fixture contract. |
+| Fila eliminada en vuelo      | No recrear ni dirigir respuesta a posición reutilizada; reconciliar solo mediante identidad de operación.                                                |
+
+Descartar elimina draft con confirmación si tiene datos; corregir conserva fila y cambia identidad idempotente; reintentar repite snapshot exacto; confirmar ampliación ejecuta operación aditiva. No ofrecer merge, edición de Event existente o lookups ambiguos no soportados.
+
+## Roadmap ejecutable
+
+### CON-F08b — Resolución anticipada e incremental
+
+1. **F08b.1 Contratos de inspección — completada:** DTOs HTTP contrastados con los DTOs, controllers y servicios de CON-B04g del checkout local; tipos discriminados, fixtures, límite compartido de 100 y correlación por `index`. No se conectan los nuevos endpoints a la tabla. La revisión no valida despliegue remoto.
+2. **F08b.2 Adaptadores y Query — completada:** cuatro APIs validadas y tipadas, factories de query, keys con contexto y posición, staleTime breve, cancelación, errores de protocolo y límite ≤100. No conecta los inspectores con la vista ni migra la caché actual de Artist.
+3. **F08b.3 Contexto geográfico — completada:** selector global con España por defecto, filtro frontend por los ocho ISO admitidos, UUIDs reales, catálogo paginado, reintento y claves de catálogo compartidas; regiones cargables por país bajo demanda. Cambiar país conserva texto y limpia UUID geográficos de filas, sin tocar Artist/Tour. No integra todavía inspectores ni selectores de Locality/Region. La región contextual requerida para una localidad nueva corresponde a F08b.5/F08d.
+4. **F08b.4 Artist compartido — completada:** `useEventEntityResolution` es el coordinador único de Artist por tabla. Normaliza solicitud de forma conservadora (trim, espacios repetidos y minúsculas `und`, sin quitar diacríticos ni aplicar normalización geográfica), conserva el nombre escrito y agrupa identidades únicas en ventanas de 450 ms y bloques de hasta 100. El QueryCache sirve como fuente remota: la factory conserva el lote validado y `staleTime` de 15 s; para reutilizar un nombre contenido en otro lote se inspeccionan consultas Artist frescas, y las promesas pendientes se comparten por identidad aunque pertenezcan a batches distintos. La cola de promesas es temporal, no retiene respuestas ni errores. `existing` conserva UUID real; `new` deja ID nulo; `ambiguous` conserva candidatos; `invalid` conserva código; los fallos técnicos quedan en estado local reintentable y cancelaciones no significan `new`. Cada fila/artista aplica el resultado solo si todavía existe con la misma clave y revisión. Cambiar un artista limpia solo su asociación; eliminar fila/artista no cancela trabajo usado por otras filas. Precio, fecha, país y Venue no consultan Artist. La tabla, `+`, orden, edición individual, pegado TSV y navegación no cambian.
+5. **F08b.5 Locality/Venue — completada:** conecta `POST /api/localities/inspect-batch` y después `POST /api/venues/resolve-batch`, sin `localities/resolve`, Nominatim ni búsqueda paginada. Dos coordinadores separados agrupan identidades hasta 100, comparten trabajo pendiente y reutilizan QueryCache fresca. Locality se identifica por país/nombre/región/provincia; Venue por `localityId`/nombre. Existing conserva UUID; new mantiene texto y solicita AdministrativeRegion solo cuando el backend lo requiere; ambiguous conserva candidatos y requiere selección explícita; invalid y error siguen separados. Venue vacío no se consulta; Venue new no tiene ID ni se crea anticipadamente; Venue ambiguous no elige candidato. City/Province/Country invalidan Locality y Venue dependiente; cambiar Venue invalida solo su resolución; otros campos no disparan lookups. Las revisiones protegen respuestas tardías y el borrado no recrea filas.
+6. **F08b.6 Tour — completada:** `tour` representa un concierto dentro de una gira; no añade un tipo persistido de Event. La columna existente Event/Name conserva su orden y el campo significa nombre opcional de concierto, nombre obligatorio de festival o nombre obligatorio de gira. El coordinador usa `POST /api/tours/resolve-batch`, clave compatible con `normalizeGeography` (NFD, quitar diacríticos, compactar espacios y minúsculas), debounce de 450 ms, lotes únicos hasta 100, trabajo pendiente compartido y QueryCache fresca durante 15 s. `existing` conserva entidad canónica y pide confirmación explícita; la confirmación aplica una sola vez a filas con identidad equivalente y no asigna ID antes de la acción. `new` conserva texto y no inventa UUID; `ambiguous` retiene candidatas y exige elegir un UUID; `invalid` y error técnico conservan texto y permiten corregir/reintentar. Cambiar nombre o tipo invalida solo la asociación de esa fila; respuestas antiguas verifican tipo, nombre y revisión. La fila conserva lineup propio; cambiar artista o datos geográficos/de fecha/precio no resuelve Tour y no se escriben Events/Tours al editar. En CON-F08c, el payload deberá enviar el nombre sin `tourId` para una gira nueva y el UUID confirmado para una existente; CON-B04d revalidará las referencias y creará/reutilizará la gira durante la importación.
+7. **F08b.7 Invalidación — completada:** aplica la matriz de dependencias descrita arriba; evita lookups si la identidad normalizada no cambia, conserva asociaciones/contexto independientes y protege cada aplicación tardía por fila, revisión e identidad.
+
+### CON-F08c — Importación masiva
+
+1. **F08c.1 Snapshot/payload:** mapear modelo al DTO, UUIDs reales, countryId único, filas por país, requeridos/opcionales. Aceptación: lote ≤100 compatible con DTO.
+2. **F08c.2 Mutación/adaptador:** `POST /events/import-batch`, correlación rowId y resultados por fila. Aceptación: conserva código original; HTTP error no se convierte en resultado por fila.
+3. **F08c.3 Parcialidad:** retirar únicamente created/replay confirmado del snapshot actual. Aceptación: conservar invalid/conflict/failed, edits durante vuelo y otros países.
+
+### CON-F08d — Conflictos y ambigüedades
+
+1. **F08d.1 Conflicto entre filas:** referencias cruzadas y problemas múltiples; aceptar/corregir/descartar. 2. **F08d.2 Event/festival candidato:** mostrar candidatos backend sin auto-selección. 3. **F08d.3 Artist/Locality/Tour:** selección por UUID y confirmaciones explícitas; ambigüedad nunca se transforma en entidad nueva. 4. **F08d.4 Acciones:** distinguir descarte, corrección y reintento sin pérdida inadvertida.
+
+### CON-F08e — Ampliación confirmada
+
+1. **F08e.1 Presentar destino/artistas faltantes**, conservando `sourceRow`.
+2. **F08e.2 Confirmar mutación aditiva** por `POST /events/:id/import-lineup`, operation separada; nunca automática ni PATCH de reemplazo.
+3. **F08e.3 Conflicto stale/replay:** refrescar en `IMPORT_CONFLICT_STALE`; replay no duplica; conserva entrada original.
+
+### CON-F09 — Cierre del importador
+
+1. **F09.1 Idempotencia/reintentos:** congelar snapshot, retry conserva UUIDs, contenido editado emite row UUID nuevo; expansion separada.
+2. **F09.2 Estados de carga/error:** separar edición/resolución/validación/persistencia; conservar datos al fallar.
+3. **F09.3 Regresión/accesibilidad:** teclado, foco, lector de pantalla y mensajes; preservar pegado/nav/contraste.
+4. **F09.4 Rendimiento/cierre:** medir 100 filas, render y solicitudes por identidad; evitar fan-out. Inspección visual responsive queda al usuario.
+
+## Pruebas previstas y contratos
+
+F08b.1 agregó fixtures TypeScript y pruebas offline de contratos/correlación. F08b.2 prueba los cuatro transportes y Query. F08b.3 cubre catálogo permitido, UUID/default, error/reintento, selección persistente, consulta contextual de regiones e invalidación geográfica sin borrar texto. F08b.4 prueba deduplicación de Artist, agrupación, reutilización fresca, expiración, batches ≤100, estados, reintento, cancelación, edición y respuestas obsoletas. F08b.5 está cubierta por las pruebas focalizadas descritas a continuación. F08b.6 cubre edición y pegado de tipo, resolución batch, duplicados y clave normalizada, QueryCache, expiración, límites de batch, confirmación compartida e invalidación al cambiar el nombre. F08b.7 añade regresión transversal con conteo de solicitudes reales, cambios durante vuelo, filas retiradas/añadidas, cambio de país y preservación de Lineup/confirmaciones.
+
+## Verificación de CON-F08b.5
+
+- `pnpm exec vitest run src/modules/events-festivals src/modules/venues/api/venueImport.test.ts`: 11 archivos y 101 pruebas aprobadas. Incluye contratos/fixtures para alias, homónimos por país/región/provincia, invalid codes, resolución/reintento de Locality y Venue, estado nuevo y ambiguo, candidatos explícitos, región requerida, Venue vacío sin consulta, Venue repetido entre 20 filas y tres localidades, aislamiento por localidad y lotes 100/100/5 para 205 entradas.
+- Typecheck, ESLint focalizado, Prettier focalizado, build y `git diff --check` aprobados. Build conserva advertencias de Browserslist, el selector CSS `.flex-[2]` y un chunk mayor de 500 kB.
+- Fixtures de ciclos y fronteras aprobados. Los diagnósticos locales reportan 0 imports locales irresueltos y 0 violaciones de fronteras. El escaneo de ciclos encuentra un ciclo mixto preexistente en `eventDate.ts`/`useEventImportRows.ts` y uno type-only en servicios legacy; la comparación con base es informativa porque Git no pudo resolver `HEAD`. No se atribuyen estos ciclos al cambio sin baseline fiable.
+- `pnpm run markdown:links` es informativo y reporta seis enlaces rotos o externos en roadmaps distintos; no señala este documento ni `roadmap/events-festivals.md`. No se hizo comprobación visual ni captura.
+- La disponibilidad de los endpoints en el entorno desplegado queda pendiente. El selector general de conflictos y la importación persistente siguen fuera de esta fase.
+
+## Verificación de CON-F08b.6
+
+- El backend local se inspeccionó en `tours.service.ts`, `tours.controller.ts` y la documentación CON-B04: `POST /api/tours/resolve-batch` es de solo lectura, usa `normalizeGeography`, limita el lote a 100 y devuelve `existing` con `{id,name}` y `TOUR_CONFIRMATION_REQUIRED`, `new`, `ambiguous` con candidatos o `invalid`. CON-B04d asocia Tours a Events al importar; no se modificó backend ni se consultó un entorno remoto.
+- La columna se mantiene; `tour` usa Event/Name como nombre requerido de gira. El cambio de tipo conserva texto, la resolución de Artist y Lineup siguen siendo por fila, y la gira solo se enlaza en la capa local tras confirmar UUID. Las respuestas nuevas no crean ID provisional ni escrituras anticipadas.
+- Pruebas focalizadas: `pnpm exec vitest run src/modules/events-festivals src/modules/venues/api/venueImport.test.ts`, 12 archivos y 107 pruebas aprobadas. La vista verificó un solo POST para dos nombres equivalentes; el coordinador comprobó reutilización fresca, nueva consulta tras 15 s y lotes 100/1 para 101 nombres. También se cubren pegado de `tour`, conservación de Name al cambiar tipo, existente/nueva/ambigua/inválida/error, confirmación compartida, reintento, cambio de nombre, precio sin consulta y respuesta obsoleta. Artist, Lineup y resolución geográfica existentes mantienen sus pruebas de regresión.
+- `pnpm run typecheck`, ESLint focalizado, Prettier focalizado, `pnpm build` y `git diff --check` aprobados. La build conserva avisos de Browserslist desactualizado, selector CSS `.flex-[2]` y chunk superior a 500 kB.
+- `pnpm run cycles:fixtures` y `pnpm run identity:boundaries:fixtures` aprobados. Los diagnósticos reportan 0 imports locales irresueltos y 0 violaciones de fronteras; la comparación con base es informativa porque Git no pudo resolver `HEAD`. `pnpm run markdown:links` no señala estos dos documentos y reporta seis enlaces rotos/externos en otros archivos existentes.
+- No se inspeccionó el navegador ni se capturaron imágenes, según el alcance indicado. La disponibilidad del endpoint desplegado no se verificó.
+- CON-F08c (payload/mutación de importación), F08d/F08e y F09 permanecen pendientes. La validación real del endpoint desplegado no se hizo.
+
+## Verificación de CON-F08b.7
+
+- Suite afectada `pnpm exec vitest run src/modules/events-festivals src/modules/venues/api/venueImport.test.ts`: 12 archivos, 114 pruebas aprobadas. Incluye escenarios transversales de invalidación, clave equivalente editada durante una petición, país antiguo/vigente, Tour compartido/confirmado y no aplicable, fila borrada y nueva durante trabajo pendiente, y regresión de vista/pegado TSV.
+- Conteos reales del transporte mockeado en pruebas: Artist repetido en 20 filas → una llamada con una identidad; Locality para 20 filas y tres ciudades → una llamada con tres identidades; Venue para el mismo recinto en ocho apariciones de una Locality y otros doce nombres → una llamada con 13 identidades; Tour equivalente en diez filas → una llamada con una identidad. Los coordinadores mantienen límite 100 (Artist 205 → 100/100/5; Locality 205 → 100/100/5; Tour 101 → 100/1) y caché fresca de 15 s.
+- `pnpm run typecheck`, ESLint focalizado, Prettier focalizado, `pnpm build` y `git diff --check` aprobaron. Build conserva avisos de datos Browserslist antiguos, sintaxis del selector CSS `.flex-[2]` y chunk superior a 500 kB.
+- `pnpm run markdown:links` informó seis enlaces fuera de este alcance, en roadmaps de Catalog, Dashboard y Roles; no señaló el documento canónico ni el roadmap de Eventos.
+- `pnpm run cycles:fixtures` y `pnpm run identity:boundaries:fixtures` aprobaron. Los diagnósticos actuales muestran 0 edges locales irresueltos, 0 violaciones de fronteras y ningún ciclo runtime/mixto del importador; queda un ciclo type-only legacy en servicios. La comparación con base fue informativa porque el checker no pudo resolver `local HEAD`; no se declara aprobado el delta.
+- No se inspeccionó navegador ni se tomaron capturas. Los endpoints desplegados no se verificaron.
+- Preparación CON-F08c: mantener `event-row-N`/`lineup-item-N` como identidad visual efímera y, antes de persistir, crear UUIDs de operación y fila, snapshot inmutable del contenido por país, revisión de contenido separada de revisiones de lookup y estado explícito de persistencia. Al aplicar respuestas de importación, comprobar que snapshot/fila/revisión siguen vigentes. Validar en backend todos los UUIDs y relaciones; ningún resultado del inspector garantiza persistencia. Estas piezas pertenecen a F08c/F09 y no se implementaron en F08b.7.
+- Riesgos pendientes: disponibilidad y DTOs del backend desplegado; identidad visual no durable; comparación estructural incremental no certificada contra base válida; deuda del ciclo type-only legacy y avisos globales de build.
+
+## Verificación de CON-F08c.2
+
+- Contrato contrastado sin cambiar checkout backend: rama `feat/con-b04e-confirmed-lineup-expansion`, commit `01bb85ffbb1f918b1ac3b82924e70b755aed6729`. Las ramas locales `feat/con-b04d-event-import-batch` y `feat/con-b04a-import-model` apuntan a `843cfef` y no incluyen el endpoint; el commit de CON-B04e contiene el controlador `POST events/import-batch`, los DTOs, `EventsImportBatchService` y `ImportRowReceiptsService`. El checkout backend permanece en `feat/prosineck-scraper` sin cambios.
+- El DTO de lote requiere UUID `batchId`, UUID `countryId` y `rows` (máximo 100). La fila requiere UUID `rowId`, `type`, `startDate` y `city`; `festival`/`tour` requieren `name`; `tourId` solo aplica a `tour`. Lineup admite 100 artistas con nombre de hasta 100 caracteres y `artistId` UUID opcional por elemento. También se admiten `endDate`, `province`, `administrativeRegionId`, `venue`, `price` y `otherInfo` con límites backend de 10, 150, UUID, 180, 2000 y 10000 caracteres respectivamente. El DTO no acepta `localityId` ni `venueId`; el servicio resuelve estas entidades con el contexto textual y revalida conflictos antes de persistir.
+- CON-F08c.1 ya omite campos ausentes, usa `YYYY-MM-DD`, preserva UUID explícitos de Artist/Tour y limita el snapshot a 100 filas. `artistId` está correctamente anidado en cada artista del lineup; no existe como campo de fila. El servicio normaliza ausencias a `null` antes de calcular el recibo, incluye país y datos de fila, canonicaliza claves JSON y calcula SHA-256. La identidad es `(editorId, batchId, rowId, operation)`; un contenido distinto o una operación aún procesándose resulta en conflicto. Reintentar el mismo snapshot conserva el hash y permite replay. No se encontró discrepancia que requiriese cambiar el preparador.
+- `api/eventImport.ts` usa el Axios central, valida `batchId`, estados y forma de todos los resultados, rechaza UUID repetidos/desconocidos o filas ausentes, y correlaciona por `rowId` aunque la respuesta llegue en orden distinto. Los conflictos conservan códigos, filas relacionadas, IDs de eventos candidatos/existentes y listas de artistas coincidentes/añadibles. `created` conserva IDs y `replayed`.
+- `useEventImportBatchMutation` desactiva retries automáticos, bloquea una segunda petición con el mismo `batchId` mientras está en vuelo y solo invalida al recibirse al menos un `created`. La vista muestra filas listas/pendientes, carga, estado global y el resultado individual, y expone retry explícito del snapshot original ante errores recuperables. Un HTTP global no se convierte en resultado `failed` y una respuesta parcial no se descarta.
+- Invalidaciones disponibles: namespace de inspección `events-festivals`, catálogo de artistas y catálogo de venues. Este checkout no define claves de catálogo de eventos ni de tours; añadirlas queda pendiente de que el dueño de esas queries publique sus claves. La mutación no retira filas ni reconcilia revisiones editadas durante el envío; corresponde a CON-F08c.3.
+- Suite afectada: `src/modules/events-festivals` y `src/modules/venues/api/venueImport.test.ts`, 15 archivos y 136 pruebas aprobadas. Typecheck, ESLint focalizado, Prettier focalizado, build, fixtures de ciclos/fronteras y `git diff --check` aprobados. Los scans de ciclos/fronteras son informativos porque no se pudo resolver `HEAD` para comparar.
+- No se hizo inspección visual, importación real ni validación del endpoint desplegado. Los avisos globales de build son Browserslist desactualizado, CSS `.flex-[2]` y chunk superior a 500 kB.
+
+| Fase | Escenarios necesarios                                                                                                                                                                                                                                 |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F08b | Artista de 20 filas; gira repetida entre fechas; localidades/Venues compartidos; invalidación selectiva; edición durante request; fila borrada; 100 filas y batches ≤100; ambiguos separados; nueva localidad requiere región y no geocoder por fila. |
+| F08c | Contrato DTO, 100 filas, países particionados, resultados parciales, retirada solo `created`, replay, edición/borrado en vuelo, HTTP y fallo por fila.                                                                                                |
+| F08d | Conflictos simétricos y múltiples, Event/festival candidatos, selección ambiguo, corrección/descarte sin pérdida.                                                                                                                                     |
+| F08e | Solo artistas faltantes, endpoint separado, confirmación explícita, stale refresh, retry exacto, lineup no reemplazado.                                                                                                                               |
+| F09  | Snapshot/hash/UUID, red retry, conflictos concurrentes, carga/error, accesibilidad y requests de lote 100.                                                                                                                                            |
+
+## Verificación de CON-F08b.4
+
+- Suite de `src/modules/events-festivals`: 9 archivos y 84 pruebas aprobadas. La prueba de 20 filas midió 1 petición para Septicflesh; su llegada en otra ventana mientras seguía en vuelo no generó otra llamada. Una aparición con caché fresca tampoco generó llamada; después de 15 s se observó una segunda petición.
+- Las pruebas también verifican el lote de 205 nombres en tamaños 100/100/5, deduplicación de tres nombres únicos de dos filas en una petición, estados `existing`/`new`/`ambiguous`/`invalid`, error reintentable, cancelación sin estado negativo, edición obsoleta y borrado de fila en vuelo.
+- `pnpm run typecheck`, ESLint focalizado, Prettier focalizado, `pnpm build` y `git diff --check` aprobaron. Build conserva avisos de CSS `.flex-[2]`, Browserslist desactualizado y chunk >500 kB.
+- Fixtures de ciclos y fronteras aprobaron. Los scans locales reportan 0 edges locales irresueltos y 0 violaciones de fronteras; la comparación es informativa porque Git no pudo resolver `HEAD`. `cycles` muestra el ciclo mixto entre `eventDate.ts` y `useEventImportRows.ts`; no se atribuye a F08b.4 sin un baseline comparable.
+- No se hizo prueba visual de navegador. Las pruebas de vista cubren tabla, edición y regresiones del importador; pegado TSV y navegación permanecen en la implementación existente.
+
+## Decisiones y riesgos pendientes
+
+- Confirmar contratos/códigos del backend desplegado contra el checkout local y mantener contract fixtures.
+- El contrato de `EventArtist.tourId` en import-batch y la aplicación de Tour a filas de festival quedan para la integración CON-F08c/F08d; esta tarea conserva Tour solo como asociación local de filas `tour`.
+- País único por lote obliga a particionar lotes multi-país.
+- Artist resolution pública, Venue resolver lectura y batch de eventos autenticado: permiso servidor es autoridad.
+- Invalidar o dejar caducar resultados Artist después de una mutación de catálogo futura; `new` tiene staleTime de 15 s y no es una ausencia permanente.
+- Resolver endpoints geográficos y de importación pueden tener efectos, por lo que no son caches de lookup.
+
+### Dependencia backend
+
+**CON-B04g está implementada en el checkout backend local y sus contratos se contrastaron para F08b.1/F08b.2.** Su disponibilidad en producción no se verificó. F08b.3 en adelante dependerá del acceso a esos endpoints; cualquier diferencia de despliegue debe tratarse como error de transporte/protocolo, nunca como una entidad nueva.

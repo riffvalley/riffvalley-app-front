@@ -2,19 +2,73 @@
 
 ## Estado
 
-**Fase A — Prototipo frontend en curso.** CON-F01–CON-F07 están implementadas y verificadas localmente; la validación del usuario sigue pendiente. El prototipo no define el contrato de persistencia de conciertos.
+**Fase A — Prototipo frontend:** CON-F01–CON-F07 implementadas; la validación visual final del usuario sigue pendiente. **Backend de importación:** contratos CON-B04a–CON-B04g disponibles en la documentación del checkout local; no certifica despliegue remoto. **Integración frontend:** CON-F08a, F08b.1–F08b.7 y F08c.1–F08c.2 completadas; F08c.3–F09 siguen pendientes.
 
-| Fase                   | Estado      | Alcance                                                                           |
-| ---------------------- | ----------- | --------------------------------------------------------------------------------- |
-| A — Prototipo frontend | EN CURSO    | CON-F01–CON-F07 implementadas; validación progresiva de la experiencia pendiente. |
-| B — Backend            | SIN INICIAR | Auditoría, diseño del dominio, persistencia y reglas tras validar el prototipo.   |
-| C — Integración        | SIN INICIAR | Conexión con APIs y resultados de importación una vez definidos los contratos.    |
+| Fase                   | Estado                | Alcance                                                                                |
+| ---------------------- | --------------------- | -------------------------------------------------------------------------------------- |
+| A — Prototipo frontend | IMPLEMENTADA          | CON-F01–CON-F07; queda validación visual del usuario.                                  |
+| B — Backend            | CONTRATOS DISPONIBLES | CON-B04a–CON-B04g documentadas en el checkout backend; no certifica despliegue remoto. |
+| C — Integración        | EN CURSO              | CON-F08a, F08b.1–F08b.7 y F08c.1–F08c.2 completadas; F08c.3–F09 pendientes.            |
+
+La auditoría canónica del importador, su matriz de resultados, las carencias de resolución anticipada y el diseño de estados/idempotencia están en [docs/frontend/modules/events-festivals-importer.md](../docs/frontend/modules/events-festivals-importer.md). El roadmap detallado es:
+
+- **CON-F08a — Auditoría y arquitectura (completada en documentación):** auditar tabla/filas, resolución actual y contratos backend reales; documentar gaps y roadmap. No modifica comportamiento.
+- **CON-F08b — Resolución anticipada e incremental (completada):** F08b.1 contratos batch/ambigüedad, F08b.2 adaptadores HTTP/Query, F08b.3 contexto global Country/AdministrativeRegion, F08b.4 Artist compartido, F08b.5 Locality/Venue, F08b.6 Tour/confirmación y F08b.7 invalidación transversal. QueryCache es autoridad remota (15 s); coordinadores por tabla solo conservan trabajo pendiente y agrupan identidades únicas en lotes de hasta 100. Locality existente seleccionada por UUID habilita Venue; nueva o ambigua no. Country invalida Locality/Venue conservando texto, Artist UUIDs y confirmaciones Tour. Tour exige confirmación explícita para existentes. Respuestas antiguas se aplican solo si siguen vigentes fila, revisión, identidad y dependencias. No se crean entidades ni se persiste durante la edición.
+- **CON-F08c — Importación masiva (en curso):** F08c.1 snapshot/payload por país y F08c.2 mutación/adaptador de `POST /api/events/import-batch` completadas; F08c.3 reconciliación y retirada parcial de filas pendiente.
+- **CON-F08d — Conflictos y ambigüedades (pendiente):** F08d.1 conflictos entre filas; F08d.2 candidatos de Event/festival duplicado; F08d.3 selección de Artist/Locality/Tour; F08d.4 corrección y descarte explícitos.
+- **CON-F08e — Ampliación confirmada (pendiente):** F08e.1 mostrar artistas faltantes; F08e.2 confirmación aditiva vía `POST /api/events/:eventId/import-lineup`; F08e.3 retry/revisión de conflicto obsoleto.
+- **CON-F09 — Cierre del importador (pendiente):** F09.1 idempotencia/retry; F09.2 estados de carga/error; F09.3 regresión/accesibilidad; F09.4 rendimiento frontend y cierre. Validación visual responsive posterior a cargo del usuario.
+
+**CON-B04g está implementada en el checkout backend local y verificada para F08b.1.** El estado de despliegue remoto no se comprobó. Los inspectores son consultas batch read-only; Locality requiere contexto de país y Venue necesita `localityId`. La definición y garantías están en el documento canónico.
+
+## Verificación de CON-F08c.1
+
+- `application/eventImportPreparation.ts` define el DTO documentado de CON-B04d sin `rowKey`, revisión, `localityId` o `venueId`; usa Artist `artistId`, `administrativeRegionId` y `tourId` solo en los casos permitidos. Prepara fechas `YYYY-MM-DD`, strings opcionales no vacíos literalmente y omite opcionales vacíos.
+- `row.id` se conserva como `rowKey` local; `operationRowId` y `batchId` son UUID separados. Contenido/contexto diferente renueva identidad de fila; retry idéntico conserva payload/snapshot/batch. El batch se identifica por país y conjunto de operaciones; el orden capturado queda fijo en el snapshot. `isCurrent` correlaciona por `rowKey`, revisión, país y `operationRowId` para cubrir edición y borrado sin usar posición.
+- La preparación es parcial y limita cada payload a 100 filas válidas; filas extra y no preparadas retienen sus drafts con motivos. Snapshots y DTO quedan profundamente congelados y copiados. No existe mutación HTTP ni persistencia en F08c.1.
+- El checkout `riffvalley-app-back` estaba disponible en `feat/prosineck-scraper`, pero carece del código Events/DTOs/`ImportRowReceiptsService`; la forma y recibos se contrastaron solo con auditorías documentales locales. Antes de F08c.2 hay que revalidar esos detalles contra el checkout backend con CON-B04d implementada. La política actual del frontend mantiene `batchId` para el mismo país/conjunto idempotente y reemplaza identidad al cambiar payload; no resuelve `IMPORT_IDEMPOTENCY_CONFLICT` después de iniciar una operación.
+- `pnpm exec vitest run src/modules/events-festivals src/modules/venues/api/venueImport.test.ts`: 13 archivos, 126 pruebas aprobadas. Typecheck, ESLint focalizado, Prettier focalizado, `pnpm build`, fixtures de ciclos/fronteras y `git diff --check` aprobados. Build conserva avisos de Browserslist antiguo, selector CSS `.flex-[2]` y chunk >500 kB.
+- Diagnóstico de ciclos: 0 imports locales irresueltos; queda un ciclo type-only legacy en servicios. Diagnóstico de fronteras: 0 violaciones productivas y 0 imports locales irresueltos. Ambas comparaciones son informativas porque Git no pudo resolver `HEAD`; no se declara aprobado un delta.
+- `pnpm run markdown:links` sigue informativo y reporta seis enlaces preexistentes fuera de este alcance, en roadmaps de Catalog, Dashboard y Roles; no señala los dos documentos de Eventos. No se inspeccionó navegador ni se tomaron capturas. F08c.2, F08c.3, F08d, F08e y F09 permanecen pendientes.
+
+## Verificación de CON-F08c.2
+
+- Contrato ejecutable cotejado en `riffvalley-app-back`, rama `feat/con-b04e-confirmed-lineup-expansion`, commit `01bb85ffbb1f918b1ac3b82924e70b755aed6729`; no se cambió el checkout backend. Las ramas B04a/B04d locales señalan `843cfef`, que no incluye el endpoint. DTO, recibos de idempotencia y estructura de conflictos están descritos en el documento canónico del importador.
+- Adaptador `api/eventImport.ts` y mutación `application/useEventImportBatchMutation.ts`: POST con Axios central, validación de protocolo, correlación por `rowId`, retry explícito del mismo snapshot, sin retry automático ni borrado/reconciliación de filas. La vista presenta carga y resultados por estado.
+- Suite afectada: 15 archivos, 136 pruebas aprobadas. Typecheck, ESLint y Prettier focalizados, build, fixtures de ciclos/fronteras y `git diff --check` aprobados. Los scans estructurales locales encontraron 0 imports locales irresueltos y 0 violaciones productivas; comparación delta informativa porque Git no pudo resolver el `HEAD` local.
+- La build mantiene avisos globales preexistentes de Browserslist, selector CSS `.flex-[2]` y chunk >500 kB. No se inspeccionó navegador ni se hicieron importaciones reales. El backend no se desplegó ni verificó contra un entorno remoto.
+- La invalidación usa las claves existentes de resolución, artistas y venues. No hay claves de catálogo Event/Tour en este checkout; queda pendiente su publicación por sus owners. CON-F08c.3 conserva la reconciliación definitiva y retirada parcial de filas.
+
+## Verificación de CON-F08b.6
+
+- Se comprobó el contrato de `POST /api/tours/resolve-batch` en el checkout backend: resolución exacta por `normalizeGeography`, máximo 100 nombres, estados `existing/new/ambiguous/invalid`; una gira existente devuelve `{id,name}` y `TOUR_CONFIRMATION_REQUIRED`. No se modificó el backend ni se verificó un despliegue remoto.
+- `tour` es tipo de entrada, no tipo persistido de Event. Event/Name representa el nombre obligatorio de gira; confirmaciones de UUID se comparten entre filas con identidad equivalente. Giras nuevas no reciben IDs ficticios; la importación y su creación por CON-B04d quedan para CON-F08c. Cada fila conserva su Lineup.
+- Suite focalizada de `src/modules/events-festivals` y `src/modules/venues/api/venueImport.test.ts`: 12 archivos, 107 pruebas aprobadas. Se observó un POST para dos nombres equivalentes, caché fresca reutilizada, recarga tras 15 s y lotes 100/1 con 101 giras. Se probaron estados, confirmación compartida, reintento, cambio de nombre y respuesta obsoleta.
+- Typecheck, ESLint focalizado, Prettier focalizado, build y `git diff --check` aprobados. La build mantiene advertencias de Browserslist desactualizado, CSS `.flex-[2]` y chunk mayor de 500 kB.
+- Fixtures de ciclos/fronteras aprobados; diagnósticos con 0 edges locales irresueltos y 0 violaciones. La comparación es informativa por no poder resolver Git `HEAD`. `markdown:links` no señala estos documentos y reporta seis enlaces existentes en otros archivos. No se inspeccionó navegador ni captura.
+- No se hizo inspección visual ni captura. CON-F08b.7 y CON-F08c–CON-F09 continúan pendientes.
+
+## Verificación de CON-F08b.7
+
+- Se consolidó la matriz: Lineup invalida solo la aparición Artist; City/Province invalidan Locality y Venue dependiente cuando cambia la identidad; Venue invalida solo Venue; Country invalida Locality/Venue y región; Name/Type afectan Tour solo cuando cambia o deja de aplicar esa identidad. Fechas, Price, Other Info, Artist y Tour permanecen al cambiar país/geografía según la matriz.
+- Ediciones de texto equivalentes por normalización conservadora y selección de país/región ya vigente no generan lookup nuevo. En regresión, 20 filas con Madrid/Barcelona/Bilbao produjeron 3 identidades Locality en 1 petición; la petición Venue agrupó 13 identidades, con las 8 apariciones repetidas de La Riviera en una entrada. Diez filas de una gira produjeron 1 entrada Tour en 1 petición. Veinte apariciones Artist compartieron una petición y cada fila conservó su Lineup independiente.
+- Las pruebas transversales cubren país cambiado mientras la consulta antigua queda pendiente y vuelta al país con QueryCache vigente, Artist y Tour conservados, Tour confirmado entre filas equivalentes y retirada cuando deja de aplicar, cambio de Type y respuesta tardía, nueva fila durante petición compartida, edición/borrado en vuelo, estados ambiguos/invalid/error y reintentos. Las pruebas de vista mantienen cobertura de pegado TSV, tabla y selector global.
+- Se eliminó el ciclo directo `eventDate.ts` ↔ `useEventImportRows.ts` extrayendo un contrato estructural pequeño de validación de fecha. El scan actual no encuentra ciclos de producción runtime/mixtos en el importador; queda un ciclo type-only legacy entre servicios. Los comparadores de ciclos/fronteras fueron informativos porque no pudieron resolver el local HEAD como referencia de comparación, por lo que no se declara aprobado un delta.
+- La suite afectada pasó: 12 archivos y 114 pruebas en `src/modules/events-festivals` y `src/modules/venues/api/venueImport.test.ts`. Typecheck, ESLint focalizado, Prettier, build, fixtures de ciclos/fronteras y `git diff --check` pasaron. La build conserva avisos de Browserslist antiguo, selector CSS `.flex-[2]` y chunk >500 kB.
+- Persisten límites para CON-F08c: la identidad `event-row-N` y `lineup-item-N` solo es estable durante la vida de la instancia, y las revisiones actuales son internas por resolución/campo. La importación debe capturar snapshot inmutable por operación, asignar UUID de operación/fila y registrar revisión del contenido antes de aplicar resultados; esto no está implementado aquí. No se inspeccionó navegador ni se hicieron capturas.
+
+## Verificación de CON-F08b.5
+
+- Cobertura automatizada: estados de Locality y Venue, selección explícita, región requerida, error/reintento, consultas compartidas y caché fresca, tres localidades entre 20 filas, Venue repetido, aislamiento por `localityId`, lotes 100/100/5, invalidación de país y respuesta tardía.
+- `pnpm exec vitest run src/modules/events-festivals src/modules/venues/api/venueImport.test.ts`: 11 archivos, 101 pruebas aprobadas. Typecheck, ESLint focalizado, Prettier focalizado, build y `git diff --check` aprobados.
+- Fixtures de ciclos y fronteras aprobados. Los diagnósticos reportan 0 imports locales irresueltos y 0 violaciones de fronteras. El análisis de ciclos muestra el ciclo mixto preexistente entre `eventDate.ts` y `useEventImportRows.ts` y un ciclo type-only legacy; la comparación es informativa porque Git no pudo resolver `HEAD`. Build conserva avisos de CSS `.flex-[2]`, Browserslist desactualizado y chunk >500 kB. El checker Markdown reporta seis enlaces locales rotos/externos en roadmaps distintos, no en estos dos documentos.
+- No se hizo comprobación visual ni captura. La disponibilidad de los endpoints desplegados no se verificó. La resolución general de conflictos y la importación persistente permanecen pendientes.
 
 ## Fase A — Prototipo frontend
 
 - **CON-F01 — Completada en código, pendiente de validación del usuario:** módulo de Conciertos y festivales, pantalla `/concerts-festivals`, guard de rol existente y tabla editable con una columna string. El estado es local a la vista y no se persiste.
 - **CON-F02 — Completada en código y verificada:** la tabla tiene campos independientes `event` y `lineup`. `Event` es texto opcional y admite quedar vacío. `Lineup` es texto plano que conserva íntegramente uno o varios nombres, incluidos separadores como `+`; no busca ni separa artistas. El estado de ambos campos sigue siendo local y no se persiste.
-- **CON-F03 — Completada en código y verificada:** `Lineup` separa nombres mediante `+`, recorta espacios exteriores, ignora segmentos vacíos y conserva el orden. El frontend consulta `POST /api/artists/resolve-batch` con lotes de hasta 100 nombres, al acabar la edición o tras 450 ms sin cambios. Los artistas resueltos se muestran como pills con nombre canónico e ID; los no encontrados permanecen como texto editable con `artistId: null`. La estructura local de `lineup` conserva `{ name, artistId }` por artista y una clave local de presentación. No hay guardado definitivo.
+- **CON-F03 — Completada en código y verificada (comportamiento inicial, coordinación supersedida por F08b.4):** `Lineup` separa nombres mediante `+`, recorta espacios exteriores, ignora segmentos vacíos y conserva el orden. La implementación original consultaba `POST /api/artists/resolve-batch` con debounce por fila y representaba el nombre canónico. F08b.4 cambia la coordinación a una sola por tabla, conserva el nombre escrito, comparte batches y usa QueryCache. No hay guardado definitivo.
 - **CON-F04 — Venue inteligente con localidad y provincia:** la tabla añade `venue`, `city` y `province`, con texto libre y estado efímero por fila. La edición o pegado de Venue dispara una consulta tras 450 ms sin cambios o al confirmar la celda. Se conservan IDs solo ante una coincidencia exacta normalizada del nombre y, si se escribieron, de City y Province. Una coincidencia única se representa con una pill; su `venueId` y `localityId` se guardan y `city`/`province` se completan desde Locality. Provincia `null` queda vacía. Nombres desconocidos se conservan sin error ni creación; nombres homónimos quedan sin ID hasta que el contexto escrito deje una única coincidencia. Errores de red conservan texto y permiten reintentar.
 - **CON-F05 — Start Date y End Date:** la tabla incorpora las columnas entre Lineup y Venue. Las fechas se editan como texto en formato español `DD/MM/YYYY` y se muestran con dos dígitos de día/mes; el estado local conserva fechas válidas como `YYYY-MM-DD`, sin objetos `Date` ni conversión horaria. Se validan fechas reales, años bisiestos y que End Date no sea anterior a Start Date; las fechas inválidas conservan el borrador para corregirlo. End Date es opcional y puede coincidir con Start Date. El pegado TSV desde Start Date distribuye hasta dos columnas entre ambas fechas y varias filas, conservando huecos; desde End Date solo actualiza esa columna. El pegado de una fecha individual también se normaliza. No se añade persistencia ni se sobrescriben las columnas restantes.
 - **CON-F06 — Price y Other Info:** la tabla usa el orden Event, Lineup, Start Date, End Date, Price, Venue, City, Province y Other Info. Price, Province y Other Info son campos opcionales; Price y Other Info admiten texto libre sin interpretación o transformación. El pegado tabulado desde Price distribuye las dos columnas entre Price y Other Info; desde Other Info solo actualiza esa columna. Ambos admiten rangos de filas, conservan celdas vacías y no sobrescriben los demás campos. Lineup es común a conciertos y festivales y representa sus artistas; **Festival Lineup queda descartada**. Los nuevos valores permanecen en estado local y no se ha diseñado ni implementado persistencia.
@@ -24,24 +78,21 @@
 
 ## Fase B — Backend
 
-Pendiente de auditoría cuando el prototipo frontend esté validado:
+El bloque de auditoría/dominio/persistencia descrito originalmente aquí quedó supersedido por CON-B04a–CON-B04g, disponible en el checkout backend local. Los contratos revisados localmente están resumidos en [la auditoría canónica frontend](../docs/frontend/modules/events-festivals-importer.md); la implementación remota no se verificó.
 
-- Auditar las entidades y capacidades actuales relacionadas.
-- Diseñar el dominio de conciertos y festivales.
-- Determinar entidades y migraciones necesarias.
-- Resolver artistas, recintos y localizaciones.
-- Diseñar validaciones, duplicados y persistencia por lotes.
+- El backend ya dispone de resolución/materialización de entidades, conflictos, `POST /api/events/import-batch` e importación confirmada de lineup.
+- CON-B04g añade inspectores read-only batch para Locality/Tour y candidatos de Artist; F08b.1 los contrastó con DTOs, controllers y servicios del checkout local.
 
-No hay decisiones definitivas ni contratos API definidos en esta fase.
+Las descripciones siguientes de las fases A y B conservan decisiones e historial del prototipo y no sustituyen los contratos vigentes del backend.
 
 ## Fase C — Integración
 
-Pendiente del diseño y la implementación backend:
+La integración de eventos sigue pendiente aunque los endpoints backend ya existen. Su secuencia y criterios de aceptación están definidos en CON-F08b–CON-F09 al inicio de este roadmap:
 
-- Conectar el editor con las APIs reales.
-- Sustituir los datos locales/simulados.
-- Gestionar errores y resultados de importación.
-- Ejecutar las pruebas de integración y cerrar la iniciativa.
+- Resolución anticipada e incremental.
+- Importación parcial idempotente.
+- Conflictos y ampliación de lineup confirmada.
+- Regresión, accesibilidad y rendimiento.
 
 ## Decisiones registradas en CON-F01 y CON-F02
 
@@ -56,7 +107,7 @@ Pendiente del diseño y la implementación backend:
 - La consulta se activa al confirmar la edición o tras un debounce de 450 ms para admitir escritura y pegado sin pedir por cada pulsación. Se agrupan nombres hasta el máximo de 100 por petición y se reutilizan resultados durante la vida de la vista.
 - Cada fila mantiene su carga y errores de forma independiente. Los cambios cancelan trabajo anterior, las versiones y los valores actuales descartan respuestas obsoletas, y al desmontar o borrar la fila se abortan las peticiones asociadas.
 - Un error conserva el borrador o nombre editable y ofrece reintento. Un resultado `artist: null` no se presenta como error y no crea artistas.
-- TanStack Query no se usa para esta interacción efímera por celda: no hay datos remotos persistentes que cachear en el cliente Query, y el editor necesita cancelación y versiones locales por fila/artista. El módulo mantiene una caché de resolución temporal para evitar consultas repetidas.
+- Decisión original de CON-F03, supersedida por CON-F08b.4: Artist utilizaba una caché Map local porque la coordinación era por celda. Ahora TanStack Query es la autoridad de respuestas remotas; el coordinador conserva solo asociaciones y promesas pendientes, y la edición mantiene versiones locales para proteger el estado.
 - El endpoint limita cada nombre a 100 caracteres. Si una entrada supera ese límite, el backend puede rechazar la petición; el frontend conserva el texto y muestra el estado de error con reintento tras editarlo.
 - Los IDs recibidos se conservan como referencias del cliente, no se consideran prueba de autorización o validez. La persistencia futura tendrá que verificarlos en servidor.
 

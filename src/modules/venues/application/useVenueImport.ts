@@ -16,6 +16,10 @@ import type {
 } from "../types/venueImport";
 import { VENUE_TYPES } from "../types/venueImport";
 import { venueCatalogQueryKey } from "./useVenueCatalog";
+import {
+  venueCatalogCountriesQueryKey,
+  venueCatalogRegionsQueryKey,
+} from "./importCatalogQueryKeys";
 
 const BATCH_SIZE = 100;
 const LOCALITY_NAME_LIMIT = 150;
@@ -65,7 +69,7 @@ function normalizeLocalityName(value: string): string {
 export function useVenueImport() {
   const queryClient = useQueryClient();
   const countriesQuery = useQuery({
-    queryKey: ["venues", "import", "countries"],
+    queryKey: venueCatalogCountriesQueryKey,
     queryFn: ({ signal }) => getVenueImportCountries(signal),
     staleTime: 5 * 60_000,
   });
@@ -89,7 +93,7 @@ export function useVenueImport() {
     countries.value.find((country) => country.id === countryId.value)
   );
   const regionsQuery = useQuery({
-    queryKey: computed(() => ["venues", "import", "regions", countryId.value]),
+    queryKey: computed(() => venueCatalogRegionsQueryKey(countryId.value)),
     queryFn: ({ signal, queryKey }) => getAdministrativeRegions(String(queryKey[3]), signal),
     enabled: computed(() => Boolean(countryId.value)),
     staleTime: 5 * 60_000,
