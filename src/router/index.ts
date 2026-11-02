@@ -52,6 +52,19 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, requiresRole: "user" },
   },
   {
+    path: "/concerts-festivals",
+    name: "EventsFestivalsImport",
+    component: () =>
+      import("@/modules/events-festivals/presentation/views/EventsFestivalsImportView.vue"),
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
+  },
+  {
+    path: "/venues",
+    name: "VenuesHome",
+    component: () => import("@/modules/venues/presentation/views/VenuesHomeView.vue"),
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
+  },
+  {
     path: "/calendar-baby",
     name: "CalendarBabyCompatibility",
     redirect: { name: "Calendar" },

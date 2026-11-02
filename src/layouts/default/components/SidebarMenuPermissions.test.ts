@@ -100,8 +100,46 @@ describe("import options in sidebar", () => {
 
     expect(wrapper.find('[data-to="/import"]').exists()).toBe(false);
     expect(wrapper.find('[data-to="/import-discs"]').exists()).toBe(false);
+    expect(wrapper.find('[data-to="/concerts-festivals"]').exists()).toBe(false);
+    expect(wrapper.find('[data-to="/venues"]').exists()).toBe(false);
     wrapper.unmount();
   });
+
+  it.each(["riffvalley", "superadmin"] as const)(
+    "shows Salas y recintos inside Conciertos y festivales to %s",
+    async (role) => {
+      const wrapper = await renderAs(role);
+      const venues = wrapper.find('[data-to="/venues"]');
+
+      expect(venues.text()).toBe("Salas y recintos");
+      expect(
+        venues.element.closest("ul")?.parentElement?.querySelector("summary")?.textContent
+      ).toContain("Conciertos y festivales");
+      wrapper.unmount();
+    }
+  );
+
+  it.each(["riffvalley", "superadmin"] as const)(
+    "shows the concerts and festivals entry to %s",
+    async (role) => {
+      const wrapper = await renderAs(role);
+      const entry = wrapper.find('[data-to="/concerts-festivals"]');
+      const group = wrapper
+        .findAll("summary")
+        .find((summary) => summary.text().includes("Conciertos y festivales"));
+
+      expect(entry.exists()).toBe(true);
+      expect(group).toBeDefined();
+      expect(entry.text()).toContain("Importador");
+      const summaryLabels = wrapper.findAll("summary").map((summary) => summary.text());
+      const newDiscsIndex = summaryLabels.findIndex((label) => label.includes("Nuevos Discos"));
+      const concertsIndex = summaryLabels.findIndex((label) =>
+        label.includes("Conciertos y festivales")
+      );
+      expect(concertsIndex).toBe(newDiscsIndex + 1);
+      wrapper.unmount();
+    },
+  );
 
   it.each(["user", "collaborator", "riffvalley", "superadmin"] as const)(
     "shows exactly one canonical calendar entry for %s",
@@ -112,7 +150,7 @@ describe("import options in sidebar", () => {
       expect(entries[0]?.text()).toContain("Calendario");
       expect(wrapper.find('[data-to="/calendar-baby"]').exists()).toBe(false);
       wrapper.unmount();
-    },
+    }
   );
 
   it.each(["user", "collaborator", "riffvalley", "superadmin"] as const)(
@@ -127,7 +165,7 @@ describe("import options in sidebar", () => {
       expect(statisticsEntries).toHaveLength(1);
       expect(statisticsEntries[0]?.text()).toContain("Estadísticas");
       wrapper.unmount();
-    },
+    }
   );
 
   it("marks the canonical calendar entry active at /calendar", async () => {

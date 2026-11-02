@@ -216,6 +216,33 @@
           </details>
         </li>
 
+        <template v-if="showAllAreas || selectedArea === newDiscsAreaId">
+        <li v-for="route in filteredEventsFestivalsRoutes" :key="route.label" class="pt-2">
+          <details :open="!showAllAreas" class="group/area">
+            <summary class="font-bold uppercase text-xs tracking-wider flex items-center justify-between py-2 px-4 text-gray-400 hover:text-white cursor-pointer list-none">
+              <span class="flex items-center">
+                <i :class="[route.icon, 'text-base w-5 text-center mr-3']"></i>
+                {{ route.label }}
+              </span>
+              <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200 group-open/area:rotate-180"></i>
+            </summary>
+            <ul>
+              <li v-for="child in route.children" :key="child.to" class="mt-1">
+                <router-link
+                  :to="child.to"
+                  class="flex items-center justify-start py-2 pl-8 pr-4 text-sm font-medium rounded-primary transition-all duration-300 hover:bg-gray-700 hover:text-white"
+                  :active-class="'bg-gradient-to-r from-[#b0669f] to-[#8a5bb4] text-white'"
+                  @click="closeMenu"
+                >
+                  <i :class="[child.icon, 'text-base w-5 text-center mr-3']"></i>
+                  {{ child.label }}
+                </router-link>
+              </li>
+            </ul>
+          </details>
+        </li>
+        </template>
+
         <template v-if="showAllAreas || selectedArea === 'app'">
         <li v-if="filteredBottomRoutes.length > 0" class="my-2 border-t border-gray-700/50"></li>
 
@@ -334,7 +361,7 @@ import routesData from './routes.json';
 type AppRoute = {
   to: string;
   label: string;
-  type: 'disc-app' | 'new-discs' | 'riff-valley' | 'management' | 'bottom';
+  type: 'disc-app' | 'new-discs' | 'events-festivals' | 'riff-valley' | 'management' | 'bottom';
   activeClass?: string;
   requiredRole?: UserRole;
   icon?: string;
@@ -399,6 +426,10 @@ emits: ['close-menu', 'toggle-theme'],
     // 2. Nuevos Discos (NUEVA CATEGORÍA)
     const filteredNewDiscsRoutes = computed(() =>
       filterByRole(allRoutes.filter((r) => r.type === 'new-discs'))
+    );
+
+    const filteredEventsFestivalsRoutes = computed(() =>
+      filterByRole(allRoutes.filter((r) => r.type === 'events-festivals'))
     );
 
     // 3. Riff Valley
@@ -479,6 +510,7 @@ emits: ['close-menu', 'toggle-theme'],
       logoutLabel: 'Cerrar sesión',
       filteredDiscAppRoutes,
       filteredNewDiscsRoutes,
+      filteredEventsFestivalsRoutes,
       filteredRiffValleyRoutes,
       filteredManagementRoutes,
       filteredBottomRoutes,

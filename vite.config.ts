@@ -3,11 +3,24 @@ import vue from "@vitejs/plugin-vue";
 import { defineConfig, loadEnv, type ConfigEnv, type ProxyOptions, type UserConfig } from "vite";
 
 const API_PROXY_PATH = "^/api(?:/|\\?|$)";
+const LOCAL_API_TARGET = "http://127.0.0.1:3000";
+const LOCAL_SESSION_EDGE_SECRET_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const SESSION_EDGE_HEADER = "X-RV-Session-Edge";
 const APPROVED_API_TARGETS = new Set(["https://spammusic-back-99963122d70c.herokuapp.com"]);
 const SESSION_ORIGIN = "https://app.riffvalley.es";
 
 interface ProxyRequestHeaderWriter {
   setHeader(name: string, value: string): void;
+}
+
+export interface ProxyEventRegistrar {
+  on(event: "proxyReq", listener: (request: ProxyRequestHeaderWriter) => void): unknown;
+}
+
+export function configureLocalSessionProxy(proxy: ProxyEventRegistrar, edgeSecret: string): void {
+  proxy.on("proxyReq", (proxyRequest) => {
+    proxyRequest.setHeader(SESSION_EDGE_HEADER, edgeSecret);
+  });
 }
 
 export function setProductionSessionOrigin(request: ProxyRequestHeaderWriter): void {
@@ -22,6 +35,26 @@ export function createApiDevProxy(
 
   const target = env.API_PROXY_TARGET?.trim();
   if (!target) return undefined;
+
+  if (target === LOCAL_API_TARGET) {
+    const edgeSecret = env.LOCAL_SESSION_EDGE_SECRET?.trim();
+    if (!edgeSecret || !LOCAL_SESSION_EDGE_SECRET_PATTERN.test(edgeSecret)) {
+      throw new Error(
+        "LOCAL_SESSION_EDGE_SECRET must be a 32-byte base64url value for the local API proxy."
+      );
+    }
+
+    return {
+      [API_PROXY_PATH]: {
+        target,
+        changeOrigin: true,
+        secure: true,
+        configure(proxy) {
+          configureLocalSessionProxy(proxy, edgeSecret);
+        },
+      },
+    };
+  }
 
   let parsedTarget: URL;
   try {
