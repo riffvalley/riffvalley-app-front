@@ -328,7 +328,9 @@ export function useContentCalendarOperations(options: ContentCalendarOperationsO
           type: data.type,
           name: data.name,
           notes: data.notes || undefined,
-          publicationDate: toCalendarApiDate(data.publicationDate),
+          ...(data.publicationDate
+            ? { publicationDate: toCalendarApiDate(data.publicationDate) }
+            : {}),
           closeDate: data.closeDate || undefined,
           authorId: data.authorId,
           listDate: data.listDate || undefined,
