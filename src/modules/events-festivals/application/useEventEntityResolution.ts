@@ -6,13 +6,9 @@ import {
 } from "./entityResolutionQueries";
 import type { ArtistResolutionResult } from "../api/artistResolution";
 import { ENTITY_RESOLUTION_BATCH_LIMIT } from "../api/entityResolutionContracts";
+import { artistResolutionKey } from "./entityResolutionIdentity";
 
 const RESOLUTION_DEBOUNCE_MS = 450;
-
-/** Conservative request identity: only casing and whitespace are equivalent. */
-export function artistResolutionKey(name: string): string {
-  return name.trim().replace(/\s+/gu, " ").toLocaleLowerCase("und");
-}
 
 interface PendingArtist {
   key: string;

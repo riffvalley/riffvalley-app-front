@@ -1,4 +1,5 @@
 import api from "@services/api/api";
+import { queryOptions } from "@tanstack/vue-query";
 import type { ImportSnapshot } from "../application/eventImportPreparation";
 
 export interface ImportConflict {
@@ -17,6 +18,80 @@ export interface ImportConflict {
   matchingArtists: Array<{ artistId: string | null; name: string }>;
   addableArtists: Array<{ artistId: string | null; name: string }>;
   candidateEventIds: string[];
+}
+
+export interface ExistingEventDetail {
+  id: string;
+  type?: "concert" | "festival";
+  name?: string | null;
+  startDate?: string;
+  endDate?: string | null;
+  tourId?: string | null;
+  venue?: { name?: string; locality?: { name?: string; province?: string | null } };
+  lineup?: Array<{ artistId?: string | null; name: string }>;
+}
+
+export class ExistingEventDetailProtocolError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ExistingEventDetailProtocolError";
+  }
+}
+
+function parseExistingEventDetail(value: unknown, requestedId: string): ExistingEventDetail {
+  if (!isRecord(value) || value.id !== requestedId) {
+    throw new ExistingEventDetailProtocolError("El servidor devolvió un evento inválido.");
+  }
+
+  const detail: ExistingEventDetail = { id: requestedId };
+  if (value.type === "concert" || value.type === "festival") detail.type = value.type;
+  if (value.name === null || isString(value.name)) detail.name = value.name;
+  if (isString(value.startDate)) detail.startDate = value.startDate;
+  if (value.endDate === null || isString(value.endDate)) detail.endDate = value.endDate;
+  if (value.tourId === null || isString(value.tourId)) detail.tourId = value.tourId;
+  if (isRecord(value.venue)) {
+    const venue: NonNullable<ExistingEventDetail["venue"]> = {};
+    if (isString(value.venue.name)) venue.name = value.venue.name;
+    if (isRecord(value.venue.locality)) {
+      const locality: NonNullable<NonNullable<ExistingEventDetail["venue"]>["locality"]> = {};
+      if (isString(value.venue.locality.name)) locality.name = value.venue.locality.name;
+      if (value.venue.locality.province === null || isString(value.venue.locality.province)) {
+        locality.province = value.venue.locality.province;
+      }
+      venue.locality = locality;
+    }
+    detail.venue = venue;
+  }
+  if (Array.isArray(value.lineup)) {
+    detail.lineup = value.lineup.flatMap((artist) =>
+      isRecord(artist) && isString(artist.name)
+        ? [{ artistId: isString(artist.artistId) ? artist.artistId : null, name: artist.name }]
+        : []
+    );
+  }
+  return detail;
+}
+
+export async function getExistingEventDetail(
+  eventId: string,
+  signal?: AbortSignal
+): Promise<ExistingEventDetail> {
+  const { data } = await api.get<unknown>(`/events/${encodeURIComponent(eventId)}`, { signal });
+  return parseExistingEventDetail(data, eventId);
+}
+
+export const existingEventDetailQueryKeys = {
+  detail: (eventId: string) => ["events-festivals", "event-detail", eventId] as const,
+};
+
+export const EXISTING_EVENT_DETAIL_STALE_TIME = 15_000;
+
+export function existingEventDetailQueryOptions(eventId: string) {
+  return queryOptions({
+    queryKey: existingEventDetailQueryKeys.detail(eventId),
+    queryFn: ({ signal }) => getExistingEventDetail(eventId, signal),
+    staleTime: EXISTING_EVENT_DETAIL_STALE_TIME,
+  });
 }
 
 interface ImportResultBase {
@@ -150,7 +225,10 @@ function isRowResult(value: unknown): value is ImportBatchRowResult {
     case "conflict":
       return (
         (value.conflicts === undefined ||
-          (Array.isArray(value.conflicts) && value.conflicts.every(isConflict))) &&
+          (Array.isArray(value.conflicts) &&
+            value.conflicts.every(
+              (conflict) => isConflict(conflict) && conflict.rowId === value.rowId
+            ))) &&
         (value.candidates === undefined || isCandidateList(value.candidates))
       );
     case "invalid":

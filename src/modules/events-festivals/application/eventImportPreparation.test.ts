@@ -46,6 +46,7 @@ function geography(status: EventGeographyState["localityStatus"] = "new"): Event
     localityStatus: status,
     localityCandidates: [],
     selectedLocality: null,
+    localitySelectionOriginalContext: null,
     localityResult:
       status === "new"
         ? {
@@ -59,6 +60,7 @@ function geography(status: EventGeographyState["localityStatus"] = "new"): Event
     localityError: null,
     venueStatus: "idle",
     venueCandidates: [],
+    selectedVenueCandidateId: null,
     venueError: null,
   };
 }
@@ -94,6 +96,24 @@ function createPreparer() {
 }
 
 describe("event import preparation", () => {
+  it("excludes only rows blocked by known persistence state", () => {
+    const preparer = createPreparer();
+    const prepared = preparer.prepare(
+      input([row("created-diverged"), row("uncertain"), row("eligible")], {
+        blockedRows: {
+          "created-diverged": "event-already-created-draft-diverged",
+          uncertain: "operation-uncertain",
+        },
+      })
+    );
+
+    expect(prepared.eligibleRows.map(({ rowKey }) => rowKey)).toEqual(["eligible"]);
+    expect(prepared.pendingRows.map(({ rowKey, reasons }) => [rowKey, reasons[0]])).toEqual([
+      ["created-diverged", "event-already-created-draft-diverged"],
+      ["uncertain", "operation-uncertain"],
+    ]);
+  });
+
   it("builds documented DTO fields and freezes an independent date-only snapshot", () => {
     const current = row("row-key-a", {
       type: "festival",
@@ -409,6 +429,111 @@ describe("event import preparation", () => {
         "artist-resolution-error:artist",
       ])
     );
+  });
+
+  it("prepares a selected Artist and representable Locality while keeping Venue ambiguity blocked", () => {
+    const preparer = createPreparer();
+    const current = row("selected", {
+      city: "Springfield",
+      province: "Region A",
+      administrativeRegionId: REGION_ID,
+      venue: { name: "", venueId: null, localityId: LOCALITY_ID },
+      lineup: [{ key: "artist", name: "Band", artistId: ARTIST_ID }],
+    });
+    const geographyState = geography("ambiguous");
+    const selectedLocality = {
+      id: LOCALITY_ID,
+      name: "Springfield",
+      province: "Region A",
+      country: { id: COUNTRY_ID, name: "Country" },
+      administrativeRegion: { id: REGION_ID, name: "Region A" },
+    };
+    geographyState.localityResult = {
+      index: 0,
+      input: { name: "Springfield", countryId: COUNTRY_ID },
+      status: "ambiguous",
+      code: "LOCALITY_AMBIGUOUS",
+      candidates: [
+        selectedLocality,
+        {
+          ...selectedLocality,
+          id: "123e4567-e89b-42d3-a456-426614174006",
+          province: "Region B",
+          administrativeRegion: { id: "other-region", name: "Region B" },
+        },
+      ],
+    };
+    geographyState.localityCandidates = geographyState.localityResult.candidates;
+    geographyState.selectedLocality = selectedLocality;
+    geographyState.localityStatus = "existing";
+    const lineupState: LineupCellState = {
+      draft: "",
+      draftStatus: "idle",
+      itemStatus: {},
+      draftError: null,
+      itemResolution: {
+        artist: {
+          index: 0,
+          name: "Band",
+          status: "ambiguous",
+          code: "ARTIST_AMBIGUOUS",
+          artist: null,
+          candidates: [
+            { id: ARTIST_ID, name: "Band" },
+            { id: "artist-other", name: "Band" },
+          ],
+        },
+      },
+    };
+
+    const ready = preparer.prepare(
+      input([current], {
+        lineupStates: { [current.id]: lineupState },
+        geographyStates: { [current.id]: geographyState },
+      })
+    );
+    expect(ready.eligibleRows).toHaveLength(1);
+    expect(ready.payload?.rows[0]?.lineup).toEqual([{ name: "Band", artistId: ARTIST_ID }]);
+    expect(ready.payload?.rows[0]).not.toHaveProperty("localityId");
+    expect(ready.payload?.rows[0]).not.toHaveProperty("venueId");
+
+    const originalLocalityResult = geographyState.localityResult;
+    if (originalLocalityResult?.status !== "ambiguous") throw new Error("Falta la ambigüedad");
+    geographyState.localityResult = {
+      ...originalLocalityResult,
+      candidates: [
+        ...originalLocalityResult.candidates,
+        {
+          ...selectedLocality,
+          id: "123e4567-e89b-42d3-a456-426614174007",
+          province: null,
+        },
+      ],
+    };
+    const localityBlocked = preparer.prepare(
+      input([current], {
+        lineupStates: { [current.id]: lineupState },
+        geographyStates: { [current.id]: geographyState },
+      })
+    );
+    expect(localityBlocked.pendingRows[0]?.reasons).toContain("locality-ambiguous");
+    geographyState.localityResult = originalLocalityResult;
+
+    current.venue = { name: "Sala", venueId: "venue-a", localityId: LOCALITY_ID };
+    geographyState.venueStatus = "ambiguous";
+    geographyState.venueCandidates = [
+      { id: "venue-a", name: "Sala" },
+      { id: "venue-b", name: "Sala" },
+    ];
+    geographyState.selectedVenueCandidateId = "venue-a";
+    const blocked = preparer.prepare(
+      input([current], {
+        lineupStates: { [current.id]: lineupState },
+        geographyStates: { [current.id]: geographyState },
+      })
+    );
+    expect(blocked.eligibleRows).toHaveLength(0);
+    expect(blocked.pendingRows[0]?.reasons).toContain("venue-ambiguous");
   });
 
   it("allows an explicitly confirmed ambiguous tour candidate", () => {

@@ -3,6 +3,7 @@ import { nextTick, ref, useTemplateRef } from "vue";
 import type { LineupCellState, LineupItem } from "../../application/useEventImportRows";
 
 defineProps<{
+  rowId: string;
   items: LineupItem[];
   state: LineupCellState;
   rowNumber: number;
@@ -16,6 +17,7 @@ const emit = defineEmits<{
   commitItemName: [itemKey: string];
   retryItem: [itemKey: string];
   removeItem: [itemKey: string];
+  selectArtist: [rowId: string, itemKey: string, artistId: string];
 }>();
 
 const editingItemKey = ref<string | null>(null);
@@ -42,7 +44,11 @@ function blurInput(event: Event) {
   <div class="flex min-h-10 min-w-0 flex-wrap items-center gap-1.5 px-2 py-1">
     <template v-for="(item, index) in items" :key="item.key">
       <span
-        v-if="item.artistId && editingItemKey !== item.key"
+        v-if="
+          item.artistId &&
+          state.itemResolution[item.key]?.status !== 'ambiguous' &&
+          editingItemKey !== item.key
+        "
         class="inline-flex max-w-full items-center gap-1 rounded-full border border-green-300 bg-green-100 py-1 pl-2.5 pr-1 text-xs font-semibold text-green-900 dark:border-green-400/30 dark:bg-green-400/15 dark:text-green-200"
       >
         <span class="max-w-48 truncate">{{ item.name }}</span>
@@ -87,6 +93,32 @@ function blurInput(event: Event) {
         >
           Resolviendo…
         </span>
+        <div
+          v-if="state.itemResolution[item.key]?.status === 'ambiguous'"
+          class="flex min-w-0 items-center gap-1 text-[10px] text-amber-800 dark:text-amber-200"
+        >
+          <span class="sr-only">Candidatos para {{ item.name }}</span>
+          <select
+            :value="item.artistId ?? ''"
+            :aria-label="`Candidato de artista ${item.name}, fila ${rowNumber}`"
+            class="min-h-8 max-w-52 rounded border border-amber-500/60 bg-white px-1.5 text-xs text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-purple dark:bg-rv-darkSurface dark:text-white"
+            @change="
+              emit('selectArtist', rowId, item.key, ($event.target as HTMLSelectElement).value)
+            "
+          >
+            <option value="">Seleccionar artista…</option>
+            <option
+              v-for="candidate in state.itemResolution[item.key]?.status === 'ambiguous'
+                ? state.itemResolution[item.key].candidates
+                : []"
+              :key="candidate.id"
+              :value="candidate.id"
+            >
+              {{ candidate.name }} · {{ candidate.id }}
+            </option>
+          </select>
+          <span v-if="item.artistId" role="status">Seleccionado</span>
+        </div>
         <button
           v-if="state.itemStatus[item.key] === 'error'"
           type="button"

@@ -9,6 +9,7 @@ import type {
   EntityCandidate,
 } from "../api/entityResolutionContracts";
 import { splitLineupNames } from "./lineupText";
+import { artistResolutionKey, geographyContextKey } from "./entityResolutionIdentity";
 import { useEventEntityResolution } from "./useEventEntityResolution";
 import {
   localityIdentity,
@@ -50,10 +51,15 @@ export interface EventGeographyState {
   localityStatus: LocalityResolutionStatus;
   localityCandidates: LocalityResolutionCandidate[];
   selectedLocality: LocalityResolutionCandidate | null;
+  localitySelectionOriginalContext: {
+    province: string;
+    administrativeRegionId: string | null;
+  } | null;
   localityResult: LocalityInspectionResult | null;
   localityError: string | null;
   venueStatus: VenueResolutionStatus;
   venueCandidates: VenueResolutionResult["candidates"];
+  selectedVenueCandidateId: string | null;
   venueError: string | null;
 }
 
@@ -81,10 +87,12 @@ const emptyGeographyState = (): EventGeographyState => ({
   localityStatus: "idle",
   localityCandidates: [],
   selectedLocality: null,
+  localitySelectionOriginalContext: null,
   localityResult: null,
   localityError: null,
   venueStatus: "idle",
   venueCandidates: [],
+  selectedVenueCandidateId: null,
   venueError: null,
 });
 
@@ -221,7 +229,6 @@ export function useEventImportRows(queryClient: QueryClient) {
       if (!result) return;
       state.result = result;
       state.status = result.status;
-      state.selectedCandidateId = result.status === "existing" ? result.entity.id : null;
       const confirmedId = confirmedTours.get(tourResolutionKey(requestedName));
       const candidates =
         result.status === "existing"
@@ -229,9 +236,12 @@ export function useEventImportRows(queryClient: QueryClient) {
           : result.status === "ambiguous"
             ? result.candidates
             : [];
-      state.confirmedTourId = candidates.some((candidate) => candidate.id === confirmedId)
+      const restoredConfirmation = candidates.some((candidate) => candidate.id === confirmedId)
         ? (confirmedId ?? null)
         : null;
+      state.selectedCandidateId =
+        restoredConfirmation ?? (result.status === "existing" ? result.entity.id : null);
+      state.confirmedTourId = restoredConfirmation;
     } catch (error) {
       if (
         !disposed &&
@@ -263,6 +273,7 @@ export function useEventImportRows(queryClient: QueryClient) {
     if (state) {
       state.venueStatus = "idle";
       state.venueCandidates = [];
+      state.selectedVenueCandidateId = null;
       state.venueError = null;
     }
     return nextVersion(venueVersions, rowId);
@@ -303,6 +314,7 @@ export function useEventImportRows(queryClient: QueryClient) {
       if (!result) return;
       state.venueStatus = result.status;
       state.venueCandidates = result.candidates;
+      state.selectedVenueCandidateId = null;
       current.venue.venueId = result.status === "existing" ? result.venue.id : null;
     } catch (error) {
       if (!disposed && venueVersions.get(rowId) === version) {
@@ -389,6 +401,7 @@ export function useEventImportRows(queryClient: QueryClient) {
       state.localityStatus = "idle";
       state.localityCandidates = [];
       state.selectedLocality = null;
+      state.localitySelectionOriginalContext = null;
       state.localityResult = null;
       state.localityError = null;
     }
@@ -514,24 +527,83 @@ export function useEventImportRows(queryClient: QueryClient) {
   function selectLocalityCandidate(rowId: string, localityId: string) {
     const row = findRow(rowId);
     const state = geographyStates[rowId];
+    if (!localityId && row && state?.localityResult?.status === "ambiguous") {
+      const original = state.localitySelectionOriginalContext;
+      state.selectedLocality = null;
+      state.localitySelectionOriginalContext = null;
+      state.localityStatus = "ambiguous";
+      row.administrativeRegionId =
+        original?.administrativeRegionId ??
+        state.localityResult.input.administrativeRegionId ??
+        null;
+      row.province = original?.province ?? row.province;
+      row.venue.localityId = null;
+      row.venue.venueId = null;
+      cancelVenueWork(rowId);
+      return;
+    }
     const candidate = state?.localityCandidates.find(({ id }) => id === localityId);
-    if (!row || !state || !candidate) return;
+    const originalContext =
+      state?.localitySelectionOriginalContext ??
+      (row ? { province: row.province, administrativeRegionId: row.administrativeRegionId } : null);
+    if (
+      !row ||
+      !state ||
+      !candidate ||
+      candidate.country.id !== countryId ||
+      (originalContext?.administrativeRegionId &&
+        originalContext.administrativeRegionId !== candidate.administrativeRegion.id) ||
+      (originalContext?.province.trim() &&
+        geographyContextKey(candidate.province ?? "") &&
+        geographyContextKey(candidate.province ?? "") !==
+          geographyContextKey(originalContext.province))
+    )
+      return;
     const version = cancelVenueWork(rowId);
+    if (!state.localitySelectionOriginalContext) {
+      state.localitySelectionOriginalContext = {
+        province: row.province,
+        administrativeRegionId: row.administrativeRegionId,
+      };
+    }
+    // import-batch has no localityId; its real region UUID is the available context.
+    row.administrativeRegionId = candidate.administrativeRegion.id;
+    row.province = originalContext?.province.trim()
+      ? originalContext.province
+      : (candidate.province ?? "");
     row.venue.localityId = candidate.id;
     row.venue.venueId = null;
     state.localityStatus = "existing";
     state.selectedLocality = candidate;
-    state.localityCandidates = [];
-    if (state.localityResult?.status === "ambiguous") {
-      state.localityResult = {
-        index: state.localityResult.index,
-        input: state.localityResult.input,
-        status: "existing",
-        locality: candidate,
-        candidates: [],
-      };
-    }
     if (row.venue.name.trim()) void resolveVenue(rowId, version, true);
+  }
+
+  function selectVenueCandidate(rowId: string, venueId: string) {
+    const row = findRow(rowId);
+    const state = geographyStates[rowId];
+    const candidate = state?.venueCandidates.find(({ id }) => id === venueId);
+    if (!row || !state || state.venueStatus !== "ambiguous") return;
+    if (!venueId) {
+      state.selectedVenueCandidateId = null;
+      row.venue.venueId = null;
+      return;
+    }
+    if (!candidate) return;
+    if (!row.venue.localityId || !row.venue.name.trim()) return;
+    state.selectedVenueCandidateId = candidate.id;
+    row.venue.venueId = candidate.id;
+  }
+
+  function selectArtistCandidate(rowId: string, itemKey: string, artistId: string) {
+    const item = findItem(rowId, itemKey);
+    const state = lineupStates[rowId];
+    const result = state?.itemResolution[itemKey];
+    if (!item || !state || result?.status !== "ambiguous") return;
+    if (!artistId) {
+      item.artistId = null;
+      return;
+    }
+    if (result.candidates.some(({ id }) => id === artistId)) item.artistId = artistId;
   }
 
   async function resolveDraft(rowId: string, version: number, immediate = false) {
@@ -598,7 +670,7 @@ export function useEventImportRows(queryClient: QueryClient) {
         artistResolution.isDisposed ||
         itemVersions.get(itemKey) !== version ||
         !currentItem ||
-        currentItem.name.trim() !== name
+        artistResolutionKey(currentItem.name) !== artistResolutionKey(name)
       ) {
         return;
       }
@@ -654,16 +726,29 @@ export function useEventImportRows(queryClient: QueryClient) {
   }
 
   function selectTourCandidate(rowId: string, candidateId: string) {
+    const row = findRow(rowId);
     const state = tourStates[rowId];
     if (
+      !row ||
+      row.type !== "tour" ||
       !state ||
       state.status !== "ambiguous" ||
       !state.result ||
       state.result.status !== "ambiguous"
     )
       return;
-    if (state.result.candidates.some((candidate) => candidate.id === candidateId))
-      state.selectedCandidateId = candidateId;
+    if (candidateId && !state.result.candidates.some((candidate) => candidate.id === candidateId))
+      return;
+    if (state.selectedCandidateId === candidateId) return;
+    const identity = tourResolutionKey(row.event);
+    confirmedTours.delete(identity);
+    rows.value.forEach((candidateRow) => {
+      if (candidateRow.type !== "tour" || tourResolutionKey(candidateRow.event) !== identity)
+        return;
+      const candidateState = tourStates[candidateRow.id];
+      if (candidateState) candidateState.confirmedTourId = null;
+    });
+    state.selectedCandidateId = candidateId || null;
   }
 
   function confirmTour(rowId: string) {
@@ -791,7 +876,9 @@ export function useEventImportRows(queryClient: QueryClient) {
     const state = lineupStates[rowId];
     if (!item || !state || item.name === name) return;
 
+    const sameIdentity = artistResolutionKey(item.name) === artistResolutionKey(name);
     item.name = name;
+    if (sameIdentity) return;
     item.artistId = null;
     delete state.itemStatus[itemKey];
     delete state.itemResolution[itemKey];
@@ -911,6 +998,8 @@ export function useEventImportRows(queryClient: QueryClient) {
     invalidateGeographicAssociations,
     selectAdministrativeRegion,
     selectLocalityCandidate,
+    selectVenueCandidate,
+    selectArtistCandidate,
     commitVenue,
     retryVenue,
     retryLocality,

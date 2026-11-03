@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useQueryClient } from "@tanstack/vue-query";
-import { shallowRef, watch } from "vue";
+import { computed, shallowRef, watch } from "vue";
 import EventImportTable from "../components/EventImportTable.vue";
 import EventImportCountrySelector from "../components/EventImportCountrySelector.vue";
 import { useEventImportRows } from "../../application/useEventImportRows";
@@ -14,6 +14,13 @@ import {
   eventImportGlobalErrorMessage,
   useEventImportBatchMutation,
 } from "../../application/useEventImportBatchMutation";
+import {
+  countDistinctCreatedEvents,
+  reconcileEventImportResults,
+} from "../../application/eventImportReconciliation";
+import type { ImportBatchResponse } from "../../api/eventImport";
+import { createEventImportConflictPresentation } from "../../application/eventImportConflicts";
+import type { CorrelatedImportResult } from "../../api/eventImport";
 
 const eventImport = useEventImportRows(useQueryClient());
 const { rows, lineupStates, geographyStates, tourStates, addRow, removeRow } = eventImport;
@@ -29,17 +36,58 @@ const initialPreparation: ImportPreparation = {
 };
 const preparation = shallowRef(initialPreparation);
 const batchMutation = useEventImportBatchMutation();
-const retrySnapshot = shallowRef<ImportPreparation["snapshot"]>(null);
+const uncertainSnapshots = shallowRef<NonNullable<ImportPreparation["snapshot"]>[]>([]);
+const handledOperations = new Set<string>();
+const handledOperationOrder: string[] = [];
+const createdDrafts = shallowRef<Record<string, { eventId: string; operationRowId: string }>>({});
+const lastImport = shallowRef<{
+  response: ImportBatchResponse;
+  rows: ReturnType<typeof reconcileEventImportResults>["results"];
+} | null>(null);
+const conflictOperation = shallowRef<{
+  snapshot: NonNullable<ImportPreparation["snapshot"]>;
+  results: CorrelatedImportResult[];
+} | null>(null);
 
-function refreshPreparation() {
-  preparation.value = preparer.prepare({
+const conflictsByRowKey = computed(() => {
+  const operation = conflictOperation.value;
+  if (!operation) return {};
+  const existingRowKeys = new Set(rows.value.map(({ id }) => id));
+  const presentations = createEventImportConflictPresentation(
+    operation.snapshot,
+    operation.results,
+    existingRowKeys,
+    (rowKey) =>
+      existingRowKeys.has(rowKey) && preparer.isCurrent(operation.snapshot, rowKey, currentInput())
+  );
+  return presentations.reduce<Record<string, typeof presentations>>((groups, conflict) => {
+    (groups[conflict.rowKey] ??= []).push(conflict);
+    return groups;
+  }, {});
+});
+
+function currentInput() {
+  return {
     rows: rows.value,
     countryId: geography.selectedCountryId.value,
     countryAvailable: Boolean(geography.selectedCountry.value),
     lineupStates,
     geographyStates,
     tourStates,
+  };
+}
+
+function refreshPreparation() {
+  const blockedRows: Record<string, string> = {};
+  Object.keys(createdDrafts.value).forEach((rowKey) => {
+    blockedRows[rowKey] = "event-already-created-draft-diverged";
   });
+  uncertainSnapshots.value.forEach((snapshot) => {
+    snapshot.rows.forEach(({ rowKey }) => {
+      if (rows.value.some((row) => row.id === rowKey)) blockedRows[rowKey] = "operation-uncertain";
+    });
+  });
+  preparation.value = preparer.prepare({ ...currentInput(), blockedRows });
 }
 
 watch(
@@ -50,24 +98,82 @@ watch(
 
 async function sendSnapshot(snapshot: NonNullable<ImportPreparation["snapshot"]>) {
   try {
-    await batchMutation.mutateAsync(snapshot);
-    retrySnapshot.value = null;
-  } catch {
-    retrySnapshot.value = snapshot;
+    const response = await batchMutation.mutateAsync(snapshot);
+    const reconciliation = reconcileEventImportResults(
+      snapshot,
+      response,
+      (source, rowKey) => preparer.isCurrent(source, rowKey, currentInput()),
+      handledOperations,
+      (rowKey) => rows.value.some((row) => row.id === rowKey)
+    );
+    reconciliation.results.forEach(({ item, action }) => {
+      if (action === "ignored") return;
+      const operationKey = `${snapshot.batchId}:${item.operationRowId}`;
+      handledOperations.add(operationKey);
+      handledOperationOrder.push(operationKey);
+      if (handledOperationOrder.length > 1000) {
+        const expiredOperation = handledOperationOrder.shift();
+        if (expiredOperation) handledOperations.delete(expiredOperation);
+      }
+    });
+    const nextCreatedDrafts = { ...createdDrafts.value };
+    reconciliation.createdDrafts.forEach(({ rowKey, eventId, operationRowId }) => {
+      if (rows.value.some((row) => row.id === rowKey)) {
+        nextCreatedDrafts[rowKey] = { eventId, operationRowId };
+      }
+    });
+    createdDrafts.value = nextCreatedDrafts;
+    reconciliation.rowKeysToRemove.forEach((rowKey) => removeRow(rowKey));
+    if (reconciliation.results.some(({ action }) => action !== "ignored")) {
+      lastImport.value = { response, rows: reconciliation.results };
+      conflictOperation.value = {
+        snapshot,
+        results: reconciliation.results
+          .filter(({ item, action }) => action !== "ignored" && item.result.status === "conflict")
+          .map(({ item }) => item),
+      };
+    }
+    uncertainSnapshots.value = uncertainSnapshots.value.filter(
+      (pending) => pending.batchId !== snapshot.batchId
+    );
+    refreshPreparation();
+  } catch (error) {
+    if (
+      eventImportErrorCanRetry(error) &&
+      !uncertainSnapshots.value.some((pending) => pending.batchId === snapshot.batchId)
+    ) {
+      uncertainSnapshots.value = [...uncertainSnapshots.value, snapshot];
+    }
+    refreshPreparation();
   }
 }
 
 function importEligibleRows() {
   const snapshot = preparation.value.snapshot;
   if (!snapshot || batchMutation.isPending.value) return;
-  retrySnapshot.value = null;
   void sendSnapshot(snapshot);
 }
 
-function retrySameBatch() {
-  const snapshot = retrySnapshot.value;
+function retrySameBatch(snapshot: NonNullable<ImportPreparation["snapshot"]>) {
   if (!snapshot || batchMutation.isPending.value) return;
   void sendSnapshot(snapshot);
+}
+
+function pruneRemovedCreatedDrafts() {
+  const next = Object.fromEntries(
+    Object.entries(createdDrafts.value).filter(([rowKey]) =>
+      rows.value.some((row) => row.id === rowKey)
+    )
+  );
+  if (Object.keys(next).length !== Object.keys(createdDrafts.value).length) {
+    createdDrafts.value = next;
+    refreshPreparation();
+  }
+}
+
+function removeImportRow(rowKey: string) {
+  removeRow(rowKey);
+  pruneRemovedCreatedDrafts();
 }
 
 function rowResultLabel(status: string): string {
@@ -81,11 +187,17 @@ function rowResultLabel(status: string): string {
   );
 }
 
-function currentRevisionForRow(rowKey: string): number | undefined {
-  return (
-    preparation.value.eligibleRows.find((row) => row.rowKey === rowKey)?.revision ??
-    preparation.value.pendingRows.find((row) => row.rowKey === rowKey)?.revision
-  );
+function resultLabel(status: string): string {
+  return rowResultLabel(status);
+}
+
+function createdSummary(response: ImportBatchResponse): string {
+  const count = countDistinctCreatedEvents(response);
+  return count === 1 ? "1 evento creado" : `${count} eventos creados`;
+}
+
+function quantity(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
 }
 
 watch(
@@ -108,6 +220,7 @@ function updateRowCount(event: Event) {
   const input = event.currentTarget;
   if (!(input instanceof HTMLInputElement)) return;
   if (!eventImport.setRowCount(input.valueAsNumber)) input.value = String(rows.value.length);
+  else pruneRemovedCreatedDrafts();
 }
 </script>
 
@@ -188,17 +301,14 @@ function updateRowCount(event: Event) {
           </p>
           <div class="flex flex-wrap items-center gap-2">
             <button
-              v-if="
-                retrySnapshot &&
-                batchMutation.isError.value &&
-                eventImportErrorCanRetry(batchMutation.error.value)
-              "
+              v-for="snapshot in uncertainSnapshots"
+              :key="snapshot.batchId"
               type="button"
               class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-rv-purple px-4 text-sm font-semibold text-rv-purple hover:bg-rv-purple/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:text-purple-200"
               :disabled="batchMutation.isPending.value"
-              @click="retrySameBatch"
+              @click="retrySameBatch(snapshot)"
             >
-              Reintentar el mismo lote
+              Reintentar {{ snapshot.rows.length }} filas inciertas
             </button>
             <button
               type="button"
@@ -226,49 +336,79 @@ function updateRowCount(event: Event) {
         >
           {{ eventImportGlobalErrorMessage(batchMutation.error.value) }}
         </p>
-        <div
-          v-if="batchMutation.data.value"
-          class="mt-3 border-t border-gray-200 pt-3 dark:border-white/10"
+        <p
+          v-if="uncertainSnapshots.length"
+          class="mt-2 text-amber-800 dark:text-amber-200"
+          role="status"
         >
+          {{ uncertainSnapshots.length }} operación(es) siguen inciertas. Reintenta cada snapshot
+          original; sus filas no se preparan como eventos nuevos.
+        </p>
+        <div v-if="lastImport" class="mt-3 border-t border-gray-200 pt-3 dark:border-white/10">
           <p class="font-semibold" role="status">
-            Lote completado:
+            Importación finalizada: {{ createdSummary(lastImport.response) }},
             {{
-              batchMutation.data.value.results.filter(({ result }) => result.status === "created")
-                .length
-            }}
-            creadas,
+              quantity(
+                lastImport.rows.filter(({ item }) => item.result.status === "conflict").length,
+                "conflicto",
+                "conflictos"
+              )
+            }},
             {{
-              batchMutation.data.value.results.filter(({ result }) => result.status === "conflict")
-                .length
-            }}
-            conflictos,
+              quantity(
+                lastImport.rows.filter(({ item }) => item.result.status === "invalid").length,
+                "fila inválida",
+                "filas inválidas"
+              )
+            }},
             {{
-              batchMutation.data.value.results.filter(({ result }) => result.status === "invalid")
-                .length
-            }}
-            inválidas,
+              quantity(
+                lastImport.rows.filter(({ item }) => item.result.status === "failed").length,
+                "fila fallida",
+                "filas fallidas"
+              )
+            }},
             {{
-              batchMutation.data.value.results.filter(({ result }) => result.status === "failed")
-                .length
-            }}
-            fallidas.
+              quantity(
+                lastImport.rows.filter(({ rowPresent, current }) => rowPresent && !current).length,
+                "fila conservada porque cambió durante el envío",
+                "filas conservadas porque cambiaron durante el envío"
+              )
+            }},
+            {{
+              quantity(
+                lastImport.rows.filter(({ action }) => action === "stale-created").length,
+                "borrador conservado tras su creación",
+                "borradores conservados tras su creación"
+              )
+            }}.
           </p>
           <ul class="mt-2 space-y-1">
-            <li v-for="item in batchMutation.data.value.results" :key="item.operationRowId">
-              Fila {{ item.rowKey }}: {{ rowResultLabel(item.result.status) }}
-              <span v-if="item.result.code">({{ item.result.code }})</span>
-              <span v-if="item.result.message">— {{ item.result.message }}</span>
-              <span v-if="currentRevisionForRow(item.rowKey) !== item.revision">
-                · el borrador actual cambió después del envío
+            <li v-for="entry in lastImport.rows" :key="entry.item.operationRowId">
+              Fila {{ entry.item.rowKey }}: {{ resultLabel(entry.item.result.status) }}
+              <span v-if="entry.item.result.code">({{ entry.item.result.code }})</span>
+              <span v-if="entry.item.result.message">— {{ entry.item.result.message }}</span>
+              <span v-if="entry.action === 'stale-created'">
+                · se creó la versión enviada (evento {{ entry.item.result.eventId }}); el borrador
+                actual se conserva y no se puede volver a importar como nuevo
               </span>
-              <span v-if="item.result.status === 'created' && item.result.replayed">
-                · resultado recuperado del lote anterior</span
+              <span v-else-if="entry.action === 'removed'">· retirada de la tabla</span>
+              <span v-else-if="entry.action === 'kept' && !entry.current">
+                · resultado histórico; la fila cambió o fue eliminada
+              </span>
+              <span v-if="entry.item.result.status === 'created' && entry.item.result.replayed">
+                · replay idempotente</span
               >
             </li>
           </ul>
-          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Las filas permanecen en la tabla; la retirada y reconciliación se realizará en una fase
-            posterior.
+          <p
+            v-for="(created, rowKey) in createdDrafts"
+            :key="rowKey"
+            class="mt-2 text-amber-800 dark:text-amber-200"
+            role="status"
+          >
+            {{ rowKey }}: su versión anterior creó el evento {{ created.eventId }}. Este borrador
+            divergente está excluido de nuevas importaciones.
           </p>
         </div>
       </section>
@@ -279,6 +419,7 @@ function updateRowCount(event: Event) {
         :geography-states="geographyStates"
         :tour-states="tourStates"
         :regions="geography.regions.value"
+        :conflicts-by-row-key="conflictsByRowKey"
         @update-event="eventImport.updateEvent"
         @confirm-tour="eventImport.confirmTour"
         @retry-tour="eventImport.retryTour"
@@ -297,6 +438,8 @@ function updateRowCount(event: Event) {
         @retry-locality="eventImport.retryLocality"
         @select-region="eventImport.selectAdministrativeRegion"
         @select-locality="eventImport.selectLocalityCandidate"
+        @select-venue="eventImport.selectVenueCandidate"
+        @select-artist="eventImport.selectArtistCandidate"
         @update-lineup-draft="eventImport.updateLineupDraft"
         @commit-lineup-draft="eventImport.commitLineupDraft"
         @retry-lineup-draft="eventImport.retryLineupDraft"
@@ -304,7 +447,7 @@ function updateRowCount(event: Event) {
         @commit-lineup-item-name="eventImport.commitLineupItemName"
         @retry-lineup-item="eventImport.retryLineupItem"
         @remove-lineup-item="eventImport.removeLineupItem"
-        @remove-row="removeRow"
+        @remove-row="removeImportRow"
       />
     </section>
   </div>

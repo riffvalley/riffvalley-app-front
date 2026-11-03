@@ -1,4 +1,5 @@
 import type { ArtistResolutionResult } from "../api/artistResolution";
+import { artistResolutionKey, geographyContextKey } from "./entityResolutionIdentity";
 import type {
   EventGeographyState,
   EventImportRow,
@@ -10,12 +11,7 @@ import { parseCalendarDate } from "./eventDate";
 import type { EventType } from "./eventType";
 
 function tourIdentity(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/gu, "")
-    .trim()
-    .replace(/\s+/gu, " ")
-    .toLocaleLowerCase("und");
+  return geographyContextKey(name);
 }
 
 export const EVENT_IMPORT_BATCH_LIMIT = 100;
@@ -91,6 +87,7 @@ export interface EventImportPreparationInput {
   geographyStates: Readonly<Record<string, EventGeographyState>>;
   tourStates: Readonly<Record<string, EventTourState>>;
   administrativeRegionCountryIds?: Readonly<Record<string, string>>;
+  blockedRows?: Readonly<Record<string, string>>;
 }
 
 export type UuidFactory = () => string;
@@ -191,7 +188,25 @@ function validateRow(row: EventImportRow, input: EventImportPreparationInput): s
   if (row.city.trim()) {
     const locality = geography?.localityResult;
     if (geography?.localityStatus === "ambiguous" || locality?.status === "ambiguous") {
-      reasons.push("locality-ambiguous");
+      const selected = geography?.selectedLocality;
+      const selectedFromCandidates =
+        locality?.status === "ambiguous" &&
+        selected &&
+        selected.country.id === input.countryId &&
+        locality.candidates.some(({ id }) => id === selected.id) &&
+        row.venue.localityId === selected.id &&
+        row.administrativeRegionId === selected.administrativeRegion.id &&
+        (!geographyContextKey(selected.province ?? "") ||
+          !geographyContextKey(row.province) ||
+          geographyContextKey(row.province) === geographyContextKey(selected.province ?? "")) &&
+        locality.candidates.filter(
+          (candidate) =>
+            candidate.administrativeRegion.id === selected.administrativeRegion.id &&
+            (!geographyContextKey(row.province) ||
+              !geographyContextKey(candidate.province ?? "") ||
+              geographyContextKey(candidate.province ?? "") === geographyContextKey(row.province))
+        ).length === 1;
+      if (!selectedFromCandidates) reasons.push("locality-ambiguous");
     } else if (geography?.localityStatus === "invalid" || locality?.status === "invalid") {
       reasons.push("locality-invalid");
     } else if (geography?.localityStatus === "error") {
@@ -241,10 +256,12 @@ function validateRow(row: EventImportRow, input: EventImportPreparationInput): s
       reasons.push(`artist-resolution-error:${item.key}`);
     } else if (lineupState?.itemStatus[item.key] === "resolving") {
       reasons.push(`artist-resolution-pending:${item.key}`);
-    } else if (!result || result.name.trim() !== item.name.trim()) {
+    } else if (!result || artistResolutionKey(result.name) !== artistResolutionKey(item.name)) {
       reasons.push(`artist-resolution-pending:${item.key}`);
     } else if (result.status === "ambiguous") {
-      reasons.push(`artist-ambiguous:${item.key}`);
+      if (!item.artistId || !result.candidates.some(({ id }) => id === item.artistId)) {
+        reasons.push(`artist-ambiguous:${item.key}`);
+      }
     } else if (result.status === "invalid") {
       reasons.push(`artist-invalid:${item.key}`);
     } else if (result.status === "existing" && item.artistId !== result.artist.id) {
@@ -292,7 +309,13 @@ function toDto(
     const result = getArtistResult(item, input.lineupStates[row.id]);
     return {
       name: item.name,
-      ...(result?.status === "existing" ? { artistId: result.artist.id } : {}),
+      ...(result?.status === "existing"
+        ? { artistId: result.artist.id }
+        : result?.status === "ambiguous" &&
+            item.artistId &&
+            result.candidates.some(({ id }) => id === item.artistId)
+          ? { artistId: item.artistId }
+          : {}),
     };
   });
   const tour = input.tourStates[row.id];
@@ -348,6 +371,11 @@ export function createEventImportPreparer(uuidFactory: UuidFactory = browserUuid
 
     for (const row of input.rows) {
       const identity = identityFor(row, input.countryId, input.tourStates[row.id]);
+      const blockedReason = input.blockedRows?.[row.id];
+      if (blockedReason) {
+        pendingRows.push({ rowKey: row.id, revision: identity.revision, reasons: [blockedReason] });
+        continue;
+      }
       const reasons = validateRow(row, input);
       if (reasons.length) {
         pendingRows.push({ rowKey: row.id, revision: identity.revision, reasons });
@@ -436,8 +464,10 @@ export function createEventImportPreparer(uuidFactory: UuidFactory = browserUuid
       !current.countryAvailable
     )
       return false;
-    const identity = identityFor(row, current.countryId, current.tourStates[row.id]);
+    const identity = identities.get(row.id);
     return (
+      identity?.signature ===
+        payloadSignature(row, current.countryId, current.tourStates[row.id]) &&
       identity.revision === snapshotRow.revision &&
       identity.operationRowId === snapshotRow.operationRowId
     );

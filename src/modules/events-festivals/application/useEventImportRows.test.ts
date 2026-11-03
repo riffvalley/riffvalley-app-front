@@ -465,6 +465,37 @@ describe("useEventImportRows lineup resolution", () => {
     });
   });
 
+  it("keeps an explicit Artist candidate with its appearance through formatting edits only", async () => {
+    resolveArtistsBatchMock.mockResolvedValueOnce([
+      {
+        index: 0,
+        name: "The Artist",
+        status: "ambiguous",
+        code: "ARTIST_AMBIGUOUS",
+        artist: null,
+        candidates: [
+          { id: "artist-a", name: "The Artist" },
+          { id: "artist-b", name: "The Artist" },
+        ],
+      },
+    ]);
+    const row = model.rows.value[0]!;
+    model.updateLineupDraft(row.id, "The Artist");
+    await vi.advanceTimersByTimeAsync(450);
+    await flushPromises();
+    const item = row.lineup[0]!;
+
+    model.selectArtistCandidate(row.id, item.key, "artist-b");
+    expect(item).toMatchObject({ name: "The Artist", artistId: "artist-b" });
+    model.updateLineupItemName(row.id, item.key, " the   artist ");
+    expect(item).toMatchObject({ name: " the   artist ", artistId: "artist-b" });
+    expect(model.lineupStates[row.id]?.itemResolution[item.key]?.status).toBe("ambiguous");
+
+    model.updateLineupItemName(row.id, item.key, "Different Artist");
+    expect(item.artistId).toBeNull();
+    expect(model.lineupStates[row.id]?.itemResolution[item.key]).toBeUndefined();
+  });
+
   it("keeps rows independent and removes individual lineup items", async () => {
     const first = model.rows.value[0]!;
     const second = model.rows.value[1]!;
@@ -649,6 +680,11 @@ describe("useEventImportRows lineup resolution", () => {
     await flushPromises();
     expect(model.geographyStates[row.id]?.venueCandidates).toHaveLength(2);
     expect(row.venue.venueId).toBeNull();
+    model.selectVenueCandidate(row.id, "v-b");
+    expect(row.venue).toMatchObject({ name: "Venue ambiguo", venueId: "v-b" });
+    expect(model.geographyStates[row.id]?.selectedVenueCandidateId).toBe("v-b");
+    model.selectVenueCandidate(row.id, "");
+    expect(row.venue.venueId).toBeNull();
   });
 
   it("keeps Venue errors retryable without dropping the entered name", async () => {
@@ -704,7 +740,21 @@ describe("useEventImportRows lineup resolution", () => {
     model.selectLocalityCandidate(row.id, "loc-b");
     await flushPromises();
     expect(row.venue.localityId).toBe("loc-b");
+    expect(row.administrativeRegionId).toBe("galicia");
+    expect(row.province).toBe("Pontevedra");
+    expect(model.geographyStates[row.id]?.localityCandidates).toHaveLength(2);
+    expect(model.geographyStates[row.id]?.selectedLocality?.id).toBe("loc-b");
     expect(resolveVenuesMock).toHaveBeenCalledTimes(1);
+    model.selectLocalityCandidate(row.id, "loc-a");
+    await flushPromises();
+    expect(row.venue.localityId).toBe("loc-a");
+    expect(row.province).toBe("A Coruña");
+    expect(resolveVenuesMock).toHaveBeenCalledTimes(2);
+    model.selectLocalityCandidate(row.id, "");
+    expect(row.venue).toMatchObject({ name: "Sala Uno", venueId: null, localityId: null });
+    expect(row.province).toBe("");
+    expect(row.administrativeRegionId).toBeNull();
+    expect(model.geographyStates[row.id]?.localityStatus).toBe("ambiguous");
   });
 
   it("invalidates only the geographic associations when City, Province or Country changes", async () => {
@@ -946,6 +996,43 @@ describe("useEventImportRows lineup resolution", () => {
     await flushPromises();
     expect(model.tourStates[first.id]?.confirmedTourId).toBe("tour-1");
     expect(inspectToursMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires explicit selection and confirmation for an ambiguous Tour", async () => {
+    inspectToursMock.mockImplementationOnce(async ({ names }: { names: string[] }) => ({
+      results: names.map((name, index) => ({
+        index,
+        name,
+        status: "ambiguous",
+        code: "TOUR_AMBIGUOUS",
+        candidates: [
+          { id: "tour-a", name: "Tour A" },
+          { id: "tour-b", name: "Tour B" },
+        ],
+      })),
+    }));
+    const [first, second] = model.rows.value;
+    if (!first || !second) throw new Error("Faltan filas de prueba");
+    model.updateType(first.id, "tour");
+    model.updateType(second.id, "tour");
+    model.updateEvent(first.id, "Common Tour");
+    model.updateEvent(second.id, " common   tour ");
+    await vi.advanceTimersByTimeAsync(450);
+    await flushPromises();
+
+    expect(model.tourStates[first.id]?.selectedCandidateId).toBeNull();
+    model.selectTourCandidate(first.id, "tour-b");
+    expect(model.tourStates[first.id]?.confirmedTourId).toBeNull();
+    model.confirmTour(first.id);
+    expect(model.tourStates[first.id]?.confirmedTourId).toBe("tour-b");
+    expect(model.tourStates[second.id]).toMatchObject({
+      selectedCandidateId: "tour-b",
+      confirmedTourId: "tour-b",
+    });
+
+    model.selectTourCandidate(first.id, "tour-a");
+    expect(model.tourStates[first.id]?.confirmedTourId).toBeNull();
+    expect(model.tourStates[second.id]?.confirmedTourId).toBeNull();
   });
 
   it("resolves ten rows of one Tour with one real request", async () => {

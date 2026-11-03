@@ -1,9 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { importEventBatch, ImportBatchProtocolError } from "./eventImport";
+import {
+  existingEventDetailQueryOptions,
+  existingEventDetailQueryKeys,
+  getExistingEventDetail,
+  importEventBatch,
+  ImportBatchProtocolError,
+  ExistingEventDetailProtocolError,
+} from "./eventImport";
 import type { ImportSnapshot } from "../application/eventImportPreparation";
 
-const { postMock } = vi.hoisted(() => ({ postMock: vi.fn() }));
-vi.mock("@services/api/api", () => ({ default: { post: postMock } }));
+const { getMock, postMock } = vi.hoisted(() => ({ getMock: vi.fn(), postMock: vi.fn() }));
+vi.mock("@services/api/api", () => ({ default: { get: getMock, post: postMock } }));
 
 const batchId = "11111111-1111-4111-8111-111111111111";
 const rowA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -112,6 +119,37 @@ describe("importEventBatch", () => {
     });
   });
 
+  it("rejects conflict detail attributed to a different operation row", async () => {
+    postMock.mockResolvedValue({
+      data: {
+        batchId,
+        results: [
+          {
+            rowId: rowA,
+            status: "conflict",
+            conflicts: [
+              {
+                rowId: rowB,
+                kind: "participation",
+                code: "CONCERT_ARTIST_DATE_LOCALITY_CONFLICT",
+                severity: "blocking",
+                message: "Conflicto de fila",
+                relatedRowIds: [rowA],
+                existingEventIds: [],
+                matchingArtists: [],
+                addableArtists: [],
+                candidateEventIds: [],
+              },
+            ],
+          },
+          { rowId: rowB, status: "failed" },
+        ],
+      },
+    });
+
+    await expect(importEventBatch(snapshot())).rejects.toBeInstanceOf(ImportBatchProtocolError);
+  });
+
   it.each([
     [
       "malformed result",
@@ -145,5 +183,57 @@ describe("importEventBatch", () => {
   ])("rejects an inconsistent response: %s", async (_label, results) => {
     postMock.mockResolvedValue({ data: { batchId, results } });
     await expect(importEventBatch(snapshot())).rejects.toBeInstanceOf(ImportBatchProtocolError);
+  });
+});
+
+describe("existing event detail", () => {
+  beforeEach(() => getMock.mockReset());
+
+  it("reads the authorized event detail shape while retaining only contract fields", async () => {
+    const eventId = "event-existing";
+    getMock.mockResolvedValue({
+      data: {
+        id: eventId,
+        type: "concert",
+        name: null,
+        startDate: "2027-05-15",
+        endDate: null,
+        venue: { name: "La Riviera", locality: { name: "Madrid", province: "Madrid" } },
+        lineup: [{ artistId: "artist-1", name: "Septicflesh" }],
+        secretField: "ignored",
+      },
+    });
+
+    await expect(getExistingEventDetail(eventId)).resolves.toMatchObject({
+      id: eventId,
+      type: "concert",
+      name: null,
+      startDate: "2027-05-15",
+      venue: { name: "La Riviera", locality: { name: "Madrid", province: "Madrid" } },
+      lineup: [{ artistId: "artist-1", name: "Septicflesh" }],
+    });
+    expect(getMock).toHaveBeenCalledWith("/events/event-existing", { signal: undefined });
+  });
+
+  it("accepts UUID-only context and rejects a response for a different event", async () => {
+    getMock.mockResolvedValueOnce({ data: { id: "event-id-only" } });
+    await expect(getExistingEventDetail("event-id-only")).resolves.toEqual({ id: "event-id-only" });
+    getMock.mockResolvedValueOnce({ data: { id: "other-event" } });
+    await expect(getExistingEventDetail("requested-event")).rejects.toBeInstanceOf(
+      ExistingEventDetailProtocolError
+    );
+  });
+
+  it("keys cached detail by event UUID and forwards cancellation", async () => {
+    const options = existingEventDetailQueryOptions("event-a");
+    expect(options.queryKey).toEqual(existingEventDetailQueryKeys.detail("event-a"));
+    expect(options.queryKey).not.toEqual(existingEventDetailQueryKeys.detail("event-b"));
+    expect(options.staleTime).toBe(15_000);
+    getMock.mockResolvedValue({ data: { id: "event-a" } });
+    const controller = new AbortController();
+    await expect(options.queryFn?.({ signal: controller.signal } as never)).resolves.toEqual({
+      id: "event-a",
+    });
+    expect(getMock).toHaveBeenCalledWith("/events/event-a", { signal: controller.signal });
   });
 });

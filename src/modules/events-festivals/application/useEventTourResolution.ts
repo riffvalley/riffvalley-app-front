@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/vue-query";
 import type { TourResolutionResult } from "../api/entityResolutionContracts";
 import { ENTITY_RESOLUTION_BATCH_LIMIT } from "../api/entityResolutionContracts";
+import { geographyContextKey } from "./entityResolutionIdentity";
 import {
   ENTITY_RESOLUTION_STALE_TIME,
   entityResolutionQueryKeys,
@@ -11,12 +12,7 @@ const RESOLUTION_DEBOUNCE_MS = 450;
 
 /** Case and whitespace are the only frontend equivalences allowed by normalizeGeography. */
 export function tourResolutionKey(name: string): string {
-  return name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/gu, "")
-    .trim()
-    .replace(/\s+/gu, " ")
-    .toLocaleLowerCase("und");
+  return geographyContextKey(name);
 }
 
 interface PendingTour {

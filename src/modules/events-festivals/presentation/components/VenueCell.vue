@@ -17,6 +17,7 @@ const emit = defineEmits<{
   retryLocality: [];
   selectRegion: [regionId: string];
   selectLocality: [localityId: string];
+  selectVenue: [venueId: string];
 }>();
 
 const editing = ref(!props.row.venue.venueId);
@@ -81,7 +82,7 @@ function stopEditing() {
       class="text-xs text-emerald-700 dark:text-emerald-300"
       role="status"
     >
-      Localidad encontrada
+      {{ state.selectedLocality ? "Localidad seleccionada" : "Localidad encontrada" }}
     </span>
     <span
       v-else-if="state.localityStatus === 'new'"
@@ -113,12 +114,13 @@ function stopEditing() {
       </select>
     </span>
     <span
-      v-if="state.localityStatus === 'ambiguous'"
+      v-if="state.localityResult?.status === 'ambiguous'"
       class="w-full text-xs text-amber-700 dark:text-amber-300"
       role="status"
     >
       Localidad ambigua
       <select
+        :value="state.selectedLocality?.id ?? ''"
         :aria-label="`Candidatos de localidad, fila ${rowNumber}`"
         class="mt-1 min-h-8 w-full rounded border border-gray-300 bg-white px-2 text-xs text-gray-900 dark:border-white/20 dark:bg-rv-darkSurface dark:text-white"
         @change="emit('selectLocality', ($event.target as HTMLSelectElement).value)"
@@ -130,12 +132,13 @@ function stopEditing() {
           :value="candidate.id"
         >
           {{ candidate.name }} · {{ candidate.province ?? candidate.administrativeRegion.name }} ·
-          {{ candidate.country.name }}
+          {{ candidate.administrativeRegion.name }} · {{ candidate.country.name }} ·
+          {{ candidate.id }}
         </option>
       </select>
     </span>
     <span
-      v-else-if="state.venueStatus === 'existing'"
+      v-if="state.venueStatus === 'existing'"
       class="text-xs text-emerald-700 dark:text-emerald-300"
       role="status"
       >Recinto encontrado</span
@@ -148,10 +151,32 @@ function stopEditing() {
     >
     <span
       v-else-if="state.venueStatus === 'ambiguous'"
-      class="text-xs text-amber-700 dark:text-amber-300"
+      class="w-full text-xs text-amber-700 dark:text-amber-300"
       role="status"
-      >Recinto ambiguo</span
     >
+      <span
+        >Recinto ambiguo; el DTO de importación no admite venueId, así que la fila sigue
+        pendiente.</span
+      >
+      <select
+        :value="state.selectedVenueCandidateId ?? ''"
+        :aria-label="`Candidatos de recinto, fila ${rowNumber}`"
+        class="mt-1 min-h-8 w-full rounded border border-gray-300 bg-white px-2 text-xs text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-purple dark:border-white/20 dark:bg-rv-darkSurface dark:text-white"
+        @change="emit('selectVenue', ($event.target as HTMLSelectElement).value)"
+      >
+        <option value="">Seleccionar recinto…</option>
+        <option
+          v-for="candidate in state.venueCandidates"
+          :key="candidate.id"
+          :value="candidate.id"
+        >
+          {{ candidate.name }} · {{ candidate.id }}
+        </option>
+      </select>
+      <span v-if="state.selectedVenueCandidateId" class="mt-1 block" role="status"
+        >Candidato seleccionado; pendiente de una operación que admita venueId.</span
+      >
+    </span>
     <span
       v-if="
         state.localityStatus === 'invalid' ||

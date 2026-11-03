@@ -13,6 +13,7 @@ const {
   resolveVenuesMock,
   countriesMock,
   regionsMock,
+  importEventBatchMock,
 } = vi.hoisted(() => ({
   resolveArtistsBatchMock: vi.fn(),
   searchVenueNamesMock: vi.fn(),
@@ -21,6 +22,11 @@ const {
   resolveVenuesMock: vi.fn(),
   countriesMock: vi.fn(),
   regionsMock: vi.fn(),
+  importEventBatchMock: vi.fn(),
+}));
+vi.mock("../../api/eventImport", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../api/eventImport")>()),
+  importEventBatch: importEventBatchMock,
 }));
 vi.mock("../../api/artistResolution", () => ({ resolveArtistsBatch: resolveArtistsBatchMock }));
 vi.mock("../../api/entityResolution", () => ({
@@ -31,6 +37,7 @@ vi.mock("@/modules/venues", () => ({
   resolveVenueBatch: resolveVenuesMock,
   getVenueImportCountries: countriesMock,
   getAdministrativeRegions: regionsMock,
+  venueCatalogQueryKey: ["venues", "catalog"],
   venueCatalogCountriesQueryKey: ["venues", "import", "countries"],
   venueCatalogRegionsQueryKey: (countryId: string) => ["venues", "import", "regions", countryId],
 }));
@@ -46,9 +53,10 @@ const allowedCountries = [
   ["IT", "Italia"],
 ].map(([isoCode, name]) => ({ id: `country-${isoCode}`, isoCode, name }));
 
-function mountImportView() {
+function mountImportView(attachTo?: HTMLElement) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return mount(EventsFestivalsImportView, {
+    attachTo,
     global: { plugins: [[VueQueryPlugin, { queryClient }]] },
   });
 }
@@ -112,6 +120,7 @@ describe("EventsFestivalsImportView", () => {
       );
     countriesMock.mockReset().mockResolvedValue(allowedCountries);
     regionsMock.mockReset().mockResolvedValue([]);
+    importEventBatchMock.mockReset();
   });
 
   it("renders the requested editable columns in order", async () => {
@@ -142,6 +151,184 @@ describe("EventsFestivalsImportView", () => {
     expect(wrapper.get('select[aria-label="Type, fila 1"]').text()).toContain("Concierto");
     expect(wrapper.get('select[aria-label="Type, fila 1"]').text()).toContain("Festival");
     expect(wrapper.get('select[aria-label="Type, fila 1"]').text()).toContain("Tour");
+  });
+
+  it("removes a created row after correlating the backend result to its sent snapshot", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    const wrapper = mountImportView();
+    await flushPromises();
+    vi.useFakeTimers();
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Start Date, fila 1"]')
+      .setValue("15/05/2027");
+    await wrapper.get<HTMLInputElement>('input[aria-label="City, fila 1"]').setValue("Madrid");
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+    importEventBatchMock.mockImplementationOnce(async (snapshot) => ({
+      batchId: snapshot.batchId,
+      results: snapshot.rows.map((row) => ({
+        operationRowId: row.operationRowId,
+        rowKey: row.rowKey,
+        revision: row.revision,
+        result: { rowId: row.operationRowId, status: "created", eventId: "event-created-1" },
+      })),
+    }));
+
+    const importButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Importar filas listas"));
+    expect(importButton?.element.disabled, wrapper.text()).toBe(false);
+    await importButton?.trigger("click");
+    await flushPromises();
+
+    expect(importEventBatchMock).toHaveBeenCalledTimes(1);
+    expect(wrapper.findAll("tbody tr"), wrapper.text()).toHaveLength(4);
+    expect(wrapper.text()).toContain("Importación finalizada: 1 evento creado");
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
+
+  it("shows symmetric row conflicts and navigates to related rows by stable identity", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    const wrapper = mountImportView(document.body);
+    await flushPromises();
+    vi.useFakeTimers();
+    for (const rowNumber of [1, 2]) {
+      await wrapper
+        .get<HTMLInputElement>(`input[aria-label="Start Date, fila ${rowNumber}"]`)
+        .setValue("15/05/2027");
+      await wrapper
+        .get<HTMLInputElement>(`input[aria-label="City, fila ${rowNumber}"]`)
+        .setValue(rowNumber === 1 ? "Madrid" : "Barcelona");
+    }
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+    importEventBatchMock.mockImplementationOnce(async (snapshot) => ({
+      batchId: snapshot.batchId,
+      results: [...snapshot.rows].reverse().map((row) => {
+        const other = snapshot.rows.find((candidate) => candidate.rowKey !== row.rowKey)!;
+        return {
+          operationRowId: row.operationRowId,
+          rowKey: row.rowKey,
+          revision: row.revision,
+          result: {
+            rowId: row.operationRowId,
+            status: "conflict",
+            conflicts: [
+              {
+                rowId: row.operationRowId,
+                kind: "participation",
+                code: "CONCERT_ARTIST_DATE_LOCALITY_CONFLICT",
+                severity: "blocking",
+                message: "Artista y fecha incompatibles entre filas.",
+                relatedRowIds: [other.operationRowId],
+                existingEventIds: [],
+                matchingArtists: [{ artistId: null, name: "Artista recibido" }],
+                addableArtists: [],
+                candidateEventIds: [],
+              },
+            ],
+          },
+        };
+      }),
+    }));
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Importar filas listas"))
+      ?.trigger("click");
+    await flushPromises();
+
+    const conflictButton = wrapper.get<HTMLButtonElement>(
+      'button[aria-label="1 conflicto en fila 1; consultar detalle"]'
+    );
+    expect(conflictButton.text()).toContain("vigente");
+    await conflictButton.trigger("click");
+    expect(wrapper.text()).toContain("Artista y fecha incompatibles entre filas.");
+    expect(wrapper.text()).toContain("CONCERT_ARTIST_DATE_LOCALITY_CONFLICT");
+    const relatedRow = wrapper.get<HTMLButtonElement>(
+      'button[aria-label="Ir a fila 2, relacionada"]'
+    );
+    expect(relatedRow.element.closest("td")?.getAttribute("colspan")).toBe("12");
+    await relatedRow.trigger("click");
+    expect(document.activeElement?.closest("tr")?.id).toBe("event-import-row-event-row-2");
+
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Start Date, fila 1"]')
+      .setValue("16/05/2027");
+    await nextTick();
+    expect(wrapper.text()).toContain("histórico");
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
+
+  it("keeps and locks an edited draft when its earlier snapshot is created", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    const wrapper = mountImportView();
+    await flushPromises();
+    vi.useFakeTimers();
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Start Date, fila 1"]')
+      .setValue("15/05/2027");
+    await wrapper.get<HTMLInputElement>('input[aria-label="City, fila 1"]').setValue("Madrid");
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+
+    let finishImport!: (response: unknown) => void;
+    importEventBatchMock.mockImplementationOnce(
+      (snapshot) =>
+        new Promise((resolve) => {
+          finishImport = resolve;
+          expect(snapshot.rows).toHaveLength(1);
+        })
+    );
+    const importButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Importar filas listas"));
+    await importButton?.trigger("click");
+    await nextTick();
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Price, fila 1 (opcional)"]')
+      .setValue("50 €");
+    const snapshot = importEventBatchMock.mock.calls[0]?.[0];
+    finishImport({
+      batchId: snapshot.batchId,
+      results: snapshot.rows.map((row) => ({
+        operationRowId: row.operationRowId,
+        rowKey: row.rowKey,
+        revision: row.revision,
+        result: { rowId: row.operationRowId, status: "created", eventId: "event-original-45" },
+      })),
+    });
+    await flushPromises();
+
+    expect(wrapper.findAll("tbody tr")).toHaveLength(5);
+    expect(
+      wrapper.get<HTMLInputElement>('input[aria-label="Price, fila 1 (opcional)"]').element.value
+    ).toBe("50 €");
+    expect(wrapper.text()).toContain("event-original-45");
+    expect(wrapper.text()).toContain("borrador divergente está excluido de nuevas importaciones");
+    expect(wrapper.text()).toContain("0 filas listas");
+    wrapper.unmount();
+    vi.useRealTimers();
   });
 
   it("pastes Tour as a type and preserves Name while changing types", async () => {
