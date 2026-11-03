@@ -13,6 +13,7 @@ import type {
   LineupItem,
 } from "./useEventImportRows";
 import { parseCalendarDate } from "./eventDate";
+import { splitLineupNames } from "./lineupText";
 
 function tourIdentity(name: string): string {
   return geographyContextKey(name);
@@ -302,6 +303,14 @@ function validateRow(row: EventImportRow, input: EventImportPreparationInput): s
     } else if (result.status === "new" && item.artistId) {
       reasons.push(`artist-identity-stale:${item.key}`);
     }
+  }
+
+  if (lineupState && splitLineupNames(lineupState.draft).length > 0) {
+    reasons.push(
+      lineupState.draftStatus === "error"
+        ? "artist-draft-resolution-error"
+        : "artist-draft-resolution-pending"
+    );
   }
 
   if (row.type === "tour") {

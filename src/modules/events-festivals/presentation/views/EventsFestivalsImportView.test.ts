@@ -14,6 +14,7 @@ const {
   countriesMock,
   regionsMock,
   importEventBatchMock,
+  confirmDiscardMock,
 } = vi.hoisted(() => ({
   resolveArtistsBatchMock: vi.fn(),
   searchVenueNamesMock: vi.fn(),
@@ -23,7 +24,9 @@ const {
   countriesMock: vi.fn(),
   regionsMock: vi.fn(),
   importEventBatchMock: vi.fn(),
+  confirmDiscardMock: vi.fn(),
 }));
+vi.mock("@/services/swal/SwalService", () => ({ default: { confirm: confirmDiscardMock } }));
 vi.mock("../../api/eventImport", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../api/eventImport")>()),
   importEventBatch: importEventBatchMock,
@@ -124,6 +127,7 @@ describe("EventsFestivalsImportView", () => {
     countriesMock.mockReset().mockResolvedValue(allowedCountries);
     regionsMock.mockReset().mockResolvedValue([]);
     importEventBatchMock.mockReset();
+    confirmDiscardMock.mockReset().mockResolvedValue({ isConfirmed: true });
   });
 
   it("renders the requested editable columns in order", async () => {
@@ -132,7 +136,7 @@ describe("EventsFestivalsImportView", () => {
     const headers = wrapper.findAll("th[scope='col']").map((header) => header.text());
 
     expect(wrapper.get("h1").text()).toBe("Importador de conciertos y festivales");
-    expect(headers.slice(1, 11)).toEqual([
+    expect(headers.slice(2, 12)).toEqual([
       "Type",
       "Event / Name",
       "Lineup",
@@ -146,7 +150,7 @@ describe("EventsFestivalsImportView", () => {
     ]);
     expect(headers).not.toContain("Artista / Evento");
     expect(headers).not.toContain("Festival Lineup");
-    expect(wrapper.findAll("tbody input")).toHaveLength(45);
+    expect(wrapper.findAll('tbody input:not([type="checkbox"])')).toHaveLength(45);
     expect(wrapper.findAll("tbody select")).toHaveLength(5);
     expect(wrapper.get<HTMLSelectElement>('select[aria-label="Type, fila 1"]').element.value).toBe(
       "concert"
@@ -193,6 +197,63 @@ describe("EventsFestivalsImportView", () => {
     expect(importEventBatchMock).toHaveBeenCalledTimes(1);
     expect(wrapper.findAll("tbody tr"), wrapper.text()).toHaveLength(4);
     expect(wrapper.text()).toContain("Importación finalizada: 1 evento creado");
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
+
+  it("keeps a discarded in-flight row removed and records its later created result", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    const wrapper = mountImportView();
+    await flushPromises();
+    vi.useFakeTimers();
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Start Date, fila 1"]')
+      .setValue("15/05/2027");
+    await wrapper.get<HTMLInputElement>('input[aria-label="City, fila 1"]').setValue("Madrid");
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+    let finishImport!: (response: unknown) => void;
+    importEventBatchMock.mockImplementationOnce(
+      (snapshot) =>
+        new Promise((resolve) => {
+          finishImport = resolve;
+          expect(snapshot.rows).toHaveLength(1);
+        })
+    );
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Importar filas listas"))!
+      .trigger("click");
+    await nextTick();
+    await wrapper.get('button[aria-label="Descartar fila 1"]').trigger("click");
+    await flushPromises();
+    expect(wrapper.findAll("tbody tr")).toHaveLength(4);
+    expect(importEventBatchMock).toHaveBeenCalledTimes(1);
+
+    const snapshot = importEventBatchMock.mock.calls[0]?.[0];
+    finishImport({
+      batchId: snapshot.batchId,
+      results: snapshot.rows.map((row) => ({
+        operationRowId: row.operationRowId,
+        rowKey: row.rowKey,
+        revision: row.revision,
+        result: {
+          rowId: row.operationRowId,
+          status: "created",
+          eventId: "event-created-after-discard",
+        },
+      })),
+    });
+    await flushPromises();
+    expect(wrapper.findAll("tbody tr")).toHaveLength(4);
+    expect(wrapper.text()).toContain("event-created-after-discard");
+    expect(wrapper.text()).toContain("resultado histórico; la fila cambió o fue eliminada");
     wrapper.unmount();
     vi.useRealTimers();
   });
@@ -264,7 +325,7 @@ describe("EventsFestivalsImportView", () => {
     const relatedRow = wrapper.get<HTMLButtonElement>(
       'button[aria-label="Ir a fila 2, relacionada"]'
     );
-    expect(relatedRow.element.closest("td")?.getAttribute("colspan")).toBe("12");
+    expect(relatedRow.element.closest("td")?.getAttribute("colspan")).toBe("13");
     await relatedRow.trigger("click");
     expect(document.activeElement?.closest("tr")?.id).toBe("event-import-row-event-row-2");
 
@@ -330,6 +391,16 @@ describe("EventsFestivalsImportView", () => {
     expect(wrapper.text()).toContain("event-original-45");
     expect(wrapper.text()).toContain("borrador divergente está excluido de nuevas importaciones");
     expect(wrapper.text()).toContain("0 filas listas");
+    await wrapper.get('button[aria-label="Descartar fila 1"]').trigger("click");
+    await flushPromises();
+    expect(confirmDiscardMock).toHaveBeenLastCalledWith(
+      "¿Descartar esta fila?",
+      expect.stringContaining("El evento creado seguirá existiendo"),
+      "Descartar borrador",
+      "Cancelar"
+    );
+    expect(wrapper.text()).toContain("event-original-45");
+    expect(importEventBatchMock).toHaveBeenCalledTimes(1);
     wrapper.unmount();
     vi.useRealTimers();
   });
@@ -609,7 +680,10 @@ describe("EventsFestivalsImportView", () => {
     await flushPromises();
 
     expect(wrapper.find('[role="alert"]').text()).toContain("No se pudo cargar el catálogo");
-    await wrapper.get("button").trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Reintentar"))!
+      .trigger("click");
     await flushPromises();
 
     expect(countriesMock).toHaveBeenCalledTimes(2);
@@ -1014,7 +1088,7 @@ describe("EventsFestivalsImportView", () => {
         .value
     ).toBe("");
 
-    await wrapper.get("button[aria-label='Eliminar fila 1']").trigger("click");
+    await wrapper.get("button[aria-label='Descartar fila 1']").trigger("click");
     expect(wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 1"]').element.value).toBe(
       "Download Festival Madrid"
     );
@@ -1089,9 +1163,147 @@ describe("EventsFestivalsImportView", () => {
     expect(lineupInput.element.value).toBe("");
 
     for (let index = 0; index < 5; index += 1) {
-      await wrapper.get("button[aria-label='Eliminar fila 1']").trigger("click");
+      await wrapper.get("button[aria-label='Descartar fila 1']").trigger("click");
     }
-    expect(wrapper.findAll("tbody input")).toHaveLength(0);
+    expect(wrapper.findAll('tbody input:not([type="checkbox"])')).toHaveLength(0);
     expect(wrapper.text()).toContain("No hay filas");
+  });
+
+  it("discards an empty row immediately and confirms a populated row as a local draft", async () => {
+    const wrapper = mountImportView();
+    await wrapper.get("button[aria-label='Descartar fila 1']").trigger("click");
+    expect(confirmDiscardMock).not.toHaveBeenCalled();
+    expect(wrapper.get('input[aria-label="Event, fila 1"]')).toBeTruthy();
+
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Event, fila 1"]')
+      .setValue("Festival de prueba");
+    await wrapper.get("button[aria-label='Descartar fila 1']").trigger("click");
+    await flushPromises();
+    expect(confirmDiscardMock).toHaveBeenCalledWith(
+      "¿Descartar esta fila?",
+      expect.stringContaining("No se borrarán eventos ya existentes."),
+      "Descartar borrador",
+      "Cancelar"
+    );
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 1"]').element.value).toBe(
+      ""
+    );
+  });
+
+  it("uses the same confirmation when reducing the row count would discard content", async () => {
+    const wrapper = mountImportView();
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Event, fila 5"]')
+      .setValue("Concierto conservado");
+    const rowCount = wrapper.get<HTMLInputElement>('input[aria-label="Número de filas"]');
+    confirmDiscardMock.mockResolvedValueOnce({ isConfirmed: false });
+    await rowCount.setValue("4");
+    await flushPromises();
+    expect(confirmDiscardMock).toHaveBeenCalledWith(
+      "¿Descartar esta fila?",
+      expect.stringContaining("No se borrarán eventos ya existentes."),
+      "Descartar borrador",
+      "Cancelar"
+    );
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 5"]').element.value).toBe(
+      "Concierto conservado"
+    );
+    expect(rowCount.element.value).toBe("5");
+  });
+
+  it("discards selected rows by stable identity and leaves them when confirmation is cancelled", async () => {
+    const wrapper = mountImportView();
+    await wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 1"]').setValue("Evento A");
+    await wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 2"]').setValue("Evento B");
+    await wrapper.get('input[aria-label="Seleccionar fila 1 para descartar"]').setValue(true);
+    await wrapper.get('input[aria-label="Seleccionar fila 2 para descartar"]').setValue(true);
+    confirmDiscardMock.mockResolvedValueOnce({ isConfirmed: false });
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Descartar seleccionadas"))!
+      .trigger("click");
+    await flushPromises();
+    expect(confirmDiscardMock).toHaveBeenCalledWith(
+      "¿Descartar 2 filas?",
+      expect.stringContaining("2 borradores locales desaparecerán"),
+      "Descartar borrador",
+      "Cancelar"
+    );
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 1"]').element.value).toBe(
+      "Evento A"
+    );
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 2"]').element.value).toBe(
+      "Evento B"
+    );
+
+    confirmDiscardMock.mockResolvedValueOnce({ isConfirmed: true });
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Descartar seleccionadas"))!
+      .trigger("click");
+    await flushPromises();
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Event, fila 1"]').element.value).toBe(
+      ""
+    );
+    expect(wrapper.text()).toContain("0 filas seleccionadas");
+  });
+
+  it("keeps and retries the original snapshot after an uncertain row is discarded", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    const wrapper = mountImportView();
+    await flushPromises();
+    vi.useFakeTimers();
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Start Date, fila 1"]')
+      .setValue("15/05/2027");
+    await wrapper.get<HTMLInputElement>('input[aria-label="City, fila 1"]').setValue("Madrid");
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+    importEventBatchMock.mockRejectedValueOnce(new Error("network timeout after possible commit"));
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Importar filas listas"))!
+      .trigger("click");
+    await flushPromises();
+
+    const originalSnapshot = importEventBatchMock.mock.calls[0]?.[0];
+    expect(wrapper.text()).toContain("operación(es) siguen inciertas");
+    await wrapper.get('button[aria-label="Descartar fila 1"]').trigger("click");
+    await flushPromises();
+    expect(confirmDiscardMock).toHaveBeenLastCalledWith(
+      "¿Descartar esta fila?",
+      expect.stringContaining("podría haberse creado el evento"),
+      "Descartar borrador",
+      "Cancelar"
+    );
+    expect(wrapper.findAll("tbody tr")).toHaveLength(4);
+    expect(wrapper.text()).toContain("operación(es) siguen inciertas");
+
+    importEventBatchMock.mockImplementationOnce(async (snapshot) => ({
+      batchId: snapshot.batchId,
+      results: snapshot.rows.map((row) => ({
+        operationRowId: row.operationRowId,
+        rowKey: row.rowKey,
+        revision: row.revision,
+        result: { rowId: row.operationRowId, status: "created", eventId: "event-after-retry" },
+      })),
+    }));
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Reintentar 1 filas inciertas"))!
+      .trigger("click");
+    await flushPromises();
+    expect(importEventBatchMock.mock.calls[1]?.[0]).toBe(originalSnapshot);
+    expect(wrapper.findAll("tbody tr")).toHaveLength(4);
+    expect(wrapper.text()).toContain("event-after-retry");
+    wrapper.unmount();
+    vi.useRealTimers();
   });
 });

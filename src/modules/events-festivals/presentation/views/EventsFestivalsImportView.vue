@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useQueryClient } from "@tanstack/vue-query";
-import { computed, shallowRef, watch } from "vue";
+import { computed, nextTick, shallowRef, watch } from "vue";
 import EventImportTable from "../components/EventImportTable.vue";
 import EventImportCountrySelector from "../components/EventImportCountrySelector.vue";
 import { useEventImportRows } from "../../application/useEventImportRows";
@@ -21,6 +21,7 @@ import {
 import type { ImportBatchResponse } from "../../api/eventImport";
 import { createEventImportConflictPresentation } from "../../application/eventImportConflicts";
 import type { CorrelatedImportResult } from "../../api/eventImport";
+import SwalService from "@/services/swal/SwalService";
 
 const eventImport = useEventImportRows(useQueryClient());
 const { rows, lineupStates, geographyStates, tourStates, addRow, removeRow } = eventImport;
@@ -35,20 +36,6 @@ const initialPreparation: ImportPreparation = {
   correlation: {},
 };
 const preparation = shallowRef(initialPreparation);
-const visiblePendingReasons = computed(() => {
-  const rowNumbers = new Map(rows.value.map((row, index) => [row.id, index + 1]));
-  return preparation.value.pendingRows.flatMap((pending) => {
-    const reasons = pending.reasons.filter((reason) => reason !== "batch-limit-exceeded");
-    return reasons.length
-      ? [
-          {
-            key: `${pending.rowKey}:${pending.reasons.join(",")}`,
-            label: `${pending.rowKey ? `Fila ${rowNumbers.get(pending.rowKey) ?? ""}: ` : ""}${reasons.map(preparationReasonLabel).join(" ")}`,
-          },
-        ]
-      : [];
-  });
-});
 const batchMutation = useEventImportBatchMutation();
 const uncertainSnapshots = shallowRef<NonNullable<ImportPreparation["snapshot"]>[]>([]);
 const handledOperations = new Set<string>();
@@ -62,6 +49,8 @@ const conflictOperation = shallowRef<{
   snapshot: NonNullable<ImportPreparation["snapshot"]>;
   results: CorrelatedImportResult[];
 } | null>(null);
+const selectedRowKeys = shallowRef<Set<string>>(new Set());
+const discardInProgress = shallowRef(false);
 
 const conflictsByRowKey = computed(() => {
   const operation = conflictOperation.value;
@@ -78,6 +67,152 @@ const conflictsByRowKey = computed(() => {
     (groups[conflict.rowKey] ??= []).push(conflict);
     return groups;
   }, {});
+});
+
+const rowProblems = computed(() => {
+  const problems: Record<string, { label: string; fields: string[]; historical?: boolean }> = {};
+  const currentRows = new Map(rows.value.map((row) => [row.id, row]));
+  const latestResults = new Map(
+    (lastImport.value?.rows ?? []).map((result) => [result.item.rowKey, result])
+  );
+  const resolutionErrors = new Set<string>();
+
+  for (const row of rows.value) {
+    const pending = preparation.value.pendingRows.find(({ rowKey }) => rowKey === row.id);
+    const reasons = pending?.reasons.filter((reason) => reason !== "batch-limit-exceeded") ?? [];
+    const result = latestResults.get(row.id);
+    const conflicts = conflictsByRowKey.value[row.id] ?? [];
+    if (
+      Object.keys(lineupStates[row.id]?.itemStatus ?? {}).some(
+        (key) => lineupStates[row.id]?.itemStatus[key] === "error"
+      ) ||
+      geographyStates[row.id]?.localityStatus === "error" ||
+      geographyStates[row.id]?.venueStatus === "error" ||
+      tourStates[row.id]?.status === "error"
+    )
+      resolutionErrors.add(row.id);
+
+    if (createdDrafts.value[row.id]) {
+      problems[row.id] = {
+        label: `El evento ya existe (ID ${createdDrafts.value[row.id]!.eventId}); este borrador posterior no se puede importar como evento nuevo.`,
+        fields: [],
+      };
+      continue;
+    }
+    if (
+      uncertainSnapshots.value.some((snapshot) =>
+        snapshot.rows.some(({ rowKey }) => rowKey === row.id)
+      )
+    ) {
+      problems[row.id] = {
+        label:
+          "Operación incierta. El reintento usa el snapshot original; el resultado backend todavía puede incluir la creación del evento.",
+        fields: [],
+      };
+      continue;
+    }
+    if (conflicts.length) {
+      problems[row.id] = {
+        label: "Conflicto detectado. Consulta el detalle y las filas relacionadas.",
+        fields: [],
+        historical: conflicts.every(({ status }) => status === "historical"),
+      };
+      continue;
+    }
+    if (result?.item.result.status === "invalid" || result?.item.result.status === "failed") {
+      const status = result.item.result.status;
+      problems[row.id] = {
+        label: `${status === "invalid" ? "Datos rechazados por el backend" : "Falló la importación"}${result.item.result.code ? ` (${result.item.result.code})` : ""}${result.item.result.message ? `: ${result.item.result.message}` : "."}`,
+        fields: [],
+        historical: !result.current,
+      };
+      continue;
+    }
+    if (resolutionErrors.has(row.id)) {
+      problems[row.id] = {
+        label: "Error técnico durante la resolución. Revisa el detalle de la celda y reintenta.",
+        fields: [],
+      };
+      continue;
+    }
+    if (reasons.length) {
+      const labels: string[] = [];
+      const fields = new Set<string>();
+      for (const reason of reasons) {
+        if (reason.startsWith("artist-")) {
+          const itemKey = reason.split(":")[1];
+          const index = row.lineup.findIndex(({ key }) => key === itemKey);
+          fields.add(index >= 0 ? `Lineup, aparición ${index + 1}` : "Lineup");
+          if (reason.includes("ambiguous")) labels.push("Artista pendiente de seleccionar");
+          else if (reason.includes("invalid")) labels.push("Artista inválido");
+          else if (reason.includes("error")) labels.push("Error técnico al resolver Artist");
+          else labels.push("Artist pendiente de resolver");
+        } else if (reason.includes("date") || reason === "end-date-before-start-date") {
+          labels.push("Fecha pendiente de corregir");
+          fields.add(
+            reason === "end-date-before-start-date" || reason.startsWith("start-date")
+              ? "Start Date"
+              : "End Date"
+          );
+          if (reason === "end-date-before-start-date") fields.add("End Date");
+        } else if (reason.includes("locality-ambiguous")) {
+          labels.push("Locality pendiente de seleccionar");
+          fields.add("City / Province / Locality");
+        } else if (reason.includes("locality") || reason.includes("administrative-region")) {
+          labels.push("Locality pendiente de completar o corregir");
+          fields.add("City / Province / región administrativa");
+        } else if (reason.includes("venue-ambiguous")) {
+          labels.push("Venue pendiente de seleccionar");
+          fields.add("Venue / Locality");
+        } else if (reason.includes("venue")) {
+          labels.push("Venue pendiente de corregir o resolver");
+          fields.add("Venue / Locality");
+        } else if (
+          reason.includes("tour-confirmation-required") ||
+          reason.includes("tour-ambiguous")
+        ) {
+          labels.push("Gira pendiente de confirmar");
+          fields.add("Name / confirmación Tour");
+        } else if (reason.includes("tour")) {
+          labels.push("Gira pendiente de resolver");
+          fields.add("Name");
+        } else if (reason === "city-required") {
+          labels.push("Falta un dato obligatorio");
+          fields.add("City");
+        } else if (reason === "name-required") {
+          labels.push("Falta un dato obligatorio");
+          fields.add("Name");
+        } else if (reason === "country-unavailable") {
+          labels.push("Selecciona un país");
+          fields.add("Country");
+        } else {
+          labels.push("Fila pendiente de completar");
+        }
+      }
+      problems[row.id] = { label: [...new Set(labels)].join("; "), fields: [...fields] };
+    } else if (pending?.reasons.includes("batch-limit-exceeded")) {
+      problems[row.id] = {
+        label: "Fila pendiente del siguiente lote; se procesan hasta 100 filas por operación.",
+        fields: [],
+      };
+    }
+  }
+  // Preserve historical result context for rows that remain in the editor after an edit.
+  for (const [rowKey, result] of latestResults) {
+    if (
+      currentRows.has(rowKey) &&
+      !result.current &&
+      !problems[rowKey] &&
+      result.item.result.status !== "created"
+    ) {
+      problems[rowKey] = {
+        label: `Resultado anterior: ${result.item.result.status}. La fila fue editada después del envío.`,
+        fields: [],
+        historical: true,
+      };
+    }
+  }
+  return problems;
 });
 
 function currentInput() {
@@ -185,9 +320,109 @@ function pruneRemovedCreatedDrafts() {
   }
 }
 
-function removeImportRow(rowKey: string) {
-  removeRow(rowKey);
+function hasRowContent(rowKey: string): boolean {
+  const row = rows.value.find(({ id }) => id === rowKey);
+  const lineupState = lineupStates[rowKey];
+  return Boolean(
+    row &&
+    (row.event.trim() ||
+      row.lineup.length ||
+      lineupState?.draft.trim() ||
+      row.startDateDraft.trim() ||
+      row.endDateDraft.trim() ||
+      row.venue.name.trim() ||
+      row.price.trim() ||
+      row.otherInfo.trim() ||
+      row.city.trim() ||
+      row.province.trim() ||
+      row.administrativeRegionId ||
+      row.type !== "concert")
+  );
+}
+
+function isUncertainRow(rowKey: string): boolean {
+  return uncertainSnapshots.value.some((snapshot) =>
+    snapshot.rows.some(({ rowKey: key }) => key === rowKey)
+  );
+}
+
+function toggleRowSelection(rowKey: string, selected: boolean) {
+  const next = new Set(selectedRowKeys.value);
+  if (selected && rows.value.some(({ id }) => id === rowKey)) next.add(rowKey);
+  else next.delete(rowKey);
+  selectedRowKeys.value = next;
+}
+
+watch(
+  () => rows.value.map(({ id }) => id),
+  (rowKeys) => {
+    const existing = new Set(rowKeys);
+    const next = new Set([...selectedRowKeys.value].filter((rowKey) => existing.has(rowKey)));
+    if (next.size !== selectedRowKeys.value.size) selectedRowKeys.value = next;
+  }
+);
+
+async function discardRows(requestedKeys: readonly string[]) {
+  if (discardInProgress.value) return;
+  discardInProgress.value = true;
+  const rowKeys = [...new Set(requestedKeys)].filter((key) =>
+    rows.value.some(({ id }) => id === key)
+  );
+  if (!rowKeys.length) {
+    discardInProgress.value = false;
+    return;
+  }
+  const firstIndex = Math.min(
+    ...rowKeys.map((key) => rows.value.findIndex(({ id }) => id === key))
+  );
+  const contentCount = rowKeys.filter(hasRowContent).length;
+  const uncertainCount = rowKeys.filter(isUncertainRow).length;
+  const createdCount = rowKeys.filter((key) => Boolean(createdDrafts.value[key])).length;
+  if (contentCount) {
+    const title =
+      rowKeys.length === 1 ? "¿Descartar esta fila?" : `¿Descartar ${rowKeys.length} filas?`;
+    const details = [
+      `${rowKeys.length} borrador${rowKeys.length === 1 ? "" : "es"} local${rowKeys.length === 1 ? "" : "es"} desaparecerá${rowKeys.length === 1 ? "" : "n"} de la tabla.`,
+      "No se borrarán eventos ya existentes.",
+      createdCount
+        ? "El evento creado seguirá existiendo; solo se retirará el borrador local."
+        : "",
+      uncertainCount
+        ? "El resultado backend es incierto y podría haberse creado el evento; se conservará el snapshot para reintentar la misma operación."
+        : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const confirmation = await SwalService.confirm(
+      title,
+      details,
+      "Descartar borrador",
+      "Cancelar"
+    );
+    if (!confirmation.isConfirmed) {
+      discardInProgress.value = false;
+      return;
+    }
+  }
+  rowKeys.forEach((rowKey) => removeRow(rowKey));
+  selectedRowKeys.value = new Set(
+    [...selectedRowKeys.value].filter((key) => !rowKeys.includes(key))
+  );
   pruneRemovedCreatedDrafts();
+  discardInProgress.value = false;
+  await nextTick();
+  const focusRow = rows.value[Math.min(firstIndex, rows.value.length - 1)];
+  const target = focusRow ? document.getElementById(`event-import-row-${focusRow.id}`) : null;
+  const nextControl = target?.querySelector<HTMLElement>("input, select, button, textarea");
+  (nextControl ?? document.getElementById("event-row-count"))?.focus();
+}
+
+function removeImportRow(rowKey: string) {
+  void discardRows([rowKey]);
+}
+
+function discardSelectedRows() {
+  void discardRows([...selectedRowKeys.value]);
 }
 
 function rowResultLabel(status: string): string {
@@ -214,22 +449,6 @@ function quantity(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-function preparationReasonLabel(reason: string): string {
-  const labels: Record<string, string> = {
-    "locality-ambiguous": "Selecciona una Locality candidata.",
-    "locality-country-mismatch": "La Locality no pertenece al país seleccionado.",
-    "locality-identity-stale": "La identidad de Locality ya no coincide con el contexto.",
-    "locality-province-mismatch": "Province no coincide con la Locality seleccionada.",
-    "locality-region-mismatch": "La región no coincide con la Locality seleccionada.",
-    "administrative-region-invalid": "La región administrativa no tiene un UUID válido.",
-    "venue-ambiguous": "Selecciona una Venue candidata.",
-    "venue-identity-stale": "La identidad de Venue ya no coincide con el texto o contexto.",
-    "venue-locality-mismatch": "La Venue seleccionada pertenece a otra Locality.",
-    "venue-name-mismatch": "El texto de Venue contradice la identidad seleccionada.",
-  };
-  return labels[reason] ?? reason.replaceAll("-", " ");
-}
-
 watch(
   () =>
     rows.value.some((row) => {
@@ -249,8 +468,18 @@ watch(
 function updateRowCount(event: Event) {
   const input = event.currentTarget;
   if (!(input instanceof HTMLInputElement)) return;
-  if (!eventImport.setRowCount(input.valueAsNumber)) input.value = String(rows.value.length);
-  else pruneRemovedCreatedDrafts();
+  const nextCount = input.valueAsNumber;
+  if (!Number.isInteger(nextCount) || nextCount < 0) {
+    input.value = String(rows.value.length);
+    return;
+  }
+  if (nextCount < rows.value.length) {
+    const removedRowKeys = rows.value.slice(nextCount).map(({ id }) => id);
+    input.value = String(rows.value.length);
+    void discardRows(removedRowKeys);
+    return;
+  }
+  eventImport.setRowCount(nextCount);
 }
 </script>
 
@@ -355,13 +584,6 @@ function updateRowCount(event: Event) {
             </button>
           </div>
         </div>
-        <ul
-          v-if="visiblePendingReasons.length"
-          class="mt-2 space-y-1 text-xs text-amber-800 dark:text-amber-200"
-          aria-label="Motivos de filas pendientes"
-        >
-          <li v-for="pending in visiblePendingReasons" :key="pending.key">{{ pending.label }}</li>
-        </ul>
         <p v-if="batchMutation.isPending.value" class="mt-2" role="status">
           Enviando {{ batchMutation.variables.value?.rows.length ?? 0 }} filas. Puedes seguir
           editando la tabla.
@@ -433,6 +655,10 @@ function updateRowCount(event: Event) {
               <span v-else-if="entry.action === 'kept' && !entry.current">
                 · resultado histórico; la fila cambió o fue eliminada
               </span>
+              <span v-if="entry.item.result.status === 'created'">
+                · evento {{ entry.item.result.eventId }}; el descarte de la fila solo afecta al
+                borrador local
+              </span>
               <span v-if="entry.item.result.status === 'created' && entry.item.result.replayed">
                 · replay idempotente</span
               >
@@ -450,6 +676,23 @@ function updateRowCount(event: Event) {
         </div>
       </section>
 
+      <div class="flex shrink-0 items-center justify-between gap-3" aria-label="Acciones de filas">
+        <p class="text-sm text-gray-600 dark:text-gray-300" role="status">
+          {{ selectedRowKeys.size }}
+          {{ selectedRowKeys.size === 1 ? "fila seleccionada" : "filas seleccionadas" }} para
+          descartar
+        </p>
+        <button
+          type="button"
+          aria-label="Descartar seleccionadas"
+          class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-300 px-4 text-sm font-semibold text-red-800 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-300/40 dark:text-red-200 dark:hover:bg-red-950/30"
+          :disabled="selectedRowKeys.size === 0 || discardInProgress"
+          @click="discardSelectedRows"
+        >
+          Descartar seleccionadas
+        </button>
+      </div>
+
       <EventImportTable
         :rows="rows"
         :lineup-states="lineupStates"
@@ -457,6 +700,9 @@ function updateRowCount(event: Event) {
         :tour-states="tourStates"
         :regions="geography.regions.value"
         :conflicts-by-row-key="conflictsByRowKey"
+        :row-problems="rowProblems"
+        :selected-row-keys="selectedRowKeys"
+        :discard-disabled="discardInProgress"
         @update-event="eventImport.updateEvent"
         @confirm-tour="eventImport.confirmTour"
         @retry-tour="eventImport.retryTour"
@@ -485,6 +731,7 @@ function updateRowCount(event: Event) {
         @retry-lineup-item="eventImport.retryLineupItem"
         @remove-lineup-item="eventImport.removeLineupItem"
         @remove-row="removeImportRow"
+        @toggle-row-selection="toggleRowSelection"
       />
     </section>
   </div>

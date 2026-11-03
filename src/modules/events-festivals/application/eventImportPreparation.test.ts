@@ -97,6 +97,23 @@ function createPreparer() {
 }
 
 describe("event import preparation", () => {
+  it("keeps an uncommitted lineup draft pending until Artist resolution succeeds", () => {
+    const preparer = createPreparer();
+    const current = row();
+    const state: LineupCellState = {
+      draft: "Artist pendiente",
+      draftStatus: "error",
+      itemStatus: {},
+      draftError: "network error",
+      itemResolution: {},
+    };
+
+    const prepared = preparer.prepare(input([current], { lineupStates: { [current.id]: state } }));
+
+    expect(prepared.eligibleRows).toHaveLength(0);
+    expect(prepared.pendingRows[0]?.reasons).toContain("artist-draft-resolution-error");
+  });
+
   it("excludes only rows blocked by known persistence state", () => {
     const preparer = createPreparer();
     const prepared = preparer.prepare(

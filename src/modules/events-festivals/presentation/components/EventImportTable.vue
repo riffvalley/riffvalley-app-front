@@ -23,6 +23,9 @@ const props = defineProps<{
   tourStates: Record<string, EventTourState>;
   regions: AdministrativeRegion[];
   conflictsByRowKey: Record<string, EventImportConflictPresentation[]>;
+  selectedRowKeys: ReadonlySet<string>;
+  discardDisabled: boolean;
+  rowProblems: Record<string, { label: string; fields: string[]; historical?: boolean }>;
 }>();
 const invalidTypePaste = reactive<Record<string, string>>({});
 const expandedConflictRowKey = shallowRef<string | null>(null);
@@ -59,6 +62,7 @@ const emit = defineEmits<{
   retryLineupItem: [rowId: string, itemKey: string];
   removeLineupItem: [rowId: string, itemKey: string];
   removeRow: [id: string];
+  toggleRowSelection: [id: string, selected: boolean];
 }>();
 
 function handleTypePaste(event: ClipboardEvent, rowIndex: number) {
@@ -127,6 +131,7 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
     <table class="w-full min-w-[110rem] table-fixed border-collapse text-left">
       <colgroup>
         <col class="w-16" />
+        <col class="w-12" />
         <col class="w-[9%]" />
         <col class="w-[9%]" />
         <col class="w-[18%]" />
@@ -146,6 +151,12 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
         class="sticky top-0 z-10 bg-gray-100 text-xs uppercase tracking-wide text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300"
       >
         <tr>
+          <th
+            scope="col"
+            class="border-b-2 border-r-2 border-gray-300 px-2 py-3 text-center dark:border-white/20"
+          >
+            <span class="sr-only">Seleccionar fila</span>
+          </th>
           <th
             scope="col"
             class="w-16 border-b-2 border-r-2 border-gray-300 px-3 py-3 text-center dark:border-white/20"
@@ -228,6 +239,20 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
             tabindex="-1"
             class="group hover:bg-gray-50 dark:hover:bg-white/[0.03]"
           >
+            <td
+              class="border-b-2 border-r-2 border-gray-300 px-2 py-1 text-center dark:border-white/20"
+            >
+              <input
+                type="checkbox"
+                :checked="selectedRowKeys.has(row.id)"
+                :disabled="discardDisabled"
+                :aria-label="`Seleccionar fila ${index + 1} para descartar`"
+                class="h-4 w-4 rounded border-gray-400 text-rv-purple focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+                @change="
+                  emit('toggleRowSelection', row.id, ($event.target as HTMLInputElement).checked)
+                "
+              />
+            </td>
             <th
               scope="row"
               class="border-b-2 border-r-2 border-gray-300 px-3 py-1 text-center text-xs font-medium tabular-nums text-gray-500 focus:outline focus:outline-2 focus:outline-rv-purple dark:border-white/20 dark:text-gray-400"
@@ -291,6 +316,19 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
                 class="min-h-10 w-full rounded-sm border border-transparent bg-transparent px-3 text-sm text-gray-900 outline-none transition focus-visible:border-rv-purple focus-visible:ring-2 focus-visible:ring-rv-purple/30 dark:text-white"
                 @input="emit('updateEvent', row.id, ($event.target as HTMLInputElement).value)"
               />
+              <div
+                v-if="rowProblems[row.id]"
+                role="status"
+                class="mx-1 my-1 rounded border border-amber-200 bg-amber-50/70 px-2 py-1 text-xs leading-relaxed text-gray-800 dark:border-amber-300/20 dark:bg-amber-950/20 dark:text-gray-100"
+              >
+                <p class="font-semibold">
+                  {{ rowProblems[row.id].historical ? "Histórico" : "Estado de la fila" }} ·
+                  {{ rowProblems[row.id].label }}
+                </p>
+                <p v-if="rowProblems[row.id].fields.length" class="mt-1">
+                  Revisar: {{ rowProblems[row.id].fields.join(", ") }}.
+                </p>
+              </div>
               <div
                 v-if="row.type === 'tour' && tourStates[row.id]?.status !== 'idle'"
                 class="space-y-1 px-2 pb-1 text-xs"
@@ -552,7 +590,8 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
             <td class="border-b-2 border-gray-300 px-2 py-1 text-center dark:border-white/20">
               <button
                 type="button"
-                :aria-label="`Eliminar fila ${index + 1}`"
+                :disabled="discardDisabled"
+                :aria-label="`Descartar fila ${index + 1}`"
                 class="inline-flex h-8 w-8 items-center justify-center rounded-md text-gray-500 transition hover:bg-red-50 hover:text-red-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rv-purple dark:text-gray-300 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                 @click="emit('removeRow', row.id)"
               >
@@ -564,7 +603,7 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
             v-if="expandedConflictRowKey === row.id && conflictsByRowKey[row.id]?.length"
             class="border-b-2 border-amber-200 bg-amber-50/40 dark:border-amber-300/20 dark:bg-amber-950/10"
           >
-            <td colspan="12" class="px-3 py-2">
+            <td colspan="13" class="px-3 py-2">
               <EventImportConflictDetails
                 :conflicts="conflictsByRowKey[row.id]"
                 :row-number="index + 1"
