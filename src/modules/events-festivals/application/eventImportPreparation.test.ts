@@ -16,6 +16,7 @@ const REGION_ID = "123e4567-e89b-42d3-a456-426614174001";
 const ARTIST_ID = "123e4567-e89b-42d3-a456-426614174002";
 const TOUR_ID = "123e4567-e89b-42d3-a456-426614174003";
 const LOCALITY_ID = "123e4567-e89b-42d3-a456-426614174004";
+const VENUE_ID = "123e4567-e89b-42d3-a456-426614174005";
 const UUIDS = Array.from(
   { length: 500 },
   (_, index) => `123e4567-e89b-42d3-a456-${String(index + 1).padStart(12, "0")}`
@@ -125,7 +126,7 @@ describe("event import preparation", () => {
       endDate: "2027-05-16",
       venue: {
         name: "La Riviera",
-        venueId: "123e4567-e89b-42d3-a456-426614174005",
+        venueId: VENUE_ID,
         localityId: LOCALITY_ID,
       },
       price: " 20 € ",
@@ -165,6 +166,7 @@ describe("event import preparation", () => {
     };
     existingGeography.selectedLocality = locality;
     existingGeography.venueStatus = "existing";
+    existingGeography.venueCandidates = [{ id: VENUE_ID, name: "La Riviera" }];
     const preparer = createPreparer();
     const prepared = preparer.prepare(
       input([current], {
@@ -187,13 +189,15 @@ describe("event import preparation", () => {
           endDate: "2027-05-16",
           venue: "La Riviera",
           city: "Madrid",
+          localityId: LOCALITY_ID,
           administrativeRegionId: REGION_ID,
+          venueId: VENUE_ID,
           price: " 20 € ",
           otherInfo: "Ages 18+",
         },
       ],
     });
-    expect(JSON.stringify(prepared.payload)).not.toMatch(/rowKey|revision|venueId|localityId/u);
+    expect(JSON.stringify(prepared.payload)).not.toMatch(/rowKey|revision/u);
     expect(Object.isFrozen(prepared.snapshot)).toBe(true);
     expect(Object.isFrozen(prepared.payload?.rows[0]?.lineup)).toBe(true);
     current.lineup[0]!.name = "Changed";
@@ -431,7 +435,7 @@ describe("event import preparation", () => {
     );
   });
 
-  it("prepares a selected Artist and representable Locality while keeping Venue ambiguity blocked", () => {
+  it("prepares explicitly selected ambiguous Locality and Venue identities", () => {
     const preparer = createPreparer();
     const current = row("selected", {
       city: "Springfield",
@@ -494,7 +498,7 @@ describe("event import preparation", () => {
     );
     expect(ready.eligibleRows).toHaveLength(1);
     expect(ready.payload?.rows[0]?.lineup).toEqual([{ name: "Band", artistId: ARTIST_ID }]);
-    expect(ready.payload?.rows[0]).not.toHaveProperty("localityId");
+    expect(ready.payload?.rows[0]?.localityId).toBe(LOCALITY_ID);
     expect(ready.payload?.rows[0]).not.toHaveProperty("venueId");
 
     const originalLocalityResult = geographyState.localityResult;
@@ -510,30 +514,177 @@ describe("event import preparation", () => {
         },
       ],
     };
-    const localityBlocked = preparer.prepare(
+    const stillSelected = preparer.prepare(
       input([current], {
         lineupStates: { [current.id]: lineupState },
         geographyStates: { [current.id]: geographyState },
       })
     );
-    expect(localityBlocked.pendingRows[0]?.reasons).toContain("locality-ambiguous");
+    expect(stillSelected.eligibleRows).toHaveLength(1);
+    expect(stillSelected.payload?.rows[0]?.localityId).toBe(LOCALITY_ID);
     geographyState.localityResult = originalLocalityResult;
 
-    current.venue = { name: "Sala", venueId: "venue-a", localityId: LOCALITY_ID };
+    const selectedVenueId = "123e4567-e89b-42d3-a456-426614174008";
+    current.venue = { name: "Sala", venueId: selectedVenueId, localityId: LOCALITY_ID };
     geographyState.venueStatus = "ambiguous";
     geographyState.venueCandidates = [
-      { id: "venue-a", name: "Sala" },
-      { id: "venue-b", name: "Sala" },
+      { id: selectedVenueId, name: "Sala" },
+      { id: "123e4567-e89b-42d3-a456-426614174009", name: "Sala" },
     ];
-    geographyState.selectedVenueCandidateId = "venue-a";
+    geographyState.selectedVenueCandidateId = selectedVenueId;
     const blocked = preparer.prepare(
       input([current], {
         lineupStates: { [current.id]: lineupState },
         geographyStates: { [current.id]: geographyState },
       })
     );
-    expect(blocked.eligibleRows).toHaveLength(0);
-    expect(blocked.pendingRows[0]?.reasons).toContain("venue-ambiguous");
+    expect(blocked.eligibleRows).toHaveLength(1);
+    expect(blocked.payload?.rows[0]?.venueId).toBe(selectedVenueId);
+  });
+
+  it("renews operation identity when the selected geographic UUID changes", () => {
+    const preparer = createPreparer();
+    const current = row("geo-identity", {
+      venue: { name: "Sala", venueId: VENUE_ID, localityId: LOCALITY_ID },
+    });
+    const locality = {
+      id: LOCALITY_ID,
+      name: "Madrid",
+      province: null,
+      country: { id: COUNTRY_ID, name: "Spain" },
+      administrativeRegion: { id: REGION_ID, name: "Madrid" },
+    };
+    const geo = geography("existing");
+    geo.localityResult = {
+      index: 0,
+      input: { name: "Madrid", countryId: COUNTRY_ID },
+      status: "existing",
+      locality,
+      candidates: [],
+    };
+    geo.selectedLocality = locality;
+    geo.venueStatus = "ambiguous";
+    geo.venueCandidates = [
+      { id: VENUE_ID, name: "Sala" },
+      { id: "123e4567-e89b-42d3-a456-426614174010", name: "Sala" },
+    ];
+    geo.selectedVenueCandidateId = VENUE_ID;
+    const first = preparer.prepare(input([current], { geographyStates: { [current.id]: geo } }));
+    expect(first.payload?.rows[0]).toMatchObject({ localityId: LOCALITY_ID, venueId: VENUE_ID });
+
+    const nextVenueId = geo.venueCandidates[1]!.id;
+    current.venue.venueId = nextVenueId;
+    geo.selectedVenueCandidateId = nextVenueId;
+    const changedVenue = preparer.prepare(
+      input([current], { geographyStates: { [current.id]: geo } })
+    );
+    expect(
+      preparer.isCurrent(
+        first.snapshot!,
+        current.id,
+        input([current], { geographyStates: { [current.id]: geo } })
+      )
+    ).toBe(false);
+    expect(changedVenue.eligibleRows[0]?.operationRowId).not.toBe(
+      first.eligibleRows[0]?.operationRowId
+    );
+
+    const nextLocalityId = "123e4567-e89b-42d3-a456-426614174011";
+    const selectedLocality = {
+      ...locality,
+      id: nextLocalityId,
+      administrativeRegion: { id: "123e4567-e89b-42d3-a456-426614174012", name: "Madrid" },
+    };
+    current.venue.localityId = nextLocalityId;
+    geo.localityResult = {
+      index: 0,
+      input: { name: "Madrid", countryId: COUNTRY_ID },
+      status: "ambiguous",
+      code: "LOCALITY_AMBIGUOUS",
+      candidates: [selectedLocality],
+    };
+    geo.localityCandidates = [selectedLocality];
+    geo.selectedLocality = selectedLocality;
+    current.administrativeRegionId = selectedLocality.administrativeRegion.id;
+    const changedLocality = preparer.prepare(
+      input([current], { geographyStates: { [current.id]: geo } })
+    );
+    expect(changedLocality.eligibleRows[0]?.operationRowId).not.toBe(
+      changedVenue.eligibleRows[0]?.operationRowId
+    );
+  });
+
+  it("keeps a text/UUID contradiction pending and prepares compatible rows partially", () => {
+    const preparer = createPreparer();
+    const incompatible = row("bad-geography", {
+      venue: { name: "Sala equivocada", venueId: VENUE_ID, localityId: LOCALITY_ID },
+    });
+    const valid = row("valid-legacy");
+    const locality = {
+      id: LOCALITY_ID,
+      name: "Madrid",
+      province: null,
+      country: { id: COUNTRY_ID, name: "Spain" },
+      administrativeRegion: { id: REGION_ID, name: "Madrid" },
+    };
+    const badGeo = geography("existing");
+    badGeo.localityResult = {
+      index: 0,
+      input: { name: "Madrid", countryId: COUNTRY_ID },
+      status: "existing",
+      locality,
+      candidates: [],
+    };
+    badGeo.selectedLocality = locality;
+    badGeo.venueStatus = "existing";
+    badGeo.venueCandidates = [{ id: VENUE_ID, name: "Sala real" }];
+    const result = preparer.prepare(
+      input([incompatible, valid], {
+        geographyStates: {
+          [incompatible.id]: badGeo,
+          [valid.id]: geography("new"),
+        },
+      })
+    );
+    expect(result.eligibleRows.map(({ rowKey }) => rowKey)).toEqual(["valid-legacy"]);
+    expect(result.pendingRows[0]?.reasons).toContain("venue-name-mismatch");
+    expect(result.payload?.rows[0]).not.toHaveProperty("localityId");
+    expect(result.payload?.rows[0]).not.toHaveProperty("venueId");
+  });
+
+  it("rejects a selected Locality from another country or region", () => {
+    const preparer = createPreparer();
+    const current = row("wrong-country", {
+      venue: { name: "", venueId: null, localityId: LOCALITY_ID },
+    });
+    const locality = {
+      id: LOCALITY_ID,
+      name: "Madrid",
+      province: null,
+      country: { id: "123e4567-e89b-42d3-a456-426614174099", name: "Other" },
+      administrativeRegion: { id: REGION_ID, name: "Madrid" },
+    };
+    const geo = geography("existing");
+    geo.localityResult = {
+      index: 0,
+      input: { name: "Madrid", countryId: COUNTRY_ID },
+      status: "existing",
+      locality,
+      candidates: [],
+    };
+    geo.selectedLocality = locality;
+    const wrongCountry = preparer.prepare(
+      input([current], { geographyStates: { [current.id]: geo } })
+    );
+    expect(wrongCountry.pendingRows[0]?.reasons).toContain("locality-country-mismatch");
+
+    current.venue.localityId = LOCALITY_ID;
+    current.administrativeRegionId = "123e4567-e89b-42d3-a456-426614174098";
+    locality.country = { id: COUNTRY_ID, name: "Spain" };
+    const wrongRegion = preparer.prepare(
+      input([current], { geographyStates: { [current.id]: geo } })
+    );
+    expect(wrongRegion.pendingRows[0]?.reasons).toContain("locality-region-mismatch");
   });
 
   it("allows an explicitly confirmed ambiguous tour candidate", () => {
@@ -607,13 +758,14 @@ describe("event import preparation", () => {
     const prepared = preparer.prepare(input([current], { geographyStates: { [current.id]: geo } }));
     expect(prepared.payload?.rows[0]?.venue).toBe("Sala Nueva");
     expect(prepared.payload?.rows[0]).not.toHaveProperty("venueId");
-    expect(prepared.payload?.rows[0]).not.toHaveProperty("localityId");
+    expect(prepared.payload?.rows[0]?.localityId).toBe(LOCALITY_ID);
 
     current.venue.name = "";
     const genericVenue = preparer.prepare(
       input([current], { geographyStates: { [current.id]: geo } })
     );
     expect(genericVenue.payload?.rows[0]).not.toHaveProperty("venue");
+    expect(genericVenue.payload?.rows[0]?.localityId).toBe(LOCALITY_ID);
   });
 
   it("treats deleted and reordered rows by rowKey, never by visual index", () => {

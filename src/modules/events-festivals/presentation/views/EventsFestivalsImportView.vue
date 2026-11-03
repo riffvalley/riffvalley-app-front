@@ -35,6 +35,20 @@ const initialPreparation: ImportPreparation = {
   correlation: {},
 };
 const preparation = shallowRef(initialPreparation);
+const visiblePendingReasons = computed(() => {
+  const rowNumbers = new Map(rows.value.map((row, index) => [row.id, index + 1]));
+  return preparation.value.pendingRows.flatMap((pending) => {
+    const reasons = pending.reasons.filter((reason) => reason !== "batch-limit-exceeded");
+    return reasons.length
+      ? [
+          {
+            key: `${pending.rowKey}:${pending.reasons.join(",")}`,
+            label: `${pending.rowKey ? `Fila ${rowNumbers.get(pending.rowKey) ?? ""}: ` : ""}${reasons.map(preparationReasonLabel).join(" ")}`,
+          },
+        ]
+      : [];
+  });
+});
 const batchMutation = useEventImportBatchMutation();
 const uncertainSnapshots = shallowRef<NonNullable<ImportPreparation["snapshot"]>[]>([]);
 const handledOperations = new Set<string>();
@@ -200,6 +214,22 @@ function quantity(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
+function preparationReasonLabel(reason: string): string {
+  const labels: Record<string, string> = {
+    "locality-ambiguous": "Selecciona una Locality candidata.",
+    "locality-country-mismatch": "La Locality no pertenece al país seleccionado.",
+    "locality-identity-stale": "La identidad de Locality ya no coincide con el contexto.",
+    "locality-province-mismatch": "Province no coincide con la Locality seleccionada.",
+    "locality-region-mismatch": "La región no coincide con la Locality seleccionada.",
+    "administrative-region-invalid": "La región administrativa no tiene un UUID válido.",
+    "venue-ambiguous": "Selecciona una Venue candidata.",
+    "venue-identity-stale": "La identidad de Venue ya no coincide con el texto o contexto.",
+    "venue-locality-mismatch": "La Venue seleccionada pertenece a otra Locality.",
+    "venue-name-mismatch": "El texto de Venue contradice la identidad seleccionada.",
+  };
+  return labels[reason] ?? reason.replaceAll("-", " ");
+}
+
 watch(
   () =>
     rows.value.some((row) => {
@@ -325,6 +355,13 @@ function updateRowCount(event: Event) {
             </button>
           </div>
         </div>
+        <ul
+          v-if="visiblePendingReasons.length"
+          class="mt-2 space-y-1 text-xs text-amber-800 dark:text-amber-200"
+          aria-label="Motivos de filas pendientes"
+        >
+          <li v-for="pending in visiblePendingReasons" :key="pending.key">{{ pending.label }}</li>
+        </ul>
         <p v-if="batchMutation.isPending.value" class="mt-2" role="status">
           Enviando {{ batchMutation.variables.value?.rows.length ?? 0 }} filas. Puedes seguir
           editando la tabla.

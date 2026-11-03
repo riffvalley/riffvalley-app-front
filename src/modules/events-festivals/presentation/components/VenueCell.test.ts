@@ -21,8 +21,8 @@ const row: EventImportRow = {
   administrativeRegionId: null,
 };
 
-describe("VenueCell ambiguous geography", () => {
-  it("shows contextual Locality and Venue candidates and emits real UUIDs", async () => {
+describe("VenueCell geographic identity selection", () => {
+  it("shows contextual candidates, preserves text, and exposes explicit identities", async () => {
     const state: EventGeographyState = {
       localityStatus: "existing",
       localityCandidates: [
@@ -77,7 +77,7 @@ describe("VenueCell ambiguous geography", () => {
     const wrapper = mount(VenueCell, { props: { row, state, regions: [], rowNumber: 2 } });
 
     expect(wrapper.text()).toContain("Province written");
-    expect(wrapper.text()).toContain("venueId");
+    expect(wrapper.text()).not.toContain("DTO de importación no admite");
     await wrapper
       .get('select[aria-label="Candidatos de localidad, fila 2"]')
       .setValue("locality-b");
@@ -86,5 +86,29 @@ describe("VenueCell ambiguous geography", () => {
     expect(wrapper.emitted("selectVenue")).toEqual([["venue-b"]]);
     expect(wrapper.props("row").city).toBe("City written");
     expect(wrapper.props("row").venue.name).toBe("Sala escrita");
+  });
+
+  it("explains a selected Venue whose name contradicts its candidate", () => {
+    const wrapper = mount(VenueCell, {
+      props: {
+        row: { ...row, venue: { ...row.venue, name: "Texto incompatible" } },
+        state: {
+          ...({} as EventGeographyState),
+          localityStatus: "existing",
+          localityCandidates: [],
+          selectedLocality: null,
+          localitySelectionOriginalContext: null,
+          localityResult: null,
+          localityError: null,
+          venueStatus: "ambiguous",
+          venueCandidates: [{ id: "venue-a", name: "Sala real" }],
+          selectedVenueCandidateId: "venue-a",
+          venueError: null,
+        },
+        regions: [],
+        rowNumber: 1,
+      },
+    });
+    expect(wrapper.text()).toContain("Venue no coincide con la identidad seleccionada");
   });
 });

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { nextTick, ref, useTemplateRef, watch } from "vue";
+import { computed, nextTick, ref, useTemplateRef, watch } from "vue";
 import type { AdministrativeRegion } from "@/modules/venues";
 import type { EventGeographyState, EventImportRow } from "../../application/useEventImportRows";
+import { geographyContextKey } from "../../application/entityResolutionIdentity";
 
 const props = defineProps<{
   row: EventImportRow;
@@ -22,6 +23,37 @@ const emit = defineEmits<{
 
 const editing = ref(!props.row.venue.venueId);
 const input = useTemplateRef<HTMLInputElement>("venueInput");
+const selectedLocality = computed(() => {
+  if (props.state.localityResult?.status === "existing") return props.state.localityResult.locality;
+  if (props.state.localityResult?.status === "ambiguous") return props.state.selectedLocality;
+  return null;
+});
+const selectedVenue = computed(() => {
+  if (props.state.venueStatus === "existing") return props.state.venueCandidates[0] ?? null;
+  if (props.state.venueStatus === "ambiguous")
+    return props.state.venueCandidates.find(
+      ({ id }) => id === props.state.selectedVenueCandidateId
+    );
+  return null;
+});
+const localityContextMismatch = computed(() =>
+  Boolean(
+    selectedLocality.value &&
+    ((props.row.administrativeRegionId &&
+      props.row.administrativeRegionId !== selectedLocality.value.administrativeRegion.id) ||
+      (props.row.province.trim() &&
+        selectedLocality.value.province?.trim() &&
+        geographyContextKey(props.row.province) !==
+          geographyContextKey(selectedLocality.value.province)))
+  )
+);
+const venueTextMismatch = computed(() =>
+  Boolean(
+    selectedVenue.value &&
+    props.row.venue.name.trim() &&
+    geographyContextKey(props.row.venue.name) !== geographyContextKey(selectedVenue.value.name)
+  )
+);
 
 watch(
   () => props.row.venue.venueId,
@@ -92,6 +124,14 @@ function stopEditing() {
       Localidad nueva
     </span>
     <span
+      v-if="localityContextMismatch"
+      class="w-full text-xs text-red-700 dark:text-red-300"
+      role="alert"
+    >
+      Province o región no coincide con la Locality seleccionada. Corrige el contexto o cambia la
+      selección.
+    </span>
+    <span
       v-if="
         state.localityStatus === 'new' &&
         state.localityResult?.status === 'new' &&
@@ -141,7 +181,7 @@ function stopEditing() {
       v-if="state.venueStatus === 'existing'"
       class="text-xs text-emerald-700 dark:text-emerald-300"
       role="status"
-      >Recinto encontrado</span
+      >{{ row.venue.venueId ? "Identidad de recinto seleccionada" : "Recinto encontrado" }}</span
     >
     <span
       v-else-if="state.venueStatus === 'new'"
@@ -154,10 +194,7 @@ function stopEditing() {
       class="w-full text-xs text-amber-700 dark:text-amber-300"
       role="status"
     >
-      <span
-        >Recinto ambiguo; el DTO de importación no admite venueId, así que la fila sigue
-        pendiente.</span
-      >
+      <span>Recinto ambiguo; selecciona la identidad compatible con la Locality.</span>
       <select
         :value="state.selectedVenueCandidateId ?? ''"
         :aria-label="`Candidatos de recinto, fila ${rowNumber}`"
@@ -174,8 +211,15 @@ function stopEditing() {
         </option>
       </select>
       <span v-if="state.selectedVenueCandidateId" class="mt-1 block" role="status"
-        >Candidato seleccionado; pendiente de una operación que admita venueId.</span
+        >Identidad de recinto seleccionada.</span
       >
+    </span>
+    <span
+      v-if="venueTextMismatch"
+      class="w-full text-xs text-red-700 dark:text-red-300"
+      role="alert"
+    >
+      Venue no coincide con la identidad seleccionada. Corrige el texto o cambia la selección.
     </span>
     <span
       v-if="

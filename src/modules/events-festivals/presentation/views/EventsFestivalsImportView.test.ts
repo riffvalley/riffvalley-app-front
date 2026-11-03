@@ -94,11 +94,14 @@ describe("EventsFestivalsImportView", () => {
             input,
             status: "existing",
             locality: {
-              id: "locality-1",
+              id: "123e4567-e89b-42d3-a456-426614174004",
               name: input.name,
               province: input.province ?? null,
               country: { id: input.countryId, name: "España" },
-              administrativeRegion: { id: "region-1", name: "Cataluña" },
+              administrativeRegion: {
+                id: "123e4567-e89b-42d3-a456-426614174001",
+                name: "Cataluña",
+              },
             },
             candidates: [],
           })),
@@ -114,8 +117,8 @@ describe("EventsFestivalsImportView", () => {
           index,
           ...input,
           status: "existing",
-          venue: { id: "venue-1", name: input.name },
-          candidates: [{ id: "venue-1", name: input.name }],
+          venue: { id: "123e4567-e89b-42d3-a456-426614174005", name: input.name },
+          candidates: [{ id: "123e4567-e89b-42d3-a456-426614174005", name: input.name }],
         }))
       );
     countriesMock.mockReset().mockResolvedValue(allowedCountries);
@@ -926,9 +929,12 @@ describe("EventsFestivalsImportView", () => {
     await vi.advanceTimersByTimeAsync(1350);
     await flushPromises();
 
-    expect(inspectLocalitiesMock).toHaveBeenCalledTimes(1);
+    expect(inspectLocalitiesMock).toHaveBeenCalled();
+    expect(inspectLocalitiesMock.mock.calls.at(-1)?.[0]).toMatchObject({
+      localities: [{ name: "Barcelona", province: "Barcelona" }],
+    });
     expect(resolveVenuesMock).toHaveBeenCalledWith(
-      [{ name: "  Sala Apolo  ", localityId: "locality-1" }],
+      [{ name: "  Sala Apolo  ", localityId: "123e4567-e89b-42d3-a456-426614174004" }],
       expect.anything()
     );
     expect(searchVenueNamesMock).not.toHaveBeenCalled();

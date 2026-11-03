@@ -1,4 +1,9 @@
 import type { ArtistResolutionResult } from "../api/artistResolution";
+import type {
+  ImportArtistDto,
+  ImportBatchRequest,
+  ImportEventRowDto,
+} from "../api/eventImportContracts";
 import { artistResolutionKey, geographyContextKey } from "./entityResolutionIdentity";
 import type {
   EventGeographyState,
@@ -8,41 +13,12 @@ import type {
   LineupItem,
 } from "./useEventImportRows";
 import { parseCalendarDate } from "./eventDate";
-import type { EventType } from "./eventType";
 
 function tourIdentity(name: string): string {
   return geographyContextKey(name);
 }
 
 export const EVENT_IMPORT_BATCH_LIMIT = 100;
-
-export interface ImportArtistDto {
-  name: string;
-  artistId?: string;
-}
-
-/** DTO documented by CON-B04d. Local row metadata is intentionally excluded. */
-export interface ImportEventRowDto {
-  rowId: string;
-  type: EventType;
-  name?: string;
-  lineup?: ImportArtistDto[];
-  startDate: string;
-  endDate?: string;
-  venue?: string;
-  city: string;
-  province?: string;
-  administrativeRegionId?: string;
-  tourId?: string;
-  price?: string;
-  otherInfo?: string;
-}
-
-export interface ImportBatchRequest {
-  batchId: string;
-  countryId: string;
-  rows: ImportEventRowDto[];
-}
 
 export type DeepReadonly<T> = T extends readonly (infer Item)[]
   ? readonly DeepReadonly<Item>[]
@@ -136,6 +112,8 @@ function payloadSignature(
     price: validOptionalText(row.price),
     otherInfo: validOptionalText(row.otherInfo),
     administrativeRegionId: validOptionalText(row.administrativeRegionId ?? ""),
+    localityId: row.venue.localityId ?? undefined,
+    venueId: row.venue.venueId ?? undefined,
     confirmedTourId:
       row.type === "tour" ? validOptionalText(tourState?.confirmedTourId ?? "") : undefined,
   });
@@ -157,9 +135,35 @@ function venueResolutionIsPending(
   geography: EventGeographyState | undefined
 ): boolean {
   if (!row.venue.name.trim()) return false;
+  if (geography?.venueStatus === "ambiguous" && row.venue.venueId && effectiveVenue(row, geography))
+    return false;
   // A new locality has no localityId, so Venue lookup is intentionally deferred.
   if (!row.venue.localityId) return geography?.localityStatus === "existing";
   return ["idle", "resolving", "ambiguous", "error"].includes(geography?.venueStatus ?? "idle");
+}
+
+function effectiveLocality(geography: EventGeographyState | undefined) {
+  if (geography?.localityStatus !== "existing") return null;
+  const result = geography?.localityResult;
+  if (result?.status === "existing") return result.locality;
+  if (
+    result?.status === "ambiguous" &&
+    geography?.selectedLocality &&
+    result.candidates.some(({ id }) => id === geography.selectedLocality?.id)
+  )
+    return geography.selectedLocality;
+  return null;
+}
+
+function effectiveVenue(row: EventImportRow, geography: EventGeographyState | undefined) {
+  const result = geography?.venueStatus === "existing" ? geography.venueCandidates[0] : null;
+  if (result?.id === row.venue.venueId) return result;
+  if (
+    geography?.venueStatus === "ambiguous" &&
+    geography.selectedVenueCandidateId === row.venue.venueId
+  )
+    return geography.venueCandidates.find(({ id }) => id === row.venue.venueId) ?? null;
+  return null;
 }
 
 function validateRow(row: EventImportRow, input: EventImportPreparationInput): string[] {
@@ -183,30 +187,14 @@ function validateRow(row: EventImportRow, input: EventImportPreparationInput): s
     reasons.push("end-date-before-start-date");
   }
   if (!row.city.trim()) reasons.push("city-required");
+  if (row.administrativeRegionId && !UUID_PATTERN.test(row.administrativeRegionId))
+    reasons.push("administrative-region-invalid");
   if (row.type !== "concert" && !row.event.trim()) reasons.push("name-required");
 
   if (row.city.trim()) {
     const locality = geography?.localityResult;
     if (geography?.localityStatus === "ambiguous" || locality?.status === "ambiguous") {
-      const selected = geography?.selectedLocality;
-      const selectedFromCandidates =
-        locality?.status === "ambiguous" &&
-        selected &&
-        selected.country.id === input.countryId &&
-        locality.candidates.some(({ id }) => id === selected.id) &&
-        row.venue.localityId === selected.id &&
-        row.administrativeRegionId === selected.administrativeRegion.id &&
-        (!geographyContextKey(selected.province ?? "") ||
-          !geographyContextKey(row.province) ||
-          geographyContextKey(row.province) === geographyContextKey(selected.province ?? "")) &&
-        locality.candidates.filter(
-          (candidate) =>
-            candidate.administrativeRegion.id === selected.administrativeRegion.id &&
-            (!geographyContextKey(row.province) ||
-              !geographyContextKey(candidate.province ?? "") ||
-              geographyContextKey(candidate.province ?? "") === geographyContextKey(row.province))
-        ).length === 1;
-      if (!selectedFromCandidates) reasons.push("locality-ambiguous");
+      if (!effectiveLocality(geography)) reasons.push("locality-ambiguous");
     } else if (geography?.localityStatus === "invalid" || locality?.status === "invalid") {
       reasons.push("locality-invalid");
     } else if (geography?.localityStatus === "error") {
@@ -214,17 +202,25 @@ function validateRow(row: EventImportRow, input: EventImportPreparationInput): s
     } else if (geography?.localityStatus === "idle" || geography?.localityStatus === "resolving") {
       reasons.push("locality-resolution-pending");
     } else if (geography?.localityStatus === "existing") {
-      const resolvedCountryId =
-        locality?.status === "existing"
-          ? locality.locality.country.id
-          : geography?.selectedLocality?.country.id;
-      if (!resolvedCountryId || resolvedCountryId !== input.countryId)
+      const selected = effectiveLocality(geography);
+      if (!selected || selected.country.id !== input.countryId)
         reasons.push("locality-country-mismatch");
-      const resolvedLocalityId =
-        locality?.status === "existing" ? locality.locality.id : geography?.selectedLocality?.id;
-      if (row.venue.localityId && row.venue.localityId !== resolvedLocalityId) {
+      if (!selected || !UUID_PATTERN.test(selected.id) || row.venue.localityId !== selected.id) {
         reasons.push("locality-identity-stale");
       }
+      if (
+        selected &&
+        row.province.trim() &&
+        selected.province?.trim() &&
+        geographyContextKey(row.province) !== geographyContextKey(selected.province)
+      )
+        reasons.push("locality-province-mismatch");
+      if (
+        selected &&
+        row.administrativeRegionId &&
+        row.administrativeRegionId !== selected.administrativeRegion.id
+      )
+        reasons.push("locality-region-mismatch");
     } else if (geography?.localityStatus === "new") {
       if (locality?.status !== "new") reasons.push("locality-resolution-pending");
       else if (
@@ -241,6 +237,43 @@ function validateRow(row: EventImportRow, input: EventImportPreparationInput): s
     } else {
       reasons.push("locality-resolution-pending");
     }
+  }
+
+  const selectedLocality = effectiveLocality(geography);
+  if (selectedLocality) {
+    if (selectedLocality.country.id !== input.countryId) reasons.push("locality-country-mismatch");
+    if (!UUID_PATTERN.test(selectedLocality.id) || row.venue.localityId !== selectedLocality.id)
+      reasons.push("locality-identity-stale");
+    if (
+      row.province.trim() &&
+      selectedLocality.province?.trim() &&
+      geographyContextKey(row.province) !== geographyContextKey(selectedLocality.province)
+    )
+      reasons.push("locality-province-mismatch");
+    if (
+      row.administrativeRegionId &&
+      row.administrativeRegionId !== selectedLocality.administrativeRegion.id
+    )
+      reasons.push("locality-region-mismatch");
+  }
+  if (row.venue.localityId && geography?.localityStatus === "new")
+    reasons.push("locality-identity-stale");
+
+  if (row.venue.venueId) {
+    const selectedVenue = effectiveVenue(row, geography);
+    if (!UUID_PATTERN.test(row.venue.venueId) || !selectedVenue)
+      reasons.push("venue-identity-stale");
+    else if (!selectedLocality || row.venue.localityId !== selectedLocality.id)
+      reasons.push("venue-locality-mismatch");
+    else if (
+      row.venue.name.trim() &&
+      geographyContextKey(row.venue.name) !== geographyContextKey(selectedVenue.name)
+    )
+      reasons.push("venue-name-mismatch");
+  }
+
+  if (row.venue.name.trim() && selectedLocality && geography?.venueStatus === "ambiguous") {
+    if (!row.venue.venueId || !effectiveVenue(row, geography)) reasons.push("venue-ambiguous");
   }
 
   if (venueResolutionIsPending(row, geography)) {
@@ -337,6 +370,10 @@ function toDto(
   if (venue !== undefined) dto.venue = venue;
   if (province !== undefined) dto.province = province;
   if (row.administrativeRegionId) dto.administrativeRegionId = row.administrativeRegionId;
+  const locality = effectiveLocality(input.geographyStates[row.id]);
+  if (locality && row.venue.localityId === locality.id) dto.localityId = locality.id;
+  const selectedVenue = effectiveVenue(row, input.geographyStates[row.id]);
+  if (selectedVenue && row.venue.venueId === selectedVenue.id) dto.venueId = selectedVenue.id;
   if (row.type === "tour" && tour?.confirmedTourId) dto.tourId = tour.confirmedTourId;
   if (price !== undefined) dto.price = price;
   if (otherInfo !== undefined) dto.otherInfo = otherInfo;

@@ -1,5 +1,4 @@
-import type { CorrelatedImportResult, ImportConflict } from "../api/eventImport";
-import type { ImportEventRowDto } from "./eventImportPreparation";
+import type { CorrelatedImportResult, ImportConflict, ImportEventRowDto } from "../api/eventImport";
 import type { ImportSnapshot } from "./eventImportPreparation";
 
 export interface EventImportConflictReference {

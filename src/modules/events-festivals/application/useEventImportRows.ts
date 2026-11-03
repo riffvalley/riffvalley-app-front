@@ -566,7 +566,7 @@ export function useEventImportRows(queryClient: QueryClient) {
         administrativeRegionId: row.administrativeRegionId,
       };
     }
-    // import-batch has no localityId; its real region UUID is the available context.
+    // Keep the editor's administrative context alongside the explicitly selected identity.
     row.administrativeRegionId = candidate.administrativeRegion.id;
     row.province = originalContext?.province.trim()
       ? originalContext.province

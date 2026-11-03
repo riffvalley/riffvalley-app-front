@@ -1,6 +1,11 @@
 import api from "@services/api/api";
 import { queryOptions } from "@tanstack/vue-query";
 import type { ImportSnapshot } from "../application/eventImportPreparation";
+export type {
+  ImportArtistDto,
+  ImportBatchRequest,
+  ImportEventRowDto,
+} from "./eventImportContracts";
 
 export interface ImportConflict {
   rowId: string;
