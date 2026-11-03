@@ -13,6 +13,7 @@ import { eventTypes, parseEventType, type EventType } from "../../application/ev
 import { computed, reactive, shallowRef } from "vue";
 import EventImportConflictDetails from "./EventImportConflictDetails.vue";
 import type { EventImportConflictPresentation } from "../../application/eventImportConflicts";
+import type { LineupExpansionPreparation } from "../../application/eventLineupExpansionPreparation";
 
 type EventTextField = "price" | "otherInfo";
 
@@ -26,6 +27,21 @@ const props = defineProps<{
   selectedRowKeys: ReadonlySet<string>;
   discardDisabled: boolean;
   rowProblems: Record<string, { label: string; fields: string[]; historical?: boolean }>;
+  canReviewLineupExpansion: (conflict: EventImportConflictPresentation) => boolean;
+  prepareLineupExpansion: (
+    conflict: EventImportConflictPresentation,
+    selectedEventId?: string
+  ) => LineupExpansionPreparation | null;
+  getExpansionConfirmation: (conflict: EventImportConflictPresentation) => string | null;
+  setExpansionConfirmation: (
+    conflict: EventImportConflictPresentation,
+    signature: string | null
+  ) => void;
+  getExpansionSelection: (conflict: EventImportConflictPresentation) => string | null;
+  setExpansionSelection: (
+    conflict: EventImportConflictPresentation,
+    eventId: string | null
+  ) => void;
 }>();
 const invalidTypePaste = reactive<Record<string, string>>({});
 const expandedConflictRowKey = shallowRef<string | null>(null);
@@ -265,6 +281,12 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
                 :show-indicator="true"
                 :show-details="false"
                 :expanded="false"
+                :can-review-lineup-expansion="canReviewLineupExpansion"
+                :prepare-lineup-expansion="prepareLineupExpansion"
+                :get-expansion-confirmation="getExpansionConfirmation"
+                :set-expansion-confirmation="setExpansionConfirmation"
+                :get-expansion-selection="getExpansionSelection"
+                :set-expansion-selection="setExpansionSelection"
                 @toggle="toggleConflictDetails(row.id)"
               />
             </th>
@@ -611,6 +633,12 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
                 :show-indicator="false"
                 :show-details="true"
                 :expanded="true"
+                :can-review-lineup-expansion="canReviewLineupExpansion"
+                :prepare-lineup-expansion="prepareLineupExpansion"
+                :get-expansion-confirmation="getExpansionConfirmation"
+                :set-expansion-confirmation="setExpansionConfirmation"
+                :get-expansion-selection="getExpansionSelection"
+                :set-expansion-selection="setExpansionSelection"
                 @toggle="toggleConflictDetails(row.id)"
                 @navigate="navigateToRow"
               />

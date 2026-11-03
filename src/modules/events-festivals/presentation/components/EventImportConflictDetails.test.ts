@@ -5,6 +5,7 @@ import { defineComponent, h } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import api from "@services/api/api";
 import type { EventImportConflictPresentation } from "../../application/eventImportConflicts";
+import type { LineupExpansionPreparation } from "../../application/eventLineupExpansionPreparation";
 import EventImportConflictDetails from "./EventImportConflictDetails.vue";
 
 vi.mock("@services/api/api", () => ({ default: { get: vi.fn() } }));
@@ -20,6 +21,7 @@ function conflict(
     rowKey: "row-a",
     operationRowId: "operation-a",
     snapshotRevision: 3,
+    countryId: "country-id",
     status: "historical",
     code: "CONCERT_ARTIST_DATE_LOCALITY_CONFLICT",
     message: "El backend detectó una participación relacionada.",
@@ -68,6 +70,12 @@ function mountDetails(
               showIndicator: false,
               showDetails: true,
               expanded: true,
+              canReviewLineupExpansion: () => false,
+              prepareLineupExpansion: () => null,
+              getExpansionConfirmation: () => null,
+              setExpansionConfirmation: () => undefined,
+              getExpansionSelection: () => null,
+              setExpansionSelection: () => undefined,
             })
           )
         );
@@ -133,7 +141,9 @@ describe("EventImportConflictDetails", () => {
       conflict({ existingEventIds: [], candidateEventIds: [], eventReferences: [] }),
     ]);
     await flushPromises();
-    expect(wrapper.text()).toContain("El backend no devolvió candidatos de evento.");
+    expect(wrapper.text()).toContain(
+      "No se puede preparar una ampliación: el backend no devolvió un evento identificado ni candidatos."
+    );
     expect(api.get).not.toHaveBeenCalled();
     wrapper.unmount();
     queryClient.clear();
@@ -153,6 +163,65 @@ describe("EventImportConflictDetails", () => {
     expect(wrapper.text()).toContain("No disponible");
     expect(wrapper.text()).toContain("No disponible en el detalle de Events");
     expect(wrapper.text()).not.toContain("No se pudo cargar el detalle");
+    wrapper.unmount();
+    queryClient.clear();
+  });
+
+  it("offers review only when the conflict is eligible and leaves multiple candidates unselected", async () => {
+    vi.spyOn(api, "get").mockImplementation(
+      async (url) =>
+        ({
+          data: {
+            id: String(url).endsWith(eventA) ? eventA : eventB,
+            type: "concert",
+            startDate: "2027-05-15",
+            lineup: [{ artistId: "artist-s", name: "Septicflesh" }],
+          },
+        }) as never
+    );
+    const prepare = vi.fn(
+      () =>
+        ({
+          state: "pending",
+          snapshot: null,
+          pendingReasons: ["event-target-ambiguous"],
+        }) as LineupExpansionPreparation | null
+    );
+    const current = conflict({ status: "current" });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    });
+    const Host = defineComponent({
+      setup() {
+        return () =>
+          h(EventImportConflictDetails, {
+            conflicts: [current],
+            rowNumber: 1,
+            rowNumbers: { "row-a": 1 },
+            showIndicator: false,
+            showDetails: true,
+            expanded: true,
+            canReviewLineupExpansion: () => true,
+            prepareLineupExpansion: prepare,
+            getExpansionConfirmation: () => null,
+            setExpansionConfirmation: () => undefined,
+            getExpansionSelection: () => null,
+            setExpansionSelection: () => undefined,
+          });
+      },
+    });
+    const wrapper = mount(Host, { global: { plugins: [[VueQueryPlugin, { queryClient }]] } });
+    await flushPromises();
+    await wrapper.get("button").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.text()).toContain("Selecciona el evento destino");
+    expect((wrapper.get("select").element as HTMLSelectElement).value).toBe("");
+    expect(wrapper.text()).toContain("Propuesta pendiente");
+    expect(
+      wrapper.findAll("button").some((button) => button.text() === "Confirmar ampliación de lineup")
+    ).toBe(false);
+    expect(prepare).toHaveBeenCalledWith(current, undefined);
     wrapper.unmount();
     queryClient.clear();
   });

@@ -19,7 +19,11 @@ import {
   reconcileEventImportResults,
 } from "../../application/eventImportReconciliation";
 import type { ImportBatchResponse } from "../../api/eventImport";
-import { createEventImportConflictPresentation } from "../../application/eventImportConflicts";
+import {
+  createEventImportConflictPresentation,
+  type EventImportConflictPresentation,
+} from "../../application/eventImportConflicts";
+import { createEventLineupExpansionPreparer } from "../../application/eventLineupExpansionPreparation";
 import type { CorrelatedImportResult } from "../../api/eventImport";
 import SwalService from "@/services/swal/SwalService";
 
@@ -27,6 +31,7 @@ const eventImport = useEventImportRows(useQueryClient());
 const { rows, lineupStates, geographyStates, tourStates, addRow, removeRow } = eventImport;
 const geography = useEventImportGeography(eventImport.invalidateGeographicAssociations);
 const preparer = createEventImportPreparer();
+const lineupExpansionPreparer = createEventLineupExpansionPreparer();
 const initialPreparation: ImportPreparation = {
   payload: null,
   snapshot: null,
@@ -51,6 +56,46 @@ const conflictOperation = shallowRef<{
 } | null>(null);
 const selectedRowKeys = shallowRef<Set<string>>(new Set());
 const discardInProgress = shallowRef(false);
+const confirmedExpansionSignatures = shallowRef<Record<string, string>>({});
+const selectedExpansionEventIds = shallowRef<Record<string, string>>({});
+
+function expansionConfirmationKey(conflict: EventImportConflictPresentation): string {
+  return JSON.stringify([
+    conflict.operationId,
+    conflict.operationRowId,
+    conflict.code,
+    conflict.existingEventIds,
+    conflict.candidateEventIds,
+    conflict.relatedRows.map(({ operationRowId }) => operationRowId),
+  ]);
+}
+
+function getExpansionConfirmation(conflict: EventImportConflictPresentation): string | null {
+  return confirmedExpansionSignatures.value[expansionConfirmationKey(conflict)] ?? null;
+}
+
+function setExpansionConfirmation(
+  conflict: EventImportConflictPresentation,
+  signature: string | null
+) {
+  const key = expansionConfirmationKey(conflict);
+  const next = { ...confirmedExpansionSignatures.value };
+  if (signature) next[key] = signature;
+  else delete next[key];
+  confirmedExpansionSignatures.value = next;
+}
+
+function getExpansionSelection(conflict: EventImportConflictPresentation): string | null {
+  return selectedExpansionEventIds.value[expansionConfirmationKey(conflict)] ?? null;
+}
+
+function setExpansionSelection(conflict: EventImportConflictPresentation, eventId: string | null) {
+  const key = expansionConfirmationKey(conflict);
+  const next = { ...selectedExpansionEventIds.value };
+  if (eventId) next[key] = eventId;
+  else delete next[key];
+  selectedExpansionEventIds.value = next;
+}
 
 const conflictsByRowKey = computed(() => {
   const operation = conflictOperation.value;
@@ -68,6 +113,77 @@ const conflictsByRowKey = computed(() => {
     return groups;
   }, {});
 });
+
+function prepareLineupExpansionForConflict(
+  rowKey: string,
+  operationRowId: string,
+  selectedEventId?: string
+) {
+  const conflict = conflictsByRowKey.value[rowKey]?.find(
+    (candidate) => candidate.operationRowId === operationRowId
+  );
+  if (!conflict) return null;
+  const currentRows = new Map(rows.value.map((row) => [row.id, row]));
+  const revisions = new Map([
+    ...preparation.value.eligibleRows.map(({ rowKey, revision }) => [rowKey, revision] as const),
+    ...preparation.value.pendingRows.map(({ rowKey, revision }) => [rowKey, revision] as const),
+  ]);
+  return lineupExpansionPreparer.prepare({
+    conflict,
+    currentRow: currentRows.get(conflict.rowKey),
+    lineupState: lineupStates[conflict.rowKey],
+    currentRevision: revisions.get(conflict.rowKey),
+    rowCreated: Boolean(createdDrafts.value[conflict.rowKey]),
+    creationUncertain: uncertainSnapshots.value.some((snapshot) =>
+      snapshot.rows.some(({ rowKey: snapshotRowKey }) => snapshotRowKey === conflict.rowKey)
+    ),
+    selectedEventId,
+  });
+}
+
+function prepareLineupExpansion(
+  conflict: EventImportConflictPresentation,
+  selectedEventId?: string
+) {
+  return prepareLineupExpansionForConflict(
+    conflict.rowKey,
+    conflict.operationRowId,
+    selectedEventId
+  );
+}
+
+function canReviewLineupExpansion(conflict: EventImportConflictPresentation): boolean {
+  if (
+    conflict.status !== "current" ||
+    (!conflict.existingEventIds.length && !conflict.candidateEventIds.length) ||
+    !conflict.matchingArtists.length
+  )
+    return false;
+  const isApplicableConflict =
+    (conflict.snapshot.type === "festival" && conflict.code === "FESTIVAL_DUPLICATE") ||
+    (conflict.snapshot.type !== "festival" &&
+      (conflict.code === "CONCERT_DUPLICATE" ||
+        conflict.code === "CONCERT_ARTIST_DATE_LOCALITY_CONFLICT"));
+  if (!isApplicableConflict) return false;
+  const prepared = prepareLineupExpansion(conflict);
+  if (!prepared || prepared.state === "obsolete") return false;
+  if (
+    prepared.state === "pending" &&
+    prepared.pendingReasons.some((reason) =>
+      [
+        "source-row-missing",
+        "source-row-changed",
+        "row-created",
+        "creation-operation-uncertain",
+        "row-discarded",
+      ].includes(reason)
+    )
+  )
+    return false;
+  return true;
+}
+
+defineExpose({ prepareLineupExpansionForConflict });
 
 const rowProblems = computed(() => {
   const problems: Record<string, { label: string; fields: string[]; historical?: boolean }> = {};
@@ -700,6 +816,12 @@ function updateRowCount(event: Event) {
         :tour-states="tourStates"
         :regions="geography.regions.value"
         :conflicts-by-row-key="conflictsByRowKey"
+        :can-review-lineup-expansion="canReviewLineupExpansion"
+        :prepare-lineup-expansion="prepareLineupExpansion"
+        :get-expansion-confirmation="getExpansionConfirmation"
+        :set-expansion-confirmation="setExpansionConfirmation"
+        :get-expansion-selection="getExpansionSelection"
+        :set-expansion-selection="setExpansionSelection"
         :row-problems="rowProblems"
         :selected-row-keys="selectedRowKeys"
         :discard-disabled="discardInProgress"

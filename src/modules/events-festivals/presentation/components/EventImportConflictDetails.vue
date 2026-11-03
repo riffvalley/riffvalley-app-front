@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, shallowRef } from "vue";
 import { useQueries } from "@tanstack/vue-query";
 import { existingEventDetailQueryOptions, type ExistingEventDetail } from "../../api/eventImport";
 import type { EventImportConflictPresentation } from "../../application/eventImportConflicts";
+import type { LineupExpansionPreparation } from "../../application/eventLineupExpansionPreparation";
+import EventLineupExpansionReview from "./EventLineupExpansionReview.vue";
 
 const props = defineProps<{
   conflicts: EventImportConflictPresentation[];
@@ -11,6 +13,21 @@ const props = defineProps<{
   showIndicator: boolean;
   showDetails: boolean;
   expanded: boolean;
+  canReviewLineupExpansion: (conflict: EventImportConflictPresentation) => boolean;
+  prepareLineupExpansion: (
+    conflict: EventImportConflictPresentation,
+    selectedEventId?: string
+  ) => LineupExpansionPreparation | null;
+  getExpansionConfirmation: (conflict: EventImportConflictPresentation) => string | null;
+  setExpansionConfirmation: (
+    conflict: EventImportConflictPresentation,
+    signature: string | null
+  ) => void;
+  getExpansionSelection: (conflict: EventImportConflictPresentation) => string | null;
+  setExpansionSelection: (
+    conflict: EventImportConflictPresentation,
+    eventId: string | null
+  ) => void;
 }>();
 
 const emit = defineEmits<{
@@ -31,6 +48,23 @@ const eventQueries = useQueries({
     }))
   ),
 });
+const reviewIdentity = shallowRef<string | null>(null);
+
+function reviewKey(conflict: EventImportConflictPresentation): string {
+  return JSON.stringify([
+    conflict.operationId,
+    conflict.operationRowId,
+    conflict.code,
+    conflict.existingEventIds,
+    conflict.candidateEventIds,
+    conflict.relatedRows.map(({ operationRowId }) => operationRowId),
+  ]);
+}
+
+function openExpansionReview(conflict: EventImportConflictPresentation) {
+  const key = reviewKey(conflict);
+  reviewIdentity.value = reviewIdentity.value === key ? null : key;
+}
 
 const eventDetailsByConflict = computed(() => {
   let queryIndex = 0;
@@ -331,7 +365,8 @@ function lineupNames(lineup: Array<{ name: string }> | undefined): string {
             </article>
           </section>
           <p v-else class="text-gray-700 dark:text-gray-200">
-            El backend no devolvió candidatos de evento.
+            No se puede preparar una ampliación: el backend no devolvió un evento identificado ni
+            candidatos.
           </p>
 
           <section
@@ -374,6 +409,31 @@ function lineupNames(lineup: Array<{ name: string }> | undefined): string {
           >
             El resultado no incluye detalle de evento ni datos estructurados de artistas.
           </p>
+          <div v-if="canReviewLineupExpansion(conflict)" class="space-y-2">
+            <button
+              type="button"
+              class="min-h-9 rounded-md border border-rv-purple px-3 font-semibold text-rv-purple underline-offset-2 hover:bg-rv-purple/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:text-purple-200"
+              :aria-expanded="reviewIdentity === reviewKey(conflict)"
+              :aria-controls="`lineup-expansion-review-${conflict.operationRowId}-${index}`"
+              @click="openExpansionReview(conflict)"
+            >
+              {{
+                reviewIdentity === reviewKey(conflict)
+                  ? "Cerrar revisión de lineup"
+                  : "Revisar ampliación de lineup"
+              }}
+            </button>
+            <EventLineupExpansionReview
+              v-if="reviewIdentity === reviewKey(conflict)"
+              :id="`lineup-expansion-review-${conflict.operationRowId}-${index}`"
+              :conflict="conflict"
+              :prepare="(selectedEventId) => prepareLineupExpansion(conflict, selectedEventId)"
+              :get-confirmation="() => getExpansionConfirmation(conflict)"
+              :set-confirmation="(signature) => setExpansionConfirmation(conflict, signature)"
+              :get-selection="() => getExpansionSelection(conflict)"
+              :set-selection="(eventId) => setExpansionSelection(conflict, eventId)"
+            />
+          </div>
         </li>
       </ul>
     </div>

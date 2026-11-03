@@ -13,6 +13,7 @@ export interface EventImportConflictPresentation {
   rowKey: string;
   operationRowId: string;
   snapshotRevision: number;
+  countryId: string;
   status: "current" | "historical";
   code: ImportConflict["code"];
   message: string;
@@ -71,6 +72,7 @@ export function createEventImportConflictPresentation(
         rowKey: source.rowKey,
         operationRowId: source.operationRowId,
         snapshotRevision: source.revision,
+        countryId: snapshot.countryId,
         status:
           isCurrent(source.rowKey) &&
           conflict.relatedRowIds.every((operationRowId) => {

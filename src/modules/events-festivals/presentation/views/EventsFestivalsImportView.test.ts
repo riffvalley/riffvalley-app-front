@@ -322,6 +322,7 @@ describe("EventsFestivalsImportView", () => {
     await conflictButton.trigger("click");
     expect(wrapper.text()).toContain("Artista y fecha incompatibles entre filas.");
     expect(wrapper.text()).toContain("CONCERT_ARTIST_DATE_LOCALITY_CONFLICT");
+    expect(wrapper.text()).not.toContain("Revisar ampliación de lineup");
     const relatedRow = wrapper.get<HTMLButtonElement>(
       'button[aria-label="Ir a fila 2, relacionada"]'
     );
@@ -334,6 +335,7 @@ describe("EventsFestivalsImportView", () => {
       .setValue("16/05/2027");
     await nextTick();
     expect(wrapper.text()).toContain("histórico");
+    expect(wrapper.text()).not.toContain("Revisar ampliación de lineup");
     wrapper.unmount();
     vi.useRealTimers();
   });
