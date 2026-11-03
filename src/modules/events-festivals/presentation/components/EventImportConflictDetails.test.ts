@@ -76,6 +76,7 @@ function mountDetails(
               setExpansionConfirmation: () => undefined,
               getExpansionSelection: () => null,
               setExpansionSelection: () => undefined,
+              getExpansionExecution: () => null,
             })
           )
         );
@@ -207,6 +208,7 @@ describe("EventImportConflictDetails", () => {
             setExpansionConfirmation: () => undefined,
             getExpansionSelection: () => null,
             setExpansionSelection: () => undefined,
+            getExpansionExecution: () => null,
           });
       },
     });

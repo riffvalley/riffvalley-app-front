@@ -4,6 +4,7 @@ import { useQueries } from "@tanstack/vue-query";
 import { existingEventDetailQueryOptions, type ExistingEventDetail } from "../../api/eventImport";
 import type { EventImportConflictPresentation } from "../../application/eventImportConflicts";
 import type { LineupExpansionPreparation } from "../../application/eventLineupExpansionPreparation";
+import type { EventLineupExpansionExecution } from "../../application/useEventLineupExpansionMutation";
 import EventLineupExpansionReview from "./EventLineupExpansionReview.vue";
 
 const props = defineProps<{
@@ -28,11 +29,15 @@ const props = defineProps<{
     conflict: EventImportConflictPresentation,
     eventId: string | null
   ) => void;
+  getExpansionExecution: (
+    conflict: EventImportConflictPresentation
+  ) => EventLineupExpansionExecution | null;
 }>();
 
 const emit = defineEmits<{
   toggle: [];
   navigate: [rowKey: string];
+  executeExpansion: [conflict: EventImportConflictPresentation, signature: string];
 }>();
 
 const conflictEventReferences = computed(() =>
@@ -432,6 +437,11 @@ function lineupNames(lineup: Array<{ name: string }> | undefined): string {
               :set-confirmation="(signature) => setExpansionConfirmation(conflict, signature)"
               :get-selection="() => getExpansionSelection(conflict)"
               :set-selection="(eventId) => setExpansionSelection(conflict, eventId)"
+              :get-execution="() => getExpansionExecution(conflict)"
+              :execute="
+                (expandedConflict, signature) =>
+                  emit('executeExpansion', expandedConflict, signature)
+              "
             />
           </div>
         </li>

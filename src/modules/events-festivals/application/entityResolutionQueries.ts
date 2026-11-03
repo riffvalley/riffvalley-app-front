@@ -16,6 +16,7 @@ const entityResolutionRoot = ["events-festivals", "entity-resolution"] as const;
 
 export const entityResolutionQueryKeys = {
   all: entityResolutionRoot,
+  artistsRoot: [...entityResolutionRoot, "artist"] as const,
   artists(names: readonly string[]) {
     return [...entityResolutionRoot, "artist", [...names]] as const;
   },

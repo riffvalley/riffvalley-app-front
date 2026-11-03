@@ -25,9 +25,25 @@ import {
 } from "../../application/eventImportConflicts";
 import { createEventLineupExpansionPreparer } from "../../application/eventLineupExpansionPreparation";
 import type { CorrelatedImportResult } from "../../api/eventImport";
+import { existingEventDetailQueryOptions } from "../../api/eventImport";
 import SwalService from "@/services/swal/SwalService";
+import {
+  authorizeLineupExpansion,
+  lineupExpansionErrorMessage,
+  lineupExpansionFailureKind,
+  useEventLineupExpansionMutation,
+  type ConfirmedLineupExpansion,
+  type EventLineupExpansionExecution,
+} from "../../application/useEventLineupExpansionMutation";
+import {
+  lineupExpansionOperationKey,
+  reconcileLineupExpansionResult,
+} from "../../application/eventLineupExpansionReconciliation";
+import { lineupExpansionConfirmationSignature } from "../../application/eventLineupExpansionPreparation";
+import type { EventLineupExpansionResponse } from "../../api/eventLineupExpansion";
 
-const eventImport = useEventImportRows(useQueryClient());
+const queryClient = useQueryClient();
+const eventImport = useEventImportRows(queryClient);
 const { rows, lineupStates, geographyStates, tourStates, addRow, removeRow } = eventImport;
 const geography = useEventImportGeography(eventImport.invalidateGeographicAssociations);
 const preparer = createEventImportPreparer();
@@ -42,6 +58,7 @@ const initialPreparation: ImportPreparation = {
 };
 const preparation = shallowRef(initialPreparation);
 const batchMutation = useEventImportBatchMutation();
+const expansionMutation = useEventLineupExpansionMutation();
 const uncertainSnapshots = shallowRef<NonNullable<ImportPreparation["snapshot"]>[]>([]);
 const handledOperations = new Set<string>();
 const handledOperationOrder: string[] = [];
@@ -58,6 +75,29 @@ const selectedRowKeys = shallowRef<Set<string>>(new Set());
 const discardInProgress = shallowRef(false);
 const confirmedExpansionSignatures = shallowRef<Record<string, string>>({});
 const selectedExpansionEventIds = shallowRef<Record<string, string>>({});
+const expansionExecutions = shallowRef<Record<string, EventLineupExpansionExecution>>({});
+const expansionAuthorizations = shallowRef<Record<string, ConfirmedLineupExpansion>>({});
+const handledExpansionOperations = new Set<string>();
+const appliedExpansionsByRow = shallowRef<
+  Record<string, { eventId: string; operationKey: string }>
+>({});
+const expansionHistory = shallowRef<
+  Array<{
+    operationKey: string;
+    rowKey: string;
+    eventId: string;
+    result: EventLineupExpansionResponse;
+    reconciliation: "removed" | "kept" | "already-handled";
+  }>
+>([]);
+const expansionExecutionCounts = computed(() => {
+  const executions = Object.values(expansionExecutions.value);
+  return {
+    uncertain: executions.filter(({ state }) => state === "uncertain").length,
+    conflicts: executions.filter(({ state }) => state === "conflict").length,
+    failures: executions.filter(({ state }) => state === "failed").length,
+  };
+});
 
 function expansionConfirmationKey(conflict: EventImportConflictPresentation): string {
   return JSON.stringify([
@@ -68,6 +108,16 @@ function expansionConfirmationKey(conflict: EventImportConflictPresentation): st
     conflict.candidateEventIds,
     conflict.relatedRows.map(({ operationRowId }) => operationRowId),
   ]);
+}
+
+function expansionExecutionKey(conflict: EventImportConflictPresentation): string {
+  return expansionConfirmationKey(conflict);
+}
+
+function getExpansionExecution(
+  conflict: EventImportConflictPresentation
+): EventLineupExpansionExecution | null {
+  return expansionExecutions.value[expansionExecutionKey(conflict)] ?? null;
 }
 
 function getExpansionConfirmation(conflict: EventImportConflictPresentation): string | null {
@@ -183,6 +233,198 @@ function canReviewLineupExpansion(conflict: EventImportConflictPresentation): bo
   return true;
 }
 
+async function executeConfirmedExpansion(
+  conflict: EventImportConflictPresentation,
+  confirmationSignature: string
+) {
+  const uiKey = expansionExecutionKey(conflict);
+  if (expansionMutation.isPending.value || getExpansionExecution(conflict)?.state === "sending")
+    return;
+  if (getExpansionConfirmation(conflict) !== confirmationSignature) {
+    expansionExecutions.value = {
+      ...expansionExecutions.value,
+      [uiKey]: {
+        state: "invalid",
+        message:
+          "La autorización ya no coincide con la propuesta revisada. Revisa y confirma de nuevo.",
+      },
+    };
+    return;
+  }
+
+  const currentConflict = conflictsByRowKey.value[conflict.rowKey]?.find(
+    (candidate) =>
+      candidate.operationId === conflict.operationId &&
+      candidate.operationRowId === conflict.operationRowId &&
+      candidate.code === conflict.code
+  );
+  const selectedEventId = getExpansionSelection(conflict) ?? undefined;
+  const currentPreparation = currentConflict
+    ? prepareLineupExpansion(currentConflict, selectedEventId)
+    : null;
+  if (
+    !currentConflict ||
+    currentConflict.status !== "current" ||
+    currentPreparation?.state !== "ready"
+  ) {
+    setExpansionConfirmation(conflict, null);
+    expansionExecutions.value = {
+      ...expansionExecutions.value,
+      [uiKey]: {
+        state: "invalid",
+        message: "La fila o el conflicto cambió. Vuelve a revisar la propuesta actual.",
+      },
+    };
+    return;
+  }
+  const snapshot = currentPreparation.snapshot;
+  const previousAuthorization = expansionAuthorizations.value[uiKey];
+  if (
+    previousAuthorization &&
+    getExpansionExecution(conflict)?.state === "uncertain" &&
+    JSON.stringify(previousAuthorization.snapshot) !== JSON.stringify(snapshot)
+  ) {
+    setExpansionConfirmation(conflict, null);
+    expansionExecutions.value = {
+      ...expansionExecutions.value,
+      [uiKey]: {
+        state: "invalid",
+        message:
+          "La propuesta ya no coincide con la operación autorizada. Revísala y confirma una nueva propuesta.",
+      },
+    };
+    return;
+  }
+  const operationKey = lineupExpansionOperationKey(snapshot);
+  if (handledExpansionOperations.has(operationKey)) return;
+  if (
+    uncertainSnapshots.value.some((pending) =>
+      pending.rows.some(({ rowKey }) => rowKey === conflict.rowKey)
+    )
+  ) {
+    expansionExecutions.value = {
+      ...expansionExecutions.value,
+      [uiKey]: {
+        state: "invalid",
+        message: "La creación original sigue incierta y bloquea esta ampliación.",
+      },
+    };
+    return;
+  }
+
+  try {
+    const eventContext = await queryClient.fetchQuery({
+      ...existingEventDetailQueryOptions(snapshot.eventId),
+      staleTime: 0,
+    });
+    const freshSignature = lineupExpansionConfirmationSignature(
+      snapshot,
+      currentConflict,
+      eventContext
+    );
+    const retryingUncertainOperation = getExpansionExecution(conflict)?.state === "uncertain";
+    if (
+      (!retryingUncertainOperation && freshSignature !== confirmationSignature) ||
+      getExpansionConfirmation(currentConflict) !== confirmationSignature
+    ) {
+      setExpansionConfirmation(currentConflict, null);
+      expansionExecutions.value = {
+        ...expansionExecutions.value,
+        [uiKey]: {
+          state: "invalid",
+          message:
+            "El destino cambió desde la revisión. Inspecciona de nuevo el evento y confirma la propuesta actual.",
+        },
+      };
+      return;
+    }
+  } catch {
+    expansionExecutions.value = {
+      ...expansionExecutions.value,
+      [uiKey]: {
+        state: "failed",
+        operationKey,
+        message:
+          "No se pudo revalidar el evento antes del envío. No se envió la ampliación; puedes reintentar tras revisar la conexión.",
+      },
+    };
+    return;
+  }
+
+  const authorization =
+    previousAuthorization &&
+    JSON.stringify(previousAuthorization.snapshot) === JSON.stringify(snapshot)
+      ? previousAuthorization
+      : authorizeLineupExpansion(snapshot, confirmationSignature);
+  expansionAuthorizations.value = { ...expansionAuthorizations.value, [uiKey]: authorization };
+  expansionExecutions.value = { ...expansionExecutions.value, [uiKey]: { state: "sending" } };
+  try {
+    const response = await expansionMutation.mutateAsync(authorization);
+    const reconciliation = reconcileLineupExpansionResult(
+      snapshot,
+      response,
+      (authorizedSnapshot) => {
+        const latestConflict = conflictsByRowKey.value[
+          authorizedSnapshot.correlation.sourceRowKey
+        ]?.find(
+          (candidate) =>
+            candidate.operationId === authorizedSnapshot.correlation.sourceBatchId &&
+            candidate.operationRowId === authorizedSnapshot.correlation.sourceOperationRowId &&
+            candidate.code === authorizedSnapshot.correlation.sourceConflictCode
+        );
+        const latestPreparation = latestConflict
+          ? prepareLineupExpansion(latestConflict, authorizedSnapshot.eventId)
+          : null;
+        return (
+          latestConflict?.status === "current" &&
+          latestPreparation?.state === "ready" &&
+          JSON.stringify(latestPreparation.snapshot) === JSON.stringify(authorizedSnapshot)
+        );
+      },
+      (rowKey) => rows.value.some((row) => row.id === rowKey),
+      handledExpansionOperations
+    );
+    if (reconciliation.action !== "already-handled") {
+      if (reconciliation.action === "removed") removeRow(reconciliation.rowKey);
+      else if (reconciliation.rowPresent) {
+        appliedExpansionsByRow.value = {
+          ...appliedExpansionsByRow.value,
+          [reconciliation.rowKey]: { eventId: response.eventId, operationKey },
+        };
+      }
+      expansionHistory.value = [
+        ...expansionHistory.value,
+        {
+          operationKey,
+          rowKey: reconciliation.rowKey,
+          eventId: response.eventId,
+          result: response,
+          reconciliation: reconciliation.action,
+        },
+      ];
+    }
+    expansionExecutions.value = {
+      ...expansionExecutions.value,
+      [uiKey]: {
+        state: "updated",
+        result: response,
+        reconciliation: reconciliation.action,
+      },
+    };
+    refreshPreparation();
+  } catch (error) {
+    const failureKind = lineupExpansionFailureKind(error);
+    expansionExecutions.value = {
+      ...expansionExecutions.value,
+      [uiKey]: {
+        state: failureKind === "global" ? "failed" : failureKind,
+        operationKey,
+        message: lineupExpansionErrorMessage(error),
+      },
+    };
+  }
+}
+
 defineExpose({ prepareLineupExpansionForConflict });
 
 const rowProblems = computed(() => {
@@ -212,6 +454,15 @@ const rowProblems = computed(() => {
       problems[row.id] = {
         label: `El evento ya existe (ID ${createdDrafts.value[row.id]!.eventId}); este borrador posterior no se puede importar como evento nuevo.`,
         fields: [],
+      };
+      continue;
+    }
+    if (appliedExpansionsByRow.value[row.id]) {
+      const applied = appliedExpansionsByRow.value[row.id]!;
+      problems[row.id] = {
+        label: `La versión anterior de esta fila ya amplió el evento ${applied.eventId}; este borrador modificado se conserva y queda excluido de nuevas operaciones.`,
+        fields: [],
+        historical: true,
       };
       continue;
     }
@@ -346,6 +597,9 @@ function refreshPreparation() {
   const blockedRows: Record<string, string> = {};
   Object.keys(createdDrafts.value).forEach((rowKey) => {
     blockedRows[rowKey] = "event-already-created-draft-diverged";
+  });
+  Object.keys(appliedExpansionsByRow.value).forEach((rowKey) => {
+    blockedRows[rowKey] = "lineup-expansion-already-applied";
   });
   uncertainSnapshots.value.forEach((snapshot) => {
     snapshot.rows.forEach(({ rowKey }) => {
@@ -719,6 +973,56 @@ function updateRowCount(event: Event) {
           {{ uncertainSnapshots.length }} operación(es) siguen inciertas. Reintenta cada snapshot
           original; sus filas no se preparan como eventos nuevos.
         </p>
+        <p
+          v-if="
+            expansionExecutionCounts.uncertain ||
+            expansionExecutionCounts.conflicts ||
+            expansionExecutionCounts.failures
+          "
+          class="mt-2"
+          role="status"
+        >
+          Ampliaciones existentes pendientes: {{ expansionExecutionCounts.conflicts }} conflictos de
+          revalidación, {{ expansionExecutionCounts.uncertain }} inciertas y
+          {{ expansionExecutionCounts.failures }} fallidas. No cuentan como Events nuevos.
+        </p>
+        <section
+          v-if="expansionHistory.length"
+          class="mt-3 border-t border-gray-200 pt-3 dark:border-white/10"
+        >
+          <p class="font-semibold" role="status">
+            Ampliaciones de Events existentes: {{ expansionHistory.length }} ·
+            {{
+              quantity(
+                expansionHistory.reduce((sum, item) => sum + item.result.addedArtists.length, 0),
+                "artista añadido",
+                "artistas añadidos"
+              )
+            }}
+            ·
+            {{
+              quantity(
+                expansionHistory.reduce((sum, item) => sum + item.result.existingArtists.length, 0),
+                "artista ya existente",
+                "artistas ya existentes"
+              )
+            }}. No se cuentan como Events nuevos.
+          </p>
+          <ul class="mt-2 space-y-1">
+            <li v-for="entry in expansionHistory" :key="entry.operationKey">
+              Fila {{ entry.rowKey }}: evento {{ entry.eventId }} ampliado; añadidos
+              {{ entry.result.addedArtists.map(({ name }) => name).join(", ") || "ninguno" }}; ya
+              existentes
+              {{ entry.result.existingArtists.map(({ name }) => name).join(", ") || "ninguno" }}.
+              <span v-if="entry.reconciliation === 'kept'"
+                >Se conservó el borrador modificado.</span
+              >
+              <span v-else-if="entry.reconciliation === 'removed'"
+                >Se retiró la fila sin cambios.</span
+              >
+            </li>
+          </ul>
+        </section>
         <div v-if="lastImport" class="mt-3 border-t border-gray-200 pt-3 dark:border-white/10">
           <p class="font-semibold" role="status">
             Importación finalizada: {{ createdSummary(lastImport.response) }},
@@ -822,6 +1126,7 @@ function updateRowCount(event: Event) {
         :set-expansion-confirmation="setExpansionConfirmation"
         :get-expansion-selection="getExpansionSelection"
         :set-expansion-selection="setExpansionSelection"
+        :get-expansion-execution="getExpansionExecution"
         :row-problems="rowProblems"
         :selected-row-keys="selectedRowKeys"
         :discard-disabled="discardInProgress"
@@ -854,6 +1159,7 @@ function updateRowCount(event: Event) {
         @remove-lineup-item="eventImport.removeLineupItem"
         @remove-row="removeImportRow"
         @toggle-row-selection="toggleRowSelection"
+        @execute-expansion="executeConfirmedExpansion"
       />
     </section>
   </div>

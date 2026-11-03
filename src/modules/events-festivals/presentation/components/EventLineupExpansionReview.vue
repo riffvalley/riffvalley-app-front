@@ -7,6 +7,8 @@ import type {
   LineupExpansionPreparation,
   LineupExpansionPendingReason,
 } from "../../application/eventLineupExpansionPreparation";
+import { lineupExpansionConfirmationSignature } from "../../application/eventLineupExpansionPreparation";
+import type { EventLineupExpansionExecution } from "../../application/useEventLineupExpansionMutation";
 
 const props = defineProps<{
   conflict: EventImportConflictPresentation;
@@ -15,6 +17,8 @@ const props = defineProps<{
   setConfirmation: (signature: string | null) => void;
   getSelection: () => string | null;
   setSelection: (eventId: string | null) => void;
+  getExecution: () => EventLineupExpansionExecution | null;
+  execute: (conflict: EventImportConflictPresentation, signature: string) => void;
 }>();
 
 function uniqueEventIds(conflict: EventImportConflictPresentation): string[] {
@@ -55,26 +59,11 @@ const confirmationSignature = computed(() => {
     eventQuery.isFetching.value
   )
     return null;
-  return JSON.stringify({
-    snapshot: preparation.value.snapshot,
-    conflict: {
-      operationId: props.conflict.operationId,
-      operationRowId: props.conflict.operationRowId,
-      rowKey: props.conflict.rowKey,
-      snapshotRevision: props.conflict.snapshotRevision,
-      code: props.conflict.code,
-      message: props.conflict.message,
-      severity: props.conflict.severity,
-      kind: props.conflict.kind,
-      status: props.conflict.status,
-      existingEventIds: props.conflict.existingEventIds,
-      candidateEventIds: props.conflict.candidateEventIds,
-      relatedRows: props.conflict.relatedRows,
-      matchingArtists: props.conflict.matchingArtists,
-      addableArtists: props.conflict.addableArtists,
-    },
-    eventContext: eventQuery.data.value,
-  });
+  return lineupExpansionConfirmationSignature(
+    preparation.value.snapshot,
+    props.conflict,
+    eventQuery.data.value
+  );
 });
 const reviewedSignature = shallowRef<string | null>(null);
 const isReviewed = computed(
@@ -84,6 +73,25 @@ const isReviewed = computed(
 const isConfirmed = computed(
   () =>
     confirmationSignature.value !== null && props.getConfirmation() === confirmationSignature.value
+);
+const execution = computed(() => props.getExecution());
+const currentOperationKey = computed(() =>
+  preparation.value?.state === "ready"
+    ? JSON.stringify([
+        preparation.value.snapshot.eventId,
+        preparation.value.snapshot.operation.batchId,
+        preparation.value.snapshot.operation.rowId,
+      ])
+    : null
+);
+const canExecute = computed(
+  () =>
+    !["sending", "updated"].includes(execution.value?.state ?? "") &&
+    (execution.value?.state === "uncertain"
+      ? currentOperationKey.value === execution.value.operationKey
+      : execution.value?.state === "conflict"
+        ? isConfirmed.value && currentOperationKey.value !== execution.value.operationKey
+        : isConfirmed.value)
 );
 
 const addableNames = computed(() =>
@@ -385,7 +393,81 @@ function cancelConfirmation() {
         >
           Cancelar confirmación
         </button>
+        <button
+          v-if="(isConfirmed || execution?.state === 'uncertain') && execution?.state !== 'updated'"
+          type="button"
+          class="min-h-10 rounded-lg bg-rv-purple px-4 text-sm font-semibold text-white hover:bg-rv-purple/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="!canExecute"
+          @click="
+            execute(
+              conflict,
+              execution?.state === 'uncertain'
+                ? (getConfirmation() ?? '')
+                : (confirmationSignature ?? '')
+            )
+          "
+        >
+          <i
+            v-if="execution?.state === 'sending'"
+            class="fa-solid fa-spinner fa-spin"
+            aria-hidden="true"
+          ></i>
+          {{
+            execution?.state === "sending"
+              ? "Ampliando…"
+              : execution?.state === "uncertain"
+                ? "Reintentar el mismo snapshot"
+                : "Ejecutar ampliación confirmada"
+          }}
+        </button>
       </div>
+      <p v-if="execution?.state === 'sending'" role="status">
+        La ampliación está en curso; el borrador puede seguir editándose.
+      </p>
+      <p
+        v-if="execution?.state === 'invalid'"
+        class="text-amber-900 dark:text-amber-200"
+        role="alert"
+      >
+        {{ execution.message }}
+      </p>
+      <p
+        v-if="execution?.state === 'uncertain'"
+        class="text-amber-900 dark:text-amber-200"
+        role="alert"
+      >
+        Resultado incierto. No se generará otra identidad; reintenta el snapshot original.
+        {{ execution.message }}
+      </p>
+      <p
+        v-if="execution?.state === 'conflict' || execution?.state === 'failed'"
+        class="text-red-800 dark:text-red-200"
+        role="alert"
+      >
+        {{ execution.message }}
+      </p>
+      <section
+        v-if="execution?.state === 'updated'"
+        class="space-y-1 rounded bg-green-50 p-3 text-green-900 dark:bg-green-950/30 dark:text-green-100"
+        role="status"
+      >
+        <p class="font-semibold">Lineup ampliado en el evento {{ execution.result.eventId }}.</p>
+        <p>
+          Artistas añadidos:
+          {{ execution.result.addedArtists.map(({ name }) => name).join(", ") || "ninguno" }}.
+        </p>
+        <p>
+          Artistas ya existentes:
+          {{ execution.result.existingArtists.map(({ name }) => name).join(", ") || "ninguno" }}.
+        </p>
+        <p v-if="execution.reconciliation === 'kept'">
+          La fila cambió durante el envío y se conserva el borrador actual; su versión anterior ya
+          fue ampliada.
+        </p>
+        <p v-else-if="execution.reconciliation === 'removed'">
+          La fila autorizada se retiró del editor.
+        </p>
+      </section>
     </div>
   </section>
 </template>

@@ -87,6 +87,7 @@ export async function getExistingEventDetail(
 
 export const existingEventDetailQueryKeys = {
   detail: (eventId: string) => ["events-festivals", "event-detail", eventId] as const,
+  lineup: (eventId: string) => ["events-festivals", "event-lineup", eventId] as const,
 };
 
 export const EXISTING_EVENT_DETAIL_STALE_TIME = 15_000;

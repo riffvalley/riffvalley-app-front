@@ -86,11 +86,22 @@ describe("EventLineupExpansionReview", () => {
     const setSelection = (eventId: string | null) => {
       savedSelection.value = eventId;
     };
+    const getExecution = () => null;
+    const execute = vi.fn();
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false, gcTime: Infinity } },
     });
     const wrapper = mount(EventLineupExpansionReview, {
-      props: { conflict, prepare, getConfirmation, setConfirmation, getSelection, setSelection },
+      props: {
+        conflict,
+        prepare,
+        getConfirmation,
+        setConfirmation,
+        getSelection,
+        setSelection,
+        getExecution,
+        execute,
+      },
       global: { plugins: [[VueQueryPlugin, { queryClient }]] },
     });
     await flushPromises();
@@ -112,10 +123,27 @@ describe("EventLineupExpansionReview", () => {
     expect(wrapper.text()).toContain("Propuesta confirmada localmente");
     expect(savedConfirmation.value).toContain(eventA);
     expect(api.post).not.toHaveBeenCalled();
+    expect(execute).not.toHaveBeenCalled();
+    const runButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Ejecutar ampliación confirmada"));
+    expect(runButton).toBeDefined();
+    await runButton?.trigger("click");
+    expect(execute).toHaveBeenCalledWith(conflict, savedConfirmation.value);
+    expect(api.post).not.toHaveBeenCalled();
 
     wrapper.unmount();
     const reopened = mount(EventLineupExpansionReview, {
-      props: { conflict, prepare, getConfirmation, setConfirmation, getSelection, setSelection },
+      props: {
+        conflict,
+        prepare,
+        getConfirmation,
+        setConfirmation,
+        getSelection,
+        setSelection,
+        getExecution,
+        execute,
+      },
       global: { plugins: [[VueQueryPlugin, { queryClient }]] },
     });
     await flushPromises();

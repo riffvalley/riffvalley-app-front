@@ -70,6 +70,33 @@ export interface LineupExpansionSnapshot {
   readonly payload: DeepReadonly<ImportLineupRequest>;
 }
 
+export function lineupExpansionConfirmationSignature(
+  snapshot: LineupExpansionSnapshot,
+  conflict: EventImportConflictPresentation,
+  eventContext: unknown
+): string {
+  return JSON.stringify({
+    snapshot,
+    conflict: {
+      operationId: conflict.operationId,
+      operationRowId: conflict.operationRowId,
+      rowKey: conflict.rowKey,
+      snapshotRevision: conflict.snapshotRevision,
+      code: conflict.code,
+      message: conflict.message,
+      severity: conflict.severity,
+      kind: conflict.kind,
+      status: conflict.status,
+      existingEventIds: conflict.existingEventIds,
+      candidateEventIds: conflict.candidateEventIds,
+      relatedRows: conflict.relatedRows,
+      matchingArtists: conflict.matchingArtists,
+      addableArtists: conflict.addableArtists,
+    },
+    eventContext,
+  });
+}
+
 export type LineupExpansionPreparation =
   | { state: "ready"; snapshot: LineupExpansionSnapshot; pendingReasons: readonly [] }
   | { state: "pending"; snapshot: null; pendingReasons: readonly LineupExpansionPendingReason[] }

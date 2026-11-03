@@ -14,6 +14,7 @@ import { computed, reactive, shallowRef } from "vue";
 import EventImportConflictDetails from "./EventImportConflictDetails.vue";
 import type { EventImportConflictPresentation } from "../../application/eventImportConflicts";
 import type { LineupExpansionPreparation } from "../../application/eventLineupExpansionPreparation";
+import type { EventLineupExpansionExecution } from "../../application/useEventLineupExpansionMutation";
 
 type EventTextField = "price" | "otherInfo";
 
@@ -42,6 +43,9 @@ const props = defineProps<{
     conflict: EventImportConflictPresentation,
     eventId: string | null
   ) => void;
+  getExpansionExecution: (
+    conflict: EventImportConflictPresentation
+  ) => EventLineupExpansionExecution | null;
 }>();
 const invalidTypePaste = reactive<Record<string, string>>({});
 const expandedConflictRowKey = shallowRef<string | null>(null);
@@ -79,6 +83,7 @@ const emit = defineEmits<{
   removeLineupItem: [rowId: string, itemKey: string];
   removeRow: [id: string];
   toggleRowSelection: [id: string, selected: boolean];
+  executeExpansion: [conflict: EventImportConflictPresentation, signature: string];
 }>();
 
 function handleTypePaste(event: ClipboardEvent, rowIndex: number) {
@@ -287,7 +292,11 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
                 :set-expansion-confirmation="setExpansionConfirmation"
                 :get-expansion-selection="getExpansionSelection"
                 :set-expansion-selection="setExpansionSelection"
+                :get-expansion-execution="getExpansionExecution"
                 @toggle="toggleConflictDetails(row.id)"
+                @execute-expansion="
+                  (conflict, signature) => emit('executeExpansion', conflict, signature)
+                "
               />
             </th>
             <td class="border-b-2 border-r-2 border-gray-300 p-1 dark:border-white/20">
@@ -639,8 +648,12 @@ function handleTextPaste(event: ClipboardEvent, rowIndex: number, field: EventTe
                 :set-expansion-confirmation="setExpansionConfirmation"
                 :get-expansion-selection="getExpansionSelection"
                 :set-expansion-selection="setExpansionSelection"
+                :get-expansion-execution="getExpansionExecution"
                 @toggle="toggleConflictDetails(row.id)"
                 @navigate="navigateToRow"
+                @execute-expansion="
+                  (conflict, signature) => emit('executeExpansion', conflict, signature)
+                "
               />
             </td>
           </tr>

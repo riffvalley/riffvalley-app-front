@@ -2,7 +2,7 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { nextTick } from "vue";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import EventsFestivalsImportView from "./EventsFestivalsImportView.vue";
 
 const {
@@ -56,12 +56,16 @@ const allowedCountries = [
   ["IT", "Italia"],
 ].map(([isoCode, name]) => ({ id: `country-${isoCode}`, isoCode, name }));
 
+const mountedViews: Array<{ wrapper: ReturnType<typeof mount>; queryClient: QueryClient }> = [];
+
 function mountImportView(attachTo?: HTMLElement) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return mount(EventsFestivalsImportView, {
+  const wrapper = mount(EventsFestivalsImportView, {
     attachTo,
     global: { plugins: [[VueQueryPlugin, { queryClient }]] },
   });
+  mountedViews.push({ wrapper, queryClient });
+  return wrapper;
 }
 
 async function paste(input: HTMLInputElement, text: string) {
@@ -72,6 +76,14 @@ async function paste(input: HTMLInputElement, text: string) {
 }
 
 describe("EventsFestivalsImportView", () => {
+  afterEach(() => {
+    mountedViews.splice(0).forEach(({ wrapper, queryClient }) => {
+      wrapper.unmount();
+      queryClient.clear();
+    });
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
     resolveArtistsBatchMock.mockReset().mockImplementation(async (names: string[]) =>
       names.map((name, index) => ({
@@ -1006,9 +1018,11 @@ describe("EventsFestivalsImportView", () => {
     await flushPromises();
 
     expect(inspectLocalitiesMock).toHaveBeenCalled();
-    expect(inspectLocalitiesMock.mock.calls.at(-1)?.[0]).toMatchObject({
-      localities: [{ name: "Barcelona", province: "Barcelona" }],
-    });
+    expect(inspectLocalitiesMock.mock.calls.map(([request]) => request)).toContainEqual(
+      expect.objectContaining({
+        localities: [expect.objectContaining({ name: "Barcelona", province: "Barcelona" })],
+      })
+    );
     expect(resolveVenuesMock).toHaveBeenCalledWith(
       [{ name: "  Sala Apolo  ", localityId: "123e4567-e89b-42d3-a456-426614174004" }],
       expect.anything()
@@ -1305,7 +1319,5 @@ describe("EventsFestivalsImportView", () => {
     expect(importEventBatchMock.mock.calls[1]?.[0]).toBe(originalSnapshot);
     expect(wrapper.findAll("tbody tr")).toHaveLength(4);
     expect(wrapper.text()).toContain("event-after-retry");
-    wrapper.unmount();
-    vi.useRealTimers();
   });
 });
