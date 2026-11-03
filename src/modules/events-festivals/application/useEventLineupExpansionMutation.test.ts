@@ -6,8 +6,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   EventLineupExpansionAlreadyInFlightError,
   authorizeLineupExpansion,
+  lineupExpansionErrorMessage,
+  lineupExpansionFailureKind,
   useEventLineupExpansionMutation,
 } from "./useEventLineupExpansionMutation";
+import { EventLineupExpansionConflictError } from "../api/eventLineupExpansion";
 import type { LineupExpansionSnapshot } from "./eventLineupExpansionPreparation";
 import type { EventLineupExpansionResponse } from "../api/eventLineupExpansion";
 
@@ -101,5 +104,31 @@ describe("useEventLineupExpansionMutation", () => {
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: ["events-festivals", "entity-resolution", "artist"],
     });
+  });
+
+  it("translates known internal errors and leaves their technical details out of the message", () => {
+    const technicalId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+    const pending = new EventLineupExpansionConflictError(
+      `IMPORT_OPERATION_IN_PROGRESS ${technicalId}`,
+      "IMPORT_OPERATION_IN_PROGRESS",
+      { eventId: technicalId }
+    );
+    const changedIdentity = new EventLineupExpansionConflictError(
+      `IMPORT_OPERATION_ID_REUSED ${technicalId}`,
+      "IMPORT_OPERATION_ID_REUSED",
+      { eventId: technicalId }
+    );
+
+    expect(lineupExpansionErrorMessage(pending)).toBe(
+      "No sabemos si la operación terminó. Comprueba el resultado reintentando la misma operación."
+    );
+    expect(lineupExpansionErrorMessage(changedIdentity)).toBe(
+      "Esta operación ya no coincide con la solicitud original. No se puede reintentar con datos diferentes."
+    );
+    expect(lineupExpansionErrorMessage(changedIdentity)).not.toContain(technicalId);
+    expect(lineupExpansionErrorMessage(changedIdentity)).not.toContain(
+      "IMPORT_OPERATION_ID_REUSED"
+    );
+    expect(lineupExpansionFailureKind(changedIdentity)).toBe("global");
   });
 });

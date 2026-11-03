@@ -27,7 +27,7 @@ function row(id = "event-row-1", overrides: Partial<EventImportRow> = {}): Event
     id,
     type: "concert",
     event: "",
-    lineup: [],
+    lineup: [{ key: "artist-default", name: "Default Artist", artistId: ARTIST_ID }],
     startDate: "2027-05-15",
     startDateDraft: "15/05/2027",
     endDate: null,
@@ -84,7 +84,31 @@ function input(
     rows,
     countryId: COUNTRY_ID,
     countryAvailable: true,
-    lineupStates: {},
+    lineupStates:
+      options.lineupStates ??
+      Object.fromEntries(
+        rows.map(({ id, lineup }) => [
+          id,
+          {
+            draft: "",
+            draftStatus: "idle",
+            itemStatus: {},
+            draftError: null,
+            itemResolution: Object.fromEntries(
+              lineup.map((item, index) => [
+                item.key,
+                {
+                  index,
+                  name: item.name,
+                  status: "existing",
+                  artist: { id: item.artistId ?? ARTIST_ID, name: item.name },
+                  candidates: [],
+                },
+              ])
+            ),
+          },
+        ])
+      ),
     geographyStates: Object.fromEntries(rows.map(({ id }) => [id, geography()])),
     tourStates: Object.fromEntries(rows.map(({ id }) => [id, tour()])),
     ...options,
@@ -97,22 +121,43 @@ function createPreparer() {
 }
 
 describe("event import preparation", () => {
-  it("keeps an uncommitted lineup draft pending until Artist resolution succeeds", () => {
+  it("keeps an unconfirmed lineup draft pending even without a remote lookup", () => {
     const preparer = createPreparer();
-    const current = row();
+    const current = row("event-row-1", { lineup: [] });
     const state: LineupCellState = {
       draft: "Artist pendiente",
-      draftStatus: "error",
+      draftStatus: "idle",
       itemStatus: {},
-      draftError: "network error",
+      draftError: null,
       itemResolution: {},
     };
 
     const prepared = preparer.prepare(input([current], { lineupStates: { [current.id]: state } }));
 
     expect(prepared.eligibleRows).toHaveLength(0);
-    expect(prepared.pendingRows[0]?.reasons).toContain("artist-draft-resolution-error");
+    expect(prepared.pendingRows[0]?.reasons).toContain("artist-draft-unconfirmed");
   });
+
+  it.each(["concert", "festival", "tour"] as const)(
+    "requires at least one resolved artist for a %s row",
+    (type) => {
+      const current = row(`empty-${type}`, {
+        type,
+        event: type === "concert" ? "" : "Evento de prueba",
+        lineup: [],
+      });
+      const prepared = createPreparer().prepare(
+        input([current], {
+          tourStates: {
+            [current.id]: type === "tour" ? tour("new", current.event) : tour(),
+          },
+        })
+      );
+
+      expect(prepared.eligibleRows).toHaveLength(0);
+      expect(prepared.pendingRows[0]?.reasons).toContain("lineup-required");
+    }
+  );
 
   it("excludes only rows blocked by known persistence state", () => {
     const preparer = createPreparer();
@@ -725,7 +770,7 @@ describe("event import preparation", () => {
     expect(prepared.payload?.rows[0]?.tourId).toBe(candidateId);
   });
 
-  it("requires a region for a new locality when requested and limits each snapshot to 100 rows", () => {
+  it("requires a region for a new locality when requested and limits each snapshot to 50 rows", () => {
     const preparer = createPreparer();
     const requiringRegion = row("region", { administrativeRegionId: null });
     const regionGeography = geography();

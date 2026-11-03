@@ -81,6 +81,14 @@ export function useEventImportGeography(
     invalidateGeographicAssociations(countryId);
   }
 
+  function restoreCountry(countryId: string): boolean {
+    if (!countryOptions.value.some((country) => country.id === countryId)) return false;
+    selectedCountryId.value = countryId;
+    defaultSelectionSettled.value = true;
+    invalidateGeographicAssociations(countryId);
+    return true;
+  }
+
   function loadRegions(): Promise<AdministrativeRegion[] | undefined> {
     if (!selectedCountryId.value) return Promise.resolve(undefined);
     regionsRequested.value = true;
@@ -103,6 +111,7 @@ export function useEventImportGeography(
     selectedCountry,
     countriesQuery,
     selectCountry,
+    restoreCountry,
     regions: computed(() => regionsQuery.data.value ?? []),
     regionsQuery,
     loadRegions,

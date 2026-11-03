@@ -21,8 +21,8 @@ const row: EventImportRow = {
   administrativeRegionId: null,
 };
 
-describe("VenueCell geographic identity selection", () => {
-  it("shows contextual candidates, preserves text, and exposes explicit identities", async () => {
+describe("VenueCell venue identity selection", () => {
+  it("keeps locality states out of the venue cell and exposes venue candidates", async () => {
     const state: EventGeographyState = {
       localityStatus: "existing",
       localityCandidates: [
@@ -74,15 +74,14 @@ describe("VenueCell geographic identity selection", () => {
       selectedVenueCandidateId: null,
       venueError: null,
     };
-    const wrapper = mount(VenueCell, { props: { row, state, regions: [], rowNumber: 2 } });
+    const wrapper = mount(VenueCell, { props: { row, state, rowNumber: 2 } });
 
-    expect(wrapper.text()).toContain("Province written");
-    expect(wrapper.text()).not.toContain("DTO de importación no admite");
-    await wrapper
-      .get('select[aria-label="Candidatos de localidad, fila 2"]')
-      .setValue("locality-b");
+    expect(wrapper.text()).not.toContain("Localidad");
+    expect(wrapper.find('select[aria-label="Candidatas de localidad, fila 2"]').exists()).toBe(
+      false
+    );
     await wrapper.get('select[aria-label="Candidatos de recinto, fila 2"]').setValue("venue-b");
-    expect(wrapper.emitted("selectLocality")).toEqual([["locality-b"]]);
+    expect(wrapper.emitted("selectLocality")).toBeUndefined();
     expect(wrapper.emitted("selectVenue")).toEqual([["venue-b"]]);
     expect(wrapper.props("row").city).toBe("City written");
     expect(wrapper.props("row").venue.name).toBe("Sala escrita");
@@ -109,6 +108,8 @@ describe("VenueCell geographic identity selection", () => {
         rowNumber: 1,
       },
     });
-    expect(wrapper.text()).toContain("Venue no coincide con la identidad seleccionada");
+    expect(wrapper.text()).toContain(
+      "El nombre del recinto no coincide con la identidad seleccionada"
+    );
   });
 });

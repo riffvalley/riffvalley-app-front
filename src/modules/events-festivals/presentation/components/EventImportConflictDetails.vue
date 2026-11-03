@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, shallowRef } from "vue";
+import { computed } from "vue";
 import { useQueries } from "@tanstack/vue-query";
-import { existingEventDetailQueryOptions, type ExistingEventDetail } from "../../api/eventImport";
+import { existingEventDetailQueryOptions } from "../../api/eventImport";
 import type { EventImportConflictPresentation } from "../../application/eventImportConflicts";
 import type { LineupExpansionPreparation } from "../../application/eventLineupExpansionPreparation";
 import type { EventLineupExpansionExecution } from "../../application/useEventLineupExpansionMutation";
@@ -40,410 +40,208 @@ const emit = defineEmits<{
   executeExpansion: [conflict: EventImportConflictPresentation, signature: string];
 }>();
 
-const conflictEventReferences = computed(() =>
+const references = computed(() =>
   props.conflicts.flatMap((conflict, conflictIndex) =>
     conflict.eventReferences.map((reference) => ({ conflictIndex, ...reference }))
   )
 );
-const eventQueries = useQueries({
+const queries = useQueries({
   queries: computed(() =>
-    conflictEventReferences.value.map(({ eventId }) => ({
+    references.value.map(({ eventId, conflictIndex }) => ({
       ...existingEventDetailQueryOptions(eventId),
-      enabled: props.showDetails && props.expanded,
+      enabled:
+        props.showDetails && props.expanded && props.conflicts[conflictIndex]?.status === "current",
     }))
   ),
 });
-const reviewIdentity = shallowRef<string | null>(null);
-
-function reviewKey(conflict: EventImportConflictPresentation): string {
-  return JSON.stringify([
-    conflict.operationId,
-    conflict.operationRowId,
-    conflict.code,
-    conflict.existingEventIds,
-    conflict.candidateEventIds,
-    conflict.relatedRows.map(({ operationRowId }) => operationRowId),
-  ]);
-}
-
-function openExpansionReview(conflict: EventImportConflictPresentation) {
-  const key = reviewKey(conflict);
-  reviewIdentity.value = reviewIdentity.value === key ? null : key;
-}
-
-const eventDetailsByConflict = computed(() => {
+const detailsByConflict = computed(() => {
   let queryIndex = 0;
   return props.conflicts.map((conflict) => ({
     conflict,
     events: conflict.eventReferences.map((reference) => ({
       ...reference,
-      query: eventQueries.value[queryIndex++],
+      query: queries.value[queryIndex++],
     })),
   }));
 });
 
-function formatType(type: ExistingEventDetail["type"]): string {
-  if (type === "concert") return "Concierto";
-  if (type === "festival") return "Festival";
-  return "No disponible";
+function formatDate(date: string | undefined): string | undefined {
+  if (!date) return undefined;
+  const [year, month, day] = date.split("-");
+  return year && month && day ? `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}` : date;
 }
 
-function importedType(type: "concert" | "festival" | "tour"): string {
-  if (type === "tour") return "Concierto importado como gira";
-  return type === "concert" ? "Concierto" : "Festival";
+function dateRange(event: { startDate?: string; endDate?: string | null }): string | undefined {
+  const start = formatDate(event.startDate);
+  if (!start) return undefined;
+  const end = formatDate(event.endDate ?? undefined);
+  return end && end !== start ? `${start} – ${end}` : start;
 }
 
-function comparisonLabel(draft: string | undefined, existing: string | undefined): string {
-  if (!draft || !existing) return "No se puede comparar";
-  return draft === existing ? "Igual en los datos disponibles" : "Difiere";
+function eventSummary(event: {
+  name?: string | null;
+  type?: string;
+  startDate?: string;
+  endDate?: string | null;
+  venue?: { name?: string; locality?: { name?: string } };
+  lineup?: Array<{ name: string }>;
+}): string[] {
+  const venue = [event.venue?.name, event.venue?.locality?.name].filter(Boolean).join(", ");
+  return [
+    event.type === "festival" ? "Festival" : undefined,
+    event.name ?? undefined,
+    dateRange(event),
+    venue || undefined,
+  ].filter((part): part is string => Boolean(part));
 }
 
-function dateRange(
-  startDate: string | undefined,
-  endDate: string | null | undefined
-): string | undefined {
-  if (!startDate) return undefined;
-  return endDate ? `${startDate} – ${endDate}` : startDate;
+function candidatesAreIndistinguishable(
+  events: Array<{
+    status: "identified" | "candidate";
+    query?: {
+      data?: {
+        name?: string | null;
+        startDate?: string;
+        endDate?: string | null;
+        type?: string;
+        venue?: { name?: string; locality?: { name?: string } };
+        lineup?: Array<{ name: string }>;
+      };
+    };
+  }>
+): boolean {
+  const candidates = events.filter(({ status }) => status === "candidate");
+  if (candidates.length < 2) return false;
+  const signatures = candidates.map(({ query }) => {
+    const event = query?.data;
+    if (!event) return "detail-unavailable";
+    return JSON.stringify([
+      eventSummary(event),
+      event.name ?? null,
+      event.lineup?.map(({ name }) => name) ?? null,
+    ]);
+  });
+  return new Set(signatures).size !== signatures.length;
 }
 
-function eventDateRange(event: ExistingEventDetail): string | undefined {
-  if (!event.startDate) return undefined;
-  if (event.endDate === undefined) return `${event.startDate} – fin no disponible`;
-  return dateRange(event.startDate, event.endDate);
-}
-
-function comparableEventDateRange(event: ExistingEventDetail): string | undefined {
-  if (!event.startDate || event.endDate === undefined) return undefined;
-  return dateRange(event.startDate, event.endDate);
-}
-
-function eventName(name: string | null | undefined): string {
-  if (name === undefined) return "No disponible";
-  return name ?? "Sin nombre";
-}
-
-function eventTour(tourId: string | null | undefined): string {
-  if (tourId === undefined) return "No disponible en el detalle de Events";
-  return tourId ?? "Sin gira asociada";
-}
-
-function lineupNames(lineup: Array<{ name: string }> | undefined): string {
-  if (!lineup) return "No disponible";
-  return lineup.length ? lineup.map(({ name }) => name).join(" · ") : "Sin artistas";
+function visibleEventDetails(events: (typeof detailsByConflict.value)[number]["events"]) {
+  if (!candidatesAreIndistinguishable(events)) return events;
+  return events.filter(({ status }) => status === "identified");
 }
 </script>
 
 <template>
-  <div v-if="conflicts.length" class="px-2 py-1">
+  <div v-if="conflicts.length">
     <button
       v-if="showIndicator"
       type="button"
-      class="inline-flex min-h-8 items-center gap-2 rounded px-2 text-xs font-semibold text-amber-900 underline decoration-amber-700 underline-offset-2 hover:bg-amber-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rv-purple dark:text-amber-200 dark:hover:bg-white/10"
+      class="inline-flex min-h-9 items-center rounded px-2 text-xs font-semibold text-amber-900 underline underline-offset-2 hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rv-purple dark:text-amber-200 dark:hover:bg-white/10"
       :aria-expanded="expanded"
       :aria-controls="`event-import-conflicts-${conflicts[0]?.rowKey}`"
-      :aria-label="`${conflicts.length} ${conflicts.length === 1 ? 'conflicto' : 'conflictos'} en fila ${rowNumber}; consultar detalle`"
+      :aria-label="`Revisar conflicto de la fila ${rowNumber}`"
       @click="emit('toggle')"
     >
-      <span aria-hidden="true">!</span>
-      {{ conflicts.length }} {{ conflicts.length === 1 ? "conflicto" : "conflictos" }}
-      <span class="font-normal"
-        >·
-        {{ conflicts.some(({ status }) => status === "current") ? "vigente" : "histórico" }}</span
-      >
+      Revisar
     </button>
 
     <div
-      v-if="showDetails && expanded"
+      v-if="showDetails"
       :id="`event-import-conflicts-${conflicts[0]?.rowKey}`"
-      class="mt-1 rounded-md border border-amber-300 bg-amber-50/70 p-3 text-xs leading-relaxed text-gray-800 dark:border-amber-300/30 dark:bg-amber-950/20 dark:text-gray-100"
+      class="min-w-0 max-w-4xl space-y-2 rounded-md border border-gray-200 bg-white p-3 text-sm leading-relaxed text-gray-800 dark:border-white/10 dark:bg-rv-darkSurface dark:text-gray-100"
+      :hidden="!expanded"
+      role="region"
       :aria-label="`Detalle de conflictos de la fila ${rowNumber}`"
     >
-      <ul class="space-y-4">
+      <ul class="space-y-3">
         <li
-          v-for="(conflict, index) in conflicts"
-          :key="`${conflict.operationRowId}-${conflict.code}-${index}`"
-          class="space-y-2"
+          v-for="({ conflict, events }, index) in detailsByConflict"
+          :key="`${conflict.rowKey}-${index}`"
+          class="min-w-0 space-y-2 break-words"
         >
-          <div>
-            <p class="font-semibold">
-              {{ conflict.message }}
-              <span class="font-normal">({{ conflict.code }})</span>
-            </p>
-            <p class="mt-1">
-              Estado:
-              {{
-                conflict.status === "current"
-                  ? "vigente para el borrador actual"
-                  : "histórico de una revisión anterior"
-              }}.
-              {{
-                conflict.kind === "participation"
-                  ? "Conflicto de participación"
-                  : "Posible duplicado"
-              }}.
-            </p>
-            <p
-              v-if="conflict.status === 'historical'"
-              class="font-semibold text-amber-900 dark:text-amber-200"
-              role="status"
-            >
-              Se muestra el snapshot enviado; sus referencias y candidatos no se aplican al borrador
-              actual.
-            </p>
-          </div>
+          <p v-if="conflict.status === 'historical'" role="status">
+            Esta propuesta anterior no permite ampliar el lineup.
+          </p>
 
-          <div v-if="conflict.relatedRows.length">
-            <span class="font-medium">Filas relacionadas: </span>
-            <template
-              v-for="(related, relatedIndex) in conflict.relatedRows"
-              :key="related.operationRowId"
-            >
-              <span v-if="relatedIndex">, </span>
-              <button
-                v-if="related.available && related.rowKey"
-                type="button"
-                class="font-semibold underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rv-purple"
-                :aria-label="`Ir a fila ${rowNumbers[related.rowKey] ?? related.rowKey}, relacionada`"
-                @click="emit('navigate', related.rowKey)"
-              >
-                {{
-                  rowNumbers[related.rowKey] ? `fila ${rowNumbers[related.rowKey]}` : related.rowKey
-                }}
-              </button>
-              <span v-else
-                >fila ya no disponible ({{ related.rowKey ?? related.operationRowId }})</span
-              >
-            </template>
-          </div>
-
-          <section v-if="conflict.eventReferences.length" class="space-y-2">
-            <h4 class="font-semibold">Evento existente y candidatos del snapshot</h4>
-            <p class="text-gray-700 dark:text-gray-200">
-              Los candidatos no están seleccionados. Una referencia identificada por UUID se
-              distingue de las candidatas posibles.
-            </p>
-            <article
-              v-for="entry in eventDetailsByConflict[index]?.events ?? []"
-              :key="entry.eventId"
-              class="space-y-2 rounded border border-amber-300/70 bg-white/70 p-2 dark:border-white/15 dark:bg-black/10"
-            >
-              <div class="flex flex-wrap items-center gap-x-2">
-                <strong>{{
-                  entry.status === "identified"
-                    ? "Evento existente identificado"
-                    : "Candidato posible · sin seleccionar"
-                }}</strong>
-                <code class="break-all">{{ entry.eventId }}</code>
-              </div>
-              <p v-if="entry.query?.isLoading" role="status">Cargando contexto del evento…</p>
-              <div v-else-if="entry.query?.isError" class="space-y-1" role="alert">
-                <p>No se pudo cargar el detalle. El conflicto y el UUID siguen disponibles.</p>
+          <template v-if="conflict.relatedRows.length">
+            <p v-if="conflict.relatedRows.length > 1" class="font-medium">Filas relacionadas</p>
+            <p v-else class="font-medium">Este concierto entra en conflicto con</p>
+            <ul class="flex flex-wrap gap-x-3 gap-y-1">
+              <li v-for="(related, relatedIndex) in conflict.relatedRows" :key="relatedIndex">
                 <button
+                  v-if="related.available && related.rowKey && rowNumbers[related.rowKey]"
                   type="button"
                   class="font-semibold underline underline-offset-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rv-purple"
+                  :aria-label="`Ir a la fila ${rowNumbers[related.rowKey]}`"
+                  @click="emit('navigate', related.rowKey)"
+                >
+                  Ir a la fila {{ rowNumbers[related.rowKey] }}
+                </button>
+                <span v-else>La fila relacionada ya no está disponible.</span>
+              </li>
+            </ul>
+          </template>
+
+          <EventLineupExpansionReview
+            v-if="canReviewLineupExpansion(conflict)"
+            :conflict="conflict"
+            :prepare="(selectedEventId) => prepareLineupExpansion(conflict, selectedEventId)"
+            :get-confirmation="() => getExpansionConfirmation(conflict)"
+            :set-confirmation="(signature) => setExpansionConfirmation(conflict, signature)"
+            :get-selection="() => getExpansionSelection(conflict)"
+            :set-selection="(eventId) => setExpansionSelection(conflict, eventId)"
+            :get-execution="() => getExpansionExecution(conflict)"
+            :execute="
+              (expandedConflict, signature) => emit('executeExpansion', expandedConflict, signature)
+            "
+          />
+
+          <template v-else-if="conflict.status === 'current' && conflict.eventReferences.length">
+            <p v-if="candidatesAreIndistinguishable(events)" role="status">
+              No hay información suficiente para distinguir algunos conciertos posibles.
+            </p>
+            <article
+              v-for="entry in visibleEventDetails(events)"
+              :key="entry.eventId"
+              class="min-w-0 space-y-1"
+            >
+              <p v-if="entry.query?.isLoading" role="status">Cargando los datos del concierto…</p>
+              <div v-else-if="entry.query?.isError" class="space-y-1 break-words" role="alert">
+                <p>No se pudieron consultar los datos del concierto.</p>
+                <button
+                  type="button"
+                  class="rounded font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
                   @click="entry.query?.refetch()"
                 >
-                  Reintentar consulta del evento
+                  Reintentar
                 </button>
               </div>
               <template v-else-if="entry.query?.data">
-                <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                  <dt class="font-medium">Tipo</dt>
-                  <dd>{{ formatType(entry.query.data.type) }}</dd>
-                  <dt class="font-medium">Nombre</dt>
-                  <dd>{{ eventName(entry.query.data.name) }}</dd>
-                  <dt class="font-medium">Fecha</dt>
-                  <dd>
-                    {{ eventDateRange(entry.query.data) ?? "No disponible" }}
-                  </dd>
-                  <dt class="font-medium">Ciudad</dt>
-                  <dd>{{ entry.query.data.venue?.locality?.name ?? "No disponible" }}</dd>
-                  <dt class="font-medium">Recinto</dt>
-                  <dd>{{ entry.query.data.venue?.name ?? "No disponible" }}</dd>
-                  <dt class="font-medium">Gira (UUID)</dt>
-                  <dd>{{ eventTour(entry.query.data.tourId) }}</dd>
-                  <dt class="font-medium">Artistas</dt>
-                  <dd>{{ lineupNames(entry.query.data.lineup) }}</dd>
-                </dl>
-                <div class="overflow-x-auto">
-                  <table class="min-w-[34rem] border-collapse text-left">
-                    <caption class="sr-only">
-                      Comparación informativa entre snapshot importado y evento
-                      {{
-                        entry.eventId
-                      }}
-                    </caption>
-                    <thead>
-                      <tr>
-                        <th class="pr-3 font-semibold">Campo</th>
-                        <th class="pr-3 font-semibold">Borrador enviado</th>
-                        <th class="font-semibold">Evento existente</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <th scope="row" class="pr-3 font-medium">Tipo</th>
-                        <td class="pr-3">{{ importedType(conflict.snapshot.type) }}</td>
-                        <td>{{ formatType(entry.query.data.type) }}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row" class="pr-3 font-medium">Nombre / gira</th>
-                        <td class="pr-3">
-                          {{
-                            conflict.snapshot.type === "tour"
-                              ? (conflict.snapshot.name ?? "No enviado")
-                              : eventName(conflict.snapshot.name)
-                          }}
-                        </td>
-                        <td>
-                          {{
-                            conflict.snapshot.type === "tour"
-                              ? eventTour(entry.query.data.tourId)
-                              : eventName(entry.query.data.name)
-                          }}
-                        </td>
-                      </tr>
-                      <tr>
-                        <th scope="row" class="pr-3 font-medium">Fecha</th>
-                        <td class="pr-3">
-                          {{ dateRange(conflict.snapshot.startDate, conflict.snapshot.endDate) }}
-                        </td>
-                        <td>
-                          {{ eventDateRange(entry.query.data) ?? "No disponible" }}
-                        </td>
-                      </tr>
-                      <tr>
-                        <th scope="row" class="pr-3 font-medium">Ciudad</th>
-                        <td class="pr-3">{{ conflict.snapshot.city }}</td>
-                        <td>{{ entry.query.data.venue?.locality?.name ?? "No disponible" }}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row" class="pr-3 font-medium">Recinto</th>
-                        <td class="pr-3">{{ conflict.snapshot.venue ?? "No enviado" }}</td>
-                        <td>{{ entry.query.data.venue?.name ?? "No disponible" }}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row" class="pr-3 font-medium">Lineup</th>
-                        <td class="pr-3">
-                          {{
-                            conflict.snapshot.lineup?.map(({ name }) => name).join(" · ") || "Vacío"
-                          }}
-                        </td>
-                        <td>{{ lineupNames(entry.query.data.lineup) }}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row" class="pr-3 font-medium">Gira</th>
-                        <td class="pr-3">
-                          {{
-                            conflict.snapshot.type === "tour"
-                              ? `${conflict.snapshot.name ?? "Nombre no enviado"}${conflict.snapshot.tourId ? ` · UUID ${conflict.snapshot.tourId}` : " · UUID sin confirmar"}`
-                              : (conflict.snapshot.tourId ?? "No enviada")
-                          }}
-                        </td>
-                        <td>{{ eventTour(entry.query.data.tourId) }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <p class="text-gray-700 dark:text-gray-200">
-                  Comparación informativa:
+                <p v-if="entry.status === 'candidate'" class="font-medium">Posible concierto</p>
+                <p class="font-medium">
                   {{
-                    comparisonLabel(
-                      dateRange(conflict.snapshot.startDate, conflict.snapshot.endDate),
-                      comparableEventDateRange(entry.query.data)
-                    )
+                    eventSummary(entry.query.data).join(" · ") || "Concierto sin datos descriptivos"
                   }}
-                  para fecha,
-                  {{
-                    comparisonLabel(conflict.snapshot.city, entry.query.data.venue?.locality?.name)
-                  }}
-                  para ciudad y
-                  {{ comparisonLabel(conflict.snapshot.venue, entry.query.data.venue?.name) }} para
-                  recinto. Igualdad textual no confirma identidad del evento.
                 </p>
-                <p v-if="entry.query.data.venue?.locality?.province">
-                  Provincia del evento: {{ entry.query.data.venue.locality.province }}. Provincia
-                  del snapshot: {{ conflict.snapshot.province ?? "No enviada" }}.
+                <div v-if="entry.query.data.lineup" class="space-y-1">
+                  <p>
+                    <span class="font-semibold">Ya participan:</span>
+                    {{
+                      entry.query.data.lineup.map(({ name }) => name).join(" · ") ||
+                      "Todavía no hay artistas"
+                    }}
+                  </p>
+                </div>
+                <p v-if="conflict.addableArtists.length">
+                  <span class="font-semibold">Añadir:</span>
+                  {{ conflict.addableArtists.map(({ name }) => name).join(" · ") }}
                 </p>
               </template>
-              <p v-else role="status">Detalle del evento todavía no consultado.</p>
+              <p v-else role="status">Los datos del concierto todavía no se han consultado.</p>
             </article>
-          </section>
-          <p v-else class="text-gray-700 dark:text-gray-200">
-            No se puede preparar una ampliación: el backend no devolvió un evento identificado ni
-            candidatos.
+          </template>
+          <p v-else-if="conflict.status === 'current'" role="status">
+            No hay un concierto identificado con la información disponible.
           </p>
-
-          <section
-            v-if="conflict.matchingArtists.length || conflict.addableArtists.length"
-            class="space-y-1"
-          >
-            <h4 class="font-semibold">Artistas según el motor de conflictos</h4>
-            <p v-if="conflict.matchingArtists.length">
-              Artistas que el motor de conflictos clasifica como coincidentes:
-              <span
-                v-for="(artist, artistIndex) in conflict.matchingArtists"
-                :key="`${artist.artistId}-${artist.name}`"
-              >
-                {{ artistIndex ? " · " : "" }}{{ artist.name
-                }}<template v-if="artist.artistId"> (UUID {{ artist.artistId }})</template
-                ><template v-else> (coincidencia textual; UUID no confirmado)</template>
-              </span>
-            </p>
-            <p v-if="conflict.addableArtists.length">
-              Artistas que el backend clasifica como adicionales:
-              <span
-                v-for="(artist, artistIndex) in conflict.addableArtists"
-                :key="`${artist.artistId}-${artist.name}`"
-              >
-                {{ artistIndex ? " · " : "" }}{{ artist.name
-                }}<template v-if="artist.artistId"> ({{ artist.artistId }})</template
-                ><template v-else> (identidad por UUID no confirmada)</template>
-              </span>
-            </p>
-            <p>Esta clasificación no modifica el evento ni autoriza una ampliación de lineup.</p>
-          </section>
-
-          <p
-            v-if="
-              !conflict.eventReferences.length &&
-              !conflict.matchingArtists.length &&
-              !conflict.addableArtists.length
-            "
-            class="text-gray-700 dark:text-gray-200"
-          >
-            El resultado no incluye detalle de evento ni datos estructurados de artistas.
-          </p>
-          <div v-if="canReviewLineupExpansion(conflict)" class="space-y-2">
-            <button
-              type="button"
-              class="min-h-9 rounded-md border border-rv-purple px-3 font-semibold text-rv-purple underline-offset-2 hover:bg-rv-purple/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:text-purple-200"
-              :aria-expanded="reviewIdentity === reviewKey(conflict)"
-              :aria-controls="`lineup-expansion-review-${conflict.operationRowId}-${index}`"
-              @click="openExpansionReview(conflict)"
-            >
-              {{
-                reviewIdentity === reviewKey(conflict)
-                  ? "Cerrar revisión de lineup"
-                  : "Revisar ampliación de lineup"
-              }}
-            </button>
-            <EventLineupExpansionReview
-              v-if="reviewIdentity === reviewKey(conflict)"
-              :id="`lineup-expansion-review-${conflict.operationRowId}-${index}`"
-              :conflict="conflict"
-              :prepare="(selectedEventId) => prepareLineupExpansion(conflict, selectedEventId)"
-              :get-confirmation="() => getExpansionConfirmation(conflict)"
-              :set-confirmation="(signature) => setExpansionConfirmation(conflict, signature)"
-              :get-selection="() => getExpansionSelection(conflict)"
-              :set-selection="(eventId) => setExpansionSelection(conflict, eventId)"
-              :get-execution="() => getExpansionExecution(conflict)"
-              :execute="
-                (expandedConflict, signature) =>
-                  emit('executeExpansion', expandedConflict, signature)
-              "
-            />
-          </div>
         </li>
       </ul>
     </div>

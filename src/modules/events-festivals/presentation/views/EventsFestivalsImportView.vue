@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { useQueryClient } from "@tanstack/vue-query";
 import { computed, nextTick, shallowRef, watch } from "vue";
+import { useAuthStore } from "@/modules/identity/auth";
 import EventImportTable from "../components/EventImportTable.vue";
 import EventImportCountrySelector from "../components/EventImportCountrySelector.vue";
-import { useEventImportRows } from "../../application/useEventImportRows";
+import { useEventImportRows, type EventImportRow } from "../../application/useEventImportRows";
 import { useEventImportGeography } from "../../application/useEventImportGeography";
 import {
   createEventImportPreparer,
@@ -41,8 +42,12 @@ import {
 } from "../../application/eventLineupExpansionReconciliation";
 import { lineupExpansionConfirmationSignature } from "../../application/eventLineupExpansionPreparation";
 import type { EventLineupExpansionResponse } from "../../api/eventLineupExpansion";
+import { useEventImportSession } from "../../application/useEventImportSession";
+import { createEventImportSessionPayload } from "../../application/eventImportSessionPayload";
+import { EVENT_IMPORT_SESSION_FORMAT_VERSION } from "../../infrastructure/eventImportSessionStorage";
 
 const queryClient = useQueryClient();
+const auth = useAuthStore();
 const eventImport = useEventImportRows(queryClient);
 const { rows, lineupStates, geographyStates, tourStates, addRow, removeRow } = eventImport;
 const geography = useEventImportGeography(eventImport.invalidateGeographicAssociations);
@@ -86,10 +91,491 @@ const expansionHistory = shallowRef<
     operationKey: string;
     rowKey: string;
     eventId: string;
+    startDate: string;
     result: EventLineupExpansionResponse;
     reconciliation: "removed" | "kept" | "already-handled";
   }>
 >([]);
+const session = useEventImportSession();
+const recoverySession = shallowRef<unknown | null>(null);
+const recoveryError = shallowRef("");
+const identityReady = shallowRef(false);
+const criticalStorageError = shallowRef("");
+const protectedSnapshots = shallowRef<NonNullable<ImportPreparation["snapshot"]>[]>([]);
+const pendingSnapshotBatchIds = shallowRef<Set<string>>(new Set());
+const protectedExpansionSnapshots = shallowRef<
+  Record<
+    string,
+    import("../../application/eventLineupExpansionPreparation").LineupExpansionSnapshot
+  >
+>({});
+const sessionOwnerId = computed(() =>
+  auth.authStatus === "authenticated" && auth.userId && isUuid(auth.userId) ? auth.userId : null
+);
+const previousSessionOwnerId = shallowRef<string | null>(null);
+const saveStatusLabel = computed(
+  () =>
+    ({
+      saved: "Guardado",
+      dirty: "Cambios pendientes",
+      saving: "Guardando…",
+      error: "Error al guardar",
+    })[session.status.value]
+);
+const lastSavedLabel = computed(() =>
+  session.lastSavedAt.value ? new Date(session.lastSavedAt.value).toLocaleString("es-ES") : ""
+);
+const recoveryStats = computed(() => {
+  const payload = session.storedSession.value?.payload;
+  if (!isRecoverablePayload(payload)) return null;
+  return {
+    rows: payload.rows.length,
+    uncertain:
+      (Array.isArray(payload.uncertainSnapshots) ? payload.uncertainSnapshots.length : 0) +
+      (isRecord(payload.protectedExpansionSnapshots)
+        ? Object.keys(payload.protectedExpansionSnapshots).length
+        : 0),
+  };
+});
+
+function rowHasDraftContent(row: (typeof rows.value)[number]): boolean {
+  const lineupState = lineupStates[row.id];
+  return Boolean(
+    row.event.trim() ||
+    row.lineup.length ||
+    lineupState?.draft.trim() ||
+    row.startDateDraft.trim() ||
+    row.endDateDraft.trim() ||
+    row.city.trim() ||
+    row.province.trim() ||
+    row.venue.name.trim() ||
+    row.price.trim() ||
+    row.otherInfo.trim() ||
+    row.administrativeRegionId ||
+    row.type !== "concert"
+  );
+}
+
+function sessionPayload() {
+  return createEventImportSessionPayload({
+    countryId: geography.selectedCountryId.value,
+    rows: rows.value,
+    lineupStates: Object.fromEntries(
+      rows.value.map(({ id }) => [id, { draft: lineupStates[id]?.draft ?? "" }])
+    ),
+    tourStates: Object.fromEntries(
+      rows.value.map(({ id }) => [
+        id,
+        {
+          confirmedTourId: tourStates[id]?.confirmedTourId ?? null,
+          selectedCandidateId: tourStates[id]?.selectedCandidateId ?? null,
+        },
+      ])
+    ),
+    uncertainSnapshots: protectedSnapshots.value,
+    createdDrafts: createdDrafts.value,
+    appliedExpansionsByRow: appliedExpansionsByRow.value,
+    protectedExpansionSnapshots: protectedExpansionSnapshots.value,
+    conflictOperation: conflictOperation.value,
+    lastImport: lastImport.value,
+  });
+}
+
+function sessionHasWork(): boolean {
+  return (
+    rows.value.some(rowHasDraftContent) ||
+    protectedSnapshots.value.length > 0 ||
+    Object.keys(createdDrafts.value).length > 0 ||
+    Object.keys(appliedExpansionsByRow.value).length > 0 ||
+    Object.keys(protectedExpansionSnapshots.value).length > 0
+  );
+}
+
+session.configure(sessionPayload, sessionHasWork);
+session.startAutosave();
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    Object.values(value).forEach(deepFreeze);
+  }
+  return value;
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
+}
+
+function isValidImportRow(value: unknown): value is EventImportRow {
+  if (!isRecord(value) || !/^event-row-[1-9]\d*$/u.test(String(value.id))) return false;
+  if (!["concert", "festival", "tour"].includes(String(value.type))) return false;
+  if (
+    !["event", "price", "otherInfo", "city", "province", "startDateDraft", "endDateDraft"].every(
+      (key) => typeof value[key] === "string"
+    )
+  )
+    return false;
+  if (
+    !["startDate", "endDate"].every((key) => value[key] === null || typeof value[key] === "string")
+  )
+    return false;
+  if (!isRecord(value.venue) || typeof value.venue.name !== "string") return false;
+  if (
+    ![value.venue.venueId, value.venue.localityId, value.administrativeRegionId].every(
+      (id) => id === null || (typeof id === "string" && isUuid(id))
+    )
+  )
+    return false;
+  if (!Array.isArray(value.lineup)) return false;
+  return value.lineup.every(
+    (item) =>
+      isRecord(item) &&
+      /^lineup-item-[1-9]\d*$/u.test(String(item.key)) &&
+      typeof item.name === "string" &&
+      (item.artistId === null || (typeof item.artistId === "string" && isUuid(item.artistId)))
+  );
+}
+
+function isValidImportSnapshot(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    isUuid(String(value.batchId)) &&
+    isUuid(String(value.countryId)) &&
+    isRecord(value.payload) &&
+    value.payload.batchId === value.batchId &&
+    Array.isArray(value.rows) &&
+    value.rows.length > 0 &&
+    value.rows.length <= 100 &&
+    value.rows.every(
+      (row) =>
+        isRecord(row) &&
+        typeof row.rowKey === "string" &&
+        isUuid(String(row.operationRowId)) &&
+        Number.isInteger(row.revision) &&
+        isRecord(row.dto) &&
+        row.dto.rowId === row.operationRowId
+    ) &&
+    Array.isArray(value.payload.rows) &&
+    value.payload.rows.length === value.rows.length &&
+    value.rows.every((row, index) => {
+      const dto = value.payload.rows[index];
+      return isRecord(dto) && dto.rowId === row.operationRowId;
+    })
+  );
+}
+
+function isValidExpansionSnapshot(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    value.kind === "event-lineup-expansion" &&
+    isUuid(String(value.eventId)) &&
+    isRecord(value.operation) &&
+    isUuid(String(value.operation.batchId)) &&
+    isUuid(String(value.operation.rowId)) &&
+    isRecord(value.payload) &&
+    value.payload.batchId === value.operation.batchId &&
+    value.payload.rowId === value.operation.rowId &&
+    isRecord(value.payload.sourceRow) &&
+    isRecord(value.correlation) &&
+    value.payload.sourceRow.rowId === value.operation.rowId &&
+    typeof value.correlation.sourceRowKey === "string" &&
+    isUuid(String(value.correlation.sourceOperationRowId)) &&
+    isUuid(String(value.correlation.sourceBatchId)) &&
+    isRecord(value.correlation.sourceSnapshot) &&
+    Array.isArray(value.payload.artists) &&
+    value.payload.artists.length > 0 &&
+    value.payload.artists.length <= 100 &&
+    value.payload.artists.every(
+      (artist) =>
+        isRecord(artist) &&
+        typeof artist.name === "string" &&
+        (artist.artistId === undefined || isUuid(String(artist.artistId)))
+    )
+  );
+}
+
+function isRecoverablePayload(value: unknown): value is ReturnType<typeof sessionPayload> {
+  if (
+    !isRecord(value) ||
+    (value.countryId !== "" && (typeof value.countryId !== "string" || !isUuid(value.countryId))) ||
+    !Array.isArray(value.rows)
+  )
+    return false;
+  const rowIds = new Set<string>();
+  const lineupKeys = new Set<string>();
+  const validRows = value.rows.every((row) => {
+    if (!isValidImportRow(row) || rowIds.has(row.id)) return false;
+    rowIds.add(row.id);
+    for (const item of row.lineup) {
+      if (lineupKeys.has(item.key)) return false;
+      lineupKeys.add(item.key);
+    }
+    return true;
+  });
+  const validLineupStates =
+    isRecord(value.lineupStates) &&
+    Object.values(value.lineupStates).every(
+      (state) => isRecord(state) && typeof state.draft === "string"
+    );
+  const validTourStates =
+    isRecord(value.tourStates) &&
+    Object.values(value.tourStates).every(
+      (state) =>
+        isRecord(state) &&
+        [state.confirmedTourId, state.selectedCandidateId].every(
+          (id) => id === null || (typeof id === "string" && isUuid(id))
+        )
+    );
+  const validCreatedDrafts =
+    isRecord(value.createdDrafts) &&
+    Object.values(value.createdDrafts).every(
+      (draft) =>
+        isRecord(draft) && isUuid(String(draft.eventId)) && isUuid(String(draft.operationRowId))
+    );
+  const validAppliedExpansions =
+    isRecord(value.appliedExpansionsByRow) &&
+    Object.values(value.appliedExpansionsByRow).every(
+      (applied) =>
+        isRecord(applied) &&
+        isUuid(String(applied.eventId)) &&
+        typeof applied.operationKey === "string"
+    );
+  return (
+    validRows &&
+    validLineupStates &&
+    validTourStates &&
+    Array.isArray(value.uncertainSnapshots) &&
+    value.uncertainSnapshots.every(isValidImportSnapshot) &&
+    validCreatedDrafts &&
+    validAppliedExpansions &&
+    isRecord(value.protectedExpansionSnapshots) &&
+    Object.values(value.protectedExpansionSnapshots).every(isValidExpansionSnapshot) &&
+    (value.conflictOperation === null || isRecord(value.conflictOperation)) &&
+    (value.lastImport === null || isRecord(value.lastImport))
+  );
+}
+
+function payloadHasRecoverableWork(payload: ReturnType<typeof sessionPayload>): boolean {
+  return (
+    payload.rows.some(rowHasDraftContent) ||
+    payload.uncertainSnapshots.length > 0 ||
+    Object.keys(payload.createdDrafts).length > 0 ||
+    Object.keys(payload.appliedExpansionsByRow).length > 0 ||
+    Object.keys(payload.protectedExpansionSnapshots).length > 0
+  );
+}
+
+watch(
+  () => [
+    rows.value,
+    rows.value.map(({ id }) => lineupStates[id]?.draft ?? ""),
+    rows.value.map(({ id }) => tourStates[id]?.confirmedTourId ?? null),
+    geography.selectedCountryId.value,
+    protectedSnapshots.value,
+    createdDrafts.value,
+    appliedExpansionsByRow.value,
+    protectedExpansionSnapshots.value,
+    conflictOperation.value,
+    lastImport.value,
+  ],
+  () => {
+    if (identityReady.value) session.markDirty();
+  },
+  { deep: true }
+);
+
+watch(
+  sessionOwnerId,
+  async (ownerId) => {
+    const shouldClearPreviousAccount =
+      previousSessionOwnerId.value !== null && previousSessionOwnerId.value !== ownerId;
+    previousSessionOwnerId.value = ownerId;
+    identityReady.value = false;
+    recoverySession.value = null;
+    recoveryError.value = "";
+    if (shouldClearPreviousAccount) {
+      eventImport.resetRows();
+      geography.selectedCountryId.value = "";
+      uncertainSnapshots.value = [];
+      protectedSnapshots.value = [];
+      pendingSnapshotBatchIds.value = new Set();
+      protectedExpansionSnapshots.value = {};
+      createdDrafts.value = {};
+      appliedExpansionsByRow.value = {};
+      conflictOperation.value = null;
+      lastImport.value = null;
+      expansionHistory.value = [];
+      expansionExecutions.value = {};
+      handledOperations.clear();
+      handledOperationOrder.splice(0);
+      handledExpansionOperations.clear();
+    }
+    if (!ownerId) {
+      session.changeOwner(null);
+      return;
+    }
+    session.changeOwner(ownerId);
+    try {
+      const saved = await session.load(ownerId);
+      if (sessionOwnerId.value !== ownerId) return;
+      if (saved) {
+        if (saved.formatVersion !== EVENT_IMPORT_SESSION_FORMAT_VERSION) {
+          recoveryError.value =
+            "El borrador se creó con otra versión y no se puede restaurar. Puedes descartarlo.";
+          recoverySession.value = saved;
+        } else if (!isRecoverablePayload(saved.payload)) {
+          recoveryError.value =
+            "El borrador local no supera la validación. No se ha restaurado y puedes descartarlo.";
+          recoverySession.value = saved;
+        } else if (payloadHasRecoverableWork(saved.payload)) {
+          recoverySession.value = saved;
+        }
+      } else if (shouldClearPreviousAccount) {
+        if (!geography.countryOptions.value.length) await geography.countriesQuery.refetch();
+        if (sessionOwnerId.value !== ownerId) return;
+        const defaultCountry = geography.countryOptions.value.find(
+          ({ isoCode }) => isoCode === "ES"
+        );
+        if (defaultCountry) geography.restoreCountry(defaultCountry.id);
+      }
+    } catch {
+      recoveryError.value =
+        "No se pudo leer el borrador local. Los datos no se han eliminado; puedes reintentar desde el indicador de guardado.";
+    } finally {
+      if (sessionOwnerId.value === ownerId) {
+        identityReady.value = true;
+        if (sessionHasWork()) session.markDirty();
+      }
+    }
+  },
+  { immediate: true }
+);
+
+async function recoverSession() {
+  const saved = session.storedSession.value;
+  if (
+    !saved ||
+    saved.formatVersion !== EVENT_IMPORT_SESSION_FORMAT_VERSION ||
+    !isRecoverablePayload(saved.payload)
+  )
+    return;
+  const payload = saved.payload;
+  if (geography.countriesQuery.isPending.value) await geography.countriesQuery.refetch();
+  if (sessionOwnerId.value !== saved.ownerId) return;
+  if (payload.countryId && !geography.restoreCountry(payload.countryId)) {
+    recoveryError.value =
+      "El país del borrador ya no está disponible en el catálogo. No se ha restaurado para evitar resolver entidades con otro país.";
+    return;
+  }
+  eventImport.restoreRows(
+    payload.rows as typeof rows.value,
+    (payload.lineupStates ?? {}) as typeof lineupStates,
+    (payload.tourStates ?? {}) as typeof tourStates
+  );
+  protectedSnapshots.value = Array.isArray(payload.uncertainSnapshots)
+    ? (payload.uncertainSnapshots.map((snapshot) =>
+        deepFreeze(snapshot)
+      ) as typeof protectedSnapshots.value)
+    : [];
+  uncertainSnapshots.value = protectedSnapshots.value;
+  createdDrafts.value = isRecord(payload.createdDrafts)
+    ? (payload.createdDrafts as typeof createdDrafts.value)
+    : {};
+  appliedExpansionsByRow.value = isRecord(payload.appliedExpansionsByRow)
+    ? (payload.appliedExpansionsByRow as typeof appliedExpansionsByRow.value)
+    : {};
+  protectedExpansionSnapshots.value = isRecord(payload.protectedExpansionSnapshots)
+    ? (Object.fromEntries(
+        Object.entries(payload.protectedExpansionSnapshots).map(([key, snapshot]) => [
+          key,
+          deepFreeze(snapshot),
+        ])
+      ) as typeof protectedExpansionSnapshots.value)
+    : {};
+  conflictOperation.value = isRecord(payload.conflictOperation)
+    ? (payload.conflictOperation as typeof conflictOperation.value)
+    : null;
+  lastImport.value = isRecord(payload.lastImport)
+    ? (payload.lastImport as typeof lastImport.value)
+    : null;
+  recoverySession.value = null;
+  recoveryError.value = "";
+  session.markDirty();
+}
+
+async function retryStorageRead() {
+  const ownerId = sessionOwnerId.value;
+  if (!ownerId) return;
+  try {
+    const saved = await session.load(ownerId);
+    if (sessionOwnerId.value !== ownerId) return;
+    recoveryError.value = "";
+    if (saved) {
+      recoverySession.value = saved;
+      if (saved.formatVersion !== EVENT_IMPORT_SESSION_FORMAT_VERSION) {
+        recoveryError.value =
+          "El borrador se creó con otra versión y no se puede restaurar. Puedes descartarlo.";
+      } else if (!isRecoverablePayload(saved.payload)) {
+        recoveryError.value =
+          "El borrador local no supera la validación. No se ha restaurado y puedes descartarlo.";
+      } else if (!payloadHasRecoverableWork(saved.payload)) {
+        recoverySession.value = null;
+      }
+    }
+  } catch {
+    recoveryError.value = "No se pudo leer el borrador local. No se han eliminado datos.";
+  }
+}
+
+async function discardSession() {
+  const saved = session.storedSession.value;
+  const operationOwner = sessionOwnerId.value;
+  if (!saved || !operationOwner || saved.ownerId !== operationOwner) return;
+  const hasUncertain =
+    protectedSnapshots.value.length > 0 ||
+    Object.keys(protectedExpansionSnapshots.value).length > 0 ||
+    (isRecoverablePayload(saved.payload) &&
+      ((saved.payload.uncertainSnapshots?.length ?? 0) > 0 ||
+        Object.keys(saved.payload.protectedExpansionSnapshots).length > 0));
+  const result = await SwalService.confirm(
+    "¿Descartar la sesión local?",
+    `Se eliminarán los borradores locales. Los eventos ya guardados no se eliminarán.${hasUncertain ? " Una operación puede haberse completado; al descartar el borrador ya no podrás comprobar su resultado." : ""}`,
+    "Descartar sesión",
+    "Cancelar"
+  );
+  if (!result.isConfirmed) return;
+  if (sessionOwnerId.value !== operationOwner) return;
+  await session.discard(saved.ownerId);
+  recoverySession.value = null;
+  recoveryError.value = "";
+  eventImport.resetRows();
+  uncertainSnapshots.value = [];
+  protectedSnapshots.value = [];
+  createdDrafts.value = {};
+  appliedExpansionsByRow.value = {};
+  protectedExpansionSnapshots.value = {};
+}
+
+function retrySessionSave() {
+  if (!identityReady.value) {
+    criticalStorageError.value =
+      "Espera a que termine la comprobación del borrador local antes de guardar.";
+    return;
+  }
+  void session
+    .saveNow()
+    .then(() => {
+      criticalStorageError.value = "";
+    })
+    .catch(() => {
+      criticalStorageError.value =
+        "El almacenamiento local sigue sin responder. El borrador permanece en memoria y la operación crítica no se enviará.";
+    });
+}
 const expansionExecutionCounts = computed(() => {
   const executions = Object.values(expansionExecutions.value);
   return {
@@ -204,6 +690,12 @@ function prepareLineupExpansion(
 
 function canReviewLineupExpansion(conflict: EventImportConflictPresentation): boolean {
   if (
+    Object.values(protectedExpansionSnapshots.value).some(
+      (snapshot) => snapshot.correlation.sourceRowKey === conflict.rowKey
+    )
+  )
+    return false;
+  if (
     conflict.status !== "current" ||
     (!conflict.existingEventIds.length && !conflict.candidateEventIds.length) ||
     !conflict.matchingArtists.length
@@ -237,6 +729,8 @@ async function executeConfirmedExpansion(
   conflict: EventImportConflictPresentation,
   confirmationSignature: string
 ) {
+  const operationOwner = sessionOwnerId.value;
+  if (!identityReady.value || !operationOwner) return;
   const uiKey = expansionExecutionKey(conflict);
   if (expansionMutation.isPending.value || getExpansionExecution(conflict)?.state === "sending")
     return;
@@ -317,6 +811,7 @@ async function executeConfirmedExpansion(
       ...existingEventDetailQueryOptions(snapshot.eventId),
       staleTime: 0,
     });
+    if (sessionOwnerId.value !== operationOwner) return;
     const freshSignature = lineupExpansionConfirmationSignature(
       snapshot,
       currentConflict,
@@ -339,13 +834,13 @@ async function executeConfirmedExpansion(
       return;
     }
   } catch {
+    if (sessionOwnerId.value !== operationOwner) return;
     expansionExecutions.value = {
       ...expansionExecutions.value,
       [uiKey]: {
         state: "failed",
         operationKey,
-        message:
-          "No se pudo revalidar el evento antes del envío. No se envió la ampliación; puedes reintentar tras revisar la conexión.",
+        message: "No se pudo completar la operación. Comprueba la conexión y vuelve a intentarlo.",
       },
     };
     return;
@@ -358,8 +853,29 @@ async function executeConfirmedExpansion(
       : authorizeLineupExpansion(snapshot, confirmationSignature);
   expansionAuthorizations.value = { ...expansionAuthorizations.value, [uiKey]: authorization };
   expansionExecutions.value = { ...expansionExecutions.value, [uiKey]: { state: "sending" } };
+  protectedExpansionSnapshots.value = {
+    ...protectedExpansionSnapshots.value,
+    [operationKey]: snapshot,
+  };
+  try {
+    await session.saveNow();
+    if (sessionOwnerId.value !== operationOwner) return;
+    criticalStorageError.value = "";
+  } catch {
+    expansionExecutions.value = {
+      ...expansionExecutions.value,
+      [uiKey]: {
+        state: "failed",
+        operationKey,
+        message: "No se pudo guardar la propuesta. Reintenta el guardado antes de continuar.",
+      },
+    };
+    criticalStorageError.value = "No se pudo guardar la propuesta. La operación no se ha enviado.";
+    return;
+  }
   try {
     const response = await expansionMutation.mutateAsync(authorization);
+    if (sessionOwnerId.value !== operationOwner) return;
     const reconciliation = reconcileLineupExpansionResult(
       snapshot,
       response,
@@ -398,6 +914,7 @@ async function executeConfirmedExpansion(
           operationKey,
           rowKey: reconciliation.rowKey,
           eventId: response.eventId,
+          startDate: snapshot.payload.sourceRow.startDate,
           result: response,
           reconciliation: reconciliation.action,
         },
@@ -411,8 +928,13 @@ async function executeConfirmedExpansion(
         reconciliation: reconciliation.action,
       },
     };
+    const remainingProtected = { ...protectedExpansionSnapshots.value };
+    delete remainingProtected[operationKey];
+    protectedExpansionSnapshots.value = remainingProtected;
     refreshPreparation();
+    await session.saveNow().catch(() => undefined);
   } catch (error) {
+    if (sessionOwnerId.value !== operationOwner) return;
     const failureKind = lineupExpansionFailureKind(error);
     expansionExecutions.value = {
       ...expansionExecutions.value,
@@ -420,8 +942,88 @@ async function executeConfirmedExpansion(
         state: failureKind === "global" ? "failed" : failureKind,
         operationKey,
         message: lineupExpansionErrorMessage(error),
+        technicalDetail: error,
       },
     };
+    if (failureKind !== "uncertain") {
+      const remainingProtected = { ...protectedExpansionSnapshots.value };
+      delete remainingProtected[operationKey];
+      protectedExpansionSnapshots.value = remainingProtected;
+    } else void session.saveNow().catch(() => undefined);
+  }
+}
+
+async function retryRecoveredExpansion(
+  snapshot: import("../../application/eventLineupExpansionPreparation").LineupExpansionSnapshot
+) {
+  const operationOwner = sessionOwnerId.value;
+  if (!operationOwner || !identityReady.value) return;
+  const operationKey = lineupExpansionOperationKey(snapshot);
+  if (
+    !Object.values(protectedExpansionSnapshots.value).some(
+      (item) => lineupExpansionOperationKey(item) === operationKey
+    ) ||
+    expansionMutation.isPending.value
+  )
+    return;
+  const confirmation = await SwalService.confirm(
+    "Reintentar ampliación incierta",
+    `Se volverá a intentar añadir ${snapshot.payload.artists.map(({ name }) => name).join(", ")} al concierto del ${formatImportDate(snapshot.payload.sourceRow.startDate)}. Puede que la operación ya se haya completado.`,
+    "Reintentar operación",
+    "Cancelar"
+  );
+  if (!confirmation.isConfirmed) return;
+  try {
+    await session.saveNow();
+    if (sessionOwnerId.value !== operationOwner) return;
+  } catch {
+    if (sessionOwnerId.value !== operationOwner) return;
+    criticalStorageError.value =
+      "No se pudo asegurar el guardado local, así que la operación no se ha enviado.";
+    return;
+  }
+  try {
+    const response = await expansionMutation.mutateAsync(
+      authorizeLineupExpansion(snapshot, `restored-retry:${operationKey}`)
+    );
+    if (sessionOwnerId.value !== operationOwner) return;
+    const reconciliation = reconcileLineupExpansionResult(
+      snapshot,
+      response,
+      () => false,
+      (rowKey) => rows.value.some(({ id }) => id === rowKey),
+      handledExpansionOperations
+    );
+    if (reconciliation.rowPresent) {
+      appliedExpansionsByRow.value = {
+        ...appliedExpansionsByRow.value,
+        [reconciliation.rowKey]: { eventId: response.eventId, operationKey },
+      };
+    }
+    expansionHistory.value = [
+      ...expansionHistory.value,
+      {
+        operationKey,
+        rowKey: reconciliation.rowKey,
+        eventId: response.eventId,
+        result: response,
+        reconciliation: reconciliation.rowPresent ? "kept" : "already-handled",
+      },
+    ];
+    const remaining = { ...protectedExpansionSnapshots.value };
+    delete remaining[operationKey];
+    protectedExpansionSnapshots.value = remaining;
+    await session.saveNow().catch(() => undefined);
+  } catch (error) {
+    if (sessionOwnerId.value !== operationOwner) return;
+    if (lineupExpansionFailureKind(error) === "uncertain")
+      await session.saveNow().catch(() => undefined);
+    else {
+      const remaining = { ...protectedExpansionSnapshots.value };
+      delete remaining[operationKey];
+      protectedExpansionSnapshots.value = remaining;
+      await session.saveNow().catch(() => undefined);
+    }
   }
 }
 
@@ -452,15 +1054,15 @@ const rowProblems = computed(() => {
 
     if (createdDrafts.value[row.id]) {
       problems[row.id] = {
-        label: `El evento ya existe (ID ${createdDrafts.value[row.id]!.eventId}); este borrador posterior no se puede importar como evento nuevo.`,
+        label: "Este evento ya se creó. Revisa el borrador actual antes de continuar.",
         fields: [],
       };
       continue;
     }
     if (appliedExpansionsByRow.value[row.id]) {
-      const applied = appliedExpansionsByRow.value[row.id]!;
       problems[row.id] = {
-        label: `La versión anterior de esta fila ya amplió el evento ${applied.eventId}; este borrador modificado se conserva y queda excluido de nuevas operaciones.`,
+        label:
+          "La fila cambió después de actualizar el lineup. Revisa el borrador antes de continuar.",
         fields: [],
         historical: true,
       };
@@ -473,7 +1075,7 @@ const rowProblems = computed(() => {
     ) {
       problems[row.id] = {
         label:
-          "Operación incierta. El reintento usa el snapshot original; el resultado backend todavía puede incluir la creación del evento.",
+          "No sabemos si la operación terminó. Comprueba el resultado reintentando la misma operación.",
         fields: [],
       };
       continue;
@@ -489,7 +1091,10 @@ const rowProblems = computed(() => {
     if (result?.item.result.status === "invalid" || result?.item.result.status === "failed") {
       const status = result.item.result.status;
       problems[row.id] = {
-        label: `${status === "invalid" ? "Datos rechazados por el backend" : "Falló la importación"}${result.item.result.code ? ` (${result.item.result.code})` : ""}${result.item.result.message ? `: ${result.item.result.message}` : "."}`,
+        label:
+          status === "invalid"
+            ? "Hay información que debes corregir antes de continuar."
+            : "No se pudo completar la operación. Puedes reintentarlo.",
         fields: [],
         historical: !result.current,
       };
@@ -502,56 +1107,70 @@ const rowProblems = computed(() => {
       };
       continue;
     }
-    if (reasons.length) {
+    if (reasons.length && hasRowContent(row.id)) {
       const labels: string[] = [];
       const fields = new Set<string>();
       for (const reason of reasons) {
         if (reason.startsWith("artist-")) {
           const itemKey = reason.split(":")[1];
           const index = row.lineup.findIndex(({ key }) => key === itemKey);
-          fields.add(index >= 0 ? `Lineup, aparición ${index + 1}` : "Lineup");
-          if (reason.includes("ambiguous")) labels.push("Artista pendiente de seleccionar");
-          else if (reason.includes("invalid")) labels.push("Artista inválido");
-          else if (reason.includes("error")) labels.push("Error técnico al resolver Artist");
-          else labels.push("Artist pendiente de resolver");
+          fields.add(
+            index >= 0 ? `Artistas / Lineup, aparición ${index + 1}` : "Artistas / Lineup"
+          );
+          if (reason === "artist-draft-unconfirmed") labels.push("Confirma el artista pendiente");
+          else if (reason.includes("ambiguous")) labels.push("artistas pendientes de seleccionar");
+          else if (reason.includes("invalid")) labels.push("artistas no válidos");
+          else if (reason.includes("error")) labels.push("error al resolver artistas");
+          else labels.push("artistas pendientes de resolver");
+        } else if (reason === "lineup-required") {
+          labels.push("faltan artistas");
+          fields.add("Artistas / Lineup");
         } else if (reason.includes("date") || reason === "end-date-before-start-date") {
-          labels.push("Fecha pendiente de corregir");
+          labels.push(
+            reason === "start-date-invalid"
+              ? row.startDateDraft.trim()
+                ? "fecha de inicio no válida"
+                : "falta fecha de inicio"
+              : reason === "end-date-before-start-date"
+                ? "fecha de fin anterior a la de inicio"
+                : "fecha de fin no válida"
+          );
           fields.add(
             reason === "end-date-before-start-date" || reason.startsWith("start-date")
-              ? "Start Date"
-              : "End Date"
+              ? "Fecha de inicio"
+              : "Fecha de fin"
           );
-          if (reason === "end-date-before-start-date") fields.add("End Date");
+          if (reason === "end-date-before-start-date") fields.add("Fecha de fin");
         } else if (reason.includes("locality-ambiguous")) {
-          labels.push("Locality pendiente de seleccionar");
-          fields.add("City / Province / Locality");
+          labels.push("localidad pendiente de seleccionar");
+          fields.add("Ciudad / Provincia");
         } else if (reason.includes("locality") || reason.includes("administrative-region")) {
-          labels.push("Locality pendiente de completar o corregir");
-          fields.add("City / Province / región administrativa");
+          labels.push("localidad pendiente de completar o corregir");
+          fields.add("Ciudad / Provincia / región administrativa");
         } else if (reason.includes("venue-ambiguous")) {
-          labels.push("Venue pendiente de seleccionar");
-          fields.add("Venue / Locality");
+          labels.push("recinto pendiente de seleccionar");
+          fields.add("Recinto / localidad");
         } else if (reason.includes("venue")) {
-          labels.push("Venue pendiente de corregir o resolver");
-          fields.add("Venue / Locality");
+          labels.push("recinto pendiente de corregir o resolver");
+          fields.add("Recinto / localidad");
         } else if (
           reason.includes("tour-confirmation-required") ||
           reason.includes("tour-ambiguous")
         ) {
-          labels.push("Gira pendiente de confirmar");
-          fields.add("Name / confirmación Tour");
+          labels.push("gira pendiente de confirmar");
+          fields.add("Nombre / confirmación de gira");
         } else if (reason.includes("tour")) {
-          labels.push("Gira pendiente de resolver");
-          fields.add("Name");
+          labels.push("gira pendiente de resolver");
+          fields.add("Nombre de gira");
         } else if (reason === "city-required") {
-          labels.push("Falta un dato obligatorio");
-          fields.add("City");
+          labels.push("falta ciudad");
+          fields.add("Ciudad");
         } else if (reason === "name-required") {
-          labels.push("Falta un dato obligatorio");
-          fields.add("Name");
+          labels.push("falta el nombre del evento");
+          fields.add("Nombre del evento");
         } else if (reason === "country-unavailable") {
-          labels.push("Selecciona un país");
-          fields.add("Country");
+          labels.push("selecciona un país");
+          fields.add("País");
         } else {
           labels.push("Fila pendiente de completar");
         }
@@ -559,9 +1178,14 @@ const rowProblems = computed(() => {
       problems[row.id] = { label: [...new Set(labels)].join("; "), fields: [...fields] };
     } else if (pending?.reasons.includes("batch-limit-exceeded")) {
       problems[row.id] = {
-        label: "Fila pendiente del siguiente lote; se procesan hasta 100 filas por operación.",
+        label: "Fila pendiente de otro envío; el máximo operativo es de 50 filas por operación.",
         fields: [],
       };
+    } else if (
+      hasRowContent(row.id) &&
+      preparation.value.eligibleRows.some(({ rowKey }) => rowKey === row.id)
+    ) {
+      problems[row.id] = { label: "Lista para importar", fields: [] };
     }
   }
   // Preserve historical result context for rows that remain in the editor after an edit.
@@ -606,6 +1230,12 @@ function refreshPreparation() {
       if (rows.value.some((row) => row.id === rowKey)) blockedRows[rowKey] = "operation-uncertain";
     });
   });
+  protectedSnapshots.value.forEach((snapshot) => {
+    snapshot.rows.forEach(({ rowKey }) => {
+      if (rows.value.some((row) => row.id === rowKey))
+        blockedRows[rowKey] = "operation-snapshot-protected";
+    });
+  });
   preparation.value = preparer.prepare({ ...currentInput(), blockedRows });
 }
 
@@ -616,8 +1246,37 @@ watch(
 );
 
 async function sendSnapshot(snapshot: NonNullable<ImportPreparation["snapshot"]>) {
+  if (pendingSnapshotBatchIds.value.has(snapshot.batchId)) return;
+  const operationOwner = sessionOwnerId.value;
+  pendingSnapshotBatchIds.value = new Set([...pendingSnapshotBatchIds.value, snapshot.batchId]);
+  if (!identityReady.value || !operationOwner) {
+    criticalStorageError.value =
+      "Espera a que termine la comprobación del borrador local antes de enviar.";
+    const pending = new Set(pendingSnapshotBatchIds.value);
+    pending.delete(snapshot.batchId);
+    pendingSnapshotBatchIds.value = pending;
+    return;
+  }
+  const isRetry = protectedSnapshots.value.some((item) => item.batchId === snapshot.batchId);
+  if (!isRetry) protectedSnapshots.value = [...protectedSnapshots.value, snapshot];
+  refreshPreparation();
+  try {
+    await session.saveNow();
+    if (sessionOwnerId.value !== operationOwner) return;
+    criticalStorageError.value = "";
+  } catch {
+    if (sessionOwnerId.value !== operationOwner) return;
+    criticalStorageError.value =
+      "No se pudo guardar la propuesta, así que la importación no se ha enviado.";
+    refreshPreparation();
+    const pending = new Set(pendingSnapshotBatchIds.value);
+    pending.delete(snapshot.batchId);
+    pendingSnapshotBatchIds.value = pending;
+    return;
+  }
   try {
     const response = await batchMutation.mutateAsync(snapshot);
+    if (sessionOwnerId.value !== operationOwner) return;
     const reconciliation = reconcileEventImportResults(
       snapshot,
       response,
@@ -655,15 +1314,38 @@ async function sendSnapshot(snapshot: NonNullable<ImportPreparation["snapshot"]>
     uncertainSnapshots.value = uncertainSnapshots.value.filter(
       (pending) => pending.batchId !== snapshot.batchId
     );
+    protectedSnapshots.value = protectedSnapshots.value.filter(
+      (pending) => pending.batchId !== snapshot.batchId
+    );
     refreshPreparation();
+    await session.saveNow().catch(() => undefined);
+    const pending = new Set(pendingSnapshotBatchIds.value);
+    pending.delete(snapshot.batchId);
+    pendingSnapshotBatchIds.value = pending;
   } catch (error) {
+    if (sessionOwnerId.value !== operationOwner) return;
     if (
       eventImportErrorCanRetry(error) &&
       !uncertainSnapshots.value.some((pending) => pending.batchId === snapshot.batchId)
     ) {
       uncertainSnapshots.value = [...uncertainSnapshots.value, snapshot];
     }
+    if (eventImportErrorCanRetry(error)) {
+      protectedSnapshots.value = protectedSnapshots.value.some(
+        ({ batchId }) => batchId === snapshot.batchId
+      )
+        ? protectedSnapshots.value
+        : [...protectedSnapshots.value, snapshot];
+    } else {
+      protectedSnapshots.value = protectedSnapshots.value.filter(
+        ({ batchId }) => batchId !== snapshot.batchId
+      );
+    }
     refreshPreparation();
+    await session.saveNow().catch(() => undefined);
+    const pending = new Set(pendingSnapshotBatchIds.value);
+    pending.delete(snapshot.batchId);
+    pendingSnapshotBatchIds.value = pending;
   }
 }
 
@@ -688,6 +1370,11 @@ function pruneRemovedCreatedDrafts() {
     createdDrafts.value = next;
     refreshPreparation();
   }
+  appliedExpansionsByRow.value = Object.fromEntries(
+    Object.entries(appliedExpansionsByRow.value).filter(([rowKey]) =>
+      rows.value.some((row) => row.id === rowKey)
+    )
+  );
 }
 
 function hasRowContent(rowKey: string): boolean {
@@ -734,6 +1421,8 @@ watch(
 
 async function discardRows(requestedKeys: readonly string[]) {
   if (discardInProgress.value) return;
+  const operationOwner = sessionOwnerId.value;
+  if (!operationOwner) return;
   discardInProgress.value = true;
   const rowKeys = [...new Set(requestedKeys)].filter((key) =>
     rows.value.some(({ id }) => id === key)
@@ -758,7 +1447,7 @@ async function discardRows(requestedKeys: readonly string[]) {
         ? "El evento creado seguirá existiendo; solo se retirará el borrador local."
         : "",
       uncertainCount
-        ? "El resultado backend es incierto y podría haberse creado el evento; se conservará el snapshot para reintentar la misma operación."
+        ? "El resultado todavía no está confirmado. Si descartas la fila, ya no podrás comprobarlo desde aquí."
         : "",
     ]
       .filter(Boolean)
@@ -774,12 +1463,17 @@ async function discardRows(requestedKeys: readonly string[]) {
       return;
     }
   }
+  if (sessionOwnerId.value !== operationOwner) {
+    discardInProgress.value = false;
+    return;
+  }
   rowKeys.forEach((rowKey) => removeRow(rowKey));
   selectedRowKeys.value = new Set(
     [...selectedRowKeys.value].filter((key) => !rowKeys.includes(key))
   );
   pruneRemovedCreatedDrafts();
   discardInProgress.value = false;
+  await session.saveNow().catch(() => undefined);
   await nextTick();
   const focusRow = rows.value[Math.min(firstIndex, rows.value.length - 1)];
   const target = focusRow ? document.getElementById(`event-import-row-${focusRow.id}`) : null;
@@ -787,36 +1481,69 @@ async function discardRows(requestedKeys: readonly string[]) {
   (nextControl ?? document.getElementById("event-row-count"))?.focus();
 }
 
-function removeImportRow(rowKey: string) {
-  void discardRows([rowKey]);
-}
-
 function discardSelectedRows() {
   void discardRows([...selectedRowKeys.value]);
 }
 
-function rowResultLabel(status: string): string {
-  return (
-    {
-      created: "creada",
-      conflict: "conflicto",
-      invalid: "inválida",
-      failed: "fallida",
-    }[status] ?? "desconocida"
-  );
-}
-
-function resultLabel(status: string): string {
-  return rowResultLabel(status);
-}
-
-function createdSummary(response: ImportBatchResponse): string {
-  const count = countDistinctCreatedEvents(response);
-  return count === 1 ? "1 evento creado" : `${count} eventos creados`;
-}
-
 function quantity(count: number, singular: string, plural: string): string {
   return `${count} ${count === 1 ? singular : plural}`;
+}
+
+const lastImportSummary = computed(() => {
+  if (!lastImport.value) return "";
+  const categories: string[] = [];
+  const imported = countDistinctCreatedEvents(lastImport.value.response);
+  const conflicts = lastImport.value.rows.filter(
+    ({ item }) => item.result.status === "conflict"
+  ).length;
+  const invalid = lastImport.value.rows.filter(
+    ({ item }) => item.result.status === "invalid"
+  ).length;
+  const failed = lastImport.value.rows.filter(({ item }) => item.result.status === "failed").length;
+  const preserved = lastImport.value.rows.filter(
+    ({ rowPresent, current }) => rowPresent && !current
+  ).length;
+
+  if (imported) categories.push(quantity(imported, "evento importado", "eventos importados"));
+  if (conflicts) categories.push(quantity(conflicts, "conflicto", "conflictos"));
+  if (invalid) categories.push(quantity(invalid, "fila inválida", "filas inválidas"));
+  if (failed) categories.push(quantity(failed, "fila fallida", "filas fallidas"));
+  if (preserved)
+    categories.push(
+      quantity(preserved, "fila conservada tras cambios", "filas conservadas tras cambios")
+    );
+
+  return ["Importación finalizada", ...categories].join(" · ");
+});
+
+const removedRowImportHistory = computed(() =>
+  (lastImport.value?.rows ?? [])
+    .filter(({ rowPresent }) => !rowPresent)
+    .filter(({ item }) => item.result.status !== "conflict")
+    .map(({ item }) =>
+      item.result.status === "created"
+        ? "Se creó un evento a partir de una fila que ya no está en el borrador."
+        : "El resultado corresponde a una fila que ya no está en el borrador."
+    )
+);
+
+function formatImportDate(date: string): string {
+  const [year, month, day] = date.split("-");
+  const monthName = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+  ][Number(month) - 1];
+  return year && day && monthName ? `${Number(day)} de ${monthName} de ${year}` : date;
 }
 
 watch(
@@ -854,7 +1581,7 @@ function updateRowCount(event: Event) {
 </script>
 
 <template>
-  <div class="flex h-[calc(100dvh-3rem)] min-h-[24rem] flex-col gap-5">
+  <div class="flex h-[calc(100dvh-3rem)] min-h-[24rem] flex-col gap-3">
     <header class="shrink-0">
       <div class="flex items-start gap-3">
         <span
@@ -868,12 +1595,19 @@ function updateRowCount(event: Event) {
             Importador de conciertos y festivales
           </h1>
           <p class="mt-2 max-w-3xl text-sm leading-relaxed text-gray-600 dark:text-gray-300">
-            Introduce varios conciertos o festivales en una tabla editable. Los datos se mantienen
-            en esta vista mientras permanezca abierta.
+            Introduce varios conciertos o festivales en una tabla editable. El borrador se guarda
+            localmente en este navegador.
           </p>
         </div>
       </div>
-      <div class="mt-4">
+      <p v-if="!identityReady" class="mt-4 text-sm text-gray-600 dark:text-gray-300" role="status">
+        {{
+          geography.countriesQuery.isPending.value
+            ? "Cargando catálogo de países…"
+            : "Comprobando la sesión local…"
+        }}
+      </p>
+      <div v-else-if="sessionOwnerId && !recoverySession && !recoveryError" class="mt-4">
         <EventImportCountrySelector
           :model-value="geography.selectedCountryId.value"
           :options="geography.countryOptions.value"
@@ -884,9 +1618,87 @@ function updateRowCount(event: Event) {
           @retry="geography.countriesQuery.refetch()"
         />
       </div>
+      <div
+        class="mt-3 flex flex-wrap items-center gap-2 text-xs text-gray-600 dark:text-gray-300"
+        role="status"
+        aria-live="polite"
+      >
+        <span
+          >{{ saveStatusLabel }}<span v-if="lastSavedLabel"> · {{ lastSavedLabel }}</span></span
+        >
+        <button
+          v-if="session.status.value === 'error' && !criticalStorageError"
+          type="button"
+          class="underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+          @click="retrySessionSave"
+        >
+          Reintentar guardado
+        </button>
+      </div>
+      <p
+        v-if="criticalStorageError"
+        class="mt-2 text-sm text-red-700 dark:text-red-300"
+        role="alert"
+      >
+        {{ criticalStorageError }}
+      </p>
+      <section
+        v-if="recoverySession"
+        class="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/30 dark:text-amber-100"
+        aria-labelledby="event-import-recovery-title"
+      >
+        <h2 id="event-import-recovery-title" class="font-semibold">
+          {{ recoveryError ? "No se pudo restaurar la sesión" : "Tienes una sesión incompleta" }}
+        </h2>
+        <p class="mt-1">
+          {{
+            recoveryError || "Hemos encontrado un borrador guardado de una importación anterior."
+          }}
+        </p>
+        <p v-if="!recoveryError && recoveryStats" class="mt-1">
+          {{ recoveryStats.rows }} filas · guardado
+          {{ lastSavedLabel || "en una sesión anterior" }} ·
+          {{ recoveryStats.uncertain }} operaciones pendientes o inciertas
+        </p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button
+            v-if="!recoveryError"
+            type="button"
+            class="min-h-10 rounded-lg bg-rv-navy px-4 font-semibold text-white dark:bg-gray-200 dark:text-rv-navy"
+            @click="recoverSession"
+          >
+            Recuperar sesión
+          </button>
+          <button
+            type="button"
+            class="min-h-10 rounded-lg border border-amber-700 px-4 font-semibold dark:border-amber-200"
+            @click="discardSession"
+          >
+            Descartar
+          </button>
+        </div>
+      </section>
+      <section
+        v-if="recoveryError && !recoverySession"
+        class="mt-3 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-200/30 dark:bg-red-950/30 dark:text-red-200"
+        role="alert"
+      >
+        <p>{{ recoveryError }}</p>
+        <button
+          type="button"
+          class="mt-2 min-h-10 rounded-lg border border-current px-4 font-semibold"
+          @click="retryStorageRead"
+        >
+          Reintentar lectura
+        </button>
+      </section>
     </header>
 
-    <section class="flex min-h-0 flex-1 flex-col gap-3" aria-label="Editor de eventos">
+    <section
+      v-if="sessionOwnerId && !recoverySession && !recoveryError"
+      class="flex min-h-0 flex-1 flex-col gap-2"
+      aria-label="Editor de eventos"
+    >
       <div class="flex shrink-0 items-center justify-between gap-3">
         <p class="text-sm font-medium text-gray-600 dark:text-gray-300">
           {{ rows.length }} {{ rows.length === 1 ? "fila" : "filas" }}
@@ -920,27 +1732,58 @@ function updateRowCount(event: Event) {
       </div>
 
       <section
-        class="shrink-0 rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-200"
+        class="shrink-0 rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-700 dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-200"
         aria-label="Estado de importación"
       >
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <p>
+          <p class="font-medium">
             <span class="font-semibold">{{ preparation.eligibleRows.length }} filas listas</span>
             · {{ preparation.pendingRows.length }} pendientes
           </p>
-          <div class="flex flex-wrap items-center gap-2">
+          <div
+            class="flex flex-wrap items-center justify-end gap-2"
+            role="group"
+            aria-label="Acciones de importación y descarte"
+          >
+            <button
+              v-for="snapshot in protectedSnapshots.filter(
+                (item) => !uncertainSnapshots.some(({ batchId }) => batchId === item.batchId)
+              )"
+              :key="snapshot.batchId"
+              type="button"
+              class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-300 px-4 text-sm font-semibold text-red-800 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:text-red-200"
+              :disabled="
+                batchMutation.isPending.value || pendingSnapshotBatchIds.has(snapshot.batchId)
+              "
+              @click="sendSnapshot(snapshot)"
+            >
+              Reintentar guardado y envío de {{ snapshot.rows.length }} filas
+            </button>
+            <button
+              v-for="snapshot in Object.values(protectedExpansionSnapshots)"
+              :key="lineupExpansionOperationKey(snapshot)"
+              type="button"
+              class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-amber-600 px-4 text-sm font-semibold text-amber-900 hover:bg-amber-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:text-amber-100 dark:hover:bg-amber-950/40"
+              :disabled="expansionMutation.isPending.value"
+              @click="retryRecoveredExpansion(snapshot)"
+            >
+              Revisar y reintentar ampliación incierta
+            </button>
             <button
               v-for="snapshot in uncertainSnapshots"
               :key="snapshot.batchId"
               type="button"
               class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-rv-purple px-4 text-sm font-semibold text-rv-purple hover:bg-rv-purple/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:text-purple-200"
-              :disabled="batchMutation.isPending.value"
+              :disabled="
+                batchMutation.isPending.value || pendingSnapshotBatchIds.has(snapshot.batchId)
+              "
               @click="retrySameBatch(snapshot)"
             >
               Reintentar {{ snapshot.rows.length }} filas inciertas
             </button>
             <button
               type="button"
+              aria-label="Importar filas listas"
               class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-rv-navy px-4 text-sm font-semibold text-white transition hover:bg-rv-navy/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-200 dark:text-rv-navy dark:hover:bg-white"
               :disabled="!preparation.snapshot || batchMutation.isPending.value"
               @click="importEligibleRows"
@@ -951,6 +1794,19 @@ function updateRowCount(event: Event) {
                 aria-hidden="true"
               ></i>
               {{ batchMutation.isPending.value ? "Importando…" : "Importar filas listas" }}
+            </button>
+            <span class="text-xs text-gray-600 dark:text-gray-300" role="status">
+              {{ selectedRowKeys.size }}
+              {{ selectedRowKeys.size === 1 ? "fila seleccionada" : "filas seleccionadas" }}
+            </span>
+            <button
+              type="button"
+              aria-label="Descartar seleccionadas"
+              class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-300 px-4 text-sm font-semibold text-red-800 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-300/40 dark:text-red-200 dark:hover:bg-red-950/30"
+              :disabled="selectedRowKeys.size === 0 || discardInProgress"
+              @click="discardSelectedRows"
+            >
+              Descartar seleccionadas
             </button>
           </div>
         </div>
@@ -970,8 +1826,10 @@ function updateRowCount(event: Event) {
           class="mt-2 text-amber-800 dark:text-amber-200"
           role="status"
         >
-          {{ uncertainSnapshots.length }} operación(es) siguen inciertas. Reintenta cada snapshot
-          original; sus filas no se preparan como eventos nuevos.
+          No sabemos si
+          {{
+            uncertainSnapshots.length === 1 ? "la operación terminó" : "las operaciones terminaron"
+          }}. Comprueba el resultado reintentando cada operación.
         </p>
         <p
           v-if="
@@ -982,136 +1840,32 @@ function updateRowCount(event: Event) {
           class="mt-2"
           role="status"
         >
-          Ampliaciones existentes pendientes: {{ expansionExecutionCounts.conflicts }} conflictos de
-          revalidación, {{ expansionExecutionCounts.uncertain }} inciertas y
-          {{ expansionExecutionCounts.failures }} fallidas. No cuentan como Events nuevos.
+          Hay ampliaciones pendientes: {{ expansionExecutionCounts.conflicts }} requieren revisar el
+          concierto, {{ expansionExecutionCounts.uncertain }} no tienen resultado confirmado y
+          {{ expansionExecutionCounts.failures }} no se completaron.
         </p>
         <section
           v-if="expansionHistory.length"
           class="mt-3 border-t border-gray-200 pt-3 dark:border-white/10"
         >
-          <p class="font-semibold" role="status">
-            Ampliaciones de Events existentes: {{ expansionHistory.length }} ·
-            {{
-              quantity(
-                expansionHistory.reduce((sum, item) => sum + item.result.addedArtists.length, 0),
-                "artista añadido",
-                "artistas añadidos"
-              )
-            }}
-            ·
-            {{
-              quantity(
-                expansionHistory.reduce((sum, item) => sum + item.result.existingArtists.length, 0),
-                "artista ya existente",
-                "artistas ya existentes"
-              )
-            }}. No se cuentan como Events nuevos.
-          </p>
+          <p class="font-semibold" role="status">Lineup actualizado</p>
           <ul class="mt-2 space-y-1">
             <li v-for="entry in expansionHistory" :key="entry.operationKey">
-              Fila {{ entry.rowKey }}: evento {{ entry.eventId }} ampliado; añadidos
-              {{ entry.result.addedArtists.map(({ name }) => name).join(", ") || "ninguno" }}; ya
-              existentes
-              {{ entry.result.existingArtists.map(({ name }) => name).join(", ") || "ninguno" }}.
-              <span v-if="entry.reconciliation === 'kept'"
-                >Se conservó el borrador modificado.</span
-              >
-              <span v-else-if="entry.reconciliation === 'removed'"
-                >Se retiró la fila sin cambios.</span
-              >
+              <template v-if="entry.result.addedArtists.length">
+                Se ha añadido {{ entry.result.addedArtists.map(({ name }) => name).join(", ") }} al
+                concierto del {{ formatImportDate(entry.startDate) }}.
+              </template>
+              <template v-else>No había artistas nuevos que añadir.</template>
             </li>
           </ul>
         </section>
         <div v-if="lastImport" class="mt-3 border-t border-gray-200 pt-3 dark:border-white/10">
-          <p class="font-semibold" role="status">
-            Importación finalizada: {{ createdSummary(lastImport.response) }},
-            {{
-              quantity(
-                lastImport.rows.filter(({ item }) => item.result.status === "conflict").length,
-                "conflicto",
-                "conflictos"
-              )
-            }},
-            {{
-              quantity(
-                lastImport.rows.filter(({ item }) => item.result.status === "invalid").length,
-                "fila inválida",
-                "filas inválidas"
-              )
-            }},
-            {{
-              quantity(
-                lastImport.rows.filter(({ item }) => item.result.status === "failed").length,
-                "fila fallida",
-                "filas fallidas"
-              )
-            }},
-            {{
-              quantity(
-                lastImport.rows.filter(({ rowPresent, current }) => rowPresent && !current).length,
-                "fila conservada porque cambió durante el envío",
-                "filas conservadas porque cambiaron durante el envío"
-              )
-            }},
-            {{
-              quantity(
-                lastImport.rows.filter(({ action }) => action === "stale-created").length,
-                "borrador conservado tras su creación",
-                "borradores conservados tras su creación"
-              )
-            }}.
-          </p>
-          <ul class="mt-2 space-y-1">
-            <li v-for="entry in lastImport.rows" :key="entry.item.operationRowId">
-              Fila {{ entry.item.rowKey }}: {{ resultLabel(entry.item.result.status) }}
-              <span v-if="entry.item.result.code">({{ entry.item.result.code }})</span>
-              <span v-if="entry.item.result.message">— {{ entry.item.result.message }}</span>
-              <span v-if="entry.action === 'stale-created'">
-                · se creó la versión enviada (evento {{ entry.item.result.eventId }}); el borrador
-                actual se conserva y no se puede volver a importar como nuevo
-              </span>
-              <span v-else-if="entry.action === 'removed'">· retirada de la tabla</span>
-              <span v-else-if="entry.action === 'kept' && !entry.current">
-                · resultado histórico; la fila cambió o fue eliminada
-              </span>
-              <span v-if="entry.item.result.status === 'created'">
-                · evento {{ entry.item.result.eventId }}; el descarte de la fila solo afecta al
-                borrador local
-              </span>
-              <span v-if="entry.item.result.status === 'created' && entry.item.result.replayed">
-                · replay idempotente</span
-              >
-            </li>
+          <p class="font-semibold" role="status">{{ lastImportSummary }}</p>
+          <ul v-if="removedRowImportHistory.length" class="mt-2 space-y-1 text-sm">
+            <li v-for="(note, index) in removedRowImportHistory" :key="index">{{ note }}</li>
           </ul>
-          <p
-            v-for="(created, rowKey) in createdDrafts"
-            :key="rowKey"
-            class="mt-2 text-amber-800 dark:text-amber-200"
-            role="status"
-          >
-            {{ rowKey }}: su versión anterior creó el evento {{ created.eventId }}. Este borrador
-            divergente está excluido de nuevas importaciones.
-          </p>
         </div>
       </section>
-
-      <div class="flex shrink-0 items-center justify-between gap-3" aria-label="Acciones de filas">
-        <p class="text-sm text-gray-600 dark:text-gray-300" role="status">
-          {{ selectedRowKeys.size }}
-          {{ selectedRowKeys.size === 1 ? "fila seleccionada" : "filas seleccionadas" }} para
-          descartar
-        </p>
-        <button
-          type="button"
-          aria-label="Descartar seleccionadas"
-          class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-300 px-4 text-sm font-semibold text-red-800 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-300/40 dark:text-red-200 dark:hover:bg-red-950/30"
-          :disabled="selectedRowKeys.size === 0 || discardInProgress"
-          @click="discardSelectedRows"
-        >
-          Descartar seleccionadas
-        </button>
-      </div>
 
       <EventImportTable
         :rows="rows"
@@ -1152,15 +1906,26 @@ function updateRowCount(event: Event) {
         @select-artist="eventImport.selectArtistCandidate"
         @update-lineup-draft="eventImport.updateLineupDraft"
         @commit-lineup-draft="eventImport.commitLineupDraft"
-        @retry-lineup-draft="eventImport.retryLineupDraft"
+        @paste-lineup-range="eventImport.pasteLineupRange"
         @update-lineup-item-name="eventImport.updateLineupItemName"
         @commit-lineup-item-name="eventImport.commitLineupItemName"
         @retry-lineup-item="eventImport.retryLineupItem"
         @remove-lineup-item="eventImport.removeLineupItem"
-        @remove-row="removeImportRow"
         @toggle-row-selection="toggleRowSelection"
         @execute-expansion="executeConfirmedExpansion"
+        @critical-edit="retrySessionSave"
       />
+    </section>
+    <section
+      v-else
+      class="flex min-h-0 flex-1 items-start rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-200"
+      aria-label="Recuperación de sesión"
+    >
+      <p v-if="!identityReady" role="status">
+        El editor estará disponible cuando se confirme la cuenta.
+      </p>
+      <p v-else-if="recoverySession">Recupera o descarta el borrador local para continuar.</p>
+      <p v-else>{{ recoveryError }}</p>
     </section>
   </div>
 </template>

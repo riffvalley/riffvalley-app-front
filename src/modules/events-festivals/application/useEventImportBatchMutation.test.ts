@@ -129,7 +129,9 @@ describe("useEventImportBatchMutation", () => {
     expect(eventImportGlobalErrorMessage(httpError(401))).toContain("sesión");
     expect(eventImportGlobalErrorMessage(httpError(403))).toContain("permisos");
     expect(eventImportGlobalErrorMessage(httpError(404))).toContain("no está disponible");
-    expect(eventImportGlobalErrorMessage(httpError(503))).toContain("servidor");
+    expect(eventImportGlobalErrorMessage(httpError(503))).toContain(
+      "No se pudo completar la operación"
+    );
     expect(eventImportGlobalErrorMessage(httpError(503))).not.toContain("sensitive server body");
     expect(eventImportErrorCanRetry(httpError(400))).toBe(false);
     expect(eventImportErrorCanRetry(httpError(401))).toBe(false);

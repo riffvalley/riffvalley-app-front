@@ -8,7 +8,6 @@ import type {
   TourResolutionResult,
   EntityCandidate,
 } from "../api/entityResolutionContracts";
-import { splitLineupNames } from "./lineupText";
 import { artistResolutionKey, geographyContextKey } from "./entityResolutionIdentity";
 import { useEventEntityResolution } from "./useEventEntityResolution";
 import {
@@ -119,7 +118,6 @@ export function useEventImportRows(queryClient: QueryClient) {
   const artistResolution = useEventEntityResolution(queryClient);
   const geographyResolution = useEventGeographyResolution(queryClient);
   const tourResolution = useEventTourResolution(queryClient);
-  const draftVersions = new Map<string, number>();
   const itemVersions = new Map<string, number>();
   const geographyStates = reactive<Record<string, EventGeographyState>>({});
   const tourStates = reactive<Record<string, EventTourState>>({});
@@ -128,6 +126,10 @@ export function useEventImportRows(queryClient: QueryClient) {
   const venueVersions = new Map<string, number>();
   const localityVersions = new Map<string, number>();
   const localityTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const restoredArtistSelections = new Map<string, string>();
+  const restoredLocalitySelections = new Map<string, string>();
+  const restoredVenueSelections = new Map<string, string>();
+  const restoredTourSelections = new Map<string, string>();
   let countryId = "";
 
   function createRow(): EventImportRow {
@@ -159,14 +161,6 @@ export function useEventImportRows(queryClient: QueryClient) {
     return row;
   }
 
-  function createLineupItem(name: string, result: ArtistResolutionResult): LineupItem {
-    return {
-      key: `lineup-item-${nextLineupItemKey++}`,
-      name,
-      artistId: result.status === "existing" ? result.artist.id : null,
-    };
-  }
-
   rows.value = Array.from({ length: INITIAL_ROW_COUNT }, createRow);
 
   function emptyTourState(): EventTourState {
@@ -185,16 +179,8 @@ export function useEventImportRows(queryClient: QueryClient) {
     return version;
   }
 
-  function cancelDraftWork(rowId: string) {
-    return nextVersion(draftVersions, rowId);
-  }
-
   function cancelItemWork(itemKey: string) {
     return nextVersion(itemVersions, itemKey);
-  }
-
-  function isCurrentDraft(rowId: string, version: number) {
-    return !disposed && draftVersions.get(rowId) === version && Boolean(lineupStates[rowId]);
   }
 
   function findRow(rowId: string) {
@@ -239,9 +225,12 @@ export function useEventImportRows(queryClient: QueryClient) {
       const restoredConfirmation = candidates.some((candidate) => candidate.id === confirmedId)
         ? (confirmedId ?? null)
         : null;
-      state.selectedCandidateId =
-        restoredConfirmation ?? (result.status === "existing" ? result.entity.id : null);
+      const restoredSelection = restoredTourSelections.get(rowId);
+      state.selectedCandidateId = candidates.some(({ id }) => id === restoredSelection)
+        ? (restoredSelection ?? null)
+        : (restoredConfirmation ?? (result.status === "existing" ? result.entity.id : null));
       state.confirmedTourId = restoredConfirmation;
+      restoredTourSelections.delete(rowId);
     } catch (error) {
       if (
         !disposed &&
@@ -316,6 +305,16 @@ export function useEventImportRows(queryClient: QueryClient) {
       state.venueCandidates = result.candidates;
       state.selectedVenueCandidateId = null;
       current.venue.venueId = result.status === "existing" ? result.venue.id : null;
+      const restoredVenueId = restoredVenueSelections.get(rowId);
+      if (
+        result.status === "ambiguous" &&
+        restoredVenueId &&
+        result.candidates.some(({ id }) => id === restoredVenueId)
+      ) {
+        state.selectedVenueCandidateId = restoredVenueId;
+        current.venue.venueId = restoredVenueId;
+      }
+      restoredVenueSelections.delete(rowId);
     } catch (error) {
       if (!disposed && venueVersions.get(rowId) === version) {
         state.venueStatus = "error";
@@ -374,6 +373,17 @@ export function useEventImportRows(queryClient: QueryClient) {
         if (current.venue.name.trim()) {
           const venueVersion = nextVersion(venueVersions, rowId);
           void resolveVenue(rowId, venueVersion);
+        }
+      } else if (result.status === "ambiguous") {
+        const restoredLocalityId = restoredLocalitySelections.get(rowId);
+        restoredLocalitySelections.delete(rowId);
+        if (restoredLocalityId && result.candidates.some(({ id }) => id === restoredLocalityId)) {
+          state.localityCandidates = result.candidates;
+          selectLocalityCandidate(rowId, restoredLocalityId);
+        } else {
+          current.venue.localityId = null;
+          current.venue.venueId = null;
+          cancelVenueWork(rowId);
         }
       } else {
         current.venue.localityId = null;
@@ -606,45 +616,34 @@ export function useEventImportRows(queryClient: QueryClient) {
     if (result.candidates.some(({ id }) => id === artistId)) item.artistId = artistId;
   }
 
-  async function resolveDraft(rowId: string, version: number, immediate = false) {
-    const state = lineupStates[rowId];
+  function addConfirmedLineupNames(rowId: string, values: readonly string[]) {
     const row = findRow(rowId);
-    if (!state || !row || !isCurrentDraft(rowId, version)) return;
+    const state = lineupStates[rowId];
+    if (!row || !state) return;
+    const names = values.map((value) => value.trim()).filter(Boolean);
+    if (!names.length) return;
 
-    const draft = state.draft;
-    const names = splitLineupNames(draft);
-    if (names.length === 0) {
-      state.draft = "";
-      state.draftStatus = "idle";
-      return;
-    }
+    const items = names.map((name) => ({
+      key: `lineup-item-${nextLineupItemKey++}`,
+      name,
+      artistId: null,
+    }));
+    row.lineup.push(...items);
+    items.forEach((item) => {
+      const version = nextVersion(itemVersions, item.key);
+      state.itemStatus[item.key] = "resolving";
+      void resolveEditedItem(rowId, item.key, version);
+    });
+  }
 
-    if (state.draftStatus === "resolving") return;
-
-    state.draftStatus = "resolving";
+  function confirmLineupDraft(rowId: string, pastedNames?: readonly string[]) {
+    const state = lineupStates[rowId];
+    if (!state) return;
+    const names = pastedNames ?? [state.draft.trim()];
+    state.draft = "";
+    state.draftStatus = "idle";
     state.draftError = null;
-
-    try {
-      const results = await artistResolution.resolve(names, immediate);
-      if (!isCurrentDraft(rowId, version) || state.draft !== draft || artistResolution.isDisposed) {
-        return;
-      }
-
-      row.lineup.push(...names.map((name, index) => createLineupItem(name, results[index]!)));
-      row.lineup.slice(-names.length).forEach((item, index) => {
-        state.itemResolution[item.key] = results[index]!;
-      });
-      state.draft = "";
-      state.draftStatus = "idle";
-    } catch (error: unknown) {
-      if (!isCurrentDraft(rowId, version)) return;
-      if (isResolutionCancelled(error)) {
-        state.draftStatus = "idle";
-        return;
-      }
-      state.draftStatus = "error";
-      state.draftError = errorMessage(error);
-    }
+    addConfirmedLineupNames(rowId, names);
   }
 
   async function resolveEditedItem(
@@ -676,6 +675,15 @@ export function useEventImportRows(queryClient: QueryClient) {
       }
 
       currentItem.artistId = result?.status === "existing" ? result.artist.id : null;
+      const restoredArtistId = restoredArtistSelections.get(itemKey);
+      if (
+        result?.status === "ambiguous" &&
+        restoredArtistId &&
+        result.candidates.some(({ id }) => id === restoredArtistId)
+      ) {
+        currentItem.artistId = restoredArtistId;
+      }
+      restoredArtistSelections.delete(itemKey);
       state.itemResolution[itemKey] = result!;
       delete state.itemStatus[itemKey];
     } catch (error: unknown) {
@@ -844,31 +852,21 @@ export function useEventImportRows(queryClient: QueryClient) {
     const state = lineupStates[rowId];
     if (!state) return;
 
-    const version = cancelDraftWork(rowId);
     state.draft = draft;
     state.draftStatus = "idle";
     state.draftError = null;
-    if (!splitLineupNames(draft).length) return;
-    void resolveDraft(rowId, version);
+  }
+
+  function pasteLineupRange(startIndex: number, values: readonly (readonly string[])[]) {
+    while (rows.value.length < startIndex + values.length) addRow();
+    values.forEach((names, offset) => {
+      const row = rows.value[startIndex + offset];
+      if (row) addConfirmedLineupNames(row.id, names);
+    });
   }
 
   function commitLineupDraft(rowId: string) {
-    const state = lineupStates[rowId];
-    if (!state || state.draftStatus === "error") return;
-    if (state.draftStatus === "resolving") {
-      artistResolution.flush();
-      return;
-    }
-    void resolveDraft(rowId, draftVersions.get(rowId) ?? 0);
-  }
-
-  function retryLineupDraft(rowId: string) {
-    const state = lineupStates[rowId];
-    if (!state || !splitLineupNames(state.draft).length) return;
-    state.draftStatus = "idle";
-    state.draftError = null;
-    const version = cancelDraftWork(rowId);
-    void resolveDraft(rowId, version, true);
+    confirmLineupDraft(rowId);
   }
 
   function updateLineupItemName(rowId: string, itemKey: string, name: string) {
@@ -882,10 +880,8 @@ export function useEventImportRows(queryClient: QueryClient) {
     item.artistId = null;
     delete state.itemStatus[itemKey];
     delete state.itemResolution[itemKey];
-    const version = cancelItemWork(itemKey);
+    cancelItemWork(itemKey);
     if (!name.trim()) return;
-
-    void resolveEditedItem(rowId, itemKey, version);
   }
 
   function commitLineupItemName(rowId: string, itemKey: string) {
@@ -899,16 +895,10 @@ export function useEventImportRows(queryClient: QueryClient) {
       return;
     }
     if (name !== item.name) updateLineupItemName(rowId, itemKey, name);
-    if (
-      item.artistId ||
-      state.itemStatus[itemKey] === "resolving" ||
-      state.itemStatus[itemKey] === "error"
-    ) {
-      if (state.itemStatus[itemKey] === "resolving") artistResolution.flush();
-      return;
-    }
-
-    void resolveEditedItem(rowId, itemKey, itemVersions.get(itemKey) ?? 0, true);
+    if (state.itemStatus[itemKey] === "resolving") return;
+    delete state.itemStatus[itemKey];
+    const version = cancelItemWork(itemKey);
+    void resolveEditedItem(rowId, itemKey, version, true);
   }
 
   function retryLineupItem(rowId: string, itemKey: string) {
@@ -935,12 +925,10 @@ export function useEventImportRows(queryClient: QueryClient) {
     const row = findRow(rowId);
     if (!row) return;
     const tourIdentity = row.type === "tour" ? tourResolutionKey(row.event) : null;
-    cancelDraftWork(rowId);
     cancelVenueWork(rowId);
     const localityTimer = localityTimers.get(rowId);
     if (localityTimer) clearTimeout(localityTimer);
     localityTimers.delete(rowId);
-    draftVersions.delete(rowId);
     localityVersions.delete(rowId);
     venueVersions.delete(rowId);
     for (const item of row.lineup) cancelItemWork(item.key);
@@ -965,6 +953,77 @@ export function useEventImportRows(queryClient: QueryClient) {
     }
 
     return true;
+  }
+
+  function restoreRows(
+    savedRows: EventImportRow[],
+    savedLineupStates: Record<string, LineupCellState>,
+    savedTourStates: Record<string, EventTourState>
+  ) {
+    rows.value.forEach((row) => {
+      delete lineupStates[row.id];
+      delete geographyStates[row.id];
+      delete tourStates[row.id];
+    });
+    confirmedTours.clear();
+    restoredArtistSelections.clear();
+    restoredLocalitySelections.clear();
+    restoredVenueSelections.clear();
+    restoredTourSelections.clear();
+    rows.value = savedRows.map((saved) => ({
+      ...saved,
+      lineup: saved.lineup.map((item) => ({ ...item, artistId: null })),
+      venue: { ...saved.venue },
+    }));
+    for (const row of rows.value) {
+      const savedState = savedLineupStates[row.id];
+      lineupStates[row.id] = {
+        draft: savedState?.draft ?? "",
+        draftStatus: "idle",
+        itemStatus: {},
+        draftError: null,
+        itemResolution: {},
+      };
+      geographyStates[row.id] = emptyGeographyState();
+      const savedTour = savedTourStates[row.id];
+      tourStates[row.id] = emptyTourState();
+      if (savedTour?.confirmedTourId) {
+        confirmedTours.set(tourResolutionKey(row.event), savedTour.confirmedTourId);
+      }
+      if (savedTour?.selectedCandidateId)
+        restoredTourSelections.set(row.id, savedTour.selectedCandidateId);
+      if (savedRowsSelection(savedRows, row.id)?.venue.localityId)
+        restoredLocalitySelections.set(
+          row.id,
+          savedRowsSelection(savedRows, row.id)!.venue.localityId!
+        );
+      if (savedRowsSelection(savedRows, row.id)?.venue.venueId)
+        restoredVenueSelections.set(row.id, savedRowsSelection(savedRows, row.id)!.venue.venueId!);
+      const rowNumber = /^event-row-(\d+)$/u.exec(row.id)?.[1];
+      if (rowNumber) nextRowId = Math.max(nextRowId, Number(rowNumber) + 1);
+      for (const item of row.lineup) {
+        const originalItem = savedRowsSelection(savedRows, row.id)?.lineup.find(
+          ({ key }) => key === item.key
+        );
+        if (originalItem?.artistId) restoredArtistSelections.set(item.key, originalItem.artistId);
+        const itemNumber = /^lineup-item-(\d+)$/u.exec(item.key)?.[1];
+        if (itemNumber) nextLineupItemKey = Math.max(nextLineupItemKey, Number(itemNumber) + 1);
+        const version = cancelItemWork(item.key);
+        void resolveEditedItem(row.id, item.key, version, true);
+      }
+      if (row.city.trim()) scheduleLocalityResolution(row.id, true);
+      if (row.type === "tour" && row.event.trim()) scheduleTourResolution(row.id, true);
+    }
+  }
+
+  function savedRowsSelection(savedRows: EventImportRow[], rowId: string) {
+    return savedRows.find(({ id }) => id === rowId);
+  }
+
+  function resetRows() {
+    rows.value.forEach((row) => removeRow(row.id));
+    rows.value = Array.from({ length: INITIAL_ROW_COUNT }, createRow);
+    confirmedTours.clear();
   }
 
   onScopeDispose(() => {
@@ -1004,13 +1063,15 @@ export function useEventImportRows(queryClient: QueryClient) {
     retryVenue,
     retryLocality,
     updateLineupDraft,
+    pasteLineupRange,
     commitLineupDraft,
-    retryLineupDraft,
     updateLineupItemName,
     commitLineupItemName,
     retryLineupItem,
     removeLineupItem,
     removeRow,
     setRowCount,
+    restoreRows,
+    resetRows,
   };
 }

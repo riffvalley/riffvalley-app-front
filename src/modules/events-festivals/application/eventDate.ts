@@ -29,9 +29,9 @@ export function formatCalendarDate(value: string | null): string {
 
 export function getDateCellError(row: EventDateValidationRow, field: EventDateField): string {
   const draft = row[`${field}Draft`];
-  if (draft && !parseCalendarDate(draft)) return "Usa una fecha válida en formato DD/MM/YYYY.";
+  if (draft && !parseCalendarDate(draft)) return "Usa una fecha válida en formato DD/MM/AAAA.";
   if (field === "endDate" && row.startDate && row.endDate && row.endDate < row.startDate) {
-    return "End Date no puede ser anterior a Start Date.";
+    return "La fecha de fin no puede ser anterior a la fecha de inicio.";
   }
   return "";
 }

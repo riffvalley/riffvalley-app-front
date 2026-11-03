@@ -1,17 +1,16 @@
 // @vitest-environment happy-dom
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { flushPromises, mount } from "@vue/test-utils";
-import { defineComponent, h } from "vue";
+import { defineComponent, h, ref } from "vue";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import api from "@services/api/api";
 import type { EventImportConflictPresentation } from "../../application/eventImportConflicts";
-import type { LineupExpansionPreparation } from "../../application/eventLineupExpansionPreparation";
 import EventImportConflictDetails from "./EventImportConflictDetails.vue";
 
 vi.mock("@services/api/api", () => ({ default: { get: vi.fn() } }));
 
 const eventA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const eventB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const artistId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 
 function conflict(
   overrides: Partial<EventImportConflictPresentation> = {}
@@ -22,9 +21,9 @@ function conflict(
     operationRowId: "operation-a",
     snapshotRevision: 3,
     countryId: "country-id",
-    status: "historical",
+    status: "current",
     code: "CONCERT_ARTIST_DATE_LOCALITY_CONFLICT",
-    message: "El backend detectó una participación relacionada.",
+    message: "Internal conflict message",
     severity: "blocking",
     kind: "participation",
     snapshot: {
@@ -33,23 +32,21 @@ function conflict(
       startDate: "2027-05-15",
       city: "Madrid",
       venue: "La Riviera",
-      lineup: [{ name: "Septicflesh", artistId: "artist-s" }],
+      lineup: [{ name: "Septicflesh", artistId }],
     },
     relatedRows: [],
     existingEventIds: [eventA],
-    candidateEventIds: [eventA, eventB],
-    eventReferences: [
-      { eventId: eventA, status: "identified" },
-      { eventId: eventB, status: "candidate" },
-    ],
-    matchingArtists: [{ artistId: "artist-s", name: "Septicflesh" }],
-    addableArtists: [{ artistId: null, name: "Equilibrium" }],
+    candidateEventIds: [],
+    eventReferences: [{ eventId: eventA, status: "identified" }],
+    matchingArtists: [{ artistId, name: "Septicflesh" }],
+    addableArtists: [{ artistId: null, name: "Vianova" }],
     ...overrides,
   };
 }
 
 function mountDetails(
-  input: EventImportConflictPresentation[] | EventImportConflictPresentation[][]
+  input: EventImportConflictPresentation[] | EventImportConflictPresentation[][],
+  options: { canExpand?: boolean; showIndicator?: boolean; expanded?: boolean } = {}
 ) {
   const groups = Array.isArray(input[0])
     ? (input as EventImportConflictPresentation[][])
@@ -57,6 +54,7 @@ function mountDetails(
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false, gcTime: Infinity } },
   });
+  const expanded = ref(options.expanded ?? true);
   const Host = defineComponent({
     setup() {
       return () =>
@@ -66,11 +64,11 @@ function mountDetails(
             h(EventImportConflictDetails, {
               conflicts,
               rowNumber: index + 1,
-              rowNumbers: { "row-a": 1 },
-              showIndicator: false,
+              rowNumbers: { "row-a": 1, "row-related": 8 },
+              showIndicator: options.showIndicator ?? false,
               showDetails: true,
-              expanded: true,
-              canReviewLineupExpansion: () => false,
+              expanded: expanded.value,
+              canReviewLineupExpansion: () => options.canExpand ?? false,
               prepareLineupExpansion: () => null,
               getExpansionConfirmation: () => null,
               setExpansionConfirmation: () => undefined,
@@ -83,181 +81,162 @@ function mountDetails(
     },
   });
   const wrapper = mount(Host, { global: { plugins: [[VueQueryPlugin, { queryClient }]] } });
-  return { wrapper, queryClient };
+  return { wrapper, queryClient, setExpanded: (value: boolean) => (expanded.value = value) };
 }
 
 afterEach(() => vi.restoreAllMocks());
 
 describe("EventImportConflictDetails", () => {
-  it("shows a historical snapshot, confirmed event and unselected candidates with fetched comparison", async () => {
-    vi.spyOn(api, "get").mockImplementation(
-      async (url) =>
-        ({
-          data: {
-            id: String(url).endsWith(eventA) ? eventA : eventB,
-            type: "concert",
-            startDate: "2027-05-15",
-            endDate: null,
-            venue: { name: "La Riviera", locality: { name: "Madrid", province: "Madrid" } },
-            lineup: [{ artistId: "artist-s", name: "Septicflesh" }],
-          },
-        }) as never
-    );
+  it("records conflict disclosure mount and opening cost without a time threshold", async () => {
+    vi.spyOn(api, "get").mockResolvedValue({
+      data: {
+        id: eventA,
+        type: "concert",
+        name: "Evento",
+        startDate: "2027-05-15",
+        endDate: null,
+        venue: { name: "La Riviera", locality: { name: "Madrid" } },
+        lineup: [{ artistId, name: "Septicflesh" }],
+      },
+    } as never);
+    const startedAt = performance.now();
+    const { wrapper, queryClient, setExpanded } = mountDetails([conflict()], {
+      showIndicator: true,
+      expanded: false,
+    });
+    const mountMs = Number((performance.now() - startedAt).toFixed(1));
+    const openedAt = performance.now();
+    await wrapper.get("button").trigger("click");
+    setExpanded(true);
+    await flushPromises();
+    const openMs = Number((performance.now() - openedAt).toFixed(1));
+
+    expect(wrapper.get("button").attributes("aria-expanded")).toBe("true");
+    expect(api.get).toHaveBeenCalledTimes(1);
+    console.info("EVENT_IMPORT_CONFLICT_PERFORMANCE", JSON.stringify({ mountMs, openMs }));
+    wrapper.unmount();
+    queryClient.clear();
+  });
+
+  it("identifies an existing event compactly without exposing technical identifiers or codes", async () => {
+    vi.spyOn(api, "get").mockResolvedValue({
+      data: {
+        id: eventA,
+        type: "concert",
+        name: null,
+        startDate: "2027-05-15",
+        endDate: null,
+        venue: { name: "La Riviera", locality: { name: "Madrid" } },
+        lineup: [{ artistId, name: "Septicflesh" }],
+      },
+    } as never);
     const { wrapper, queryClient } = mountDetails([conflict()]);
     await flushPromises();
 
-    expect(wrapper.text()).toContain("histórico de una revisión anterior");
-    expect(wrapper.text()).toContain("snapshot enviado");
-    expect(wrapper.text()).toContain("Evento existente identificado");
-    expect(wrapper.text()).toContain("Candidato posible · sin seleccionar");
-    expect(wrapper.text()).toContain(eventA);
-    expect(wrapper.text()).toContain(eventB);
+    expect(wrapper.text()).toContain("15/05/2027 · La Riviera, Madrid");
+    expect(wrapper.text()).toContain("Ya participan: Septicflesh");
+    expect(wrapper.text()).toContain("Añadir: Vianova");
     expect(wrapper.text()).toContain("Septicflesh");
-    expect(wrapper.text()).toContain("Equilibrium");
-    expect(wrapper.text()).toContain("no modifica el evento");
-    expect(
-      wrapper.findAll("button").some((button) => /seleccionar|ampliar|añadir/i.test(button.text()))
-    ).toBe(false);
-    expect(api.get).toHaveBeenCalledTimes(2);
+    expect(wrapper.text()).not.toContain("UUID");
+    expect(wrapper.text()).not.toContain(eventA);
+    expect(wrapper.text()).not.toContain(artistId);
+    expect(wrapper.text()).not.toContain("CONCERT_ARTIST_DATE_LOCALITY_CONFLICT");
+    expect(wrapper.text()).not.toContain("Internal conflict message");
+    expect(wrapper.find("table").exists()).toBe(false);
     wrapper.unmount();
     queryClient.clear();
   });
 
-  it("keeps the conflict visible when contextual detail reads fail", async () => {
+  it("keeps a recoverable conflict message when the event detail cannot be loaded", async () => {
     vi.spyOn(api, "get").mockRejectedValue(new Error("detail unavailable"));
-    const { wrapper, queryClient } = mountDetails([
-      conflict({ message: "Conflicto que permanece aunque falle Events." }),
-    ]);
+    const { wrapper, queryClient } = mountDetails([conflict()]);
     await flushPromises();
 
-    expect(wrapper.text()).toContain("Conflicto que permanece aunque falle Events.");
-    expect(wrapper.text()).toContain("El conflicto y el UUID siguen disponibles.");
-    expect(wrapper.text()).toContain("Reintentar consulta del evento");
+    expect(wrapper.text()).not.toContain("Este artista ya participa en un concierto");
+    expect(wrapper.text()).toContain("No se pudieron consultar los datos del concierto.");
+    expect(wrapper.text()).toContain("Reintentar");
+    expect(wrapper.text()).not.toContain(eventA);
     wrapper.unmount();
     queryClient.clear();
   });
 
-  it("reports an empty candidate result without manufacturing an event", async () => {
+  it("does not invent an event when the response has no candidates", async () => {
     const { wrapper, queryClient } = mountDetails([
       conflict({ existingEventIds: [], candidateEventIds: [], eventReferences: [] }),
     ]);
     await flushPromises();
     expect(wrapper.text()).toContain(
-      "No se puede preparar una ampliación: el backend no devolvió un evento identificado ni candidatos."
+      "No hay un concierto identificado con la información disponible."
     );
     expect(api.get).not.toHaveBeenCalled();
     wrapper.unmount();
     queryClient.clear();
   });
 
-  it("renders a valid UUID-only detail as incomplete context", async () => {
-    vi.spyOn(api, "get").mockResolvedValue({ data: { id: eventA } } as never);
+  it("does not present a text-only artist match as confirmed identity", async () => {
+    const { wrapper, queryClient } = mountDetails([
+      conflict({ matchingArtists: [{ artistId: null, name: "Septicflesh" }] }),
+    ]);
+    expect(wrapper.text()).not.toContain("Hay un posible conflicto de participación.");
+    expect(wrapper.text()).not.toContain("Este artista ya participa");
+    wrapper.unmount();
+    queryClient.clear();
+  });
+
+  it("does not combine a historical conflict with current event details", async () => {
+    vi.spyOn(api, "get").mockResolvedValue({
+      data: { id: eventA, startDate: "2027-05-15" },
+    } as never);
+    const { wrapper, queryClient } = mountDetails([conflict({ status: "historical" })]);
+    await flushPromises();
+    expect(wrapper.text()).toBe("Esta propuesta anterior no permite ampliar el lineup.");
+    expect(api.get).not.toHaveBeenCalled();
+    wrapper.unmount();
+    queryClient.clear();
+  });
+
+  it("offers compact navigation to related rows without rendering their internal identities", async () => {
     const { wrapper, queryClient } = mountDetails([
       conflict({
-        existingEventIds: [eventA],
-        candidateEventIds: [],
-        eventReferences: [{ eventId: eventA, status: "identified" }],
+        relatedRows: [
+          {
+            operationRowId: "internal-operation",
+            rowKey: "row-related",
+            snapshotRevision: 1,
+            available: true,
+          },
+        ],
       }),
     ]);
-    await flushPromises();
-
-    expect(wrapper.text()).toContain("No disponible");
-    expect(wrapper.text()).toContain("No disponible en el detalle de Events");
-    expect(wrapper.text()).not.toContain("No se pudo cargar el detalle");
+    const button = wrapper.get("button");
+    expect(button.text()).toBe("Ir a la fila 8");
+    expect(wrapper.text()).not.toContain("internal-operation");
+    expect(wrapper.text()).not.toContain("row-related");
     wrapper.unmount();
     queryClient.clear();
   });
 
-  it("offers review only when the conflict is eligible and leaves multiple candidates unselected", async () => {
-    vi.spyOn(api, "get").mockImplementation(
-      async (url) =>
-        ({
-          data: {
-            id: String(url).endsWith(eventA) ? eventA : eventB,
-            type: "concert",
-            startDate: "2027-05-15",
-            lineup: [{ artistId: "artist-s", name: "Septicflesh" }],
-          },
-        }) as never
+  it("reports the expanded state accurately to assistive technology", () => {
+    const collapsed = mountDetails([conflict()], { showIndicator: true, expanded: false });
+    expect(collapsed.wrapper.get("button").attributes("aria-expanded")).toBe("false");
+    expect(collapsed.wrapper.get("button").attributes("aria-controls")).toBe(
+      "event-import-conflicts-row-a"
     );
-    const prepare = vi.fn(
-      () =>
-        ({
-          state: "pending",
-          snapshot: null,
-          pendingReasons: ["event-target-ambiguous"],
-        }) as LineupExpansionPreparation | null
-    );
-    const current = conflict({ status: "current" });
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false, gcTime: Infinity } },
-    });
-    const Host = defineComponent({
-      setup() {
-        return () =>
-          h(EventImportConflictDetails, {
-            conflicts: [current],
-            rowNumber: 1,
-            rowNumbers: { "row-a": 1 },
-            showIndicator: false,
-            showDetails: true,
-            expanded: true,
-            canReviewLineupExpansion: () => true,
-            prepareLineupExpansion: prepare,
-            getExpansionConfirmation: () => null,
-            setExpansionConfirmation: () => undefined,
-            getExpansionSelection: () => null,
-            setExpansionSelection: () => undefined,
-            getExpansionExecution: () => null,
-          });
-      },
-    });
-    const wrapper = mount(Host, { global: { plugins: [[VueQueryPlugin, { queryClient }]] } });
-    await flushPromises();
-    await wrapper.get("button").trigger("click");
-    await flushPromises();
-
-    expect(wrapper.text()).toContain("Selecciona el evento destino");
-    expect((wrapper.get("select").element as HTMLSelectElement).value).toBe("");
-    expect(wrapper.text()).toContain("Propuesta pendiente");
     expect(
-      wrapper.findAll("button").some((button) => button.text() === "Confirmar ampliación de lineup")
-    ).toBe(false);
-    expect(prepare).toHaveBeenCalledWith(current, undefined);
-    wrapper.unmount();
-    queryClient.clear();
+      collapsed.wrapper.get("#event-import-conflicts-row-a").attributes("hidden")
+    ).toBeDefined();
+    collapsed.wrapper.unmount();
+    collapsed.queryClient.clear();
+
+    const expanded = mountDetails([conflict()], { showIndicator: true, expanded: true });
+    expect(expanded.wrapper.get("button").attributes("aria-expanded")).toBe("true");
+    expanded.wrapper.unmount();
+    expanded.queryClient.clear();
   });
 
-  it("reuses the cached detail when two conflicts reference the same event UUIDs", async () => {
-    vi.spyOn(api, "get").mockImplementation(
-      async (url) =>
-        ({
-          data: {
-            id: String(url).endsWith(eventA) ? eventA : eventB,
-            type: "festival",
-            startDate: "2027-05-15",
-            venue: { name: "Recinto", locality: { name: "Madrid" } },
-            lineup: [],
-          },
-        }) as never
-    );
-    const secondConflict = conflict({
-      rowKey: "row-b",
-      operationRowId: "operation-b",
-      message: "Second conflict snapshot",
-      snapshot: {
-        rowId: "operation-b",
-        type: "festival",
-        name: "Festival del snapshot",
-        startDate: "2027-05-15",
-        city: "Madrid",
-      },
-    });
-    const { wrapper, queryClient } = mountDetails([[conflict()], [secondConflict]]);
-    await flushPromises();
-
-    expect(api.get).toHaveBeenCalledTimes(2);
-    expect(wrapper.text()).toContain("Second conflict snapshot");
+  it("does not show a technical review toggle for an expandable conflict", async () => {
+    const { wrapper, queryClient } = mountDetails([conflict()], { canExpand: true });
+    expect(wrapper.text()).not.toContain("Revisar ampliación de lineup");
     wrapper.unmount();
     queryClient.clear();
   });

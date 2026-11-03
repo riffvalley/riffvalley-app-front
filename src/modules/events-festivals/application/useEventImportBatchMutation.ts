@@ -53,10 +53,9 @@ export function eventImportGlobalErrorMessage(error: unknown): string {
     if (status === 401) return "La sesión no es válida. Inicia sesión de nuevo para continuar.";
     if (status === 403) return "No tienes permisos para importar eventos.";
     if (status === 404) return "El servicio de importación no está disponible.";
-    if (status && status >= 500)
-      return "El servidor no pudo completar la petición. Puedes reintentar el mismo lote.";
+    if (status && status >= 500) return "No se pudo completar la operación. Puedes reintentarlo.";
     if (error.response) return "No se pudo completar la petición de importación.";
-    return "No se recibió respuesta. Puedes reintentar el mismo lote con la misma identidad.";
+    return "No sabemos si la operación terminó. Comprueba el resultado reintentando la misma operación.";
   }
   if (error instanceof Error && error.name === "ImportBatchProtocolError") {
     return "La respuesta del servidor no coincide con las filas enviadas. No se ha confirmado ninguna fila.";

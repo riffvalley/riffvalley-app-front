@@ -13,13 +13,13 @@ import type {
   LineupItem,
 } from "./useEventImportRows";
 import { parseCalendarDate } from "./eventDate";
-import { splitLineupNames } from "./lineupText";
 
 function tourIdentity(name: string): string {
   return geographyContextKey(name);
 }
 
-export const EVENT_IMPORT_BATCH_LIMIT = 100;
+/** Operational frontend limit; the backend contract continues to accept up to 100 rows. */
+export const EVENT_IMPORT_BATCH_LIMIT = 50;
 
 export type DeepReadonly<T> = T extends readonly (infer Item)[]
   ? readonly DeepReadonly<Item>[]
@@ -188,6 +188,7 @@ function validateRow(row: EventImportRow, input: EventImportPreparationInput): s
     reasons.push("end-date-before-start-date");
   }
   if (!row.city.trim()) reasons.push("city-required");
+  if (row.lineup.length === 0) reasons.push("lineup-required");
   if (row.administrativeRegionId && !UUID_PATTERN.test(row.administrativeRegionId))
     reasons.push("administrative-region-invalid");
   if (row.type !== "concert" && !row.event.trim()) reasons.push("name-required");
@@ -305,13 +306,7 @@ function validateRow(row: EventImportRow, input: EventImportPreparationInput): s
     }
   }
 
-  if (lineupState && splitLineupNames(lineupState.draft).length > 0) {
-    reasons.push(
-      lineupState.draftStatus === "error"
-        ? "artist-draft-resolution-error"
-        : "artist-draft-resolution-pending"
-    );
-  }
+  if (lineupState?.draft.trim()) reasons.push("artist-draft-unconfirmed");
 
   if (row.type === "tour") {
     if (!tour || !tour.result || tourIdentity(tour.result.name) !== tourIdentity(row.event)) {

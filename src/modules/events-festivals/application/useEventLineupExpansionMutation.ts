@@ -19,8 +19,13 @@ export type EventLineupExpansionExecution =
       result: EventLineupExpansionResponse;
       reconciliation: "removed" | "kept" | "already-handled";
     }
-  | { state: "conflict" | "failed"; message: string; operationKey: string }
-  | { state: "uncertain"; message: string; operationKey: string };
+  | {
+      state: "conflict" | "failed";
+      message: string;
+      operationKey: string;
+      technicalDetail?: unknown;
+    }
+  | { state: "uncertain"; message: string; operationKey: string; technicalDetail?: unknown };
 
 const inFlightExpansions = new Set<string>();
 const authorizations = new WeakSet<object>();
@@ -93,15 +98,20 @@ export type LineupExpansionFailureKind = "conflict" | "global" | "uncertain";
 export function lineupExpansionFailureKind(error: unknown): LineupExpansionFailureKind {
   if (error instanceof EventLineupExpansionConflictError) {
     if (error.code === "IMPORT_OPERATION_IN_PROGRESS") return "uncertain";
-    if (error.code === "IMPORT_OPERATION_ID_REUSED") return "global";
+    if (error.code === "IMPORT_IDEMPOTENCY_CONFLICT" || error.code === "IMPORT_OPERATION_ID_REUSED")
+      return "global";
     return "conflict";
   }
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
+    const data = error.response?.data as { code?: unknown } | undefined;
     if (status === 409) {
-      const data = error.response?.data as { code?: unknown } | undefined;
       if (data?.code === "IMPORT_OPERATION_IN_PROGRESS") return "uncertain";
-      if (data?.code === "IMPORT_OPERATION_ID_REUSED") return "global";
+      if (
+        data?.code === "IMPORT_IDEMPOTENCY_CONFLICT" ||
+        data?.code === "IMPORT_OPERATION_ID_REUSED"
+      )
+        return "global";
       return "conflict";
     }
     if (!status || status >= 500) return "uncertain";
@@ -113,30 +123,30 @@ export function lineupExpansionFailureKind(error: unknown): LineupExpansionFailu
 
 export function lineupExpansionErrorMessage(error: unknown): string {
   if (error instanceof EventLineupExpansionConflictError) {
-    const details = error.details as { conflicts?: unknown; candidates?: unknown } | undefined;
-    const structured = details?.conflicts ?? details?.candidates;
-    return `${error.code ? `${error.code}: ` : ""}${error.message}${structured ? ` · Detalle: ${JSON.stringify(structured)}` : ""}`;
+    if (error.code === "IMPORT_OPERATION_IN_PROGRESS")
+      return "No sabemos si la operación terminó. Comprueba el resultado reintentando la misma operación.";
+    if (error.code === "IMPORT_IDEMPOTENCY_CONFLICT" || error.code === "IMPORT_OPERATION_ID_REUSED")
+      return "Esta operación ya no coincide con la solicitud original. No se puede reintentar con datos diferentes.";
+    return "El concierto o los artistas cambiaron y la propuesta ya no es válida. Revisa los datos antes de continuar.";
   }
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
+    const data = error.response?.data as { code?: unknown } | undefined;
+    if (data?.code === "IMPORT_OPERATION_IN_PROGRESS")
+      return "No sabemos si la operación terminó. Comprueba el resultado reintentando la misma operación.";
+    if (data?.code === "IMPORT_IDEMPOTENCY_CONFLICT" || data?.code === "IMPORT_OPERATION_ID_REUSED")
+      return "Esta operación ya no coincide con la solicitud original. No se puede reintentar con datos diferentes.";
     if (status === 400) {
-      const data = error.response?.data as
-        { code?: unknown; message?: unknown; errors?: unknown } | undefined;
-      const code = typeof data?.code === "string" ? `${data.code}: ` : "";
-      const message =
-        typeof data?.message === "string"
-          ? data.message
-          : "El backend rechazó la estructura del snapshot confirmado.";
-      const errors = data?.errors ? ` · Detalle: ${JSON.stringify(data.errors)}` : "";
-      return `${code}${message}${errors}`;
+      return "Hay información que debes corregir antes de continuar.";
     }
     if (status === 401) return "La sesión no es válida. Inicia sesión de nuevo para continuar.";
     if (status === 403) return "No tienes permisos para ampliar este lineup.";
-    if (status === 404) return "El evento confirmado ya no está disponible.";
-    if (status && status >= 500) return "El servidor no confirmó el resultado de la ampliación.";
-    if (error.response) return "No se pudo completar la ampliación.";
-    return "No se recibió respuesta. El servidor podría haber aplicado la ampliación.";
+    if (status === 404) return "El concierto ya no está disponible. Vuelve a revisar la propuesta.";
+    if (status && status >= 500) return "No se pudo completar la operación. Puedes reintentarlo.";
+    if (error.response) return "No se pudo completar la operación. Puedes reintentarlo.";
+    return "No sabemos si la operación terminó. Comprueba el resultado reintentando la misma operación.";
   }
-  if (error instanceof EventLineupExpansionProtocolError) return error.message;
-  return "No se pudo completar la ampliación.";
+  if (error instanceof EventLineupExpansionProtocolError)
+    return "No sabemos si la operación terminó. Comprueba el resultado reintentando la misma operación.";
+  return "No se pudo completar la operación. Puedes reintentarlo.";
 }

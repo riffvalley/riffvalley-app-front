@@ -2,13 +2,13 @@
 
 ## Estado
 
-**Fase A — Prototipo frontend:** CON-F01–CON-F07 implementadas; la validación visual final del usuario sigue pendiente. **Backend de importación:** contratos CON-B04a–CON-B04g disponibles en la documentación/código del checkout local; no certifica despliegue remoto. **Integración frontend:** CON-F08a, F08b.1–F08b.7, F08c.1–F08c.3, F08d.1–F08d.4 y F08e.1–F08e.3 completadas; F09 sigue pendiente.
+**Iniciativa frontend cerrada:** CON-F01–CON-F07, CON-F08a, CON-F08b.1–F08b.7, CON-F08c.1–F08c.3, CON-F08d.1–F08d.4, CON-F08e.1–F08e.3, CON-F09.1–F09.4 y CON-D01–D03 completadas para el alcance aprobado. **CON-D03:** aceptación visual del diseño actual confirmada por el usuario el 2026-11-03. **Backend de importación:** contratos CON-B04a–CON-B04g disponibles en la documentación/código del checkout local; no certifica despliegue remoto.
 
-| Fase                   | Estado                | Alcance                                                                                           |
-| ---------------------- | --------------------- | ------------------------------------------------------------------------------------------------- |
-| A — Prototipo frontend | IMPLEMENTADA          | CON-F01–CON-F07; queda validación visual del usuario.                                             |
-| B — Backend            | CONTRATOS DISPONIBLES | CON-B04a–CON-B04g documentadas en el checkout backend; no certifica despliegue remoto.            |
-| C — Integración        | EN CURSO              | CON-F08a, F08b.1–F08b.7, F08c.1–F08c.3, F08d.1–F08d.4 y F08e.1–F08e.3 completadas; F09 pendiente. |
+| Fase                   | Estado                | Alcance                                                                                                           |
+| ---------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| A — Prototipo frontend | IMPLEMENTADA          | CON-F01–CON-F07. La aceptación visual del diseño actual está registrada en CON-D03.                               |
+| B — Backend            | CONTRATOS DISPONIBLES | CON-B04a–CON-B04g documentadas en el checkout backend; no certifica despliegue remoto.                            |
+| C — Integración        | COMPLETADA            | CON-F08a, F08b.1–F08b.7, F08c.1–F08c.3, F08d.1–F08d.4, F08e.1–F08e.3 y F09.1–F09.4.                               |
 
 La auditoría canónica del importador, su matriz de resultados, las carencias de resolución anticipada y el diseño de estados/idempotencia están en [docs/frontend/modules/events-festivals-importer.md](../docs/frontend/modules/events-festivals-importer.md). El roadmap detallado es:
 
@@ -17,7 +17,84 @@ La auditoría canónica del importador, su matriz de resultados, las carencias d
 - **CON-F08c — Importación masiva (completada):** F08c.1 snapshot/payload por país, F08c.2 mutación/adaptador de `POST /api/events/import-batch` y F08c.3 reconciliación parcial, protección de reintentos inciertos y bloqueo de borradores divergentes completadas. La resolución interactiva sigue en CON-F08d.
 - **CON-F08d — Conflictos, ambigüedades, corrección y descarte (completada):** F08d.1 conflictos entre filas, F08d.2 detalle de eventos existentes/candidatos, F08d.3 selección de Artist/Locality/Venue/Tour y F08d.4 corrección/descarte explícitos.
 - **CON-F08e — Ampliación confirmada (completada):** F08e.1 prepara snapshot inmutable; F08e.2 exige destino, revisión y confirmación explícitos; F08e.3 ejecuta `POST /api/events/:eventId/import-lineup`, conserva idempotencia durante retries, gestiona conflictos stale y reconcilia `updated` con la fila fuente. No crea Events ni sustituye lineups.
-- **CON-F09 — Cierre del importador (pendiente):** F09.1 idempotencia/retry; F09.2 estados de carga/error; F09.3 regresión/accesibilidad; F09.4 rendimiento frontend y cierre. Validación visual responsive posterior a cargo del usuario.
+- **CON-F09 — Cierre del importador (completado):** F09.1 autoguardado local y recuperación segura, F09.2 regresión integral, F09.3 accesibilidad/rendimiento medido y F09.4 cierre técnico/documental están completadas.
+- **CON-D01 — Auditoría de diseño y UX (documentada):** inventario y hallazgos estáticos en [roadmap/events-festivals-design.md](events-festivals-design.md); 5 P1, 7 P2 y 2 P3. **CON-D02.1–D02.5**, incluidas D02.3a y D02.4a, están implementadas en este checkout. **CON-D03** registra la aceptación visual del diseño actual por el usuario; no requiere nuevas capturas o inspecciones para F09.2.
+
+### CON-F09.1 — Autoguardado local y recuperación segura
+
+- IndexedDB local, esquema 1, registro por UUID autenticado, sin tokens ni caducidad. El temporizador de 30 s guarda solo revisiones dirty y ordena escrituras; TSV, descarte y resultados de operaciones fuerzan guardado.
+- El snapshot de creación o ampliación y sus identidades idempotentes se guardan antes del POST. Si falla el almacenamiento, la operación se bloquea. Al volver, operaciones `sending` se ofrecen como inciertas y requieren retry explícito con el snapshot original; no se importan automáticamente.
+- Recuperación y descarte requieren decisión explícita. Los IDs seleccionados de Artist/Locality/Venue/Tour se revalidan con los inspectores actuales. Los datos se aíslan por usuario. No se modifica backend.
+- El máximo operativo frontend es 50 filas por envío; se conservan las filas sobrantes. El límite backend de 100 permanece intacto.
+- Dependencias: F09.2 verificó errores/loading, recuperación, snapshots y retries; F09.3 amplió la verificación de accesibilidad y midió cargas representativas. F09.4 cerró la auditoría y documentación sin requerir cambios funcionales.
+
+### CON-F09.2 — Regresión integral del importador (completada)
+
+- Se amplió la regresión integrada para pegado de 51 conciertos, envío de 50 por operación y conservación de conflicto/fallo/fila restante; artistas nuevos y existentes; fechas y lineups independientes en fechas de una gira; selección explícita por UUID de Locality y Venue ambiguos; y corrección de conflicto con nueva identidad de operación.
+- La cobertura existente también comprueba Concert/Festival/Tour, país único, lineup obligatorio, fechas/opcionales, resolución compartida y deduplicada, snapshots inmutables, reconciliación parcial, conflictos entre filas/eventos, ampliación aditiva con autorización, operaciones duplicadas, recuperación explícita, autoguardado de 30 s, aislamiento por usuario, cambios en vuelo, timeout/retry con IDs originales y descarte sin restauración.
+- IndexedDB simulado clona valores con `structuredClone()`, reproduce `DataCloneError`, persiste/lee/elimina por usuario y ejercita error transaccional; la vista conserva pruebas de bloqueo del POST ante error de guardado. No se emplean respuestas ni códigos nuevos en los fixtures añadidos: las pruebas usan estados/códigos de contrato documentados.
+- Suite Events/Festivals, módulo Venue y servicio de importaciones compartido: 33 archivos, 280 pruebas aprobadas. Vista aleatoria con seed 13: 45/45; repetición de la suite completa aprobada.
+- Typecheck, ESLint focalizado, Prettier para Events/Festivals y Venue importer, build, fixtures de ciclos/fronteras/Markdown y `git diff --check` aprobados. El chequeo Prettier que incluyó `src/services/imports/imports.test.ts` detectó formato preexistente en ese archivo limpio, fuera de los cambios de esta fase; no se reformateó código ajeno.
+- Persisten avisos de build por Browserslist desactualizado, selector CSS `.flex-[2]` y chunks superiores a 500 kB. No se realizaron importaciones reales, consultas a producción, cambios backend, merge ni despliegue. CON-F09.3 y CON-F09.4 no se habían iniciado al cerrar F09.2.
+
+### CON-F09.3 — Accesibilidad y rendimiento medido (completada)
+
+- **Correcciones accesibles:** Lineup obligatorio expone `aria-required`; errores de tipo/fecha/artista/resolución se anuncian; City comunica invalidación con `aria-invalid` y estado asociado; los avisos de localidad ambigua se separan del selector interactivo. El selector de destino bloqueado asocia la explicación de candidatos indistinguibles. Se conserva el teclado nativo, el foco al editar y los anuncios de guardado/importación. Los nombres accesibles no muestran UUID ni códigos técnicos.
+- **Cobertura:** `+`, Enter, blur, Tab/Shift+Tab, foco/caret, etiquetas, selección ambigua, `aria-expanded`/`aria-controls`, estado de subfila, recuperación, descarte e interacción tras desmontar. La prueba de desmontaje confirma que no se ejecutan resoluciones o autoguardado pendientes. La prueba de 51 filas dejó de necesitar su timeout explícito de 15 s: tardó 1,434 s aislada y 2,274 s dentro del runner concurrente.
+- **Medición de 50 filas:** Node 24.22.1, pnpm 11.28.8, Vitest 2.1.9, Happy DOM/Linux. Montaje 5 filas: 16,2 ms; 50 filas: 69,4 ms; pegado de fechas 50 filas: 24,5 ms; edición de ciudades: 27,7 ms; 150 artistas en lotes 100/50: 123,3 ms; edición de artista confirmada: 82,0 ms; edición de Precio: 25,2 ms; 20 ediciones sucesivas: 460,9 ms con 20 renders de tabla y ningún render de Lineup por Precio; autoguardado estructurado: 0,4 ms; escritura IndexedDB simulada: 3,7 ms; snapshot/guardado/envío mock: 48,8 ms; detalle de conflicto: montaje 24,0 ms y apertura 13,7 ms. Pruebas instrumentadas sin umbrales temporales.
+- **Queries y actualización:** se mantienen TanStack Query como autoridad, caché de 15 s, debounce de Artist de 450 ms, máximo de 100 identidades, deduplicación y protección de respuesta obsoleta. El escenario midió dos identidades de Locality al cambiar entre países y Artist 100+50, más la única identidad del artista editado. Editar Precio no genera consultas y las celdas Lineup no se vuelven a renderizar.
+- **Verificación:** Events/Festivals, todos los módulos Venue y servicio compartido, 33 archivos/286 pruebas, 10,40 s; son seis pruebas nuevas sobre las 280 de F09.2. Typecheck, ESLint focalizado, Prettier focalizado, build, fixtures estructurales y `git diff --check` aprobaron. Las peticiones están mockeadas; no se importó contra producción.
+- **Límites de rendimiento:** escritura medida con adaptador IndexedDB simulado; no representa latencia nativa ni layout/paint real de navegador. No se vio un cuello que justifique virtualización o caché paralela. El perfilado de navegador real, memoria sostenida y lotes grandes de candidatos/historial queda como mejora futura opcional, fuera del alcance cerrado.
+
+### CON-F09.4 — Cierre técnico y documental (completada)
+
+- **Auditoría:** se contrastaron el roadmap, la auditoría de diseño, la guía canónica del importador y la arquitectura general. Estados activos desactualizados se actualizaron; las notas históricas se conservan como registros de la fase en que se escribieron.
+- **Contratos vigentes:** se mantienen Concert/Festival y Tour como tipo de entrada local de concierto; resolución compartida de Artist, Locality, Venue y Tour; máximo operativo frontend de 50 filas por envío (el límite backend documentado de 100 no cambia); importación parcial y conflictos; ampliaciones aditivas de lineup con autorización; snapshots e idempotencia en reintentos; recuperación explícita mediante IndexedDB; y separación entre guardas/permisos frontend y autorización backend. No se modificaron endpoints, DTOs ni backend.
+- **Evidencia:** `pnpm exec vitest run src/modules/events-festivals src/modules/venues src/services/imports` aprobó 33 archivos/286 pruebas en 12,24 s. Typecheck, ESLint focalizado, Prettier focalizado del importador/Venue, build, fixtures de ciclos/fronteras/Markdown y `git diff --check` aprobaron. El build conserva avisos de Browserslist, CSS `.flex-[2]` y tamaño de chunks; el Prettier más amplio también señala formato preexistente en `src/services/imports/imports.ts` y su test, ambos intactos. El checker Markdown informa seis enlaces ajenos a estos documentos; no se hicieron llamadas de escritura ni pruebas en navegador.
+- **Aceptación y límites:** CON-D03 registra la aceptación visual del usuario del 2026-11-03. La medición de F09.3 fue de Vitest/Happy DOM y no se presenta como rendimiento de navegador real. IndexedDB fue simulado; contratos y disponibilidad remotos no se certifican en producción. Estas limitaciones no bloquean el cierre del alcance frontend aprobado.
+- **Resultado:** no se identificaron defectos reproducibles bloqueantes ni tareas funcionales pendientes dentro del alcance aprobado. Se conservaron los cambios locales que ya existían y no se atribuyeron cambios sin una base Git fiable. Posibles mejoras de perfilado real de navegador o de historial grande quedan fuera de esta iniciativa.
+
+#### Verificación
+
+- Suite afectada `src/modules/events-festivals` y Venue importer: 27 archivos/205 pruebas aprobadas. Vista repetida con orden aleatorio (seed 13): 36/36. Incluye guardado previo al POST y bloqueo cuando IndexedDB falla.
+- Typecheck, build, ESLint focalizado, Prettier focalizado, `git diff --check`, fixtures de ciclos y fronteras aprobados. Build mantiene avisos generales de Browserslist, CSS `.flex-[2]` y chunk >500 kB.
+- El scan de ciclos conserva un ciclo type-only legacy en `src/services`; Identity informa cero edges locales irresueltos. Los deltas no se pudieron calcular porque Git no resolvió `HEAD`. El checker Markdown reporta seis referencias preexistentes en otros archivos.
+- No se hicieron llamadas de producción, inspección visual ni cambios backend.
+
+### CON-D02.3a — Corrección del bloqueo de IndexedDB
+
+- **Causa raíz confirmada:** las filas del `ref` profundo de Vue se persistían directamente en `sessionPayload()`. El objeto raíz y estructuras anidadas podían ser proxies, que structured clone rechaza con `DataCloneError` en `IDBObjectStore.put()`. La prueba antigua del storage mock no clonaba valores y no detectaba el fallo; no hay evidencia de que la cuota fuese la causa.
+- **Corrección:** la vista entrega una proyección explícita del borrador y de las identidades/snapshots recuperables. El proyector retira proxies anidados con `toRaw` recursivo, mantiene datos readonly congelados y rechaza ciclos/valores no serializables. No incluye el estado remoto de queries ni usa JSON como serializador de persistencia. El formato sigue versionado (versión 1) porque la estructura recuperable no cambió.
+- **Seguridad:** la persistencia del snapshot original y sus UUID debe completarse antes de `POST /api/events/import-batch` o `POST /api/events/:eventId/import-lineup`. Si el guardado falla, no se marca la revisión como guardada ni se ejecuta POST; el error nativo queda como `cause`, el borrador permanece en memoria y retry conserva la identidad. Se quitó una acción general de retry duplicada durante el mismo error crítico.
+- **Regresión:** prueba de IndexedDB simulada con `structuredClone()` reproduce exactamente `DataCloneError` para fila reactiva anidada y pasa con el modelo proyectado. El escenario prepara una fila autenticada de España con artistas existentes/nuevos, Locality seleccionada por UUID, Venue nuevo y fecha válida, y guarda su snapshot. Prueba de vista verifica POST bloqueado y retry con el mismo `batchId`/`rowId`. También se cubren snapshot readonly, error de transacción, escritura concurrente, dirty/autoguardado de 30 s, restauración y metadatos de ampliación. Suite afectada Events/Venue: 28 archivos y 221 pruebas aprobadas.
+- **Gates locales:** typecheck, ESLint focalizado, Prettier focalizado, build, fixtures de ciclos/fronteras/Markdown y `git diff --check` aprobados. La build conserva avisos globales de Browserslist, CSS `.flex-[2]` y chunk >500 kB. El checker Markdown informa seis enlaces preexistentes en otros roadmaps; no señala los documentos de esta tarea.
+- **Limitaciones registradas al cerrar F09.1:** no se usó IndexedDB del navegador/perfil ni se hizo llamada remota; IndexedDB ausente/bloqueado/fallido continúa bloqueando operaciones críticas. No se cambió backend. En ese corte, D02.5 y CON-F09.2–F09.4 seguían pendientes; sus cierres posteriores están anotados abajo.
+
+### CON-D02.4 — Simplificación de conflictos y ampliación de lineup
+
+- La interfaz ya no presenta UUID, identificadores de operación, códigos internos ni detalles de implementación en conflictos, candidatos, historial, errores o mensajes accesibles. Se conservan en contratos, snapshots, estado y errores técnicos internos.
+- Los conflictos conocidos usan copy comprensible; los códigos desconocidos no se interpretan. Eventos ampliables presentan contexto compacto del destino, lineup actual y artistas propuestos en una única ficha. Las comparaciones en tablas y la segunda ficha de revisión desaparecen.
+- La selección múltiple usa fecha, recinto, localidad, nombre y lineup del detalle real. No hay selección automática; si candidatos no tienen descripciones distinguibles, queda bloqueada.
+- «Añadir al lineup» es la confirmación explícita y ejecución en una acción; «Cancelar» retira la autorización local. Se mantienen snapshot vigente, verificación del detalle, guardado antes del POST, permiso, idempotencia, bloqueo de doble envío, incertidumbre y retry con operación original.
+- Éxitos muestran únicamente nuevas incorporaciones. Conflictos históricos no mezclan detalle actual. Fallos, errores de datos y resultados inciertos usan mensajes recuperables sin datos técnicos; el error original sigue en el estado técnico. Se mantiene navegación entre filas y `aria-expanded` real.
+- Artist/Locality/Venue/Tour conservan estados y validaciones, sin exponer IDs o códigos. Se actualizan pruebas de conflicto, ampliación, vista e importación; pruebas, gates y límites están registrados en `roadmap/events-festivals-design.md`.
+- **Pendiente:** CON-D02.5, validación visual del usuario y F09.2–F09.4. No se modificó backend, no hubo peticiones reales ni despliegue.
+
+### CON-D02.4a — Rediseño del panel de conflictos
+
+- La subfila de estado es el único acceso principal al conflicto y muestra una causa breve o referencia a una fila relacionada; no confunde los datos propuestos con los del evento existente. Se retiró el badge superpuesto a la columna de fila. Los detalles se expanden debajo de su fila mediante identidad estable, con `aria-expanded`, `aria-controls`, foco estable y navegación por relaciones disponibles.
+- El detalle usa una única superficie compacta, sin paneles interiores. Resume los datos reales del evento, lineup actual y artistas propuestos; varios destinos requieren selección explícita y candidatos no diferenciables o identidades inciertas permanecen bloqueados. Conflictos históricos se distinguen y no permiten ampliar.
+- El resumen de lote oculta contadores cero, muestra solo resultado agregado y no repite conflictos por fila. Conserva resultados históricos de filas retiradas y deja errores globales accesibles. Las ampliaciones no se cuentan como eventos importados.
+- La ampliación mantiene su acción de autorización explícita, snapshot vigente, guardado y validación actuales, idempotencia, bloqueo de doble envío y retry con la misma operación. No cambian contratos ni reglas backend.
+- Se actualizaron pruebas focalizadas de presentación, resumen, fila relacionada, interacción y ARIA. La verificación automatizada y sus límites se registran en `roadmap/events-festivals-design.md`; no se realizó inspección visual manual.
+- **Pendiente:** CON-D02.5, validación visual del usuario y F09.2–F09.4. No se modificó backend, no hubo peticiones reales ni despliegue.
+
+### CON-D02.5 — Accesibilidad y ajustes finales de diseño
+
+- Los conflictos de participación solo se resumen como «Este concierto ya existe» cuando la fila actual es un concierto y el backend identificó un evento existente; se mantienen mensajes específicos de festival, conflictos entre filas e identidades no confirmadas. La ficha muestra fecha, recinto y ciudad, artistas actuales y propuestos, sin IDs ni códigos técnicos.
+- Se compactaron las líneas de contexto, se limitaron paneles y se mantuvieron las acciones de ampliación y sus validaciones. Los estados dinámicos de fila se anuncian, la semántica de chips no depende del color y los paneles exponen su estado y relación ARIA; se verificaron etiquetas, teclado y foco mediante pruebas focalizadas.
+- Se conserva el scroll horizontal nativo de la tabla, sin convertirla en tarjetas. La lectura automatizada incluye pegado TSV, descarte, recuperación de sesiones y ampliaciones confirmadas. La ejecución de gates queda registrada en el roadmap de diseño.
+- **Registro de esa entrega:** no se inspeccionó el navegador ni se hicieron capturas, comprobación responsive/temas, zoom o lector de pantalla. La aceptación visual posterior del diseño actual quedó registrada en CON-D03. No se modificó backend ni hubo despliegue.
 
 **CON-B04g está implementada en el checkout backend local y verificada para F08b.1.** El estado de despliegue remoto no se comprobó. Los inspectores son consultas batch read-only; Locality requiere contexto de país y Venue necesita `localityId`. La definición y garantías están en el documento canónico.
 
@@ -114,9 +191,9 @@ El bloque de auditoría/dominio/persistencia descrito originalmente aquí quedó
 
 Las descripciones siguientes de las fases A y B conservan decisiones e historial del prototipo y no sustituyen los contratos vigentes del backend.
 
-## Fase C — Integración
+## Fase C — Integración (completada)
 
-La integración de eventos sigue pendiente aunque los endpoints backend ya existen. Su secuencia y criterios de aceptación están definidos en CON-F08b–CON-F09 al inicio de este roadmap:
+La integración frontend aprobada está cerrada. Su secuencia y criterios de aceptación quedan registrados en CON-F08b–CON-F09 al inicio de este roadmap:
 
 - Resolución anticipada e incremental.
 - Importación parcial idempotente.

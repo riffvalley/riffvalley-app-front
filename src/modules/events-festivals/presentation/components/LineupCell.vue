@@ -2,7 +2,7 @@
 import { nextTick, ref, useTemplateRef } from "vue";
 import type { LineupCellState, LineupItem } from "../../application/useEventImportRows";
 
-defineProps<{
+const props = defineProps<{
   rowId: string;
   items: LineupItem[];
   state: LineupCellState;
@@ -12,7 +12,7 @@ defineProps<{
 const emit = defineEmits<{
   updateDraft: [value: string];
   commitDraft: [];
-  retryDraft: [];
+  pasteDraft: [value: string];
   updateItemName: [itemKey: string, value: string];
   commitItemName: [itemKey: string];
   retryItem: [itemKey: string];
@@ -38,6 +38,26 @@ function stopEditing(itemKey: string) {
 function blurInput(event: Event) {
   (event.target as HTMLInputElement).blur();
 }
+
+function handlePaste(event: ClipboardEvent) {
+  const value = event.clipboardData?.getData("text/plain");
+  if (value === undefined) return;
+  if (props.state.draft.trim() && !/[+\t\r\n]/u.test(value)) return;
+  event.preventDefault();
+  emit("updateDraft", "");
+  emit("pasteDraft", value);
+}
+
+function itemStatusLabel(itemKey: string): string {
+  if (props.state.itemStatus[itemKey] === "resolving") return "Buscando";
+  const result = props.state.itemResolution[itemKey];
+  if (!result) return "";
+  if (result.status === "existing") return "Artista existente";
+  if (result.status === "new") return "Artista nuevo";
+  if (result.status === "invalid") return "Artista no válido";
+  if (result.status === "error") return "Error al buscar";
+  return "";
+}
 </script>
 
 <template>
@@ -50,6 +70,8 @@ function blurInput(event: Event) {
           editingItemKey !== item.key
         "
         class="inline-flex max-w-full items-center gap-1 rounded-full border border-green-300 bg-green-100 py-1 pl-2.5 pr-1 text-xs font-semibold text-green-900 dark:border-green-400/30 dark:bg-green-400/15 dark:text-green-200"
+        role="group"
+        :aria-label="`${item.name}, artista existente`"
       >
         <span class="max-w-48 truncate">{{ item.name }}</span>
         <button
@@ -87,11 +109,11 @@ function blurInput(event: Event) {
           @keydown.enter.prevent="blurInput"
         />
         <span
-          v-if="state.itemStatus[item.key] === 'resolving'"
-          class="shrink-0 text-[10px] text-gray-500 dark:text-gray-400"
-          role="status"
+          v-if="itemStatusLabel(item.key) && state.itemResolution[item.key]?.status !== 'ambiguous'"
+          class="sr-only"
+          :role="state.itemStatus[item.key] === 'error' ? 'alert' : 'status'"
         >
-          Resolviendo…
+          {{ itemStatusLabel(item.key) }} para {{ item.name }}
         </span>
         <div
           v-if="state.itemResolution[item.key]?.status === 'ambiguous'"
@@ -114,7 +136,7 @@ function blurInput(event: Event) {
               :key="candidate.id"
               :value="candidate.id"
             >
-              {{ candidate.name }} · {{ candidate.id }}
+              {{ candidate.name }}
             </option>
           </select>
           <span v-if="item.artistId" role="status">Seleccionado</span>
@@ -142,35 +164,25 @@ function blurInput(event: Event) {
     <input
       :value="state.draft"
       type="text"
-      :aria-label="`Añadir artistas a Lineup, fila ${rowNumber}`"
+      :aria-label="`Añadir artistas a Lineup (obligatorio), fila ${rowNumber}`"
+      aria-required="true"
       autocomplete="off"
       placeholder="Añadir artista…"
       class="min-h-8 min-w-32 flex-1 rounded-md border border-transparent bg-transparent px-2 text-sm text-gray-900 outline-none placeholder:text-gray-500 focus-visible:border-rv-purple focus-visible:ring-2 focus-visible:ring-rv-purple/30 dark:text-white dark:placeholder:text-gray-400"
       @input="emit('updateDraft', ($event.target as HTMLInputElement).value)"
       @blur="emit('commitDraft')"
-      @keydown.enter.prevent="blurInput"
+      @paste="handlePaste"
+      @keydown.enter.prevent="emit('commitDraft')"
     />
 
-    <span
-      v-if="state.draftStatus === 'resolving'"
-      class="text-xs text-gray-500 dark:text-gray-400"
-      role="status"
+    <button
+      type="button"
+      :aria-label="`Confirmar artista de Lineup, fila ${rowNumber}`"
+      class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-rv-purple text-white hover:bg-rv-navy focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+      @mousedown.prevent
+      @click="emit('commitDraft')"
     >
-      Resolviendo…
-    </span>
-    <span
-      v-else-if="state.draftStatus === 'error'"
-      class="inline-flex items-center gap-1 text-xs text-red-700 dark:text-red-300"
-      role="status"
-    >
-      No se pudo resolver; se conserva el texto.
-      <button
-        type="button"
-        class="font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-purple"
-        @click="emit('retryDraft')"
-      >
-        Reintentar
-      </button>
-    </span>
+      <i class="fa-solid fa-plus text-xs" aria-hidden="true"></i>
+    </button>
   </div>
 </template>

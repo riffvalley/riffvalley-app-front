@@ -12,6 +12,7 @@ vi.mock("@services/api/api", () => ({ default: { get: vi.fn(), post: vi.fn() } }
 
 const eventA = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const eventB = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const artistA = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 
 const conflict: EventImportConflictPresentation = {
   operationId: "batch-id",
@@ -21,7 +22,7 @@ const conflict: EventImportConflictPresentation = {
   countryId: "country-id",
   status: "current",
   code: "CONCERT_DUPLICATE",
-  message: "Conflicto",
+  message: "Internal conflict",
   severity: "review",
   kind: "duplicate",
   snapshot: {
@@ -29,7 +30,7 @@ const conflict: EventImportConflictPresentation = {
     type: "concert",
     startDate: "2027-05-15",
     city: "Madrid",
-    lineup: [{ name: "Septicflesh", artistId: "artist-s" }, { name: "Equilibrium" }],
+    lineup: [{ name: "Meshuggah", artistId: artistA }, { name: "Vianova" }],
   },
   relatedRows: [],
   existingEventIds: [],
@@ -38,8 +39,8 @@ const conflict: EventImportConflictPresentation = {
     { eventId: eventA, status: "candidate" },
     { eventId: eventB, status: "candidate" },
   ],
-  matchingArtists: [{ artistId: "artist-s", name: "Septicflesh" }],
-  addableArtists: [{ artistId: null, name: "Equilibrium" }],
+  matchingArtists: [{ artistId: artistA, name: "Meshuggah" }],
+  addableArtists: [{ artistId: null, name: "Vianova" }],
 };
 
 function ready(eventId: string): LineupExpansionPreparation {
@@ -51,28 +52,34 @@ function ready(eventId: string): LineupExpansionPreparation {
       correlation: {} as never,
       operation: { batchId: "batch-id", rowId: `operation-${eventId}` },
       eventId,
-      payload: { artists: [{ name: "Equilibrium" }] } as never,
+      payload: { artists: [{ name: "Vianova" }] } as never,
     },
+  };
+}
+
+function eventDetail(id: string) {
+  const isA = id === eventA;
+  return {
+    id,
+    type: "concert",
+    name: isA ? "Noche A" : "Noche B",
+    startDate: isA ? "2027-05-15" : "2027-06-20",
+    venue: {
+      name: isA ? "La Riviera" : "Palacio Vistalegre",
+      locality: { name: isA ? "Madrid" : "Madrid" },
+    },
+    lineup: [{ artistId: artistA, name: "Meshuggah" }],
   };
 }
 
 afterEach(() => vi.restoreAllMocks());
 
 describe("EventLineupExpansionReview", () => {
-  it("requires explicit destination selection and confirmation, then invalidates it on destination change", async () => {
-    vi.spyOn(api, "get").mockImplementation(
-      async (url) =>
-        ({
-          data: {
-            id: String(url).endsWith(eventA) ? eventA : eventB,
-            type: "concert",
-            name: "Concierto",
-            startDate: "2027-05-15",
-            venue: { name: "Sala", locality: { name: "Madrid" } },
-            lineup: [{ artistId: "artist-s", name: "Septicflesh" }],
-          },
-        }) as never
-    );
+  it("requires destination selection and uses one explicit action to confirm and execute", async () => {
+    vi.spyOn(api, "get").mockImplementation(async (url) => {
+      const id = String(url).endsWith(eventA) ? eventA : eventB;
+      return { data: eventDetail(id) } as never;
+    });
     const prepare = vi.fn((selectedEventId?: string) =>
       selectedEventId ? ready(selectedEventId) : null
     );
@@ -107,57 +114,64 @@ describe("EventLineupExpansionReview", () => {
     await flushPromises();
 
     expect((wrapper.get("select").element as HTMLSelectElement).value).toBe("");
-    expect(
-      wrapper.findAll("button").some((button) => button.text().includes("Confirmar ampliación"))
-    ).toBe(false);
+    expect(wrapper.get("select").text()).toContain("15/05/2027 · La Riviera, Madrid");
+    expect(wrapper.get("select").text()).toContain("20/06/2027 · Palacio Vistalegre, Madrid");
+    expect(wrapper.text()).not.toContain(eventA);
+    expect(wrapper.text()).not.toContain(eventB);
+    expect(wrapper.text()).not.toContain("UUID");
+    expect(wrapper.find('[type="checkbox"]').exists()).toBe(false);
+
     await wrapper.get("select").setValue(eventA);
     await flushPromises();
     expect(savedSelection.value).toBe(eventA);
-    expect(wrapper.text()).toContain(eventA);
-    expect(wrapper.text()).toContain("Lineup actual");
-    expect(wrapper.text()).toContain("artista nuevo sin UUID");
-    expect((wrapper.get('[type="checkbox"]').element as HTMLInputElement).checked).toBe(false);
-    await wrapper.get('[type="checkbox"]').setValue(true);
-    expect(wrapper.text()).toContain("Propuesta revisada; falta la confirmación explícita.");
+    expect(wrapper.text()).toContain("Ya participan");
+    expect(wrapper.text()).toContain("Meshuggah");
+    expect(wrapper.text()).toContain("Añadir");
+    expect(wrapper.text()).toContain("Vianova");
+    expect(wrapper.find("button").text()).toBe("Añadir al lineup");
+    expect((wrapper.get("button").element as HTMLButtonElement).disabled).toBe(false);
+
     await wrapper.get("button").trigger("click");
-    expect(wrapper.text()).toContain("Propuesta confirmada localmente");
     expect(savedConfirmation.value).toContain(eventA);
-    expect(api.post).not.toHaveBeenCalled();
-    expect(execute).not.toHaveBeenCalled();
-    const runButton = wrapper
-      .findAll("button")
-      .find((button) => button.text().includes("Ejecutar ampliación confirmada"));
-    expect(runButton).toBeDefined();
-    await runButton?.trigger("click");
     expect(execute).toHaveBeenCalledWith(conflict, savedConfirmation.value);
     expect(api.post).not.toHaveBeenCalled();
 
     wrapper.unmount();
-    const reopened = mount(EventLineupExpansionReview, {
+    queryClient.clear();
+  });
+
+  it("blocks indistinguishable candidates instead of choosing by list order", async () => {
+    vi.spyOn(api, "get").mockResolvedValue({
+      data: { type: "concert", startDate: "2027-05-15", lineup: [] },
+    } as never);
+    const prepare = vi.fn(() => null);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Infinity } },
+    });
+    const wrapper = mount(EventLineupExpansionReview, {
       props: {
         conflict,
         prepare,
-        getConfirmation,
-        setConfirmation,
-        getSelection,
-        setSelection,
-        getExecution,
-        execute,
+        getConfirmation: () => null,
+        setConfirmation: () => undefined,
+        getSelection: () => null,
+        setSelection: () => undefined,
+        getExecution: () => null,
+        execute: vi.fn(),
       },
       global: { plugins: [[VueQueryPlugin, { queryClient }]] },
     });
     await flushPromises();
-    expect(reopened.text()).toContain("Propuesta confirmada localmente");
-
-    await reopened.get("select").setValue(eventB);
-    await flushPromises();
-    expect(savedSelection.value).toBe(eventB);
-    expect(reopened.text()).not.toContain("Propuesta confirmada localmente");
-    expect(savedConfirmation.value).toBeNull();
-    expect(api.post).not.toHaveBeenCalled();
-    expect(prepare).toHaveBeenCalledWith(eventB);
-
-    reopened.unmount();
+    expect((wrapper.get("select").element as HTMLSelectElement).value).toBe("");
+    expect((wrapper.get("select").element as HTMLSelectElement).disabled).toBe(true);
+    const describedBy = wrapper.get("select").attributes("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    expect(wrapper.get(`[id="${describedBy}"]`).attributes("role")).toBe("status");
+    expect(wrapper.text()).toContain(
+      "No hay información suficiente para distinguir estos conciertos."
+    );
+    expect(prepare).not.toHaveBeenCalledWith(eventA);
+    wrapper.unmount();
     queryClient.clear();
   });
 });

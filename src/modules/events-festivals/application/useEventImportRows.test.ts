@@ -116,6 +116,47 @@ describe("useEventImportRows lineup resolution", () => {
     vi.useRealTimers();
   });
 
+  it("keeps typed text pending until explicit confirmation, then resolves the original name", async () => {
+    const row = model.rows.value[0]!;
+    model.updateLineupDraft(row.id, "  Septicflesh  ");
+    await vi.advanceTimersByTimeAsync(900);
+
+    expect(resolveArtistsBatchMock).not.toHaveBeenCalled();
+    expect(row.lineup).toEqual([]);
+    expect(model.lineupStates[row.id]?.draft).toBe("  Septicflesh  ");
+
+    model.commitLineupDraft(row.id);
+    expect(row.lineup).toEqual([{ key: "lineup-item-1", name: "Septicflesh", artistId: null }]);
+    expect(model.lineupStates[row.id]?.itemStatus[row.lineup[0]!.key]).toBe("resolving");
+    await vi.advanceTimersByTimeAsync(450);
+    await flushPromises();
+
+    expect(resolveArtistsBatchMock).toHaveBeenCalledWith(["Septicflesh"], expect.any(AbortSignal));
+    expect(row.lineup[0]).toMatchObject({ name: "Septicflesh", artistId: "id-Septicflesh" });
+  });
+
+  it("restores an unconfirmed draft without creating an appearance or lookup", async () => {
+    const savedRow = { ...model.rows.value[0]!, lineup: [] };
+    model.restoreRows(
+      [savedRow],
+      {
+        [savedRow.id]: {
+          draft: "Pending Artist",
+          draftStatus: "idle",
+          itemStatus: {},
+          draftError: null,
+          itemResolution: {},
+        },
+      },
+      {}
+    );
+    await vi.advanceTimersByTimeAsync(900);
+
+    expect(model.lineupStates[savedRow.id]?.draft).toBe("Pending Artist");
+    expect(model.rows.value[0]?.lineup).toEqual([]);
+    expect(resolveArtistsBatchMock).not.toHaveBeenCalled();
+  });
+
   it("defaults rows to concerts and updates Type without changing other row data", () => {
     const first = model.rows.value[0]!;
     const second = model.rows.value[1]!;
@@ -199,6 +240,9 @@ describe("useEventImportRows lineup resolution", () => {
     const row = model.rows.value[0]!;
     model.updateEvent(row.id, "Resurrection Fest 2027");
     model.updateLineupDraft(row.id, "  Architects + Spiritbox + Banda Unknown  ");
+    expect(resolveArtistsBatchMock).not.toHaveBeenCalled();
+    model.updateLineupDraft(row.id, "");
+    model.pasteLineupRange(0, [["Architects", "Spiritbox", "Banda Unknown"]]);
 
     await vi.advanceTimersByTimeAsync(449);
     expect(resolveArtistsBatchMock).not.toHaveBeenCalled();
@@ -220,8 +264,8 @@ describe("useEventImportRows lineup resolution", () => {
   it("splits requests into batches of at most 100 names", async () => {
     const row = model.rows.value[0]!;
     const names = Array.from({ length: 205 }, (_, index) => `Artist ${index}`);
-    model.updateLineupDraft(row.id, names.join(" + "));
-    model.commitLineupDraft(row.id);
+    model.pasteLineupRange(0, [names]);
+    await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
 
     expect(resolveArtistsBatchMock.mock.calls.map(([batch]) => (batch as string[]).length)).toEqual(
@@ -234,6 +278,7 @@ describe("useEventImportRows lineup resolution", () => {
     const row = model.rows.value[0]!;
     model.updateLineupDraft(row.id, "Architects");
     model.commitLineupDraft(row.id);
+    await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
 
     const item = row.lineup[0]!;
@@ -241,6 +286,7 @@ describe("useEventImportRows lineup resolution", () => {
     model.updateLineupItemName(row.id, item.key, " Spiritbox ");
     expect(item.artistId).toBeNull();
     model.commitLineupItemName(row.id, item.key);
+    await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
 
     expect(resolveArtistsBatchMock).toHaveBeenLastCalledWith(
@@ -250,47 +296,46 @@ describe("useEventImportRows lineup resolution", () => {
     expect(item).toMatchObject({ name: "Spiritbox", artistId: "id-Spiritbox" });
   });
 
-  it("retries network errors without dropping the draft", async () => {
+  it("keeps confirmed appearances after a network error and retries resolution", async () => {
     const row = model.rows.value[0]!;
     resolveArtistsBatchMock
       .mockRejectedValueOnce(new Error("Network error"))
       .mockImplementationOnce(async (names: string[]) => resultsFor(names));
-    model.updateLineupDraft(row.id, "Architects + Spiritbox");
+    model.pasteLineupRange(0, [["Architects", "Spiritbox"]]);
     await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
 
-    expect(model.lineupStates[row.id]).toMatchObject({
-      draft: "Architects + Spiritbox",
-      draftStatus: "error",
-      draftError: "Network error",
-    });
-    expect(row.lineup).toEqual([]);
-
-    model.retryLineupDraft(row.id);
-    await flushPromises();
     expect(row.lineup.map(({ name }) => name)).toEqual(["Architects", "Spiritbox"]);
-    expect(model.lineupStates[row.id]?.draft).toBe("");
+    expect(model.lineupStates[row.id]?.itemStatus[row.lineup[0]!.key]).toBe("error");
+
+    model.retryLineupItem(row.id, row.lineup[0]!.key);
+    await flushPromises();
+    expect(row.lineup[0]?.artistId).toBe("id-Architects");
   });
 
-  it("ignores an older response when the draft changes while it is pending", async () => {
+  it("does not restore a removed appearance when its response arrives late", async () => {
     const row = model.rows.value[0]!;
-    let resolveOld!: (results: ArtistResolutionResult[]) => void;
-    resolveArtistsBatchMock
-      .mockImplementationOnce(
-        () => new Promise<ArtistResolutionResult[]>((resolve) => (resolveOld = resolve))
-      )
-      .mockImplementationOnce(async (names: string[]) => resultsFor(names));
+    let resolvePending!: (results: ArtistResolutionResult[]) => void;
+    resolveArtistsBatchMock.mockImplementationOnce(
+      (names: string[]) =>
+        new Promise<ArtistResolutionResult[]>((resolve) => {
+          resolvePending = (results) => resolve(results.length ? results : resultsFor(names));
+        })
+    );
 
     model.updateLineupDraft(row.id, "Old Band");
     model.commitLineupDraft(row.id);
+    const removedItem = row.lineup[0]!;
+    model.removeLineupItem(row.id, removedItem.key);
     model.updateLineupDraft(row.id, "New Band");
     model.commitLineupDraft(row.id);
+    await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
-    resolveOld(resultsFor(["Old Band"]));
+    resolvePending(resultsFor(["Old Band", "New Band"]));
     await flushPromises();
 
     expect(row.lineup).toEqual([
-      { key: "lineup-item-1", name: "New Band", artistId: "id-New Band" },
+      { key: "lineup-item-2", name: "New Band", artistId: "id-New Band" },
     ]);
   });
 
@@ -301,6 +346,7 @@ describe("useEventImportRows lineup resolution", () => {
     );
     const rows = model.rows.value.slice(0, 20);
     rows.forEach((row) => model.updateLineupDraft(row.id, "Septicflesh"));
+    rows.forEach((row) => model.commitLineupDraft(row.id));
     await vi.advanceTimersByTimeAsync(450);
     expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(1);
     expect(resolveArtistsBatchMock.mock.calls[0]?.[0]).toEqual(["Septicflesh"]);
@@ -308,6 +354,7 @@ describe("useEventImportRows lineup resolution", () => {
     model.addRow();
     const laterRow = model.rows.value.at(-1)!;
     model.updateLineupDraft(laterRow.id, "Septicflesh");
+    model.commitLineupDraft(laterRow.id);
     await vi.advanceTimersByTimeAsync(450);
     expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(1);
     resolveRequest(resultsFor(["Septicflesh"]));
@@ -319,9 +366,10 @@ describe("useEventImportRows lineup resolution", () => {
 
   it("groups unique artists across rows and reuses fresh Query results", async () => {
     const first = model.rows.value[0]!;
-    const second = model.rows.value[1]!;
-    model.updateLineupDraft(first.id, "Septicflesh + Equilibrium");
-    model.updateLineupDraft(second.id, "Septicflesh + Fleshgod Apocalypse");
+    model.pasteLineupRange(0, [
+      ["Septicflesh", "Equilibrium"],
+      ["Septicflesh", "Fleshgod Apocalypse"],
+    ]);
     await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
 
@@ -335,6 +383,7 @@ describe("useEventImportRows lineup resolution", () => {
 
     const third = model.rows.value[2]!;
     model.updateLineupDraft(third.id, "Septicflesh");
+    model.commitLineupDraft(third.id);
     await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
     expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(1);
@@ -343,6 +392,7 @@ describe("useEventImportRows lineup resolution", () => {
   it("queries again after the 15 second Query freshness window expires", async () => {
     const first = model.rows.value[0]!;
     model.updateLineupDraft(first.id, "Septicflesh");
+    model.commitLineupDraft(first.id);
     await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
     expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(1);
@@ -350,6 +400,7 @@ describe("useEventImportRows lineup resolution", () => {
     await vi.advanceTimersByTimeAsync(15_001);
     const second = model.rows.value[1]!;
     model.updateLineupDraft(second.id, "Septicflesh");
+    model.commitLineupDraft(second.id);
     await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
     expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(2);
@@ -358,6 +409,7 @@ describe("useEventImportRows lineup resolution", () => {
   it("does not resolve artists after unrelated row fields change", async () => {
     const row = model.rows.value[0]!;
     model.updateLineupDraft(row.id, "Septicflesh");
+    model.commitLineupDraft(row.id);
     await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
     expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(1);
@@ -383,6 +435,7 @@ describe("useEventImportRows lineup resolution", () => {
     const row = model.rows.value[0]!;
     model.updateLineupDraft(row.id, "Septicflesh");
     model.commitLineupDraft(row.id);
+    await vi.advanceTimersByTimeAsync(450);
     expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(1);
 
     model.removeRow(row.id);
@@ -410,6 +463,7 @@ describe("useEventImportRows lineup resolution", () => {
     const row = model.rows.value[0]!;
     model.updateLineupDraft(row.id, "Septicflesh");
     model.commitLineupDraft(row.id);
+    await vi.advanceTimersByTimeAsync(450);
     await started;
     await queryClient.cancelQueries({
       queryKey: entityResolutionQueryKeys.artists(["Septicflesh"]),
@@ -417,12 +471,8 @@ describe("useEventImportRows lineup resolution", () => {
     });
     await flushPromises();
 
-    expect(row.lineup).toEqual([]);
-    expect(model.lineupStates[row.id]).toMatchObject({
-      draft: "Septicflesh",
-      draftStatus: "idle",
-      draftError: null,
-    });
+    expect(row.lineup.map(({ name }) => name)).toEqual(["Septicflesh"]);
+    expect(model.lineupStates[row.id]?.itemResolution[row.lineup[0]!.key]).toBeUndefined();
   });
 
   it("retains explicit ambiguous and invalid statuses without assigning IDs", async () => {
@@ -448,7 +498,7 @@ describe("useEventImportRows lineup resolution", () => {
       },
     ]);
     const row = model.rows.value[0]!;
-    model.updateLineupDraft(row.id, "Ambiguous Artist + Invalid Artist");
+    model.pasteLineupRange(0, [["Ambiguous Artist", "Invalid Artist"]]);
     await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
 
@@ -481,6 +531,7 @@ describe("useEventImportRows lineup resolution", () => {
     ]);
     const row = model.rows.value[0]!;
     model.updateLineupDraft(row.id, "The Artist");
+    model.commitLineupDraft(row.id);
     await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
     const item = row.lineup[0]!;
@@ -503,6 +554,7 @@ describe("useEventImportRows lineup resolution", () => {
     model.updateLineupDraft(second.id, "Spiritbox");
     model.commitLineupDraft(first.id);
     model.commitLineupDraft(second.id);
+    await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
 
     expect(first.lineup[0]?.artistId).toBe("id-Architects");
@@ -520,10 +572,11 @@ describe("useEventImportRows lineup resolution", () => {
     );
     model.updateLineupDraft(row.id, "Architects");
     model.commitLineupDraft(row.id);
+    await vi.advanceTimersByTimeAsync(450);
     scope.stop();
     resolvePending(resultsFor(["Architects"]));
     await flushPromises();
-    expect(row.lineup).toEqual([]);
+    expect(row.lineup).toEqual([{ key: "lineup-item-1", name: "Architects", artistId: null }]);
   });
 
   it("resolves Locality before the exact Venue inspector and preserves entered text", async () => {
@@ -938,6 +991,7 @@ describe("useEventImportRows lineup resolution", () => {
     }));
     const row = model.rows.value[0]!;
     model.updateLineupDraft(row.id, "Septicflesh");
+    model.commitLineupDraft(row.id);
     model.updateType(row.id, "tour");
     model.updateEvent(row.id, "Gira compartida");
     model.updateCity(row.id, "Madrid");
