@@ -3,7 +3,10 @@ import vue from "@vitejs/plugin-vue";
 import { defineConfig, loadEnv, type ConfigEnv, type ProxyOptions, type UserConfig } from "vite";
 
 const API_PROXY_PATH = "^/api(?:/|\\?|$)";
-const APPROVED_API_TARGETS = new Set(["https://spammusic-back-99963122d70c.herokuapp.com"]);
+const APPROVED_API_TARGETS = new Set([
+  "https://spammusic-back-99963122d70c.herokuapp.com",
+  "https://backend.riffvalley.es",
+]);
 const SESSION_ORIGIN = "https://app.riffvalley.es";
 
 interface ProxyRequestHeaderWriter {
