@@ -68,6 +68,33 @@ export function getDiscListPeriodOptions(year: number, month: number): DiscListP
   ];
 }
 
+export type DiscListQuickPeriod = "semana" | "mes";
+
+export function isDiscListQuickPeriod(value: unknown): value is DiscListQuickPeriod {
+  return value === "semana" || value === "mes";
+}
+
+/**
+ * Rango de la semana de lanzamientos en curso (de viernes a jueves), igual que
+ * las opciones del selector «Semana o periodo». Usa la fecha local del usuario.
+ */
+export function getDiscListCurrentWeekRange(today: Date = new Date()): DiscListDateRange {
+  const friday = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  friday.setUTCDate(friday.getUTCDate() - ((friday.getUTCDay() - 5 + 7) % 7));
+  const thursday = new Date(friday);
+  thursday.setUTCDate(thursday.getUTCDate() + 6);
+  return [startOfUtcDate(friday), endOfUtcDate(thursday)];
+}
+
+export function getDiscListQuickPeriodRange(
+  period: DiscListQuickPeriod,
+  today: Date = new Date(),
+): DiscListDateRange {
+  return period === "semana"
+    ? getDiscListCurrentWeekRange(today)
+    : getDiscListMonthRange(today.getFullYear(), today.getMonth() + 1);
+}
+
 function startOfUtcDate(date: Date): string {
   const value = new Date(date);
   value.setUTCHours(0, 0, 0, 0);

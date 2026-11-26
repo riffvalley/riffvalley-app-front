@@ -233,6 +233,8 @@ const props = defineProps<{
   optionsLoading: boolean;
   optionsError: boolean;
   searchQuery: string;
+  /** true cuando se han restaurado filtros guardados: no imponer el año por defecto. */
+  skipDefaultYear?: boolean;
 }>();
 const emit = defineEmits<{
   "update:week": [value: Range];
@@ -243,7 +245,7 @@ const emit = defineEmits<{
   "retry-options": [];
 }>();
 
-if (!props.selectedWeek && defaultYear() !== 0) {
+if (!props.skipDefaultYear && !props.selectedWeek && defaultYear() !== 0) {
   emit("update:week", getDiscListYearRange(defaultYear()));
 }
 

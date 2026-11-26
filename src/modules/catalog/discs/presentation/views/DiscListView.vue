@@ -69,6 +69,7 @@
     <DiscListExplorationFilters
       class="mb-6 w-full"
       :selectedWeek="selectedWeek"
+      :skipDefaultYear="restoredSessionFilters"
       :selectedCountry="selectedCountry"
       :selectedGenres="selectedGenres"
       :noRatesOnly="noRatesOnly"
@@ -372,6 +373,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useQueryClient } from "@tanstack/vue-query";
+import { useRoute, useRouter } from "vue-router";
 import DiscCard from "@components/DiscCardComponent.vue";
 import CreateDiscModal from "../components/CreateDiscModal.vue";
 import RequestDiscModal from "../components/RequestDiscModal.vue";
@@ -382,9 +384,14 @@ import SavedDiscFilterSelector from "../components/SavedDiscFilterSelector.vue";
 import SavedDiscFilterModal from "../components/SavedDiscFilterModal.vue";
 import SavedDiscFilterConfirmModal from "../components/SavedDiscFilterConfirmModal.vue";
 import { useDiscListCoordinator } from "../../application/useDiscListCoordinator";
+import { useDiscListSessionFilters } from "../../application/discListSessionFilters";
 import { discListSuggestionsQueryKey } from "../../application/useDiscListSuggestions";
 import { useSavedDiscFilters } from "../../application/useSavedDiscFilters";
-import { getDiscListDateSelection } from "../../application/discListDateFilters";
+import {
+  getDiscListDateSelection,
+  getDiscListQuickPeriodRange,
+  isDiscListQuickPeriod,
+} from "../../application/discListDateFilters";
 import { areSavedDiscFilterCriteriaEqual, isEmptySavedDiscFilterCriteria } from "../../application/savedDiscFilterCriteria";
 import type { SavedDiscFilterCriteria } from "../../types/savedDiscFilter";
 import type { DiscListMode } from "../../types/discList";
@@ -428,6 +435,31 @@ const {
   updateDisc,
   removeDisc,
 } = useDiscListCoordinator();
+
+// Recupera los filtros que el usuario dejó puestos al salir de Discos.
+const restoredSessionFilters = useDiscListSessionFilters({
+  userId: computed(() => useAuthStore().userId),
+  selectedWeek,
+  selectedGenres,
+  selectedCountry,
+  noRatesOnly,
+  setSelectedWeek,
+  setGenres,
+  setCountry,
+  setNoRatesOnly,
+});
+
+// Acceso directo desde el Dashboard: /disc-list?periodo=semana|mes precarga el
+// filtro de fechas. Se aplica antes de montar los filtros para que no lo pise el
+// año por defecto, y luego se limpia la URL para que el usuario siga libremente.
+const route = useRoute();
+const router = useRouter();
+const quickPeriod = route.query.periodo;
+if (isDiscListQuickPeriod(quickPeriod)) {
+  setSelectedWeek(getDiscListQuickPeriodRange(quickPeriod));
+  const { periodo: _periodo, ...restQuery } = route.query;
+  void router.replace({ query: restQuery });
+}
 
 const savedFilterState = useSavedDiscFilters();
 const savedFilters = savedFilterState.filters;
@@ -479,6 +511,17 @@ const savedFilterConfirmMessage = computed(() => {
 const savedFilterConfirmLabel = computed(() => savedFilterConfirmAction.value === "delete" ? "Eliminar filtro" : "Actualizar filtro");
 const modifiedAppliedFilter = computed(() =>
   Boolean(appliedSavedFilter.value && !areSavedDiscFilterCriteriaEqual(appliedSavedFilter.value.filters, currentSavedCriteria.value) && !currentCriteriaEmpty.value)
+);
+// Si los filtros activos coinciden con un filtro guardado (por ejemplo, al volver a
+// Discos con los filtros restaurados), lo marcamos en «Mis filtros» para no confundir.
+watch(
+  () => matchingSavedFilter.value?.id,
+  (matchingId) => {
+    if (!matchingId) return;
+    selectedSavedFilterId.value = matchingId;
+    appliedSavedFilterId.value = matchingId;
+  },
+  { immediate: true }
 );
 const savedCriteriaStatus = computed(() => {
   if (matchingSavedFilter.value) return "Guardado";

@@ -4,6 +4,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
 import { defineComponent, h } from "vue";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
+import { createMemoryHistory, createRouter, type Router } from "vue-router";
 
 const api = vi.hoisted(() => ({
   getDiscListPage: vi.fn(),
@@ -166,7 +167,14 @@ function comment(entryId: string) {
   };
 }
 
-function mountList(useRealExplorationFilters = false) {
+function createDiscListRouter(): Router {
+  return createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: "/disc-list", name: "DiscList", component: { template: "<div />" } }],
+  });
+}
+
+function mountList(useRealExplorationFilters = false, router: Router = createDiscListRouter()) {
   const pinia = createPinia();
   setActivePinia(pinia);
   useAuthStore(pinia).$patch({
@@ -179,6 +187,7 @@ function mountList(useRealExplorationFilters = false) {
   return mount(DiscList, {
     global: {
       plugins: [
+        router,
         pinia,
         [
           VueQueryPlugin,
@@ -276,6 +285,7 @@ beforeEach(() => {
 
 afterEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
   vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -401,6 +411,8 @@ describe("DiscList new backend integration", () => {
     await settle();
     expect(wrapper.text()).toContain("Guardado");
     expect(wrapper.text()).not.toContain("Guardado como Metal ya guardado");
+    expect(wrapper.get("#saved-disc-filter").element).toHaveProperty("value", "saved-filter-existing");
+    expect(wrapper.text()).toContain("Metal ya guardado · aplicado");
     expect(wrapper.findAll("button").some((button) => button.text() === "Guardar")).toBe(false);
     wrapper.unmount();
   });
@@ -827,6 +839,45 @@ describe("DiscList new backend integration", () => {
       wrapper.unmount();
     }
   );
+
+  it("restores the active filters when the user leaves Discos and comes back", async () => {
+    const first = mountList();
+    await settle();
+    const week = ["2025-01-01T00:00:00.000Z", "2025-12-31T23:59:59.999Z"];
+    const filters = first.findComponent(FiltersStub);
+    filters.vm.$emit("update:country", "country-a");
+    filters.vm.$emit("update:week", week);
+    await first.get('[data-testid="genre-filter"]').trigger("click");
+    await settle();
+    first.unmount();
+
+    const second = mountList();
+    await settle();
+    const restored = second.findComponent(FiltersStub);
+    expect(restored.props("selectedWeek")).toEqual(week);
+    expect(restored.props("selectedCountry")).toBe("country-a");
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ countryId: "country-a", genreIds: ["genre-a", "genre-b"], offset: 0 })
+    );
+    second.unmount();
+  });
+
+  it("preloads the current release week from the dashboard shortcut and cleans the URL", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 26, 12));
+    const router = createDiscListRouter();
+    await router.push({ name: "DiscList", query: { periodo: "semana" } });
+
+    const wrapper = mountList(false, router);
+    await settle();
+
+    const week = ["2026-11-20T00:00:00.000Z", "2026-11-26T23:59:59.999Z"];
+    expect(wrapper.findComponent(FiltersStub).props("selectedWeek")).toEqual(week);
+    expect(api.getDiscListOptions).toHaveBeenLastCalledWith(expect.objectContaining({ dateRange: week }));
+    expect(router.currentRoute.value.query).toEqual({});
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
 
   it("loads dynamic options and sends changed country, period, search, and multi-genre criteria", async () => {
     const wrapper = mountList();
