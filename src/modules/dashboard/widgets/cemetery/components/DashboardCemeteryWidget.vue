@@ -182,13 +182,13 @@ onUnmounted(() => {
     aria-labelledby="cemetery-title"
     data-test="cemetery-widget"
   >
-    <header class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-gray-800/5 to-gray-600/5 dark:from-white/3 dark:to-white/5 border-b border-gray-100 dark:border-white/10 shrink-0">
+    <header class="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-rv-purple/8 to-rv-blue/8 dark:from-rv-purple/10 dark:to-rv-blue/10 border-b border-gray-100 dark:border-white/10 shrink-0">
       <div class="flex flex-col">
         <div class="flex items-center gap-2">
           <span class="text-base leading-none" aria-hidden="true">🪦</span>
           <h3 id="cemetery-title" class="font-bold text-gray-900 dark:text-white">Cementerio de discos</h3>
         </div>
-        <p class="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 pl-6">Solo discos sin valoraciones musicales</p>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 pl-6">Solo discos sin valoraciones musicales</p>
       </div>
       <button
         type="button"

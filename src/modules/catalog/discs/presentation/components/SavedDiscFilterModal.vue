@@ -73,8 +73,8 @@ onUnmounted(() => {
 <template>
   <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
     <section ref="dialogElement" class="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-rv-darkCard" role="dialog" aria-modal="true" tabindex="-1" :aria-labelledby="mode === 'save' ? 'saved-filter-title' : 'rename-filter-title'">
-      <h2 v-if="mode === 'save'" id="saved-filter-title" class="text-lg font-bold text-rv-navy dark:text-white">Guardar filtro</h2>
-      <h2 v-else id="rename-filter-title" class="text-lg font-bold text-rv-navy dark:text-white">Renombrar filtro</h2>
+      <h2 v-if="mode === 'save'" id="saved-filter-title" class="text-lg font-extrabold tracking-tight text-rv-navy dark:text-white">Guardar filtro</h2>
+      <h2 v-else id="rename-filter-title" class="text-lg font-extrabold tracking-tight text-rv-navy dark:text-white">Renombrar filtro</h2>
       <form class="mt-4 space-y-4" @submit.prevent="submit">
         <div>
           <label for="saved-filter-name" class="mb-1 block text-sm font-medium text-gray-800 dark:text-gray-100">Nombre del filtro

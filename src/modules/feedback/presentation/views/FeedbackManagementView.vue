@@ -4,7 +4,7 @@
     <!-- Cabecera -->
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
       <div>
-        <h1 class="text-2xl md:text-3xl font-bold dark:text-white">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white">
           <i class="fa-solid fa-bug mr-2"></i>Soporte
         </h1>
         <p class="text-gray-400 dark:text-gray-500 text-sm mt-0.5">

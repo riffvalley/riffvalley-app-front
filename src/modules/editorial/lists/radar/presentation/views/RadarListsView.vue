@@ -4,7 +4,7 @@
       <!-- Cabecera -->
       <div class="flex items-center justify-between mb-6">
         <h1
-          class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2"
+          class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white flex items-center gap-2"
         >
           <i class="fa-solid fa-compact-disc text-rv-purple"></i>
           Radares

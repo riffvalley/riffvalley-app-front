@@ -160,7 +160,7 @@ function handleDialogKeydown(event: KeyboardEvent) {
         >
           <i class="fa-solid fa-trash text-xl text-red-600" aria-hidden="true"></i>
         </div>
-        <h2 id="delete-confirm-title" class="text-lg font-bold text-gray-900 dark:text-white">
+        <h2 id="delete-confirm-title" class="text-lg font-extrabold tracking-tight text-gray-900 dark:text-white">
           {{ confirmationCopy.title }}
         </h2>
       </div>

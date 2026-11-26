@@ -187,7 +187,8 @@ function formatRate(rate: number): string {
 .galaxy-dialog { position: relative; z-index: 1; display: flex; width: min(100%, 76rem); height: min(88dvh, 56rem); max-height: none; min-height: 0; flex-direction: column; overflow: hidden; margin: 0; padding: 0; border: 1px solid rgb(255 255 255 / 12%); border-radius: 1.1rem; background: #080d20; color: white; box-shadow: 0 24px 90px rgb(0 0 0 / 42%); outline: none; }
 .galaxy-disc-select:focus { position: fixed; z-index: 101; top: 1rem; left: 1rem; width: min(30rem, calc(100vw - 2rem)); height: auto; margin: 0; padding: .65rem .8rem; overflow: visible; clip: auto; border: 1px solid #f1a6bd; border-radius: .65rem; background: #fff; color: #080d20; white-space: normal; }
 .galaxy-header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1.1rem; border-bottom: 1px solid rgb(255 255 255 / 10%); }
-.galaxy-title { margin: 0; font-size: clamp(1rem, 2.5vw, 1.35rem); font-weight: 750; letter-spacing: -.02em; }
+.galaxy-title { margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.75rem; }
+@media (min-width: 640px) { .galaxy-title { font-size: 1.5rem; line-height: 2rem; } }
 .galaxy-title span { color: #f1a6bd; }
 .galaxy-subtitle { margin: .2rem 0 0; color: rgb(255 255 255 / 62%); font-size: .78rem; }
 .close-button { display: grid; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; place-items: center; border: 1px solid rgb(255 255 255 / 18%); border-radius: .8rem; background: rgb(255 255 255 / 9%); color: white; font-size: 1.2rem; }

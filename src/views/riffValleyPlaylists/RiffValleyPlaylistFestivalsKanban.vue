@@ -2,7 +2,7 @@
   <div class="min-h-[calc(100vh-64px)] p-4 dark:bg-rv-darkBg md:p-6">
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-semibold dark:text-white md:text-3xl"><i class="fa-brands fa-spotify mr-2 text-[#1DB954]"></i>Festivales</h1>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white"><i class="fa-brands fa-spotify mr-2 text-[#1DB954]"></i>Festivales</h1>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Playlists reales de Spotify y seguimiento editorial.</p>
       </div>
       <button v-if="activeTab === 'playlists' && canManage" class="rounded-lg bg-rv-pink px-4 py-2 font-semibold text-white shadow-sm transition-colors hover:bg-rv-purple disabled:cursor-not-allowed disabled:opacity-50" :disabled="!connection.connected" :title="connection.connected ? 'Crear playlist' : 'Conecta Spotify para crear una playlist'" @click="openCreate">

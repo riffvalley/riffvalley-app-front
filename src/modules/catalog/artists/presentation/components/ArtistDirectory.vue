@@ -97,7 +97,7 @@ onBeforeUnmount(() => {
     class="artist-directory"
   >
     <header class="mb-6">
-      <h1 id="artist-directory-title" class="text-2xl md:text-3xl font-bold m-0">
+      <h1 id="artist-directory-title" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white m-0">
         <i class="fa-solid fa-microphone mr-2" aria-hidden="true"></i>Artistas
       </h1>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Explora el catálogo por nombre.</p>

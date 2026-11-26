@@ -56,7 +56,7 @@ onUnmounted(() => {
       aria-labelledby="saved-filter-confirm-title"
       aria-describedby="saved-filter-confirm-message"
     >
-      <h2 id="saved-filter-confirm-title" class="text-lg font-bold text-rv-navy dark:text-white">
+      <h2 id="saved-filter-confirm-title" class="text-lg font-extrabold tracking-tight text-rv-navy dark:text-white">
         {{ title }}
       </h2>
       <p id="saved-filter-confirm-message" class="mt-2 text-sm text-gray-700 dark:text-gray-200">

@@ -46,7 +46,7 @@ function retry(): void {
 <template>
   <main class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8 pb-10">
     <header class="mb-8 text-center">
-      <h1 class="text-2xl md:text-3xl font-bold mb-2 text-rv-navy dark:text-white">
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white mb-2">
         <i class="fa-solid fa-chart-area mr-3" aria-hidden="true"></i>Estadísticas
       </h1>
       <p class="text-sm text-gray-500 dark:text-gray-400">Tus estadísticas anuales de actividad y puntuaciones.</p>

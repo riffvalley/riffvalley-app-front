@@ -1,6 +1,6 @@
 <template>
   <div class="p-6 space-y-6 min-h-screen bg-white dark:bg-rv-darkBg dark:text-gray-200">
-    <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-code-branch mr-2"></i>Gestionar versiones</h1>
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white"><i class="fa-solid fa-code-branch mr-2"></i>Gestionar versiones</h1>
 
     <!-- Barra de acciones -->
     <div class="flex items-center gap-3">

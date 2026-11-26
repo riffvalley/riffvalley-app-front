@@ -138,7 +138,7 @@ function openMap() {
       <p class="text-sm text-gray-600 dark:text-gray-300">No se pudieron cargar tus países valorados.</p>
       <button
         type="button"
-        class="rounded-lg border-2 border-rv-navy bg-rv-navy px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-transparent hover:text-gray-600 hover:border-gray-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:hover:text-gray-300 dark:hover:border-white/20"
+        class="rounded-lg border-2 border-rv-navy bg-rv-navy px-3 py-1.5 text-sm font-semibold text-white transition hover:border-rv-pink hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
         @click="retry"
       >
         Reintentar
@@ -188,7 +188,7 @@ function openMap() {
     <footer class="mt-auto border-t border-gray-100 px-5 py-3 dark:border-white/10">
       <button
         type="button"
-        class="w-full rounded-lg border-2 border-rv-navy bg-rv-navy px-3 py-2 text-sm font-semibold text-white transition hover:bg-transparent hover:text-gray-600 hover:border-gray-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:hover:text-gray-300 dark:hover:border-white/20"
+        class="w-full rounded-lg border-2 border-rv-navy bg-rv-navy px-3 py-2 text-sm font-semibold text-white transition hover:border-rv-pink hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
         data-test="world-map-open"
         @click="openMap"
       >

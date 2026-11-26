@@ -92,10 +92,10 @@ onBeforeUnmount(() => {
           v-for="period in rankingPeriods"
           :key="period.value"
           type="button"
-          class="rounded-md px-2.5 py-1.5 text-xs font-semibold leading-tight transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rv-pink"
+          class="rounded-md px-2.5 py-1.5 text-xs font-semibold leading-tight transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rv-pink"
           :class="selectedPeriod === period.value
             ? 'bg-rv-pink text-white shadow-sm'
-            : 'text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/10'"
+            : 'bg-transparent text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/10'"
           :aria-pressed="selectedPeriod === period.value"
           @click="selectPeriod(period.value)"
         >

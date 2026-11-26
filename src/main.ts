@@ -35,6 +35,7 @@ library.add(faBookmark, faHeart, faPen, faTrash, faCloudArrowUp, faShareNodes, f
 
 import './index.css';      // Tailwind
 import './style.css';      // su CSS global
+import '@fontsource-variable/inter'; // Inter autoalojada (fuente principal de la app)
 import './assets/fonts.css'; // fuentes
 
 const app = createApp(App);

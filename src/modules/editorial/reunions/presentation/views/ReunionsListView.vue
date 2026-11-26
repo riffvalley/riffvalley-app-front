@@ -18,7 +18,7 @@
               class="rounded-lg bg-orange-100 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
               >Reunión</span
             >
-            <h2 id="create-reunion-title" class="text-base font-bold text-gray-900 dark:text-white">
+            <h2 id="create-reunion-title" class="text-lg font-extrabold tracking-tight text-gray-900 dark:text-white">
               Nueva reunión
             </h2>
           </div>
@@ -119,7 +119,7 @@
 
     <div class="flex-1 overflow-y-auto p-4 md:p-6">
       <div class="mb-6 flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white">
           <i class="fa-solid fa-comments mr-2" aria-hidden="true"></i>Reuniones
         </h1>
         <button

@@ -63,7 +63,7 @@
         </p>
         <header v-if="!modal" class="mb-5 flex items-start justify-between gap-3">
           <div class="min-w-0">
-            <h1 class="truncate text-2xl font-bold text-gray-900 dark:text-white">
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white truncate">
               {{ reunion.title }}
             </h1>
             <p class="text-sm text-gray-600 dark:text-gray-400">{{ formatDate(reunion.date) }}</p>

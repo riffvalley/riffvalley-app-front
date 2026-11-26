@@ -59,7 +59,7 @@
                            text-[11px] font-bold tracking-wide uppercase inline-block mb-2">
                 Álbum
               </span>
-              <h2 class="text-xl sm:text-2xl font-bold text-rv-navy dark:text-white leading-tight mb-1">
+              <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-rv-navy dark:text-white leading-tight mb-1">
                 {{ album.name }}
               </h2>
               <p class="text-sm font-semibold text-rv-pink mb-3">

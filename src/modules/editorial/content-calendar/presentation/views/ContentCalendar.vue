@@ -33,7 +33,7 @@
         class="px-5 py-3 bg-white dark:bg-rv-darkCard border-b border-gray-100 dark:border-white/10 flex justify-between items-center gap-3"
       >
         <h1
-          class="text-lg font-extrabold tracking-tight text-rv-navy dark:text-white flex items-center gap-2"
+          class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white flex items-center gap-2"
         >
           <i class="fa-solid fa-calendar-days text-rv-purple text-base"></i>
           Calendario RV

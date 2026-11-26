@@ -5,7 +5,7 @@
 
       <!-- Cabecera -->
       <div class="text-center mb-8">
-        <h1 class="text-2xl md:text-3xl font-bold text-rv-navy dark:text-white mb-2">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white mb-2">
           <i class="fa-solid fa-circle-question mr-3"></i>Cómo usar la app
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400">Todo lo que necesitas saber para sacarle partido a Riff Valley.</p>

@@ -415,6 +415,6 @@ export default defineComponent({
 <style scoped>
 body {
   background-color: #f9f9f9;
-  font-family: "Inter", sans-serif;
+  font-family: "Inter Variable", "Inter", sans-serif;
 }
 </style>

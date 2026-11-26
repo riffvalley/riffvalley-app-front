@@ -77,10 +77,24 @@ Estos nombres son una propuesta documental, no tokens utilizables en CSS. Su pos
 
 ### Tipografía
 
-- La base global declara `Inter, system-ui, Avenir, Helvetica, Arial, sans-serif`, line-height `1.5` y weight `400` en [style.css](../src/style.css).
-- [fonts.css](../src/assets/fonts.css) registra la familia `Skaters` desde `src/assets/fonts/Skaters.ttf`; Tailwind la expone como `font-brand`. El código contiene ambos recursos; no se prescribe usar Skaters en texto de lectura.
-- Los componentes combinan jerarquía Tailwind como `text-sm`, `text-xs`, `text-2xl`, `font-semibold` y `font-bold`. El valor global `h1` legacy es `3.2em/1.1`; las vistas nuevas suelen declarar su propia escala responsive.
-- No hay escala tipográfica semántica compartida documentada en configuración. Mantener tamaños legibles, jerarquía explícita y longitudes de texto que funcionen en móvil.
+- La fuente principal es **Inter**, autoalojada con el paquete `@fontsource-variable/inter` (importado en [main.ts](../src/main.ts)), así que no depende de que el sistema la tenga instalada ni de servicios externos. La base global declara `"Inter Variable", Inter, system-ui, Avenir, Helvetica, Arial, sans-serif`, line-height `1.5` y weight `400` en [style.css](../src/style.css); Tailwind expone la misma pila como `font-sans`.
+- [fonts.css](../src/assets/fonts.css) registra la familia `Skaters` desde `src/assets/fonts/Skaters.ttf`; Tailwind la expone como `font-brand`. Reservarla para la marca (logo, sidebar, login); no usarla en títulos ni en texto de lectura.
+- El valor global `h1` legacy es `3.2em/1.1`; cada título declara su propia escala con las clases siguientes.
+
+#### Escala de títulos
+
+| Uso | Clases |
+| --- | --- |
+| Título de página (`h1`) | `text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white` |
+| Portada del dashboard (saludo) | `text-3xl md:text-4xl font-extrabold tracking-tight text-rv-navy dark:text-white` |
+| Título de modal o diálogo amplio | `text-xl sm:text-2xl font-extrabold tracking-tight text-rv-navy dark:text-white` |
+| Título de diálogo compacto (confirmaciones, formularios cortos) | `text-lg font-extrabold tracking-tight text-rv-navy dark:text-white` |
+| Título de widget o sección | `text-base font-bold` (o `text-sm font-bold` en cabeceras compactas) |
+
+- Los modales con CSS propio replican la escala de modal: `1.25rem/1.75rem`, `font-weight: 800`, `letter-spacing: -0.025em` y `1.5rem/2rem` desde `640px`.
+- Los iconos dentro de un título conservan su propio color; alineación y márgenes los decide cada vista.
+- Excepciones con diseño propio: pantallas de estado ([StatusPageShell](../src/components/status/StatusPageShell.vue) y el error de sesión de `App.vue`), login y recuperación de contraseña, y el subtítulo con CSS propio de `UserInactivityView`.
+- Mantener tamaños legibles, jerarquía explícita y longitudes de texto que funcionen en móvil.
 
 ### Superficies, bordes y elevación
 

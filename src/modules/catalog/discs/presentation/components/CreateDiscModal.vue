@@ -10,12 +10,12 @@
       class="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-rv-darkCard"
     >
       <header class="mb-5 flex items-center justify-between gap-4">
-        <h2 id="create-disc-title" class="text-xl font-bold text-rv-navy dark:text-white">
+        <h2 id="create-disc-title" class="text-xl sm:text-2xl font-extrabold tracking-tight text-rv-navy dark:text-white">
           {{ createdDisc ? "Álbum añadido" : "Añadir disco" }}
         </h2>
         <button
           type="button"
-          class="inline-flex h-10 w-10 items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-pink dark:text-gray-200 dark:hover:bg-rv-darkSurface"
+          class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 bg-rv-navy p-0 text-white shadow-md transition hover:bg-rv-pink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
           aria-label="Cerrar modal"
           @click="close"
         >

@@ -50,7 +50,7 @@ onBeforeUnmount(() => {
   <main class="min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-rv-darkBg dark:text-white sm:px-6 lg:px-8">
     <div class="mx-auto max-w-5xl">
       <header class="mb-8 text-center">
-        <h1 class="inline-flex items-center justify-center gap-3 text-3xl font-bold tracking-tight sm:text-4xl">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white inline-flex items-center justify-center gap-3">
           <i class="fa-solid fa-clock-rotate-left text-rv-purple dark:text-rv-pink" aria-hidden="true"></i>
           Actividad
         </h1>

@@ -1,7 +1,7 @@
 <template>
   <div class="p-4 h-full flex flex-col gap-4 dark:bg-rv-darkBg dark:text-gray-200">
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white"><i class="fa-solid fa-clipboard-list mr-2"></i>Tablero (versión en desarrollo)</h1>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white"><i class="fa-solid fa-clipboard-list mr-2"></i>Tablero (versión en desarrollo)</h1>
       <div class="flex gap-2">
         <button @click="goBack" class="px-3 py-1.5 bg-gray-700 text-white rounded hover:bg-gray-800 text-sm">
           ← Volver

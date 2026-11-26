@@ -99,7 +99,7 @@ onBeforeUnmount(() => {
       class="relative my-2 w-full max-w-xl rounded-xl bg-gray-50 p-4 text-gray-900 shadow-xl dark:bg-rv-darkBg dark:text-white sm:my-6 sm:p-6"
     >
       <div class="mb-4 flex items-center justify-between gap-4">
-        <h2 id="activity-disc-card-title" class="text-lg font-semibold">Ficha del disco</h2>
+        <h2 id="activity-disc-card-title" class="text-xl sm:text-2xl font-extrabold tracking-tight">Ficha del disco</h2>
         <button
           ref="closeButton"
           type="button"

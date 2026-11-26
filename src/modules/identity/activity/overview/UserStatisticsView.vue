@@ -161,7 +161,7 @@ const queryErrorMessage = computed(() => errorMessage(queryError.value));
         class="stats-header mb-6 flex flex-col gap-5 border-b border-gray-200 pb-6 dark:border-white/10 lg:flex-row lg:items-end lg:justify-between"
       >
         <div>
-          <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Estadísticas de actividad</h1>
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white">Estadísticas de actividad</h1>
           <p class="mt-2 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
             Usuarios activos y votos nuevos registrados en la aplicación.
           </p>

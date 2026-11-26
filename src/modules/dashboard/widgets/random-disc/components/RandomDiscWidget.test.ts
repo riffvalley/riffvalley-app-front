@@ -80,8 +80,13 @@ describe("RandomDiscWidget", () => {
       wrapper
         .get('[role="group"][aria-label="Modo de selección del disco"]')
         .findAll("button")
-        .map((button) => button.get("img").attributes("src"))
-    ).toEqual(["/doomguy/5.png", "/doomguy/1.png", "/doomguy/3.png", "/doomguy/42.png"]);
+        .map((button) => button.get('[data-test^="mode-indicator"]').attributes("data-test"))
+    ).toEqual([
+      "mode-indicator-dice",
+      "mode-indicator-level-1",
+      "mode-indicator-level-2",
+      "mode-indicator-level-3",
+    ]);
     expect(wrapper.get('[data-test="random-disc-description"]').text()).toContain(
       "Cualquier disco que aún no hayas votado"
     );

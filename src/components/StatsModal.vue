@@ -23,7 +23,7 @@
         </button>
 
         <!-- Title -->
-<h2 class="text-xl font-bold text-rv-navy dark:text-white mb-4">
+<h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-rv-navy dark:text-white mb-4">
           Estadísticas detalladas
         </h2>
 

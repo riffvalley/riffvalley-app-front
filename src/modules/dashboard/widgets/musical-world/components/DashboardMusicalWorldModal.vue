@@ -139,16 +139,17 @@ onBeforeUnmount(() => {
 
 <template>
   <Teleport to="body">
-    <div ref="dialog" class="fixed inset-0 z-[100] flex min-h-0 flex-col bg-white text-gray-900 dark:bg-rv-darkSurface dark:text-white" data-test="musical-world-modal" role="dialog" aria-modal="true" aria-labelledby="musical-world-modal-title" tabindex="-1">
+    <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-2 backdrop-blur-sm sm:p-4" data-test="musical-world-modal" @click.self="close">
+    <div ref="dialog" class="flex h-[96dvh] min-h-0 w-full max-w-7xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-gray-900 shadow-2xl dark:border-white/10 dark:bg-rv-darkSurface dark:text-white sm:h-[92dvh]" role="dialog" aria-modal="true" aria-labelledby="musical-world-modal-title" tabindex="-1">
       <header class="flex shrink-0 items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-white/10 sm:px-6">
         <div class="flex min-w-0 items-center gap-3">
           <i class="fa-solid fa-earth-americas text-rv-blue" aria-hidden="true"></i>
           <div class="min-w-0">
-            <h2 class="truncate text-lg font-bold" id="musical-world-modal-title">Tu mundo musical</h2>
+            <h2 class="truncate text-xl sm:text-2xl font-extrabold tracking-tight" id="musical-world-modal-title">Tu mundo musical</h2>
             <p class="text-xs text-gray-500 dark:text-gray-400">Explora los países de tus discos valorados</p>
           </div>
         </div>
-        <button ref="closeButton" type="button" class="rounded-lg p-2 text-gray-600 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-pink dark:text-gray-200 dark:hover:bg-white/10" aria-label="Cerrar mapa mundial" @click="close">
+        <button ref="closeButton" type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 bg-rv-navy p-0 text-white shadow-md transition hover:bg-rv-pink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink" aria-label="Cerrar mapa mundial" @click="close">
           <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </header>
@@ -162,7 +163,7 @@ onBeforeUnmount(() => {
         </div>
         <section v-else-if="hasHttpError" class="mx-auto grid min-h-64 max-w-md place-content-center gap-3 text-center" role="alert" data-test="world-http-error">
           <p>No se pudo cargar tu distribución de países.</p>
-          <button type="button" class="rounded-lg border-2 border-rv-navy bg-rv-navy px-4 py-2 text-sm font-semibold text-white transition hover:bg-transparent hover:text-gray-600 hover:border-gray-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:hover:text-gray-300 dark:hover:border-white/20" @click="retry">Reintentar</button>
+          <button type="button" class="rounded-lg border-2 border-rv-navy bg-rv-navy px-4 py-2 text-sm font-semibold text-white transition hover:border-rv-pink hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink" @click="retry">Reintentar</button>
         </section>
         <div v-else-if="!isAuthenticated" class="mx-auto grid min-h-64 max-w-md place-content-center gap-2 text-center" data-test="world-session-unavailable"><p class="font-semibold">Tu sesión ya no está disponible.</p><p class="text-sm text-gray-600 dark:text-gray-300">Vuelve a iniciar sesión para consultar tu mundo musical.</p></div>
         <div v-else-if="isEmpty" class="mx-auto grid min-h-64 max-w-md place-content-center gap-2 text-center" data-test="world-empty">
@@ -173,7 +174,7 @@ onBeforeUnmount(() => {
           <section class="min-w-0 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm dark:border-white/10 dark:bg-slate-900/40 sm:p-5" aria-label="Mapa mundial">
             <div v-if="hasGeometryError" class="mb-3 flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100" role="alert" data-test="geometry-error">
               <span>No se pudo cargar la geometría del mapa. Puedes consultar los países en el ranking.</span>
-              <button type="button" class="shrink-0 rounded-lg border-2 border-rv-navy bg-rv-navy px-3 py-1.5 font-semibold text-white transition hover:border-gray-300 hover:bg-transparent hover:text-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:hover:border-white/20 dark:hover:text-gray-300" @click="retry">Reintentar</button>
+              <button type="button" class="shrink-0 rounded-lg border-2 border-rv-navy bg-rv-navy px-3 py-1.5 font-semibold text-white transition hover:border-rv-pink hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink" @click="retry">Reintentar</button>
             </div>
             <component :is="mapComponent" v-else-if="mapComponent" :countries="response.countries" :selected-code="selectedCode" @select="selectCountry" @preview="hoveredCountry = $event" />
             <p v-else class="grid min-h-64 place-items-center text-sm text-gray-500" role="status">Preparando geometría local…</p>
@@ -202,10 +203,10 @@ onBeforeUnmount(() => {
               <h3 class="mb-3 text-sm font-bold">Top 10 de países</h3>
               <ol v-if="rankedCountries.length" class="flex flex-col gap-1.5">
                 <li v-for="(country, index) in rankedCountries" :key="country.isoCode">
-                  <button type="button" class="group flex w-full min-w-0 items-center gap-2 rounded-lg border-2 border-rv-navy bg-rv-navy px-2 py-1.5 text-left text-white transition hover:border-gray-300 hover:bg-transparent hover:text-gray-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:hover:border-white/20 dark:hover:text-gray-300" :class="selectedCode === country.isoCode ? 'ring-2 ring-rv-pink' : ''" :aria-pressed="selectedCode === country.isoCode" @click="selectCountry(country)">
-                    <span class="w-5 shrink-0 text-right text-xs tabular-nums text-white/80 group-hover:text-gray-600 dark:group-hover:text-gray-300">{{ index + 1 }}</span>
+                  <button type="button" class="group flex w-full min-w-0 items-center gap-2 rounded-lg border-2 border-rv-navy bg-rv-navy px-2 py-1.5 text-left text-white transition hover:border-rv-pink hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink" :class="selectedCode === country.isoCode ? 'ring-2 ring-rv-pink' : ''" :aria-pressed="selectedCode === country.isoCode" @click="selectCountry(country)">
+                    <span class="w-5 shrink-0 text-right text-xs tabular-nums text-white/80">{{ index + 1 }}</span>
                     <span class="min-w-0 flex-1 truncate text-sm" :title="country.name">{{ country.name }}</span>
-                    <span class="shrink-0 text-xs tabular-nums text-white/80 group-hover:text-gray-600 dark:group-hover:text-gray-300">{{ formatNumber(country.count) }} · {{ formatPercentage(country.percentage) }}</span>
+                    <span class="shrink-0 text-xs tabular-nums text-white/80">{{ formatNumber(country.count) }} · {{ formatPercentage(country.percentage) }}</span>
                   </button>
                 </li>
               </ol>
@@ -222,6 +223,7 @@ onBeforeUnmount(() => {
           </aside>
         </div>
       </main>
+    </div>
     </div>
   </Teleport>
 </template>

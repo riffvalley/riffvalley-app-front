@@ -3,7 +3,7 @@
   <!-- Sentinel scroll-to-top -->
   <div ref="scrollSentinel" class="h-px w-full"></div>
 <template v-if="!embedded">
-  <h1 class="text-2xl md:text-3xl font-bold mb-2 text-center text-rv-navy dark:text-white">
+  <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white mb-2 text-center">
     <i class="fa-solid fa-calendar-days mr-3"></i>Calendario
   </h1>
   <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">Todos los lanzamientos ordenados por fecha.</p>

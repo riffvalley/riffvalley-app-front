@@ -4,7 +4,7 @@
 
       <!-- Cabecera -->
       <div class="text-center">
-        <h1 class="text-2xl md:text-3xl font-bold mb-2 text-gray-900 dark:text-white">
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white mb-2">
           <i class="fa-solid fa-lightbulb mr-2"></i>Solicitud de discos
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400">

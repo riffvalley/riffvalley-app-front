@@ -5,12 +5,21 @@ import { getDiscs, getRandomDiscs, type Disc, type RandomDiscsParams } from "@se
 
 type RandomDiscMode = "free" | NonNullable<RandomDiscsParams["difficulty"]>;
 
-const modes: Array<{ id: RandomDiscMode; label: string; image: string }> = [
-  { id: "free", label: "Libre", image: "/doomguy/5.png" },
-  { id: "easy", label: "Fácil", image: "/doomguy/1.png" },
-  { id: "normal", label: "Normal", image: "/doomguy/3.png" },
-  { id: "hard", label: "Difícil", image: "/doomguy/42.png" },
+// level 0 = azar (icono de dado); 1-3 = barras de dificultad con color de marca progresivo.
+const modes: Array<{ id: RandomDiscMode; label: string; level: 0 | 1 | 2 | 3 }> = [
+  { id: "free", label: "Libre", level: 0 },
+  { id: "easy", label: "Fácil", level: 1 },
+  { id: "normal", label: "Normal", level: 2 },
+  { id: "hard", label: "Difícil", level: 3 },
 ];
+const levelBarHeights = ["h-1.5", "h-2.5", "h-3.5"];
+const levelColors: Record<1 | 2 | 3, string> = { 1: "bg-rv-blue", 2: "bg-rv-purple", 3: "bg-rv-pink" };
+
+function levelBarClass(level: 0 | 1 | 2 | 3, bar: number, selected: boolean): string {
+  const filled = level > 0 && bar <= level;
+  if (selected) return filled ? "bg-white" : "bg-white/30";
+  return filled ? levelColors[level as 1 | 2 | 3] : "bg-gray-300 dark:bg-white/20";
+}
 
 const modeDescriptions: Record<RandomDiscMode, string> = {
   free: "Cualquier disco que aún no hayas votado. ¡Que hable el azar!",
@@ -254,6 +263,7 @@ onBeforeUnmount(() => {
       class="flex flex-wrap justify-center gap-1.5 px-4 pt-4 sm:px-6"
       role="group"
       aria-label="Modo de selección del disco"
+      aria-describedby="random-disc-description"
     >
       <button
         v-for="mode in modes"
@@ -268,10 +278,26 @@ onBeforeUnmount(() => {
         :aria-pressed="selectedMode === mode.id"
         @click="selectedMode = mode.id"
       >
-        <img :src="mode.image" alt="" aria-hidden="true" class="h-5 w-4 object-contain" />
+        <i v-if="mode.level === 0" class="fa-solid fa-dice text-sm" aria-hidden="true" data-test="mode-indicator-dice"></i>
+        <span v-else class="inline-flex h-3.5 items-end gap-0.5" aria-hidden="true" :data-test="`mode-indicator-level-${mode.level}`">
+          <span
+            v-for="bar in 3"
+            :key="bar"
+            class="w-1 rounded-sm transition-colors"
+            :class="[levelBarHeights[bar - 1], levelBarClass(mode.level, bar, selectedMode === mode.id)]"
+          ></span>
+        </span>
         {{ mode.label }}
       </button>
     </div>
+    <p
+      id="random-disc-description"
+      class="px-4 pt-3 text-center text-sm text-gray-600 dark:text-gray-300 sm:px-6"
+      aria-live="polite"
+      data-test="random-disc-description"
+    >
+      {{ modeDescription }}
+    </p>
     <div
       v-if="!hasAttempted"
       class="flex flex-1 flex-col items-center justify-center gap-5 px-6 py-8"
@@ -305,18 +331,12 @@ onBeforeUnmount(() => {
         </span>
         {{ isRolling ? "Lanzando…" : "Tira los dados" }}
       </button>
-      <p
-        class="text-center text-base text-gray-500 dark:text-gray-400"
-        data-test="random-disc-description"
-      >
-        {{ modeDescription }}
-      </p>
     </div>
 
-    <div v-else class="p-4 sm:p-6" aria-live="polite">
+    <div v-else class="flex flex-1 flex-col justify-center px-4 pb-10 pt-4 sm:px-6 sm:pb-14 sm:pt-5" aria-live="polite">
       <div
         v-if="currentDisc"
-        class="mb-6 flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400"
+        class="mb-4 flex items-center justify-center gap-1.5 text-center text-sm text-gray-500 dark:text-gray-400"
         data-test="random-disc-result-phrase"
       >
         <i class="fa-solid fa-dice text-amber-400" aria-hidden="true"></i>

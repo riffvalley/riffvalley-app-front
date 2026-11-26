@@ -3,7 +3,7 @@
 
     <!-- Header -->
     <div class="mb-10">
-      <h1 class="text-3xl font-bold text-rv-navy dark:text-white mb-1">Notas de Parche</h1>
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white mb-1">Notas de Parche</h1>
       <p class="text-sm text-gray-500 dark:text-gray-400">Historial de versiones publicadas</p>
     </div>
 
