@@ -15,7 +15,7 @@ const hasDiscs = computed(() => props.discs.length > 0);
 <template>
   <div v-if="hasDiscs" class="ranking-sections">
     <TopDiscsFeatured :discs="sections.featured" @card-updated="emit('card-updated', $event)" />
-    <TopDiscsGrid :discs="sections.secondary" @card-updated="emit('card-updated', $event)" />
+    <TopDiscsGrid :discs="sections.secondary" :start-position="sections.featured.length + 1" @card-updated="emit('card-updated', $event)" />
   </div>
   <p v-else role="status" class="py-8 text-center text-gray-600 dark:text-gray-300">
     No hay discos para este periodo y estos filtros.

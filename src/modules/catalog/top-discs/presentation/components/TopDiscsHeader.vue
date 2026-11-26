@@ -1,11 +1,11 @@
 <template>
   <section aria-label="Filtros del Top Discos">
-    <div data-testid="header-control-rows" class="w-fit max-w-full">
+    <div data-testid="header-control-rows" class="mx-auto w-fit max-w-full">
       <div
         role="group"
         aria-label="Filtros temporales"
         data-testid="temporal-controls"
-        class="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-5 mt-6 mb-4"
+        class="flex flex-wrap items-center justify-center gap-x-2 gap-y-3 sm:gap-3 mt-2 mb-4"
       >
         <button
           v-for="period in periods"
@@ -17,18 +17,18 @@
               ? 'bg-rv-navy dark:bg-rv-purple text-white font-semibold hover:opacity-80 hover:shadow-lg'
               : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple hover:shadow-lg'
           "
-          class="px-4 py-1.5 rounded-full shadow-md text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0 border-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
+          class="px-3 sm:px-4 py-1.5 rounded-full shadow-md text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0 border-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
         >
           {{ period.label }}
         </button>
 
-        <div v-if="selectedPeriod !== 'all'" class="relative flex flex-wrap gap-2">
+        <div v-if="selectedPeriod !== 'all'" class="relative flex w-full flex-wrap justify-center gap-2 sm:w-auto">
           <div class="relative">
             <select
               aria-label="Rango temporal"
               :value="selectedRangeKey"
               @change="onRangeChange"
-              class="min-w-[12rem] px-4 pr-9 py-1.5 rounded-full shadow-md text-sm font-semibold bg-rv-navy dark:bg-rv-purple text-white appearance-none cursor-pointer border border-transparent dark:border-white/10 transition-all duration-200 hover:-translate-y-0.5 hover:opacity-80 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
+              class="min-w-[10.5rem] sm:min-w-[12rem] px-4 pr-9 py-1.5 rounded-full shadow-md text-sm font-semibold bg-rv-navy dark:bg-rv-purple text-white appearance-none cursor-pointer border border-transparent dark:border-white/10 transition-all duration-200 hover:-translate-y-0.5 hover:opacity-80 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
             >
               <option v-for="option in optionsForSelect" :key="option.key" :value="option.key">
                 {{ option.label }}
@@ -100,23 +100,23 @@
         />
       </div>
 
-      <p v-if="optionsLoading" role="status" class="mb-3 text-sm text-gray-600 dark:text-gray-300">
+      <p v-if="optionsLoading" role="status" class="mb-3 text-center text-sm text-gray-600 dark:text-gray-300">
         Cargando filtros disponibles…
       </p>
       <div
         v-else-if="optionsError"
         role="alert"
-        class="mb-3 text-sm text-red-700 dark:text-red-300"
+        class="mb-3 text-center text-sm text-red-700 dark:text-red-300"
       >
         <span>No se pudieron cargar los filtros disponibles.</span>
-        <button type="button" class="ml-2 underline" @click="emit('retry-options')">
+        <button type="button" class="!ml-2 !inline !border-0 !bg-transparent !p-0 !font-semibold !text-rv-navy !shadow-none underline underline-offset-2 hover:!text-rv-pink dark:!text-white" @click="emit('retry-options')">
           Reintentar
         </button>
       </div>
       <p
         v-else-if="optionsEmpty"
         role="status"
-        class="mb-3 text-sm text-gray-600 dark:text-gray-300"
+        class="mb-3 text-center text-sm text-gray-600 dark:text-gray-300"
       >
         No hay filtros disponibles para este periodo.
       </p>

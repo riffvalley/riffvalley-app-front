@@ -181,4 +181,16 @@ describe("TopDiscsRanking", () => {
     });
     wrapper.unmount();
   });
+it("numbers the remaining voted discs after the podium and labels unrated ones", () => {
+    const voted = makeDiscs(5);
+    const unrated = makeDisc(5, { voteCount: 0, averageRate: null, weightedScore: null });
+    const wrapper = mountRanking([...voted, unrated]);
+
+    expect(wrapper.findAll('[data-testid="rank-position"]').map((chip) => chip.text())).toEqual([
+      "4º",
+      "5º",
+      "Sin votos",
+    ]);
+    wrapper.unmount();
+  });
 });

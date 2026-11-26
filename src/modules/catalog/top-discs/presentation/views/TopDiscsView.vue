@@ -10,8 +10,9 @@
       </h2>
 
       <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-        <p class="text-sm md:text-base text-gray-600 dark:text-gray-300">
-        Los discos mejor valorados
+        <p class="inline-flex items-center gap-1 text-sm md:text-base text-gray-600 dark:text-gray-300">
+          Los discos mejor valorados
+          <TopDiscsRankingInfo />
         </p>
 
         <router-link
@@ -59,20 +60,37 @@
       </button>
     </Transition>
 
-    <p
-      v-if="rankingLoading"
-      role="status"
-      class="mb-4 text-center text-gray-600 dark:text-gray-300"
-    >
-      Cargando ranking…
-    </p>
+    <div v-if="rankingLoading" role="status" data-testid="ranking-loading" class="mt-4">
+      <span class="sr-only">Cargando ranking…</span>
+      <div class="grid grid-cols-1 justify-items-center gap-6 lg:grid-cols-3" aria-hidden="true">
+        <div
+          v-for="n in 3"
+          :key="`podium-${n}`"
+          class="h-64 w-full max-w-[23rem] animate-pulse rounded-[1.25rem] bg-gradient-to-b from-rv-pink/15 to-rv-purple/5 dark:from-rv-pink/10 dark:to-white/5"
+        ></div>
+      </div>
+      <div class="mt-10 grid grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
+        <div
+          v-for="n in 4"
+          :key="`card-${n}`"
+          class="h-52 w-full max-w-[20rem] animate-pulse rounded-xl bg-gray-200 dark:bg-white/5"
+        ></div>
+      </div>
+    </div>
     <div
       v-else-if="rankingError"
       role="alert"
-      class="mb-4 text-center text-red-700 dark:text-red-300"
+      class="mx-auto mt-4 flex max-w-md flex-col items-center gap-3 rounded-xl border border-rv-pink/20 bg-gradient-to-r from-rv-pink/10 to-rv-purple/10 px-6 py-5 text-center text-sm text-rv-navy dark:border-white/10 dark:text-white"
     >
+      <i class="fa-solid fa-triangle-exclamation text-lg text-rv-pink" aria-hidden="true"></i>
       <span>No se pudo cargar el ranking.</span>
-      <button type="button" class="ml-2 underline" @click="retryRanking">Reintentar</button>
+      <button
+        type="button"
+        class="!rounded-full !border-0 !bg-rv-navy !px-4 !py-1.5 !text-sm !font-semibold !text-white !shadow-md transition-all hover:!bg-rv-pink focus-visible:!outline focus-visible:!outline-2 focus-visible:!outline-offset-2 focus-visible:!outline-rv-pink dark:!bg-rv-purple dark:hover:!bg-rv-pink"
+        @click="retryRanking"
+      >
+        Reintentar
+      </button>
     </div>
 
     <TopDiscsRanking v-else :discs="discs" @card-updated="handleCardUpdated" />
@@ -90,6 +108,7 @@ import type {
 } from "@/modules/catalog/top-discs/types/topDiscs";
 import TopDiscsHeader from "@/modules/catalog/top-discs/presentation/components/TopDiscsHeader.vue";
 import TopDiscsRanking from "@/modules/catalog/top-discs/presentation/components/TopDiscsRanking.vue";
+import TopDiscsRankingInfo from "@/modules/catalog/top-discs/presentation/components/TopDiscsRankingInfo.vue";
 import { getAvailableYears } from "@helpers/dateConstants";
 import {
   topDiscsQueryKeyForSession,
@@ -103,7 +122,7 @@ import {
 
 export default defineComponent({
   name: "RankingsPage",
-  components: { TopDiscsHeader, TopDiscsRanking },
+  components: { TopDiscsHeader, TopDiscsRanking, TopDiscsRankingInfo },
   setup() {
     const queryClient = useQueryClient();
     const authStore = useAuthStore();
