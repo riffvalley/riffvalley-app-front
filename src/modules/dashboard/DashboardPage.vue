@@ -63,6 +63,11 @@
         <DashboardLatestVotesWidget />
       </template>
 
+      <!-- Accesos directos a Discos con fechas precargadas -->
+      <template #accesosDirectos>
+        <DashboardShortcutsWidget />
+      </template>
+
       <!-- Crea tu propia aventura -->
       <template #aventura>
       <div class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden flex flex-col flex-1">
@@ -115,11 +120,12 @@ import DashboardTop3Widget from "@/modules/dashboard/widgets/top-rated/component
 import DashboardLatestVotesWidget from "@/modules/dashboard/widgets/latest-votes/components/DashboardLatestVotesWidget.vue";
 import DashboardMusicalWorldWidget from "@/modules/dashboard/widgets/musical-world/components/DashboardMusicalWorldWidget.vue";
 import DashboardFavoriteArtistsWidget from "@/modules/dashboard/widgets/artists/components/DashboardFavoriteArtistsWidget.vue";
+import DashboardShortcutsWidget from "@/modules/dashboard/widgets/shortcuts/components/DashboardShortcutsWidget.vue";
 import { useDashboardSummaryQuery } from "@/app/dashboardSummary";
 
 export default defineComponent({
   name: "DashboardPage",
-  components: { NewsFeed, AdventureModule, DashboardWelcomeBanner, DashboardWidgetGrid, RandomDiscWidget, DashboardCoverOfDayWidget, DashboardCommunityWidget, DashboardCemeteryWidget, DashboardTop3Widget, DashboardLatestVotesWidget, DashboardMusicalWorldWidget, DashboardFavoriteArtistsWidget },
+  components: { NewsFeed, AdventureModule, DashboardWelcomeBanner, DashboardWidgetGrid, RandomDiscWidget, DashboardCoverOfDayWidget, DashboardCommunityWidget, DashboardCemeteryWidget, DashboardTop3Widget, DashboardLatestVotesWidget, DashboardMusicalWorldWidget, DashboardFavoriteArtistsWidget, DashboardShortcutsWidget },
   setup() {
     const desktopDashboardConfig = useDashboardConfig('desktop');
     const mobileDashboardConfig = useDashboardConfig('mobile');

@@ -87,6 +87,14 @@ export const dashboardWidgetRegistry = [
     enabledByDefault: true,
     order: 10,
   },
+  {
+    id: "accesosDirectos",
+    label: "Accesos directos",
+    icon: "fa-solid fa-bolt",
+    size: "full",
+    enabledByDefault: true,
+    order: 11,
+  },
 ] as const satisfies readonly {
   id: string;
   label: string;

@@ -19,14 +19,15 @@ const expectedOrder: DashboardWidgetId[] = [
   "mundoMusical",
   "ultimosVotos",
   "aventura",
+  "accesosDirectos",
 ];
 
 describe("dashboard widget registry", () => {
-  it("keeps the eleven persisted IDs and default order", () => {
+  it("keeps the twelve persisted IDs and default order", () => {
     const ids = dashboardWidgetRegistry.map(({ id }) => id);
 
     expect(ids).toEqual(expectedOrder);
-    expect(new Set(ids).size).toBe(11);
+    expect(new Set(ids).size).toBe(12);
     expect(Object.values(dashboardWidgetIds)).toEqual(expectedOrder);
     expect(dashboardWidgetRegistry.map(({ order }) => order)).toEqual(
       expectedOrder.map((_, order) => order),
@@ -47,6 +48,7 @@ describe("dashboard widget registry", () => {
       { label: "Tu mundo musical", size: "half", enabled: true },
       { label: "Tus últimos 5 votos", size: "half", enabled: true },
       { label: "Crea tu propia aventura", size: "half", enabled: true },
+      { label: "Accesos directos", size: "full", enabled: true },
     ]);
     expect(dashboardWidgetDefaults.every(({ icon }) => icon.startsWith("fa-solid "))).toBe(true);
   });
