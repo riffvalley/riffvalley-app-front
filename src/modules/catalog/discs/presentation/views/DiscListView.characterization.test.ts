@@ -19,6 +19,12 @@ const savedFiltersApi = vi.hoisted(() => ({
 }));
 vi.mock("../../api/discList", () => api);
 vi.mock("../../api/savedDiscFilters", () => savedFiltersApi);
+vi.mock("@services/genres/genres", () => ({
+  getAllGenres: vi.fn(async () => [{ id: "genre-a", name: "Género A", color: "#ff0000" }]),
+}));
+vi.mock("@services/countries/countries", () => ({
+  getAllCountries: vi.fn(async () => [{ id: "country-a", name: "País A", isoCode: "AA" }]),
+}));
 
 import { useAuthStore } from "@/modules/identity/auth/stores/auth";
 import { DISC_LIST_PAGE_SIZE } from "../../application/useDiscListCoordinator";
@@ -414,6 +420,61 @@ describe("DiscList new backend integration", () => {
     expect(wrapper.get("#saved-disc-filter").element).toHaveProperty("value", "saved-filter-existing");
     expect(wrapper.text()).toContain("Metal ya guardado · aplicado");
     expect(wrapper.findAll("button").some((button) => button.text() === "Guardar")).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("labels the empty saved-filter option depending on whether genre or country filters are active", async () => {
+    savedFiltersApi.getSavedDiscFilters.mockResolvedValue([
+      {
+        id: "saved-filter-other",
+        name: "Otro",
+        filters: { genreIds: ["genre-x"], countryId: null, yearFrom: null, yearTo: null },
+        missingGenreIds: [],
+        countryMissing: false,
+        createdAt: "",
+        updatedAt: "",
+      },
+    ]);
+    const wrapper = mountList();
+    await settle();
+    const emptyOption = () => wrapper.get('#saved-disc-filter option[value=""]').text();
+    expect(emptyOption()).toBe("Sin filtros activos");
+    await wrapper.get('[data-testid="genre-filter"]').trigger("click");
+    await settle();
+    expect(emptyOption()).toBe("Desactivar filtros");
+    wrapper.unmount();
+  });
+
+  it("opens the saved-filter manager next to «Mis filtros» and applies a filter from it", async () => {
+    savedFiltersApi.getSavedDiscFilters.mockResolvedValue([
+      {
+        id: "saved-filter-a",
+        name: "Metal",
+        filters: { genreIds: ["genre-a"], countryId: "country-a", yearFrom: null, yearTo: null },
+        missingGenreIds: [],
+        countryMissing: false,
+        createdAt: "",
+        updatedAt: "",
+      },
+    ]);
+    const wrapper = mountList();
+    await settle();
+    const manage = wrapper.get('[data-testid="saved-filters-manage-discs"]');
+    expect(manage.attributes("aria-label")).toBe("Gestionar mis filtros");
+    await manage.trigger("click");
+    await settle();
+
+    const dialog = () => document.querySelector<HTMLElement>('[data-testid="saved-filters-dialog"]');
+    expect(dialog()?.textContent).toContain("Gestionar mis filtros");
+    const apply = [...dialog()!.querySelectorAll("button")].find((button) => button.textContent?.trim() === "Aplicar");
+    apply!.click();
+    await settle();
+
+    expect(dialog()).toBeNull();
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ genreIds: ["genre-a"], countryId: "country-a", offset: 0 })
+    );
+    expect(wrapper.text()).toContain("Metal · aplicado");
     wrapper.unmount();
   });
 

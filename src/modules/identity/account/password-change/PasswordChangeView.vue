@@ -172,6 +172,8 @@
             </button>
           </div>
         </section>
+        <!-- Mis filtros de Discos -->
+        <SavedDiscFiltersProfileCard />
       </div>
       <!-- /columna izquierda -->
 
@@ -545,11 +547,12 @@ import { useUserStore } from "@stores/user/users";
 import { useAuthStore } from "@/modules/identity/auth";
 import { useDashboardPreferences } from "@/modules/identity/account/preferences/composables/useDashboardPreferences";
 import DashboardBuilder from "../preferences/components/DashboardBuilder.vue";
+import SavedDiscFiltersProfileCard from "@/modules/catalog/discs/presentation/components/saved-filters-manager/SavedDiscFiltersProfileCard.vue";
 import { hasMinimumRole } from "@/modules/identity/shared";
 
 export default {
   name: "ChangePassword",
-  components: { DashboardBuilder },
+  components: { DashboardBuilder, SavedDiscFiltersProfileCard },
   setup() {
     const userStore = useUserStore();
     const authStore = useAuthStore();

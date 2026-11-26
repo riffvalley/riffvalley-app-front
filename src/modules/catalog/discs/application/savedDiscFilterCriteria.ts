@@ -1,4 +1,5 @@
 import type { SavedDiscFilterCriteria } from "../types/savedDiscFilter";
+import { getDiscListYearRange } from "./discListDateFilters";
 
 export function normalizeSavedDiscFilterCriteria(
   criteria: SavedDiscFilterCriteria
@@ -34,4 +35,18 @@ export function isEmptySavedDiscFilterCriteria(criteria: SavedDiscFilterCriteria
     normalized.yearFrom === null &&
     normalized.yearTo === null
   );
+}
+
+/** Texto corto con el rango de años de un filtro guardado («2025», «2025–2026», «Desde 2025»…). */
+export function describeSavedDiscFilterYears({ yearFrom, yearTo }: SavedDiscFilterCriteria): string {
+  if (yearFrom === null && yearTo === null) return "Todos los años";
+  if (yearFrom !== null && yearTo !== null)
+    return yearFrom === yearTo ? String(yearFrom) : `${yearFrom}–${yearTo}`;
+  return yearFrom !== null ? `Desde ${yearFrom}` : `Hasta ${yearTo}`;
+}
+
+/** Rango de fechas de Discos equivalente a los años de un filtro guardado (null = todos los años). */
+export function savedDiscFilterDateRange({ yearFrom, yearTo }: SavedDiscFilterCriteria): [string, string] | null {
+  if (yearFrom === null && yearTo === null) return null;
+  return [getDiscListYearRange(yearFrom ?? 1)[0], getDiscListYearRange(yearTo ?? 9999)[1]];
 }

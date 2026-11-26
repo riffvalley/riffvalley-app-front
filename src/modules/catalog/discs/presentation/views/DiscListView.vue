@@ -34,9 +34,11 @@
         :filters="savedFilters"
         :selected-id="selectedSavedFilterId"
         :applied-id="appliedSavedFilterId"
+        :empty-label="savedFilterEmptyLabel"
         :disabled="savedFiltersLoading || savedFiltersError || savedFilters.length === 0 || savedFilterPending"
         @update:selected-id="selectedSavedFilterId = $event"
         @apply="applySelectedSavedFilter"
+        @manage="savedFiltersManagerOpen = true"
       />
     </div>
 
@@ -334,6 +336,11 @@
 
   <CreateDiscModal v-if="showCreateDisc" @close="onCreateDiscModalClose" />
   <RequestDiscModal v-if="showRequestDisc" @close="showRequestDisc = false" />
+  <SavedDiscFiltersManagerDialog
+    v-model:open="savedFiltersManagerOpen"
+    apply-label="Aplicar"
+    @apply="applySelectedSavedFilter($event.id)"
+  />
   <SavedDiscFilterModal
     v-if="savedFilterModalMode"
     :mode="savedFilterModalMode"
@@ -381,6 +388,7 @@ import SimpleSelect from "@components/SimpleSelect.vue";
 import DiscListExplorationFilters from "../components/DiscListExplorationFilters.vue";
 import DiscListAutocomplete from "../components/DiscListAutocomplete.vue";
 import SavedDiscFilterSelector from "../components/SavedDiscFilterSelector.vue";
+import SavedDiscFiltersManagerDialog from "../components/saved-filters-manager/SavedDiscFiltersManagerDialog.vue";
 import SavedDiscFilterModal from "../components/SavedDiscFilterModal.vue";
 import SavedDiscFilterConfirmModal from "../components/SavedDiscFilterConfirmModal.vue";
 import { useDiscListCoordinator } from "../../application/useDiscListCoordinator";
@@ -474,6 +482,7 @@ const savedFilterPending = computed(() =>
 );
 const selectedSavedFilterId = ref("");
 const appliedSavedFilterId = ref("");
+const savedFiltersManagerOpen = ref(false);
 const savedFilterModalMode = ref<"save" | "rename" | null>(null);
 const savedFilterConfirmAction = ref<"update" | "delete" | null>(null);
 const savedFilterNotice = ref("");
@@ -522,6 +531,10 @@ watch(
     appliedSavedFilterId.value = matchingId;
   },
   { immediate: true }
+);
+// Las fechas no cuentan: siempre hay un año o una semana puestos al entrar en Discos.
+const savedFilterEmptyLabel = computed(() =>
+  selectedGenres.value.length || selectedCountry.value ? "Desactivar filtros" : "Sin filtros activos"
 );
 const savedCriteriaStatus = computed(() => {
   if (matchingSavedFilter.value) return "Guardado";

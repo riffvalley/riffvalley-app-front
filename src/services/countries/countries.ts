@@ -25,9 +25,19 @@ export async function getCountries(
   return response.data;
 }
 
-/** Obtener todos los países sin paginación */
+/** Obtener todos los países. El backend no ofrece /countries/all: se recorre GET /countries. */
 export async function getAllCountries(): Promise<Country[]> {
-  const response = await api.get<Country[]>("/countries/all");
-  return response.data;
+  const countries: Country[] = [];
+  let offset = 0;
+
+  while (true) {
+    const response = await getCountries(500, offset);
+    countries.push(...response.data);
+    if (!response.data.length || response.currentPage >= response.totalPages) return countries;
+
+    const nextOffset = offset + (response.limit || response.data.length);
+    if (nextOffset <= offset) return countries;
+    offset = nextOffset;
+  }
 }
 

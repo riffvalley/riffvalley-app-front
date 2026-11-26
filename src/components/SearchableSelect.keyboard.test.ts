@@ -4,6 +4,29 @@ import { describe, expect, it } from "vitest";
 import SearchableSelect from "./SearchableSelect.vue";
 
 describe("SearchableSelect keyboard access", () => {
+  it("shows the selected option once it arrives after the value", async () => {
+    const wrapper = mount(SearchableSelect, {
+      props: {
+        modelValue: "country-de",
+        options: [{ id: "country-es", name: "España" }],
+        triggerPlaceholder: "Todos los países",
+        allLabel: "Todos los países",
+        title: "name",
+        trackby: "id",
+        useTeleport: false,
+      },
+    });
+    const trigger = wrapper.get("button.search_input_trigger");
+    expect(trigger.text()).toBe("Todos los países");
+
+    await wrapper.setProps({ options: [{ id: "country-de", name: "Alemania" }] });
+    expect(trigger.text()).toBe("Alemania");
+
+    await wrapper.setProps({ modelValue: "" });
+    expect(trigger.text()).toBe("Todos los países");
+    wrapper.unmount();
+  });
+
   it("opens with Arrow Down and selects an option through the search input", async () => {
     const wrapper = mount(SearchableSelect, {
       attachTo: document.body,

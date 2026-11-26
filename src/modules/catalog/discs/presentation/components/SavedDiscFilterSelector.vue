@@ -6,10 +6,13 @@ defineProps<{
   selectedId: string;
   appliedId: string;
   disabled: boolean;
+  /** Texto de la opción vacía: indica si hay o no filtros de género/país puestos. */
+  emptyLabel?: string;
 }>();
 const emit = defineEmits<{
   "update:selectedId": [id: string];
   apply: [id: string];
+  manage: [];
 }>();
 function onChange(event: Event) {
   const id = (event.target as HTMLSelectElement).value;
@@ -35,11 +38,21 @@ function onChange(event: Event) {
         :disabled="disabled"
         @change="onChange"
       >
-        <option value="">Selecciona un filtro</option>
+        <option value="">{{ emptyLabel ?? "Sin filtros activos" }}</option>
         <option v-for="filter in filters" :key="filter.id" :value="filter.id">
           {{ filter.name }}{{ filter.id === appliedId ? " · aplicado" : "" }}
         </option>
       </select>
+      <button
+        type="button"
+        data-testid="saved-filters-manage-discs"
+        aria-label="Gestionar mis filtros"
+        title="Gestionar mis filtros"
+        class="!inline-flex !h-[50px] !w-[50px] !shrink-0 !items-center !justify-center !rounded-2xl !border !border-gray-300 !bg-white !p-0 !text-rv-navy !shadow-sm hover:!bg-gray-100 focus-visible:!outline-none focus-visible:!ring-2 focus-visible:!ring-rv-navy dark:!border-white/20 dark:!bg-rv-darkCard dark:!text-white dark:hover:!bg-rv-darkSurface dark:focus-visible:!ring-gray-200"
+        @click="emit('manage')"
+      >
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+      </button>
     </div>
   </div>
 </template>

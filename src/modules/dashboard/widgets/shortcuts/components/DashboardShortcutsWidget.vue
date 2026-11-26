@@ -45,7 +45,7 @@ const shortcuts = computed(() => [
         <h3 id="shortcuts-title" class="font-bold text-gray-900 dark:text-white">Accesos directos</h3>
       </div>
       <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 pl-6">
-        Abre Discos con las fechas ya puestas y sigue filtrando desde ahí
+        Salta a las novedades de esta semana o de este mes, con tus filtros de género y país de Discos ya aplicados
       </p>
     </header>
 

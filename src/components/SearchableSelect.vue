@@ -234,7 +234,8 @@ export default {
       const found = props.options.find((opt) =>
         typeof opt === "object" ? opt[props.trackby] === props.modelValue : opt === props.modelValue
       );
-      if (found) data.selectedText = typeof found === "object" ? found[props.title] : String(found);
+      // Si la opción aún no ha llegado, se vacía: el watch de options la mostrará al cargar.
+      data.selectedText = found ? (typeof found === "object" ? found[props.title] : String(found)) : "";
     }
 
     /* Posicionar el menú bajo el trigger (coordenadas viewport) */
@@ -384,8 +385,10 @@ export default {
       () => data.showSearchbox,
       (v) => v && nextTick(positionMenu)
     );
+    // También al cambiar las opciones: el valor puede llegar antes que su opción
+    // (p. ej. al aplicar un filtro guardado mientras se recargan los países).
     watch(
-      () => props.modelValue,
+      () => [props.modelValue, props.options],
       () => setInitialText()
     );
 
