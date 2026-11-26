@@ -16,7 +16,7 @@
       {{ createdDiscNotice }}
     </p>
 
-    <div class="mb-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+    <div class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
       <form class="disc-list-search min-w-0 w-full" role="search" @submit.prevent>
         <DiscListAutocomplete
           :model-value="searchQuery"
@@ -42,20 +42,15 @@
       />
     </div>
 
-    <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm" aria-live="polite">
+    <!-- Sin aviso, este hueco no suma margen (empty:mb-0) pero sigue anunciando cambios. -->
+    <div class="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm empty:mb-0" aria-live="polite">
       <p v-if="savedFiltersLoading" class="text-gray-600 dark:text-gray-300" role="status">Cargando filtros guardados…</p>
       <p v-else-if="savedFiltersError" class="text-red-700 dark:text-red-300" role="alert">
         No se pudieron cargar tus filtros guardados.
         <button type="button" class="font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-pink" @click="retrySavedFilters">Reintentar</button>
       </p>
       <p v-else-if="savedFilters.length === 0" class="text-gray-600 dark:text-gray-300">Aún no tienes filtros guardados.</p>
-      <template v-if="selectedSavedFilter">
-        <span class="text-gray-600 dark:text-gray-300">{{ savedFilters.length }} de 20 filtros</span>
-        <span v-if="savedFilters.length >= 20" class="text-amber-800 dark:text-amber-200">Has alcanzado el límite de 20.</span>
-        <button type="button" class="font-medium text-rv-navy underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-pink dark:text-white" :disabled="savedFilterPending" @click="beginRenameSavedFilter">Renombrar</button>
-        <button type="button" class="font-medium text-red-700 underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-pink dark:text-red-300" :disabled="savedFilterPending" @click="deleteSelectedSavedFilter">Eliminar</button>
-      </template>
-      <span v-else-if="savedFilters.length >= 20" class="text-amber-800 dark:text-amber-200">Has alcanzado el límite de 20 filtros.</span>
+      <p v-else-if="savedFilters.length >= 20" class="text-amber-800 dark:text-amber-200">Has alcanzado el límite de 20 filtros.</p>
     </div>
 
     <p v-if="savedFilterNotice" class="mb-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-900 dark:border-green-800/50 dark:bg-green-900/20 dark:text-green-100" role="status">
@@ -88,8 +83,17 @@
       @update:search="setSearchQuery"
       @retry-options="retryOptions"
     >
-      <template #savedActions>
-        <span class="text-sm text-gray-700 dark:text-gray-200" role="status">{{ savedCriteriaStatus }}</span>
+      <!-- Guardar o Actualizar solo aparecen cuando hay algún filtro que guardar. -->
+      <template v-if="showSavedActions" #savedActions>
+        <!-- Solo se ve «✓ Guardado»; «Sin guardar» ya lo dice el botón, así que
+             queda únicamente para lectores de pantalla. -->
+        <span
+          class="saved-criteria-status text-sm text-gray-700 dark:text-gray-200"
+          :class="{ 'sr-only': !matchingSavedFilter }"
+          role="status"
+        >
+          <i v-if="matchingSavedFilter" class="fa-solid fa-check mr-1" aria-hidden="true" />{{ savedCriteriaStatus }}
+        </span>
         <template v-if="modifiedAppliedFilter">
           <button type="button" class="min-h-9 rounded-lg bg-rv-navy px-3 text-sm font-semibold text-white hover:bg-rv-navy/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-purple disabled:opacity-50 dark:bg-gray-200 dark:text-rv-navy" :disabled="savedFilterPending" @click="updateAppliedFilter">Actualizar</button>
           <button v-if="!matchingSavedFilter" type="button" class="min-h-9 rounded-lg border border-gray-300 px-3 text-sm font-semibold text-rv-navy hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-purple disabled:opacity-50 dark:border-white/20 dark:text-white dark:hover:bg-rv-darkSurface" :disabled="savedFilterPending || currentCriteriaEmpty || savedFilters.length >= 20" @click="openSaveFilterModal">Guardar como nuevo</button>
@@ -339,12 +343,13 @@
   <SavedDiscFiltersManagerDialog
     v-model:open="savedFiltersManagerOpen"
     apply-label="Aplicar"
+    :applied-id="appliedSavedFilterId"
     @apply="applySelectedSavedFilter($event.id)"
   />
   <SavedDiscFilterModal
     v-if="savedFilterModalMode"
-    :mode="savedFilterModalMode"
-    :initial-name="savedFilterModalMode === 'rename' ? selectedSavedFilter?.name ?? '' : ''"
+    mode="save"
+    initial-name=""
     :criteria="currentSavedCriteria"
     :genres="options.genres"
     :countries="options.countries"
@@ -358,7 +363,6 @@
     :title="savedFilterConfirmTitle"
     :message="savedFilterConfirmMessage"
     :confirm-label="savedFilterConfirmLabel"
-    :dangerous="savedFilterConfirmAction === 'delete'"
     :pending="savedFilterPending"
     @close="closeSavedFilterConfirmation"
     @confirm="confirmSavedFilterAction"
@@ -392,7 +396,11 @@ import SavedDiscFiltersManagerDialog from "../components/saved-filters-manager/S
 import SavedDiscFilterModal from "../components/SavedDiscFilterModal.vue";
 import SavedDiscFilterConfirmModal from "../components/SavedDiscFilterConfirmModal.vue";
 import { useDiscListCoordinator } from "../../application/useDiscListCoordinator";
-import { useDiscListSessionFilters } from "../../application/discListSessionFilters";
+import {
+  readDiscListAppliedSavedFilterId,
+  useDiscListSessionFilters,
+  writeDiscListAppliedSavedFilterId,
+} from "../../application/discListSessionFilters";
 import { discListSuggestionsQueryKey } from "../../application/useDiscListSuggestions";
 import { useSavedDiscFilters } from "../../application/useSavedDiscFilters";
 import {
@@ -401,7 +409,7 @@ import {
   isDiscListQuickPeriod,
 } from "../../application/discListDateFilters";
 import { areSavedDiscFilterCriteriaEqual, isEmptySavedDiscFilterCriteria } from "../../application/savedDiscFilterCriteria";
-import type { SavedDiscFilterCriteria } from "../../types/savedDiscFilter";
+import type { SavedDiscFilter, SavedDiscFilterCriteria } from "../../types/savedDiscFilter";
 import type { DiscListMode } from "../../types/discList";
 import { useAuthStore } from "@/modules/identity/auth";
 import { hasMinimumRole } from "@/modules/identity/shared";
@@ -442,7 +450,11 @@ const {
   refresh,
   updateDisc,
   removeDisc,
-} = useDiscListCoordinator();
+} = useDiscListCoordinator({
+  // Un filtro guardado aplicado se mantiene completo aunque la semana o el mes
+  // no tengan discos de alguno de sus géneros: solo lo cambia el usuario.
+  keepSelections: () => Boolean(appliedSavedFilterId.value),
+});
 
 // Recupera los filtros que el usuario dejó puestos al salir de Discos.
 const restoredSessionFilters = useDiscListSessionFilters({
@@ -480,16 +492,18 @@ const deleteSavedFilterMutation = savedFilterState.remove;
 const savedFilterPending = computed(() =>
   createSavedFilterMutation.isPending.value || updateSavedFilterMutation.isPending.value || deleteSavedFilterMutation.isPending.value
 );
-const selectedSavedFilterId = ref("");
-const appliedSavedFilterId = ref("");
+// El filtro aplicado se recuerda en la sesión: sigue marcado al volver a Discos
+// (también desde los accesos directos del Dashboard) hasta que el usuario lo cambie.
+const storedAppliedSavedFilterId = readDiscListAppliedSavedFilterId(useAuthStore().userId);
+const selectedSavedFilterId = ref(storedAppliedSavedFilterId);
+const appliedSavedFilterId = ref(storedAppliedSavedFilterId);
 const savedFiltersManagerOpen = ref(false);
-const savedFilterModalMode = ref<"save" | "rename" | null>(null);
-const savedFilterConfirmAction = ref<"update" | "delete" | null>(null);
+const savedFilterModalMode = ref<"save" | null>(null);
+const savedFilterConfirmAction = ref<"update" | null>(null);
 const savedFilterNotice = ref("");
 const savedFilterErrorNotice = ref("");
 const staleSavedFilterWarning = ref("");
 const savedFilterMutationError = ref("");
-const selectedSavedFilter = computed(() => savedFilters.value.find((filter) => filter.id === selectedSavedFilterId.value));
 const currentSavedCriteria = computed<SavedDiscFilterCriteria>(() => {
   const selection = getDiscListDateSelection(selectedWeek.value);
   const endYear = selectedWeek.value ? new Date(selectedWeek.value[1]).getUTCFullYear() : 0;
@@ -502,24 +516,46 @@ const currentSavedCriteria = computed<SavedDiscFilterCriteria>(() => {
   };
 });
 const currentCriteriaEmpty = computed(() => isEmptySavedDiscFilterCriteria(currentSavedCriteria.value));
-const matchingSavedFilter = computed(() =>
-  savedFilters.value.find((filter) => areSavedDiscFilterCriteriaEqual(filter.filters, currentSavedCriteria.value))
-);
+// Un filtro guardado solo guarda años. Si se está viendo un mes o una semana
+// (por ejemplo, desde «Novedades de la semana»), las fechas no cuentan al comparar.
+const browsingPeriodWithinYear = computed(() => getDiscListDateSelection(selectedWeek.value).month !== 0);
+function savedFilterMatchesCurrent(filter: SavedDiscFilter): boolean {
+  const current = browsingPeriodWithinYear.value
+    ? { ...currentSavedCriteria.value, yearFrom: filter.filters.yearFrom, yearTo: filter.filters.yearTo }
+    : currentSavedCriteria.value;
+  return areSavedDiscFilterCriteriaEqual(filter.filters, current);
+}
 const appliedSavedFilter = computed(() => savedFilters.value.find((filter) => filter.id === appliedSavedFilterId.value));
-const savedFilterConfirmTitle = computed(() => savedFilterConfirmAction.value === "delete" ? "Eliminar filtro guardado" : "Actualizar filtro guardado");
-const savedFilterConfirmTarget = computed(() => savedFilterConfirmAction.value === "update"
-  ? appliedSavedFilter.value
-  : selectedSavedFilter.value);
+const matchingSavedFilter = computed(() =>
+  appliedSavedFilter.value && savedFilterMatchesCurrent(appliedSavedFilter.value)
+    ? appliedSavedFilter.value
+    : savedFilters.value.find(savedFilterMatchesCurrent)
+);
+// Renombrar y eliminar se gestionan desde el diálogo «Gestionar filtros».
+const savedFilterConfirmTitle = "Actualizar filtro guardado";
+const savedFilterConfirmTarget = computed(() => appliedSavedFilter.value);
 const savedFilterConfirmMessage = computed(() => {
   const target = savedFilterConfirmTarget.value;
   if (!target) return "El filtro seleccionado ya no está disponible.";
-  return savedFilterConfirmAction.value === "delete"
-    ? `¿Eliminar el filtro «${target.name}»? Esta acción no se puede deshacer.`
-    : `¿Actualizar «${target.name}» con los criterios actuales?`;
+  return `¿Actualizar «${target.name}» con los criterios actuales?`;
 });
-const savedFilterConfirmLabel = computed(() => savedFilterConfirmAction.value === "delete" ? "Eliminar filtro" : "Actualizar filtro");
+const savedFilterConfirmLabel = "Actualizar filtro";
+const showSavedActions = computed(() => Boolean(matchingSavedFilter.value) || !currentCriteriaEmpty.value);
 const modifiedAppliedFilter = computed(() =>
-  Boolean(appliedSavedFilter.value && !areSavedDiscFilterCriteriaEqual(appliedSavedFilter.value.filters, currentSavedCriteria.value) && !currentCriteriaEmpty.value)
+  Boolean(appliedSavedFilter.value && !savedFilterMatchesCurrent(appliedSavedFilter.value) && !currentCriteriaEmpty.value)
+);
+watch(appliedSavedFilterId, (filterId) => writeDiscListAppliedSavedFilterId(useAuthStore().userId, filterId));
+// Si el filtro recordado ya no existe (borrado en otra pestaña o en Perfil), se olvida.
+watch(
+  () => [savedFilterState.isSuccess.value, savedFilters.value] as const,
+  ([loaded, filters]) => {
+    if (!loaded) return;
+    if (appliedSavedFilterId.value && !filters.some(({ id }) => id === appliedSavedFilterId.value))
+      appliedSavedFilterId.value = "";
+    if (selectedSavedFilterId.value && !filters.some(({ id }) => id === selectedSavedFilterId.value))
+      selectedSavedFilterId.value = "";
+  },
+  { immediate: true }
 );
 // Si los filtros activos coinciden con un filtro guardado (por ejemplo, al volver a
 // Discos con los filtros restaurados), lo marcamos en «Mis filtros» para no confundir.
@@ -583,28 +619,14 @@ function openSaveFilterModal() {
   savedFilterModalMode.value = "save";
 }
 
-function beginRenameSavedFilter() {
-  if (!selectedSavedFilter.value) return;
-  savedFilterMutationError.value = "";
-  savedFilterErrorNotice.value = "";
-  savedFilterModalMode.value = "rename";
-}
-
 async function submitSavedFilterModal(name: string) {
   savedFilterMutationError.value = "";
   try {
-    if (savedFilterModalMode.value === "save") {
-      if (currentCriteriaEmpty.value) return;
-      const created = (await createSavedFilterMutation.mutateAsync({ name, filters: currentSavedCriteria.value })).result;
-      selectedSavedFilterId.value = created.id;
-      appliedSavedFilterId.value = "";
-      showSavedFilterNotice(`Filtro «${created.name}» guardado.`);
-    } else {
-      const target = selectedSavedFilter.value;
-      if (!target) return;
-      const updated = await updateSavedFilterMutation.mutateAsync({ id: target.id, payload: { name } });
-      showSavedFilterNotice(`Filtro renombrado a «${updated.result.name}».`);
-    }
+    if (currentCriteriaEmpty.value) return;
+    const created = (await createSavedFilterMutation.mutateAsync({ name, filters: currentSavedCriteria.value })).result;
+    selectedSavedFilterId.value = created.id;
+    appliedSavedFilterId.value = "";
+    showSavedFilterNotice(`Filtro «${created.name}» guardado.`);
     savedFilterModalMode.value = null;
   } catch (error) {
     savedFilterMutationError.value = getSavedFilterError(error);
@@ -618,33 +640,25 @@ function updateAppliedFilter() {
   savedFilterConfirmAction.value = "update";
 }
 
-function deleteSelectedSavedFilter() {
-  if (!selectedSavedFilter.value) return;
-  savedFilterConfirmAction.value = "delete";
-}
-
 function closeSavedFilterConfirmation() {
   if (!savedFilterPending.value) savedFilterConfirmAction.value = null;
 }
 
 async function confirmSavedFilterAction() {
-  const action = savedFilterConfirmAction.value;
   const target = savedFilterConfirmTarget.value;
-  if (!action || !target || savedFilterPending.value) return;
+  if (!savedFilterConfirmAction.value || !target || savedFilterPending.value) return;
   try {
-    if (action === "update") {
-      if (currentCriteriaEmpty.value) return;
-      const updated = await updateSavedFilterMutation.mutateAsync({
-        id: target.id,
-        payload: { filters: currentSavedCriteria.value },
-      });
-      showSavedFilterNotice(`Filtro «${updated.result.name}» actualizado.`);
-    } else {
-      await deleteSavedFilterMutation.mutateAsync(target.id);
-      if (appliedSavedFilterId.value === target.id) appliedSavedFilterId.value = "";
-      selectedSavedFilterId.value = "";
-      showSavedFilterNotice(`Filtro «${target.name}» eliminado.`);
-    }
+    if (currentCriteriaEmpty.value) return;
+    const updated = await updateSavedFilterMutation.mutateAsync({
+      id: target.id,
+      // Viendo una semana o un mes, se conservan los años del filtro guardado.
+      payload: {
+        filters: browsingPeriodWithinYear.value
+          ? { ...currentSavedCriteria.value, yearFrom: target.filters.yearFrom, yearTo: target.filters.yearTo }
+          : currentSavedCriteria.value,
+      },
+    });
+    showSavedFilterNotice(`Filtro «${updated.result.name}» actualizado.`);
     savedFilterConfirmAction.value = null;
   } catch (error) {
     savedFilterConfirmAction.value = null;

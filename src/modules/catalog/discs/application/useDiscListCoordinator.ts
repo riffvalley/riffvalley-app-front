@@ -1,5 +1,7 @@
 import { computed, onScopeDispose, ref, shallowRef, watch } from "vue";
 import { useAuthStore } from "@/modules/identity/auth";
+import { getAllGenres } from "@services/genres/genres";
+import { getAllCountries } from "@services/countries/countries";
 import { getDiscListOptions } from "../api/discList";
 import { getDiscListYearRange } from "./discListDateFilters";
 import { loadDiscList } from "./loadDiscList";
@@ -8,6 +10,8 @@ import type {
   DiscListComment,
   DiscListCardDisc,
   DiscListMode,
+  DiscListOptionCountry,
+  DiscListOptionGenre,
   DiscListOptions,
   DiscListRequest,
   DiscListResult,
@@ -39,6 +43,21 @@ type FilterAction = "country" | "genres" | "artist" | "context" | "refresh";
 interface CoordinatorLoaders {
   loadPage?: DiscListPageLoader;
   loadOptions?: DiscListOptionsLoader;
+  /**
+   * Si devuelve true, cambiar de periodo no quita los géneros ni el país elegidos
+   * aunque no tengan discos en el nuevo periodo (p. ej. con un filtro guardado aplicado).
+   */
+  keepSelections?: () => boolean;
+  /** Catálogo completo de géneros y países, para nombrar selecciones sin discos en la pestaña. */
+  loadNames?: () => Promise<DiscListOptions>;
+}
+
+async function loadCatalogNames(): Promise<DiscListOptions> {
+  const [genres, countries] = await Promise.all([getAllGenres(), getAllCountries()]);
+  return {
+    genres: genres.map(({ id, name, color }) => ({ id, name, color: color ?? null })),
+    countries: countries.map(({ id, name, isoCode }) => ({ id, name, isoCode })),
+  };
 }
 
 function normalizeGenreIds(ids: string[]): string[] {
@@ -48,6 +67,7 @@ function normalizeGenreIds(ids: string[]): string[] {
 export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
   const loadPage = loaders.loadPage ?? loadDiscList;
   const loadOptions = loaders.loadOptions ?? getDiscListOptions;
+  const loadNames = loaders.loadNames ?? loadCatalogNames;
   const authStore = useAuthStore();
   const viewMode = ref<DiscListMode>("all");
   const searchQuery = ref("");
@@ -217,8 +237,74 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
     }
   }
 
+  /*
+   * Las opciones solo traen los géneros y países con discos en la pestaña actual
+   * («Mis comentarios», «Favoritos»…). Si se mantiene una selección que no sale
+   * (p. ej. con un filtro guardado aplicado), se añade igualmente con su nombre
+   * para que el chip no muestre el id y se pueda quitar desde el selector.
+   */
+  const knownGenres = new Map<string, DiscListOptionGenre>();
+  const knownCountries = new Map<string, DiscListOptionCountry>();
+  let lastOptionsResponse: DiscListOptions | null = null;
+  let catalogNamesRequested = false;
+
+  function rememberNames(response: DiscListOptions) {
+    for (const genre of response.genres) knownGenres.set(genre.id.toLowerCase(), genre);
+    for (const country of response.countries) knownCountries.set(country.id, country);
+  }
+
+  function withSelectedOptions(response: DiscListOptions) {
+    let missing = false;
+    const genreIds = new Set(response.genres.map(({ id }) => id.toLowerCase()));
+    const extraGenres: DiscListOptionGenre[] = [];
+    for (const id of normalizedGenres.value) {
+      if (genreIds.has(id)) continue;
+      const genre = knownGenres.get(id);
+      if (genre) extraGenres.push(genre);
+      else missing = true;
+    }
+    const extraCountries: DiscListOptionCountry[] = [];
+    const countryId = selectedCountry.value;
+    if (countryId && !response.countries.some(({ id }) => id === countryId)) {
+      const country = knownCountries.get(countryId);
+      if (country) extraCountries.push(country);
+      else missing = true;
+    }
+    const options =
+      extraGenres.length || extraCountries.length
+        ? {
+            countries: [...response.countries, ...extraCountries],
+            genres: [...response.genres, ...extraGenres],
+          }
+        : response;
+    return { options, missing };
+  }
+
+  function settleOptions(response: DiscListOptions, identity: string) {
+    rememberNames(response);
+    lastOptionsResponse = response;
+    const merged = withSelectedOptions(response);
+    options.value = merged.options;
+    optionsSettledKey.value = identity;
+    if (merged.missing) void loadMissingNames(identity);
+  }
+
+  /** Si aún no se conoce algún nombre, se pide una vez el catálogo completo. */
+  async function loadMissingNames(identity: string) {
+    if (catalogNamesRequested) return;
+    catalogNamesRequested = true;
+    try {
+      rememberNames(await loadNames());
+    } catch {
+      catalogNamesRequested = false;
+      return;
+    }
+    if (disposed || optionsSettledKey.value !== identity || !lastOptionsResponse) return;
+    options.value = withSelectedOptions(lastOptionsResponse).options;
+  }
+
   function reconcileSelections(response: DiscListOptions, action: FilterAction): boolean {
-    if (action === "refresh") return false;
+    if (action === "refresh" || loaders.keepSelections?.()) return false;
     const countryIds = new Set(response.countries.map(({ id }) => id));
     const genreIds = new Set(response.genres.map(({ id }) => id.toLowerCase()));
     let nextCountry = selectedCountry.value;
@@ -278,8 +364,7 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
         )
           return;
         if (reconcileSelections(response, lastFilterAction)) return;
-        options.value = response;
-        optionsSettledKey.value = identity;
+        settleOptions(response, identity);
       } catch (requestError) {
         if (
           !disposed &&
@@ -392,8 +477,7 @@ export function useDiscListCoordinator(loaders: CoordinatorLoaders = {}) {
         )
           return;
         if (reconcileSelections(response, lastFilterAction)) return;
-        options.value = response;
-        optionsSettledKey.value = identity;
+        settleOptions(response, identity);
       })
       .catch((requestError: unknown) => {
         if (

@@ -39,6 +39,28 @@ describe("DiscListGenreSelect", () => {
     wrapper.unmount();
   });
 
+  it("collapses when clicking outside but stays open when clicking inside", async () => {
+    const outside = document.createElement("button");
+    document.body.appendChild(outside);
+    const wrapper = mount(DiscListGenreSelect, {
+      attachTo: document.body,
+      props: { modelValue: [], options },
+    });
+    await wrapper.get("button").trigger("click");
+    await flushPromises();
+
+    wrapper.get('[role="option"]').element.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    await flushPromises();
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(true);
+
+    outside.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+    await flushPromises();
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false);
+    expect(wrapper.get("button").attributes("aria-expanded")).toBe("false");
+    wrapper.unmount();
+    outside.remove();
+  });
+
   it("shows loading and empty option states without hiding the no-filter meaning", async () => {
     const wrapper = mount(DiscListGenreSelect, {
       props: { modelValue: [], options: [], loading: true },
@@ -49,13 +71,40 @@ describe("DiscListGenreSelect", () => {
     expect(wrapper.text()).toContain("No se aplicará filtro de género");
   });
 
+  it("in single mode replaces the genre, closes the list and offers «Todos los géneros» to clear it", async () => {
+    const wrapper = mount(DiscListGenreSelect, {
+      attachTo: document.body,
+      props: { modelValue: ["genre-a"], options, multiple: false },
+    });
+    const trigger = wrapper.get("button");
+    expect(trigger.text()).toBe("Black Metal");
+    expect(trigger.attributes("aria-label")).toBe("Género: Black Metal");
+
+    await trigger.trigger("click");
+    await flushPromises();
+    const listbox = wrapper.get('[role="listbox"]');
+    expect(listbox.attributes("aria-multiselectable")).toBe("false");
+    const optionTexts = wrapper.findAll('[role="option"]').map((option) => option.text());
+    expect(optionTexts).toEqual(["Todos los géneros", "Black Metal", "Death Metal"]);
+
+    await wrapper.findAll('[role="option"]')[2]!.trigger("click");
+    expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([["genre-b"]]);
+    expect(wrapper.find('[role="listbox"]').exists()).toBe(false);
+
+    await trigger.trigger("click");
+    await flushPromises();
+    await wrapper.findAll('[role="option"]')[0]!.trigger("click");
+    expect(wrapper.emitted("update:modelValue")?.at(-1)).toEqual([[]]);
+    wrapper.unmount();
+  });
+
   it("keeps a seven-genre selection on a fixed-height single-line trigger", () => {
     const wrapper = mount(DiscListGenreSelect, {
       props: { modelValue: Array.from({ length: 7 }, (_, index) => `genre-${index}`), options },
     });
     const trigger = wrapper.get("button");
     expect(trigger.text()).toContain("7 géneros seleccionados");
-    expect(trigger.classes()).toContain("h-11");
+    expect(trigger.classes()).toContain("h-[50px]");
     expect(trigger.classes()).toContain("whitespace-nowrap");
   });
 });

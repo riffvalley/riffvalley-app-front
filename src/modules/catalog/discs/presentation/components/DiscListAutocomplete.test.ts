@@ -136,10 +136,14 @@ describe("DiscListAutocomplete", () => {
     expect(suggestionsList()?.querySelectorAll('[role="option"]')).toHaveLength(3);
     expect(suggestionsPopup()?.querySelector("button")?.textContent).not.toContain("Añadir disco");
     const artistOption = suggestionsList()?.querySelector('[id$="artist-artist-homonym-a"]');
-    expect(artistOption?.className).toContain("bg-rv-navy");
-    expect(artistOption?.className).toContain("text-white");
-    expect(artistOption?.className).toContain("dark:bg-gray-200");
-    expect(artistOption?.className).toContain("dark:text-rv-navy");
+    // En reposo la fila es neutra; la paleta navy / gray-200 queda para hover y fila activa.
+    const restingClasses = artistOption?.className.split(/\s+/) ?? [];
+    expect(restingClasses).not.toContain("bg-rv-navy");
+    expect(restingClasses).not.toContain("dark:bg-gray-200");
+    expect(restingClasses).toContain("hover:bg-rv-navy");
+    expect(restingClasses).toContain("hover:text-white");
+    expect(restingClasses).toContain("dark:hover:bg-gray-200");
+    expect(restingClasses).toContain("dark:hover:text-rv-navy");
     expect(suggestionsPopup()?.textContent).toContain("Dinamarca");
     expect(wrapper.get("input").attributes("aria-controls")).toBeTruthy();
     expect(
@@ -181,8 +185,8 @@ describe("DiscListAutocomplete", () => {
     await input.trigger("keydown", { key: "ArrowDown" });
     expect(input.attributes("aria-activedescendant")).toContain("artist-homonym-a");
     const activeOption = document.getElementById(input.attributes("aria-activedescendant"));
-    expect(activeOption?.className).toContain("bg-rv-navy");
-    expect(activeOption?.className).toContain("dark:bg-gray-200");
+    expect(activeOption?.className.split(/\s+/)).toContain("bg-rv-navy");
+    expect(activeOption?.className.split(/\s+/)).toContain("dark:bg-gray-200");
     await input.trigger("keydown", { key: "ArrowDown" });
     await input.trigger("keydown", { key: "Enter" });
     await flushPromises();

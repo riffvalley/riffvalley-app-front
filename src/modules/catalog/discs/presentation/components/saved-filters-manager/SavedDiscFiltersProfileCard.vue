@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/modules/identity/auth";
 import { useSavedDiscFilters } from "../../../application/useSavedDiscFilters";
 import { savedDiscFilterDateRange } from "../../../application/savedDiscFilterCriteria";
 import {
+  readDiscListAppliedSavedFilterId,
   readDiscListSessionFilters,
+  writeDiscListAppliedSavedFilterId,
   writeDiscListSessionFilters,
 } from "../../../application/discListSessionFilters";
 import type { SavedDiscFilter } from "../../../types/savedDiscFilter";
@@ -18,11 +20,17 @@ const router = useRouter();
 const authStore = useAuthStore();
 const { filters, isLoading: filtersLoading, isError: filtersError } = useSavedDiscFilters();
 const open = ref(false);
+/** Filtro aplicado ahora en Discos; se relee al abrir el gestor. */
+const appliedId = ref("");
+watch(open, (isOpen) => {
+  if (isOpen) appliedId.value = readDiscListAppliedSavedFilterId(authStore.userId);
+});
 const counterLabel = computed(() => `${filters.value.length} / ${MAX_SAVED_FILTERS}`);
 
 /** Deja el filtro como filtros activos de Discos y abre la sección. */
 function openInDiscs(filter: SavedDiscFilter) {
   const userId = authStore.userId;
+  writeDiscListAppliedSavedFilterId(userId, filter.id);
   writeDiscListSessionFilters(userId, {
     week: savedDiscFilterDateRange(filter.filters),
     genreIds: filter.filters.genreIds.map((id) => id.toLowerCase()),
@@ -65,5 +73,5 @@ function openInDiscs(filter: SavedDiscFilter) {
     </div>
   </section>
 
-  <SavedDiscFiltersManagerDialog v-model:open="open" @apply="openInDiscs" />
+  <SavedDiscFiltersManagerDialog v-model:open="open" :applied-id="appliedId" @apply="openInDiscs" />
 </template>

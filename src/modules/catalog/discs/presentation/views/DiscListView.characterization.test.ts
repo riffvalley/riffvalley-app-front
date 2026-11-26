@@ -233,6 +233,11 @@ async function openCreateDiscFromEmptySuggestions(
   await settle();
 }
 
+async function chooseSavedFilter(wrapper: ReturnType<typeof mountList>, id: string) {
+  await wrapper.get("#saved-disc-filter").trigger("click");
+  await wrapper.get(`#saved-disc-filter-listbox [data-value="${id}"]`).trigger("click");
+}
+
 async function selectMode(wrapper: ReturnType<typeof mountList>, mode: string) {
   await wrapper.get(`input[type="radio"][value="${mode}"]`).setValue();
   await settle();
@@ -333,7 +338,7 @@ describe("DiscList new backend integration", () => {
     expect(wrapper.get("#saved-disc-filter-label").classes()).toEqual(
       wrapper.get("#disc-list-search-label").classes()
     );
-    expect(wrapper.get("#saved-disc-filter").classes()).toContain("min-h-[50px]");
+    expect(wrapper.get("#saved-disc-filter").classes()).toContain("h-[50px]");
     expect(wrapper.findAll("button").some((button) => button.text() === "Aplicar")).toBe(false);
     expect(
       wrapper.findComponent({ name: "SavedDiscFilterSelector" }).find("section").exists()
@@ -377,6 +382,8 @@ describe("DiscList new backend integration", () => {
     const wrapper = mountList();
     await settle();
     expect(savedFiltersApi.getSavedDiscFilters).toHaveBeenCalledTimes(1);
+    // Sin filtros elegidos no hay nada que guardar: el botón no aparece.
+    expect(wrapper.findAll("button").some((button) => button.text() === "Guardar")).toBe(false);
     await wrapper.get('[data-testid="genre-filter"]').trigger("click");
     await settle();
     const saveButton = wrapper.findAll("button").find((button) => button.text() === "Guardar");
@@ -417,7 +424,7 @@ describe("DiscList new backend integration", () => {
     await settle();
     expect(wrapper.text()).toContain("Guardado");
     expect(wrapper.text()).not.toContain("Guardado como Metal ya guardado");
-    expect(wrapper.get("#saved-disc-filter").element).toHaveProperty("value", "saved-filter-existing");
+    expect(wrapper.get("#saved-disc-filter").attributes("data-value")).toBe("saved-filter-existing");
     expect(wrapper.text()).toContain("Metal ya guardado · aplicado");
     expect(wrapper.findAll("button").some((button) => button.text() === "Guardar")).toBe(false);
     wrapper.unmount();
@@ -437,7 +444,7 @@ describe("DiscList new backend integration", () => {
     ]);
     const wrapper = mountList();
     await settle();
-    const emptyOption = () => wrapper.get('#saved-disc-filter option[value=""]').text();
+    const emptyOption = () => wrapper.get('#saved-disc-filter-listbox [data-value=""]').text();
     expect(emptyOption()).toBe("Sin filtros activos");
     await wrapper.get('[data-testid="genre-filter"]').trigger("click");
     await settle();
@@ -475,7 +482,55 @@ describe("DiscList new backend integration", () => {
       expect.objectContaining({ genreIds: ["genre-a"], countryId: "country-a", offset: 0 })
     );
     expect(wrapper.text()).toContain("Metal · aplicado");
+
+    // Al reabrir el gestor, el filtro aplicado ya no dice «Aplicar» sino «Activo».
+    await manage.trigger("click");
+    await settle();
+    const active = dialog()!.querySelector('[data-testid="saved-filter-active"]');
+    expect(active?.textContent?.trim()).toBe("Activo");
+    expect(active?.getAttribute("aria-label")).toBe("Filtro activo «Metal». Aplicar");
     wrapper.unmount();
+  });
+
+  it("keeps the applied saved filter marked when coming back from a dashboard shortcut", async () => {
+    savedFiltersApi.getSavedDiscFilters.mockResolvedValue([
+      {
+        id: "saved-filter-a",
+        name: "Metal",
+        filters: { genreIds: ["genre-a"], countryId: "country-a", yearFrom: null, yearTo: null },
+        missingGenreIds: [],
+        countryMissing: false,
+        createdAt: "",
+        updatedAt: "",
+      },
+    ]);
+    const first = mountList();
+    await settle();
+    await first.get('[data-testid="saved-filters-manage-discs"]').trigger("click");
+    await settle();
+    [...document.querySelectorAll<HTMLButtonElement>('[data-testid="saved-filters-dialog"] button')]
+      .find((button) => button.textContent?.trim() === "Aplicar")!
+      .click();
+    await settle();
+    first.unmount();
+
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 26, 12));
+    const router = createDiscListRouter();
+    await router.push({ name: "DiscList", query: { periodo: "semana" } });
+    const second = mountList(false, router);
+    await settle();
+
+    expect(second.findComponent(FiltersStub).props("selectedWeek")).toEqual([
+      "2026-11-20T00:00:00.000Z",
+      "2026-11-26T23:59:59.999Z",
+    ]);
+    expect(second.text()).toContain("Metal · aplicado");
+    expect(second.text()).toContain("Guardado");
+    expect(second.text()).not.toContain("Sin guardar");
+    expect(second.text()).not.toContain("Actualizar");
+    second.unmount();
+    vi.useRealTimers();
   });
 
   it("applies saved criteria without clearing search, mode or ordering", async () => {
@@ -499,7 +554,7 @@ describe("DiscList new backend integration", () => {
     await settle();
     await wrapper.get("#disc-list-search-input").setValue("MØL");
     await selectMode(wrapper, "favorites");
-    await wrapper.get("#saved-disc-filter").setValue("saved-filter-a");
+    await chooseSavedFilter(wrapper, "saved-filter-a");
     await settle();
     expect(api.getDiscListPage).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -513,7 +568,7 @@ describe("DiscList new backend integration", () => {
     );
     expect(wrapper.text()).toContain("Años 2025–2026 · aplicado");
 
-    await wrapper.get("#saved-disc-filter").setValue("");
+    await chooseSavedFilter(wrapper, "");
     await settle();
     expect(api.getDiscListPage).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -526,11 +581,20 @@ describe("DiscList new backend integration", () => {
       })
     );
     expect(wrapper.get("#disc-list-search-input").element).toHaveProperty("value", "MØL");
-    expect(wrapper.text()).toContain("Sin guardar");
+    // Sin criterios que guardar no aparece ni el botón ni el estado.
+    expect(wrapper.find(".saved-criteria-status").exists()).toBe(false);
+    expect(wrapper.findAll("button").some((button) => button.text() === "Guardar")).toBe(false);
+
+    // Con un filtro sin guardar, «Sin guardar» solo lo oyen los lectores de pantalla.
+    await wrapper.get('[data-testid="genre-filter"]').trigger("click");
+    await settle();
+    const status = wrapper.get(".saved-criteria-status");
+    expect(status.text()).toBe("Sin guardar");
+    expect(status.classes()).toContain("sr-only");
     wrapper.unmount();
   });
 
-  it("renames and deletes the selected saved filter after confirmation", async () => {
+  it("leaves renaming and deleting to the manager dialog", async () => {
     savedFiltersApi.getSavedDiscFilters.mockResolvedValue([
       {
         id: "saved-filter-a",
@@ -544,42 +608,11 @@ describe("DiscList new backend integration", () => {
     ]);
     const wrapper = mountList();
     await settle();
-    await wrapper.get("#saved-disc-filter").setValue("saved-filter-a");
-    await wrapper
-      .findAll("button")
-      .find((button) => button.text() === "Renombrar")!
-      .trigger("click");
-    await wrapper.get("#saved-filter-name").setValue("Death Metal");
-    savedFiltersApi.getSavedDiscFilters.mockResolvedValue([
-      {
-        id: "saved-filter-a",
-        name: "Death Metal",
-        filters: { genreIds: ["genre-a"], countryId: null, yearFrom: null, yearTo: null },
-        missingGenreIds: [],
-        countryMissing: false,
-        createdAt: "",
-        updatedAt: "",
-      },
-    ]);
-    await wrapper.findAll("form").at(1)!.trigger("submit");
-    await settle();
-    expect(savedFiltersApi.updateSavedDiscFilter).toHaveBeenCalledWith("saved-filter-a", {
-      name: "Death Metal",
-    });
-    expect(wrapper.text()).toContain("Filtro renombrado a «Death Metal».");
-
-    await wrapper
-      .findAll("button")
-      .find((button) => button.text() === "Eliminar")!
-      .trigger("click");
-    await settle();
-    expect(wrapper.get('[role="dialog"]').text()).toContain("¿Eliminar el filtro «Death Metal»?");
-    await wrapper
-      .findAll("button")
-      .find((button) => button.text() === "Eliminar filtro")!
-      .trigger("click");
-    await settle();
-    expect(savedFiltersApi.deleteSavedDiscFilter).toHaveBeenCalledWith("saved-filter-a");
+    await chooseSavedFilter(wrapper, "saved-filter-a");
+    const labels = wrapper.findAll("button").map((button) => button.text());
+    expect(labels).not.toContain("Renombrar");
+    expect(labels).not.toContain("Eliminar");
+    expect(wrapper.text()).not.toContain("de 20 filtros");
     wrapper.unmount();
   });
 
@@ -597,7 +630,7 @@ describe("DiscList new backend integration", () => {
     ]);
     const wrapper = mountList();
     await settle();
-    await wrapper.get("#saved-disc-filter").setValue("saved-filter-a");
+    await chooseSavedFilter(wrapper, "saved-filter-a");
     await settle();
     await wrapper.get('[data-testid="genre-filter"]').trigger("click");
     await settle();
@@ -641,7 +674,7 @@ describe("DiscList new backend integration", () => {
     ]);
     const wrapper = mountList();
     await settle();
-    await wrapper.get("#saved-disc-filter").setValue("saved-filter-stale");
+    await chooseSavedFilter(wrapper, "saved-filter-stale");
     await settle();
     expect(wrapper.get('[role="alert"]').text()).toContain(
       "género(s) que ya no existen y un país que ya no existe"
@@ -844,7 +877,7 @@ describe("DiscList new backend integration", () => {
     const optionCallsBefore = api.getDiscListOptions.mock.calls.length;
     const clearButton = wrapper
       .findAll("button")
-      .find((button) => button.text() === "Limpiar exploración");
+      .find((button) => button.text() === "Limpiar");
     expect(clearButton).toBeDefined();
     await clearButton?.trigger("click");
     await settle();

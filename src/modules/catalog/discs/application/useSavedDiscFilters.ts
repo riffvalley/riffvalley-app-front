@@ -85,6 +85,7 @@ export function useSavedDiscFilters() {
     filters: computed(() => query.data.value ?? [] as SavedDiscFilter[]),
     isLoading: query.isLoading,
     isError: query.isError,
+    isSuccess: query.isSuccess,
     error: query.error,
     retry: query.refetch,
     create,

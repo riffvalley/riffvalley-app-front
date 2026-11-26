@@ -1,83 +1,79 @@
 <template>
   <section class="w-full space-y-3" aria-label="Filtros para explorar discos">
-    <button
-      type="button"
-      class="flex min-h-11 w-full items-center justify-between rounded-xl border border-gray-200 bg-white px-4 text-left font-medium text-rv-navy shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:border-white/15 dark:bg-rv-darkCard dark:text-white md:hidden"
-      :aria-expanded="filtersOpen"
-      aria-controls="disc-list-exploration-controls"
-      @click="filtersOpen = !filtersOpen"
-    >
-      <span
-        >Filtros<span v-if="activeFilterCount"> · {{ activeFilterCount }} activos</span></span
+    <!-- Botón «Fecha, país y género» de móvil: despliega esos filtros justo debajo.
+         No se llama «Filtros» para no confundirlo con los filtros guardados. -->
+    <div class="flex flex-col gap-3 md:hidden">
+      <button
+        type="button"
+        class="flex h-[50px] min-w-0 flex-1 items-center justify-between rounded-2xl border border-gray-300 bg-white px-4 text-left font-medium text-rv-navy shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy aria-expanded:ring-2 aria-expanded:ring-rv-navy dark:aria-expanded:ring-gray-200 dark:border-white/20 dark:bg-rv-darkCard dark:text-white dark:focus-visible:ring-gray-200"
+        :aria-expanded="filtersOpen"
+        aria-controls="disc-list-exploration-controls"
+        @click="filtersOpen = !filtersOpen"
       >
-      <i
-        class="fa-solid"
-        :class="filtersOpen ? 'fa-chevron-up' : 'fa-chevron-down'"
-        aria-hidden="true"
-      />
-    </button>
+        <span class="flex min-w-0 items-center gap-2 whitespace-nowrap"
+          >Fecha, país y género<span
+            v-if="activeFilterCount"
+            class="inline-flex min-w-6 items-center justify-center rounded-full bg-rv-navy px-1.5 text-xs font-semibold leading-6 text-white dark:bg-gray-200 dark:text-rv-navy"
+            >{{ activeFilterCount }}<span class="sr-only"> activos</span></span
+          ></span
+        >
+        <i
+          class="fa-solid"
+          :class="filtersOpen ? 'fa-chevron-up' : 'fa-chevron-down'"
+          aria-hidden="true"
+        />
+      </button>
+    </div>
 
+    <!-- Desde md el botón «Fecha, país y género» está oculto: sin el margen de space-y-3,
+         la separación con el buscador es la misma que entre filtros. -->
     <div
       id="disc-list-exploration-controls"
       v-show="filtersOpen || !isMobile"
-      class="exploration-controls"
+      class="exploration-controls md:!mt-0"
     >
       <div class="exploration-grid">
         <div class="filter-control" role="group" aria-labelledby="disc-list-year-label">
-          <span id="disc-list-year-label" class="text-gray-700 dark:text-gray-200">Año</span>
-          <select
+          <span id="disc-list-year-label" class="filter-label">Año</span>
+          <DiscListSelect
             id="disc-list-year"
-            class="native-filter-select"
-            aria-label="Año"
-            :value="selectedYear"
-            @change="selectYear(($event.target as HTMLSelectElement).value)"
-          >
-            <option v-for="year in yearsOptions" :key="year.value" :value="year.value">
-              {{ year.label }}
-            </option>
-          </select>
+            labelledby="disc-list-year-label"
+            :model-value="selectedYear"
+            :options="yearsOptions"
+            @update:model-value="selectYear"
+          />
         </div>
 
-        <div
-          v-if="selectedYear !== 0"
-          class="filter-control"
-          role="group"
-          aria-labelledby="disc-list-month-label"
-        >
-          <span id="disc-list-month-label" class="text-gray-700 dark:text-gray-200">Mes</span>
-          <select
+        <!-- Mes y semana se ven siempre para que la fila no tenga huecos; hasta
+             elegir año (o mes) quedan desactivados y lo dicen en su texto. -->
+        <div class="filter-control" role="group" aria-labelledby="disc-list-month-label">
+          <span id="disc-list-month-label" class="filter-label">Mes</span>
+          <DiscListSelect
             id="disc-list-month"
-            class="native-filter-select"
-            aria-label="Mes"
-            :value="selectedMonth"
-            @change="selectMonth(($event.target as HTMLSelectElement).value)"
-          >
-            <option v-for="month in monthsOptions" :key="month.value" :value="month.value">
-              {{ month.label }}
-            </option>
-          </select>
+            labelledby="disc-list-month-label"
+            :model-value="selectedYear !== 0 ? selectedMonth : ''"
+            :options="monthSelectOptions"
+            :disabled="selectedYear === 0"
+            @update:model-value="selectMonth"
+          />
         </div>
 
         <div
-          v-if="selectedYear !== 0 && selectedMonth !== 0"
           class="filter-control period-control"
           role="group"
           aria-labelledby="disc-list-period-label"
         >
-          <span id="disc-list-period-label" class="text-gray-700 dark:text-gray-200"
+          <span id="disc-list-period-label" class="filter-label"
             >Semana o periodo</span
           >
-          <select
+          <DiscListSelect
             id="disc-list-period"
-            class="native-filter-select"
-            aria-label="Semana o periodo"
-            :value="selectedPeriod"
-            @change="selectPeriod(($event.target as HTMLSelectElement).value)"
-          >
-            <option v-for="period in periodOptions" :key="period.value" :value="period.value">
-              {{ period.label }}
-            </option>
-          </select>
+            labelledby="disc-list-period-label"
+            :model-value="periodEnabled ? selectedPeriod : ''"
+            :options="periodSelectOptions"
+            :disabled="!periodEnabled"
+            @update:model-value="selectPeriod"
+          />
         </div>
 
         <div
@@ -85,22 +81,16 @@
           role="group"
           aria-labelledby="disc-list-country-label"
         >
-          <span id="disc-list-country-label" class="text-gray-700 dark:text-gray-200">País</span>
-          <SearchableSelect
-            v-model="countryModel"
+          <span id="disc-list-country-label" class="filter-label">País</span>
+          <DiscListCountrySelect
+            :model-value="selectedCountry"
             :options="countries"
-            placeholder="Buscar país..."
-            trigger-placeholder="Todos los países"
-            all-label="Todos los países"
-            title="name"
-            trackby="id"
-            :max="150"
-            class="select-pill w-full"
+            @update:model-value="emit('update:country', $event)"
           />
         </div>
 
         <div class="filter-control genre-control">
-          <span class="text-gray-700 dark:text-gray-200">Géneros</span>
+          <span class="filter-label">Géneros</span>
           <DiscListGenreSelect
             :model-value="selectedGenres"
             :options="genres"
@@ -109,27 +99,12 @@
           />
         </div>
 
-        <div
-          v-if="showNoRatesFilter"
-          class="filter-control no-rates-control"
-          role="group"
-          aria-labelledby="disc-list-no-rates-label"
-        >
-          <span id="disc-list-no-rates-label" class="text-gray-700 dark:text-gray-200"
-            >Sin votos</span
-          >
-          <label class="no-rates-switch" title="Mostrar solo discos sin votos">
-            <input
-              type="checkbox"
-              role="switch"
-              class="sr-only"
-              aria-label="Mostrar solo discos sin votos"
-              :checked="noRatesOnly"
-              @change="emit('update:no-rates', ($event.target as HTMLInputElement).checked)"
-            />
-            <span class="no-rates-switch-track" aria-hidden="true" />
-          </label>
-        </div>
+        <DiscListNoRatesSwitch
+          v-if="showNoRatesFilter && !isMobile"
+          class="filter-control"
+          :model-value="noRatesOnly"
+          @update:model-value="emit('update:no-rates', $event)"
+        />
       </div>
 
       <p v-if="optionsError" class="text-sm text-red-700 dark:text-red-300" role="alert">
@@ -146,6 +121,15 @@
         Actualizando opciones de filtros...
       </p>
     </div>
+
+    <!-- En móvil «Sin votos» queda fuera del desplegable, para que se vea
+         siempre; va después de los filtros para que estos salgan pegados a «Fecha, país y género». -->
+    <DiscListNoRatesSwitch
+      v-if="showNoRatesFilter && isMobile"
+      class="md:hidden"
+      :model-value="noRatesOnly"
+      @update:model-value="emit('update:no-rates', $event)"
+    />
 
     <div
       v-if="activeFilters.length || noRatesOnly || $slots.savedActions"
@@ -188,7 +172,7 @@
           class="min-h-9 bg-transparent px-2 text-sm font-medium text-rv-navy underline underline-offset-2 hover:text-rv-purple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:text-white"
           @click="clearExploration"
         >
-          Limpiar exploración
+          Limpiar
         </button>
       </div>
       <div class="ml-auto flex flex-wrap items-center justify-end gap-2">
@@ -207,8 +191,10 @@ import {
   getDiscListPeriodOptions,
   getDiscListYearRange,
 } from "../../application/discListDateFilters";
-import SearchableSelect from "@components/SearchableSelect.vue";
+import DiscListCountrySelect from "./DiscListCountrySelect.vue";
 import DiscListGenreSelect from "./DiscListGenreSelect.vue";
+import DiscListNoRatesSwitch from "./DiscListNoRatesSwitch.vue";
+import DiscListSelect from "./DiscListSelect.vue";
 
 interface CountryOption {
   id: string;
@@ -254,10 +240,6 @@ const showAllGenres = ref(false);
 const isMobile = ref(
   typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches
 );
-const countryModel = computed({
-  get: () => props.selectedCountry,
-  set: (value: string | number) => emit("update:country", String(value ?? "")),
-});
 
 const selectedYear = computed(() => getDiscListDateSelection(props.selectedWeek).year);
 const selectedMonth = computed(() => getDiscListDateSelection(props.selectedWeek).month);
@@ -280,6 +262,15 @@ const selectedPeriod = computed(() => {
 const periodOptions = computed(() => {
   return getDiscListPeriodOptions(selectedYear.value, selectedMonth.value);
 });
+const periodEnabled = computed(() => selectedYear.value !== 0 && selectedMonth.value !== 0);
+/** Sin año, el mes desactivado solo muestra «Todos los meses». */
+const monthSelectOptions = computed(() =>
+  selectedYear.value !== 0 ? monthsOptions.value : [{ value: "", label: "Todos los meses" }]
+);
+/** Sin mes, la semana desactivada solo muestra «Todas las semanas». */
+const periodSelectOptions = computed(() =>
+  periodEnabled.value ? periodOptions.value : [{ value: "", label: "Todas las semanas" }]
+);
 
 const activeFilters = computed(() => {
   const result: Array<{ key: string; label: string }> = [];
@@ -299,12 +290,12 @@ const visibleFilters = computed(() => {
   return [...other, ...(showAllGenres.value ? genres : genres.slice(0, 2))];
 });
 const hiddenGenreCount = computed(() => Math.max(0, props.selectedGenres.length - 2));
+// Solo cuenta lo que hay dentro del desplegable de móvil: «Sin votos» va fuera.
 const activeFilterCount = computed(
   () =>
     Number(Boolean(props.selectedWeek)) +
     Number(Boolean(props.selectedCountry)) +
-    props.selectedGenres.length +
-    Number(props.noRatesOnly)
+    props.selectedGenres.length
 );
 
 function defaultYear() {
@@ -372,135 +363,74 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.exploration-controls {
-  border-bottom: 1px solid rgb(229 231 235 / 0.8);
-  padding: 0.25rem 0 1.25rem;
-}
+/* Mismo hueco de 1rem que entre la búsqueda y «Mis filtros», sin línea
+   separadora: los filtros quedan como un solo bloque con lo de arriba. */
 .exploration-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem 1.25rem;
+  gap: 1rem;
 }
+/* Mismo formato que «Buscar discos o artistas» y «Mis filtros»: control de
+   50px con esquinas rounded-2xl y anillo de foco navy. Los títulos solo los
+   lee el lector de pantalla: el valor de cada selector ya dice qué filtra. */
 .filter-control {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
-.filter-control > span,
-.filter-control > label {
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-align: center;
-}
-.native-filter-select {
-  min-height: 2.75rem;
-  width: 100%;
-  border: 1px solid;
-  border-radius: 9999px;
-  padding: 0.5rem 2.25rem 0.5rem 1rem;
-  @apply border-gray-300 bg-white text-rv-navy dark:border-white/20 dark:bg-rv-darkCard dark:text-white;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
-}
-.native-filter-select:focus-visible {
-  @apply outline-none ring-2 ring-rv-pink ring-offset-2;
+.filter-label {
+  @apply sr-only;
 }
 .genre-control,
 .country-control {
   grid-column: auto;
 }
-.no-rates-control {
-  width: max-content;
-  align-self: stretch;
-  align-items: center;
-  justify-self: center;
-  justify-content: space-between;
+/* La rejilla se adapta al ancho que tiene de verdad (con o sin menú lateral),
+   no al de la pantalla. */
+.exploration-controls {
+  container-type: inline-size;
 }
-.no-rates-switch {
-  display: inline-flex;
-  width: fit-content;
-  cursor: pointer;
+/* Poco ancho (dos columnas): año y mes juntos, la semana a lo ancho debajo y
+   luego país y géneros; así las fechas no se mezclan con el país. */
+.exploration-grid > .period-control,
+.exploration-grid > .no-rates-control {
+  grid-column: 1 / -1;
 }
-.no-rates-switch-track {
-  position: relative;
-  display: block;
-  width: 3rem;
-  height: 1.75rem;
-  border-radius: 9999px;
-  background: #d1d5db;
-  transition: background-color 160ms ease;
-}
-.no-rates-switch-track::before {
-  position: absolute;
-  top: 0.25rem;
-  left: 0.25rem;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 9999px;
-  background: white;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
-  content: "";
-  transition: transform 160ms ease;
-}
-.no-rates-switch input:checked + .no-rates-switch-track {
-  background: #00021f;
-}
-.no-rates-switch input:checked + .no-rates-switch-track::before {
-  transform: translateX(1.25rem);
-}
-.no-rates-switch input:focus-visible + .no-rates-switch-track {
-  outline: 2px solid #e46e8a;
-  outline-offset: 2px;
-}
-.dark .no-rates-switch-track {
-  background: #27283c;
-}
-.dark .no-rates-switch input:checked + .no-rates-switch-track {
-  background: #e5e7eb;
-}
-.dark .no-rates-switch input:checked + .no-rates-switch-track::before {
-  background: #00021f;
-}
-.country-control :deep(.search_input_trigger) {
-  height: 2.75rem;
-  line-height: 1.25rem;
-}
-@media (min-width: 1280px) {
-  .exploration-controls {
-    padding-top: 0.5rem;
-  }
+/* Ancho suficiente: dos filas de tres columnas iguales. Arriba las fechas
+   (año, mes y semana) y abajo país, géneros y «Sin votos». */
+@container (min-width: 720px) {
   .exploration-grid {
-    grid-template-columns: repeat(2, minmax(8rem, 1fr)) minmax(14rem, 2fr) max-content;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: end;
   }
-  .exploration-grid:has(#disc-list-month):has(.no-rates-control) {
-    grid-template-columns: repeat(3, minmax(8rem, 1fr)) minmax(14rem, 2fr) max-content;
+  .exploration-grid > .filter-control {
+    grid-row: 1;
   }
-  .exploration-grid:has(.period-control):has(.no-rates-control) {
-    grid-template-columns: repeat(4, minmax(8rem, 1fr)) minmax(14rem, 2fr) max-content;
-  }
-  .exploration-grid:not(:has(.no-rates-control)) {
-    grid-template-columns: repeat(2, minmax(8rem, 1fr)) minmax(14rem, 2fr);
-  }
-  .exploration-grid:has(#disc-list-month):not(:has(.no-rates-control)) {
-    grid-template-columns: repeat(3, minmax(8rem, 1fr)) minmax(14rem, 2fr);
-  }
-  .exploration-grid:has(.period-control):not(:has(.no-rates-control)) {
-    grid-template-columns: repeat(4, minmax(8rem, 1fr)) minmax(14rem, 2fr);
-  }
-}
-@media (max-width: 480px) {
-  .exploration-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .genre-control,
-  .country-control {
+  .exploration-grid > .period-control {
     grid-column: auto;
   }
+  .exploration-grid > .country-control {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  .exploration-grid > .genre-control {
+    grid-row: 2;
+    grid-column: 2;
+  }
+  .exploration-grid > .no-rates-control {
+    grid-row: 2;
+    grid-column: 3;
+  }
+  /* Sin «Sin votos», «Géneros» aprovecha también la tercera columna. */
+  .exploration-grid > .genre-control:last-child {
+    grid-column: 2 / -1;
+  }
 }
-@media (min-width: 481px) and (max-width: 1279px) {
-  .no-rates-control {
-    grid-column: 1 / -1;
+/* Muy estrecho: una sola columna. */
+@container (max-width: 439px) {
+  .exploration-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

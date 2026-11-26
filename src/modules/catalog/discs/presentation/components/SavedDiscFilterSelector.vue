@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import type { SavedDiscFilter } from "../../types/savedDiscFilter";
+import DiscListSelect from "./DiscListSelect.vue";
 
-defineProps<{
+const props = defineProps<{
   filters: SavedDiscFilter[];
   selectedId: string;
   appliedId: string;
@@ -14,8 +16,16 @@ const emit = defineEmits<{
   apply: [id: string];
   manage: [];
 }>();
-function onChange(event: Event) {
-  const id = (event.target as HTMLSelectElement).value;
+const options = computed(() => [
+  { value: "", label: props.emptyLabel ?? "Sin filtros activos" },
+  ...props.filters.map((filter) => ({
+    value: filter.id,
+    // «Filtro - nombre»; el aplicado lo marca un check verde (y «aplicado» para lectores de pantalla).
+    label: `Filtro - ${filter.name}`,
+    applied: filter.id === props.appliedId,
+  })),
+]);
+function onChange(id: string) {
   emit("update:selectedId", id);
   emit("apply", id);
 }
@@ -25,24 +35,20 @@ function onChange(event: Event) {
   <div class="min-w-0 w-full">
     <span
       id="saved-disc-filter-label"
-      class="mb-2 block text-sm font-semibold text-rv-navy dark:text-white"
+      class="sr-only"
     >
       Mis filtros
     </span>
     <div class="flex min-w-0 gap-2">
-      <select
+      <DiscListSelect
         id="saved-disc-filter"
-        aria-labelledby="saved-disc-filter-label"
-        class="min-h-[50px] min-w-0 flex-1 rounded-2xl border border-gray-300 bg-white px-4 text-base text-rv-navy shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/20 dark:bg-rv-darkCard dark:text-white dark:focus-visible:ring-gray-200"
-        :value="selectedId"
+        class="flex-1"
+        labelledby="saved-disc-filter-label"
+        :model-value="selectedId"
+        :options="options"
         :disabled="disabled"
-        @change="onChange"
-      >
-        <option value="">{{ emptyLabel ?? "Sin filtros activos" }}</option>
-        <option v-for="filter in filters" :key="filter.id" :value="filter.id">
-          {{ filter.name }}{{ filter.id === appliedId ? " · aplicado" : "" }}
-        </option>
-      </select>
+        @update:model-value="onChange"
+      />
       <button
         type="button"
         data-testid="saved-filters-manage-discs"

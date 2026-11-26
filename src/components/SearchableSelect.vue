@@ -31,7 +31,8 @@
         @click.self="closeAll"
       >
         <div
-          class="searchable__select absolute"
+          class="absolute"
+          :class="menuClass"
           role="presentation"
           :style="menuStyle"
           ref="menuEl"
@@ -46,7 +47,7 @@
               @keydown.down.prevent="onArrowDown"
               @keydown.enter.prevent="onSelectOption"
               @keydown.up.prevent="onArrowUp"
-              class="search__input"
+              :class="inputClass"
               type="text"
               :placeholder="placeholder"
               :aria-label="placeholder || triggerPlaceholder"
@@ -63,7 +64,7 @@
           <ul
             v-if="showDropdown"
             :id="listboxId"
-            class="search__results"
+            :class="listClass"
             ref="dropdownList"
             role="listbox"
           >
@@ -74,16 +75,19 @@
               @keydown.enter.prevent="onSelectOption($event, i)"
               @keydown.space.prevent="onSelectOption($event, i)"
               ref="optionRefs"
-              :class="{
-                'bg-gray-300 text-gray-900': option[title] === allLabel,
-                active: option[title] !== allLabel && option[trackby] === modelValue,
-              }"
+              :class="optionClass(option, i)"
+              @mouseenter="activeIndex = i"
               role="option"
               :id="optionId(i)"
               tabindex="-1"
               :aria-selected="option[trackby] === modelValue"
             >
-              {{ getOptionTitle(option) }}
+              <span :class="{ 'min-w-0 truncate': isPanel }">{{ getOptionTitle(option) }}</span>
+              <i
+                v-if="isPanel && isSelected(option)"
+                class="fa-solid fa-check shrink-0 text-xs"
+                aria-hidden="true"
+              ></i>
             </li>
           </ul>
         </div>
@@ -94,7 +98,7 @@
     <div
       v-else
       v-show="showSearchbox"
-      class="searchable__select"
+      :class="menuClass"
       :style="{ zIndex: String(menuZIndex) }"
       ref="menuEl"
     >
@@ -107,7 +111,7 @@
           @keydown.enter.prevent="onSelectOption"
           @keydown.up.prevent="onArrowUp"
           @keydown.esc.prevent="closeAll"
-          class="search__input"
+          :class="inputClass"
           type="text"
           :placeholder="placeholder"
           :aria-label="placeholder || triggerPlaceholder"
@@ -123,7 +127,7 @@
       <ul
         v-if="showDropdown"
         :id="listboxId"
-        class="search__results"
+        :class="listClass"
         ref="dropdownList"
         role="listbox"
       >
@@ -134,16 +138,19 @@
           @keydown.enter.prevent="onSelectOption($event, i)"
           @keydown.space.prevent="onSelectOption($event, i)"
           ref="optionRefs"
-          :class="{
-            'bg-gray-300 text-gray-900': option[title] === allLabel,
-            active: option[title] !== allLabel && option[trackby] === modelValue,
-          }"
+          :class="optionClass(option, i)"
+          @mouseenter="activeIndex = i"
           role="option"
           :id="optionId(i)"
           tabindex="-1"
           :aria-selected="option[trackby] === modelValue"
         >
-          {{ getOptionTitle(option) }}
+          <span :class="{ 'min-w-0 truncate': isPanel }">{{ getOptionTitle(option) }}</span>
+          <i
+            v-if="isPanel && isSelected(option)"
+            class="fa-solid fa-check shrink-0 text-xs"
+            aria-hidden="true"
+          ></i>
         </li>
       </ul>
     </div>
@@ -181,6 +188,13 @@ export default {
     menuZIndex: { type: [Number, String], default: 100000 },
     gap: { type: Number, default: 4 },
 
+    /* Aspecto de la lista: "default" (clásico) o "panel" (igual que el selector de Géneros de Discos). */
+    menuVariant: {
+      type: String,
+      default: "default",
+      validator: (value) => ["default", "panel"].includes(value),
+    },
+
     /* Opcional: spinner externo */
     loading: { type: Boolean, default: false },
   },
@@ -208,6 +222,41 @@ export default {
       minWidth: "0px",
       width: "auto",
     });
+
+    /* Clases según el aspecto elegido: "panel" usa Tailwind con modo claro/oscuro. */
+    const isPanel = computed(() => props.menuVariant === "panel");
+    const menuClass = computed(() =>
+      isPanel.value
+        ? "rounded-2xl border border-gray-200 bg-white p-2 shadow-xl dark:border-white/20 dark:bg-rv-darkCard"
+        : "searchable__select"
+    );
+    const inputClass = computed(() =>
+      isPanel.value
+        ? "mb-2 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:border-white/20 dark:bg-rv-darkSurface dark:text-white"
+        : "search__input"
+    );
+    const listClass = computed(() => (isPanel.value ? "max-h-64 overflow-auto" : "search__results"));
+
+    function isSelected(option) {
+      const value = typeof option === "object" ? option[props.trackby] : option;
+      return value === (props.modelValue ?? "");
+    }
+
+    function optionClass(option, index) {
+      if (!isPanel.value) {
+        return {
+          "bg-gray-300 text-gray-900": option[props.title] === props.allLabel,
+          active: option[props.title] !== props.allLabel && option[props.trackby] === props.modelValue,
+        };
+      }
+      return [
+        "flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-800 dark:text-gray-100",
+        {
+          "bg-rv-pink/10 dark:bg-rv-pink/20": isSelected(option),
+          "bg-gray-100 dark:bg-rv-darkSurface": index === data.activeIndex,
+        },
+      ];
+    }
 
     /* Filtrado + "Todos los géneros" fijo arriba */
     const filteredOptions = computed(() => {
@@ -413,6 +462,12 @@ export default {
       openSearchbox,
       closeAll,
       menuStyle,
+      isPanel,
+      menuClass,
+      inputClass,
+      listClass,
+      isSelected,
+      optionClass,
     };
   },
 };

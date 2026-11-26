@@ -42,7 +42,12 @@ function setup(
   }) => Promise<{
     countries: { id: string; name: string; isoCode: string | null }[];
     genres: { id: string; name: string; color: string | null }[];
-  }> = vi.fn().mockResolvedValue({ countries: [], genres: [] })
+  }> = vi.fn().mockResolvedValue({ countries: [], genres: [] }),
+  keepSelections?: () => boolean,
+  loadNames?: () => Promise<{
+    countries: { id: string; name: string; isoCode: string | null }[];
+    genres: { id: string; name: string; color: string | null }[];
+  }>
 ) {
   const pinia = createPinia();
   setActivePinia(pinia);
@@ -58,6 +63,8 @@ function setup(
     useDiscListCoordinator({
       loadPage: loader,
       loadOptions: optionsLoader,
+      keepSelections,
+      loadNames: loadNames ?? vi.fn().mockResolvedValue({ countries: [], genres: [] }),
     })
   );
   if (!coordinator) throw new Error("Coordinator scope was not created");
@@ -641,6 +648,101 @@ describe("useDiscListCoordinator", () => {
     await settle();
     expect(coordinator.selectedGenres.value).toEqual(["genre-a"]);
     expect(coordinator.selectedCountry.value).toBe("");
+  });
+
+  it("keeps the selected genres and country after a period change when asked to", async () => {
+    const optionsLoader = vi.fn(async (request: { dateRange: [string, string] | null }) =>
+      request.dateRange
+        ? { countries: [], genres: [{ id: "genre-b", name: "B", color: null }] }
+        : {
+            countries: [{ id: "country-a", name: "A", isoCode: null }],
+            genres: [
+              { id: "genre-a", name: "A", color: null },
+              { id: "genre-b", name: "B", color: null },
+            ],
+          }
+    );
+    let keep = true;
+    const { coordinator, scope } = setup(
+      async (request) => page(request, [], 0),
+      true,
+      optionsLoader,
+      () => keep
+    );
+    scopes.push(scope);
+    await settle();
+    coordinator.setGenres(["genre-a", "genre-b"]);
+    coordinator.setCountry("country-a");
+    await settle();
+    coordinator.setSelectedWeek(["2026-11-20T00:00:00.000Z", "2026-11-26T23:59:59.999Z"]);
+    await settle();
+    await settle();
+
+    expect(coordinator.selectedGenres.value).toEqual(["genre-a", "genre-b"]);
+    expect(coordinator.selectedCountry.value).toBe("country-a");
+
+    keep = false;
+    coordinator.setSelectedWeek(["2026-11-13T00:00:00.000Z", "2026-11-19T23:59:59.999Z"]);
+    await settle();
+    await settle();
+    expect(coordinator.selectedGenres.value).toEqual(["genre-b"]);
+    expect(coordinator.selectedCountry.value).toBe("");
+  });
+
+  it("keeps the name of a kept genre that the current tab does not offer", async () => {
+    const metal = { id: "g-metal", name: "Metal", color: null };
+    const stoner = { id: "g-stoner", name: "Stoner metal", color: null };
+    const optionsLoader = vi.fn(async (request: { mode: string }) => ({
+      countries: [],
+      genres: request.mode === "comments" ? [metal] : [metal, stoner],
+    }));
+    const loadNames = vi.fn().mockResolvedValue({ countries: [], genres: [] });
+    const { coordinator, scope } = setup(
+      async (request) => page(request, [], 0),
+      true,
+      optionsLoader,
+      () => true,
+      loadNames
+    );
+    scopes.push(scope);
+    await settle();
+    coordinator.setGenres(["g-metal", "g-stoner"]);
+    await settle();
+    coordinator.setMode("comments");
+    await settle();
+    await settle();
+
+    expect(coordinator.selectedGenres.value).toEqual(["g-metal", "g-stoner"]);
+    expect(coordinator.options.value.genres).toContainEqual(stoner);
+    expect(loadNames).not.toHaveBeenCalled();
+  });
+
+  it("loads the catalog names once when a kept genre was never offered", async () => {
+    const optionsLoader = vi.fn().mockResolvedValue({ countries: [], genres: [] });
+    const loadNames = vi.fn().mockResolvedValue({
+      countries: [],
+      genres: [{ id: "g-stoner", name: "Stoner metal", color: null }],
+    });
+    const { coordinator, scope } = setup(
+      async (request) => page(request, [], 0),
+      true,
+      optionsLoader,
+      () => true,
+      loadNames
+    );
+    scopes.push(scope);
+    await settle();
+    coordinator.setGenres(["g-stoner"]);
+    await settle();
+    await settle();
+    await settle();
+
+    expect(coordinator.options.value.genres).toContainEqual({
+      id: "g-stoner",
+      name: "Stoner metal",
+      color: null,
+    });
+    expect(loadNames).toHaveBeenCalledTimes(1);
   });
 
   it("filters by the selected artist ID and preserves text, mode and every other filter", async () => {

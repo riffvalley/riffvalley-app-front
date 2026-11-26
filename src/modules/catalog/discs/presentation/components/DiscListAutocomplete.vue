@@ -2,7 +2,7 @@
   <div ref="root" class="relative w-full">
     <span
       id="disc-list-search-label"
-      class="mb-2 block text-sm font-semibold text-rv-navy dark:text-white"
+      class="sr-only"
     >
       Buscar discos o artistas
     </span>
@@ -89,12 +89,8 @@
                   type="button"
                   role="option"
                   :aria-selected="activeIndex === index"
-                  class="group flex min-h-14 w-full items-center gap-3 rounded-lg bg-rv-navy px-3 py-2 text-left text-white outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rv-navy dark:bg-gray-200 dark:text-rv-navy dark:focus-visible:ring-gray-200"
-                  :class="
-                    activeIndex === index
-                      ? 'bg-rv-navy text-white dark:bg-gray-200 dark:text-rv-navy'
-                      : ''
-                  "
+                  class="group flex min-h-14 w-full items-center gap-3 rounded-lg px-3 py-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rv-navy dark:focus-visible:ring-gray-200"
+                  :class="optionClass(activeIndex === index)"
                   @mousedown.prevent
                   @click="selectArtist(artist)"
                 >
@@ -115,8 +111,8 @@
                     <span class="block truncate text-sm font-semibold">{{ artist.name }}</span>
                     <span
                       v-if="artist.country"
-                      class="block truncate text-xs text-white/80 dark:text-rv-navy/70"
-                      :class="activeIndex === index ? 'text-white dark:text-rv-navy' : ''"
+                      class="block truncate text-xs"
+                      :class="optionDetailClass(activeIndex === index)"
                     >
                       {{ artist.country.name }}
                     </span>
@@ -140,12 +136,8 @@
                   type="button"
                   role="option"
                   :aria-selected="activeIndex === artists.length + discIndex"
-                  class="group flex min-h-14 w-full items-center gap-3 rounded-lg bg-rv-navy px-3 py-2 text-left text-white outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rv-navy dark:bg-gray-200 dark:text-rv-navy dark:focus-visible:ring-gray-200"
-                  :class="
-                    activeIndex === artists.length + discIndex
-                      ? 'bg-rv-navy text-white dark:bg-gray-200 dark:text-rv-navy'
-                      : ''
-                  "
+                  class="group flex min-h-14 w-full items-center gap-3 rounded-lg px-3 py-2 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rv-navy dark:focus-visible:ring-gray-200"
+                  :class="optionClass(activeIndex === artists.length + discIndex)"
                   @mousedown.prevent
                   @click="selectDisc(disc)"
                 >
@@ -158,12 +150,8 @@
                   <span class="min-w-0 flex-1">
                     <span class="block truncate text-sm font-semibold">{{ disc.title }}</span>
                     <span
-                      class="block truncate text-xs text-white/80 dark:text-rv-navy/70"
-                      :class="
-                        activeIndex === artists.length + discIndex
-                          ? 'text-white dark:text-rv-navy'
-                          : ''
-                      "
+                      class="block truncate text-xs"
+                      :class="optionDetailClass(activeIndex === artists.length + discIndex)"
                     >
                       {{ disc.artistName }}
                     </span>
@@ -275,6 +263,23 @@ const activeOptionId = computed(() => {
   const disc = discs.value[discIndex];
   return disc ? discOptionId(disc.id) : undefined;
 });
+
+/**
+ * Filas neutras en reposo; la paleta de «Todos los discos» (navy con texto blanco en
+ * claro, gray-200 con texto navy en oscuro) solo marca la fila activa o bajo el ratón.
+ */
+function optionClass(active: boolean): string {
+  return active
+    ? "bg-rv-navy text-white dark:bg-gray-200 dark:text-rv-navy"
+    : "text-rv-navy hover:bg-rv-navy hover:text-white dark:text-white dark:hover:bg-gray-200 dark:hover:text-rv-navy";
+}
+
+/** Texto secundario (país o artista) con contraste suficiente en cada estado. */
+function optionDetailClass(active: boolean): string {
+  return active
+    ? "text-white/80 dark:text-rv-navy/70"
+    : "text-gray-500 group-hover:text-white/80 dark:text-gray-300 dark:group-hover:text-rv-navy/70";
+}
 
 function artistOptionId(id: string): string {
   return `${listboxId}-artist-${id}`;

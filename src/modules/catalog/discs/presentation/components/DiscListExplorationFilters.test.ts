@@ -53,7 +53,7 @@ describe("DiscListExplorationFilters", () => {
       .toBeTruthy();
     const clearButton = wrapper
       .findAll("button")
-      .find((button) => button.text() === "Limpiar exploración");
+      .find((button) => button.text() === "Limpiar");
     expect(clearButton).toBeDefined();
     await clearButton?.trigger("click");
     expect(wrapper.emitted("update:no-rates")).toEqual([[false]]);
@@ -112,7 +112,7 @@ describe("DiscListExplorationFilters", () => {
     expect(wrapper.emitted("update:country")?.at(-1)).toEqual([""]);
     const clearButton = wrapper
       .findAll("button")
-      .find((button) => button.text() === "Limpiar exploración");
+      .find((button) => button.text() === "Limpiar");
     await clearButton?.trigger("click");
     expect(wrapper.emitted("update:week")?.at(-1)).toEqual([null]);
     expect(wrapper.emitted("update:genres")?.at(-1)).toEqual([[]]);
@@ -136,10 +136,70 @@ describe("DiscListExplorationFilters", () => {
     expect(wrapper.get("#disc-list-exploration-controls").isVisible()).toBe(true);
   });
 
-  it("updates year and period ranges through controlled native selects", async () => {
+  it("names the mobile disclosure after its content and counts only what it holds", () => {
+    localStorage.setItem("rv_default_year_filter", "all");
+    vi.stubGlobal("matchMedia", () => ({
+      matches: true,
+      addEventListener() {},
+      removeEventListener() {},
+    }));
+    const wrapper = mount(DiscListExplorationFilters, {
+      props: { ...baseProps, selectedCountry: "country-a", selectedGenres: ["genre-a"], noRatesOnly: true },
+      global: { stubs: { SearchableSelect: CountrySelectStub } },
+    });
+    const toggle = wrapper.get('button[aria-controls="disc-list-exploration-controls"]');
+    // «Sin votos» va fuera del desplegable, así que no suma: país + 1 género = 2.
+    expect(toggle.text()).toBe("Fecha, país y género2 activos");
+  });
+
+  it("keeps Sin votos visible on mobile, after the collapsible filters", async () => {
+    localStorage.setItem("rv_default_year_filter", "all");
+    vi.stubGlobal("matchMedia", () => ({
+      matches: true,
+      addEventListener() {},
+      removeEventListener() {},
+    }));
+    const wrapper = mount(DiscListExplorationFilters, {
+      props: baseProps,
+      global: { stubs: { SearchableSelect: CountrySelectStub } },
+    });
+    const toggle = wrapper.get('button[aria-controls="disc-list-exploration-controls"]');
+    const noRates = wrapper.get(".no-rates-control");
+    expect(toggle.attributes("aria-expanded")).toBe("false");
+    // Fuera del desplegable (se ve aunque esté cerrado) y justo después de él,
+    // para que los filtros se abran pegados al botón «Fecha, país y género».
+    const controls = wrapper.get("#disc-list-exploration-controls").element;
+    expect(controls.contains(noRates.element)).toBe(false);
+    expect(controls.nextElementSibling).toBe(noRates.element);
+    expect(wrapper.findAll(".no-rates-control")).toHaveLength(1);
+    await noRates.get('input[role="switch"]').setValue(true);
+    expect(wrapper.emitted("update:no-rates")?.at(-1)).toEqual([true]);
+  });
+
+  it("always shows month and week, disabled until a year and a month are chosen", async () => {
     localStorage.setItem("rv_default_year_filter", "all");
     const wrapper = mount(DiscListExplorationFilters, { props: baseProps });
-    await wrapper.get("#disc-list-year").setValue("2025");
+    const month = wrapper.get<HTMLButtonElement>("#disc-list-month");
+    const period = wrapper.get<HTMLButtonElement>("#disc-list-period");
+    expect(month.element.disabled).toBe(true);
+    expect(month.text()).toBe("Todos los meses");
+    expect(period.element.disabled).toBe(true);
+    expect(period.text()).toBe("Todas las semanas");
+
+    await wrapper.setProps({ selectedWeek: ["2025-01-01T00:00:00.000Z", "2025-12-31T23:59:59.999Z"] });
+    expect(month.element.disabled).toBe(false);
+    expect(month.text()).toBe("Año completo");
+    expect(period.element.disabled).toBe(true);
+
+    await wrapper.setProps({ selectedWeek: ["2025-02-01T00:00:00.000Z", "2025-02-28T23:59:59.999Z"] });
+    expect(period.element.disabled).toBe(false);
+  });
+
+  it("updates year and period ranges through the custom selects", async () => {
+    localStorage.setItem("rv_default_year_filter", "all");
+    const wrapper = mount(DiscListExplorationFilters, { props: baseProps });
+    await wrapper.get("#disc-list-year").trigger("click");
+    await wrapper.get('#disc-list-year-listbox [data-value="2025"]').trigger("click");
     expect(wrapper.emitted("update:week")?.at(-1)?.[0]).toEqual([
       "2025-01-01T00:00:00.000Z",
       "2025-12-31T23:59:59.999Z",
@@ -147,7 +207,8 @@ describe("DiscListExplorationFilters", () => {
     await wrapper.setProps({
       selectedWeek: ["2025-02-01T00:00:00.000Z", "2025-02-28T23:59:59.999Z"],
     });
-    await wrapper.get("#disc-list-period").setValue("W-2025-02-07");
+    await wrapper.get("#disc-list-period").trigger("click");
+    await wrapper.get('#disc-list-period-listbox [data-value="W-2025-02-07"]').trigger("click");
     expect(wrapper.emitted("update:week")?.at(-1)?.[0]).toEqual([
       "2025-02-07T00:00:00.000Z",
       "2025-02-13T23:59:59.999Z",

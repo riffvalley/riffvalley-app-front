@@ -3,6 +3,7 @@ import { computed, nextTick, onMounted, ref } from "vue";
 import { getAvailableYears } from "@helpers/dateConstants";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import DiscListGenreSelect from "../DiscListGenreSelect.vue";
+import DiscListSelect from "../DiscListSelect.vue";
 import { isEmptySavedDiscFilterCriteria } from "../../../application/savedDiscFilterCriteria";
 import type { SavedDiscFilter, SavedDiscFilterCriteria } from "../../../types/savedDiscFilter";
 
@@ -46,6 +47,11 @@ const yearOptions = computed(() => {
   return [...years].sort((a, b) => a - b);
 });
 
+const yearSelectOptions = computed(() => [
+  { value: "", label: "Sin límite" },
+  ...yearOptions.value.map((year) => ({ value: year, label: String(year) })),
+]);
+
 const criteria = computed<SavedDiscFilterCriteria>(() => ({
   genreIds: [...genreIds.value],
   countryId: countryId.value || null,
@@ -67,8 +73,7 @@ const criteriaError = computed(() => {
   return "";
 });
 
-function parseYear(event: Event): number | null {
-  const value = (event.target as HTMLSelectElement).value;
+function parseYear(value: string): number | null {
   return value ? Number(value) : null;
 }
 
@@ -97,7 +102,7 @@ onMounted(() => void nextTick(() => nameInput.value?.focus()));
         type="text"
         maxlength="60"
         autocomplete="off"
-        class="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-base text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:border-white/20 dark:bg-rv-darkSurface dark:text-white"
+        class="h-[50px] w-full rounded-2xl border border-gray-300 bg-white px-4 text-base text-rv-navy shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy dark:border-white/20 dark:bg-rv-darkCard dark:text-white dark:focus-visible:ring-gray-200"
         :aria-invalid="submitted && Boolean(nameError)"
         :aria-describedby="submitted && nameError ? 'manage-filter-name-error' : undefined"
       />
@@ -115,7 +120,7 @@ onMounted(() => void nextTick(() => nameInput.value?.focus()));
       <DiscListGenreSelect v-model="genreIds" :options="genres" :loading="optionsLoading" />
     </div>
 
-    <div role="group" aria-labelledby="manage-filter-country-label">
+    <div class="country-control" role="group" aria-labelledby="manage-filter-country-label">
       <span
         id="manage-filter-country-label"
         class="mb-1 block text-sm font-semibold text-rv-navy dark:text-white"
@@ -131,37 +136,46 @@ onMounted(() => void nextTick(() => nameInput.value?.focus()));
         title="name"
         trackby="id"
         :max="150"
-        class="select-pill w-full"
+        menu-variant="panel"
+        class="w-full"
       />
     </div>
 
     <fieldset>
-      <legend class="mb-1 block text-sm font-semibold text-rv-navy dark:text-white">Años</legend>
+      <legend id="manage-filter-years-legend" class="mb-1 block text-sm font-semibold text-rv-navy dark:text-white">Años</legend>
       <div class="grid grid-cols-2 gap-3">
-        <label class="block text-sm text-gray-700 dark:text-gray-200">
-          Desde
-          <select
+        <div class="min-w-0">
+          <span
+            id="manage-filter-year-from-label"
+            class="mb-1 block text-sm text-gray-700 dark:text-gray-200"
+          >
+            Desde
+          </span>
+          <DiscListSelect
+            id="manage-filter-year-from"
             data-testid="manage-filter-year-from"
-            class="mt-1 h-11 w-full rounded-full border border-gray-300 bg-white px-4 text-rv-navy shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:border-white/20 dark:bg-rv-darkCard dark:text-white"
-            :value="yearFrom ?? ''"
-            @change="yearFrom = parseYear($event)"
+            labelledby="manage-filter-years-legend manage-filter-year-from-label"
+            :model-value="yearFrom ?? ''"
+            :options="yearSelectOptions"
+            @update:model-value="yearFrom = parseYear($event)"
+          />
+        </div>
+        <div class="min-w-0">
+          <span
+            id="manage-filter-year-to-label"
+            class="mb-1 block text-sm text-gray-700 dark:text-gray-200"
           >
-            <option value="">Sin límite</option>
-            <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}</option>
-          </select>
-        </label>
-        <label class="block text-sm text-gray-700 dark:text-gray-200">
-          Hasta
-          <select
+            Hasta
+          </span>
+          <DiscListSelect
+            id="manage-filter-year-to"
             data-testid="manage-filter-year-to"
-            class="mt-1 h-11 w-full rounded-full border border-gray-300 bg-white px-4 text-rv-navy shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:border-white/20 dark:bg-rv-darkCard dark:text-white"
-            :value="yearTo ?? ''"
-            @change="yearTo = parseYear($event)"
-          >
-            <option value="">Sin límite</option>
-            <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}</option>
-          </select>
-        </label>
+            labelledby="manage-filter-years-legend manage-filter-year-to-label"
+            :model-value="yearTo ?? ''"
+            :options="yearSelectOptions"
+            @update:model-value="yearTo = parseYear($event)"
+          />
+        </div>
       </div>
     </fieldset>
 
@@ -199,3 +213,39 @@ onMounted(() => void nextTick(() => nameInput.value?.focus()));
     </div>
   </form>
 </template>
+
+<style scoped>
+/* SearchableSelect trae estilo de píldora global: aquí se iguala al resto de
+   controles (50px, rounded-2xl, foco navy) sin tocar otras pantallas. */
+.country-control :deep(.search_input_trigger) {
+  height: 50px;
+  line-height: 1.5rem;
+  padding: 0 1rem;
+  font-size: 1rem;
+  @apply rounded-2xl border-gray-300 bg-white text-rv-navy shadow-sm;
+}
+.country-control :deep(.search_input_trigger:hover) {
+  @apply border-gray-300;
+}
+.country-control :deep(.search_input_trigger:focus-visible),
+.country-control :deep(.search_input_trigger[aria-expanded="true"]) {
+  @apply border-gray-300 outline-none ring-2 ring-rv-navy;
+}
+.country-control :deep(.search_input_trigger i) {
+  font-size: 0.75rem;
+  @apply text-gray-500;
+}
+.dark .country-control :deep(.search_input_trigger i) {
+  @apply !text-gray-300;
+}
+.country-control :deep(.search_input_trigger p) {
+  @apply font-normal text-rv-navy;
+}
+.dark .country-control :deep(.search_input_trigger) {
+  @apply !border-white/20 !bg-rv-darkCard !text-white;
+}
+.dark .country-control :deep(.search_input_trigger:focus-visible),
+.dark .country-control :deep(.search_input_trigger[aria-expanded="true"]) {
+  @apply ring-gray-200;
+}
+</style>

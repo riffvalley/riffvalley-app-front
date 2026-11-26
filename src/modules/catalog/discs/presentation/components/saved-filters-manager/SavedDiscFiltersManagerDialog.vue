@@ -20,7 +20,9 @@ const open = defineModel<boolean>("open", { required: true });
 const props = withDefaults(defineProps<{
   /** Texto del botón que aplica un filtro («Ver en Discos» en Perfil, «Aplicar» en Discos). */
   applyLabel?: string;
-}>(), { applyLabel: "Ver en Discos" });
+  /** Id del filtro aplicado ahora en Discos: su botón dice «Activo» con un check verde. */
+  appliedId?: string;
+}>(), { applyLabel: "Ver en Discos", appliedId: "" });
 const emit = defineEmits<{ apply: [filter: SavedDiscFilter] }>();
 /** null = lista; "new" = crear; un filtro = editarlo. */
 const editing = ref<SavedDiscFilter | "new" | null>(null);
@@ -244,10 +246,10 @@ onUnmounted(() => {
             ref="closeButton"
             type="button"
             aria-label="Cerrar"
-            class="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-gray-500 bg-gray-100 dark:bg-white/10 dark:text-gray-300 hover:text-white hover:bg-rv-pink dark:hover:bg-rv-pink border-0 outline-none focus-visible:ring-2 focus-visible:ring-rv-pink transition-colors duration-150"
+            class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 bg-rv-navy p-0 text-white shadow-md transition hover:bg-rv-pink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
             @click="open = false"
           >
-            <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
 
@@ -341,7 +343,20 @@ onUnmounted(() => {
                     {{ filter.name }}
                   </h3>
                   <div class="flex shrink-0 flex-wrap gap-2">
+                    <!-- El filtro aplicado en Discos muestra «✓ Activo» en verde en vez del botón rosa. -->
                     <button
+                      v-if="appliedId && filter.id === appliedId"
+                      type="button"
+                      class="!inline-flex !items-center !gap-1.5 !rounded-full !border !border-green-600/40 !bg-green-50 !px-3 !py-1.5 !text-xs !font-semibold !text-green-800 hover:!bg-green-100 focus-visible:!outline focus-visible:!outline-2 focus-visible:!outline-offset-2 focus-visible:!outline-rv-pink dark:!border-green-400/40 dark:!bg-green-500/10 dark:!text-green-200 dark:hover:!bg-green-500/20"
+                      :aria-label="`Filtro activo «${filter.name}». ${props.applyLabel}`"
+                      data-testid="saved-filter-active"
+                      @click="applyFilter(filter)"
+                    >
+                      <i class="fa-solid fa-check text-green-600 dark:text-green-400" aria-hidden="true"></i>
+                      Activo
+                    </button>
+                    <button
+                      v-else
                       type="button"
                       class="!inline-flex !items-center !gap-1.5 !rounded-full !border-0 !bg-rv-pink !px-3 !py-1.5 !text-xs !font-semibold !text-white hover:!bg-rv-pink/90 focus-visible:!outline focus-visible:!outline-2 focus-visible:!outline-offset-2 focus-visible:!outline-rv-pink"
                       :aria-label="`${props.applyLabel}: «${filter.name}»`"

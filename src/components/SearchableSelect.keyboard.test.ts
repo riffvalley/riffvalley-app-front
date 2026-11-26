@@ -75,4 +75,30 @@ describe("SearchableSelect keyboard access", () => {
     expect(trigger.attributes("aria-expanded")).toBe("false");
     wrapper.unmount();
   });
+
+  it("draws the panel variant like the genre selector, marking the selected option", async () => {
+    const wrapper = mount(SearchableSelect, {
+      attachTo: document.body,
+      props: {
+        modelValue: "country-es",
+        options: [
+          { id: "country-de", name: "Alemania" },
+          { id: "country-es", name: "España" },
+        ],
+        allLabel: "Todos los países",
+        menuVariant: "panel",
+        useTeleport: false,
+      },
+    });
+    await wrapper.get("button.search_input_trigger").trigger("click");
+    await flushPromises();
+
+    const options = wrapper.findAll("[role=option]");
+    const spain = options.find((option) => option.text() === "España")!;
+    expect(wrapper.get("[role=listbox]").classes()).toContain("max-h-64");
+    expect(spain.classes()).toContain("bg-rv-pink/10");
+    expect(spain.find(".fa-check").exists()).toBe(true);
+    expect(options[0]!.find(".fa-check").exists()).toBe(false);
+    wrapper.unmount();
+  });
 });

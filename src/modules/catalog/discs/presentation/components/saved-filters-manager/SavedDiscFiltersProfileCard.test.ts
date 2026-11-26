@@ -4,7 +4,7 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { computed, ref } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
 import type { SavedDiscFilter } from "../../../types/savedDiscFilter";
-import { readDiscListSessionFilters } from "../../../application/discListSessionFilters";
+import { readDiscListSessionFilters, writeDiscListAppliedSavedFilterId } from "../../../application/discListSessionFilters";
 import SavedDiscFiltersProfileCard from "./SavedDiscFiltersProfileCard.vue";
 
 const mocks = vi.hoisted(() => ({
@@ -117,9 +117,9 @@ describe("SavedDiscFiltersProfileCard", () => {
     const name = dialog()!.querySelector<HTMLInputElement>("#manage-filter-name")!;
     name.value = "Metal 2026";
     name.dispatchEvent(new Event("input"));
-    const yearFrom = dialog()!.querySelector<HTMLSelectElement>('[data-testid="manage-filter-year-from"]')!;
-    yearFrom.value = "2026";
-    yearFrom.dispatchEvent(new Event("change"));
+    dialog()!.querySelector<HTMLButtonElement>("#manage-filter-year-from")!.click();
+    await flushPromises();
+    dialog()!.querySelector<HTMLElement>('#manage-filter-year-from-listbox [data-value="2026"]')!.click();
     await flushPromises();
     dialog()!.querySelector<HTMLFormElement>('[data-testid="saved-filter-editor"]')!.requestSubmit();
     await flushPromises();
@@ -187,6 +187,23 @@ describe("SavedDiscFiltersProfileCard", () => {
       noRatesOnly: false,
     });
     expect(dialog()).toBeNull();
+    wrapper.unmount();
+  });
+
+  it("marks the filter applied in Discos as «Activo» with a green check", async () => {
+    mocks.filters.value = [makeFilter(), makeFilter({ id: "filter-2", name: "Rock" })];
+    writeDiscListAppliedSavedFilterId("user-1", "filter-1");
+    const { wrapper } = mountCard();
+    await openManager(wrapper);
+
+    const active = dialog()!.querySelectorAll('[data-testid="saved-filter-active"]');
+    expect(active).toHaveLength(1);
+    expect(active[0].textContent?.trim()).toBe("Activo");
+    expect(active[0].getAttribute("aria-label")).toBe("Filtro activo «Metal español». Ver en Discos");
+    expect(active[0].querySelector(".fa-check.text-green-600")).not.toBeNull();
+    expect(active[0].className).not.toContain("bg-rv-pink");
+    // El otro filtro sigue con su botón normal.
+    expect(buttonByText("Ver en Discos")?.getAttribute("aria-label")).toBe("Ver en Discos: «Rock»");
     wrapper.unmount();
   });
 });

@@ -63,6 +63,29 @@ export function writeDiscListSessionFilters(userId: string | null, filters: Disc
   }
 }
 
+const APPLIED_FILTER_PREFIX = "rv_disc_list_applied_filter:";
+
+/** Id del filtro guardado aplicado en «Mis filtros» ("" si no hay ninguno). */
+export function readDiscListAppliedSavedFilterId(userId: string | null): string {
+  if (!userId) return "";
+  try {
+    return sessionStorage.getItem(`${APPLIED_FILTER_PREFIX}${userId}`) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function writeDiscListAppliedSavedFilterId(userId: string | null, filterId: string): void {
+  if (!userId) return;
+  try {
+    const key = `${APPLIED_FILTER_PREFIX}${userId}`;
+    if (filterId) sessionStorage.setItem(key, filterId);
+    else sessionStorage.removeItem(key);
+  } catch {
+    // Igual que los filtros: si el navegador lo bloquea, se ignora.
+  }
+}
+
 interface SessionFilterBindings {
   userId: Ref<string | null>;
   selectedWeek: Ref<[string, string] | null>;
