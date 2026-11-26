@@ -83,20 +83,20 @@
         role="group"
         aria-label="Filtros de catálogo"
         data-testid="catalog-controls"
-        class="grid w-full grid-cols-1 md:grid-cols-2 gap-2 mb-4"
+        class="grid w-full grid-cols-1 md:grid-cols-2 gap-4 mb-4"
       >
-        <DiscFilters
-          :selectedGenre="selectedGenre"
-          :selectedCountry="selectedCountry"
-          :selectedWeek="null"
-          :genres="genres"
-          :countries="countries"
-          :showWeekPicker="false"
-          :showSearchQuery="false"
-          :externalRow1="true"
-          selectClass="w-full min-w-0"
-          @update:selectedGenre="emit('genre-change', $event)"
-          @update:selectedCountry="emit('country-change', $event)"
+        <!-- Mismos selectores que en Discos. El Top solo filtra por un género. -->
+        <DiscListCountrySelect
+          :model-value="selectedCountry"
+          :options="countries"
+          @update:model-value="emit('country-change', $event)"
+        />
+        <DiscListGenreSelect
+          :model-value="selectedGenre ? [selectedGenre] : []"
+          :options="genres"
+          :loading="optionsLoading"
+          :multiple="false"
+          @update:model-value="onGenreChange"
         />
       </div>
 
@@ -126,7 +126,7 @@
 
 <script setup lang="ts">
 import { toRefs } from "vue";
-import DiscFilters from "@components/DiscFilters.vue";
+import { DiscListCountrySelect, DiscListGenreSelect } from "@/modules/catalog/discs";
 import type { Country, Genre } from "@services/catalog/catalog";
 import type { TopDiscsPeriod } from "../../composables/useTopDiscsFilterCoordinator";
 
@@ -183,6 +183,12 @@ const periods: Array<{ value: TopDiscsPeriod; label: string }> = [
 
 function onRangeChange(event: Event): void {
   emit("range-change", (event.target as HTMLSelectElement).value);
+}
+
+/** El selector de géneros trabaja en minúsculas: se devuelve el id tal como viene del servidor. */
+function onGenreChange(ids: string[]): void {
+  const id = ids[0] ?? "";
+  emit("genre-change", genres.value.find((genre) => genre.id.toLowerCase() === id)?.id ?? id);
 }
 
 function onYearChange(event: Event): void {

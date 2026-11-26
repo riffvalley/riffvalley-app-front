@@ -4,19 +4,33 @@ import { defineComponent, h } from "vue";
 import { describe, expect, it } from "vitest";
 import TopDiscsHeader from "./TopDiscsHeader.vue";
 
-const DiscFiltersStub = defineComponent({
+const CountrySelectStub = defineComponent({
+  name: "DiscListCountrySelect",
   props: {
-    selectedGenre: { type: String, required: true },
-    selectedCountry: { type: String, required: true },
-    genres: { type: Array, required: true },
-    countries: { type: Array, required: true },
-    externalRow1: { type: Boolean, required: true },
+    modelValue: { type: String, required: true },
+    options: { type: Array, required: true },
   },
-  emits: ["update:selectedGenre", "update:selectedCountry"],
-  setup(_, { slots }) {
-    return () => h("div", { "data-testid": "disc-filters" }, slots.default?.());
+  emits: ["update:modelValue"],
+  setup() {
+    return () => h("div", { "data-testid": "country-select" });
   },
 });
+
+const GenreSelectStub = defineComponent({
+  name: "DiscListGenreSelect",
+  props: {
+    modelValue: { type: Array, required: true },
+    options: { type: Array, required: true },
+    loading: { type: Boolean, default: false },
+    multiple: { type: Boolean, default: true },
+  },
+  emits: ["update:modelValue"],
+  setup() {
+    return () => h("div", { "data-testid": "genre-select" });
+  },
+});
+
+const stubs = { DiscListCountrySelect: CountrySelectStub, DiscListGenreSelect: GenreSelectStub };
 
 const props = {
   selectedPeriod: "week" as const,
@@ -40,10 +54,11 @@ describe("TopDiscsHeader", () => {
   it("places temporal controls before the balanced catalog-filter row", () => {
     const wrapper = mount(TopDiscsHeader, {
       props,
-      global: { stubs: { DiscFilters: DiscFiltersStub } },
+      global: { stubs },
     });
     const [temporalRow, catalogRow] = wrapper.findAll('[role="group"]');
-    const filters = wrapper.findComponent(DiscFiltersStub);
+    const country = wrapper.findComponent(CountrySelectStub);
+    const genre = wrapper.findComponent(GenreSelectStub);
 
     expect(temporalRow.attributes("data-testid")).toBe("temporal-controls");
     expect(temporalRow.findAll("button").map((button) => button.text())).toEqual([
@@ -65,15 +80,17 @@ describe("TopDiscsHeader", () => {
     ).toEqual(["temporal-controls", "catalog-controls"]);
     expect(catalogRow.classes()).toContain("md:grid-cols-2");
     expect(catalogRow.classes()).toContain("grid-cols-1");
-    expect(filters.props("externalRow1")).toBe(true);
-    expect(filters.props("countries")).toEqual(props.countries);
-    expect(filters.props("genres")).toEqual(props.genres);
+    expect(country.props("options")).toEqual(props.countries);
+    expect(genre.props("options")).toEqual(props.genres);
+    // El Top solo filtra por un género: mismo selector que Discos, en modo de uno.
+    expect(genre.props("multiple")).toBe(false);
+    expect(genre.props("modelValue")).toEqual(["genre-1"]);
   });
 
   it("renders period controls and available range/year choices, then emits typed intents", async () => {
     const wrapper = mount(TopDiscsHeader, {
       props,
-      global: { stubs: { DiscFilters: DiscFiltersStub } },
+      global: { stubs },
     });
 
     expect(wrapper.findAll("button").map((button) => button.text())).toEqual([
@@ -98,7 +115,7 @@ describe("TopDiscsHeader", () => {
   it("shows temporal selectors only when they apply to the selected period", async () => {
     const wrapper = mount(TopDiscsHeader, {
       props,
-      global: { stubs: { DiscFilters: DiscFiltersStub } },
+      global: { stubs },
     });
 
     expect(wrapper.findAll("select")).toHaveLength(2);
@@ -115,7 +132,7 @@ describe("TopDiscsHeader", () => {
     async (period) => {
       const wrapper = mount(TopDiscsHeader, {
         props,
-        global: { stubs: { DiscFilters: DiscFiltersStub } },
+        global: { stubs },
       });
 
       await wrapper
@@ -133,26 +150,31 @@ describe("TopDiscsHeader", () => {
   it("reflects parent prop changes and emits country and genre filter intents", async () => {
     const wrapper = mount(TopDiscsHeader, {
       props,
-      global: { stubs: { DiscFilters: DiscFiltersStub } },
+      global: { stubs },
     });
-    const filters = wrapper.findComponent(DiscFiltersStub);
+    const country = wrapper.findComponent(CountrySelectStub);
+    const genre = wrapper.findComponent(GenreSelectStub);
 
-    expect(filters.props("countries")).toEqual(props.countries);
-    expect(filters.props("genres")).toEqual(props.genres);
-    await filters.vm.$emit("update:selectedCountry", "country-2");
-    await filters.vm.$emit("update:selectedGenre", "genre-2");
-    await wrapper.setProps({ selectedPeriod: "all", selectedCountry: "country-2" });
+    await country.vm.$emit("update:modelValue", "country-2");
+    // El selector devuelve ids en minúsculas: el Top recupera el id original.
+    await wrapper.setProps({
+      genres: [...props.genres, { id: "Genre-2", name: "Jazz", color: null }],
+    });
+    await genre.vm.$emit("update:modelValue", ["genre-2"]);
+    await genre.vm.$emit("update:modelValue", []);
+    await wrapper.setProps({ selectedPeriod: "all", selectedCountry: "country-2", selectedGenre: "" });
 
     expect(wrapper.emitted("country-change")).toEqual([["country-2"]]);
-    expect(wrapper.emitted("genre-change")).toEqual([["genre-2"]]);
-    expect(filters.props("selectedCountry")).toBe("country-2");
+    expect(wrapper.emitted("genre-change")).toEqual([["Genre-2"], [""]]);
+    expect(country.props("modelValue")).toBe("country-2");
+    expect(genre.props("modelValue")).toEqual([]);
     expect(wrapper.findAll("select")).toHaveLength(0);
   });
 
   it("shows loading, error/retry, and empty option states from props", async () => {
     const wrapper = mount(TopDiscsHeader, {
       props: { ...props, optionsLoading: true },
-      global: { stubs: { DiscFilters: DiscFiltersStub } },
+      global: { stubs },
     });
 
     expect(wrapper.get('[role="status"]').text()).toContain("Cargando filtros");

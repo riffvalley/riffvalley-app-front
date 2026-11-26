@@ -9,7 +9,7 @@ const { get } = vi.hoisted(() => ({ get: vi.fn() }));
 vi.mock("@services/api/api", () => ({ default: { get } }));
 
 import TopDiscsView from "./TopDiscsView.vue";
-import DiscFilters from "@components/DiscFilters.vue";
+import { DiscListCountrySelect, DiscListGenreSelect } from "@/modules/catalog/discs";
 import TopDiscsHeader from "@/modules/catalog/top-discs/presentation/components/TopDiscsHeader.vue";
 
 const disc = {
@@ -90,10 +90,10 @@ describe("TopDiscs Rankings view", () => {
     expect(get.mock.calls.some(([url]) => url === "/discs/homeDiscs")).toBe(false);
     expect(wrapper.findAll('[data-testid="disc-card"]')).toHaveLength(1);
     expect(wrapper.findComponent(TopDiscsHeader).exists()).toBe(true);
-    expect(wrapper.findComponent(DiscFilters).props("countries")).toEqual([
+    expect(wrapper.findComponent(DiscListCountrySelect).props("options")).toEqual([
       { id: "country-1", name: "País 1", isoCode: "P1" },
     ]);
-    expect(wrapper.findComponent(DiscFilters).props("genres")).toEqual([
+    expect(wrapper.findComponent(DiscListGenreSelect).props("options")).toEqual([
       { id: "genre-1", name: "Rock", color: "#111111" },
     ]);
     wrapper.unmount();
