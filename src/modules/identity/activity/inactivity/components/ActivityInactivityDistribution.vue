@@ -146,21 +146,21 @@ const rows = computed(() =>
   background: #68758a;
 }
 
-:global(.dark) .distribution {
+.dark .distribution {
   border-color: rgb(255 255 255 / 10%);
   background: #171923;
 }
 
-:global(.dark) .distribution-heading p,
-:global(.dark) .distribution-total {
+.dark .distribution-heading p,
+.dark .distribution-total {
   color: #c2c7d2;
 }
 
-:global(.dark) .distribution-label {
+.dark .distribution-label {
   color: #f4f5f8;
 }
 
-:global(.dark) .distribution-track {
+.dark .distribution-track {
   background: #30333e;
 }
 

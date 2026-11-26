@@ -129,13 +129,13 @@ describe("DashboardLatestVotesWidget", () => {
     expect(wrapper.text()).toContain("Géneros");
     expect(wrapper.text()).toContain("Mejor disco");
     expect(wrapper.text()).toContain("Mejor artista");
-    expect(wrapper.text()).toContain("Mejor disco — Mejor artista");
+    expect(wrapper.get("[data-test=week-best-disc]").text()).toContain("Mejor artista");
     expect(wrapper.text()).toContain("9,5");
     expect(wrapper.text()).toContain("Nota más alta");
     expect(wrapper.text()).toContain("Género más votado");
     expect(wrapper.text()).toContain("Rock");
-    expect(wrapper.text()).toContain("Rock · 2 votos");
-    expect(wrapper.find("li").text()).toContain("Disco 1 — Artista 1 (27 oct, 19:30)");
+    expect(wrapper.get("[data-test=week-dominant-genre]").text()).toContain("2 votos");
+    expect(wrapper.find("li").text()).toContain("Artista 1 · 27 oct, 19:30");
     expect(getRatesDashboardSummary.mock.calls[0]?.[0]).toBeInstanceOf(AbortSignal);
 
     wrapper.unmount();

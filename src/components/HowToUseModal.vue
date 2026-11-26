@@ -192,7 +192,7 @@ code {
   padding: 0.1rem 0.3rem;
   border-radius: 4px;
 }
-:global(.dark) code {
+.dark code {
   background-color: #1f2937;
   color: #e5e7eb;
 }

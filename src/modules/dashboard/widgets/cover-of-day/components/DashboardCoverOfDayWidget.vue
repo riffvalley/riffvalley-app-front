@@ -262,11 +262,6 @@ async function submitCoverVote() {
             :alt="`Portada de ${cover.name}, de ${cover.artist.name}`"
             class="w-full h-full object-contain transition-transform duration-300 group-hover/cover:scale-105"
           />
-          <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity duration-200 pointer-events-none" aria-hidden="true">
-            <div class="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center shadow-lg">
-              <i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i>
-            </div>
-          </div>
         </a>
 
         <div class="p-4 shrink-0 border-t border-gray-100 dark:border-white/10">

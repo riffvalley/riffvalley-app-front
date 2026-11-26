@@ -99,7 +99,7 @@ describe("ArtistDetailsModal", () => {
     bodyGet("[data-test=disc-detail] button").click();
     await nextTick();
     expect(document.body.querySelector("[data-test=disc-detail]")).toBeNull();
-    bodyGet("[data-test=artist-lastfm] li button").click();
+    bodyGet("[data-test=related-artists] li button").click();
     await nextTick();
     expect(wrapper.emitted("open-related-artist")?.[0]).toEqual([relatedId]);
     bodyGet("[aria-label='Cerrar ficha del artista']").click();
@@ -120,7 +120,7 @@ describe("ArtistDetailsModal", () => {
     mountModal();
     expect(bodyGet("[data-test=artist-catalog-description]").textContent).toBe("Catalog biography");
     expect(bodyText()).toContain("No encontramos información de este artista en Last.fm.");
-    expect(bodyGet("[data-test=artist-lastfm] a").getAttribute("href")).toBe("https://www.last.fm/music/Related");
+    expect(bodyGet("[data-test=related-artists] a").getAttribute("href")).toBe("https://www.last.fm/music/Related");
   });
 
   it("closes on Escape and restores focus to its opener", async () => {
@@ -132,5 +132,16 @@ describe("ArtistDetailsModal", () => {
     wrapper.unmount();
     await nextTick();
     expect(document.activeElement?.id).toBe("opener");
+  });
+
+  it("closes when clicking the backdrop but not when clicking inside the dialog", async () => {
+    mockComposableData();
+    const wrapper = mountModal();
+    bodyGet('[data-test="artist-details-dialog"]').click();
+    await nextTick();
+    expect(wrapper.emitted("close")).toBeUndefined();
+    bodyGet('[data-test="artist-details-overlay"]').click();
+    await nextTick();
+    expect(wrapper.emitted("close")).toHaveLength(1);
   });
 });

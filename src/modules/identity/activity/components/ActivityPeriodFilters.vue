@@ -136,29 +136,29 @@ const presets = [
   font-size: 0.75rem;
 }
 
-:global(.dark) .period-button,
-:global(.dark) .date-field input {
+.dark .period-button,
+.dark .date-field input {
   border-color: rgb(255 255 255 / 18%);
   background: #2a2b3d;
   color: #f1f5f9;
   color-scheme: dark;
 }
 
-:global(.dark) .period-button--active {
+.dark .period-button--active {
   border-color: #e46e8a;
   background: rgb(228 110 138 / 16%);
   color: #f9a6b8;
 }
 
-:global(.dark) .period-button:hover {
+.dark .period-button:hover {
   border-color: #e46e8a;
   color: #f9a6b8;
 }
 
-:global(.dark) .date-field {
+.dark .date-field {
   color: #cbd5e1;
 }
-:global(.dark) .date-error {
+.dark .date-error {
   color: #fca5a5;
 }
 

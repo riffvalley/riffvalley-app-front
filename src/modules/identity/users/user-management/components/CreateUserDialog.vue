@@ -255,7 +255,7 @@ function handleDialogKeydown(event: KeyboardEvent) {
   overflow-y: auto;
 }
 
-:global(.dark) .modal-content {
+.dark .modal-content {
   background: #404157;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -295,13 +295,13 @@ function handleDialogKeydown(event: KeyboardEvent) {
   color: #9ca3af;
 }
 
-:global(.dark) .modal-input {
+.dark .modal-input {
   background: #2a2b3d;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
 }
 
-:global(.dark) .modal-input::placeholder {
+.dark .modal-input::placeholder {
   color: #6b7280;
 }
 
@@ -314,7 +314,7 @@ function handleDialogKeydown(event: KeyboardEvent) {
 .modal-btn-cancel:hover {
   opacity: 0.7;
 }
-:global(.dark) .modal-btn-cancel {
+.dark .modal-btn-cancel {
   color: #e46e8a;
 }
 

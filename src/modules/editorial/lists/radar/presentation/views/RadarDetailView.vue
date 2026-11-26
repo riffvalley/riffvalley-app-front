@@ -524,11 +524,11 @@ function mergeWeeklyWpPosts(posts: WpPost[]) {
   outline-offset: 2px;
 }
 
-:global(html.dark) .radar-mobile-date-field {
+html.dark .radar-mobile-date-field {
   color: rgb(229 231 235);
 }
 
-:global(html.dark) .radar-mobile-date-field input {
+html.dark .radar-mobile-date-field input {
   border-color: rgb(255 255 255 / 0.15);
   background: #1f2937;
   color: white;

@@ -407,14 +407,14 @@ export default defineComponent({
 }
 
 html.dark .pill-control,
-:global(html.dark) .pill-control {
+html.dark .pill-control {
   background: #404157 !important;
   color: #ffffff !important;
   border-color: rgba(255, 255, 255, 0.15) !important;
 }
 
 html.dark .pill-control::placeholder,
-:global(html.dark) .pill-control::placeholder {
+html.dark .pill-control::placeholder {
   color: #cbd5e1 !important;
 }
 </style>

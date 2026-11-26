@@ -104,12 +104,12 @@ const sortFields: { value: ActivityInactivitySortBy; label: string }[] = [
   outline-offset: 2px;
 }
 
-:global(.dark) .filter-field {
+.dark .filter-field {
   color: #d4d8e1;
 }
 
-:global(.dark) .filter-field input,
-:global(.dark) .filter-field select {
+.dark .filter-field input,
+.dark .filter-field select {
   border-color: rgb(255 255 255 / 16%);
   background: #20232d;
   color: #f4f5f8;

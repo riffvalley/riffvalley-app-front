@@ -243,64 +243,64 @@ function formatLocalTimestamp(value: string | null): string {
   outline-offset: 3px;
 }
 
-:global(.dark) .table-scroll {
+.dark .table-scroll {
   border-color: rgb(255 255 255 / 10%);
   background: #171923;
 }
 
-:global(.dark) .users-table th,
-:global(.dark) .users-table td {
+.dark .users-table th,
+.dark .users-table td {
   border-bottom-color: rgb(255 255 255 / 8%);
 }
 
-:global(.dark) .users-table thead th {
+.dark .users-table thead th {
   background: #20232d;
   color: #c2c7d2;
 }
 
-:global(.dark) .users-table tbody tr:hover {
+.dark .users-table tbody tr:hover {
   background: #20202a;
 }
 
-:global(.dark) .username-cell {
+.dark .username-cell {
   color: #f4f5f8;
 }
 
-:global(.dark) .muted {
+.dark .muted {
   color: #b4bac6;
 }
 
-:global(.dark) .account-state--active {
+.dark .account-state--active {
   background: #173a2a;
   color: #a6e3bf;
 }
 
-:global(.dark) .account-state--disabled,
-:global(.dark) .group-label--never_voted,
-:global(.dark) .group-label--insufficient_history {
+.dark .account-state--disabled,
+.dark .group-label--never_voted,
+.dark .group-label--insufficient_history {
   background: #343744;
   color: #e0e3ea;
 }
 
-:global(.dark) .group-label--0_2_days,
-:global(.dark) .group-label--3_6_days {
+.dark .group-label--0_2_days,
+.dark .group-label--3_6_days {
   background: #492a38;
   color: #f3c0d1;
 }
 
-:global(.dark) .group-label--7_13_days,
-:global(.dark) .group-label--14_29_days {
+.dark .group-label--7_13_days,
+.dark .group-label--14_29_days {
   background: #493a2a;
   color: #ead1ac;
 }
 
-:global(.dark) .group-label--30_59_days,
-:global(.dark) .group-label--60_plus_days {
+.dark .group-label--30_59_days,
+.dark .group-label--60_plus_days {
   background: #4a302c;
   color: #edc0b5;
 }
 
-:global(.dark) .detail-link {
+.dark .detail-link {
   color: #e7a9d4;
 }
 

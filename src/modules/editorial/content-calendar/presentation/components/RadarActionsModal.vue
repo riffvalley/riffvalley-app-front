@@ -433,13 +433,13 @@ function getStatusClass(status: string): string {
   background: #555;
 }
 
-:global(.dark) .custom-scrollbar::-webkit-scrollbar-track {
+.dark .custom-scrollbar::-webkit-scrollbar-track {
   background: #2a2b3d;
 }
-:global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #555;
 }
-:global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #777;
 }
 </style>

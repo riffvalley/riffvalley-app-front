@@ -345,7 +345,7 @@
 
     <div
       v-if="showArtistModal"
-      class="fixed inset-0 z-[70] grid place-items-center bg-black/70 p-4"
+      class="fixed inset-0 z-[70] grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
       @click.self="closeArtistModal"
     >
       <div

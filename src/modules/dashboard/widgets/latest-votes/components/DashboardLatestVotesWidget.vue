@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { faChartLine, faClockRotateLeft, faImage, faMusic } from "@fortawesome/free-solid-svg-icons";
+import { faArrowTrendDown, faArrowTrendUp, faCalendarWeek, faClockRotateLeft, faImage, faMinus, faMusic, faTags, faTrophy } from "@fortawesome/free-solid-svg-icons";
 import { useAuthStore } from "@/modules/identity/auth";
 import DiscDetail from "@components/DiscDetail.vue";
 import defaultDiscImage from "@/assets/disco.png";
@@ -26,6 +26,22 @@ const selectedDisc = ref<{
 } | null>(null);
 
 const recentRates = computed(() => summary.value?.recentRates.slice(0, 5) ?? []);
+
+const statTile = "min-w-0 rounded-lg bg-white/80 px-2 py-2 text-center shadow-sm dark:bg-white/5 dark:shadow-none";
+const statLabel = "text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400";
+const statValue = "mt-0.5 text-xl font-extrabold tabular-nums text-rv-navy dark:text-white";
+const discLink = "!block !w-full !max-w-full !appearance-none !truncate !rounded-none !border-0 !bg-transparent !p-0 !text-left !text-sm !font-semibold !text-rv-navy !shadow-none transition-colors hover:!text-rv-pink focus-visible:!outline-none focus-visible:underline focus-visible:decoration-2 dark:!text-white dark:hover:!text-rv-pink";
+const chipBase = "inline-flex w-[3.75rem] items-center justify-center gap-1 rounded-md border px-1.5 py-1 text-xs font-extrabold tabular-nums text-rv-navy dark:text-white";
+const discChip = `${chipBase} border-rv-pink/30 bg-rv-pink/10 dark:bg-rv-pink/15`;
+const coverChip = `${chipBase} border-rv-purple/30 bg-rv-purple/10 dark:border-rv-purple/40 dark:bg-rv-purple/20`;
+const chipPlaceholder = "inline-block w-[3.75rem]";
+
+const comparisonTone = computed(() => {
+  const difference = summary.value?.metrics.weekOverWeek.difference ?? 0;
+  if (difference > 0) return { icon: faArrowTrendUp, classes: "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-300" };
+  if (difference < 0) return { icon: faArrowTrendDown, classes: "bg-amber-100 text-amber-900 dark:bg-amber-500/15 dark:text-amber-300" };
+  return { icon: faMinus, classes: "bg-white/80 text-gray-600 dark:bg-white/10 dark:text-gray-300" };
+});
 
 const periodLabel = computed(() => {
   const period = summary.value?.period;
@@ -167,14 +183,11 @@ function retry(): void {
 
 <template>
   <section class="flex flex-1 flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-rv-darkSurface" aria-labelledby="latest-votes-title">
-    <header class="shrink-0 border-b border-gray-100 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 px-4 py-2.5 dark:border-white/10 dark:from-rv-purple/10 dark:to-rv-pink/10 sm:flex sm:items-center sm:justify-between sm:gap-4 sm:px-5">
-      <div class="flex items-center gap-2">
-        <font-awesome-icon :icon="faClockRotateLeft" class="text-purple-800 dark:text-purple-300" aria-hidden="true" />
-        <h3 id="latest-votes-title" class="text-sm font-bold text-gray-900 dark:text-white">Tu semana musical</h3>
-        <span v-if="periodLabel" class="hidden text-xs text-gray-500 dark:text-gray-400 sm:inline">· {{ periodLabel }}</span>
-      </div>
-      <p v-if="periodLabel" class="pl-6 text-[11px] capitalize text-gray-500 dark:text-gray-400 sm:hidden">{{ periodLabel }}</p>
-      <div v-else-if="isLoading" class="ml-6 mt-1 h-2.5 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10 sm:ml-0 sm:mt-0" aria-hidden="true"></div>
+    <header class="flex shrink-0 flex-wrap items-center gap-x-2 gap-y-0.5 border-b border-gray-100 bg-gradient-to-r from-rv-purple/8 to-rv-pink/8 px-6 py-4 dark:border-white/10 dark:from-rv-purple/10 dark:to-rv-pink/10">
+      <font-awesome-icon :icon="faCalendarWeek" class="text-rv-purple" aria-hidden="true" />
+      <h3 id="latest-votes-title" class="font-bold text-gray-900 dark:text-white">Tu semana musical</h3>
+      <span v-if="periodLabel" class="text-xs text-gray-500 dark:text-gray-400">· {{ periodLabel }}</span>
+      <span v-else-if="isLoading" class="h-2.5 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10" aria-hidden="true"></span>
     </header>
 
     <div v-if="isLoading" class="space-y-2.5 p-3 sm:p-4" role="status" aria-live="polite">
@@ -190,7 +203,7 @@ function retry(): void {
 
     <div v-else-if="hasError" class="p-4 text-center" role="alert">
       <p class="text-sm text-red-600 dark:text-red-400">No se pudo cargar tu semana musical.</p>
-      <button type="button" class="mt-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-purple-800 underline-offset-2 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-700 dark:text-purple-300 dark:focus-visible:outline-purple-300" @click="retry">
+      <button type="button" class="mt-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-rv-navy underline-offset-2 hover:text-rv-pink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:text-white" @click="retry">
         Reintentar
       </button>
     </div>
@@ -199,68 +212,89 @@ function retry(): void {
       Inicia sesión para ver tu semana musical.
     </div>
 
-    <div v-else-if="summary" class="space-y-2.5 p-3 sm:p-4">
-      <div class="flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center text-[11px] leading-tight text-gray-700 dark:text-gray-300" aria-label="Indicadores de la semana">
-        <span class="whitespace-nowrap"><strong class="text-base font-bold tabular-nums text-purple-800 dark:text-purple-300">{{ summary.metrics.activeRates }}</strong> Votos <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">·</span></span>
-        <span class="whitespace-nowrap"><strong class="text-base font-bold tabular-nums text-rose-800 dark:text-rose-300">{{ summary.metrics.averageMusicalRate === null ? "—" : formatScore(summary.metrics.averageMusicalRate) }}</strong> Media <span class="text-gray-400 dark:text-gray-500" aria-hidden="true">·</span></span>
-        <span class="whitespace-nowrap"><strong class="text-base font-bold tabular-nums text-blue-800 dark:text-blue-300">{{ summary.metrics.distinctGenres }}</strong> Géneros</span>
+    <div v-else-if="summary" class="space-y-4 p-4 sm:p-5">
+      <div class="rounded-xl border border-rv-pink/20 bg-gradient-to-r from-rv-pink/10 to-rv-purple/10 p-3 dark:border-white/10 dark:from-rv-pink/15 dark:to-rv-purple/15">
+        <dl class="grid grid-cols-3 gap-2" aria-label="Indicadores de la semana">
+          <div :class="statTile">
+            <dt :class="statLabel">Votos</dt>
+            <dd :class="statValue">{{ summary.metrics.activeRates }}</dd>
+          </div>
+          <div :class="statTile">
+            <dt :class="statLabel">Media</dt>
+            <dd :class="statValue">{{ summary.metrics.averageMusicalRate === null ? "—" : formatScore(summary.metrics.averageMusicalRate) }}</dd>
+          </div>
+          <div :class="statTile">
+            <dt :class="statLabel">Géneros</dt>
+            <dd :class="statValue">{{ summary.metrics.distinctGenres }}</dd>
+          </div>
+        </dl>
+
+        <p class="mt-2.5 flex justify-center" aria-live="polite">
+          <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" :class="comparisonTone.classes" data-test="week-comparison">
+            <font-awesome-icon :icon="comparisonTone.icon" class="text-[11px]" aria-hidden="true" />
+            <template v-if="summary.metrics.weekOverWeek.difference === 0">Sin cambios respecto a la semana pasada</template>
+            <template v-else>{{ formatDifference(summary.metrics.weekOverWeek.difference) }} respecto a la semana pasada</template>
+            <span v-if="summary.metrics.weekOverWeek.percentageChange !== null && Number.isFinite(summary.metrics.weekOverWeek.percentageChange)" class="font-normal opacity-80">
+              ({{ formatPercentage(summary.metrics.weekOverWeek.percentageChange) }})
+            </span>
+          </span>
+        </p>
       </div>
 
       <p v-if="summary.metrics.activeRates === 0 && recentRates.length" class="text-center text-xs text-gray-500 dark:text-gray-400">
         Sin actividad esta semana; aquí tienes tus Rates recientes.
       </p>
 
-      <p class="text-[11px] leading-tight text-gray-600 dark:text-gray-400" aria-live="polite">
-        <font-awesome-icon :icon="faChartLine" class="mr-1 text-purple-800 dark:text-purple-300" aria-hidden="true" />
-        <template v-if="summary.metrics.weekOverWeek.difference === 0">Sin cambios respecto a la semana pasada</template>
-        <template v-else>{{ formatDifference(summary.metrics.weekOverWeek.difference) }} respecto a la semana pasada</template>
-        <span v-if="summary.metrics.weekOverWeek.percentageChange !== null && Number.isFinite(summary.metrics.weekOverWeek.percentageChange)" class="ml-1 text-gray-500 dark:text-gray-400">
-          ({{ formatPercentage(summary.metrics.weekOverWeek.percentageChange) }})
-        </span>
-      </p>
-
-      <div class="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2 min-[420px]:gap-4">
-        <div class="min-w-0 text-center">
-          <p class="text-[9px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nota más alta</p>
-          <template v-if="summary.metrics.bestRatedDisc">
-            <div class="mt-0.5 flex min-w-0 flex-wrap items-baseline justify-center gap-x-1.5 text-xs leading-snug">
+      <div class="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+        <div class="min-w-0 rounded-lg border border-rv-pink/20 bg-rv-pink/5 px-3 py-2.5 dark:border-rv-pink/25 dark:bg-rv-pink/10" data-test="week-best-disc">
+          <p :class="statLabel" class="flex items-center gap-1.5">
+            <font-awesome-icon :icon="faTrophy" class="text-[10px] text-rv-pink" aria-hidden="true" />
+            Nota más alta
+          </p>
+          <div v-if="summary.metrics.bestRatedDisc" class="mt-1 flex min-w-0 items-center gap-2">
+            <div class="min-w-0 flex-1">
               <button
                 v-if="canOpenDisc(summary.metrics.bestRatedDisc)"
                 type="button"
-                class="!inline !appearance-none !rounded-none !border-0 !bg-transparent !p-0 !text-xs !font-semibold !text-purple-800 !shadow-none underline decoration-purple-200 underline-offset-2 hover:!text-purple-900 hover:decoration-current focus-visible:!outline-none focus-visible:underline focus-visible:decoration-2 dark:!text-purple-300 dark:hover:!text-purple-200 dark:decoration-purple-800"
+                :class="discLink"
+                :title="summary.metrics.bestRatedDisc.discName"
                 @click="openDisc(summary.metrics.bestRatedDisc)"
               >
                 {{ summary.metrics.bestRatedDisc.discName }}
               </button>
-              <span v-else class="font-semibold text-purple-800 dark:text-purple-300">
+              <span v-else class="block truncate text-sm font-semibold text-rv-navy dark:text-white">
                 {{ summary.metrics.bestRatedDisc.discName }}
               </span>
-              <span v-if="summary.metrics.bestRatedDisc.artist" class="text-gray-700 dark:text-gray-300">
-                — {{ summary.metrics.bestRatedDisc.artist.name }}
-              </span>
-              <span class="shrink-0 rounded bg-rose-100 px-1.5 py-0.5 text-xs font-bold tabular-nums text-rose-800 dark:bg-rose-950/50 dark:text-rose-300">
-                {{ formatScore(summary.metrics.bestRatedDisc.rate) }}
+              <span v-if="summary.metrics.bestRatedDisc.artist" class="block truncate text-xs text-gray-500 dark:text-gray-400">
+                {{ summary.metrics.bestRatedDisc.artist.name }}
               </span>
             </div>
-          </template>
-          <p v-else class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Sin notas musicales esta semana</p>
+            <span :class="discChip" class="shrink-0 !text-sm" :aria-label="`Nota musical ${formatScore(summary.metrics.bestRatedDisc.rate)} sobre 10`">
+              <font-awesome-icon :icon="faMusic" class="text-[10px] text-rv-pink" aria-hidden="true" />
+              {{ formatScore(summary.metrics.bestRatedDisc.rate) }}
+            </span>
+          </div>
+          <p v-else class="mt-1 text-xs text-gray-500 dark:text-gray-400">Sin notas musicales esta semana</p>
         </div>
 
-        <div class="min-w-0 text-center">
-          <p class="text-[9px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Género más votado</p>
-          <p class="mt-0.5 break-words text-xs font-bold text-gray-900 dark:text-gray-100">
-            <template v-if="summary.metrics.dominantGenre">
-              {{ summary.metrics.dominantGenre.name }} · {{ summary.metrics.dominantGenre.activeRates }} votos
-            </template>
-            <template v-else>Sin datos</template>
+        <div class="min-w-0 rounded-lg border border-rv-purple/20 bg-rv-purple/5 px-3 py-2.5 dark:border-rv-purple/30 dark:bg-rv-purple/10" data-test="week-dominant-genre">
+          <p :class="statLabel" class="flex items-center gap-1.5">
+            <font-awesome-icon :icon="faTags" class="text-[10px] text-rv-purple dark:text-rv-pink" aria-hidden="true" />
+            Género más votado
           </p>
+          <template v-if="summary.metrics.dominantGenre">
+            <p class="mt-1 truncate text-sm font-semibold text-rv-navy dark:text-white" :title="summary.metrics.dominantGenre.name">{{ summary.metrics.dominantGenre.name }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{ summary.metrics.dominantGenre.activeRates }} votos</p>
+          </template>
+          <p v-else class="mt-1 text-xs text-gray-500 dark:text-gray-400">Sin datos</p>
         </div>
       </div>
 
       <section aria-labelledby="recent-rates-title">
-        <div class="mb-1 flex items-center justify-between gap-2 border-b border-gray-100 pb-1 dark:border-white/10">
-          <h4 id="recent-rates-title" class="text-xs font-bold text-gray-900 dark:text-white">Tus últimos 5 votos</h4>
-        </div>
+        <h4 id="recent-rates-title" class="mb-1 flex items-center gap-2 text-sm font-bold text-rv-navy dark:text-white">
+          <font-awesome-icon :icon="faClockRotateLeft" class="text-xs text-rv-pink" aria-hidden="true" />
+          Tus últimos 5 votos
+        </h4>
 
         <p v-if="recentRates.length === 0 && summary.metrics.activeRates === 0" class="rounded-lg bg-gray-50 px-3 py-3 text-center text-xs text-gray-500 dark:bg-white/5 dark:text-gray-400">
           Aún no tienes Rates guardados.
@@ -268,43 +302,46 @@ function retry(): void {
         <p v-else-if="recentRates.length === 0" class="rounded-lg bg-gray-50 px-3 py-3 text-center text-xs text-gray-500 dark:bg-white/5 dark:text-gray-400">
           No hay discos disponibles para mostrar.
         </p>
-        <ul v-else class="divide-y divide-gray-100 dark:divide-white/5">
-          <li v-for="rate in recentRates" :key="rate.id" class="grid min-w-0 grid-cols-[2.25rem_minmax(0,1fr)_4.25rem] items-center gap-2 py-1.5">
+        <ul v-else class="divide-y divide-gray-100 dark:divide-white/10">
+          <li v-for="rate in recentRates" :key="rate.id" class="flex min-w-0 items-center gap-3 py-2">
             <img
               :src="rate.coverImage || defaultDiscImage"
               :alt="rate.coverImage ? `Portada de ${rate.discName}` : ''"
-              class="h-9 w-9 shrink-0 rounded-md bg-gray-100 object-cover dark:bg-white/5"
+              class="h-10 w-10 shrink-0 rounded-md bg-gray-100 object-cover dark:bg-white/5"
               loading="lazy"
               @error="useFallbackImage"
             />
-            <p class="min-w-0 break-words text-center text-xs leading-snug">
+            <div class="min-w-0 flex-1">
               <button
                 v-if="canOpenDisc(rate)"
                 type="button"
-                class="!inline !appearance-none !rounded-none !border-0 !bg-transparent !p-0 !text-xs !font-semibold !text-purple-800 !shadow-none underline decoration-purple-200 underline-offset-2 hover:!text-purple-900 hover:decoration-current focus-visible:!outline-none focus-visible:underline focus-visible:decoration-2 dark:!text-purple-300 dark:hover:!text-purple-200 dark:decoration-purple-800"
+                :class="discLink"
+                :title="rate.discName"
                 :aria-label="`Ver detalles de ${rate.discName}, ${rate.artist?.name}`"
                 @click="openDisc(rate)"
               >
                 {{ rate.discName }}
               </button>
-              <span v-else class="font-semibold text-purple-800 dark:text-purple-300">{{ rate.discName || "Disco no disponible" }}</span>
-              <span class="text-gray-700 dark:text-gray-300"> — {{ rate.artist?.name ?? "Artista no disponible" }}</span>
-              <time class="text-gray-500 dark:text-gray-400" :datetime="rate.lastActivityAt">
-                ({{ formatActivityDate(rate.lastActivityAt) }})
-              </time>
-            </p>
-            <div class="grid w-[4.75rem] shrink-0 grid-cols-[2.25rem_2.25rem] items-center gap-1">
-              <span v-if="rate.rate !== null" class="inline-flex w-full items-center justify-center whitespace-nowrap text-[10px] font-bold tabular-nums text-rose-800 dark:text-rose-300" :aria-label="`Nota musical ${formatScore(rate.rate)} sobre 10`">
-                <font-awesome-icon :icon="faMusic" class="mr-0.5 h-2 w-2 shrink-0" aria-hidden="true" />
-                {{ formatScore(rate.rate) }}
-              </span>
-              <span v-else aria-hidden="true" class="w-full"></span>
-              <span v-if="rate.cover !== null" class="inline-flex w-full items-center justify-center whitespace-nowrap text-[10px] font-bold tabular-nums text-blue-800 dark:text-blue-300" :aria-label="`Nota de portada ${formatScore(rate.cover)} sobre 10`">
-                <font-awesome-icon :icon="faImage" class="mr-0.5 h-2 w-2 shrink-0" aria-hidden="true" />
-                {{ formatScore(rate.cover) }}
-              </span>
-              <span v-else-if="rate.rate !== null" aria-hidden="true" class="w-full"></span>
-              <span v-if="rate.rate === null && rate.cover === null" class="col-span-2 justify-self-end text-[10px] text-gray-600 dark:text-gray-400">Sin nota</span>
+              <span v-else class="block truncate text-sm font-semibold text-rv-navy dark:text-white">{{ rate.discName || "Disco no disponible" }}</span>
+              <p class="truncate text-xs text-gray-500 dark:text-gray-400">
+                {{ rate.artist?.name ?? "Artista no disponible" }}
+                <span aria-hidden="true">·</span>&#32;<time :datetime="rate.lastActivityAt">{{ formatActivityDate(rate.lastActivityAt) }}</time>
+              </p>
+            </div>
+            <div class="flex shrink-0 items-center gap-1.5" data-test="recent-rate-scores">
+              <template v-if="rate.rate !== null || rate.cover !== null">
+                <span v-if="rate.rate !== null" :class="discChip" :aria-label="`Nota musical ${formatScore(rate.rate)} sobre 10`">
+                  <font-awesome-icon :icon="faMusic" class="text-[10px] text-rv-pink" aria-hidden="true" />
+                  {{ formatScore(rate.rate) }}
+                </span>
+                <span v-else :class="chipPlaceholder" aria-hidden="true"></span>
+                <span v-if="rate.cover !== null" :class="coverChip" :aria-label="`Nota de portada ${formatScore(rate.cover)} sobre 10`">
+                  <font-awesome-icon :icon="faImage" class="text-[10px] text-rv-purple dark:text-rv-pink" aria-hidden="true" />
+                  {{ formatScore(rate.cover) }}
+                </span>
+                <span v-else :class="chipPlaceholder" aria-hidden="true"></span>
+              </template>
+              <span v-else class="text-xs text-gray-500 dark:text-gray-400">Sin nota</span>
             </div>
           </li>
         </ul>

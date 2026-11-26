@@ -1040,12 +1040,12 @@ export default defineComponent({
   color: #e46e8a;
 }
 
-:global(.dark) .filter-chip {
+.dark .filter-chip {
   border-color: rgba(255, 255, 255, 0.12);
   color: #9ca3af;
 }
 
-:global(.dark) .filter-chip:hover {
+.dark .filter-chip:hover {
   border-color: #e46e8a;
   color: #e46e8a;
 }
@@ -1127,20 +1127,20 @@ export default defineComponent({
   color: #9ca3af;
 }
 
-:global(.dark) .user-input {
+.dark .user-input {
   background: #2a2b3d;
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
 }
 
-:global(.dark) .user-input::placeholder {
+.dark .user-input::placeholder {
   color: #6b7280;
 }
 
 .date-input {
   color-scheme: light;
 }
-:global(.dark) .date-input {
+.dark .date-input {
   color-scheme: dark;
 }
 

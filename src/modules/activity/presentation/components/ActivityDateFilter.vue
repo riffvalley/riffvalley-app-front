@@ -286,39 +286,39 @@ function clearFilter(): void {
 .timezone-error { color: #b91c1c; }
 .timezone-error { margin: 0 0 0.75rem; }
 
-:global(.dark) .date-filter {
+.dark .date-filter {
   border-color: rgb(255 255 255 / 12%);
   background: #2a2b3d;
 }
 
-:global(.dark) .date-hint { color: #cbd5e1; }
-:global(.dark) .date-field { color: #e2e8f0; }
+.dark .date-hint { color: #cbd5e1; }
+.dark .date-field { color: #e2e8f0; }
 
-:global(.dark) .mode-button,
-:global(.dark) .clear-button,
-:global(.dark) .apply-button,
-:global(.dark) .date-input {
+.dark .mode-button,
+.dark .clear-button,
+.dark .apply-button,
+.dark .date-input {
   border-color: rgb(255 255 255 / 18%);
   background: #404157;
   color: #f8fafc;
   color-scheme: dark;
 }
 
-:global(.dark) .mode-button--active {
+.dark .mode-button--active {
   border-color: #e46e8a;
   background: rgb(228 110 138 / 16%);
   color: #fecdd6;
 }
 
-:global(.dark) .mode-button:hover,
-:global(.dark) .clear-button:hover,
-:global(.dark) .apply-button:hover:not(:disabled) {
+.dark .mode-button:hover,
+.dark .clear-button:hover,
+.dark .apply-button:hover:not(:disabled) {
   border-color: #e46e8a;
   color: #fecdd6;
 }
 
-:global(.dark) .date-error,
-:global(.dark) .timezone-error { color: #fca5a5; }
+.dark .date-error,
+.dark .timezone-error { color: #fca5a5; }
 
 @media (prefers-reduced-motion: reduce) {
   .mode-button,

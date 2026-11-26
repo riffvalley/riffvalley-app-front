@@ -639,7 +639,7 @@
 
     <div
       v-if="showClearConfirmation"
-      class="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4"
+      class="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
       @click.self="closeClearConfirmation"
     >
       <div
@@ -694,7 +694,7 @@
 
     <div
       v-if="showDeleteConfirmation"
-      class="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4"
+      class="fixed inset-0 z-[60] grid place-items-center bg-black/70 p-4 backdrop-blur-sm"
       @click.self="closeDeleteConfirmation"
     >
       <div

@@ -224,13 +224,13 @@ const unavailableReason = computed(() => {
   font-size: 0.75rem;
   line-height: 1.45;
 }
-:global(.dark) .metric-help summary {
+.dark .metric-help summary {
   color: #f2aac0;
 }
-:global(.dark) .metric-help summary:hover {
+.dark .metric-help summary:hover {
   background: rgb(228 110 138 / 14%);
 }
-:global(.dark) .metric-help-panel {
+.dark .metric-help-panel {
   border-color: rgb(255 255 255 / 16%);
   background: #242536;
   color: #f1f5f9;

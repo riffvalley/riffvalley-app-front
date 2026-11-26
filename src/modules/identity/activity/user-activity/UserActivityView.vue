@@ -587,7 +587,7 @@ function fmtDate(iso: string) {
   color: #0064d6;
   border: 1px solid rgba(0, 100, 214, 0.2);
 }
-:global(.dark) .score-blue {
+.dark .score-blue {
   color: #60a5fa;
 }
 .page-btn {
@@ -706,24 +706,24 @@ function fmtDate(iso: string) {
     background-position: -200% 0;
   }
 }
-:global(.dark) .detail-metric {
+.dark .detail-metric {
   border-color: rgb(255 255 255 / 12%);
   background: #242536;
 }
-:global(.dark) .detail-metric h4,
-:global(.dark) .detail-metric p span,
-:global(.dark) .detail-metric small {
+.dark .detail-metric h4,
+.dark .detail-metric p span,
+.dark .detail-metric small {
   color: #cbd5e1;
 }
-:global(.dark) .detail-metric strong,
-:global(.dark) .detail-metric .detail-primary-value {
+.dark .detail-metric strong,
+.dark .detail-metric .detail-primary-value {
   color: #f8fafc;
 }
-:global(.dark) .detail-metric--stock,
-:global(.dark) .coverage-note {
+.dark .detail-metric--stock,
+.dark .coverage-note {
   background: #2a2b3d;
 }
-:global(.dark) .coverage-note {
+.dark .coverage-note {
   border-color: rgb(255 255 255 / 12%);
   color: #cbd5e1;
 }

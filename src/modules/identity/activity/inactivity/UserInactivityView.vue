@@ -465,56 +465,56 @@ function retry() {
   width: 68%;
 }
 
-:global(.dark) .page-header {
+.dark .page-header {
   border-bottom-color: rgb(255 255 255 / 10%);
 }
 
-:global(.dark) .page-header p,
-:global(.dark) .users-heading-row p,
-:global(.dark) .query-status,
-:global(.dark) .coverage-panel > p,
-:global(.dark) .coverage-panel dt,
-:global(.dark) .empty-state,
-:global(.dark) .pagination,
-:global(.dark) .error-panel p {
+.dark .page-header p,
+.dark .users-heading-row p,
+.dark .query-status,
+.dark .coverage-panel > p,
+.dark .coverage-panel dt,
+.dark .empty-state,
+.dark .pagination,
+.dark .error-panel p {
   color: #c2c7d2;
 }
 
-:global(.dark) .population-count {
+.dark .population-count {
   color: #e7a9d4;
 }
 
-:global(.dark) .filter-panel,
-:global(.dark) .coverage-panel,
-:global(.dark) .error-panel,
-:global(.dark) .loading-panel,
-:global(.dark) .empty-state {
+.dark .filter-panel,
+.dark .coverage-panel,
+.dark .error-panel,
+.dark .loading-panel,
+.dark .empty-state {
   border-color: rgb(255 255 255 / 10%);
   background: #171923;
 }
 
-:global(.dark) .coverage-status--partial {
+.dark .coverage-status--partial {
   background: #493a2a;
   color: #ead1ac;
 }
 
-:global(.dark) .coverage-status--unavailable {
+.dark .coverage-status--unavailable {
   background: #343744;
   color: #e0e3ea;
 }
 
-:global(.dark) .pagination button,
-:global(.dark) .retry-button {
+.dark .pagination button,
+.dark .retry-button {
   border-color: rgb(255 255 255 / 16%);
   background: #20232d;
   color: #f4f5f8;
 }
 
-:global(.dark) .error-panel h2 {
+.dark .error-panel h2 {
   color: #ff9ba8;
 }
 
-:global(.dark) .loading-line {
+.dark .loading-line {
   background: linear-gradient(90deg, #252833, #303440, #252833);
   background-size: 200% 100%;
 }

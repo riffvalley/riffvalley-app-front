@@ -254,21 +254,21 @@ function handleKeydown(event: KeyboardEvent): void {
 .retry-button:hover { border-color: #e46e8a; background: #e46e8a; }
 
 /* Modo oscuro: superficies corporativas rv-darkSurface / rv-darkCard. */
-:global(.dark) .community-stats-dialog { background: #2a2b3d; color: #fff; border-color: rgb(255 255 255 / 10%); }
-:global(.dark) .dialog-header { background: linear-gradient(to right, rgb(228 110 138 / 10%), rgb(176 102 159 / 10%)), #2a2b3d; border-color: rgb(255 255 255 / 10%); }
-:global(.dark) .metric-card, :global(.dark) .content-section { background: rgb(255 255 255 / 5%); border-color: rgb(255 255 255 / 10%); box-shadow: none; }
-:global(.dark) .dialog-header h2, :global(.dark) .section-heading h3, :global(.dark) .metric-card strong, :global(.dark) .streak-name, :global(.dark) .genre-details strong, :global(.dark) .bucket-count { color: #fff; }
-:global(.dark) .dialog-subtitle, :global(.dark) .metric-card p, :global(.dark) .metric-card strong small, :global(.dark) .section-note, :global(.dark) .section-mark, :global(.dark) .empty-copy, :global(.dark) .bucket-label, :global(.dark) .genre-details small, :global(.dark) .streak-days small, :global(.dark) .state-message { color: #9ca3af; }
-:global(.dark) .metric-icon { background: rgb(228 110 138 / 18%); }
-:global(.dark) .distribution-list .bar-track { background: rgb(255 255 255 / 6%); }
-:global(.dark) .streak-row, :global(.dark) .top-genre-row { border-color: rgb(255 255 255 / 8%); }
-:global(.dark) .streak-rank, :global(.dark) .genre-rank { background: #404157; color: #e5e7eb; }
-:global(.dark) .state-message.error-state { color: #fb7185; }
-:global(.dark) .retry-button { border-color: #e5e7eb; background: #e5e7eb; color: #00021f; }
-:global(.dark) .retry-button:hover { border-color: #e46e8a; background: #e46e8a; color: #fff; }
-:global(.dark) .genre-rank--1 { background: rgb(251 191 36 / 18%); color: #fcd34d; }
-:global(.dark) .genre-rank--2 { background: #404157; color: #e5e7eb; }
-:global(.dark) .genre-rank--3 { background: rgb(234 88 12 / 18%); color: #fdba74; }
+.dark .community-stats-dialog { background: #2a2b3d; color: #fff; border-color: rgb(255 255 255 / 10%); }
+.dark .dialog-header { background: linear-gradient(to right, rgb(228 110 138 / 10%), rgb(176 102 159 / 10%)), #2a2b3d; border-color: rgb(255 255 255 / 10%); }
+.dark .metric-card, .dark .content-section { background: rgb(255 255 255 / 5%); border-color: rgb(255 255 255 / 10%); box-shadow: none; }
+.dark .dialog-header h2, .dark .section-heading h3, .dark .metric-card strong, .dark .streak-name, .dark .genre-details strong, .dark .bucket-count { color: #fff; }
+.dark .dialog-subtitle, .dark .metric-card p, .dark .metric-card strong small, .dark .section-note, .dark .section-mark, .dark .empty-copy, .dark .bucket-label, .dark .genre-details small, .dark .streak-days small, .dark .state-message { color: #9ca3af; }
+.dark .metric-icon { background: rgb(228 110 138 / 18%); }
+.dark .distribution-list .bar-track { background: rgb(255 255 255 / 6%); }
+.dark .streak-row, .dark .top-genre-row { border-color: rgb(255 255 255 / 8%); }
+.dark .streak-rank, .dark .genre-rank { background: #404157; color: #e5e7eb; }
+.dark .state-message.error-state { color: #fb7185; }
+.dark .retry-button { border-color: #e5e7eb; background: #e5e7eb; color: #00021f; }
+.dark .retry-button:hover { border-color: #e46e8a; background: #e46e8a; color: #fff; }
+.dark .genre-rank--1 { background: rgb(251 191 36 / 18%); color: #fcd34d; }
+.dark .genre-rank--2 { background: #404157; color: #e5e7eb; }
+.dark .genre-rank--3 { background: rgb(234 88 12 / 18%); color: #fdba74; }
 
 @media (max-width: 760px) {
   .community-stats-overlay { padding: .5rem; }
