@@ -104,7 +104,7 @@ const periods = [
             <p class="mb-2 text-[11px] text-gray-500 dark:text-gray-400">{{ countLabel(props.summary ? period.rated(props.summary) : null, 'disco votado', 'discos votados') }}</p>
             <dl class="space-y-1 border-t border-gray-200/80 pt-2 text-xs dark:border-white/10">
               <div class="flex min-w-0 justify-between gap-2">
-                <dt class="truncate text-gray-500 dark:text-gray-400">Géneros explorados</dt>
+                <dt class="truncate text-gray-500 dark:text-gray-400">Géneros</dt>
                 <dd class="shrink-0 font-semibold tabular-nums text-gray-800 dark:text-gray-100">{{ formatCount(props.summary ? period.genres(props.summary) : null, 'género', 'géneros') }}</dd>
               </div>
               <div class="flex min-w-0 justify-between gap-2">
@@ -112,7 +112,7 @@ const periods = [
                 <dd class="shrink-0 font-semibold tabular-nums text-gray-800 dark:text-gray-100">{{ formatCount(props.summary ? period.activeDays(props.summary) : null, 'día', 'días') }}</dd>
               </div>
               <div class="flex min-w-0 justify-between gap-2" :title="period.id === 'history' ? 'Catálogo completo' : 'Lanzamientos musicales según su fecha de lanzamiento'">
-                <dt class="truncate text-gray-500 dark:text-gray-400">Discos del catálogo</dt>
+                <dt class="truncate text-gray-500 dark:text-gray-400">Catálogo</dt>
                 <dd class="shrink-0 font-semibold tabular-nums text-gray-800 dark:text-gray-100">{{ formatCount(props.summary ? period.catalog(props.summary) : null, 'disco', 'discos') }}</dd>
               </div>
             </dl>

@@ -57,6 +57,8 @@ button {
 #app {
   margin: 0 auto;
   text-align: center;
+  /* Con body en flex columna y margin auto, #app tomaría el ancho de su contenido y desbordaría en móvil. */
+  width: 100%;
   min-width: 100%;
   min-height: 100%;
 }

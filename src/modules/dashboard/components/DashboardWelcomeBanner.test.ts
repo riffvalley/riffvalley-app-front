@@ -99,7 +99,7 @@ describe("DashboardWelcomeBanner", () => {
     expect(wrapper.get('[data-test="banner-period-month"]').text()).toContain("0 géneros");
     expect(wrapper.get('[data-test="banner-period-month"]').text()).toContain("0 discos");
     expect(wrapper.get('[data-test="banner-period-year"]').text()).toContain("0discos votados");
-    expect(wrapper.get('[data-test="banner-period-year"]').text()).toContain("Géneros explorados—Días activos");
+    expect(wrapper.get('[data-test="banner-period-year"]').text()).toContain("Géneros—Días activos");
   });
 
   it("uses singular labels for one voted disc, genre, active day, and catalog release", () => {
