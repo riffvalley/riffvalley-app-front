@@ -43,6 +43,10 @@ export function venueIdentity(input: VenueResolutionInput): string {
 /** QueryCache owns completed results. These maps only join pending requests inside one table. */
 export function useEventGeographyResolution(queryClient: QueryClient) {
   const pending = new Map<Kind, Map<string, Pending<Result>>>();
+  const sessionResults = new Map<Kind, Map<string, Result>>([
+    ["locality", new Map()],
+    ["venue", new Map()],
+  ]);
   const queued = new Map<Kind, Pending<Result>[]>([
     ["locality", []],
     ["venue", []],
@@ -57,6 +61,8 @@ export function useEventGeographyResolution(queryClient: QueryClient) {
   }
 
   function cached(kind: Kind, key: string): Result | undefined {
+    const sessionResult = sessionResults.get(kind)?.get(key);
+    if (sessionResult) return sessionResult;
     const now = Date.now();
     const queries = queryClient.getQueryCache().findAll({
       queryKey: [...entityResolutionQueryKeys.all, kind],
@@ -123,8 +129,10 @@ export function useEventGeographyResolution(queryClient: QueryClient) {
               : (response as Result[]);
           batch.forEach((entry, index) => {
             const value = values[index];
-            if (value) entry.resolve(value);
-            else
+            if (value) {
+              sessionResults.get(kind)!.set(entry.key, value);
+              entry.resolve(value);
+            } else
               entry.reject(new Error("La respuesta geográfica no contiene el índice solicitado."));
             if (pending.get(kind)?.get(entry.key) === entry) pending.get(kind)!.delete(entry.key);
           });
@@ -199,6 +207,7 @@ export function useEventGeographyResolution(queryClient: QueryClient) {
       for (const entries of queued.values())
         entries.splice(0).forEach((entry) => entry.reject(error));
       pending.clear();
+      sessionResults.forEach((results) => results.clear());
     },
   };
 }

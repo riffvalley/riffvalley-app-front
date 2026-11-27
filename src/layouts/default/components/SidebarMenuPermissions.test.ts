@@ -101,6 +101,7 @@ describe("import options in sidebar", () => {
     expect(wrapper.find('[data-to="/import"]').exists()).toBe(false);
     expect(wrapper.find('[data-to="/import-discs"]').exists()).toBe(false);
     expect(wrapper.find('[data-to="/concerts-festivals"]').exists()).toBe(false);
+    expect(wrapper.find('[data-to="/concerts-festivals/import"]').exists()).toBe(false);
     expect(wrapper.find('[data-to="/venues"]').exists()).toBe(false);
     wrapper.unmount();
   });
@@ -130,7 +131,10 @@ describe("import options in sidebar", () => {
 
       expect(entry.exists()).toBe(true);
       expect(group).toBeDefined();
-      expect(entry.text()).toContain("Importador");
+      expect(entry.text()).toContain("Listado");
+      expect(wrapper.find('[data-to="/concerts-festivals/import"]').text()).toContain(
+        "Importador",
+      );
       const summaryLabels = wrapper.findAll("summary").map((summary) => summary.text());
       const newDiscsIndex = summaryLabels.findIndex((label) => label.includes("Nuevos Discos"));
       const concertsIndex = summaryLabels.findIndex((label) =>

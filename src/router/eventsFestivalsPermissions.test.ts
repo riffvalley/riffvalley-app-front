@@ -10,9 +10,12 @@ describe("Events and festivals route contract", () => {
     await router.push("/login");
   });
 
-  it("registers the importer as an authenticated Riff Valley route", () => {
+  it("registers the listing and importer as authenticated Riff Valley routes", () => {
+    const listing = router.getRoutes().find(({ name }) => name === "EventsFestivals");
     const route = router.getRoutes().find(({ name }) => name === "EventsFestivalsImport");
-    expect(route?.path).toBe("/concerts-festivals");
+    expect(listing?.path).toBe("/concerts-festivals");
+    expect(listing?.meta).toMatchObject({ requiresAuth: true, requiresRole: "riffvalley" });
+    expect(route?.path).toBe("/concerts-festivals/import");
     expect(route?.meta).toMatchObject({ requiresAuth: true, requiresRole: "riffvalley" });
   });
 
@@ -28,6 +31,8 @@ describe("Events and festivals route contract", () => {
 
     auth.$patch({ role: "riffvalley" });
     await router.push("/concerts-festivals");
+    expect(router.currentRoute.value.name).toBe("EventsFestivals");
+    await router.push("/concerts-festivals/import");
     expect(router.currentRoute.value.name).toBe("EventsFestivalsImport");
   });
 });

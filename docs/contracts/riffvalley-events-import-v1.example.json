@@ -1,0 +1,33 @@
+{
+  "format": "riffvalley.events-import",
+  "version": 1,
+  "source": {
+    "name": "Example scraper"
+  },
+  "country": "ES",
+  "events": [
+    {
+      "type": "concert",
+      "title": "Architects + Spiritbox",
+      "startDate": "2027-06-12",
+      "artists": ["Architects", "Spiritbox"],
+      "venue": "Sala Example",
+      "locality": "Barcelona",
+      "province": "Barcelona",
+      "region": "Cataluña",
+      "price": "Desde 35 €",
+      "additionalInfo": "Apertura de puertas 19:00",
+      "url": "https://example.test/events/123",
+      "externalId": "example-123"
+    },
+    {
+      "type": "festival",
+      "title": "Festival de verano",
+      "startDate": "2027-07-01",
+      "endDate": "2027-07-03",
+      "artists": ["Artista A", "Artista B"],
+      "locality": "Santander",
+      "country": "ES"
+    }
+  ]
+}

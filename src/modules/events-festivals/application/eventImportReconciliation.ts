@@ -20,6 +20,10 @@ export function countDistinctCreatedEvents(response: ImportBatchResponse): numbe
   ).size;
 }
 
+export function countUnchangedEvents(response: ImportBatchResponse): number {
+  return response.results.filter(({ result }) => result.status === "unchanged").length;
+}
+
 /** Reconcile only results proven to belong to the immutable request snapshot. */
 export function reconcileEventImportResults(
   snapshot: ImportSnapshot,
@@ -62,7 +66,7 @@ export function reconcileEventImportResults(
 
     const rowPresent = rowExists(sent.rowKey);
     const current = rowPresent && isCurrent(snapshot, sent.rowKey);
-    if (item.result.status === "created" && current) {
+    if ((item.result.status === "created" || item.result.status === "unchanged") && current) {
       rowKeysToRemove.add(sent.rowKey);
       results.push({ item, current: true, rowPresent: true, action: "removed" });
     } else if (item.result.status === "created") {

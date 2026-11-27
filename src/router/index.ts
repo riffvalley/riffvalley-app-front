@@ -53,6 +53,13 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: "/concerts-festivals",
+    name: "EventsFestivals",
+    component: () =>
+      import("@/modules/events-festivals/presentation/views/EventsFestivalsView.vue"),
+    meta: { requiresAuth: true, requiresRole: "riffvalley" },
+  },
+  {
+    path: "/concerts-festivals/import",
     name: "EventsFestivalsImport",
     component: () =>
       import("@/modules/events-festivals/presentation/views/EventsFestivalsImportView.vue"),

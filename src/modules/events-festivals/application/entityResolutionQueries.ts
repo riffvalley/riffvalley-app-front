@@ -9,6 +9,7 @@ import type {
 import { IndexedBatchProtocolError } from "@/services/api/indexedBatch";
 import { resolveVenueBatch } from "@/modules/venues";
 import type { VenueResolutionInput } from "@/modules/venues";
+import { withEntityResolutionConcurrency } from "./entityResolutionConcurrency";
 
 export const ENTITY_RESOLUTION_STALE_TIME = 15_000;
 
@@ -57,7 +58,8 @@ export function artistResolutionQueryOptions(names: readonly string[]) {
   const requestNames = [...names];
   return queryOptions({
     queryKey: entityResolutionQueryKeys.artists(requestNames),
-    queryFn: ({ signal }) => resolveArtistsBatch(requestNames, signal),
+    queryFn: ({ signal }) =>
+      withEntityResolutionConcurrency(() => resolveArtistsBatch(requestNames, signal)),
     staleTime: ENTITY_RESOLUTION_STALE_TIME,
     retry: shouldRetryResolution,
   });
@@ -67,7 +69,8 @@ export function localityInspectionQueryOptions(inputs: readonly LocalityInspecti
   const localities = inputs.map((input) => ({ ...input }));
   return queryOptions({
     queryKey: entityResolutionQueryKeys.localities(localities),
-    queryFn: ({ signal }) => inspectLocalitiesBatch({ localities }, signal),
+    queryFn: ({ signal }) =>
+      withEntityResolutionConcurrency(() => inspectLocalitiesBatch({ localities }, signal)),
     staleTime: ENTITY_RESOLUTION_STALE_TIME,
     retry: shouldRetryResolution,
   });
@@ -77,7 +80,8 @@ export function venueResolutionQueryOptions(inputs: readonly VenueResolutionInpu
   const venues = inputs.map((input) => ({ ...input }));
   return queryOptions({
     queryKey: entityResolutionQueryKeys.venues(venues),
-    queryFn: ({ signal }) => resolveVenueBatch(venues, signal),
+    queryFn: ({ signal }) =>
+      withEntityResolutionConcurrency(() => resolveVenueBatch(venues, signal)),
     staleTime: ENTITY_RESOLUTION_STALE_TIME,
     retry: shouldRetryResolution,
   });
@@ -87,7 +91,8 @@ export function tourResolutionQueryOptions(request: TourResolutionBatchRequest) 
   const names = [...request.names];
   return queryOptions({
     queryKey: entityResolutionQueryKeys.tours(names),
-    queryFn: ({ signal }) => inspectToursBatch({ names }, signal),
+    queryFn: ({ signal }) =>
+      withEntityResolutionConcurrency(() => inspectToursBatch({ names }, signal)),
     staleTime: ENTITY_RESOLUTION_STALE_TIME,
     retry: shouldRetryResolution,
   });

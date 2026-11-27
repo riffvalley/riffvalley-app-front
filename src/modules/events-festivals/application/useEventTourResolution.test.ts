@@ -47,7 +47,7 @@ describe("shared Tour resolution", () => {
     client.clear();
   });
 
-  it("requeries after freshness expires and splits more than 100 names into valid batches", async () => {
+  it("keeps session results after Query freshness expires and splits batches at 100", async () => {
     vi.useFakeTimers();
     const client = createQueryClient();
     vi.mocked(inspectToursBatch).mockImplementation(async ({ names }) =>
@@ -57,17 +57,17 @@ describe("shared Tour resolution", () => {
     await resolver.resolve(["Tour fresca"], true);
     vi.setSystemTime(Date.now() + 15_001);
     await resolver.resolve(["Tour fresca"], true);
-    expect(inspectToursBatch).toHaveBeenCalledTimes(2);
+    expect(inspectToursBatch).toHaveBeenCalledTimes(1);
 
     const names = Array.from({ length: 101 }, (_, index) => `Tour ${index}`);
     const manyTours = resolver.resolve(names);
     await vi.advanceTimersByTimeAsync(450);
     await manyTours;
-    expect(inspectToursBatch).toHaveBeenCalledTimes(4);
+    expect(inspectToursBatch).toHaveBeenCalledTimes(3);
     const lengths = vi
       .mocked(inspectToursBatch)
       .mock.calls.map(([request]) => request.names.length);
-    expect(lengths).toEqual([1, 1, 100, 1]);
+    expect(lengths).toEqual([1, 100, 1]);
     expect(lengths.every((length) => length <= 100)).toBe(true);
     client.clear();
   });

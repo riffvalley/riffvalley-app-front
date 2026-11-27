@@ -88,6 +88,7 @@ describe("importEventBatch", () => {
             rowId: rowA,
             status: "conflict",
             code: "CONCERT_DUPLICATE",
+            message: "Duplicate event",
             conflicts: [
               {
                 rowId: rowA,
@@ -117,6 +118,49 @@ describe("importEventBatch", () => {
       status: "invalid",
       code: "EVENT_DATE_INVALID",
     });
+  });
+
+  it("accepts unchanged results and correlates them to their source row", async () => {
+    postMock.mockResolvedValue({
+      data: {
+        batchId,
+        results: [
+          { rowId: rowA, status: "unchanged", eventId: "existing-event" },
+          {
+            rowId: rowB,
+            status: "created",
+            eventId: "new-event",
+            localityId: "locality-b",
+            venueId: "venue-b",
+            artistIds: [],
+            replayed: false,
+          },
+        ],
+      },
+    });
+
+    const response = await importEventBatch(snapshot());
+
+    expect(response.results[0]).toMatchObject({
+      operationRowId: rowA,
+      rowKey: "local-a",
+      revision: 2,
+      result: { status: "unchanged", eventId: "existing-event" },
+    });
+  });
+
+  it("rejects unchanged results without an existing event id", async () => {
+    postMock.mockResolvedValue({
+      data: {
+        batchId,
+        results: [
+          { rowId: rowA, status: "unchanged" },
+          { rowId: rowB, status: "failed", code: "IMPORT_ROW_FAILED", message: "Retry" },
+        ],
+      },
+    });
+
+    await expect(importEventBatch(snapshot())).rejects.toBeInstanceOf(ImportBatchProtocolError);
   });
 
   it("rejects conflict detail attributed to a different operation row", async () => {
@@ -155,29 +199,37 @@ describe("importEventBatch", () => {
       "malformed result",
       [
         { rowId: rowA, status: "created" },
-        { rowId: rowB, status: "failed" },
+        { rowId: rowB, status: "failed", code: "IMPORT_ROW_FAILED", message: "Retry" },
       ],
     ],
     [
       "duplicate rowId",
       [
-        { rowId: rowA, status: "failed" },
-        { rowId: rowA, status: "failed" },
+        { rowId: rowA, status: "failed", code: "IMPORT_ROW_FAILED", message: "Retry" },
+        { rowId: rowA, status: "failed", code: "IMPORT_ROW_FAILED", message: "Retry" },
       ],
     ],
-    ["missing result", [{ rowId: rowA, status: "failed" }]],
+    [
+      "missing result",
+      [{ rowId: rowA, status: "failed", code: "IMPORT_ROW_FAILED", message: "Retry" }],
+    ],
     [
       "unknown rowId",
       [
-        { rowId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", status: "failed" },
-        { rowId: rowB, status: "failed" },
+        {
+          rowId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+          status: "failed",
+          code: "IMPORT_ROW_FAILED",
+          message: "Retry",
+        },
+        { rowId: rowB, status: "failed", code: "IMPORT_ROW_FAILED", message: "Retry" },
       ],
     ],
     [
       "unknown status",
       [
         { rowId: rowA, status: "skipped" },
-        { rowId: rowB, status: "failed" },
+        { rowId: rowB, status: "failed", code: "IMPORT_ROW_FAILED", message: "Retry" },
       ],
     ],
   ])("rejects an inconsistent response: %s", async (_label, results) => {

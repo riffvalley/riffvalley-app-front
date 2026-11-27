@@ -4,8 +4,12 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { nextTick } from "vue";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import EventsFestivalsImportView from "./EventsFestivalsImportView.vue";
+import scrapedEvents from "../../application/__fixtures__/scraped-events-v1.json?raw";
+import { SCRAPED_EVENT_JSON_MAX_BYTES } from "../../application/scrapedEventJson";
 import EventImportTable from "../components/EventImportTable.vue";
 import LineupCell from "../components/LineupCell.vue";
+import type { ImportBatchResponse } from "../../api/eventImport";
+import type { ImportSnapshot } from "../../application/eventImportPreparation";
 import {
   localityResolutionFixtures,
   venueResolutionFixtures,
@@ -20,6 +24,8 @@ const {
   countriesMock,
   regionsMock,
   importEventBatchMock,
+  apiPostMock,
+  useRealImportBatchApi,
   confirmDiscardMock,
   sessionGetMock,
   sessionSaveMock,
@@ -33,6 +39,8 @@ const {
   countriesMock: vi.fn(),
   regionsMock: vi.fn(),
   importEventBatchMock: vi.fn(),
+  apiPostMock: vi.fn(),
+  useRealImportBatchApi: { value: false },
   confirmDiscardMock: vi.fn(),
   sessionGetMock: vi.fn(),
   sessionSaveMock: vi.fn(),
@@ -40,7 +48,7 @@ const {
 }));
 vi.mock("@/services/swal/SwalService", () => ({ default: { confirm: confirmDiscardMock } }));
 vi.mock("@/services/api/api", () => ({
-  default: { get: vi.fn().mockResolvedValue({ data: {} }) },
+  default: { get: vi.fn().mockResolvedValue({ data: {} }), post: apiPostMock },
 }));
 vi.mock("@/modules/identity/auth", () => ({
   useAuthStore: () => ({
@@ -55,10 +63,16 @@ vi.mock("../../infrastructure/eventImportSessionStorage", () => ({
   getEventImportSession: sessionGetMock,
   saveEventImportSession: sessionSaveMock,
 }));
-vi.mock("../../api/eventImport", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("../../api/eventImport")>()),
-  importEventBatch: importEventBatchMock,
-}));
+vi.mock("../../api/eventImport", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../api/eventImport")>();
+  return {
+    ...original,
+    importEventBatch: (snapshot: ImportSnapshot) =>
+      useRealImportBatchApi.value
+        ? original.importEventBatch(snapshot)
+        : importEventBatchMock(snapshot),
+  };
+});
 vi.mock("../../api/artistResolution", () => ({ resolveArtistsBatch: resolveArtistsBatchMock }));
 vi.mock("../../api/entityResolution", () => ({
   inspectLocalitiesBatch: inspectLocalitiesMock,
@@ -86,14 +100,53 @@ const allowedCountries = [
 
 const mountedViews: Array<{ wrapper: ReturnType<typeof mount>; queryClient: QueryClient }> = [];
 
-function mountImportView(attachTo?: HTMLElement) {
+async function mountImportView(attachTo?: HTMLElement, startAtLoad = false) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const wrapper = mount(EventsFestivalsImportView, {
     attachTo,
     global: { plugins: [[VueQueryPlugin, { queryClient }]] },
   });
   mountedViews.push({ wrapper, queryClient });
+  await flushPromises();
+  if (startAtLoad) {
+    await selectImportMode(wrapper, "JSON de scraping");
+  }
   return wrapper;
+}
+
+async function openImportStage(wrapper: ReturnType<typeof mount>) {
+  if (!wrapper.find('nav[aria-label="Etapas de importación"]').exists()) return;
+  const continueButton = wrapper
+    .findAll("button")
+    .find((button) => button.text().includes("Revisar confirmación de importación"));
+  if (continueButton?.exists() && !continueButton.element.disabled) {
+    await continueButton.trigger("click");
+  } else {
+    await navigateImportStageInView(wrapper, "Importar y resultados");
+  }
+  await nextTick();
+}
+
+async function selectImportMode(
+  wrapper: ReturnType<typeof mount>,
+  mode: "Manual" | "JSON de scraping"
+) {
+  await wrapper
+    .findAll("button")
+    .find((button) => button.text() === mode)!
+    .trigger("click");
+  await flushPromises();
+  await nextTick();
+}
+
+async function navigateImportStageInView(wrapper: ReturnType<typeof mount>, label: string) {
+  if (!wrapper.find('nav[aria-label="Etapas de importación"]').exists()) return;
+  const step = wrapper
+    .get('nav[aria-label="Etapas de importación"]')
+    .findAll("button")
+    .find((button) => button.text().includes(label));
+  if (step?.exists() && !step.element.disabled) await step.trigger("click");
+  await nextTick();
 }
 
 async function paste(input: HTMLInputElement, text: string) {
@@ -191,15 +244,395 @@ describe("EventsFestivalsImportView", () => {
     countriesMock.mockReset().mockResolvedValue(allowedCountries);
     regionsMock.mockReset().mockResolvedValue([]);
     importEventBatchMock.mockReset();
+    apiPostMock.mockReset();
+    useRealImportBatchApi.value = false;
     confirmDiscardMock.mockReset().mockResolvedValue({ isConfirmed: true });
   });
 
+  it("opens directly in the manual editor and scopes the four stages to JSON", async () => {
+    const wrapper = await mountImportView();
+    expect(wrapper.find("table").exists()).toBe(true);
+    expect(wrapper.find('nav[aria-label="Etapas de importación"]').exists()).toBe(false);
+
+    await selectImportMode(wrapper, "JSON de scraping");
+    const steps = wrapper.get('nav[aria-label="Etapas de importación"]');
+    expect(steps.find('[aria-current="step"]').text()).toContain("Cargar archivo");
+    expect(wrapper.find('input[aria-label="Seleccionar archivo JSON de eventos"]').exists()).toBe(
+      true
+    );
+    expect(wrapper.find("table").exists()).toBe(false);
+    expect(
+      steps.findAll("button").find((button) => button.text().includes("Resolver y analizar"))
+        ?.element.disabled
+    ).toBe(true);
+    expect(
+      steps
+        .findAll("button")
+        .find((button) => button.text().includes("Resolver y analizar"))
+        ?.attributes("aria-description")
+    ).toContain("Carga y valida un archivo JSON");
+
+    await selectImportMode(wrapper, "Manual");
+    expect(wrapper.find('nav[aria-label="Etapas de importación"]').exists()).toBe(false);
+    expect(wrapper.find("table").exists()).toBe(true);
+    expect(resolveArtistsBatchMock).not.toHaveBeenCalled();
+    expect(inspectLocalitiesMock).not.toHaveBeenCalled();
+    expect(resolveVenuesMock).not.toHaveBeenCalled();
+    expect(inspectToursMock).not.toHaveBeenCalled();
+    expect(importEventBatchMock).not.toHaveBeenCalled();
+
+    expect(wrapper.find("table").exists()).toBe(true);
+    expect(importEventBatchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps manual and JSON rows in separate workspaces without repeating resolution on mode switches", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country, index) => ({
+        ...country,
+        id:
+          country.isoCode === "ES"
+            ? "123e4567-e89b-42d3-a456-426614174000"
+            : country.isoCode === "PT"
+              ? "123e4567-e89b-42d3-a456-426614174001"
+              : `123e4567-e89b-42d3-a456-${String(index + 2).padStart(12, "0")}`,
+      }))
+    );
+    resolveArtistsBatchMock.mockImplementation(async (names: string[]) =>
+      names.map((name, index) => ({
+        index,
+        name,
+        status: "existing",
+        artist: {
+          id: `123e4567-e89b-42d3-a456-${String(index + 1).padStart(12, "0")}`,
+          name,
+        },
+      }))
+    );
+    const wrapper = await mountImportView();
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Evento, fila 1"]')
+      .setValue("Solo manual");
+    await wrapper
+      .get<HTMLSelectElement>("#event-import-country")
+      .setValue("123e4567-e89b-42d3-a456-426614174001");
+    confirmDiscardMock.mockResolvedValueOnce({ isConfirmed: false });
+    await selectImportMode(wrapper, "JSON de scraping");
+    expect(wrapper.find('nav[aria-label="Etapas de importación"]').exists()).toBe(false);
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 1"]').element.value).toBe(
+      "Solo manual"
+    );
+    await selectImportMode(wrapper, "JSON de scraping");
+
+    expect(confirmDiscardMock).toHaveBeenCalledWith(
+      "Cambiar modo de importación",
+      expect.stringContaining("se conservarán separados"),
+      "Cambiar de modo",
+      "Seguir aquí"
+    );
+    expect(wrapper.find("table").exists()).toBe(false);
+    await wrapper
+      .get<HTMLSelectElement>("#event-import-country")
+      .setValue("123e4567-e89b-42d3-a456-426614174000");
+    expect(wrapper.find('input[aria-label="Seleccionar archivo JSON de eventos"]').exists()).toBe(
+      true
+    );
+
+    const file = new File([scrapedEvents], "events.json", { type: "application/json" });
+    const fileInput = wrapper.get<HTMLInputElement>(
+      'input[aria-label="Seleccionar archivo JSON de eventos"]'
+    );
+    Object.defineProperty(fileInput.element, "files", { configurable: true, value: [file] });
+    await fileInput.trigger("change");
+    await flushPromises();
+    vi.useFakeTimers();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Analizar y resolver eventos"))!
+      .trigger("click");
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Todos"))!
+      .trigger("click");
+    const resolverCalls = [
+      resolveArtistsBatchMock.mock.calls.length,
+      inspectLocalitiesMock.mock.calls.length,
+      resolveVenuesMock.mock.calls.length,
+      inspectToursMock.mock.calls.length,
+    ];
+    expect(
+      wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 1"]').element.value
+    ).not.toBe("Solo manual");
+
+    await selectImportMode(wrapper, "Manual");
+    expect(wrapper.find('nav[aria-label="Etapas de importación"]').exists()).toBe(false);
+    expect(wrapper.get<HTMLSelectElement>("#event-import-country").element.value).toBe(
+      "123e4567-e89b-42d3-a456-426614174001"
+    );
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 1"]').element.value).toBe(
+      "Solo manual"
+    );
+    expect(wrapper.text()).not.toContain("Festival de verano");
+    expect([
+      resolveArtistsBatchMock.mock.calls.length,
+      inspectLocalitiesMock.mock.calls.length,
+      resolveVenuesMock.mock.calls.length,
+      inspectToursMock.mock.calls.length,
+    ]).toEqual(resolverCalls);
+
+    await selectImportMode(wrapper, "JSON de scraping");
+    expect(wrapper.get<HTMLSelectElement>("#event-import-country").element.value).toBe(
+      "123e4567-e89b-42d3-a456-426614174000"
+    );
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 2"]').element.value).toBe(
+      "Festival de verano"
+    );
+    expect([
+      resolveArtistsBatchMock.mock.calls.length,
+      inspectLocalitiesMock.mock.calls.length,
+      resolveVenuesMock.mock.calls.length,
+      inspectToursMock.mock.calls.length,
+    ]).toEqual(resolverCalls);
+    expect(importEventBatchMock).not.toHaveBeenCalled();
+    const savedRecord = sessionSaveMock.mock.calls.at(-1)?.[0] as
+      { payload?: { activeMode?: string; modeWorkspaces?: Record<string, unknown> } } | undefined;
+    expect(savedRecord?.payload?.modeWorkspaces?.manual).toBeDefined();
+    expect(savedRecord?.payload?.activeMode).toBe("json");
+    expect(
+      (
+        savedRecord?.payload?.modeWorkspaces?.manual as {
+          state?: { rows?: Array<{ event: string }> };
+        }
+      ).state?.rows?.[0]?.event
+    ).toBe("Solo manual");
+    wrapper.unmount();
+    vi.useRealTimers();
+
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country, index) => ({
+        ...country,
+        id:
+          country.isoCode === "ES"
+            ? "123e4567-e89b-42d3-a456-426614174000"
+            : country.isoCode === "PT"
+              ? "123e4567-e89b-42d3-a456-426614174001"
+              : `123e4567-e89b-42d3-a456-${String(index + 2).padStart(12, "0")}`,
+      }))
+    );
+    sessionGetMock.mockResolvedValueOnce(savedRecord);
+    const resumed = await mountImportView();
+    expect(resumed.text()).toContain("Tienes una sesión incompleta");
+    vi.useFakeTimers();
+    await resumed
+      .findAll("button")
+      .find((button) => button.text().includes("Recuperar sesión"))!
+      .trigger("click");
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+    await resumed
+      .findAll("button")
+      .find((button) => button.text().includes("Todos"))!
+      .trigger("click");
+    expect(
+      resumed.get('nav[aria-label="Etapas de importación"] [aria-current="step"]').text()
+    ).toContain("Revisar eventos");
+    await selectImportMode(resumed, "Manual");
+    expect(resumed.get<HTMLInputElement>('input[aria-label="Evento, fila 1"]').element.value).toBe(
+      "Solo manual"
+    );
+    resumed.unmount();
+    vi.useRealTimers();
+  }, 30_000);
+
+  it("keeps a valid JSON file on the load stage when its country cannot be resolved", async () => {
+    countriesMock.mockResolvedValueOnce(allowedCountries.filter(({ isoCode }) => isoCode !== "ES"));
+    const wrapper = await mountImportView(undefined, true);
+    const file = new File([scrapedEvents], "events.json", { type: "application/json" });
+    const fileInput = wrapper.get<HTMLInputElement>(
+      'input[aria-label="Seleccionar archivo JSON de eventos"]'
+    );
+    Object.defineProperty(fileInput.element, "files", { configurable: true, value: [file] });
+    await fileInput.trigger("change");
+    await flushPromises();
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Analizar y resolver eventos"))!
+      .trigger("click");
+
+    expect(
+      wrapper.get('nav[aria-label="Etapas de importación"] [aria-current="step"]').text()
+    ).toContain("Cargar archivo");
+    expect(wrapper.get('[role="alert"]').text()).toContain("no coincide con el catálogo");
+    expect(resolveArtistsBatchMock).not.toHaveBeenCalled();
+    expect(inspectLocalitiesMock).not.toHaveBeenCalled();
+    expect(importEventBatchMock).not.toHaveBeenCalled();
+  });
+
+  it("summarizes file metadata and event types for a valid JSON without entering the row preview", async () => {
+    const wrapper = await mountImportView(undefined, true);
+    const file = new File([scrapedEvents], "conciertos-y-festivales.json", {
+      type: "application/json",
+    });
+    const fileInput = wrapper.get<HTMLInputElement>(
+      'input[aria-label="Seleccionar archivo JSON de eventos"]'
+    );
+    Object.defineProperty(fileInput.element, "files", { configurable: true, value: [file] });
+    await fileInput.trigger("change");
+    await flushPromises();
+
+    const summary = wrapper.get('[aria-label="Resumen del archivo JSON"]');
+    expect(summary.text()).toContain("conciertos-y-festivales.json");
+    expect(summary.text()).toContain("JSON válido");
+    expect(summary.text()).toContain("6 eventos");
+    expect(summary.text()).toContain("5 conciertos");
+    expect(summary.text()).toContain("1 festivales");
+    expect(summary.text()).toContain("País del archivo: ES");
+    expect(summary.text()).toContain("País seleccionado: España");
+    expect(wrapper.find("details[open]").exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("keeps an invalid selected file visible with a recoverable validation message", async () => {
+    const wrapper = await mountImportView(undefined, true);
+    const file = new File(["{"], "rota.json", { type: "application/json" });
+    const fileInput = wrapper.get<HTMLInputElement>(
+      'input[aria-label="Seleccionar archivo JSON de eventos"]'
+    );
+    Object.defineProperty(fileInput.element, "files", { configurable: true, value: [file] });
+    await fileInput.trigger("change");
+    await flushPromises();
+
+    const summary = wrapper.get('[aria-label="Resumen del archivo JSON"]');
+    expect(summary.text()).toContain("rota.json");
+    expect(summary.text()).toContain("JSON no válido");
+    expect(summary.text()).toContain("El archivo no contiene un JSON válido");
+    expect(
+      wrapper.get('input[aria-label="Seleccionar archivo JSON de eventos"]').element.disabled
+    ).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("summarizes a 600-event file without rendering six hundred preview rows", async () => {
+    const largeJson = JSON.stringify({
+      format: "riffvalley.events-import",
+      version: 1,
+      source: { name: "fixture" },
+      country: "ES",
+      events: Array.from({ length: 600 }, (_, index) => ({
+        type: index % 20 === 0 ? "festival" : "concert",
+        title: `Evento ${index + 1}`,
+        startDate: "2027-06-12",
+        artists: [`Artista ${index + 1}`],
+        locality: "Santander",
+      })),
+    });
+    const wrapper = await mountImportView(undefined, true);
+    const file = new File([largeJson], "eventos-600.json", { type: "application/json" });
+    const fileInput = wrapper.get<HTMLInputElement>(
+      'input[aria-label="Seleccionar archivo JSON de eventos"]'
+    );
+    Object.defineProperty(fileInput.element, "files", { configurable: true, value: [file] });
+    await fileInput.trigger("change");
+    await flushPromises();
+
+    const summary = wrapper.get('[aria-label="Resumen del archivo JSON"]');
+    expect(summary.text()).toContain("600 eventos");
+    expect(summary.text()).toContain("570 conciertos");
+    expect(summary.text()).toContain("30 festivales");
+    expect(wrapper.findAll('[aria-label="Previsualización de eventos JSON"] li')).toHaveLength(5);
+    wrapper.unmount();
+  }, 30_000);
+
+  it("keeps parsed rows and resolved references while navigating back and forward without repeating lookups", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    const wrapper = await mountImportView(undefined, true);
+    const file = new File([scrapedEvents], "events.json", { type: "application/json" });
+    const fileInput = wrapper.get<HTMLInputElement>(
+      'input[aria-label="Seleccionar archivo JSON de eventos"]'
+    );
+    Object.defineProperty(fileInput.element, "files", { configurable: true, value: [file] });
+    await fileInput.trigger("change");
+    await flushPromises();
+
+    vi.useFakeTimers();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Analizar y resolver eventos"))!
+      .trigger("click");
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+    expect(
+      wrapper
+        .findAll("button")
+        .find((button) => button.text().includes("Inválidos"))
+        ?.attributes("aria-pressed")
+    ).toBe("true");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Todos"))!
+      .trigger("click");
+    expect(
+      wrapper.get('nav[aria-label="Etapas de importación"] [aria-current="step"]').text()
+    ).toContain("Revisar eventos");
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Evento, fila 1"]')
+      .setValue("Título editado");
+    const resolverCalls = [
+      resolveArtistsBatchMock.mock.calls.length,
+      inspectLocalitiesMock.mock.calls.length,
+      resolveVenuesMock.mock.calls.length,
+      inspectToursMock.mock.calls.length,
+    ];
+
+    await navigateImportStageInView(wrapper, "Cargar archivo");
+    expect(wrapper.get('ul[aria-label="Previsualización de eventos JSON"]').exists()).toBe(true);
+    await navigateImportStageInView(wrapper, "Resolver y analizar");
+    expect(wrapper.text()).toContain("Análisis completado");
+    expect(wrapper.text()).toContain("Preparación y validación");
+    expect(wrapper.text()).toContain("Completada");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Revisar eventos"))!
+      .trigger("click");
+    await nextTick();
+
+    expect(wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 1"]').element.value).toBe(
+      "Título editado"
+    );
+    expect(wrapper.text()).toContain("Localidad seleccionada");
+    expect([
+      resolveArtistsBatchMock.mock.calls.length,
+      inspectLocalitiesMock.mock.calls.length,
+      resolveVenuesMock.mock.calls.length,
+      inspectToursMock.mock.calls.length,
+    ]).toEqual(resolverCalls);
+    expect(importEventBatchMock).not.toHaveBeenCalled();
+  });
+
+  it("renders an editor containing 600 draft rows", async () => {
+    const wrapper = await mountImportView();
+    await flushPromises();
+    await wrapper.get<HTMLInputElement>('input[aria-label="Número de filas"]').setValue("600");
+    await nextTick();
+
+    expect(wrapper.findAll("tbody tr[id^='event-import-row-']")).toHaveLength(600);
+    wrapper.unmount();
+  }, 30_000);
+
   it("renders the requested editable columns in order", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     const headers = wrapper.findAll("th[scope='col']").map((header) => header.text());
 
-    expect(wrapper.get("h1").text()).toBe("Importador de conciertos y festivales");
+    expect(wrapper.get("h1").text()).toBe("Importador de conciertos, festivales y giras");
     expect(headers.slice(2, 12)).toEqual([
       "Tipo",
       "Nombre del evento",
@@ -232,13 +665,15 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
-    const actions = wrapper.get('[role="group"][aria-label="Acciones de importación y descarte"]');
-    const importButton = actions.get('button[aria-label="Importar filas listas"]');
+    const actions = wrapper.get('[role="group"][aria-label="Acciones de revisión"]');
+    const continueButton = actions.get("button");
     const discardButton = actions.get('button[aria-label="Descartar seleccionadas"]');
 
-    expect(importButton.element.disabled).toBe(true);
+    expect(continueButton.element.disabled).toBe(true);
+    expect(wrapper.find('button[aria-label="Importar filas listas"]').exists()).toBe(true);
+    expect(wrapper.get('button[aria-label="Importar filas listas"]').element.disabled).toBe(true);
     expect(discardButton.element.disabled).toBe(true);
     expect(wrapper.find('button[aria-label^="Descartar fila "]').exists()).toBe(false);
     expect(wrapper.findAll("thead th[scope='col']")).toHaveLength(12);
@@ -265,14 +700,14 @@ describe("EventsFestivalsImportView", () => {
     await wrapper.get<HTMLInputElement>('input[aria-label="Ciudad, fila 1"]').setValue("Madrid");
     await vi.advanceTimersByTimeAsync(1350);
     await flushPromises();
-    expect(importButton.element.disabled).toBe(true);
+    expect(continueButton.element.disabled).toBe(true);
     expect(wrapper.text()).toContain("faltan artistas");
     await wrapper.get('input[aria-label="Seleccionar fila 1 para descartar"]').setValue(true);
     expect(discardButton.element.disabled).toBe(false);
   });
 
   it("places a concise row status in an associated subrow and hides validation for empty rows", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
 
     expect(wrapper.findAll("tbody tr[id^='event-import-status-']")).toHaveLength(0);
@@ -299,7 +734,7 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     await wrapper
@@ -319,6 +754,7 @@ describe("EventsFestivalsImportView", () => {
       })),
     }));
 
+    await openImportStage(wrapper);
     const importButton = wrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"));
@@ -327,11 +763,18 @@ describe("EventsFestivalsImportView", () => {
     await flushPromises();
 
     expect(importEventBatchMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.findAll("tbody tr"), wrapper.text()).toHaveLength(4);
     expect(wrapper.text()).toContain("Importación finalizada · 1 evento importado");
+    expect(wrapper.find("table").exists()).toBe(true);
+    await navigateImportStageInView(wrapper, "Revisar eventos");
+    expect(wrapper.findAll("tbody tr"), wrapper.text()).toHaveLength(4);
+    await navigateImportStageInView(wrapper, "Importar y resultados");
+    expect(wrapper.text()).toContain("Importación finalizada · 1 evento importado");
+    expect(importEventBatchMock).toHaveBeenCalledTimes(1);
     expect(
       wrapper
-        .findAll('[aria-label="Estado de importación"] [role="status"]')
+        .findAll(
+          '[aria-label="Confirmación, progreso y resultados de importación"] [role="status"]'
+        )
         .some((status) => status.text().includes("Importación finalizada"))
     ).toBe(true);
     expect(wrapper.text()).not.toContain("0 conflictos");
@@ -340,7 +783,7 @@ describe("EventsFestivalsImportView", () => {
     vi.useRealTimers();
   });
 
-  it("pastes and resolves 51 concert rows, submits only 50, and retains unresolved outcomes", async () => {
+  it("omits unchanged events from pending rows and exposes their result detail separately", async () => {
     countriesMock.mockResolvedValueOnce(
       allowedCountries.map((country) =>
         country.isoCode === "ES"
@@ -348,7 +791,245 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
+    await flushPromises();
+    vi.useFakeTimers();
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Fecha de inicio, fila 1"]')
+      .setValue("15/05/2027");
+    await wrapper.get<HTMLInputElement>('input[aria-label="Ciudad, fila 1"]').setValue("Madrid");
+    await enterArtist(wrapper, 1);
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+    importEventBatchMock.mockImplementationOnce(async (snapshot) => ({
+      batchId: snapshot.batchId,
+      results: snapshot.rows.map((row) => ({
+        operationRowId: row.operationRowId,
+        rowKey: row.rowKey,
+        revision: row.revision,
+        result: { rowId: row.operationRowId, status: "unchanged", eventId: "existing-event" },
+      })),
+    }));
+
+    await openImportStage(wrapper);
+
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Importar filas listas"))!
+      .trigger("click");
+    await flushPromises();
+
+    expect(importEventBatchMock).toHaveBeenCalledTimes(1);
+    expect(wrapper.text()).toContain("Importación finalizada · 1 evento omitido");
+    expect(wrapper.text()).toContain("Ver eventos omitidos (1)");
+    expect(wrapper.text()).not.toContain("conflicto");
+    expect(wrapper.text()).not.toContain("evento importado");
+    expect(wrapper.find("details").text()).toContain("Madrid");
+    await navigateImportStageInView(wrapper, "Revisar eventos");
+    expect(wrapper.findAll("tbody tr")).toHaveLength(4);
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
+
+  it("retries a known failed row with the same idempotency keys", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    const wrapper = await mountImportView();
+    await flushPromises();
+    vi.useFakeTimers();
+    await wrapper
+      .get<HTMLInputElement>('input[aria-label="Fecha de inicio, fila 1"]')
+      .setValue("15/05/2027");
+    await wrapper.get<HTMLInputElement>('input[aria-label="Ciudad, fila 1"]').setValue("Madrid");
+    await enterArtist(wrapper, 1);
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+    importEventBatchMock
+      .mockImplementationOnce(async (snapshot) => ({
+        batchId: snapshot.batchId,
+        results: snapshot.rows.map((row) => ({
+          operationRowId: row.operationRowId,
+          rowKey: row.rowKey,
+          revision: row.revision,
+          result: { rowId: row.operationRowId, status: "failed", code: "temporary" },
+        })),
+      }))
+      .mockImplementationOnce(async (snapshot) => ({
+        batchId: snapshot.batchId,
+        results: snapshot.rows.map((row) => ({
+          operationRowId: row.operationRowId,
+          rowKey: row.rowKey,
+          revision: row.revision,
+          result: { rowId: row.operationRowId, status: "created", eventId: "event-retried" },
+        })),
+      }));
+
+    const importButton = () =>
+      wrapper.findAll("button").find((button) => button.text().includes("Importar filas listas"))!;
+    await openImportStage(wrapper);
+    await importButton().trigger("click");
+    await flushPromises();
+    const failedSnapshot = importEventBatchMock.mock.calls[0]?.[0];
+    await navigateImportStageInView(wrapper, "Revisar eventos");
+    await openImportStage(wrapper);
+    await importButton().trigger("click");
+    await flushPromises();
+
+    expect(importEventBatchMock).toHaveBeenCalledTimes(2);
+    expect(importEventBatchMock.mock.calls[1]?.[0].batchId).toBe(failedSnapshot?.batchId);
+    expect(importEventBatchMock.mock.calls[1]?.[0].rows[0]?.operationRowId).toBe(
+      failedSnapshot?.rows[0]?.operationRowId
+    );
+    expect(wrapper.text()).toContain("1 evento importado");
+    await navigateImportStageInView(wrapper, "Revisar eventos");
+    expect(wrapper.findAll("tbody tr")).toHaveLength(4);
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
+
+  it("stops a multi-batch import after the active HTTP response", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    const wrapper = await mountImportView();
+    await flushPromises();
+    vi.useFakeTimers();
+    await wrapper.get<HTMLInputElement>('input[aria-label="Número de filas"]').setValue("51");
+    await paste(
+      wrapper.get<HTMLInputElement>('input[aria-label="Fecha de inicio, fila 1"]').element,
+      Array.from({ length: 51 }, () => "15/05/2027").join("\n")
+    );
+    wrapper.findAll<HTMLInputElement>('input[aria-label^="Ciudad, fila "]').forEach((input) => {
+      input.element.value = "Madrid";
+      input.element.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await nextTick();
+    await paste(
+      wrapper.get<HTMLInputElement>(
+        'input[aria-label="Añadir artistas a Lineup (obligatorio), fila 1"]'
+      ).element,
+      Array.from({ length: 51 }, (_, index) => `Artista ${index + 1}`).join("\n")
+    );
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+
+    let resolveBatch!: (response: ImportBatchResponse) => void;
+    let requestedSnapshot: ImportSnapshot | undefined;
+    importEventBatchMock.mockImplementationOnce((snapshot) => {
+      requestedSnapshot = snapshot;
+      return new Promise((resolve) => {
+        resolveBatch = resolve;
+      });
+    });
+    await openImportStage(wrapper);
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Importar filas listas"))!
+      .trigger("click");
+    await flushPromises();
+    expect(importEventBatchMock).toHaveBeenCalledTimes(1);
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Detener después del lote actual"))!
+      .trigger("click");
+    expect(wrapper.text()).toContain("La importación se detendrá");
+
+    resolveBatch({
+      batchId: requestedSnapshot!.batchId,
+      results: requestedSnapshot!.rows.map((row) => ({
+        operationRowId: row.operationRowId,
+        rowKey: row.rowKey,
+        revision: row.revision,
+        result: { rowId: row.operationRowId, status: "created", eventId: "created-event" },
+      })),
+    });
+    await flushPromises();
+
+    expect(importEventBatchMock).toHaveBeenCalledTimes(1);
+    await navigateImportStageInView(wrapper, "Revisar eventos");
+    expect(wrapper.find('input[aria-label="Evento, fila 1"]').exists()).toBe(true);
+    wrapper.unmount();
+    vi.useRealTimers();
+  }, 30_000);
+
+  it("stops later batches when the backend marks the remainder as an infrastructure failure", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    const wrapper = await mountImportView();
+    await flushPromises();
+    vi.useFakeTimers();
+    await wrapper.get<HTMLInputElement>('input[aria-label="Número de filas"]').setValue("51");
+    await paste(
+      wrapper.get<HTMLInputElement>('input[aria-label="Fecha de inicio, fila 1"]').element,
+      Array.from({ length: 51 }, () => "15/05/2027").join("\n")
+    );
+    wrapper.findAll<HTMLInputElement>('input[aria-label^="Ciudad, fila "]').forEach((input) => {
+      input.element.value = "Madrid";
+      input.element.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await nextTick();
+    await paste(
+      wrapper.get<HTMLInputElement>(
+        'input[aria-label="Añadir artistas a Lineup (obligatorio), fila 1"]'
+      ).element,
+      Array.from({ length: 51 }, () => "Artista compartida").join("\n")
+    );
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+    importEventBatchMock.mockImplementationOnce(async (snapshot) => ({
+      batchId: snapshot.batchId,
+      results: snapshot.rows.map((row, index) => ({
+        operationRowId: row.operationRowId,
+        rowKey: row.rowKey,
+        revision: row.revision,
+        result: {
+          rowId: row.operationRowId,
+          status: "failed",
+          code: index === 0 ? "IMPORT_ROW_FAILED" : "IMPORT_PREFLIGHT_FAILED",
+          message:
+            index === 0 ? "Infrastructure failure" : "Batch stopped after infrastructure failure",
+        },
+      })),
+    }));
+
+    await openImportStage(wrapper);
+    await wrapper.get('button[aria-label="Importar filas listas"]').trigger("click");
+    await flushPromises();
+
+    expect(importEventBatchMock).toHaveBeenCalledTimes(1);
+    expect(importEventBatchMock.mock.calls[0]?.[0].rows).toHaveLength(50);
+    expect(wrapper.text()).toContain("Importación finalizada · 50 filas fallidas");
+    await navigateImportStageInView(wrapper, "Revisar eventos");
+    expect(wrapper.get('input[aria-label="Evento, fila 1"]').exists()).toBe(true);
+    expect(wrapper.get('input[aria-label="Evento, fila 51"]').exists()).toBe(true);
+    expect(wrapper.text()).not.toContain("IMPORT_PREFLIGHT_FAILED");
+    wrapper.unmount();
+    vi.useRealTimers();
+  }, 30_000);
+
+  it("pastes 51 concert rows and automatically sends the next batch after the first response", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
 
@@ -376,20 +1057,46 @@ describe("EventsFestivalsImportView", () => {
       expect.anything()
     );
     expect(wrapper.text()).toContain("máximo de 50 filas por operación");
-    importEventBatchMock.mockImplementationOnce(async (snapshot) => ({
-      batchId: snapshot.batchId,
-      results: snapshot.rows.map((row, index) => ({
-        operationRowId: row.operationRowId,
-        rowKey: row.rowKey,
-        revision: row.revision,
-        result:
-          index < 48
-            ? { rowId: row.operationRowId, status: "created", eventId: `event-${index}` }
-            : index === 48
-              ? { rowId: row.operationRowId, status: "conflict", code: "CONCERT_DUPLICATE" }
-              : { rowId: row.operationRowId, status: "failed", code: "IMPORT_ROW_FAILED" },
-      })),
-    }));
+    importEventBatchMock
+      .mockImplementationOnce(async (snapshot) => ({
+        batchId: snapshot.batchId,
+        results: snapshot.rows.map((row, index) => ({
+          operationRowId: row.operationRowId,
+          rowKey: row.rowKey,
+          revision: row.revision,
+          result:
+            index < 48
+              ? { rowId: row.operationRowId, status: "created", eventId: `event-${index}` }
+              : index === 48
+                ? { rowId: row.operationRowId, status: "conflict", code: "CONCERT_DUPLICATE" }
+                : { rowId: row.operationRowId, status: "failed", code: "IMPORT_ROW_FAILED" },
+        })),
+      }))
+      .mockImplementationOnce(async (snapshot) => ({
+        batchId: snapshot.batchId,
+        results: snapshot.rows.map((row) => ({
+          operationRowId: row.operationRowId,
+          rowKey: row.rowKey,
+          revision: row.revision,
+          result: { rowId: row.operationRowId, status: "created", eventId: "event-51" },
+        })),
+      }))
+      .mockImplementationOnce(async (snapshot) => ({
+        batchId: snapshot.batchId,
+        results: snapshot.rows.map((row) => ({
+          operationRowId: row.operationRowId,
+          rowKey: row.rowKey,
+          revision: row.revision,
+          result: {
+            rowId: row.operationRowId,
+            status: "failed",
+            code: "IMPORT_ROW_FAILED",
+            message: "Retry available",
+          },
+        })),
+      }));
+
+    await openImportStage(wrapper);
 
     await wrapper
       .findAll("button")
@@ -397,19 +1104,36 @@ describe("EventsFestivalsImportView", () => {
       .trigger("click");
     await flushPromises();
 
-    expect(importEventBatchMock).toHaveBeenCalledTimes(1);
+    expect(importEventBatchMock).toHaveBeenCalledTimes(2);
     expect(importEventBatchMock.mock.calls[0]?.[0].rows).toHaveLength(50);
-    expect(wrapper.find('input[aria-label="Evento, fila 1"]').exists()).toBe(true);
-    expect(wrapper.text()).toContain("Importación finalizada · 48 eventos importados");
+    expect(importEventBatchMock.mock.calls[1]?.[0].rows).toHaveLength(1);
+    expect(wrapper.text()).toContain("Importación finalizada · 49 eventos importados");
     expect(wrapper.text()).toContain("1 conflicto");
     expect(wrapper.text()).toContain("1 fila fallida");
+    await navigateImportStageInView(wrapper, "Revisar eventos");
+    expect(wrapper.find('input[aria-label="Evento, fila 1"]').exists()).toBe(true);
     expect(
-      wrapper.find('input[aria-label="Añadir artistas a Lineup (obligatorio), fila 3"]').exists()
+      wrapper.find('input[aria-label="Añadir artistas a Lineup (obligatorio), fila 2"]').exists()
     ).toBe(true);
-    expect(wrapper.text()).toContain("Artista 51");
+    expect(wrapper.text()).not.toContain("Artista 51");
+    const originalFirstBatch = importEventBatchMock.mock.calls[0]?.[0];
+    await openImportStage(wrapper);
+    await wrapper.get('button[aria-label="Importar filas listas"]').trigger("click");
+    await flushPromises();
+    const partialRetry = importEventBatchMock.mock.calls[2]?.[0];
+    expect(partialRetry?.rows).toHaveLength(2);
+    expect(partialRetry?.batchId).not.toBe(originalFirstBatch?.batchId);
+    expect(partialRetry?.rows.map(({ operationRowId }) => operationRowId)).toEqual(
+      originalFirstBatch?.rows.slice(48).map(({ operationRowId }) => operationRowId)
+    );
+    expect(
+      partialRetry?.rows.some(({ operationRowId }) =>
+        originalFirstBatch?.rows.slice(0, 48).some((row) => row.operationRowId === operationRowId)
+      )
+    ).toBe(false);
     wrapper.unmount();
     vi.useRealTimers();
-  });
+  }, 30_000);
 
   it("records repeatable 50-row importer interaction timings without time thresholds", async () => {
     countriesMock.mockResolvedValueOnce(
@@ -428,7 +1152,7 @@ describe("EventsFestivalsImportView", () => {
     };
 
     const mountStartedAt = performance.now();
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     measurements.mountInitialFive = Number((performance.now() - mountStartedAt).toFixed(1));
     await wrapper
@@ -535,11 +1259,13 @@ describe("EventsFestivalsImportView", () => {
       })),
     }));
     await elapsed("prepareSnapshotSaveAndImportFiftyRows", async () => {
+      await openImportStage(wrapper);
       await wrapper.get('button[aria-label="Importar filas listas"]').trigger("click");
       await flushPromises();
     });
     vi.useRealTimers();
 
+    await navigateImportStageInView(wrapper, "Revisar eventos");
     expect(wrapper.findAll('tbody > tr[id^="event-import-row-"]')).toHaveLength(1);
     expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(3);
     expect(resolveArtistsBatchMock.mock.calls.map(([names]) => names.length)).toEqual([100, 50, 1]);
@@ -551,7 +1277,7 @@ describe("EventsFestivalsImportView", () => {
     expect(importEventBatchMock).toHaveBeenCalledTimes(1);
     expect(importEventBatchMock.mock.calls[0]?.[0].rows).toHaveLength(50);
     console.info("EVENT_IMPORT_PERFORMANCE_BASELINE", JSON.stringify(measurements));
-  });
+  }, 30_000);
 
   it("cleans pending artist, locality, and autosave timers when the editor unmounts", async () => {
     countriesMock.mockResolvedValueOnce(
@@ -561,7 +1287,7 @@ describe("EventsFestivalsImportView", () => {
       }))
     );
     vi.useFakeTimers();
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     await wrapper.get<HTMLInputElement>('input[aria-label="Ciudad, fila 1"]').setValue("Madrid");
     const lineup = wrapper.get<HTMLInputElement>(
@@ -588,7 +1314,7 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     await wrapper
@@ -613,6 +1339,8 @@ describe("EventsFestivalsImportView", () => {
       })),
     }));
 
+    await openImportStage(wrapper);
+
     await wrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"))!
@@ -635,7 +1363,7 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     for (const rowNumber of [1, 2]) {
@@ -669,6 +1397,8 @@ describe("EventsFestivalsImportView", () => {
         result: { rowId: row.operationRowId, status: "created", eventId: `event-${row.rowKey}` },
       })),
     }));
+
+    await openImportStage(wrapper);
 
     await wrapper
       .findAll("button")
@@ -722,7 +1452,7 @@ describe("EventsFestivalsImportView", () => {
         name: input.name,
       }))
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     await wrapper.get<HTMLInputElement>('input[aria-label="Ciudad, fila 1"]').setValue("Santiago");
@@ -762,6 +1492,7 @@ describe("EventsFestivalsImportView", () => {
         result: { rowId: row.operationRowId, status: "failed" },
       })),
     }));
+    await openImportStage(wrapper);
     await wrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"))!
@@ -787,7 +1518,7 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     await wrapper
@@ -805,11 +1536,17 @@ describe("EventsFestivalsImportView", () => {
           expect(snapshot.rows).toHaveLength(1);
         })
     );
+    await openImportStage(wrapper);
     await wrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"))!
       .trigger("click");
     await nextTick();
+    expect(wrapper.find('nav[aria-label="Etapas de importación"]').exists()).toBe(false);
+    expect(
+      wrapper.findAll("button").find((button) => button.text().includes("JSON de scraping"))
+        ?.element.disabled
+    ).toBe(true);
     await discardRow(wrapper, 1);
     await flushPromises();
     expect(wrapper.findAll("tbody tr")).toHaveLength(4);
@@ -832,6 +1569,7 @@ describe("EventsFestivalsImportView", () => {
     await flushPromises();
     expect(wrapper.findAll("tbody tr")).toHaveLength(4);
     expect(wrapper.text()).not.toContain("event-created-after-discard");
+    await navigateImportStageInView(wrapper, "Importar y resultados");
     expect(wrapper.text()).toContain(
       "Se creó un evento a partir de una fila que ya no está en el borrador."
     );
@@ -847,7 +1585,7 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView(document.body);
+    const wrapper = await mountImportView(document.body);
     await flushPromises();
     vi.useFakeTimers();
     for (const rowNumber of [1, 2, 3]) {
@@ -898,12 +1636,15 @@ describe("EventsFestivalsImportView", () => {
       }),
     }));
 
+    await openImportStage(wrapper);
+
     await wrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"))
       ?.trigger("click");
     await flushPromises();
 
+    await navigateImportStageInView(wrapper, "Revisar eventos");
     const conflictButton = wrapper.get<HTMLButtonElement>(
       'button[aria-label="Revisar conflicto de la fila 1"]'
     );
@@ -915,7 +1656,6 @@ describe("EventsFestivalsImportView", () => {
     expect(wrapper.get('select[aria-label="Tipo, fila 1"]').exists()).toBe(true);
     expect(wrapper.text()).toContain("Este concierto entra en conflicto con la fila 2");
     expect(wrapper.text()).not.toContain("Más información");
-    expect(wrapper.text()).toContain("Importación finalizada · 1 evento importado · 2 conflictos");
     expect(wrapper.text()).not.toContain("Fila 1: Hay un conflicto que revisar");
     expect(wrapper.findAll('button[aria-label^="Revisar conflicto de la fila 1"]').length).toBe(1);
     expect(conflictButton.attributes("aria-expanded")).toBe("false");
@@ -955,6 +1695,8 @@ describe("EventsFestivalsImportView", () => {
     const typeSelector = wrapper.get<HTMLSelectElement>('select[aria-label="Tipo, fila 1"]');
     await typeSelector.setValue("festival");
     expect(typeSelector.element.value).toBe("festival");
+    await navigateImportStageInView(wrapper, "Importar y resultados");
+    expect(wrapper.text()).toContain("Importación finalizada · 1 evento importado · 2 conflictos");
     wrapper.unmount();
     vi.useRealTimers();
   });
@@ -967,7 +1709,7 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     await wrapper
@@ -986,6 +1728,7 @@ describe("EventsFestivalsImportView", () => {
         result: { rowId: row.operationRowId, status: "conflict", code: "CONCERT_DUPLICATE" },
       })),
     }));
+    await openImportStage(wrapper);
     await wrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"))!
@@ -994,6 +1737,7 @@ describe("EventsFestivalsImportView", () => {
 
     const previous = importEventBatchMock.mock.calls[0]?.[0];
     expect(wrapper.text()).toContain("1 conflicto");
+    await navigateImportStageInView(wrapper, "Revisar eventos");
     await wrapper
       .get<HTMLInputElement>('input[aria-label="Fecha de inicio, fila 1"]')
       .setValue("16/05/2027");
@@ -1008,6 +1752,7 @@ describe("EventsFestivalsImportView", () => {
         result: { rowId: row.operationRowId, status: "created", eventId: "event-corrected" },
       })),
     }));
+    await openImportStage(wrapper);
     const retryButton = wrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"));
@@ -1019,12 +1764,13 @@ describe("EventsFestivalsImportView", () => {
     expect(corrected?.payload.rows[0]?.startDate).toBe("2027-05-16");
     expect(corrected?.rows[0]?.operationRowId).not.toBe(previous?.rows[0]?.operationRowId);
     expect(corrected?.batchId).not.toBe(previous?.batchId);
+    await navigateImportStageInView(wrapper, "Revisar eventos");
     expect(wrapper.findAll("tbody tr")).toHaveLength(4);
     wrapper.unmount();
     vi.useRealTimers();
   });
 
-  it("describes an identified participation conflict as an existing concert", async () => {
+  it("keeps concert and festival conflicts available for review", async () => {
     countriesMock.mockResolvedValueOnce(
       allowedCountries.map((country) =>
         country.isoCode === "ES"
@@ -1032,7 +1778,7 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     await wrapper
@@ -1091,17 +1837,24 @@ describe("EventsFestivalsImportView", () => {
       })),
     }));
 
+    await openImportStage(wrapper);
+
     await wrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"))
       ?.trigger("click");
     await flushPromises();
 
-    expect(wrapper.text()).toContain("Este concierto ya existe");
-    expect(wrapper.text()).toContain("Este festival ya existe");
-    expect(wrapper.text()).not.toContain("Este artista ya participa en un concierto");
-    expect(wrapper.text()).not.toContain("existing-concert-id");
-    expect(wrapper.text()).not.toContain("existing-artist-id");
+    await navigateImportStageInView(wrapper, "Revisar eventos");
+
+    expect(wrapper.get<HTMLSelectElement>('select[aria-label="Tipo, fila 1"]').element.value).toBe(
+      "concert"
+    );
+    expect(wrapper.get<HTMLSelectElement>('select[aria-label="Tipo, fila 2"]').element.value).toBe(
+      "festival"
+    );
+    expect(wrapper.find('input[aria-label="Evento, fila 1"]').exists()).toBe(true);
+    expect(wrapper.find('input[aria-label="Evento, fila 2"]').exists()).toBe(true);
     expect(wrapper.text()).not.toContain("Internal conflict message");
     expect(wrapper.text()).not.toContain("Internal festival conflict message");
     wrapper.unmount();
@@ -1116,7 +1869,7 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     await wrapper
@@ -1135,12 +1888,14 @@ describe("EventsFestivalsImportView", () => {
           expect(snapshot.rows).toHaveLength(1);
         })
     );
+    await openImportStage(wrapper);
     const importButton = wrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"));
     await importButton?.trigger("click");
     await flushPromises();
     await nextTick();
+    await navigateImportStageInView(wrapper, "Revisar eventos");
     await wrapper
       .get<HTMLInputElement>('input[aria-label="Precio, fila 1 (opcional)"]')
       .setValue("50 €");
@@ -1180,7 +1935,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("pastes Tour as a type and preserves Name while changing types", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     const type = wrapper.get<HTMLSelectElement>('select[aria-label="Tipo, fila 1"]');
     await type.setValue("tour");
@@ -1200,7 +1955,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("shares a tour lookup and its explicit confirmation across equivalent rows", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     inspectToursMock.mockImplementation(async ({ names }: { names: string[] }) => ({
       results: names.map((name, index) => ({
@@ -1251,7 +2006,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("keeps ambiguous candidates selectable and makes technical errors retryable", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     inspectToursMock.mockImplementation(async ({ names }: { names: string[] }) => ({
       results: names.map((name, index) =>
@@ -1316,7 +2071,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("does not apply a stale Tour response and does not resolve Tour for price edits", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     const requests: Array<{
       names: string[];
@@ -1376,7 +2131,7 @@ describe("EventsFestivalsImportView", () => {
       { id: "country-GB", isoCode: "GB", name: "United Kingdom" },
       { id: "country-RU", isoCode: "RU", name: "Rusia" },
     ]);
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     const country = wrapper.get<HTMLSelectElement>("#event-import-country");
 
@@ -1394,7 +2149,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("keeps the user's country selection and all row text when country context changes", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     await wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 1"]').setValue("Festival");
     await wrapper
@@ -1424,7 +2179,7 @@ describe("EventsFestivalsImportView", () => {
 
   it("shows an unavailable Spain configuration without selecting a fabricated country ID", async () => {
     countriesMock.mockResolvedValueOnce([{ id: "country-PT", isoCode: "PT", name: "Portugal" }]);
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
 
     expect(wrapper.get<HTMLSelectElement>("#event-import-country").element.value).toBe("");
@@ -1439,7 +2194,7 @@ describe("EventsFestivalsImportView", () => {
         finishCatalog = resolve;
       })
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
 
     expect(wrapper.find('[role="status"]').text()).toContain("Cargando catálogo");
     expect(wrapper.text()).not.toContain("No están disponibles en el catálogo");
@@ -1452,7 +2207,7 @@ describe("EventsFestivalsImportView", () => {
 
   it("shows a recoverable catalog error and allows retry", async () => {
     countriesMock.mockRejectedValueOnce(new Error("catalog unavailable"));
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
 
     expect(wrapper.find('[role="alert"]').text()).toContain("No se pudo cargar el catálogo");
@@ -1470,7 +2225,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("changes Tipo independently per row and retains it while editing other cells", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const firstTipo = wrapper.get<HTMLSelectElement>('select[aria-label="Tipo, fila 1"]');
     const secondTipo = wrapper.get<HTMLSelectElement>('select[aria-label="Tipo, fila 2"]');
 
@@ -1488,7 +2243,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("adjusts the total number of rows with the numeric control", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const rowCount = wrapper.get<HTMLInputElement>('input[aria-label="Número de filas"]');
 
     expect(rowCount.element.value).toBe("5");
@@ -1512,7 +2267,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("pastes valid Tipo values case-insensitively, warns on invalid values, and preserves rows and fields", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const firstTipo = wrapper.get<HTMLSelectElement>('select[aria-label="Tipo, fila 1"]');
     await wrapper
       .get<HTMLInputElement>('input[aria-label="Evento, fila 1"]')
@@ -1562,7 +2317,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("edits Precio and Otra información independently as optional free text", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const price = wrapper.get<HTMLInputElement>('input[aria-label="Precio, fila 1 (opcional)"]');
     const otherInfo = wrapper.get<HTMLInputElement>(
       'input[aria-label="Otra información, fila 1 (opcional)"]'
@@ -1581,7 +2336,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("pastes Precio and Otra información ranges across rows, retaining blank cells and other columns", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const price = wrapper.get<HTMLInputElement>('input[aria-label="Precio, fila 1 (opcional)"]');
     await wrapper
       .get<HTMLInputElement>('input[aria-label="Precio, fila 1 (opcional)"]')
@@ -1626,7 +2381,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("pastes multiple Otra información rows without touching Precio or later columns", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const otherInfo = wrapper.get<HTMLInputElement>(
       'input[aria-label="Otra información, fila 5 (opcional)"]'
     );
@@ -1662,7 +2417,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("edits and normalizes a date, allows an optional end date, and validates date order", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const start = wrapper.get<HTMLInputElement>('input[aria-label="Fecha de inicio, fila 1"]');
     const end = wrapper.get<HTMLInputElement>(
       'input[aria-label="Fecha de fin, fila 1 (opcional)"]'
@@ -1683,7 +2438,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("keeps invalid date text editable and shows a cell error", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const start = wrapper.get<HTMLInputElement>('input[aria-label="Fecha de inicio, fila 1"]');
     await start.setValue("29/02/2026");
     expect(start.element.value).toBe("29/02/2026");
@@ -1693,7 +2448,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("pastes one date and a two-column multirow range, preserving blanks and other data", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const start = wrapper.get<HTMLInputElement>('input[aria-label="Fecha de inicio, fila 1"]');
     await wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 1"]').setValue("Fila uno");
     await wrapper.get<HTMLInputElement>('input[aria-label="Recinto, fila 1"]').setValue("Sala uno");
@@ -1744,7 +2499,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("adds rows when a pasted date range extends beyond the existing table", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const startRow5 = wrapper.get<HTMLInputElement>('input[aria-label="Fecha de inicio, fila 5"]');
     await paste(startRow5.element, "3/2/2026\t4/2/2026\n5/2/2026\t6/2/2026");
 
@@ -1761,7 +2516,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("pastes a single column only into its starting date field and leaves later rows untouched", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const endRow2 = wrapper.get<HTMLInputElement>(
       'input[aria-label="Fecha de fin, fila 2 (opcional)"]'
     );
@@ -1780,7 +2535,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("resolves Locality before Recinto while keeping Ciudad, Provincia and entered Recinto text", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     await wrapper.get<HTMLInputElement>('input[aria-label="Ciudad, fila 1"]').setValue("Barcelona");
@@ -1830,7 +2585,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("edits Event and Lineup independently and allows Event to stay empty", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const firstEvent = wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 1"]');
     const firstLineup = wrapper.get<HTMLInputElement>(
       'input[aria-label="Añadir artistas a Lineup (obligatorio), fila 1"]'
@@ -1846,7 +2601,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("adds blank rows and deletes one without losing other rows", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await wrapper
       .get<HTMLInputElement>('input[aria-label="Evento, fila 1"]')
       .setValue("Gira XX Aniversario");
@@ -1871,7 +2626,10 @@ describe("EventsFestivalsImportView", () => {
     await wrapper
       .get<HTMLInputElement>('input[aria-label="Otra información, fila 2 (opcional)"]')
       .setValue("Aforo limitado");
-    await wrapper.get("button").trigger("click");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Añadir fila"))!
+      .trigger("click");
 
     expect(wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 6"]').element.value).toBe(
       ""
@@ -1904,7 +2662,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("renders resolved artists as pills and leaves unknown artists editable", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const lineupInput = wrapper.get<HTMLInputElement>(
       'input[aria-label="Añadir artistas a Lineup (obligatorio), fila 1"]'
     );
@@ -1952,7 +2710,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("preserves the active Artist draft, focus and caret when a confirmed lookup fails", async () => {
-    const wrapper = mountImportView(document.body);
+    const wrapper = await mountImportView(document.body);
     await flushPromises();
     vi.useFakeTimers();
     resolveArtistsBatchMock.mockRejectedValueOnce(new Error("Sin conexión"));
@@ -1975,7 +2733,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("allows clearing cells and removing the last rows", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     const eventInput = wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 1"]');
     const lineupInput = wrapper.get<HTMLInputElement>(
       'input[aria-label="Añadir artistas a Lineup (obligatorio), fila 1"]'
@@ -1994,7 +2752,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("discards an empty row through the global action and confirms a populated row as a local draft", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await discardRow(wrapper, 1);
     expect(confirmDiscardMock).not.toHaveBeenCalled();
     expect(wrapper.get('input[aria-label="Evento, fila 1"]')).toBeTruthy();
@@ -2016,7 +2774,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("uses the same confirmation when reducing the row count would discard content", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await wrapper
       .get<HTMLInputElement>('input[aria-label="Evento, fila 5"]')
       .setValue("Concierto conservado");
@@ -2037,7 +2795,7 @@ describe("EventsFestivalsImportView", () => {
   });
 
   it("discards selected rows by stable identity and leaves them when confirmation is cancelled", async () => {
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 1"]').setValue("Evento A");
     await wrapper.get<HTMLInputElement>('input[aria-label="Evento, fila 2"]').setValue("Evento B");
     await wrapper.get('input[aria-label="Seleccionar fila 1 para descartar"]').setValue(true);
@@ -2073,7 +2831,10 @@ describe("EventsFestivalsImportView", () => {
     expect(wrapper.text()).toContain("0 filas seleccionadas");
   });
 
-  it("keeps and retries the original snapshot after an uncertain row is discarded", async () => {
+  it.each([
+    ["a transport failure before any response", new Error("Network Error")],
+    ["a timeout after a possible commit", new Error("network timeout after possible commit")],
+  ])("keeps and retries the original snapshot after %s", async (_scenario, error) => {
     countriesMock.mockResolvedValueOnce(
       allowedCountries.map((country) =>
         country.isoCode === "ES"
@@ -2081,7 +2842,7 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     await wrapper
@@ -2091,7 +2852,8 @@ describe("EventsFestivalsImportView", () => {
     await enterArtist(wrapper, 1);
     await vi.advanceTimersByTimeAsync(1350);
     await flushPromises();
-    importEventBatchMock.mockRejectedValueOnce(new Error("network timeout after possible commit"));
+    importEventBatchMock.mockRejectedValueOnce(error);
+    await openImportStage(wrapper);
     await wrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"))!
@@ -2100,6 +2862,15 @@ describe("EventsFestivalsImportView", () => {
 
     const originalSnapshot = importEventBatchMock.mock.calls[0]?.[0];
     expect(wrapper.text()).toContain("No sabemos si la operación terminó.");
+    await selectImportMode(wrapper, "JSON de scraping");
+    expect(wrapper.find('button[aria-label="Importar filas listas"]').exists()).toBe(false);
+    expect(wrapper.find("table").exists()).toBe(false);
+    expect(importEventBatchMock).toHaveBeenCalledTimes(1);
+    await selectImportMode(wrapper, "Manual");
+    expect(wrapper.find('button[aria-label="Importar filas listas"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain("No sabemos si la operación terminó.");
+    expect(importEventBatchMock).toHaveBeenCalledTimes(1);
+    await navigateImportStageInView(wrapper, "Revisar eventos");
     await discardRow(wrapper, 1);
     await flushPromises();
     expect(confirmDiscardMock).toHaveBeenLastCalledWith(
@@ -2120,12 +2891,14 @@ describe("EventsFestivalsImportView", () => {
         result: { rowId: row.operationRowId, status: "created", eventId: "event-after-retry" },
       })),
     }));
+    await openImportStage(wrapper);
     await wrapper
       .findAll("button")
       .find((button) => button.text().includes("Reintentar 1 filas inciertas"))!
       .trigger("click");
     await flushPromises();
     expect(importEventBatchMock.mock.calls[1]?.[0]).toBe(originalSnapshot);
+    await navigateImportStageInView(wrapper, "Revisar eventos");
     expect(wrapper.findAll("tbody tr")).toHaveLength(4);
     expect(wrapper.text()).not.toContain("event-after-retry");
   });
@@ -2188,7 +2961,7 @@ describe("EventsFestivalsImportView", () => {
         lastImport: null,
       },
     });
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     expect(wrapper.text()).toContain("Tienes una sesión incompleta");
     expect(wrapper.text()).toContain("1 operaciones pendientes o inciertas");
@@ -2211,7 +2984,7 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const wrapper = mountImportView();
+    const wrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     await wrapper
@@ -2243,6 +3016,7 @@ describe("EventsFestivalsImportView", () => {
         })),
       };
     });
+    await openImportStage(wrapper);
     await wrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"))!
@@ -2260,7 +3034,7 @@ describe("EventsFestivalsImportView", () => {
           : country
       )
     );
-    const blockedWrapper = mountImportView();
+    const blockedWrapper = await mountImportView();
     await flushPromises();
     vi.useFakeTimers();
     await blockedWrapper
@@ -2274,6 +3048,7 @@ describe("EventsFestivalsImportView", () => {
     await flushPromises();
     sessionSaveMock.mockRejectedValueOnce(new Error("quota exceeded"));
     importEventBatchMock.mockClear();
+    await openImportStage(blockedWrapper);
     await blockedWrapper
       .findAll("button")
       .find((button) => button.text().includes("Importar filas listas"))!
@@ -2309,5 +3084,241 @@ describe("EventsFestivalsImportView", () => {
       originalSnapshot?.rows[0]?.operationRowId
     );
     blockedWrapper.unmount();
+  });
+
+  it("loads a JSON fixture into the JSON workspace and resolves its artists", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    const wrapper = await mountImportView(undefined, true);
+    await flushPromises();
+    const file = new File([scrapedEvents], "events.json", { type: "application/json" });
+    const fileInput = wrapper.get<HTMLInputElement>(
+      'input[aria-label="Seleccionar archivo JSON de eventos"]'
+    );
+    Object.defineProperty(fileInput.element, "files", { configurable: true, value: [file] });
+    await fileInput.trigger("change");
+    await flushPromises();
+    expect(wrapper.text()).toContain("Cargar archivo JSON");
+    expect(wrapper.text()).toContain("scraped-123");
+    expect(
+      (
+        wrapper.get<HTMLInputElement>('[aria-label="Seleccionar archivo JSON de eventos"]')
+          .element as HTMLInputElement
+      ).files
+    ).toBeDefined();
+    expect(wrapper.text()).toContain("Festival de verano");
+    const continueButton = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Analizar y resolver eventos"));
+    expect(continueButton).toBeDefined();
+    vi.useFakeTimers();
+    await continueButton!.trigger("click");
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Todos"))!
+      .trigger("click");
+    expect(
+      wrapper
+        .findAll('input[aria-label^="Evento, fila"]')
+        .some((input) => (input.element as HTMLInputElement).value === "Architects + Spiritbox")
+    ).toBe(true);
+    expect(
+      (wrapper.get<HTMLInputElement>('[aria-label="Evento, fila 2"]').element as HTMLInputElement)
+        .value
+    ).toBe("Festival de verano");
+    expect(
+      (
+        wrapper.get<HTMLInputElement>('[aria-label="Provincia, fila 1"]')
+          .element as HTMLInputElement
+      ).value
+    ).toBe("Cantabria");
+    expect(wrapper.text()).toContain("Architects");
+    expect(
+      wrapper.findAll("li").some((item) => item.text().includes("Repetido dentro del archivo"))
+    ).toBe(true);
+    expect(resolveArtistsBatchMock).toHaveBeenCalled();
+    expect(inspectLocalitiesMock).toHaveBeenCalled();
+    const inspectedLocalities = inspectLocalitiesMock.mock.calls.flatMap(
+      ([request]) =>
+        (request as { localities?: Array<{ name: string; province?: string }> }).localities ?? []
+    );
+    expect(inspectedLocalities).toContainEqual(
+      expect.objectContaining({ name: "Santander", province: "Cantabria" })
+    );
+    expect(importEventBatchMock).not.toHaveBeenCalled();
+    const resolverCallCounts = [
+      resolveArtistsBatchMock.mock.calls.length,
+      inspectLocalitiesMock.mock.calls.length,
+      resolveVenuesMock.mock.calls.length,
+      inspectToursMock.mock.calls.length,
+    ];
+    const duplicateFilter = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Duplicados del archivo"));
+    expect(duplicateFilter).toBeDefined();
+    await duplicateFilter!.trigger("click");
+    expect(wrapper.text()).toContain("Repetido dentro del archivo");
+    expect(wrapper.find('input[aria-label^="Evento, fila"]').exists()).toBe(false);
+    await wrapper.get<HTMLInputElement>("#event-import-review-search").setValue("bilbao");
+    expect(wrapper.text()).toContain("No hay resultados");
+    await wrapper.get<HTMLInputElement>("#event-import-review-search").setValue("");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Inválidos"))!
+      .trigger("click");
+    expect(wrapper.text()).toContain("fecha de inicio no válida");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Todos"))!
+      .trigger("click");
+    await wrapper.get<HTMLInputElement>("#event-import-review-search").setValue("bilbao");
+    expect(wrapper.findAll('input[aria-label^="Evento, fila"]')).toHaveLength(1);
+    expect([
+      resolveArtistsBatchMock.mock.calls.length,
+      inspectLocalitiesMock.mock.calls.length,
+      resolveVenuesMock.mock.calls.length,
+      inspectToursMock.mock.calls.length,
+    ]).toEqual(resolverCallCounts);
+    await selectImportMode(wrapper, "Manual");
+    expect(wrapper.find('[aria-label="Buscar y filtrar eventos del archivo"]').exists()).toBe(
+      false
+    );
+    await selectImportMode(wrapper, "JSON de scraping");
+    expect(wrapper.find('[aria-label="Buscar y filtrar eventos del archivo"]').exists()).toBe(true);
+    expect(wrapper.get<HTMLInputElement>("#event-import-review-search").element.value).toBe(
+      "bilbao"
+    );
+    await wrapper
+      .get('nav[aria-label="Etapas de importación"] button[aria-label^="1. Cargar archivo"]')
+      .trigger("click");
+    const repeatedFileInput = wrapper.get<HTMLInputElement>(
+      'input[aria-label="Seleccionar archivo JSON de eventos"]'
+    );
+    Object.defineProperty(repeatedFileInput.element, "files", {
+      configurable: true,
+      value: [file],
+    });
+    await repeatedFileInput.trigger("change");
+    await flushPromises();
+    const repeatImport = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Analizar y resolver eventos"));
+    await repeatImport!.trigger("click");
+    await flushPromises();
+    expect([
+      resolveArtistsBatchMock.mock.calls.length,
+      inspectLocalitiesMock.mock.calls.length,
+      resolveVenuesMock.mock.calls.length,
+      inspectToursMock.mock.calls.length,
+    ]).toEqual(resolverCallCounts);
+    expect(wrapper.text()).toContain("ya estaban cargados y se omitieron");
+    expect(wrapper.findAll('input[aria-label^="Evento, fila"]')).toHaveLength(1);
+  });
+
+  it("loads a v2 Tour through the shared Tour resolver and event import contract", async () => {
+    countriesMock.mockResolvedValueOnce(
+      allowedCountries.map((country) =>
+        country.isoCode === "ES"
+          ? { ...country, id: "123e4567-e89b-42d3-a456-426614174000" }
+          : country
+      )
+    );
+    importEventBatchMock.mockImplementationOnce(async (snapshot) => ({
+      batchId: snapshot.batchId,
+      results: snapshot.rows.map((row) => ({
+        operationRowId: row.operationRowId,
+        rowKey: row.rowKey,
+        revision: row.revision,
+        result: { rowId: row.operationRowId, status: "created", eventId: "event-tour" },
+      })),
+    }));
+    const wrapper = await mountImportView(undefined, true);
+    await flushPromises();
+    const json = JSON.stringify({
+      format: "riffvalley.events-import",
+      version: 2,
+      source: { name: "Tour scraper" },
+      country: "ES",
+      events: [
+        {
+          type: "tour",
+          title: "European Tour 2027",
+          startDate: "2027-09-15",
+          artists: ["Architects"],
+          locality: "Madrid",
+          province: "Madrid",
+        },
+      ],
+    });
+    const fileInput = wrapper.get<HTMLInputElement>(
+      'input[aria-label="Seleccionar archivo JSON de eventos"]'
+    );
+    Object.defineProperty(fileInput.element, "files", {
+      configurable: true,
+      value: [new File([json], "tour.json", { type: "application/json" })],
+    });
+    await fileInput.trigger("change");
+    await flushPromises();
+    vi.useFakeTimers();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Analizar y resolver eventos"))!
+      .trigger("click");
+    await vi.advanceTimersByTimeAsync(1350);
+    await flushPromises();
+
+    expect(wrapper.get<HTMLSelectElement>('select[aria-label="Tipo, fila 1"]').element.value).toBe(
+      "tour"
+    );
+    expect(
+      wrapper.get<HTMLInputElement>('input[aria-label="Nombre de gira, fila 1"]').element.value
+    ).toBe("European Tour 2027");
+    expect(inspectToursMock).toHaveBeenCalledWith(
+      { names: ["European Tour 2027"] },
+      expect.anything()
+    );
+    expect(wrapper.text()).toContain("1 fila preparada");
+    expect(wrapper.text()).toContain("Motivos de intervención · 0 filas únicas");
+    expect(wrapper.text()).not.toContain("Faltan datos obligatorios");
+
+    await openImportStage(wrapper);
+    await wrapper.get('button[aria-label="Importar filas listas"]').trigger("click");
+    await flushPromises();
+    expect(importEventBatchMock.mock.calls[0]?.[0].rows[0]).toMatchObject({
+      dto: {
+        type: "tour",
+        name: "European Tour 2027",
+        startDate: "2027-09-15",
+        city: "Madrid",
+      },
+    });
+    expect(importEventBatchMock.mock.calls[0]?.[0].rows[0]?.dto).not.toHaveProperty("tourId");
+    wrapper.unmount();
+    vi.useRealTimers();
+  });
+
+  it("rejects JSON files that exceed the size limit or have another extension", async () => {
+    const wrapper = await mountImportView(undefined, true);
+    await flushPromises();
+    const input = wrapper.get<HTMLInputElement>(
+      'input[aria-label="Seleccionar archivo JSON de eventos"]'
+    );
+    for (const file of [
+      new File([new Uint8Array(SCRAPED_EVENT_JSON_MAX_BYTES + 1)], "large.json"),
+      new File(["{}"], "events.txt", { type: "text/plain" }),
+    ]) {
+      Object.defineProperty(input.element, "files", { configurable: true, value: [file] });
+      await input.trigger("change");
+      await flushPromises();
+      expect(wrapper.get('[role="alert"]').text()).toMatch(/2 MiB|\.json/u);
+    }
+    expect(wrapper.text()).not.toContain("eventos.json · fuente");
   });
 });

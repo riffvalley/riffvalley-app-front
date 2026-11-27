@@ -4,6 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ArtistResolutionResult } from "../api/artistResolution";
 import { entityResolutionQueryKeys } from "./entityResolutionQueries";
 import { useEventImportRows } from "./useEventImportRows";
+import { parseScrapedEventJson } from "./scrapedEventJson";
+import { createEventImportPreparer } from "./eventImportPreparation";
+import { summarizeEventImportAnalysis } from "./eventImportAnalysisSummary";
 
 const {
   resolveArtistsBatchMock,
@@ -274,6 +277,530 @@ describe("useEventImportRows lineup resolution", () => {
     expect(row.lineup).toHaveLength(205);
   });
 
+  it.each([500, 1000])(
+    "resolves a %i-event JSON load in bounded unique-reference batches",
+    async (eventCount) => {
+      let activeRequests = 0;
+      let maximumActiveRequests = 0;
+      const waitForRequest = async () => {
+        activeRequests += 1;
+        maximumActiveRequests = Math.max(maximumActiveRequests, activeRequests);
+        await new Promise<void>((resolve) => setTimeout(resolve, 1));
+        activeRequests -= 1;
+      };
+      resolveArtistsBatchMock.mockImplementation(async (names: string[]) => {
+        await waitForRequest();
+        return resultsFor(names);
+      });
+      inspectLocalitiesMock.mockImplementation(
+        async ({ localities }: { localities: Array<{ name: string; countryId: string }> }) => {
+          await waitForRequest();
+          return {
+            results: localities.map((input, index) => ({
+              index,
+              input,
+              status: "existing",
+              locality: {
+                id: `locality-${input.name}`,
+                name: input.name,
+                province: null,
+                country: { id: input.countryId, name: "España" },
+                administrativeRegion: { id: "region-1", name: "Región" },
+              },
+              candidates: [],
+            })),
+          };
+        }
+      );
+      resolveVenuesMock.mockImplementation(
+        async (inputs: Array<{ name: string; localityId: string }>) => {
+          await waitForRequest();
+          return inputs.map((input, index) => ({
+            index,
+            ...input,
+            status: "existing",
+            venue: { id: `venue-${input.localityId}`, name: input.name },
+            candidates: [{ id: `venue-${input.localityId}`, name: input.name }],
+          }));
+        }
+      );
+
+      const load = model.appendImportedRowsAndResolve(
+        Array.from({ length: eventCount }, (_, index) => ({
+          type: "concert" as const,
+          title: `Event ${index}`,
+          startDate: "2027-06-12",
+          endDate: "",
+          artists: [`Artist ${index}`],
+          venue: `Venue ${index}`,
+          locality: `City ${index}`,
+          province: "",
+          administrativeRegionId: null,
+          price: "",
+          additionalInfo: "",
+        }))
+      );
+      await vi.runAllTimersAsync();
+      await load;
+
+      const artistBatchSizes = resolveArtistsBatchMock.mock.calls.map(
+        ([names]) => (names as string[]).length
+      );
+      const localityBatchSizes = inspectLocalitiesMock.mock.calls.map(
+        ([request]) => (request as { localities: unknown[] }).localities.length
+      );
+      const venueBatchSizes = resolveVenuesMock.mock.calls.map(
+        ([venues]) => (venues as unknown[]).length
+      );
+      const expectedBatchSizes = Array.from({ length: Math.ceil(eventCount / 100) }, (_, index) =>
+        Math.min(100, eventCount - index * 100)
+      );
+      expect(artistBatchSizes).toEqual(expectedBatchSizes);
+      expect(localityBatchSizes).toEqual(expectedBatchSizes);
+      expect(venueBatchSizes).toEqual(expectedBatchSizes);
+      expect(artistBatchSizes.length + localityBatchSizes.length + venueBatchSizes.length).toBe(
+        expectedBatchSizes.length * 3
+      );
+      expect(maximumActiveRequests).toBeLessThanOrEqual(3);
+      expect(model.rows.value.slice(0, eventCount).map(({ lineup }) => lineup[0]?.name)).toEqual(
+        Array.from({ length: eventCount }, (_, index) => `Artist ${index}`)
+      );
+      expect(model.rows.value[eventCount - 1]).toMatchObject({
+        city: `City ${eventCount - 1}`,
+        venue: {
+          name: `Venue ${eventCount - 1}`,
+          localityId: `locality-City ${eventCount - 1}`,
+          venueId: `venue-locality-City ${eventCount - 1}`,
+        },
+      });
+      expect(model.bulkResolutionStatus.value).toBe("");
+      expect(model.bulkResolutionPhases.value).toMatchObject([
+        { id: "artists", status: "complete", processed: eventCount, total: eventCount, errors: 0 },
+        {
+          id: "geography",
+          status: "complete",
+          processed: eventCount,
+          total: eventCount,
+          errors: 0,
+        },
+        { id: "venues", status: "complete", processed: eventCount, total: eventCount, errors: 0 },
+        { id: "tours", status: "complete", processed: 0, total: 0, errors: 0 },
+        { id: "validation", status: "pending", processed: 0, total: 0, errors: 0 },
+      ]);
+
+      const artist = model.rows.value[0]!.lineup[0]!;
+      model.updateLineupItemName(model.rows.value[0]!.id, artist.key, "Edited Artist");
+      model.commitLineupItemName(model.rows.value[0]!.id, artist.key);
+      await vi.runAllTimersAsync();
+      expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(expectedBatchSizes.length + 1);
+      expect(inspectLocalitiesMock).toHaveBeenCalledTimes(expectedBatchSizes.length);
+      expect(resolveVenuesMock).toHaveBeenCalledTimes(expectedBatchSizes.length);
+    }
+  );
+
+  it("resolves every reference for a 585-row concert, festival and tour mix outside table rendering", async () => {
+    const imported = Array.from({ length: 585 }, (_, index) => {
+      const type = index < 125 ? "concert" : index < 161 ? "festival" : "tour";
+      return {
+        type: type as "concert" | "festival" | "tour",
+        title: type === "concert" ? "" : `${type} ${index}`,
+        startDate: "2027-06-12",
+        endDate: "",
+        artists: [`Artist ${index}`],
+        venue: "",
+        locality: "Madrid",
+        province: "",
+        administrativeRegionId: null,
+        price: "",
+        additionalInfo: "",
+      };
+    });
+    const load = model.appendImportedRowsAndResolve(imported);
+    await vi.runAllTimersAsync();
+    const rowIds = await load;
+    const loadedRows = model.rows.value.filter(({ id }) => rowIds.includes(id));
+
+    expect(rowIds).toHaveLength(585);
+    expect(loadedRows).toHaveLength(585);
+    expect(loadedRows.filter(({ type }) => type === "concert")).toHaveLength(125);
+    expect(loadedRows.filter(({ type }) => type === "festival")).toHaveLength(36);
+    expect(loadedRows.filter(({ type }) => type === "tour")).toHaveLength(424);
+    expect(resolveArtistsBatchMock.mock.calls.map(([names]) => (names as string[]).length)).toEqual(
+      [100, 100, 100, 100, 100, 85]
+    );
+    expect(
+      inspectToursMock.mock.calls.map(([request]) => (request as { names: string[] }).names.length)
+    ).toEqual([100, 100, 100, 100, 24]);
+    expect(inspectLocalitiesMock).toHaveBeenCalledTimes(1);
+    expect(resolveVenuesMock).not.toHaveBeenCalled();
+    expect(
+      rowIds.every((rowId) =>
+        Object.values(model.lineupStates[rowId]?.itemResolution ?? {}).every(
+          (result) => result.status === "existing"
+        )
+      )
+    ).toBe(true);
+    expect(
+      loadedRows
+        .filter(({ type }) => type === "tour")
+        .every(({ id, event }) => model.tourStates[id]?.result?.name === event)
+    ).toBe(true);
+  });
+
+  it("prepares all 585 normalized JSON rows with their original row IDs", async () => {
+    const countryId = "123e4567-e89b-42d3-a456-426614174000";
+    const artistId = "123e4567-e89b-42d3-a456-426614174001";
+    const document = parseScrapedEventJson(
+      JSON.stringify({
+        format: "riffvalley.events-import",
+        version: 2,
+        source: { name: "fixture-585" },
+        country: "ES",
+        events: Array.from({ length: 585 }, (_, index) => {
+          const type = index < 125 ? "concert" : index < 161 ? "festival" : "tour";
+          return {
+            type,
+            title: `${type} ${index}`,
+            startDate: "2027-06-12",
+            artists: ["Shared Artist"],
+            venue: "",
+            locality: "Madrid",
+          };
+        }),
+      })
+    );
+    expect(document.events.every(({ issues }) => issues.length === 0)).toBe(true);
+
+    resolveArtistsBatchMock.mockImplementationOnce(async (names: string[]) =>
+      names.map((name, index) => ({
+        index,
+        name,
+        status: "existing",
+        artist: { id: artistId, name },
+        candidates: [],
+      }))
+    );
+    inspectLocalitiesMock.mockImplementationOnce(
+      async ({ localities }: { localities: Array<{ name: string; countryId: string }> }) => ({
+        results: localities.map((input, index) => ({
+          index,
+          input,
+          status: "new",
+          requiresAdministrativeRegionId: false,
+          candidates: [],
+        })),
+      })
+    );
+    scope.run(() => model.setWorkspaceCountryContext(countryId));
+
+    const rowIds = await model.appendImportedRowsAndResolve(
+      document.events.map((event) => ({
+        type: event.type,
+        title: event.title,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        artists: event.artists,
+        venue: event.venue,
+        locality: event.locality,
+        province: event.province,
+        administrativeRegionId: null,
+        price: event.price,
+        additionalInfo: event.additionalInfo,
+      }))
+    );
+    const rowsById = new Map(model.rows.value.map((row) => [row.id, row]));
+    const analyzedRowIds = Object.fromEntries(rowIds.map((rowId, index) => [index, rowId]));
+    let nextUuid = 0;
+    const preparer = createEventImportPreparer(
+      () => `123e4567-e89b-42d3-a456-${String(++nextUuid).padStart(12, "0")}`
+    );
+    const preparation = preparer.prepare({
+      rows: rowIds.map((rowId) => rowsById.get(rowId)!),
+      countryId,
+      countryAvailable: true,
+      lineupStates: model.lineupStates,
+      geographyStates: model.geographyStates,
+      tourStates: model.tourStates,
+    });
+    const counts = summarizeEventImportAnalysis(
+      document,
+      analyzedRowIds,
+      new Set(preparation.readyRowIds),
+      0
+    );
+
+    expect(rowIds).toHaveLength(585);
+    expect(new Set(rowIds).size).toBe(585);
+    expect(preparation.readyRowIds).toEqual(rowIds);
+    expect(preparation.eligibleRows).toHaveLength(50);
+    expect(preparation.pendingRows).toHaveLength(535);
+    expect(preparation.pendingRows.every(({ reasons }) => reasons[0] === "batch-limit-exceeded"))
+      .toBe(true);
+    expect(counts).toMatchObject({ total: 585, prepared: 585, needsIntervention: 0, invalid: 0 });
+    expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(1);
+    expect(resolveArtistsBatchMock).toHaveBeenCalledWith(["Shared Artist"], expect.any(AbortSignal));
+    expect(inspectLocalitiesMock).toHaveBeenCalledTimes(1);
+    expect(
+      inspectToursMock.mock.calls.flatMap(([request]) => (request as { names: string[] }).names)
+    ).toEqual(Array.from({ length: 424 }, (_, index) => `tour ${index + 161}`));
+    expect(resolveVenuesMock).not.toHaveBeenCalled();
+    expect(model.bulkResolutionPhases.value).toMatchObject([
+      { id: "artists", status: "complete", total: 1, processed: 1, errors: 0 },
+      { id: "geography", status: "complete", total: 1, processed: 1, errors: 0 },
+      { id: "venues", status: "complete", total: 0, processed: 0, errors: 0 },
+      { id: "tours", status: "complete", total: 424, processed: 424, errors: 0 },
+      { id: "validation", status: "pending", total: 0, processed: 0, errors: 0 },
+    ]);
+    expect(model.rows.value.filter(({ type }) => type === "concert")).toHaveLength(125);
+    expect(model.rows.value.filter(({ type }) => type === "festival")).toHaveLength(36);
+    expect(model.rows.value.filter(({ type }) => type === "tour")).toHaveLength(424);
+  });
+
+  it("continues resolving later locality batches after one batch fails", async () => {
+    inspectLocalitiesMock.mockImplementationOnce(
+      async ({ localities }: { localities: Array<{ name: string; countryId: string }> }) => {
+        if (localities[0]?.name === "City 0") throw new Error("first locality batch failed");
+        return {
+          results: localities.map((input, index) => ({
+            index,
+            input,
+            status: "new",
+            requiresAdministrativeRegionId: false,
+            candidates: [],
+          })),
+        };
+      }
+    );
+    const rowIds = await model.appendImportedRowsAndResolve(
+      Array.from({ length: 101 }, (_, index) => ({
+        type: "concert" as const,
+        title: `Event ${index}`,
+        startDate: "2027-06-12",
+        endDate: "",
+        artists: [],
+        venue: "",
+        locality: `City ${index}`,
+        province: "",
+        administrativeRegionId: null,
+        price: "",
+        additionalInfo: "",
+      }))
+    );
+
+    expect(rowIds).toHaveLength(101);
+    expect(inspectLocalitiesMock.mock.calls.map(([request]) =>
+      (request as { localities: unknown[] }).localities.length
+    )).toEqual([100, 1]);
+    expect(model.geographyStates[rowIds[0]!]?.localityStatus).toBe("error");
+    expect(model.geographyStates[rowIds[100]!]?.localityStatus).toBe("existing");
+    expect(model.bulkResolutionPhases.value.find(({ id }) => id === "geography")).toMatchObject({
+      status: "error",
+      processed: 101,
+      total: 101,
+      errors: 100,
+    });
+  });
+
+  it("reports a partial phase error while preserving the row for correction", async () => {
+    inspectLocalitiesMock.mockRejectedValueOnce(new Error("network unavailable"));
+    const rowIds = await model.appendImportedRowsAndResolve([
+      {
+        type: "concert",
+        title: "Retryable event",
+        startDate: "2027-06-12",
+        endDate: "",
+        artists: ["Artist"],
+        venue: "Venue",
+        locality: "City",
+        province: "",
+        administrativeRegionId: null,
+        price: "",
+        additionalInfo: "",
+      },
+    ]);
+
+    expect(rowIds).toHaveLength(1);
+    expect(model.bulkResolutionPhases.value).toMatchObject([
+      { id: "artists", status: "complete", processed: 1, total: 1, errors: 0 },
+      { id: "geography", status: "error", processed: 1, total: 1, errors: 1 },
+      { id: "venues", status: "complete", processed: 0, total: 0, errors: 0 },
+      { id: "tours", status: "complete", processed: 0, total: 0, errors: 0 },
+      { id: "validation", status: "pending", processed: 0, total: 0, errors: 0 },
+    ]);
+    expect(model.rows.value.find(({ id }) => id === rowIds[0])).toMatchObject({
+      event: "Retryable event",
+      city: "City",
+    });
+    expect(model.geographyStates[rowIds[0]!]?.localityStatus).toBe("error");
+    model.retryLocality(rowIds[0]!);
+    await flushPromises();
+    expect(model.geographyStates[rowIds[0]!]?.localityStatus).toBe("existing");
+    expect(inspectLocalitiesMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("exposes pending, active and completed phase states around the existing batch request", async () => {
+    let completeArtists!: (results: ArtistResolutionResult[]) => void;
+    resolveArtistsBatchMock.mockImplementationOnce(
+      () => new Promise((resolve) => (completeArtists = resolve))
+    );
+    const load = model.appendImportedRowsAndResolve([
+      {
+        type: "concert",
+        title: "Phase transition",
+        startDate: "2027-06-12",
+        endDate: "",
+        artists: ["Artist"],
+        venue: "",
+        locality: "City",
+        province: "",
+        administrativeRegionId: null,
+        price: "",
+        additionalInfo: "",
+      },
+    ]);
+    await flushPromises();
+
+    expect(model.bulkResolutionPhases.value.slice(0, 2)).toMatchObject([
+      { id: "artists", status: "in-progress", processed: 0, total: 1 },
+      { id: "geography", status: "pending", processed: 0, total: 1 },
+    ]);
+    completeArtists(resultsFor(["Artist"]));
+    await load;
+    expect(model.bulkResolutionPhases.value[0]).toMatchObject({
+      id: "artists",
+      status: "complete",
+      processed: 1,
+      total: 1,
+    });
+  });
+
+  it("ignores a bulk locality response after its row is removed", async () => {
+    let resolveInspection!: (response: unknown) => void;
+    inspectLocalitiesMock.mockImplementationOnce(
+      () => new Promise((resolve) => (resolveInspection = resolve))
+    );
+    const load = model.appendImportedRowsAndResolve([
+      {
+        type: "concert",
+        title: "One event",
+        startDate: "2027-06-12",
+        endDate: "",
+        artists: ["Artist"],
+        venue: "Venue",
+        locality: "City",
+        province: "",
+        administrativeRegionId: null,
+        price: "",
+        additionalInfo: "",
+      },
+    ]);
+    await flushPromises();
+    const row = model.rows.value.find(({ event }) => event === "One event")!;
+    expect(inspectLocalitiesMock).toHaveBeenCalledTimes(1);
+    model.removeRow(row.id);
+    resolveInspection({
+      results: [
+        {
+          index: 0,
+          input: { name: "City", countryId: "country-ES" },
+          status: "existing",
+          locality: {
+            id: "late-locality",
+            name: "City",
+            province: null,
+            country: { id: "country-ES", name: "España" },
+            administrativeRegion: { id: "region-1", name: "Región" },
+          },
+          candidates: [],
+        },
+      ],
+    });
+    await load;
+
+    expect(model.rows.value).not.toContain(row);
+    expect(resolveVenuesMock).not.toHaveBeenCalled();
+  });
+
+  it("deduplicates repeated lineup, locality and venue identities without merging homonyms", async () => {
+    inspectLocalitiesMock.mockImplementationOnce(
+      async ({
+        localities,
+      }: {
+        localities: Array<{ name: string; countryId: string; administrativeRegionId?: string }>;
+      }) => ({
+        results: localities.map((input, index) => ({
+          index,
+          input,
+          status: "existing",
+          locality: {
+            id: `locality-${input.administrativeRegionId}`,
+            name: input.name,
+            province: null,
+            country: { id: input.countryId, name: "España" },
+            administrativeRegion: { id: input.administrativeRegionId!, name: "Region" },
+          },
+          candidates: [],
+        })),
+      })
+    );
+    await model.appendImportedRowsAndResolve(
+      ["region-a", "region-b", "region-a"].map((regionId, index) => ({
+        type: "concert" as const,
+        title: `Event ${index}`,
+        startDate: "2027-06-12",
+        endDate: "",
+        artists: ["Repeated Artist"],
+        venue: "Sala Central",
+        locality: "San Pedro",
+        province: "",
+        administrativeRegionId: regionId,
+        price: "",
+        additionalInfo: "",
+      }))
+    );
+
+    expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(1);
+    expect(resolveArtistsBatchMock.mock.calls[0]?.[0]).toEqual(["Repeated Artist"]);
+    expect(inspectLocalitiesMock.mock.calls[0]?.[0].localities).toHaveLength(2);
+    expect(resolveVenuesMock.mock.calls[0]?.[0]).toHaveLength(2);
+    expect(model.rows.value.slice(0, 3).map(({ venue }) => venue.localityId)).toEqual([
+      "locality-region-a",
+      "locality-region-b",
+      "locality-region-a",
+    ]);
+    expect(model.rows.value.slice(0, 3).map(({ venue }) => venue.venueId)).toEqual([
+      "venue-Sala Central",
+      "venue-Sala Central",
+      "venue-Sala Central",
+    ]);
+  });
+
+  it("keeps successful references when one locality batch fails", async () => {
+    inspectLocalitiesMock.mockRejectedValueOnce(new Error("Locality service unavailable"));
+    await model.appendImportedRowsAndResolve([
+      {
+        type: "concert",
+        title: "Partial row",
+        startDate: "2027-06-12",
+        endDate: "",
+        artists: ["Artist"],
+        venue: "Venue",
+        locality: "City",
+        province: "",
+        administrativeRegionId: null,
+        price: "",
+        additionalInfo: "",
+      },
+    ]);
+
+    const row = model.rows.value.find(({ event }) => event === "Partial row")!;
+    expect(row.lineup[0]?.artistId).toBe("id-Artist");
+    expect(row.city).toBe("City");
+    expect(model.geographyStates[row.id]?.localityStatus).toBe("error");
+    expect(model.geographyStates[row.id]?.localityError).toBe("Locality service unavailable");
+    expect(resolveVenuesMock).not.toHaveBeenCalled();
+  });
+
   it("re-resolves an edited artist after immediately clearing its old ID", async () => {
     const row = model.rows.value[0]!;
     model.updateLineupDraft(row.id, "Architects");
@@ -389,7 +916,7 @@ describe("useEventImportRows lineup resolution", () => {
     expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("queries again after the 15 second Query freshness window expires", async () => {
+  it("reuses a successful artist result for the whole table session", async () => {
     const first = model.rows.value[0]!;
     model.updateLineupDraft(first.id, "Septicflesh");
     model.commitLineupDraft(first.id);
@@ -403,7 +930,7 @@ describe("useEventImportRows lineup resolution", () => {
     model.commitLineupDraft(second.id);
     await vi.advanceTimersByTimeAsync(450);
     await flushPromises();
-    expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(2);
+    expect(resolveArtistsBatchMock).toHaveBeenCalledTimes(1);
   });
 
   it("does not resolve artists after unrelated row fields change", async () => {

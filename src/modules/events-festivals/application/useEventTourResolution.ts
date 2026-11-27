@@ -26,11 +26,14 @@ interface PendingTour {
 /** QueryCache owns completed data; this table-scoped map only joins pending work. */
 export function useEventTourResolution(queryClient: QueryClient) {
   const pending = new Map<string, PendingTour>();
+  const sessionResults = new Map<string, TourResolutionResult>();
   const queued: PendingTour[] = [];
   let timer: ReturnType<typeof setTimeout> | undefined;
   let disposed = false;
 
   function cached(key: string): TourResolutionResult | undefined {
+    const sessionResult = sessionResults.get(key);
+    if (sessionResult) return sessionResult;
     const now = Date.now();
     for (const query of queryClient.getQueryCache().findAll({
       queryKey: [...entityResolutionQueryKeys.all, "tour"],
@@ -59,8 +62,11 @@ export function useEventTourResolution(queryClient: QueryClient) {
         .then(({ results }) => {
           batch.forEach((entry, index) => {
             const result = results[index];
-            if (result) entry.resolve(result);
-            else entry.reject(new Error("La respuesta de Tour no contiene el índice solicitado."));
+            if (result) {
+              sessionResults.set(entry.key, result);
+              entry.resolve(result);
+            } else
+              entry.reject(new Error("La respuesta de Tour no contiene el índice solicitado."));
             if (pending.get(entry.key) === entry) pending.delete(entry.key);
           });
         })
@@ -109,6 +115,7 @@ export function useEventTourResolution(queryClient: QueryClient) {
       entry.reject(error);
       if (pending.get(entry.key) === entry) pending.delete(entry.key);
     });
+    sessionResults.clear();
   }
 
   return { resolve, flush, dispose };

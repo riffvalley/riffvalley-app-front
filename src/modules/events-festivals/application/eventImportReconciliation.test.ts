@@ -3,6 +3,7 @@ import type { ImportBatchResponse } from "../api/eventImport";
 import type { ImportSnapshot } from "./eventImportPreparation";
 import {
   countDistinctCreatedEvents,
+  countUnchangedEvents,
   reconcileEventImportResults,
 } from "./eventImportReconciliation";
 
@@ -18,7 +19,7 @@ function makeSnapshot(rowKeys: string[]): ImportSnapshot {
 
 function makeResponse(
   snapshot: ImportSnapshot,
-  statuses: Array<"created" | "conflict" | "invalid" | "failed">
+  statuses: Array<"created" | "unchanged" | "conflict" | "invalid" | "failed">
 ): ImportBatchResponse {
   return {
     batchId: snapshot.batchId,
@@ -31,7 +32,9 @@ function makeResponse(
         result:
           status === "created"
             ? { rowId: row.operationRowId, status, eventId: `event-${index}` }
-            : { rowId: row.operationRowId, status },
+            : status === "unchanged"
+              ? { rowId: row.operationRowId, status, eventId: `existing-${index}` }
+              : { rowId: row.operationRowId, status },
       } as ImportBatchResponse["results"][number];
     }),
   };
@@ -97,6 +100,51 @@ describe("reconcileEventImportResults", () => {
     );
     expect(result.rowKeysToRemove).toEqual([]);
     expect(result.results[0]).toMatchObject({ action: "kept", current: false, rowPresent: true });
+  });
+
+  it("omits unchanged rows, retains the existing event id, and counts them separately", () => {
+    const snapshot = makeSnapshot(["existing-row", "created-row"]);
+    const response = makeResponse(snapshot, ["unchanged", "created"]);
+    const result = reconcileEventImportResults(snapshot, response, () => true);
+
+    expect(result.rowKeysToRemove).toEqual(["existing-row", "created-row"]);
+    expect(result.createdDrafts).toEqual([]);
+    expect(result.results[0]?.item.result).toMatchObject({
+      status: "unchanged",
+      eventId: "existing-0",
+    });
+    expect(countDistinctCreatedEvents(response)).toBe(1);
+    expect(countUnchangedEvents(response)).toBe(1);
+  });
+
+  it("keeps a duplicate-shaped conflict available for review instead of treating it as unchanged", () => {
+    const snapshot = makeSnapshot(["review-row"]);
+    const response = makeResponse(snapshot, ["conflict"]);
+    response.results[0]!.result = {
+      rowId: "operation-0",
+      status: "conflict",
+      code: "CONCERT_DUPLICATE",
+      message: "Requiere revisión",
+      conflicts: [
+        {
+          rowId: "operation-0",
+          kind: "duplicate",
+          code: "CONCERT_DUPLICATE",
+          severity: "blocking",
+          message: "Requiere revisión",
+          relatedRowIds: [],
+          existingEventIds: ["existing-event"],
+          matchingArtists: [],
+          addableArtists: [],
+          candidateEventIds: ["existing-event"],
+        },
+      ],
+    };
+
+    const result = reconcileEventImportResults(snapshot, response, () => true);
+
+    expect(result.rowKeysToRemove).toEqual([]);
+    expect(result.results[0]).toMatchObject({ action: "kept", current: true });
   });
 
   it("is idempotent for a repeated operation and rejects mismatched correlation", () => {

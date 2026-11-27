@@ -181,6 +181,13 @@
     "children": [
       {
         "to": "/concerts-festivals",
+        "label": "Listado",
+        "activeClass": "bg-gray-700",
+        "requiredRole": "riffvalley",
+        "icon": "fa-solid fa-list"
+      },
+      {
+        "to": "/concerts-festivals/import",
         "label": "Importador",
         "activeClass": "bg-gray-700",
         "requiredRole": "riffvalley",

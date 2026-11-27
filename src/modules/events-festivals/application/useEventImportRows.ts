@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/vue-query";
-import { onScopeDispose, reactive, ref } from "vue";
+import { onScopeDispose, reactive, ref, shallowRef } from "vue";
 import type { ArtistResolutionResult } from "../api/artistResolution";
 import type { VenueResolutionResult } from "@/modules/venues";
 import type {
@@ -8,6 +8,7 @@ import type {
   TourResolutionResult,
   EntityCandidate,
 } from "../api/entityResolutionContracts";
+import { ENTITY_RESOLUTION_BATCH_LIMIT } from "../api/entityResolutionContracts";
 import { artistResolutionKey, geographyContextKey } from "./entityResolutionIdentity";
 import { useEventEntityResolution } from "./useEventEntityResolution";
 import {
@@ -40,6 +41,20 @@ export interface EventImportRow {
   city: string;
   province: string;
   administrativeRegionId: string | null;
+}
+
+export interface ImportedEventInput {
+  type: "concert" | "festival" | "tour";
+  title: string;
+  startDate: string;
+  endDate: string;
+  artists: string[];
+  venue: string;
+  locality: string;
+  province: string;
+  administrativeRegionId: string | null;
+  price: string;
+  additionalInfo: string;
 }
 
 export type LocalityResolutionStatus =
@@ -81,6 +96,56 @@ export interface LineupCellState {
   itemResolution: Record<string, ArtistResolutionResult | { status: "error"; message: string }>;
 }
 
+export interface EventImportRowsWorkspace {
+  rows: EventImportRow[];
+  lineupStates: Record<string, LineupCellState>;
+  geographyStates: Record<string, EventGeographyState>;
+  tourStates: Record<string, EventTourState>;
+  bulkResolutionStatus: string;
+  bulkResolutionPhases: EventImportResolutionPhase[];
+  confirmedTours: Array<[string, string]>;
+}
+
+export interface EventImportResolutionPhase {
+  id: "artists" | "geography" | "venues" | "tours" | "validation";
+  label: string;
+  status: "pending" | "in-progress" | "complete" | "error";
+  processed: number;
+  total: number;
+  errors: number;
+}
+
+function emptyResolutionPhases(): EventImportResolutionPhase[] {
+  return [
+    { id: "artists", label: "Artistas", status: "pending", processed: 0, total: 0, errors: 0 },
+    {
+      id: "geography",
+      label: "Localidades y regiones",
+      status: "pending",
+      processed: 0,
+      total: 0,
+      errors: 0,
+    },
+    {
+      id: "venues",
+      label: "Salas y recintos",
+      status: "pending",
+      processed: 0,
+      total: 0,
+      errors: 0,
+    },
+    { id: "tours", label: "Giras", status: "pending", processed: 0, total: 0, errors: 0 },
+    {
+      id: "validation",
+      label: "Preparación y validación",
+      status: "pending",
+      processed: 0,
+      total: 0,
+      errors: 0,
+    },
+  ];
+}
+
 const INITIAL_ROW_COUNT = 5;
 const emptyGeographyState = (): EventGeographyState => ({
   localityStatus: "idle",
@@ -115,6 +180,8 @@ export function useEventImportRows(queryClient: QueryClient) {
 
   const lineupStates = reactive<Record<string, LineupCellState>>({});
   const rows = ref<EventImportRow[]>([]);
+  const bulkResolutionStatus = shallowRef("");
+  const bulkResolutionPhases = ref(emptyResolutionPhases());
   const artistResolution = useEventEntityResolution(queryClient);
   const geographyResolution = useEventGeographyResolution(queryClient);
   const tourResolution = useEventTourResolution(queryClient);
@@ -701,6 +768,372 @@ export function useEventImportRows(queryClient: QueryClient) {
     rows.value.push(createRow());
   }
 
+  function appendImportedRows(importedRows: readonly ImportedEventInput[]) {
+    const isEmpty = (row: EventImportRow) =>
+      !row.event.trim() &&
+      row.lineup.length === 0 &&
+      !row.startDateDraft.trim() &&
+      !row.endDateDraft.trim() &&
+      !row.city.trim() &&
+      !row.province.trim() &&
+      !row.venue.name.trim() &&
+      !row.price.trim() &&
+      !row.otherInfo.trim();
+    let cursor = 0;
+    for (const imported of importedRows) {
+      while (cursor < rows.value.length && !isEmpty(rows.value[cursor]!)) cursor++;
+      if (cursor >= rows.value.length) addRow();
+      const row = rows.value[cursor++]!;
+      updateType(row.id, imported.type);
+      updateEvent(row.id, imported.title);
+      updateDate(row.id, "startDate", calendarInput(imported.startDate));
+      updateDate(row.id, "endDate", calendarInput(imported.endDate));
+      updateCity(row.id, imported.locality);
+      updateProvince(row.id, imported.province);
+      if (imported.administrativeRegionId)
+        selectAdministrativeRegion(row.id, imported.administrativeRegionId);
+      updateVenue(row.id, imported.venue);
+      updateTextField(row.id, "price", imported.price);
+      updateTextField(row.id, "otherInfo", imported.additionalInfo);
+      addConfirmedLineupNames(row.id, imported.artists);
+    }
+  }
+
+  async function appendImportedRowsAndResolve(importedRows: readonly ImportedEventInput[]) {
+    const isEmpty = (row: EventImportRow) =>
+      !row.event.trim() &&
+      row.lineup.length === 0 &&
+      !row.startDateDraft.trim() &&
+      !row.endDateDraft.trim() &&
+      !row.city.trim() &&
+      !row.province.trim() &&
+      !row.venue.name.trim() &&
+      !row.price.trim() &&
+      !row.otherInfo.trim() &&
+      !row.administrativeRegionId;
+    let cursor = 0;
+    const importedRowIds: string[] = [];
+    for (const imported of importedRows) {
+      while (cursor < rows.value.length && !isEmpty(rows.value[cursor]!)) cursor++;
+      if (cursor >= rows.value.length) addRow();
+      const row = rows.value[cursor++]!;
+      row.type = imported.type;
+      row.event = imported.title;
+      updateDate(row.id, "startDate", calendarInput(imported.startDate));
+      updateDate(row.id, "endDate", calendarInput(imported.endDate));
+      row.city = imported.locality;
+      row.province = imported.province;
+      row.administrativeRegionId = imported.administrativeRegionId;
+      row.venue = { name: imported.venue, venueId: null, localityId: null };
+      row.price = imported.price;
+      row.otherInfo = imported.additionalInfo;
+      row.lineup = imported.artists.map((name) => ({
+        key: `lineup-item-${nextLineupItemKey++}`,
+        name,
+        artistId: null,
+      }));
+      importedRowIds.push(row.id);
+      lineupStates[row.id] = {
+        draft: "",
+        draftStatus: "idle",
+        itemStatus: Object.fromEntries(row.lineup.map(({ key }) => [key, "resolving"])),
+        draftError: null,
+        itemResolution: {},
+      };
+      geographyStates[row.id] = {
+        ...emptyGeographyState(),
+        localityStatus: row.city.trim() ? "resolving" : "idle",
+      };
+      tourStates[row.id] = {
+        ...emptyTourState(),
+        status: row.type === "tour" && row.event.trim() ? "resolving" : "idle",
+      };
+      for (const item of row.lineup) nextVersion(itemVersions, item.key);
+      nextVersion(localityVersions, row.id);
+      nextVersion(venueVersions, row.id);
+      if (row.type === "tour") nextVersion(tourVersions, row.id);
+    }
+    await resolveImportedReferences(importedRowIds);
+    return importedRowIds;
+  }
+
+  async function resolveImportedReferences(rowIds: readonly string[]) {
+    const importedIds = new Set(rowIds);
+    const imported = rows.value.filter(({ id }) => importedIds.has(id));
+    const rowById = new Map(imported.map((row) => [row.id, row]));
+    const artists = new Map<
+      string,
+      { name: string; rows: Array<{ rowId: string; itemKey: string; version: number }> }
+    >();
+    const localities = new Map<
+      string,
+      {
+        input: import("../api/entityResolutionContracts").LocalityInspectionInput;
+        rows: Array<{ rowId: string; version: number }>;
+      }
+    >();
+    const tours = new Map<
+      string,
+      { name: string; rows: Array<{ rowId: string; version: number }> }
+    >();
+    for (const row of imported) {
+      for (const item of row.lineup) {
+        const key = artistResolutionKey(item.name);
+        const entry = artists.get(key) ?? { name: item.name.trim(), rows: [] };
+        entry.rows.push({
+          rowId: row.id,
+          itemKey: item.key,
+          version: itemVersions.get(item.key) ?? 0,
+        });
+        artists.set(key, entry);
+      }
+      if (row.city.trim() && countryId) {
+        const input = {
+          name: row.city,
+          countryId,
+          ...(row.administrativeRegionId
+            ? { administrativeRegionId: row.administrativeRegionId }
+            : {}),
+          ...(row.province.trim() ? { province: row.province } : {}),
+        };
+        const key = localityIdentity(input);
+        const entry = localities.get(key) ?? { input, rows: [] };
+        entry.rows.push({ rowId: row.id, version: localityVersions.get(row.id) ?? 0 });
+        localities.set(key, entry);
+      }
+      if (row.type === "tour" && row.event.trim()) {
+        const key = tourResolutionKey(row.event);
+        const entry = tours.get(key) ?? { name: row.event.trim(), rows: [] };
+        entry.rows.push({ rowId: row.id, version: tourVersions.get(row.id) ?? 0 });
+        tours.set(key, entry);
+      }
+    }
+
+    async function resolveGroups<T>(
+      entries: Array<[string, T]>,
+      resolveBatch: (batch: T[]) => Promise<unknown[]>,
+      apply: (key: string, result: unknown) => void,
+      markError: (key: string, error: unknown) => void,
+      phase: EventImportResolutionPhase
+    ) {
+      const batches: Array<Array<[string, T]>> = [];
+      for (let offset = 0; offset < entries.length; offset += ENTITY_RESOLUTION_BATCH_LIMIT)
+        batches.push(entries.slice(offset, offset + ENTITY_RESOLUTION_BATCH_LIMIT));
+      let nextBatch = 0;
+      const workers = Array.from({ length: Math.min(3, batches.length) }, async () => {
+        while (nextBatch < batches.length) {
+          const batch = batches[nextBatch++]!;
+          try {
+            const results = await resolveBatch(batch.map(([, entry]) => entry));
+            batch.forEach(([key], index) => {
+              const result = results[index];
+              if (result === undefined) {
+                phase.errors++;
+                markError(key, new Error("Respuesta incompleta del resolvedor."));
+              } else apply(key, result);
+              phase.processed++;
+            });
+          } catch (error) {
+            batch.forEach(([key]) => {
+              markError(key, error);
+              phase.errors++;
+              phase.processed++;
+            });
+          }
+        }
+      });
+      await Promise.all(workers);
+    }
+
+    bulkResolutionPhases.value = emptyResolutionPhases();
+    const [artistPhase, geographyPhase, venuePhase, tourPhase] = bulkResolutionPhases.value;
+    artistPhase!.total = artists.size;
+    geographyPhase!.total = localities.size;
+    venuePhase!.total = 0;
+    tourPhase!.total = tours.size;
+    artistPhase!.status = "in-progress";
+    bulkResolutionStatus.value = "Resolviendo artistas…";
+    await resolveGroups(
+      [...artists],
+      (batch) =>
+        artistResolution.resolve(
+          batch.map(({ name }) => name),
+          true
+        ),
+      (key, value) => {
+        const result = value as ArtistResolutionResult;
+        for (const reference of artists.get(key)?.rows ?? []) {
+          const state = lineupStates[reference.rowId];
+          const item = rowById
+            .get(reference.rowId)
+            ?.lineup.find(({ key: itemKey }) => itemKey === reference.itemKey);
+          if (
+            !state ||
+            !item ||
+            itemVersions.get(reference.itemKey) !== reference.version ||
+            disposed
+          )
+            continue;
+          item.artistId = result.status === "existing" ? result.artist.id : null;
+          state.itemResolution[reference.itemKey] = result;
+          delete state.itemStatus[reference.itemKey];
+        }
+      },
+      (key, error) => {
+        for (const reference of artists.get(key)?.rows ?? []) {
+          const state = lineupStates[reference.rowId];
+          if (!state || itemVersions.get(reference.itemKey) !== reference.version) continue;
+          state.itemStatus[reference.itemKey] = "error";
+          state.itemResolution[reference.itemKey] = {
+            status: "error",
+            message: errorMessage(error),
+          };
+        }
+      },
+      artistPhase!
+    );
+
+    artistPhase!.status = artistPhase!.errors ? "error" : "complete";
+    geographyPhase!.status = "in-progress";
+    bulkResolutionStatus.value = "Resolviendo localidades…";
+    const localityResults = new Map<string, LocalityInspectionResult>();
+    await resolveGroups(
+      [...localities],
+      (batch) =>
+        geographyResolution.resolveLocalities(
+          batch.map((entry) => entry.input),
+          true
+        ),
+      (key, result) => localityResults.set(key, result as LocalityInspectionResult),
+      (key, error) => {
+        for (const { rowId, version } of localities.get(key)?.rows ?? []) {
+          const state = geographyStates[rowId];
+          if (state && localityVersions.get(rowId) === version) {
+            state.localityStatus = "error";
+            state.localityError = errorMessage(error);
+          }
+        }
+      },
+      geographyPhase!
+    );
+    for (const [key, result] of localityResults) {
+      for (const { rowId, version } of localities.get(key)?.rows ?? []) {
+        const row = rowById.get(rowId);
+        const state = geographyStates[rowId];
+        if (!row || !state || disposed || localityVersions.get(rowId) !== version) continue;
+        state.localityResult = result;
+        state.localityStatus = result.status;
+        state.localityCandidates = result.status === "ambiguous" ? result.candidates : [];
+        if (result.status === "existing") {
+          state.selectedLocality = result.locality;
+          row.venue.localityId = result.locality.id;
+          if (row.venue.name.trim()) state.venueStatus = "resolving";
+        }
+      }
+    }
+
+    geographyPhase!.status = geographyPhase!.errors ? "error" : "complete";
+    bulkResolutionStatus.value = "Resolviendo recintos…";
+    const venues = new Map<
+      string,
+      {
+        input: { name: string; localityId: string };
+        rows: Array<{ rowId: string; version: number }>;
+      }
+    >();
+    for (const row of imported) {
+      if (!row.venue.name.trim() || !row.venue.localityId) continue;
+      const input = { name: row.venue.name, localityId: row.venue.localityId };
+      const key = venueIdentity(input);
+      const entry = venues.get(key) ?? { input, rows: [] };
+      entry.rows.push({ rowId: row.id, version: venueVersions.get(row.id) ?? 0 });
+      venues.set(key, entry);
+    }
+    venuePhase!.total = venues.size;
+    venuePhase!.status = "in-progress";
+    await resolveGroups(
+      [...venues],
+      (batch) =>
+        geographyResolution.resolveVenues(
+          batch.map((entry) => entry.input),
+          true
+        ),
+      (key, value) => {
+        const result = value as VenueResolutionResult;
+        for (const { rowId, version } of venues.get(key)?.rows ?? []) {
+          const row = rowById.get(rowId);
+          const state = geographyStates[rowId];
+          if (
+            !row ||
+            !state ||
+            disposed ||
+            venueVersions.get(rowId) !== version ||
+            venueIdentity({ name: row.venue.name, localityId: row.venue.localityId ?? "" }) !== key
+          )
+            continue;
+          state.venueStatus = result.status;
+          state.venueCandidates = result.candidates;
+          row.venue.venueId = result.status === "existing" ? result.venue.id : null;
+        }
+      },
+      (key, error) => {
+        for (const { rowId, version } of venues.get(key)?.rows ?? []) {
+          const state = geographyStates[rowId];
+          if (state && venueVersions.get(rowId) === version) {
+            state.venueStatus = "error";
+            state.venueError = errorMessage(error);
+          }
+        }
+      },
+      venuePhase!
+    );
+
+    venuePhase!.status = venuePhase!.errors ? "error" : "complete";
+    tourPhase!.status = "in-progress";
+    bulkResolutionStatus.value = "Resolviendo giras…";
+    await resolveGroups(
+      [...tours],
+      (batch) =>
+        tourResolution.resolve(
+          batch.map(({ name }) => name),
+          true
+        ),
+      (key, value) => {
+        const result = value as TourResolutionResult;
+        for (const { rowId, version } of tours.get(key)?.rows ?? []) {
+          const state = tourStates[rowId];
+          if (
+            !state ||
+            disposed ||
+            tourVersions.get(rowId) !== version ||
+            tourResolutionKey(rowById.get(rowId)?.event ?? "") !== key
+          )
+            continue;
+          state.result = result;
+          state.status = result.status;
+          state.selectedCandidateId = result.status === "existing" ? result.entity.id : null;
+        }
+      },
+      (key, error) => {
+        for (const { rowId, version } of tours.get(key)?.rows ?? []) {
+          const state = tourStates[rowId];
+          if (state && tourVersions.get(rowId) === version) {
+            state.status = "error";
+            state.error = errorMessage(error);
+          }
+        }
+      },
+      tourPhase!
+    );
+    tourPhase!.status = tourPhase!.errors ? "error" : "complete";
+    bulkResolutionStatus.value = "";
+  }
+
+  function calendarInput(isoDate: string): string {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(isoDate);
+    return match ? `${Number(match[3])}/${Number(match[2])}/${match[1]}` : isoDate;
+  }
+
   function updateEvent(rowId: string, event: string) {
     const row = findRow(rowId);
     if (!row || row.event === event) return;
@@ -922,24 +1355,32 @@ export function useEventImportRows(queryClient: QueryClient) {
   }
 
   function removeRow(rowId: string) {
-    const row = findRow(rowId);
-    if (!row) return;
-    const tourIdentity = row.type === "tour" ? tourResolutionKey(row.event) : null;
-    cancelVenueWork(rowId);
-    const localityTimer = localityTimers.get(rowId);
-    if (localityTimer) clearTimeout(localityTimer);
-    localityTimers.delete(rowId);
-    localityVersions.delete(rowId);
-    venueVersions.delete(rowId);
-    for (const item of row.lineup) cancelItemWork(item.key);
-    for (const item of row.lineup) itemVersions.delete(item.key);
-    rows.value = rows.value.filter((candidate) => candidate.id !== rowId);
-    delete lineupStates[rowId];
-    delete geographyStates[rowId];
-    delete tourStates[rowId];
-    nextVersion(tourVersions, rowId);
-    tourVersions.delete(rowId);
-    if (tourIdentity) removeUnusedTourConfirmation(tourIdentity);
+    removeRows([rowId]);
+  }
+
+  function removeRows(rowIds: readonly string[]) {
+    const ids = new Set(rowIds);
+    const removedRows = rows.value.filter(({ id }) => ids.has(id));
+    if (!removedRows.length) return;
+    const removedTourIdentities = new Set<string>();
+    rows.value = rows.value.filter(({ id }) => !ids.has(id));
+    for (const row of removedRows) {
+      if (row.type === "tour") removedTourIdentities.add(tourResolutionKey(row.event));
+      cancelVenueWork(row.id);
+      const localityTimer = localityTimers.get(row.id);
+      if (localityTimer) clearTimeout(localityTimer);
+      localityTimers.delete(row.id);
+      localityVersions.delete(row.id);
+      venueVersions.delete(row.id);
+      for (const item of row.lineup) cancelItemWork(item.key);
+      for (const item of row.lineup) itemVersions.delete(item.key);
+      delete lineupStates[row.id];
+      delete geographyStates[row.id];
+      delete tourStates[row.id];
+      nextVersion(tourVersions, row.id);
+      tourVersions.delete(row.id);
+    }
+    removedTourIdentities.forEach(removeUnusedTourConfirmation);
   }
 
   function setRowCount(count: number): boolean {
@@ -960,6 +1401,8 @@ export function useEventImportRows(queryClient: QueryClient) {
     savedLineupStates: Record<string, LineupCellState>,
     savedTourStates: Record<string, EventTourState>
   ) {
+    bulkResolutionStatus.value = "";
+    bulkResolutionPhases.value = emptyResolutionPhases();
     rows.value.forEach((row) => {
       delete lineupStates[row.id];
       delete geographyStates[row.id];
@@ -1024,6 +1467,62 @@ export function useEventImportRows(queryClient: QueryClient) {
     rows.value.forEach((row) => removeRow(row.id));
     rows.value = Array.from({ length: INITIAL_ROW_COUNT }, createRow);
     confirmedTours.clear();
+    bulkResolutionStatus.value = "";
+    bulkResolutionPhases.value = emptyResolutionPhases();
+  }
+
+  function restoreResolutionPhases(phases?: EventImportResolutionPhase[]) {
+    bulkResolutionPhases.value = phases ?? emptyResolutionPhases();
+  }
+
+  function completeImportValidation() {
+    const validation = bulkResolutionPhases.value.find(({ id }) => id === "validation");
+    if (validation) validation.status = "complete";
+  }
+
+  function captureWorkspace(): EventImportRowsWorkspace {
+    return {
+      rows: rows.value,
+      lineupStates: { ...lineupStates },
+      geographyStates: { ...geographyStates },
+      tourStates: { ...tourStates },
+      bulkResolutionStatus: bulkResolutionStatus.value,
+      bulkResolutionPhases: bulkResolutionPhases.value,
+      confirmedTours: [...confirmedTours.entries()],
+    };
+  }
+
+  function restoreWorkspace(workspace: EventImportRowsWorkspace) {
+    for (const key of Object.keys(lineupStates)) delete lineupStates[key];
+    for (const key of Object.keys(geographyStates)) delete geographyStates[key];
+    for (const key of Object.keys(tourStates)) delete tourStates[key];
+    Object.assign(lineupStates, workspace.lineupStates);
+    Object.assign(geographyStates, workspace.geographyStates);
+    Object.assign(tourStates, workspace.tourStates);
+    confirmedTours.clear();
+    workspace.confirmedTours.forEach(([identity, tourId]) => confirmedTours.set(identity, tourId));
+    rows.value = workspace.rows;
+    bulkResolutionStatus.value = workspace.bulkResolutionStatus;
+    bulkResolutionPhases.value = workspace.bulkResolutionPhases ?? emptyResolutionPhases();
+  }
+
+  function hasActiveResolution(): boolean {
+    return (
+      localityTimers.size > 0 ||
+      Object.values(lineupStates).some(
+        (state) =>
+          state.draftStatus === "resolving" ||
+          Object.values(state.itemStatus).some((status) => status === "resolving")
+      ) ||
+      Object.values(geographyStates).some(
+        (state) => state.localityStatus === "resolving" || state.venueStatus === "resolving"
+      ) ||
+      Object.values(tourStates).some((state) => state.status === "resolving")
+    );
+  }
+
+  function setWorkspaceCountryContext(nextCountryId: string) {
+    countryId = nextCountryId;
   }
 
   onScopeDispose(() => {
@@ -1040,7 +1539,17 @@ export function useEventImportRows(queryClient: QueryClient) {
     lineupStates,
     geographyStates,
     tourStates,
+    bulkResolutionStatus,
+    bulkResolutionPhases,
     addRow,
+    captureWorkspace,
+    restoreWorkspace,
+    restoreResolutionPhases,
+    completeImportValidation,
+    hasActiveResolution,
+    setWorkspaceCountryContext,
+    appendImportedRows,
+    appendImportedRowsAndResolve,
     updateEvent,
     updateType,
     updateTypeRange,
@@ -1070,6 +1579,7 @@ export function useEventImportRows(queryClient: QueryClient) {
     retryLineupItem,
     removeLineupItem,
     removeRow,
+    removeRows,
     setRowCount,
     restoreRows,
     resetRows,

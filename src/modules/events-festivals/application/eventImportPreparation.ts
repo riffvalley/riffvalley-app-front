@@ -51,6 +51,8 @@ export interface ImportPreparation {
   readonly payload: DeepReadonly<ImportBatchRequest> | null;
   readonly snapshot: ImportSnapshot | null;
   readonly eligibleRows: readonly DeepReadonly<PreparedImportRow>[];
+  /** Rows that pass preparation regardless of which 50-row snapshot is current. */
+  readonly readyRowIds: readonly string[];
   readonly pendingRows: readonly DeepReadonly<PendingImportRow>[];
   readonly errors: readonly DeepReadonly<PendingImportRow>[];
   readonly correlation: Readonly<Record<string, string>>;
@@ -408,6 +410,7 @@ export function createEventImportPreparer(uuidFactory: UuidFactory = browserUuid
   function prepare(input: EventImportPreparationInput): ImportPreparation {
     const validCountry = input.countryAvailable && UUID_PATTERN.test(input.countryId);
     const eligibleRows: PreparedImportRow[] = [];
+    const readyRowIds: string[] = [];
     const pendingRows: PendingImportRow[] = [];
 
     for (const row of input.rows) {
@@ -420,19 +423,22 @@ export function createEventImportPreparer(uuidFactory: UuidFactory = browserUuid
       const reasons = validateRow(row, input);
       if (reasons.length) {
         pendingRows.push({ rowKey: row.id, revision: identity.revision, reasons });
-      } else if (eligibleRows.length < EVENT_IMPORT_BATCH_LIMIT) {
-        eligibleRows.push({
-          rowKey: row.id,
-          operationRowId: identity.operationRowId,
-          revision: identity.revision,
-          dto: toDto(row, identity.operationRowId, input),
-        });
       } else {
-        pendingRows.push({
-          rowKey: row.id,
-          revision: identity.revision,
-          reasons: ["batch-limit-exceeded"],
-        });
+        readyRowIds.push(row.id);
+        if (eligibleRows.length < EVENT_IMPORT_BATCH_LIMIT) {
+          eligibleRows.push({
+            rowKey: row.id,
+            operationRowId: identity.operationRowId,
+            revision: identity.revision,
+            dto: toDto(row, identity.operationRowId, input),
+          });
+        } else {
+          pendingRows.push({
+            rowKey: row.id,
+            revision: identity.revision,
+            reasons: ["batch-limit-exceeded"],
+          });
+        }
       }
     }
 
@@ -451,6 +457,7 @@ export function createEventImportPreparer(uuidFactory: UuidFactory = browserUuid
         payload: null,
         snapshot: null,
         eligibleRows,
+        readyRowIds,
         pendingRows,
         errors,
         correlation: {},
@@ -485,6 +492,7 @@ export function createEventImportPreparer(uuidFactory: UuidFactory = browserUuid
       payload: snapshot.payload,
       snapshot,
       eligibleRows: snapshotRows,
+      readyRowIds,
       pendingRows: snapshotPendingRows,
       errors,
       correlation,

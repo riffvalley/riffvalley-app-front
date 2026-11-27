@@ -45,6 +45,7 @@ function cachedArtistResult(
 /** One table-scoped coordinator. QueryCache owns completed remote data; this map only joins pending work. */
 export function useEventEntityResolution(queryClient: QueryClient) {
   const pending = new Map<string, PendingArtist>();
+  const sessionResults = new Map<string, ArtistResolutionResult>();
   const queued: PendingArtist[] = [];
   let timer: ReturnType<typeof setTimeout> | undefined;
   let disposed = false;
@@ -59,8 +60,10 @@ export function useEventEntityResolution(queryClient: QueryClient) {
         .then((results) => {
           batch.forEach((entry, index) => {
             const result = results[index];
-            if (result) entry.resolve(result);
-            else
+            if (result) {
+              sessionResults.set(entry.key, result);
+              entry.resolve(result);
+            } else
               entry.reject(new Error("La respuesta de Artist no contiene el índice solicitado."));
             if (pending.get(entry.key) === entry) pending.delete(entry.key);
           });
@@ -77,6 +80,8 @@ export function useEventEntityResolution(queryClient: QueryClient) {
   function resolve(names: readonly string[], immediate = false): Promise<ArtistResolutionResult[]> {
     const results = names.map((name) => {
       const key = artistResolutionKey(name);
+      const sessionResult = sessionResults.get(key);
+      if (sessionResult) return Promise.resolve(sessionResult);
       const cached = cachedArtistResult(queryClient, key);
       if (cached) return Promise.resolve(cached);
 
@@ -118,6 +123,7 @@ export function useEventEntityResolution(queryClient: QueryClient) {
       entry.reject(error);
       if (pending.get(entry.key) === entry) pending.delete(entry.key);
     });
+    sessionResults.clear();
     // In-flight Query requests remain cacheable and may still serve another observer.
   }
 

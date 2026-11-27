@@ -18,7 +18,7 @@ const TOUR_ID = "123e4567-e89b-42d3-a456-426614174003";
 const LOCALITY_ID = "123e4567-e89b-42d3-a456-426614174004";
 const VENUE_ID = "123e4567-e89b-42d3-a456-426614174005";
 const UUIDS = Array.from(
-  { length: 500 },
+  { length: 2000 },
   (_, index) => `123e4567-e89b-42d3-a456-${String(index + 1).padStart(12, "0")}`
 );
 
@@ -121,6 +121,37 @@ function createPreparer() {
 }
 
 describe("event import preparation", () => {
+  it.each([1, 25, 50, 51, 600])(
+    "partitions %i ready rows into immutable snapshots of at most 50",
+    (total) => {
+      const preparer = createPreparer();
+      const rows = Array.from({ length: total }, (_, index) => row(`batch-row-${index}`));
+      const blockedRows: Record<string, string> = {};
+      const batchSizes: number[] = [];
+      const rowIdsByKey = new Map<string, string>();
+
+      while (batchSizes.reduce((sum, size) => sum + size, 0) < total) {
+        const prepared = preparer.prepare(input(rows, { blockedRows }));
+        const snapshot = prepared.snapshot;
+        expect(snapshot).not.toBeNull();
+        if (!snapshot) break;
+        batchSizes.push(snapshot.rows.length);
+        snapshot.rows.forEach(({ rowKey, operationRowId }) => {
+          rowIdsByKey.set(rowKey, operationRowId);
+          blockedRows[rowKey] = "automatic-batch-already-processed";
+        });
+      }
+
+      expect(batchSizes).toEqual(
+        Array.from({ length: Math.ceil(total / EVENT_IMPORT_BATCH_LIMIT) }, (_, index) =>
+          Math.min(EVENT_IMPORT_BATCH_LIMIT, total - index * EVENT_IMPORT_BATCH_LIMIT)
+        )
+      );
+      const retry = preparer.prepare(input([rows[0]!])).snapshot;
+      expect(retry?.rows[0]?.operationRowId).toBe(rowIdsByKey.get(rows[0]!.id));
+    }
+  );
+
   it("keeps an unconfirmed lineup draft pending even without a remote lookup", () => {
     const preparer = createPreparer();
     const current = row("event-row-1", { lineup: [] });
@@ -791,8 +822,40 @@ describe("event import preparation", () => {
     );
     const overLimit = preparer.prepare(input(rows));
     expect(overLimit.payload?.rows).toHaveLength(EVENT_IMPORT_BATCH_LIMIT);
+    expect(overLimit.readyRowIds).toHaveLength(EVENT_IMPORT_BATCH_LIMIT + 1);
     expect(overLimit.pendingRows).toHaveLength(1);
     expect(overLimit.pendingRows[0]?.reasons).toEqual(["batch-limit-exceeded"]);
+  });
+
+  it("classifies 585 resolved mixed event rows independently of the current 50-row snapshot", () => {
+    const total = 585;
+    const rows = Array.from({ length: total }, (_, index) => {
+      const type: EventImportRow["type"] =
+        index < 125 ? "concert" : index < 161 ? "festival" : "tour";
+      return row(`mixed-${index}`, {
+        type,
+        event: type === "concert" ? "" : `Event ${index}`,
+      });
+    });
+    const tourStates = Object.fromEntries(
+      rows
+        .filter(({ type }) => type === "tour")
+        .map((tourRow) => [tourRow.id, tour("new", tourRow.event)])
+    );
+
+    const prepared = createPreparer().prepare(input(rows, { tourStates }));
+
+    expect(rows.filter(({ type }) => type === "concert")).toHaveLength(125);
+    expect(rows.filter(({ type }) => type === "festival")).toHaveLength(36);
+    expect(rows.filter(({ type }) => type === "tour")).toHaveLength(424);
+    expect(prepared.readyRowIds).toHaveLength(total);
+    expect(prepared.eligibleRows).toHaveLength(EVENT_IMPORT_BATCH_LIMIT);
+    expect(prepared.snapshot?.rows).toHaveLength(EVENT_IMPORT_BATCH_LIMIT);
+    expect(prepared.pendingRows).toHaveLength(total - EVENT_IMPORT_BATCH_LIMIT);
+    expect(
+      prepared.pendingRows.every(({ reasons }) => reasons.join(",") === "batch-limit-exceeded")
+    ).toBe(true);
+    expect(prepared.errors).toHaveLength(0);
   });
 
   it("retains a new Venue name and omits an empty generic Venue", () => {

@@ -102,37 +102,53 @@ export function existingEventDetailQueryOptions(eventId: string) {
 
 interface ImportResultBase {
   rowId: string;
-  code?: string;
-  message?: string;
+}
+
+interface ImportResultWithDiagnostic extends ImportResultBase {
+  code: string;
+  message: string;
 }
 
 export interface ImportCreatedResult extends ImportResultBase {
   status: "created";
   eventId: string;
   tourId?: string;
-  localityId?: string;
-  venueId?: string;
-  artistIds?: string[];
-  replayed?: boolean;
+  localityId: string;
+  venueId: string;
+  artistIds: string[];
+  replayed: boolean;
+  code?: string;
+  message?: string;
 }
 
-export interface ImportConflictResult extends ImportResultBase {
+export interface ImportUnchangedResult extends ImportResultBase {
+  status: "unchanged";
+  eventId: string;
+  code?: string;
+  message?: string;
+}
+
+export interface ImportConflictResult extends ImportResultWithDiagnostic {
   status: "conflict";
   conflicts?: ImportConflict[];
   candidates?: Array<{ id: string; name: string }>;
 }
 
-export interface ImportInvalidResult extends ImportResultBase {
+export interface ImportInvalidResult extends ImportResultWithDiagnostic {
   status: "invalid";
   candidates?: Array<{ id: string; name: string }>;
 }
 
-export interface ImportFailedResult extends ImportResultBase {
+export interface ImportFailedResult extends ImportResultWithDiagnostic {
   status: "failed";
 }
 
 export type ImportBatchRowResult =
-  ImportCreatedResult | ImportConflictResult | ImportInvalidResult | ImportFailedResult;
+  | ImportCreatedResult
+  | ImportUnchangedResult
+  | ImportConflictResult
+  | ImportInvalidResult
+  | ImportFailedResult;
 
 export interface CorrelatedImportResult {
   operationRowId: string;
@@ -213,23 +229,26 @@ function hasOptionalStringFields(value: Record<string, unknown>, fields: string[
 }
 
 function isRowResult(value: unknown): value is ImportBatchRowResult {
-  if (
-    !isRecord(value) ||
-    !isString(value.rowId) ||
-    !hasOptionalStringFields(value, ["code", "message"])
-  ) {
+  if (!isRecord(value) || !isString(value.rowId)) {
     return false;
   }
   switch (value.status) {
     case "created":
       return (
         isString(value.eventId) &&
-        hasOptionalStringFields(value, ["tourId", "localityId", "venueId"]) &&
-        (value.artistIds === undefined || isStringList(value.artistIds)) &&
-        (value.replayed === undefined || typeof value.replayed === "boolean")
+        hasOptionalStringFields(value, ["tourId"]) &&
+        isString(value.localityId) &&
+        isString(value.venueId) &&
+        isStringList(value.artistIds) &&
+        typeof value.replayed === "boolean" &&
+        hasOptionalStringFields(value, ["code", "message"])
       );
+    case "unchanged":
+      return isString(value.eventId) && hasOptionalStringFields(value, ["code", "message"]);
     case "conflict":
       return (
+        isString(value.code) &&
+        isString(value.message) &&
         (value.conflicts === undefined ||
           (Array.isArray(value.conflicts) &&
             value.conflicts.every(
@@ -238,9 +257,13 @@ function isRowResult(value: unknown): value is ImportBatchRowResult {
         (value.candidates === undefined || isCandidateList(value.candidates))
       );
     case "invalid":
-      return value.candidates === undefined || isCandidateList(value.candidates);
+      return (
+        isString(value.code) &&
+        isString(value.message) &&
+        (value.candidates === undefined || isCandidateList(value.candidates))
+      );
     case "failed":
-      return true;
+      return isString(value.code) && isString(value.message);
     default:
       return false;
   }

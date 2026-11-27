@@ -29,7 +29,10 @@ const props = defineProps<{
   conflictsByRowKey: Record<string, EventImportConflictPresentation[]>;
   selectedRowKeys: ReadonlySet<string>;
   discardDisabled: boolean;
-  rowProblems: Record<string, { label: string; fields: string[]; historical?: boolean }>;
+  rowProblems: Record<
+    string,
+    { label: string; fields: string[]; historical?: boolean; code?: string }
+  >;
   canReviewLineupExpansion: (conflict: EventImportConflictPresentation) => boolean;
   prepareLineupExpansion: (
     conflict: EventImportConflictPresentation,
@@ -55,7 +58,14 @@ const rowNumbers = computed(() =>
   Object.fromEntries(props.rows.map((row, index) => [row.id, index + 1]))
 );
 
-function rowStatusSummary(problem: { label: string; fields: string[]; historical?: boolean }) {
+function rowStatusSummary(problem: {
+  label: string;
+  fields: string[];
+  historical?: boolean;
+  code?: string;
+}) {
+  if (problem.code === "LOCALITY_GEOCODING_UNAVAILABLE")
+    return "Error · localidad sin geolocalización";
   if (problem.label === "Lista para importar") return "Lista para importar";
   if (problem.label.toLocaleLowerCase("und").includes("conflicto"))
     return "Conflicto · revisar coincidencias";

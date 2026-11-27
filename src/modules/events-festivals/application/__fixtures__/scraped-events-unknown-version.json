@@ -1,0 +1,7 @@
+{
+  "format": "riffvalley.events-import",
+  "version": 99,
+  "source": { "name": "fixture" },
+  "country": "ES",
+  "events": []
+}

@@ -4,7 +4,20 @@ import { computed, nextTick, shallowRef, watch } from "vue";
 import { useAuthStore } from "@/modules/identity/auth";
 import EventImportTable from "../components/EventImportTable.vue";
 import EventImportCountrySelector from "../components/EventImportCountrySelector.vue";
-import { useEventImportRows, type EventImportRow } from "../../application/useEventImportRows";
+import EventImportStageNavigation, {
+  type EventImportStageId,
+  type EventImportStageItem,
+} from "../components/EventImportStageNavigation.vue";
+import EventImportFileSummary from "../components/EventImportFileSummary.vue";
+import EventImportResolutionProgress from "../components/EventImportResolutionProgress.vue";
+import EventImportAnalysisSummary from "../components/EventImportAnalysisSummary.vue";
+import EventImportReviewControls from "../components/EventImportReviewControls.vue";
+import {
+  useEventImportRows,
+  type EventImportResolutionPhase,
+  type EventImportRow,
+  type EventImportRowsWorkspace,
+} from "../../application/useEventImportRows";
 import { useEventImportGeography } from "../../application/useEventImportGeography";
 import {
   createEventImportPreparer,
@@ -43,13 +56,63 @@ import {
 import { lineupExpansionConfirmationSignature } from "../../application/eventLineupExpansionPreparation";
 import type { EventLineupExpansionResponse } from "../../api/eventLineupExpansion";
 import { useEventImportSession } from "../../application/useEventImportSession";
+import {
+  buildEventImportReviewEntries,
+  filterEventImportReviewEntries,
+  type EventImportReviewFilter,
+} from "../../application/eventImportReview";
+import { summarizeEventImportIntervention } from "../../application/eventImportInterventionSummary";
 import { createEventImportSessionPayload } from "../../application/eventImportSessionPayload";
 import { EVENT_IMPORT_SESSION_FORMAT_VERSION } from "../../infrastructure/eventImportSessionStorage";
+import {
+  parseScrapedEventJson,
+  scrapedEventFingerprint,
+  SCRAPED_EVENT_JSON_MAX_BYTES,
+  type ScrapedEventJsonDocument,
+} from "../../application/scrapedEventJson";
+import { summarizeEventImportAnalysis } from "../../application/eventImportAnalysisSummary";
 
 const queryClient = useQueryClient();
 const auth = useAuthStore();
 const eventImport = useEventImportRows(queryClient);
-const { rows, lineupStates, geographyStates, tourStates, addRow, removeRow } = eventImport;
+type ImportMode = "manual" | "json";
+const activeImportMode = shallowRef<ImportMode>("manual");
+const switchingImportMode = shallowRef(false);
+const modeSwitchAttempt = shallowRef(0);
+const {
+  rows,
+  lineupStates,
+  geographyStates,
+  tourStates,
+  bulkResolutionStatus,
+  bulkResolutionPhases,
+  addRow,
+  removeRow,
+  removeRows,
+} = eventImport;
+const jsonDocument = shallowRef<ScrapedEventJsonDocument | null>(null);
+const jsonFileName = shallowRef("");
+const jsonFileSizeBytes = shallowRef(0);
+const jsonAnalyzedRowIds = shallowRef<Record<number, string>>({});
+const jsonError = shallowRef("");
+const jsonNotice = shallowRef("");
+const jsonLoading = shallowRef(false);
+const jsonDragging = shallowRef(false);
+const activeImportStage = shallowRef<EventImportStageId>("review");
+const jsonReviewFilter = shallowRef<EventImportReviewFilter>("needs-review");
+const jsonReviewSearch = shallowRef("");
+const jsonReviewNotice = shallowRef("");
+const jsonReviewInitialized = shallowRef(false);
+const analyzedJsonDocument = shallowRef<ScrapedEventJsonDocument | null>(null);
+const jsonResolutionInProgress = shallowRef(false);
+const jsonResolutionError = shallowRef("");
+const manualEditorAccessed = shallowRef(false);
+const loadedScrapedEventFingerprints = new Set<string>();
+const inMemoryModeWorkspaces = new Map<ImportMode, ImportModeWorkspace>();
+const persistedModeWorkspaces = shallowRef<
+  Partial<Record<ImportMode, SerializedImportModeWorkspace>>
+>({});
+const modeBatchErrors = shallowRef<Partial<Record<ImportMode, string>>>({});
 const geography = useEventImportGeography(eventImport.invalidateGeographicAssociations);
 const preparer = createEventImportPreparer();
 const lineupExpansionPreparer = createEventLineupExpansionPreparer();
@@ -63,6 +126,12 @@ const initialPreparation: ImportPreparation = {
 };
 const preparation = shallowRef(initialPreparation);
 const batchMutation = useEventImportBatchMutation();
+const visibleBatchError = computed(
+  () =>
+    (batchMutation.isError.value
+      ? eventImportGlobalErrorMessage(batchMutation.error.value)
+      : modeBatchErrors.value[activeImportMode.value]) || ""
+);
 const expansionMutation = useEventLineupExpansionMutation();
 const uncertainSnapshots = shallowRef<NonNullable<ImportPreparation["snapshot"]>[]>([]);
 const handledOperations = new Set<string>();
@@ -71,11 +140,102 @@ const createdDrafts = shallowRef<Record<string, { eventId: string; operationRowI
 const lastImport = shallowRef<{
   response: ImportBatchResponse;
   rows: ReturnType<typeof reconcileEventImportResults>["results"];
+  rowLabels?: Record<string, string>;
 } | null>(null);
-const conflictOperation = shallowRef<{
+type LastImportState = NonNullable<typeof lastImport.value>;
+interface ConflictOperation {
   snapshot: NonNullable<ImportPreparation["snapshot"]>;
   results: CorrelatedImportResult[];
-} | null>(null);
+}
+const conflictOperations = shallowRef<ConflictOperation[]>([]);
+interface AutomaticImportRun {
+  id: string;
+  ownerId: string;
+  countryId: string;
+  excludedRowKeys: Set<string>;
+  completedBatches: number;
+  completedRows: number;
+  totalRows: number;
+  totalBatches: number;
+  createdEventIds: Set<string>;
+  unchangedRows: number;
+  conflicts: number;
+  invalidRows: number;
+  failedRows: number;
+  stopRequested: boolean;
+}
+interface ImportModeWorkspace {
+  rows: EventImportRowsWorkspace;
+  countryId: string;
+  preparation: ImportPreparation;
+  uncertainSnapshots: NonNullable<ImportPreparation["snapshot"]>[];
+  protectedSnapshots: NonNullable<ImportPreparation["snapshot"]>[];
+  handledOperations: Set<string>;
+  handledOperationOrder: string[];
+  createdDrafts: Record<string, { eventId: string; operationRowId: string }>;
+  lastImport: LastImportState | null;
+  conflictOperations: ConflictOperation[];
+  selectedRowKeys: Set<string>;
+  confirmedExpansionSignatures: Record<string, string>;
+  selectedExpansionEventIds: Record<string, string>;
+  expansionExecutions: Record<string, EventLineupExpansionExecution>;
+  expansionAuthorizations: Record<string, ConfirmedLineupExpansion>;
+  handledExpansionOperations: Set<string>;
+  appliedExpansionsByRow: Record<string, { eventId: string; operationKey: string }>;
+  expansionHistory: Array<{
+    operationKey: string;
+    rowKey: string;
+    eventId: string;
+    startDate: string;
+    result: EventLineupExpansionResponse;
+    reconciliation: "removed" | "kept" | "already-handled";
+  }>;
+  protectedExpansionSnapshots: Record<
+    string,
+    import("../../application/eventLineupExpansionPreparation").LineupExpansionSnapshot
+  >;
+  pendingSnapshotBatchIds: Set<string>;
+  jsonDocument: ScrapedEventJsonDocument | null;
+  jsonFileName: string;
+  jsonFileSizeBytes: number;
+  jsonAnalyzedRowIds: Record<number, string>;
+  jsonError: string;
+  jsonNotice: string;
+  jsonResolutionError: string;
+  activeImportStage: EventImportStageId;
+  analyzedJsonDocument: ScrapedEventJsonDocument | null;
+  manualEditorAccessed: boolean;
+  loadedScrapedEventFingerprints: Set<string>;
+}
+interface SerializedImportModeWorkspace {
+  state: SerializedImportState;
+  stage: EventImportStageId;
+  jsonDocument: ScrapedEventJsonDocument | null;
+  jsonFileName: string;
+  jsonFileSizeBytes: number;
+  jsonAnalyzedRowIds?: Record<number, string>;
+  resolutionPhases?: EventImportResolutionPhase[];
+}
+interface SerializedImportState {
+  countryId: string;
+  rows: EventImportRow[];
+  lineupStates: Record<string, { draft: string }>;
+  tourStates: Record<
+    string,
+    { confirmedTourId: string | null; selectedCandidateId: string | null }
+  >;
+  uncertainSnapshots: unknown[];
+  createdDrafts: Record<string, unknown>;
+  appliedExpansionsByRow: Record<string, unknown>;
+  protectedExpansionSnapshots: Record<string, unknown>;
+  conflictOperation: unknown;
+  lastImport: unknown;
+}
+interface ImportSessionPayload extends SerializedImportState {
+  activeMode?: ImportMode;
+  modeWorkspaces?: Partial<Record<ImportMode, SerializedImportModeWorkspace>>;
+}
+const automaticImportRun = shallowRef<AutomaticImportRun | null>(null);
 const selectedRowKeys = shallowRef<Set<string>>(new Set());
 const discardInProgress = shallowRef(false);
 const confirmedExpansionSignatures = shallowRef<Record<string, string>>({});
@@ -112,6 +272,124 @@ const protectedExpansionSnapshots = shallowRef<
 const sessionOwnerId = computed(() =>
   auth.authStatus === "authenticated" && auth.userId && isUuid(auth.userId) ? auth.userId : null
 );
+const currentJsonAnalyzed = computed(() =>
+  Boolean(jsonDocument.value && analyzedJsonDocument.value === jsonDocument.value)
+);
+const selectedCountryLabel = computed(
+  () =>
+    geography.countryOptions.value.find(({ id }) => id === geography.selectedCountryId.value)
+      ?.label ?? ""
+);
+const jsonPreviewEvents = computed(() => jsonDocument.value?.events.slice(0, 5) ?? []);
+const unresolvedJsonReferenceErrors = computed(() => {
+  const sourceRowIds = Object.values(jsonAnalyzedRowIds.value);
+  return sourceRowIds.reduce((total, rowId) => {
+    const artistErrors = Object.values(lineupStates[rowId]?.itemStatus ?? {}).filter(
+      (status) => status === "error"
+    ).length;
+    const geography = geographyStates[rowId];
+    const geographyErrors =
+      Number(geography?.localityStatus === "error") + Number(geography?.venueStatus === "error");
+    const tourErrors = Number(tourStates[rowId]?.status === "error");
+    return total + artistErrors + geographyErrors + tourErrors;
+  }, 0);
+});
+const importStageAvailable = computed(() =>
+  Boolean(
+    preparation.value.snapshot ||
+    lastImport.value ||
+    uncertainSnapshots.value.length ||
+    protectedSnapshots.value.length ||
+    automaticImportRun.value
+  )
+);
+const importWriteInProgress = computed(() =>
+  Boolean(
+    automaticImportRun.value || batchMutation.isPending.value || pendingSnapshotBatchIds.value.size
+  )
+);
+const stageNavigationBusy = computed(
+  () =>
+    jsonResolutionInProgress.value ||
+    Boolean(automaticImportRun.value) ||
+    batchMutation.isPending.value ||
+    pendingSnapshotBatchIds.value.size > 0
+);
+const importStages = computed<EventImportStageItem[]>(() => {
+  const manualFlow = manualEditorAccessed.value && !currentJsonAnalyzed.value;
+  const analysisComplete = currentJsonAnalyzed.value || manualFlow;
+  const reviewComplete = activeImportStage.value === "import" || Boolean(lastImport.value);
+  return [
+    {
+      id: "load",
+      label: "Cargar archivo",
+      status:
+        activeImportStage.value === "load"
+          ? "current"
+          : manualFlow && !currentJsonAnalyzed.value
+            ? "skipped"
+            : "complete",
+      disabled: stageNavigationBusy.value,
+      disabledReason: stageNavigationBusy.value
+        ? "Espera a que finalice la operación en curso antes de cambiar el archivo."
+        : undefined,
+    },
+    {
+      id: "resolve",
+      label: "Resolver y analizar",
+      status: jsonResolutionInProgress.value
+        ? "current"
+        : analysisComplete
+          ? manualFlow
+            ? "skipped"
+            : "complete"
+          : "pending",
+      disabled:
+        activeImportStage.value === "resolve" ||
+        !jsonDocument.value ||
+        (!currentJsonAnalyzed.value && !jsonResolutionInProgress.value) ||
+        stageNavigationBusy.value,
+      disabledReason: jsonResolutionInProgress.value
+        ? "La resolución está en curso."
+        : !jsonDocument.value
+          ? "Carga y valida un archivo JSON antes de analizarlo."
+          : !currentJsonAnalyzed.value
+            ? "Pulsa «Analizar y resolver eventos» para iniciar esta etapa."
+            : undefined,
+    },
+    {
+      id: "review",
+      label: "Revisar eventos",
+      status:
+        activeImportStage.value === "review" ? "current" : reviewComplete ? "complete" : "pending",
+      disabled:
+        !analysisComplete ||
+        jsonResolutionInProgress.value ||
+        (activeImportStage.value === "review" && !importWriteInProgress.value),
+      disabledReason: !analysisComplete
+        ? "Analiza el JSON antes de revisar sus filas."
+        : jsonResolutionInProgress.value
+          ? "Espera a que termine la resolución antes de revisar."
+          : undefined,
+    },
+    {
+      id: "import",
+      label: "Importar y resultados",
+      status:
+        activeImportStage.value === "import"
+          ? "current"
+          : lastImport.value
+            ? "complete"
+            : "pending",
+      disabled:
+        !importStageAvailable.value ||
+        (activeImportStage.value === "import" && !importWriteInProgress.value),
+      disabledReason: importStageAvailable.value
+        ? undefined
+        : "Prepara las filas listas antes de abrir la etapa de importación.",
+    },
+  ];
+});
 const previousSessionOwnerId = shallowRef<string | null>(null);
 const saveStatusLabel = computed(
   () =>
@@ -156,39 +434,349 @@ function rowHasDraftContent(row: (typeof rows.value)[number]): boolean {
   );
 }
 
-function sessionPayload() {
-  return createEventImportSessionPayload({
-    countryId: geography.selectedCountryId.value,
-    rows: rows.value,
-    lineupStates: Object.fromEntries(
-      rows.value.map(({ id }) => [id, { draft: lineupStates[id]?.draft ?? "" }])
-    ),
-    tourStates: Object.fromEntries(
-      rows.value.map(({ id }) => [
-        id,
-        {
-          confirmedTourId: tourStates[id]?.confirmedTourId ?? null,
-          selectedCandidateId: tourStates[id]?.selectedCandidateId ?? null,
-        },
-      ])
-    ),
-    uncertainSnapshots: protectedSnapshots.value,
-    createdDrafts: createdDrafts.value,
-    appliedExpansionsByRow: appliedExpansionsByRow.value,
-    protectedExpansionSnapshots: protectedExpansionSnapshots.value,
-    conflictOperation: conflictOperation.value,
-    lastImport: lastImport.value,
-  });
+function createCurrentModeSessionPayload() {
+  return {
+    state: createEventImportSessionPayload({
+      countryId: geography.selectedCountryId.value,
+      rows: rows.value,
+      lineupStates: Object.fromEntries(
+        rows.value.map(({ id }) => [id, { draft: lineupStates[id]?.draft ?? "" }])
+      ),
+      tourStates: Object.fromEntries(
+        rows.value.map(({ id }) => [
+          id,
+          {
+            confirmedTourId: tourStates[id]?.confirmedTourId ?? null,
+            selectedCandidateId: tourStates[id]?.selectedCandidateId ?? null,
+          },
+        ])
+      ),
+      uncertainSnapshots: protectedSnapshots.value,
+      createdDrafts: createdDrafts.value,
+      appliedExpansionsByRow: appliedExpansionsByRow.value,
+      protectedExpansionSnapshots: protectedExpansionSnapshots.value,
+      conflictOperation: conflictOperations.value,
+      lastImport: lastImport.value,
+    }) as SerializedImportState,
+    stage: activeImportStage.value,
+    jsonDocument: activeImportMode.value === "json" ? jsonDocument.value : null,
+    jsonFileName: activeImportMode.value === "json" ? jsonFileName.value : "",
+    jsonFileSizeBytes: activeImportMode.value === "json" ? jsonFileSizeBytes.value : 0,
+    jsonAnalyzedRowIds: activeImportMode.value === "json" ? jsonAnalyzedRowIds.value : {},
+    resolutionPhases: activeImportMode.value === "json" ? bulkResolutionPhases.value : undefined,
+  } satisfies SerializedImportModeWorkspace;
+}
+
+function sessionPayload(): ImportSessionPayload {
+  const activeWorkspace = createCurrentModeSessionPayload();
+  const modeWorkspaces = {
+    ...persistedModeWorkspaces.value,
+    [activeImportMode.value]: activeWorkspace,
+  };
+  return {
+    ...activeWorkspace.state,
+    activeMode: activeImportMode.value,
+    modeWorkspaces,
+  };
+}
+
+function serializedWorkspaceHasWork(workspace: SerializedImportModeWorkspace): boolean {
+  const state = workspace.state;
+  return (
+    state.rows.some((row) => rowHasDraftContent(row as EventImportRow)) ||
+    state.uncertainSnapshots.length > 0 ||
+    Object.keys(state.createdDrafts).length > 0 ||
+    Object.keys(state.appliedExpansionsByRow).length > 0 ||
+    Object.keys(state.protectedExpansionSnapshots).length > 0 ||
+    (Array.isArray(state.conflictOperation) && state.conflictOperation.length > 0) ||
+    (isRecord(state.conflictOperation) && Object.keys(state.conflictOperation).length > 0) ||
+    state.lastImport !== null ||
+    workspace.jsonDocument !== null
+  );
 }
 
 function sessionHasWork(): boolean {
-  return (
-    rows.value.some(rowHasDraftContent) ||
-    protectedSnapshots.value.length > 0 ||
-    Object.keys(createdDrafts.value).length > 0 ||
-    Object.keys(appliedExpansionsByRow.value).length > 0 ||
-    Object.keys(protectedExpansionSnapshots.value).length > 0
+  return Object.values(sessionPayload().modeWorkspaces ?? {}).some(
+    (workspace) => workspace && serializedWorkspaceHasWork(workspace)
   );
+}
+
+function captureModeWorkspace(): ImportModeWorkspace {
+  return {
+    rows: eventImport.captureWorkspace(),
+    countryId: geography.selectedCountryId.value,
+    preparation: preparation.value,
+    uncertainSnapshots: [...uncertainSnapshots.value],
+    protectedSnapshots: [...protectedSnapshots.value],
+    handledOperations: new Set(handledOperations),
+    handledOperationOrder: [...handledOperationOrder],
+    createdDrafts: { ...createdDrafts.value },
+    lastImport: lastImport.value,
+    conflictOperations: [...conflictOperations.value],
+    selectedRowKeys: new Set(selectedRowKeys.value),
+    confirmedExpansionSignatures: { ...confirmedExpansionSignatures.value },
+    selectedExpansionEventIds: { ...selectedExpansionEventIds.value },
+    expansionExecutions: { ...expansionExecutions.value },
+    expansionAuthorizations: { ...expansionAuthorizations.value },
+    handledExpansionOperations: new Set(handledExpansionOperations),
+    appliedExpansionsByRow: { ...appliedExpansionsByRow.value },
+    expansionHistory: [...expansionHistory.value],
+    protectedExpansionSnapshots: { ...protectedExpansionSnapshots.value },
+    pendingSnapshotBatchIds: new Set(pendingSnapshotBatchIds.value),
+    jsonDocument: jsonDocument.value,
+    jsonFileName: jsonFileName.value,
+    jsonFileSizeBytes: jsonFileSizeBytes.value,
+    jsonAnalyzedRowIds: { ...jsonAnalyzedRowIds.value },
+    jsonError: jsonError.value,
+    jsonNotice: jsonNotice.value,
+    jsonResolutionError: jsonResolutionError.value,
+    activeImportStage: activeImportStage.value,
+    analyzedJsonDocument: analyzedJsonDocument.value,
+    manualEditorAccessed: manualEditorAccessed.value,
+    loadedScrapedEventFingerprints: new Set(loadedScrapedEventFingerprints),
+  };
+}
+
+function clearModeWorkspace(mode: ImportMode) {
+  eventImport.resetRows();
+  preparation.value = initialPreparation;
+  uncertainSnapshots.value = [];
+  protectedSnapshots.value = [];
+  handledOperations.clear();
+  handledOperationOrder.splice(0);
+  createdDrafts.value = {};
+  lastImport.value = null;
+  conflictOperations.value = [];
+  selectedRowKeys.value = new Set();
+  confirmedExpansionSignatures.value = {};
+  selectedExpansionEventIds.value = {};
+  expansionExecutions.value = {};
+  expansionAuthorizations.value = {};
+  handledExpansionOperations.clear();
+  appliedExpansionsByRow.value = {};
+  expansionHistory.value = [];
+  protectedExpansionSnapshots.value = {};
+  pendingSnapshotBatchIds.value = new Set();
+  jsonDocument.value = null;
+  jsonFileName.value = "";
+  jsonFileSizeBytes.value = 0;
+  jsonAnalyzedRowIds.value = {};
+  jsonError.value = "";
+  jsonNotice.value = "";
+  jsonResolutionError.value = "";
+  analyzedJsonDocument.value = null;
+  manualEditorAccessed.value = mode === "manual";
+  loadedScrapedEventFingerprints.clear();
+  activeImportStage.value = mode === "json" ? "load" : "review";
+}
+
+function restoreModeWorkspace(workspace: ImportModeWorkspace) {
+  eventImport.restoreWorkspace(workspace.rows);
+  if (workspace.countryId) geography.setWorkspaceCountry(workspace.countryId);
+  else geography.selectedCountryId.value = "";
+  eventImport.setWorkspaceCountryContext(workspace.countryId);
+  preparation.value = workspace.preparation;
+  uncertainSnapshots.value = [...workspace.uncertainSnapshots];
+  protectedSnapshots.value = [...workspace.protectedSnapshots];
+  handledOperations.clear();
+  workspace.handledOperations.forEach((key) => handledOperations.add(key));
+  handledOperationOrder.splice(0, handledOperationOrder.length, ...workspace.handledOperationOrder);
+  createdDrafts.value = { ...workspace.createdDrafts };
+  lastImport.value = workspace.lastImport;
+  conflictOperations.value = [...workspace.conflictOperations];
+  selectedRowKeys.value = new Set(workspace.selectedRowKeys);
+  confirmedExpansionSignatures.value = { ...workspace.confirmedExpansionSignatures };
+  selectedExpansionEventIds.value = { ...workspace.selectedExpansionEventIds };
+  expansionExecutions.value = { ...workspace.expansionExecutions };
+  expansionAuthorizations.value = { ...workspace.expansionAuthorizations };
+  handledExpansionOperations.clear();
+  workspace.handledExpansionOperations.forEach((key) => handledExpansionOperations.add(key));
+  appliedExpansionsByRow.value = { ...workspace.appliedExpansionsByRow };
+  expansionHistory.value = [...workspace.expansionHistory];
+  protectedExpansionSnapshots.value = { ...workspace.protectedExpansionSnapshots };
+  pendingSnapshotBatchIds.value = new Set(workspace.pendingSnapshotBatchIds);
+  jsonDocument.value = workspace.jsonDocument;
+  jsonFileName.value = workspace.jsonFileName;
+  jsonFileSizeBytes.value = workspace.jsonFileSizeBytes;
+  jsonAnalyzedRowIds.value = { ...workspace.jsonAnalyzedRowIds };
+  jsonError.value = workspace.jsonError;
+  jsonNotice.value = workspace.jsonNotice;
+  jsonResolutionError.value = workspace.jsonResolutionError;
+  activeImportStage.value = workspace.activeImportStage;
+  analyzedJsonDocument.value = workspace.analyzedJsonDocument;
+  manualEditorAccessed.value = workspace.manualEditorAccessed;
+  loadedScrapedEventFingerprints.clear();
+  workspace.loadedScrapedEventFingerprints.forEach((fingerprint) =>
+    loadedScrapedEventFingerprints.add(fingerprint)
+  );
+}
+
+function restoreSerializedModeWorkspace(
+  mode: ImportMode,
+  workspace: SerializedImportModeWorkspace
+) {
+  const payload = workspace.state;
+  if (payload.countryId && !geography.restoreCountry(payload.countryId)) {
+    throw new Error("El país guardado ya no está disponible en el catálogo.");
+  }
+  eventImport.restoreRows(
+    payload.rows as typeof rows.value,
+    (payload.lineupStates ?? {}) as typeof lineupStates,
+    (payload.tourStates ?? {}) as typeof tourStates
+  );
+  eventImport.restoreResolutionPhases(workspace.resolutionPhases);
+  preparation.value = initialPreparation;
+  protectedSnapshots.value = (payload.uncertainSnapshots as typeof protectedSnapshots.value).map(
+    (snapshot) => deepFreeze(snapshot)
+  );
+  uncertainSnapshots.value = [...protectedSnapshots.value];
+  createdDrafts.value = payload.createdDrafts as typeof createdDrafts.value;
+  appliedExpansionsByRow.value =
+    payload.appliedExpansionsByRow as typeof appliedExpansionsByRow.value;
+  protectedExpansionSnapshots.value = Object.fromEntries(
+    Object.entries(payload.protectedExpansionSnapshots).map(([key, snapshot]) => [
+      key,
+      deepFreeze(snapshot),
+    ])
+  ) as typeof protectedExpansionSnapshots.value;
+  conflictOperations.value = Array.isArray(payload.conflictOperation)
+    ? (payload.conflictOperation as ConflictOperation[])
+    : isRecord(payload.conflictOperation)
+      ? [payload.conflictOperation as unknown as ConflictOperation]
+      : [];
+  lastImport.value = isRecord(payload.lastImport)
+    ? (payload.lastImport as typeof lastImport.value)
+    : null;
+  activeImportMode.value = mode;
+  jsonDocument.value = mode === "json" ? workspace.jsonDocument : null;
+  jsonFileName.value = mode === "json" ? workspace.jsonFileName : "";
+  jsonFileSizeBytes.value = mode === "json" ? (workspace.jsonFileSizeBytes ?? 0) : 0;
+  jsonAnalyzedRowIds.value = mode === "json" ? (workspace.jsonAnalyzedRowIds ?? {}) : {};
+  analyzedJsonDocument.value = jsonDocument.value;
+  activeImportStage.value = mode === "json" ? workspace.stage : "review";
+  manualEditorAccessed.value = mode === "manual";
+  jsonError.value = "";
+  jsonNotice.value = "";
+  jsonResolutionError.value = "";
+  handledOperations.clear();
+  handledOperationOrder.splice(0);
+  handledExpansionOperations.clear();
+  selectedRowKeys.value = new Set();
+  loadedScrapedEventFingerprints.clear();
+  workspace.jsonDocument?.events.forEach((event) =>
+    loadedScrapedEventFingerprints.add(scrapedEventFingerprint(event))
+  );
+}
+
+function getModeSwitchBlockReason(): string {
+  if (
+    switchingImportMode.value ||
+    jsonLoading.value ||
+    jsonResolutionInProgress.value ||
+    automaticImportRun.value ||
+    batchMutation.isPending.value ||
+    pendingSnapshotBatchIds.value.size > 0 ||
+    expansionMutation.isPending.value ||
+    discardInProgress.value ||
+    eventImport.hasActiveResolution()
+  )
+    return "Espera a que terminen la resolución y las operaciones activas antes de cambiar de modo.";
+  return "";
+}
+
+const modeSwitchBlockReason = computed(() =>
+  modeSwitchAttempt.value >= 0 ? getModeSwitchBlockReason() : ""
+);
+
+function modeWorkspaceHasWork(mode: ImportMode): boolean {
+  if (mode === activeImportMode.value)
+    return serializedWorkspaceHasWork(createCurrentModeSessionPayload());
+  const memory = inMemoryModeWorkspaces.get(mode);
+  if (memory) {
+    return (
+      memory.rows.rows.some(rowHasDraftContent) ||
+      memory.uncertainSnapshots.length > 0 ||
+      (memory.protectedExpansionSnapshots &&
+        Object.keys(memory.protectedExpansionSnapshots).length > 0) ||
+      Object.keys(memory.createdDrafts).length > 0 ||
+      Object.keys(memory.appliedExpansionsByRow).length > 0 ||
+      memory.conflictOperations.length > 0 ||
+      memory.lastImport !== null ||
+      memory.jsonDocument !== null
+    );
+  }
+  const saved = persistedModeWorkspaces.value[mode];
+  return saved ? serializedWorkspaceHasWork(saved) : false;
+}
+
+async function switchImportMode(mode: ImportMode) {
+  modeSwitchAttempt.value += 1;
+  if (mode === activeImportMode.value || getModeSwitchBlockReason()) return;
+  const sourceMode = activeImportMode.value;
+  if (modeWorkspaceHasWork(sourceMode) || modeWorkspaceHasWork(mode)) {
+    const confirmation = await SwalService.confirm(
+      "Cambiar modo de importación",
+      "Los borradores, resultados y operaciones inciertas se conservarán separados en cada modo.",
+      "Cambiar de modo",
+      "Seguir aquí"
+    );
+    if (!confirmation.isConfirmed || getModeSwitchBlockReason()) return;
+  }
+
+  inMemoryModeWorkspaces.set(sourceMode, captureModeWorkspace());
+  if (batchMutation.isError.value) {
+    modeBatchErrors.value = {
+      ...modeBatchErrors.value,
+      [sourceMode]: eventImportGlobalErrorMessage(batchMutation.error.value),
+    };
+    batchMutation.reset();
+  }
+  persistedModeWorkspaces.value = {
+    ...persistedModeWorkspaces.value,
+    [sourceMode]: createCurrentModeSessionPayload(),
+  };
+  try {
+    await session.saveNow();
+  } catch {
+    criticalStorageError.value =
+      "No se pudo guardar el borrador actual. El cambio de modo se ha cancelado para conservarlo.";
+    return;
+  }
+
+  switchingImportMode.value = true;
+  try {
+    const memory = inMemoryModeWorkspaces.get(mode);
+    if (memory) {
+      activeImportMode.value = mode;
+      restoreModeWorkspace(memory);
+    } else {
+      const serialized = persistedModeWorkspaces.value[mode];
+      if (serialized) restoreSerializedModeWorkspace(mode, serialized);
+      else {
+        clearModeWorkspace(mode);
+        activeImportMode.value = mode;
+      }
+    }
+    await nextTick();
+    criticalStorageError.value = "";
+  } catch (error) {
+    activeImportMode.value = sourceMode;
+    const source = inMemoryModeWorkspaces.get(sourceMode);
+    if (source) restoreModeWorkspace(source);
+    criticalStorageError.value =
+      error instanceof Error ? error.message : "No se pudo restaurar el modo de importación.";
+  } finally {
+    switchingImportMode.value = false;
+  }
+  if (activeImportMode.value === mode) {
+    session.markDirty();
+    try {
+      await session.saveNow();
+    } catch {
+      criticalStorageError.value =
+        "El modo cambió y sus datos siguen en memoria, pero no se pudo confirmar el guardado local.";
+    }
+  }
 }
 
 session.configure(sessionPayload, sessionHasWork);
@@ -208,6 +796,252 @@ function deepFreeze<T>(value: T): T {
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu.test(value);
+}
+
+async function readJsonFile(file?: File) {
+  const editorWasAccessible = currentJsonAnalyzed.value || manualEditorAccessed.value;
+  jsonError.value = "";
+  jsonResolutionError.value = "";
+  jsonNotice.value = "";
+  manualEditorAccessed.value = editorWasAccessible;
+  if (!file) return;
+  jsonFileName.value = file.name;
+  jsonFileSizeBytes.value = file.size;
+  jsonDocument.value = null;
+  jsonAnalyzedRowIds.value = {};
+  analyzedJsonDocument.value = null;
+  if (!file.name.toLocaleLowerCase("und").endsWith(".json")) {
+    jsonError.value = "Selecciona un archivo con extensión .json.";
+    return;
+  }
+  if (file.size > SCRAPED_EVENT_JSON_MAX_BYTES) {
+    jsonError.value = "El archivo supera el máximo de 2 MiB.";
+    return;
+  }
+  jsonLoading.value = true;
+  try {
+    const document = parseScrapedEventJson(await file.text());
+    jsonDocument.value = document;
+    analyzedJsonDocument.value = null;
+    jsonFileName.value = file.name;
+    jsonFileSizeBytes.value = file.size;
+    jsonResolutionError.value = "";
+  } catch (error) {
+    jsonError.value = error instanceof Error ? error.message : "No se pudo leer el JSON.";
+  } finally {
+    jsonLoading.value = false;
+  }
+}
+
+function navigateImportStage(stage: EventImportStageId) {
+  if (
+    activeImportMode.value !== "json" ||
+    stage === activeImportStage.value ||
+    jsonResolutionInProgress.value
+  )
+    return;
+  if (importWriteInProgress.value && stage !== "review" && stage !== "import") return;
+  if (stage === "load") {
+    activeImportStage.value = stage;
+    return;
+  }
+  if (stage === "resolve" && currentJsonAnalyzed.value) {
+    activeImportStage.value = stage;
+    return;
+  }
+  if (stage === "review" && (currentJsonAnalyzed.value || manualEditorAccessed.value)) {
+    activeImportStage.value = stage;
+    return;
+  }
+  if (stage === "import" && importStageAvailable.value) activeImportStage.value = stage;
+}
+
+async function continueToJsonReview() {
+  if (activeImportMode.value !== "json" || jsonResolutionInProgress.value || !jsonDocument.value)
+    return;
+  analyzedJsonDocument.value = jsonDocument.value;
+  await nextTick();
+  eventImport.completeImportValidation();
+  activeImportStage.value = "review";
+}
+
+function continueToImportStage() {
+  if (!importStageAvailable.value || jsonResolutionInProgress.value) return;
+  activeImportStage.value = "import";
+}
+
+function handleJsonDrop(event: DragEvent) {
+  event.preventDefault();
+  jsonDragging.value = false;
+  void readJsonFile(event.dataTransfer?.files.item(0) ?? undefined);
+}
+
+function cancelSelectedJsonFile() {
+  if (jsonLoading.value || stageNavigationBusy.value) return;
+  jsonDocument.value = null;
+  jsonFileName.value = "";
+  jsonFileSizeBytes.value = 0;
+  jsonError.value = "";
+  jsonNotice.value = "";
+  jsonAnalyzedRowIds.value = {};
+}
+
+function normalizedRegionName(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .trim()
+    .replace(/\s+/gu, " ")
+    .toLocaleLowerCase("und");
+}
+
+function importedDateIdentity(row: EventImportRow, field: "startDate" | "endDate"): string {
+  const date = row[field];
+  if (date) return date;
+  const draft = row[`${field}Draft`];
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/u.exec(draft.trim());
+  return match ? `${match[3]}-${match[2]!.padStart(2, "0")}-${match[1]!.padStart(2, "0")}` : draft;
+}
+
+async function continueJsonImport() {
+  const document = jsonDocument.value;
+  if (!document) return;
+  const countryKey = document.country.trim().toLocaleLowerCase("und");
+  const matchingCountry = geography.countryOptions.value.find(
+    (country) =>
+      country.label.trim().toLocaleLowerCase("und") === countryKey ||
+      country.isoCode.toLocaleLowerCase("und") === countryKey
+  );
+  if (!matchingCountry) {
+    jsonError.value = `El país “${document.country}” no coincide con el catálogo. Selecciona un país válido y usa su nombre o código ISO en el JSON.`;
+    return;
+  }
+  if (analyzedJsonDocument.value === document) {
+    manualEditorAccessed.value = false;
+    activeImportStage.value = "review";
+    return;
+  }
+
+  activeImportStage.value = "resolve";
+  jsonResolutionInProgress.value = true;
+  jsonResolutionError.value = "";
+  jsonNotice.value = "";
+  try {
+    geography.selectCountry(matchingCountry.id);
+    const regionCatalog = document.events.some((event) => event.region)
+      ? await geography.loadRegions().catch(() => [])
+      : [];
+    let unresolvedRegions = 0;
+    const importedFingerprints = new Set([
+      ...loadedScrapedEventFingerprints,
+      ...rows.value.map((row) =>
+        scrapedEventFingerprint({
+          type: row.type === "festival" ? "festival" : "concert",
+          title: row.event,
+          startDate: importedDateIdentity(row, "startDate"),
+          endDate: importedDateIdentity(row, "endDate"),
+          locality: row.city,
+          province: row.province,
+          artists: row.lineup.map(({ name }) => name),
+        })
+      ),
+    ]);
+    let skippedExisting = 0;
+    const indexedRowsToLoad = document.events
+      .map((event, index) => ({ event, index }))
+      .filter(({ event, index }) => {
+        if (
+          document.duplicateIndexes.includes(index) ||
+          event.issues.some(
+            (issue) => issue.startsWith("Tipo inválido") || issue.startsWith("El país del evento")
+          )
+        )
+          return false;
+        const fingerprint = scrapedEventFingerprint(event);
+        if (importedFingerprints.has(fingerprint)) {
+          skippedExisting++;
+          return false;
+        }
+        importedFingerprints.add(fingerprint);
+        loadedScrapedEventFingerprints.add(fingerprint);
+        return true;
+      });
+    const rowsToLoad = indexedRowsToLoad.map(({ event }) => ({
+      type: event.type,
+      title: event.title,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      artists: event.artists,
+      venue: event.venue,
+      locality: event.locality,
+      province: event.province,
+      administrativeRegionId: (() => {
+        if (!event.region) return null;
+        const matches = regionCatalog.filter(
+          (region) => normalizedRegionName(region.name) === normalizedRegionName(event.region)
+        );
+        if (matches.length !== 1) unresolvedRegions++;
+        return matches.length === 1 ? matches[0]!.id : null;
+      })(),
+      price: event.price,
+      additionalInfo: event.additionalInfo,
+    }));
+    const analyzedRowIds = await eventImport.appendImportedRowsAndResolve(rowsToLoad);
+    const rowIdsBySourceIndex: Record<number, string> = Object.fromEntries(
+      indexedRowsToLoad.map(({ index }, rowIndex) => [index, analyzedRowIds[rowIndex]!])
+    );
+    const skippedIndexes = new Set([
+      ...document.duplicateIndexes,
+      ...document.events.flatMap((event, index) =>
+        event.issues.some(
+          (issue) => issue.startsWith("Tipo inválido") || issue.startsWith("El país del evento")
+        )
+          ? [index]
+          : []
+      ),
+    ]);
+    document.events.forEach((event, index) => {
+      if (rowIdsBySourceIndex[index] || skippedIndexes.has(index)) return;
+      const fingerprint = scrapedEventFingerprint(event);
+      const existingRow = rows.value.find(
+        (row) =>
+          scrapedEventFingerprint({
+            type: row.type,
+            title: row.event,
+            startDate: row.startDate ?? "",
+            endDate: row.endDate ?? "",
+            locality: row.city,
+            province: row.province,
+            artists: row.lineup.map(({ name }) => name),
+          }) === fingerprint
+      );
+      if (existingRow) rowIdsBySourceIndex[index] = existingRow.id;
+    });
+    jsonAnalyzedRowIds.value = rowIdsBySourceIndex;
+    analyzedJsonDocument.value = document;
+    await nextTick();
+    eventImport.completeImportValidation();
+    await nextTick();
+    if (!jsonReviewInitialized.value && jsonReviewEntries.value) {
+      const initialCounts = jsonReviewEntries.value.counts;
+      jsonReviewFilter.value = initialCounts["needs-review"]
+        ? "needs-review"
+        : initialCounts.conflicts
+          ? "conflicts"
+          : initialCounts.invalid
+            ? "invalid"
+            : "all";
+      jsonReviewInitialized.value = true;
+    }
+    manualEditorAccessed.value = false;
+    jsonNotice.value = `${rowsToLoad.length} eventos añadidos al editor${skippedExisting ? `; ${skippedExisting} ya estaban cargados y se omitieron` : ""}${unresolvedRegions ? `; ${unresolvedRegions} regiones no coincidieron con el catálogo y requieren revisión` : ""}.`;
+    activeImportStage.value = "review";
+  } catch (error) {
+    jsonResolutionError.value =
+      error instanceof Error ? error.message : "No se pudo completar el análisis del archivo.";
+  } finally {
+    jsonResolutionInProgress.value = false;
+  }
 }
 
 function isValidImportRow(value: unknown): value is EventImportRow {
@@ -298,7 +1132,42 @@ function isValidExpansionSnapshot(value: unknown): boolean {
   );
 }
 
-function isRecoverablePayload(value: unknown): value is ReturnType<typeof sessionPayload> {
+function isValidScrapedDocument(value: unknown): value is ScrapedEventJsonDocument {
+  return (
+    isRecord(value) &&
+    (value.version === 1 || value.version === 2) &&
+    typeof value.sourceName === "string" &&
+    typeof value.country === "string" &&
+    Array.isArray(value.duplicateIndexes) &&
+    value.duplicateIndexes.every(Number.isInteger) &&
+    Array.isArray(value.events) &&
+    value.events.every(
+      (event) =>
+        isRecord(event) &&
+        ["concert", "festival", "tour"].includes(String(event.type)) &&
+        [
+          "title",
+          "startDate",
+          "endDate",
+          "venue",
+          "locality",
+          "province",
+          "region",
+          "country",
+          "price",
+          "additionalInfo",
+          "originalUrl",
+          "externalId",
+        ].every((key) => typeof event[key] === "string") &&
+        Array.isArray(event.artists) &&
+        event.artists.every((artist) => typeof artist === "string") &&
+        Array.isArray(event.issues) &&
+        event.issues.every((issue) => typeof issue === "string")
+    )
+  );
+}
+
+function isRecoverablePayload(value: unknown): value is ImportSessionPayload {
   if (
     !isRecord(value) ||
     (value.countryId !== "" && (typeof value.countryId !== "string" || !isUuid(value.countryId))) ||
@@ -344,7 +1213,7 @@ function isRecoverablePayload(value: unknown): value is ReturnType<typeof sessio
         isUuid(String(applied.eventId)) &&
         typeof applied.operationKey === "string"
     );
-  return (
+  const isValidState =
     validRows &&
     validLineupStates &&
     validTourStates &&
@@ -354,18 +1223,71 @@ function isRecoverablePayload(value: unknown): value is ReturnType<typeof sessio
     validAppliedExpansions &&
     isRecord(value.protectedExpansionSnapshots) &&
     Object.values(value.protectedExpansionSnapshots).every(isValidExpansionSnapshot) &&
-    (value.conflictOperation === null || isRecord(value.conflictOperation)) &&
-    (value.lastImport === null || isRecord(value.lastImport))
-  );
+    (value.conflictOperation === null ||
+      isRecord(value.conflictOperation) ||
+      (Array.isArray(value.conflictOperation) && value.conflictOperation.every(isRecord))) &&
+    (value.lastImport === null || isRecord(value.lastImport));
+  if (!isValidState) return false;
+  if (
+    value.activeMode !== undefined &&
+    value.activeMode !== "manual" &&
+    value.activeMode !== "json"
+  )
+    return false;
+  if (value.modeWorkspaces !== undefined) {
+    if (!isRecord(value.modeWorkspaces)) return false;
+    for (const [mode, workspace] of Object.entries(value.modeWorkspaces)) {
+      if (
+        (mode !== "manual" && mode !== "json") ||
+        !isRecord(workspace) ||
+        !isRecoverablePayload(workspace.state) ||
+        (workspace.stage !== "load" &&
+          workspace.stage !== "resolve" &&
+          workspace.stage !== "review" &&
+          workspace.stage !== "import") ||
+        typeof workspace.jsonFileName !== "string" ||
+        (workspace.jsonFileSizeBytes !== undefined &&
+          (typeof workspace.jsonFileSizeBytes !== "number" ||
+            !Number.isFinite(workspace.jsonFileSizeBytes) ||
+            workspace.jsonFileSizeBytes < 0)) ||
+        (workspace.jsonAnalyzedRowIds !== undefined &&
+          (!isRecord(workspace.jsonAnalyzedRowIds) ||
+            !Object.entries(workspace.jsonAnalyzedRowIds).every(
+              ([index, rowId]) => /^\d+$/u.test(index) && typeof rowId === "string"
+            ))) ||
+        (workspace.resolutionPhases !== undefined &&
+          (!Array.isArray(workspace.resolutionPhases) ||
+            !workspace.resolutionPhases.every(
+              (phase) =>
+                isRecord(phase) &&
+                ["artists", "geography", "venues", "tours", "validation"].includes(
+                  String(phase.id)
+                ) &&
+                ["pending", "in-progress", "complete", "error"].includes(String(phase.status)) &&
+                typeof phase.label === "string" &&
+                [phase.processed, phase.total, phase.errors].every(
+                  (count) => typeof count === "number" && Number.isFinite(count) && count >= 0
+                )
+            ))) ||
+        (workspace.jsonDocument !== null && !isValidScrapedDocument(workspace.jsonDocument))
+      )
+        return false;
+    }
+  }
+  return true;
 }
 
-function payloadHasRecoverableWork(payload: ReturnType<typeof sessionPayload>): boolean {
+function payloadHasRecoverableWork(payload: ImportSessionPayload): boolean {
   return (
     payload.rows.some(rowHasDraftContent) ||
     payload.uncertainSnapshots.length > 0 ||
     Object.keys(payload.createdDrafts).length > 0 ||
     Object.keys(payload.appliedExpansionsByRow).length > 0 ||
-    Object.keys(payload.protectedExpansionSnapshots).length > 0
+    Object.keys(payload.protectedExpansionSnapshots).length > 0 ||
+    payload.lastImport !== null ||
+    Object.values(payload.modeWorkspaces ?? {}).some(
+      (workspace) => workspace && serializedWorkspaceHasWork(workspace)
+    )
   );
 }
 
@@ -379,11 +1301,11 @@ watch(
     createdDrafts.value,
     appliedExpansionsByRow.value,
     protectedExpansionSnapshots.value,
-    conflictOperation.value,
+    conflictOperations.value,
     lastImport.value,
   ],
   () => {
-    if (identityReady.value) session.markDirty();
+    if (identityReady.value && !switchingImportMode.value) session.markDirty();
   },
   { deep: true }
 );
@@ -399,6 +1321,11 @@ watch(
     recoveryError.value = "";
     if (shouldClearPreviousAccount) {
       eventImport.resetRows();
+      activeImportMode.value = "manual";
+      activeImportStage.value = "review";
+      inMemoryModeWorkspaces.clear();
+      persistedModeWorkspaces.value = {};
+      modeBatchErrors.value = {};
       geography.selectedCountryId.value = "";
       uncertainSnapshots.value = [];
       protectedSnapshots.value = [];
@@ -406,8 +1333,17 @@ watch(
       protectedExpansionSnapshots.value = {};
       createdDrafts.value = {};
       appliedExpansionsByRow.value = {};
-      conflictOperation.value = null;
+      conflictOperations.value = [];
+      automaticImportRun.value = null;
       lastImport.value = null;
+      jsonDocument.value = null;
+      jsonFileName.value = "";
+      jsonFileSizeBytes.value = 0;
+      jsonAnalyzedRowIds.value = {};
+      jsonError.value = "";
+      jsonNotice.value = "";
+      analyzedJsonDocument.value = null;
+      loadedScrapedEventFingerprints.clear();
       expansionHistory.value = [];
       expansionExecutions.value = {};
       handledOperations.clear();
@@ -471,37 +1407,15 @@ async function recoverSession() {
       "El país del borrador ya no está disponible en el catálogo. No se ha restaurado para evitar resolver entidades con otro país.";
     return;
   }
-  eventImport.restoreRows(
-    payload.rows as typeof rows.value,
-    (payload.lineupStates ?? {}) as typeof lineupStates,
-    (payload.tourStates ?? {}) as typeof tourStates
-  );
-  protectedSnapshots.value = Array.isArray(payload.uncertainSnapshots)
-    ? (payload.uncertainSnapshots.map((snapshot) =>
-        deepFreeze(snapshot)
-      ) as typeof protectedSnapshots.value)
-    : [];
-  uncertainSnapshots.value = protectedSnapshots.value;
-  createdDrafts.value = isRecord(payload.createdDrafts)
-    ? (payload.createdDrafts as typeof createdDrafts.value)
-    : {};
-  appliedExpansionsByRow.value = isRecord(payload.appliedExpansionsByRow)
-    ? (payload.appliedExpansionsByRow as typeof appliedExpansionsByRow.value)
-    : {};
-  protectedExpansionSnapshots.value = isRecord(payload.protectedExpansionSnapshots)
-    ? (Object.fromEntries(
-        Object.entries(payload.protectedExpansionSnapshots).map(([key, snapshot]) => [
-          key,
-          deepFreeze(snapshot),
-        ])
-      ) as typeof protectedExpansionSnapshots.value)
-    : {};
-  conflictOperation.value = isRecord(payload.conflictOperation)
-    ? (payload.conflictOperation as typeof conflictOperation.value)
-    : null;
-  lastImport.value = isRecord(payload.lastImport)
-    ? (payload.lastImport as typeof lastImport.value)
-    : null;
+  persistedModeWorkspaces.value = payload.modeWorkspaces ?? {};
+  const restoredMode = payload.activeMode ?? "manual";
+  const restoredWorkspace = payload.modeWorkspaces?.[restoredMode] ?? {
+    state: payload,
+    stage: restoredMode === "json" ? "review" : "review",
+    jsonDocument: null,
+    jsonFileName: "",
+  };
+  restoreSerializedModeWorkspace(restoredMode, restoredWorkspace);
   recoverySession.value = null;
   recoveryError.value = "";
   session.markDirty();
@@ -553,11 +1467,23 @@ async function discardSession() {
   recoverySession.value = null;
   recoveryError.value = "";
   eventImport.resetRows();
+  activeImportMode.value = "manual";
+  activeImportStage.value = "review";
+  inMemoryModeWorkspaces.clear();
+  persistedModeWorkspaces.value = {};
+  modeBatchErrors.value = {};
   uncertainSnapshots.value = [];
   protectedSnapshots.value = [];
   createdDrafts.value = {};
   appliedExpansionsByRow.value = {};
   protectedExpansionSnapshots.value = {};
+  lastImport.value = null;
+  conflictOperations.value = [];
+  jsonDocument.value = null;
+  jsonFileName.value = "";
+  jsonFileSizeBytes.value = 0;
+  jsonAnalyzedRowIds.value = {};
+  loadedScrapedEventFingerprints.clear();
 }
 
 function retrySessionSave() {
@@ -634,20 +1560,25 @@ function setExpansionSelection(conflict: EventImportConflictPresentation, eventI
 }
 
 const conflictsByRowKey = computed(() => {
-  const operation = conflictOperation.value;
-  if (!operation) return {};
+  if (!conflictOperations.value.length) return {};
   const existingRowKeys = new Set(rows.value.map(({ id }) => id));
-  const presentations = createEventImportConflictPresentation(
-    operation.snapshot,
-    operation.results,
-    existingRowKeys,
-    (rowKey) =>
-      existingRowKeys.has(rowKey) && preparer.isCurrent(operation.snapshot, rowKey, currentInput())
+  return conflictOperations.value.reduce<Record<string, EventImportConflictPresentation[]>>(
+    (groups, operation) => {
+      const presentations = createEventImportConflictPresentation(
+        operation.snapshot,
+        operation.results,
+        existingRowKeys,
+        (rowKey) =>
+          existingRowKeys.has(rowKey) &&
+          preparer.isCurrent(operation.snapshot, rowKey, currentInput())
+      );
+      presentations.forEach((conflict) => {
+        (groups[conflict.rowKey] ??= []).push(conflict);
+      });
+      return groups;
+    },
+    {}
   );
-  return presentations.reduce<Record<string, typeof presentations>>((groups, conflict) => {
-    (groups[conflict.rowKey] ??= []).push(conflict);
-    return groups;
-  }, {});
 });
 
 function prepareLineupExpansionForConflict(
@@ -1030,7 +1961,10 @@ async function retryRecoveredExpansion(
 defineExpose({ prepareLineupExpansionForConflict });
 
 const rowProblems = computed(() => {
-  const problems: Record<string, { label: string; fields: string[]; historical?: boolean }> = {};
+  const problems: Record<
+    string,
+    { label: string; fields: string[]; historical?: boolean; code?: string }
+  > = {};
   const currentRows = new Map(rows.value.map((row) => [row.id, row]));
   const latestResults = new Map(
     (lastImport.value?.rows ?? []).map((result) => [result.item.rowKey, result])
@@ -1090,13 +2024,17 @@ const rowProblems = computed(() => {
     }
     if (result?.item.result.status === "invalid" || result?.item.result.status === "failed") {
       const status = result.item.result.status;
+      const code = result.item.result.code;
       problems[row.id] = {
         label:
           status === "invalid"
             ? "Hay información que debes corregir antes de continuar."
-            : "No se pudo completar la operación. Puedes reintentarlo.",
+            : code === "LOCALITY_GEOCODING_UNAVAILABLE"
+              ? "No se pudo geolocalizar la localidad. Comprueba la localidad, provincia y región administrativa; si son correctas, reintenta más tarde. Código: LOCALITY_GEOCODING_UNAVAILABLE."
+              : "No se pudo completar la operación. Puedes reintentarlo.",
         fields: [],
         historical: !result.current,
+        ...(code ? { code } : {}),
       };
       continue;
     }
@@ -1181,11 +2119,13 @@ const rowProblems = computed(() => {
         label: "Fila pendiente de otro envío; el máximo operativo es de 50 filas por operación.",
         fields: [],
       };
-    } else if (
-      hasRowContent(row.id) &&
-      preparation.value.eligibleRows.some(({ rowKey }) => rowKey === row.id)
-    ) {
-      problems[row.id] = { label: "Lista para importar", fields: [] };
+    } else if (hasRowContent(row.id) && preparation.value.readyRowIds.includes(row.id)) {
+      problems[row.id] = {
+        label: preparation.value.eligibleRows.some(({ rowKey }) => rowKey === row.id)
+          ? "Lista para importar"
+          : "Lista para un lote posterior; no requiere corrección.",
+        fields: [],
+      };
     }
   }
   // Preserve historical result context for rows that remain in the editor after an edit.
@@ -1205,6 +2145,128 @@ const rowProblems = computed(() => {
   }
   return problems;
 });
+
+const jsonReviewInvalidRowIds = computed(() => {
+  const invalidReasonCodes = new Set([
+    "invalid-type",
+    "start-date-invalid",
+    "end-date-invalid",
+    "end-date-before-start-date",
+    "city-required",
+    "lineup-required",
+    "name-required",
+  ]);
+  const invalidRowIds = new Set(
+    preparation.value.errors
+      .filter(({ reasons }) => reasons.some((reason) => invalidReasonCodes.has(reason)))
+      .map(({ rowKey }) => rowKey)
+  );
+  for (const result of lastImport.value?.rows ?? []) {
+    if (result.item.result.status === "invalid") invalidRowIds.add(result.item.rowKey);
+  }
+  return invalidRowIds;
+});
+const jsonReviewConflictRowIds = computed(() => new Set(Object.keys(conflictsByRowKey.value)));
+
+const jsonAnalysisCounts = computed(() => {
+  const document = jsonDocument.value;
+  if (!document) return null;
+  const readyIds = new Set(preparation.value.readyRowIds);
+  return summarizeEventImportAnalysis(
+    document,
+    jsonAnalyzedRowIds.value,
+    readyIds,
+    unresolvedJsonReferenceErrors.value,
+    jsonReviewInvalidRowIds.value,
+    jsonReviewConflictRowIds.value
+  );
+});
+const jsonInterventionSummary = computed(() => {
+  const jsonRowIds = new Set(Object.values(jsonAnalyzedRowIds.value));
+  const jsonPendingRows = preparation.value.pendingRows.filter(({ rowKey }) =>
+    jsonRowIds.has(rowKey)
+  );
+  return summarizeEventImportIntervention(jsonPendingRows, rows.value);
+});
+
+const jsonReviewEntries = computed(() => {
+  if (!jsonDocument.value || !currentJsonAnalyzed.value) return null;
+  const invalidRowIds = jsonReviewInvalidRowIds.value;
+  const preparedRowIds = new Set(preparation.value.readyRowIds);
+  const conflictRowIds = jsonReviewConflictRowIds.value;
+  const mappedIndexes = new Set(Object.keys(jsonAnalyzedRowIds.value).map(Number));
+  const excludedIndexes = new Set([
+    ...jsonDocument.value.duplicateIndexes,
+    ...jsonDocument.value.events.flatMap((event, index) =>
+      event.issues.some(
+        (issue) =>
+          issue === `Evento ${index + 1}: debe ser un objeto.` ||
+          issue.startsWith("Tipo inválido") ||
+          issue.startsWith("El país del evento")
+      )
+        ? [index]
+        : []
+    ),
+  ]);
+  const alreadyInDraftIndexes = new Set(
+    jsonDocument.value.events.flatMap((_, index) =>
+      !mappedIndexes.has(index) && !excludedIndexes.has(index) ? [index] : []
+    )
+  );
+  return buildEventImportReviewEntries({
+    document: jsonDocument.value,
+    analyzedRowIds: jsonAnalyzedRowIds.value,
+    rows: rows.value,
+    preparedRowIds,
+    invalidRowIds,
+    conflictRowIds,
+    alreadyInDraftIndexes,
+  });
+});
+
+const filteredJsonReviewEntries = computed(() =>
+  jsonReviewEntries.value
+    ? filterEventImportReviewEntries(
+        jsonReviewEntries.value.entries,
+        jsonReviewFilter.value,
+        jsonReviewSearch.value
+      )
+    : []
+);
+const visibleJsonReviewRows = computed(() =>
+  filteredJsonReviewEntries.value.flatMap((entry) => (entry.row ? [entry.row] : []))
+);
+const selectedReviewExcludedEntries = computed(() =>
+  filteredJsonReviewEntries.value.filter((entry) => !entry.row)
+);
+
+watch(jsonReviewEntries, (next, previous) => {
+  if (!next || !previous || jsonReviewFilter.value === "all") return;
+  const oldByRowId = new Map(
+    previous.entries.flatMap((entry) => (entry.rowId ? [[entry.rowId, entry] as const] : []))
+  );
+  const moved = next.entries.find((entry) => {
+    if (!entry.rowId || !oldByRowId.has(entry.rowId)) return false;
+    const old = oldByRowId.get(entry.rowId)!;
+    return old.category === jsonReviewFilter.value && entry.category !== jsonReviewFilter.value;
+  });
+  if (moved) {
+    const label = moved.row?.event || moved.source.title || moved.source.artists.join(" + ");
+    jsonReviewNotice.value = `${label || "La fila"} cambió a «${reviewCategoryLabel(moved.category)}» y ya no aparece en «${reviewCategoryLabel(jsonReviewFilter.value)}». El filtro y la búsqueda se mantienen; usa «Todos» para localizarla.`;
+  }
+});
+
+function reviewCategoryLabel(category: EventImportReviewFilter | "already-draft"): string {
+  if (category === "already-draft") return "Ya en el borrador";
+  return {
+    "needs-review": "Necesitan revisión",
+    prepared: "Preparados",
+    conflicts: "Conflictos",
+    invalid: "Inválidos",
+    duplicates: "Duplicados del archivo",
+    all: "Todos",
+  }[category];
+}
 
 function currentInput() {
   return {
@@ -1236,6 +2298,10 @@ function refreshPreparation() {
         blockedRows[rowKey] = "operation-snapshot-protected";
     });
   });
+  automaticImportRun.value?.excludedRowKeys.forEach((rowKey) => {
+    if (rows.value.some((row) => row.id === rowKey))
+      blockedRows[rowKey] = "automatic-batch-already-processed";
+  });
   preparation.value = preparer.prepare({ ...currentInput(), blockedRows });
 }
 
@@ -1245,8 +2311,27 @@ watch(
   { deep: true, immediate: true }
 );
 
-async function sendSnapshot(snapshot: NonNullable<ImportPreparation["snapshot"]>) {
-  if (pendingSnapshotBatchIds.value.has(snapshot.batchId)) return;
+interface ImportBatchOutcome {
+  response: ImportBatchResponse;
+  rows: ReturnType<typeof reconcileEventImportResults>["results"];
+  conflictOperation: ConflictOperation | null;
+  rowLabels: Record<string, string>;
+}
+
+function importRowLabel(rowKey: string): string {
+  const row = rows.value.find(({ id }) => id === rowKey);
+  if (!row) return "Fila importada";
+  const title = row.event.trim() || row.lineup.map(({ name }) => name).join(" + ");
+  const date = row.startDate ? formatImportDate(row.startDate) : "fecha sin indicar";
+  const locality = row.city.trim() || "localidad sin indicar";
+  const kind = row.type === "festival" ? "Festival" : row.type === "tour" ? "Gira" : "Concierto";
+  return [title || kind, date, locality].join(" · ");
+}
+
+async function sendSnapshot(
+  snapshot: NonNullable<ImportPreparation["snapshot"]>
+): Promise<ImportBatchOutcome | null> {
+  if (pendingSnapshotBatchIds.value.has(snapshot.batchId)) return null;
   const operationOwner = sessionOwnerId.value;
   pendingSnapshotBatchIds.value = new Set([...pendingSnapshotBatchIds.value, snapshot.batchId]);
   if (!identityReady.value || !operationOwner) {
@@ -1255,28 +2340,31 @@ async function sendSnapshot(snapshot: NonNullable<ImportPreparation["snapshot"]>
     const pending = new Set(pendingSnapshotBatchIds.value);
     pending.delete(snapshot.batchId);
     pendingSnapshotBatchIds.value = pending;
-    return;
+    return null;
   }
   const isRetry = protectedSnapshots.value.some((item) => item.batchId === snapshot.batchId);
   if (!isRetry) protectedSnapshots.value = [...protectedSnapshots.value, snapshot];
   refreshPreparation();
   try {
     await session.saveNow();
-    if (sessionOwnerId.value !== operationOwner) return;
+    if (sessionOwnerId.value !== operationOwner) return null;
     criticalStorageError.value = "";
   } catch {
-    if (sessionOwnerId.value !== operationOwner) return;
+    if (sessionOwnerId.value !== operationOwner) return null;
     criticalStorageError.value =
       "No se pudo guardar la propuesta, así que la importación no se ha enviado.";
     refreshPreparation();
     const pending = new Set(pendingSnapshotBatchIds.value);
     pending.delete(snapshot.batchId);
     pendingSnapshotBatchIds.value = pending;
-    return;
+    return null;
   }
   try {
+    const nextModeErrors = { ...modeBatchErrors.value };
+    delete nextModeErrors[activeImportMode.value];
+    modeBatchErrors.value = nextModeErrors;
     const response = await batchMutation.mutateAsync(snapshot);
-    if (sessionOwnerId.value !== operationOwner) return;
+    if (sessionOwnerId.value !== operationOwner) return null;
     const reconciliation = reconcileEventImportResults(
       snapshot,
       response,
@@ -1287,11 +2375,13 @@ async function sendSnapshot(snapshot: NonNullable<ImportPreparation["snapshot"]>
     reconciliation.results.forEach(({ item, action }) => {
       if (action === "ignored") return;
       const operationKey = `${snapshot.batchId}:${item.operationRowId}`;
-      handledOperations.add(operationKey);
-      handledOperationOrder.push(operationKey);
-      if (handledOperationOrder.length > 1000) {
-        const expiredOperation = handledOperationOrder.shift();
-        if (expiredOperation) handledOperations.delete(expiredOperation);
+      if (item.result.status !== "failed") {
+        handledOperations.add(operationKey);
+        handledOperationOrder.push(operationKey);
+        if (handledOperationOrder.length > 1000) {
+          const expiredOperation = handledOperationOrder.shift();
+          if (expiredOperation) handledOperations.delete(expiredOperation);
+        }
       }
     });
     const nextCreatedDrafts = { ...createdDrafts.value };
@@ -1301,15 +2391,17 @@ async function sendSnapshot(snapshot: NonNullable<ImportPreparation["snapshot"]>
       }
     });
     createdDrafts.value = nextCreatedDrafts;
-    reconciliation.rowKeysToRemove.forEach((rowKey) => removeRow(rowKey));
+    const rowLabels = Object.fromEntries(
+      reconciliation.results.map(({ item }) => [item.rowKey, importRowLabel(item.rowKey)])
+    );
+    removeRows(reconciliation.rowKeysToRemove);
+    const conflictRows = reconciliation.results
+      .filter(({ item, action }) => action !== "ignored" && item.result.status === "conflict")
+      .map(({ item }) => item);
+    const conflictOperation = conflictRows.length ? { snapshot, results: conflictRows } : null;
     if (reconciliation.results.some(({ action }) => action !== "ignored")) {
-      lastImport.value = { response, rows: reconciliation.results };
-      conflictOperation.value = {
-        snapshot,
-        results: reconciliation.results
-          .filter(({ item, action }) => action !== "ignored" && item.result.status === "conflict")
-          .map(({ item }) => item),
-      };
+      lastImport.value = { response, rows: reconciliation.results, rowLabels };
+      conflictOperations.value = conflictOperation ? [conflictOperation] : [];
     }
     uncertainSnapshots.value = uncertainSnapshots.value.filter(
       (pending) => pending.batchId !== snapshot.batchId
@@ -1322,8 +2414,9 @@ async function sendSnapshot(snapshot: NonNullable<ImportPreparation["snapshot"]>
     const pending = new Set(pendingSnapshotBatchIds.value);
     pending.delete(snapshot.batchId);
     pendingSnapshotBatchIds.value = pending;
+    return { response, rows: reconciliation.results, conflictOperation, rowLabels };
   } catch (error) {
-    if (sessionOwnerId.value !== operationOwner) return;
+    if (sessionOwnerId.value !== operationOwner) return null;
     if (
       eventImportErrorCanRetry(error) &&
       !uncertainSnapshots.value.some((pending) => pending.batchId === snapshot.batchId)
@@ -1346,13 +2439,133 @@ async function sendSnapshot(snapshot: NonNullable<ImportPreparation["snapshot"]>
     const pending = new Set(pendingSnapshotBatchIds.value);
     pending.delete(snapshot.batchId);
     pendingSnapshotBatchIds.value = pending;
+    return null;
   }
+}
+
+async function runAutomaticImport(firstSnapshot: NonNullable<ImportPreparation["snapshot"]>) {
+  const operationOwner = sessionOwnerId.value;
+  const runId = firstSnapshot.batchId;
+  const remainingReadyRows = preparation.value.pendingRows.filter(({ reasons }) =>
+    reasons.includes("batch-limit-exceeded")
+  ).length;
+  automaticImportRun.value = {
+    id: runId,
+    ownerId: operationOwner ?? "",
+    countryId: firstSnapshot.countryId,
+    excludedRowKeys: new Set(firstSnapshot.rows.map(({ rowKey }) => rowKey)),
+    completedBatches: 0,
+    completedRows: 0,
+    totalRows: firstSnapshot.rows.length + remainingReadyRows,
+    totalBatches: Math.ceil((firstSnapshot.rows.length + remainingReadyRows) / 50),
+    createdEventIds: new Set<string>(),
+    unchangedRows: 0,
+    conflicts: 0,
+    invalidRows: 0,
+    failedRows: 0,
+    stopRequested: false,
+  };
+  refreshPreparation();
+
+  const responseResults: ImportBatchResponse["results"] = [];
+  const reconciledRows: ReturnType<typeof reconcileEventImportResults>["results"] = [];
+  const rowLabels: Record<string, string> = {};
+  const operations: ConflictOperation[] = [];
+  let snapshot: NonNullable<ImportPreparation["snapshot"]> | null = firstSnapshot;
+
+  try {
+    while (snapshot && automaticImportRun.value?.id === runId) {
+      const run = automaticImportRun.value;
+      if (
+        !operationOwner ||
+        sessionOwnerId.value !== run.ownerId ||
+        geography.selectedCountryId.value !== run.countryId
+      )
+        break;
+
+      const outcome = await sendSnapshot(snapshot);
+      if (!outcome) break;
+      responseResults.push(...outcome.response.results);
+      reconciledRows.push(...outcome.rows);
+      Object.assign(rowLabels, outcome.rowLabels);
+      if (outcome.conflictOperation) operations.push(outcome.conflictOperation);
+
+      lastImport.value = {
+        response: { batchId: snapshot.batchId, results: [...responseResults] },
+        rows: [...reconciledRows],
+        rowLabels: { ...rowLabels },
+      };
+      conflictOperations.value = [...operations];
+      const currentRun = automaticImportRun.value;
+      const createdEventIds = new Set(currentRun?.createdEventIds ?? []);
+      outcome.response.results.forEach(({ result }) => {
+        if (result.status === "created") createdEventIds.add(result.eventId);
+      });
+      automaticImportRun.value = {
+        ...(currentRun ?? run),
+        completedBatches: run.completedBatches + 1,
+        completedRows: run.completedRows + outcome.response.results.length,
+        createdEventIds,
+        unchangedRows:
+          (currentRun?.unchangedRows ?? run.unchangedRows) +
+          outcome.response.results.filter(({ result }) => result.status === "unchanged").length,
+        conflicts:
+          (currentRun?.conflicts ?? run.conflicts) +
+          outcome.response.results.filter(({ result }) => result.status === "conflict").length,
+        invalidRows:
+          (currentRun?.invalidRows ?? run.invalidRows) +
+          outcome.response.results.filter(({ result }) => result.status === "invalid").length,
+        failedRows:
+          (currentRun?.failedRows ?? run.failedRows) +
+          outcome.response.results.filter(({ result }) => result.status === "failed").length,
+      };
+      await session.saveNow().catch(() => undefined);
+
+      if (
+        sessionOwnerId.value !== run.ownerId ||
+        geography.selectedCountryId.value !== run.countryId
+      )
+        break;
+      if (automaticImportRun.value?.stopRequested) break;
+      if (
+        outcome.response.results.some(
+          ({ result }) => result.status === "failed" && result.code === "IMPORT_PREFLIGHT_FAILED"
+        )
+      )
+        break;
+      snapshot = preparation.value.snapshot;
+      if (snapshot) {
+        const currentRun = automaticImportRun.value;
+        if (!currentRun || currentRun.id !== runId) break;
+        automaticImportRun.value = {
+          ...currentRun,
+          excludedRowKeys: new Set([
+            ...currentRun.excludedRowKeys,
+            ...snapshot.rows.map(({ rowKey }) => rowKey),
+          ]),
+        };
+        refreshPreparation();
+      }
+    }
+  } finally {
+    if (automaticImportRun.value?.id === runId) {
+      automaticImportRun.value = null;
+      refreshPreparation();
+      await session.saveNow().catch(() => undefined);
+    }
+  }
+}
+
+function stopAutomaticImportAfterCurrentBatch() {
+  const run = automaticImportRun.value;
+  if (!run || run.stopRequested) return;
+  automaticImportRun.value = { ...run, stopRequested: true };
 }
 
 function importEligibleRows() {
   const snapshot = preparation.value.snapshot;
-  if (!snapshot || batchMutation.isPending.value) return;
-  void sendSnapshot(snapshot);
+  if (!snapshot || batchMutation.isPending.value || automaticImportRun.value) return;
+  void runAutomaticImport(snapshot);
 }
 
 function retrySameBatch(snapshot: NonNullable<ImportPreparation["snapshot"]>) {
@@ -1493,6 +2706,9 @@ const lastImportSummary = computed(() => {
   if (!lastImport.value) return "";
   const categories: string[] = [];
   const imported = countDistinctCreatedEvents(lastImport.value.response);
+  const unchanged = lastImport.value.rows.filter(
+    ({ item }) => item.result.status === "unchanged"
+  ).length;
   const conflicts = lastImport.value.rows.filter(
     ({ item }) => item.result.status === "conflict"
   ).length;
@@ -1505,6 +2721,7 @@ const lastImportSummary = computed(() => {
   ).length;
 
   if (imported) categories.push(quantity(imported, "evento importado", "eventos importados"));
+  if (unchanged) categories.push(quantity(unchanged, "evento omitido", "eventos omitidos"));
   if (conflicts) categories.push(quantity(conflicts, "conflicto", "conflictos"));
   if (invalid) categories.push(quantity(invalid, "fila inválida", "filas inválidas"));
   if (failed) categories.push(quantity(failed, "fila fallida", "filas fallidas"));
@@ -1515,6 +2732,15 @@ const lastImportSummary = computed(() => {
 
   return ["Importación finalizada", ...categories].join(" · ");
 });
+
+const unchangedImportDetails = computed(() =>
+  (lastImport.value?.rows ?? [])
+    .filter(({ item }) => item.result.status === "unchanged")
+    .map(({ item }) => ({
+      key: item.operationRowId,
+      label: lastImport.value?.rowLabels?.[item.rowKey] ?? "Fila importada",
+    }))
+);
 
 const removedRowImportHistory = computed(() =>
   (lastImport.value?.rows ?? [])
@@ -1557,7 +2783,7 @@ watch(
       );
     }),
   (required) => {
-    if (required) void geography.loadRegions();
+    if (required && !switchingImportMode.value) void geography.loadRegions();
   },
   { immediate: true }
 );
@@ -1592,11 +2818,11 @@ function updateRowCount(event: Event) {
         </span>
         <div>
           <h1 class="text-2xl font-bold leading-tight text-rv-navy dark:text-white md:text-3xl">
-            Importador de conciertos y festivales
+            Importador de conciertos, festivales y giras
           </h1>
           <p class="mt-2 max-w-3xl text-sm leading-relaxed text-gray-600 dark:text-gray-300">
-            Introduce varios conciertos o festivales en una tabla editable. El borrador se guarda
-            localmente en este navegador.
+            Manual abre la tabla directamente. JSON de scraping organiza la carga masiva en cuatro
+            etapas. Los borradores de cada modo se guardan por separado en este navegador.
           </p>
         </div>
       </div>
@@ -1697,9 +2923,293 @@ function updateRowCount(event: Event) {
     <section
       v-if="sessionOwnerId && !recoverySession && !recoveryError"
       class="flex min-h-0 flex-1 flex-col gap-2"
-      aria-label="Editor de eventos"
+      aria-label="Flujo de importación de eventos"
     >
-      <div class="flex shrink-0 items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2" role="group" aria-label="Modo de importación">
+        <button
+          type="button"
+          class="min-h-10 rounded-lg border px-4 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+          :class="
+            activeImportMode === 'manual'
+              ? 'border-rv-navy bg-rv-navy text-white dark:border-gray-200 dark:bg-gray-200 dark:text-rv-navy'
+              : 'border-gray-300 bg-white text-gray-800 dark:border-white/20 dark:bg-rv-darkCard dark:text-gray-100'
+          "
+          :aria-pressed="activeImportMode === 'manual'"
+          :disabled="Boolean(modeSwitchBlockReason)"
+          :title="modeSwitchBlockReason || undefined"
+          @click="switchImportMode('manual')"
+        >
+          Manual
+        </button>
+        <button
+          type="button"
+          class="min-h-10 rounded-lg border px-4 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+          :class="
+            activeImportMode === 'json'
+              ? 'border-rv-navy bg-rv-navy text-white dark:border-gray-200 dark:bg-gray-200 dark:text-rv-navy'
+              : 'border-gray-300 bg-white text-gray-800 dark:border-white/20 dark:bg-rv-darkCard dark:text-gray-100'
+          "
+          :aria-pressed="activeImportMode === 'json'"
+          :disabled="Boolean(modeSwitchBlockReason)"
+          :title="modeSwitchBlockReason || undefined"
+          @click="switchImportMode('json')"
+        >
+          JSON de scraping
+        </button>
+      </div>
+      <p
+        v-if="modeSwitchBlockReason"
+        class="text-xs text-amber-800 dark:text-amber-200"
+        role="status"
+      >
+        {{ modeSwitchBlockReason }}
+      </p>
+      <EventImportStageNavigation
+        v-if="activeImportMode === 'json'"
+        :stages="importStages"
+        @navigate="navigateImportStage"
+      />
+      <EventImportFileSummary
+        v-if="activeImportMode === 'json' && activeImportStage !== 'load' && jsonFileName"
+        :file-name="jsonFileName"
+        :size-bytes="jsonFileSizeBytes"
+        :document="jsonDocument"
+        :validation-error="jsonError"
+        :selected-country="selectedCountryLabel"
+      />
+      <p
+        v-if="activeImportMode === 'json' && activeImportStage !== 'import' && automaticImportRun"
+        class="shrink-0 rounded-lg border border-blue-300 bg-blue-50 p-3 text-sm text-blue-950 dark:border-blue-200/30 dark:bg-blue-950/30 dark:text-blue-100"
+        role="status"
+      >
+        {{
+          automaticImportRun.stopRequested ? "La importación se detendrá" : "Importación en curso"
+        }}
+        · lote
+        {{ Math.min(automaticImportRun.completedBatches + 1, automaticImportRun.totalBatches) }}/{{
+          automaticImportRun.totalBatches
+        }}
+        · {{ automaticImportRun.completedRows }}/{{ automaticImportRun.totalRows }} procesadas.
+        Puedes revisar el borrador; los resultados se aplicarán a su fila original.
+        <button
+          type="button"
+          class="ml-1 font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+          @click="navigateImportStage('import')"
+        >
+          Ver importación
+        </button>
+      </p>
+      <p
+        v-if="
+          activeImportMode === 'json' && activeImportStage === 'review' && uncertainSnapshots.length
+        "
+        class="shrink-0 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/30 dark:text-amber-100"
+        role="status"
+      >
+        El resultado de {{ uncertainSnapshots.length }} lote{{
+          uncertainSnapshots.length === 1 ? "" : "s"
+        }}
+        sigue sin confirmar. Revisa la operación antes de continuar.
+        <button
+          type="button"
+          class="ml-1 font-semibold underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+          @click="navigateImportStage('import')"
+        >
+          Consultar resultado
+        </button>
+      </p>
+
+      <!-- eslint-disable-next-line vuejs-accessibility/no-static-element-interactions -- The nested, labelled file input provides keyboard and assistive-technology access; drag handlers are supplemental. -->
+      <div
+        v-if="activeImportMode === 'json' && activeImportStage === 'load'"
+        class="shrink-0 rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-700 dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-200"
+        aria-labelledby="scraped-json-title"
+        role="region"
+        @dragover.prevent="jsonDragging = true"
+        @dragleave="jsonDragging = false"
+        @drop="handleJsonDrop"
+      >
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 id="scraped-json-title" class="font-semibold text-rv-navy dark:text-white">
+              Cargar archivo JSON
+            </h2>
+            <p class="mt-1 text-xs text-gray-600 dark:text-gray-300">
+              Selecciona un archivo local de scraper (máximo 2 MiB); se analizará y revisará antes
+              de enviar los eventos.
+            </p>
+          </div>
+          <label
+            for="scraped-json-file"
+            class="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-4 font-semibold hover:bg-gray-50 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-rv-purple dark:border-white/20 dark:hover:bg-white/5"
+            :class="jsonDragging ? 'border-rv-purple bg-rv-purple/10' : ''"
+          >
+            <i class="fa-solid fa-file-arrow-up" aria-hidden="true"></i>
+            {{ jsonLoading ? "Leyendo…" : "Seleccionar o soltar .json" }}
+            <input
+              class="sr-only"
+              id="scraped-json-file"
+              type="file"
+              accept=".json,application/json"
+              :disabled="jsonLoading || stageNavigationBusy"
+              aria-label="Seleccionar archivo JSON de eventos"
+              @change="readJsonFile(($event.target as HTMLInputElement).files?.[0])"
+            />
+          </label>
+        </div>
+        <p v-if="jsonNotice" class="mt-2 text-sm text-green-800 dark:text-green-200" role="status">
+          {{ jsonNotice }}
+        </p>
+        <p
+          v-if="bulkResolutionStatus"
+          class="mt-2 text-sm text-rv-navy dark:text-gray-200"
+          role="status"
+          aria-live="polite"
+        >
+          {{ bulkResolutionStatus }}
+        </p>
+        <p
+          v-if="jsonResolutionError"
+          class="mt-2 text-sm text-red-700 dark:text-red-300"
+          role="alert"
+        >
+          {{ jsonResolutionError }}
+        </p>
+        <EventImportFileSummary
+          v-if="jsonFileName"
+          :file-name="jsonFileName"
+          :size-bytes="jsonFileSizeBytes"
+          :document="jsonDocument"
+          :validation-error="jsonError"
+          :selected-country="selectedCountryLabel"
+        />
+        <div v-if="jsonDocument" class="mt-3 border-t border-gray-200 pt-3 dark:border-white/10">
+          <details class="mt-2">
+            <summary
+              class="cursor-pointer font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
+            >
+              Vista previa: primeros {{ jsonPreviewEvents.length }} de
+              {{ jsonDocument.events.length }} eventos
+            </summary>
+            <ul
+              class="mt-2 max-h-40 space-y-2 overflow-y-auto"
+              aria-label="Previsualización de eventos JSON"
+            >
+              <li
+                v-for="(event, index) in jsonPreviewEvents"
+                :key="index"
+                class="rounded-md bg-gray-50 p-2 dark:bg-rv-darkSurface"
+              >
+                <p class="font-medium">
+                  {{ index + 1 }}. {{ event.type }} · {{ event.title || "Sin título" }} ·
+                  {{ event.startDate || "Sin fecha" }} · {{ event.locality || "Sin localidad" }}
+                </p>
+                <p
+                  v-if="event.issues.length"
+                  class="mt-1 text-xs text-amber-800 dark:text-amber-200"
+                >
+                  {{ event.issues.join(" ") }}
+                </p>
+                <p v-else class="mt-1 text-xs text-gray-600 dark:text-gray-300">
+                  {{ event.artists.join(" · ") }}
+                </p>
+                <p
+                  v-if="event.originalUrl || event.externalId"
+                  class="mt-1 break-all text-xs text-gray-600 dark:text-gray-300"
+                >
+                  Procedencia: <span v-if="event.originalUrl">{{ event.originalUrl }}</span>
+                  <span v-if="event.originalUrl && event.externalId"> · </span>
+                  <span v-if="event.externalId">ID externo {{ event.externalId }}</span>
+                </p>
+              </li>
+            </ul>
+          </details>
+          <p class="mt-2 text-xs text-gray-600 dark:text-gray-300">
+            Las filas con datos incompletos pasarán al editor para corregirlas. Los duplicados,
+            tipos inválidos y países contradictorios se omitirán. La importación al servidor sigue
+            siendo una acción separada.
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              :disabled="jsonLoading || stageNavigationBusy"
+              class="min-h-10 rounded-lg bg-rv-navy px-4 font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:bg-gray-200 dark:text-rv-navy"
+              @click="continueJsonImport"
+            >
+              Analizar y resolver eventos
+            </button>
+            <button
+              type="button"
+              class="min-h-10 rounded-lg border border-gray-300 px-4 font-semibold hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:border-white/20 dark:hover:bg-white/5"
+              @click="cancelSelectedJsonFile"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+      <section
+        v-else-if="activeImportMode === 'json' && activeImportStage === 'resolve'"
+        class="shrink-0 rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-200"
+        aria-labelledby="event-import-resolution-title"
+      >
+        <h2 id="event-import-resolution-title" class="font-semibold text-rv-navy dark:text-white">
+          Resolver y analizar
+        </h2>
+        <p v-if="jsonResolutionInProgress" class="mt-2" role="status">
+          {{ bulkResolutionStatus || "Preparando las filas del archivo…" }}
+        </p>
+        <p v-else-if="currentJsonAnalyzed" class="mt-2" role="status">
+          Análisis completado para {{ jsonDocument?.events.length ?? 0 }} eventos. Las filas y sus
+          selecciones siguen en el borrador.
+        </p>
+        <p v-else-if="jsonResolutionError" class="mt-2 text-red-700 dark:text-red-300" role="alert">
+          {{ jsonResolutionError }}
+        </p>
+        <p v-else class="mt-2">
+          Selecciona un archivo JSON válido en la etapa anterior para iniciar el análisis.
+        </p>
+        <EventImportResolutionProgress :phases="bulkResolutionPhases" />
+        <EventImportAnalysisSummary
+          v-if="currentJsonAnalyzed && jsonAnalysisCounts"
+          class="mt-3"
+          v-bind="jsonAnalysisCounts"
+          :current-batch-size="preparation.eligibleRows.length"
+          :ready-for-later-batches="jsonInterventionSummary.readyForLaterBatches"
+          :intervention-reasons="jsonInterventionSummary.reasons"
+        />
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button
+            v-if="!jsonResolutionInProgress && currentJsonAnalyzed"
+            type="button"
+            class="min-h-10 rounded-lg bg-rv-navy px-4 font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:bg-gray-200 dark:text-rv-navy"
+            @click="navigateImportStage('review')"
+          >
+            Revisar eventos
+          </button>
+          <button
+            v-else-if="!jsonResolutionInProgress && jsonResolutionError"
+            type="button"
+            class="min-h-10 rounded-lg bg-rv-navy px-4 font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:bg-gray-200 dark:text-rv-navy"
+            @click="continueToJsonReview"
+          >
+            Revisar filas disponibles
+          </button>
+          <button
+            type="button"
+            class="min-h-10 rounded-lg border border-gray-300 px-4 font-semibold hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:border-white/20 dark:hover:bg-white/5"
+            :disabled="stageNavigationBusy"
+            @click="navigateImportStage('load')"
+          >
+            Volver a cargar archivo
+          </button>
+        </div>
+      </section>
+
+      <div
+        v-if="activeImportMode === 'manual' || activeImportStage === 'review'"
+        class="flex shrink-0 items-center justify-between gap-3"
+      >
         <p class="text-sm font-medium text-gray-600 dark:text-gray-300">
           {{ rows.length }} {{ rows.length === 1 ? "fila" : "filas" }}
         </p>
@@ -1732,19 +3242,165 @@ function updateRowCount(event: Event) {
       </div>
 
       <section
+        v-if="activeImportMode === 'manual' || activeImportStage === 'review'"
         class="shrink-0 rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-700 dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-200"
-        aria-label="Estado de importación"
+        aria-label="Preparación para importar"
       >
+        <EventImportAnalysisSummary
+          v-if="activeImportMode === 'json' && currentJsonAnalyzed && jsonAnalysisCounts"
+          class="mb-3"
+          v-bind="jsonAnalysisCounts"
+          :current-batch-size="preparation.eligibleRows.length"
+          :ready-for-later-batches="jsonInterventionSummary.readyForLaterBatches"
+          :intervention-reasons="jsonInterventionSummary.reasons"
+        />
+        <p v-if="jsonNotice" class="mb-2 text-xs text-green-800 dark:text-green-200" role="status">
+          {{ jsonNotice }}
+        </p>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p>
+            <span class="font-semibold">
+              {{
+                activeImportMode === "json"
+                  ? (jsonAnalysisCounts?.prepared ?? 0)
+                  : preparation.eligibleRows.length
+              }}
+              {{
+                activeImportMode === "json"
+                  ? jsonAnalysisCounts?.prepared === 1
+                    ? "fila preparada"
+                    : "filas preparadas"
+                  : "filas listas"
+              }}
+            </span>
+            ·
+            {{
+              activeImportMode === "json"
+                ? (jsonAnalysisCounts?.needsIntervention ?? 0)
+                : preparation.pendingRows.length
+            }}
+            {{ activeImportMode === "json" ? "requieren intervención" : "pendientes" }}
+          </p>
+          <button
+            v-if="activeImportMode === 'json'"
+            type="button"
+            class="min-h-10 rounded-lg bg-rv-navy px-4 font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-200 dark:text-rv-navy"
+            :disabled="!importStageAvailable || stageNavigationBusy"
+            @click="continueToImportStage"
+          >
+            Revisar confirmación de importación
+          </button>
+          <div
+            class="flex flex-wrap items-center gap-2"
+            role="group"
+            aria-label="Acciones de revisión"
+          >
+            <span class="text-xs text-gray-600 dark:text-gray-300" role="status">
+              {{ selectedRowKeys.size }}
+              {{ selectedRowKeys.size === 1 ? "fila seleccionada" : "filas seleccionadas" }}
+            </span>
+            <button
+              type="button"
+              aria-label="Descartar seleccionadas"
+              class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-300 px-4 text-sm font-semibold text-red-800 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-300/40 dark:text-red-200 dark:hover:bg-red-950/30"
+              :disabled="selectedRowKeys.size === 0 || discardInProgress"
+              @click="discardSelectedRows"
+            >
+              Descartar seleccionadas
+            </button>
+          </div>
+        </div>
+        <p v-if="!preparation.snapshot" class="mt-2 text-xs" role="status">
+          <template v-if="!geography.selectedCountry.value">
+            Selecciona un país en «País de la importación» para preparar filas.
+          </template>
+          <template v-else-if="preparation.pendingRows.length">
+            No hay filas listas todavía. Revisa los campos pendientes antes de avanzar.
+          </template>
+          <template v-else>
+            No hay operaciones listas ni resultados pendientes de consultar.
+          </template>
+        </p>
+      </section>
+
+      <section
+        v-if="activeImportMode === 'manual' || activeImportStage === 'import'"
+        class="shrink-0 rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-700 dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-200"
+        aria-label="Confirmación, progreso y resultados de importación"
+      >
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 class="font-semibold text-rv-navy dark:text-white">
+            {{
+              activeImportMode === "manual"
+                ? "Importar filas listas"
+                : "Importar y consultar resultados"
+            }}
+          </h2>
+          <button
+            v-if="activeImportMode === 'json'"
+            type="button"
+            class="min-h-9 rounded-lg border border-gray-300 px-3 font-semibold hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:border-white/20 dark:hover:bg-white/5"
+            :disabled="stageNavigationBusy"
+            @click="navigateImportStage('review')"
+          >
+            Volver a revisar eventos
+          </button>
+        </div>
         <div class="flex flex-wrap items-center justify-between gap-3">
           <p class="font-medium">
-            <span class="font-semibold">{{ preparation.eligibleRows.length }} filas listas</span>
-            · {{ preparation.pendingRows.length }} pendientes
+            <span class="font-semibold">
+              {{
+                activeImportMode === "json"
+                  ? (jsonAnalysisCounts?.prepared ?? 0)
+                  : preparation.eligibleRows.length
+              }}
+              {{
+                activeImportMode === "json"
+                  ? jsonAnalysisCounts?.prepared === 1
+                    ? "fila preparada"
+                    : "filas preparadas"
+                  : "filas listas"
+              }}
+            </span>
+            ·
+            {{
+              activeImportMode === "json"
+                ? (jsonAnalysisCounts?.needsIntervention ?? 0)
+                : preparation.pendingRows.length
+            }}
+            {{ activeImportMode === "json" ? "requieren intervención" : "pendientes" }}
+          </p>
+          <p
+            v-if="automaticImportRun"
+            class="text-sm font-medium text-rv-navy dark:text-gray-100"
+            role="status"
+          >
+            {{ automaticImportRun.stopRequested ? "La importación se detendrá" : "Importando" }}
+            · lote
+            {{
+              Math.min(automaticImportRun.completedBatches + 1, automaticImportRun.totalBatches)
+            }}/{{ automaticImportRun.totalBatches }} · {{ automaticImportRun.completedRows }}/{{
+              automaticImportRun.totalRows
+            }}
+            procesadas · {{ automaticImportRun.createdEventIds.size }} creados ·
+            {{ automaticImportRun.unchangedRows }} omitidos ·
+            {{ automaticImportRun.conflicts }} conflictos ·
+            {{ automaticImportRun.invalidRows }} inválidas ·
+            {{ automaticImportRun.failedRows }} fallidas.
           </p>
           <div
             class="flex flex-wrap items-center justify-end gap-2"
             role="group"
             aria-label="Acciones de importación y descarte"
           >
+            <button
+              v-if="automaticImportRun && !automaticImportRun.stopRequested"
+              type="button"
+              class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-gray-300 px-4 text-sm font-semibold text-gray-800 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:border-white/20 dark:text-gray-100 dark:hover:bg-white/5"
+              @click="stopAutomaticImportAfterCurrentBatch"
+            >
+              Detener después del lote actual
+            </button>
             <button
               v-for="snapshot in protectedSnapshots.filter(
                 (item) => !uncertainSnapshots.some(({ batchId }) => batchId === item.batchId)
@@ -1753,7 +3409,9 @@ function updateRowCount(event: Event) {
               type="button"
               class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-300 px-4 text-sm font-semibold text-red-800 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:text-red-200"
               :disabled="
-                batchMutation.isPending.value || pendingSnapshotBatchIds.has(snapshot.batchId)
+                automaticImportRun ||
+                batchMutation.isPending.value ||
+                pendingSnapshotBatchIds.has(snapshot.batchId)
               "
               @click="sendSnapshot(snapshot)"
             >
@@ -1775,7 +3433,9 @@ function updateRowCount(event: Event) {
               type="button"
               class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-rv-purple px-4 text-sm font-semibold text-rv-purple hover:bg-rv-purple/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:text-purple-200"
               :disabled="
-                batchMutation.isPending.value || pendingSnapshotBatchIds.has(snapshot.batchId)
+                automaticImportRun ||
+                batchMutation.isPending.value ||
+                pendingSnapshotBatchIds.has(snapshot.batchId)
               "
               @click="retrySameBatch(snapshot)"
             >
@@ -1785,7 +3445,9 @@ function updateRowCount(event: Event) {
               type="button"
               aria-label="Importar filas listas"
               class="inline-flex min-h-10 items-center gap-2 rounded-lg bg-rv-navy px-4 text-sm font-semibold text-white transition hover:bg-rv-navy/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-200 dark:text-rv-navy dark:hover:bg-white"
-              :disabled="!preparation.snapshot || batchMutation.isPending.value"
+              :disabled="
+                !preparation.snapshot || batchMutation.isPending.value || automaticImportRun
+              "
               @click="importEligibleRows"
             >
               <i
@@ -1793,20 +3455,13 @@ function updateRowCount(event: Event) {
                 class="fa-solid fa-spinner fa-spin"
                 aria-hidden="true"
               ></i>
-              {{ batchMutation.isPending.value ? "Importando…" : "Importar filas listas" }}
-            </button>
-            <span class="text-xs text-gray-600 dark:text-gray-300" role="status">
-              {{ selectedRowKeys.size }}
-              {{ selectedRowKeys.size === 1 ? "fila seleccionada" : "filas seleccionadas" }}
-            </span>
-            <button
-              type="button"
-              aria-label="Descartar seleccionadas"
-              class="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-300 px-4 text-sm font-semibold text-red-800 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-300/40 dark:text-red-200 dark:hover:bg-red-950/30"
-              :disabled="selectedRowKeys.size === 0 || discardInProgress"
-              @click="discardSelectedRows"
-            >
-              Descartar seleccionadas
+              {{
+                automaticImportRun
+                  ? "Importando lotes…"
+                  : batchMutation.isPending.value
+                    ? "Importando…"
+                    : "Importar filas listas"
+              }}
             </button>
           </div>
         </div>
@@ -1814,12 +3469,8 @@ function updateRowCount(event: Event) {
           Enviando {{ batchMutation.variables.value?.rows.length ?? 0 }} filas. Puedes seguir
           editando la tabla.
         </p>
-        <p
-          v-if="batchMutation.isError.value"
-          class="mt-2 text-red-700 dark:text-red-300"
-          role="alert"
-        >
-          {{ eventImportGlobalErrorMessage(batchMutation.error.value) }}
+        <p v-if="visibleBatchError" class="mt-2 text-red-700 dark:text-red-300" role="alert">
+          {{ visibleBatchError }}
         </p>
         <p
           v-if="uncertainSnapshots.length"
@@ -1861,14 +3512,125 @@ function updateRowCount(event: Event) {
         </section>
         <div v-if="lastImport" class="mt-3 border-t border-gray-200 pt-3 dark:border-white/10">
           <p class="font-semibold" role="status">{{ lastImportSummary }}</p>
+          <details v-if="unchangedImportDetails.length" class="mt-2 text-sm">
+            <summary class="cursor-pointer font-medium text-gray-700 dark:text-gray-200">
+              Ver eventos omitidos ({{ unchangedImportDetails.length }})
+            </summary>
+            <ul class="mt-2 space-y-1 pl-5">
+              <li v-for="entry in unchangedImportDetails" :key="entry.key">{{ entry.label }}</li>
+            </ul>
+          </details>
           <ul v-if="removedRowImportHistory.length" class="mt-2 space-y-1 text-sm">
             <li v-for="(note, index) in removedRowImportHistory" :key="index">{{ note }}</li>
           </ul>
         </div>
       </section>
 
+      <section
+        v-if="
+          activeImportMode === 'json' &&
+          activeImportStage === 'review' &&
+          currentJsonAnalyzed &&
+          jsonReviewEntries
+        "
+        class="shrink-0 space-y-3"
+        aria-label="Revisión de eventos del archivo"
+      >
+        <EventImportReviewControls
+          :model-value="jsonReviewFilter"
+          v-model:search="jsonReviewSearch"
+          :counts="jsonReviewEntries.counts"
+          @update:model-value="
+            jsonReviewFilter = $event;
+            jsonReviewInitialized = true;
+            jsonReviewNotice = '';
+          "
+        />
+        <p v-if="jsonReviewNotice" class="text-sm text-amber-800 dark:text-amber-200" role="status">
+          {{ jsonReviewNotice }}
+        </p>
+        <p
+          v-if="
+            jsonReviewFilter === 'duplicates' &&
+            jsonReviewEntries.counts.duplicates === jsonReviewEntries.counts.all
+          "
+          class="text-sm text-amber-800 dark:text-amber-200"
+          role="status"
+        >
+          Todos los eventos del archivo están duplicados; no se añadirán al borrador.
+        </p>
+        <p class="text-sm text-gray-600 dark:text-gray-300" aria-live="polite">
+          {{ filteredJsonReviewEntries.length }} de {{ jsonReviewEntries.counts.all }} eventos del
+          archivo
+          <template v-if="jsonReviewSearch"> · búsqueda: «{{ jsonReviewSearch }}»</template>
+        </p>
+        <div
+          v-if="filteredJsonReviewEntries.length === 0"
+          class="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-200"
+          role="status"
+        >
+          <template v-if="jsonReviewSearch">
+            No hay resultados para «{{ jsonReviewSearch }}» con este filtro. Prueba otro término o
+            selecciona «Todos».
+          </template>
+          <template v-else-if="jsonReviewFilter === 'needs-review'">
+            No hay filas de esta categoría. Los conflictos y errores de validación tienen filtros
+            propios; también puedes consultar los eventos preparados o ver todos.
+          </template>
+          <template v-else-if="jsonReviewFilter === 'prepared'">
+            No hay eventos preparados con el filtro actual.
+          </template>
+          <template
+            v-else-if="
+              jsonReviewFilter === 'duplicates' &&
+              jsonReviewEntries.counts.duplicates === jsonReviewEntries.counts.all
+            "
+          >
+            Todos los eventos del archivo están duplicados.
+          </template>
+          <template v-else> Este filtro no contiene eventos. </template>
+        </div>
+        <ul
+          v-if="selectedReviewExcludedEntries.length"
+          class="space-y-2"
+          aria-label="Filas excluidas o ya presentes en el borrador"
+        >
+          <li
+            v-for="entry in selectedReviewExcludedEntries"
+            :key="`source-${entry.sourceIndex}`"
+            class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-200/30 dark:bg-amber-950/20 dark:text-amber-100"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <p class="font-semibold">
+                {{
+                  entry.source.title ||
+                  entry.source.artists.join(" + ") ||
+                  `Evento ${entry.sourceIndex + 1}`
+                }}
+                <span class="font-normal"
+                  >· {{ entry.source.startDate || "sin fecha" }} ·
+                  {{ entry.source.locality || "sin localidad" }}</span
+                >
+              </p>
+              <span class="rounded-full border border-current px-2 py-0.5 text-xs font-semibold">
+                {{ reviewCategoryLabel(entry.category) }}
+              </span>
+            </div>
+            <p v-if="entry.reasons.length" class="mt-1">{{ entry.reasons.join(" · ") }}</p>
+            <p class="mt-1 text-xs">
+              Esta entrada no tiene fila editable en el borrador. Corrige el archivo de origen y
+              vuelve a cargarlo para incorporarla.
+            </p>
+          </li>
+        </ul>
+      </section>
+
       <EventImportTable
-        :rows="rows"
+        v-if="
+          (activeImportMode === 'manual' || activeImportStage === 'review') &&
+          (activeImportMode === 'manual' || visibleJsonReviewRows.length > 0)
+        "
+        :rows="activeImportMode === 'json' ? visibleJsonReviewRows : rows"
         :lineup-states="lineupStates"
         :geography-states="geographyStates"
         :tour-states="tourStates"
