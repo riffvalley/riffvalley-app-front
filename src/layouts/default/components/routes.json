@@ -252,12 +252,12 @@
     ]
   },
   {
-    "to": "/password",
-    "label": "Perfil",
+    "to": "/ajustes",
+    "label": "Ajustes",
     "activeClass": "bg-gray-700",
     "type": "bottom",
     "requiredRole": "user",
-    "icon": "fa-solid fa-user"
+    "icon": "fa-solid fa-screwdriver-wrench"
   },
   {
     "to": "/how-to-use",

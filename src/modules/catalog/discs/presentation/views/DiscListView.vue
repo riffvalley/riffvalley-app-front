@@ -545,7 +545,7 @@ const modifiedAppliedFilter = computed(() =>
   Boolean(appliedSavedFilter.value && !savedFilterMatchesCurrent(appliedSavedFilter.value) && !currentCriteriaEmpty.value)
 );
 watch(appliedSavedFilterId, (filterId) => writeDiscListAppliedSavedFilterId(useAuthStore().userId, filterId));
-// Si el filtro recordado ya no existe (borrado en otra pestaña o en Perfil), se olvida.
+// Si el filtro recordado ya no existe (borrado en otra pestaña o en Ajustes), se olvida.
 watch(
   () => [savedFilterState.isSuccess.value, savedFilters.value] as const,
   ([loaded, filters]) => {

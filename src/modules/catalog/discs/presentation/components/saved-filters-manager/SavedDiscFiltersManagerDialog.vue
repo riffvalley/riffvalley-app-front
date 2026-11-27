@@ -18,7 +18,7 @@ const filtersError = savedFilters.isError;
 
 const open = defineModel<boolean>("open", { required: true });
 const props = withDefaults(defineProps<{
-  /** Texto del botón que aplica un filtro («Ver en Discos» en Perfil, «Aplicar» en Discos). */
+  /** Texto del botón que aplica un filtro («Ver en Discos» en Ajustes, «Aplicar» en Discos). */
   applyLabel?: string;
   /** Id del filtro aplicado ahora en Discos: su botón dice «Activo» con un check verde. */
   appliedId?: string;

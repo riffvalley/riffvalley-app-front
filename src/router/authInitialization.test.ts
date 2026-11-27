@@ -63,22 +63,33 @@ describe("router authentication bootstrap", () => {
     expect(router.currentRoute.value.name).toBe("NationalReleasePublic");
   });
 
-  it("preserves the authenticated Password route and redirects anonymous visitors", async () => {
+  it("preserves the authenticated Settings route and redirects anonymous visitors", async () => {
     const authStore = useAuthStore();
     authStore.token = "test-token";
     authStore.role = "user";
     authStore.authStatus = "authenticated";
 
-    await router.push("/password");
-    expect(router.currentRoute.value.name).toBe("Password");
+    await router.push("/ajustes");
+    expect(router.currentRoute.value.name).toBe("Settings");
     expect(router.currentRoute.value.meta.requiresAuth).toBe(true);
 
     authStore.token = null;
     authStore.role = null;
     authStore.authStatus = "anonymous";
     await router.push("/login");
-    await router.push("/password");
+    await router.push("/ajustes");
     expect(router.currentRoute.value.name).toBe("Login");
+  });
+
+  it("redirects the old /password address to Settings", async () => {
+    const authStore = useAuthStore();
+    authStore.token = "test-token";
+    authStore.role = "user";
+    authStore.authStatus = "authenticated";
+
+    await router.push("/password");
+    expect(router.currentRoute.value.path).toBe("/ajustes");
+    expect(router.currentRoute.value.name).toBe("Settings");
   });
 
   it("keeps both password recovery routes public, including during auth bootstrap errors", async () => {

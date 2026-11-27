@@ -259,7 +259,7 @@ export default defineComponent({
     // Para el gráfico: usa el spoiler del tab activo
     const spoilerChart = computed(() => isRateSelected.value ? spoilerDisc.value : spoilerCover.value);
 
-    // El toggle del modal solo controla la sesión local (revealed), nunca toca el ajuste de Perfil
+    // El toggle del modal solo controla la sesión local (revealed), nunca toca la preferencia guardada en Ajustes
     const toggleNoSpoilers = () => {
       revealed.value = !revealed.value;
     };

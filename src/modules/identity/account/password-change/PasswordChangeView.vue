@@ -1,7 +1,7 @@
 <template>
   <div v-if="ready" class="mx-auto max-w-6xl px-4 py-8 min-h-screen dark:bg-rv-darkBg">
     <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white mb-2 text-center">
-      <i class="fa-solid fa-circle-user mr-3"></i>Perfil
+      <i class="fa-solid fa-screwdriver-wrench mr-3" aria-hidden="true"></i>Ajustes
     </h1>
     <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
       Personaliza tu avatar y ajusta tus preferencias.

@@ -133,10 +133,15 @@ const routes: Array<RouteRecordRaw> = [
     meta: { requiresAuth: true, requiresRole: "riffvalley" },
   },
   {
-    path: "/password",
-    name: "Password",
+    path: "/ajustes",
+    name: "Settings",
     component: () => import("@/modules/identity/account/password-change/PasswordChangeView.vue"),
     meta: { requiresAuth: true },
+  },
+  {
+    // Dirección antigua de la sección (antes «Perfil»): se mantiene para que los enlaces guardados sigan funcionando.
+    path: "/password",
+    redirect: "/ajustes",
   },
   {
     path: "/users",
