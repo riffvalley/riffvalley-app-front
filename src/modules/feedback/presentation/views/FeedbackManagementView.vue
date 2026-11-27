@@ -296,7 +296,13 @@ import {
   useCurrentFeedbackVersionItemsQuery,
   useFeedbackMutations,
 } from "../../application/useFeedback";
-import type { FeedbackEntry, FeedbackPriority, FeedbackStatus, FeedbackType } from "../../types/feedback";
+import type {
+  FeedbackEntry,
+  FeedbackListResponse,
+  FeedbackPriority,
+  FeedbackStatus,
+  FeedbackType,
+} from "../../types/feedback";
 import { useSupportStore } from "@stores/support/support";
 import SwalService from "@services/swal/SwalService";
 
@@ -308,7 +314,7 @@ const activeType = ref<FeedbackType | "all">("all");
 const activeStatus = ref<FeedbackStatus | "all">("in_progress");
 const query = useAdminFeedbackQuery(activeType, activeStatus);
 const mutations = useFeedbackMutations();
-const suggestions = computed(() => query.data.value ?? []);
+const suggestions = computed(() => query.data.value?.data ?? []);
 const isInitialLoading = computed(() => query.isPending.value && !query.data.value);
 const isError = computed(() => query.isError.value);
 const retry = () => query.refetch();
@@ -344,7 +350,9 @@ const statusTabs: { value: FeedbackStatus | "all"; label: string }[] = [
 ];
 
 function countByStatus(status: FeedbackStatus | "all") {
-  return status === "all" ? suggestions.value.length : suggestions.value.filter((entry) => entry.status === status).length;
+  const counts = query.data.value?.counts;
+  if (!counts) return 0;
+  return status === "all" ? counts.in_progress + counts.done + counts.rejected : counts[status];
 }
 
 function setFilter(key: "type" | "status", value: FeedbackType | FeedbackStatus | "all") {
@@ -414,13 +422,25 @@ async function cyclePriority(entry: FeedbackEntry) {
   const next = order[(order.indexOf(entry.priority) + 1) % order.length];
   const previous = entry.priority;
   const key = query.queryKey.value;
-  queryClient.setQueryData<FeedbackEntry[]>(key, (current) => current?.map((item) =>
-    item.id === entry.id ? { ...item, priority: next } : item));
+  queryClient.setQueryData<FeedbackListResponse>(key, (current) =>
+    current && {
+      ...current,
+      data: current.data.map((item) =>
+        item.id === entry.id ? { ...item, priority: next } : item
+      ),
+    }
+  );
   try {
     await mutations.update.mutateAsync({ id: entry.id, dto: { priority: next } });
   } catch {
-    queryClient.setQueryData<FeedbackEntry[]>(key, (current) => current?.map((item) =>
-      item.id === entry.id ? { ...item, priority: previous } : item));
+    queryClient.setQueryData<FeedbackListResponse>(key, (current) =>
+      current && {
+        ...current,
+        data: current.data.map((item) =>
+          item.id === entry.id ? { ...item, priority: previous } : item
+        ),
+      }
+    );
     SwalService.error("Error al cambiar la prioridad");
   }
 }
