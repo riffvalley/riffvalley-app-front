@@ -1,6 +1,8 @@
 <template>
   <div v-if="ready" class="mx-auto max-w-6xl px-4 py-8 min-h-screen dark:bg-rv-darkBg">
-    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white mb-2 text-center">
+    <h1
+      class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white mb-2 text-center"
+    >
       <i class="fa-solid fa-screwdriver-wrench mr-3" aria-hidden="true"></i>Ajustes
     </h1>
     <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
@@ -515,7 +517,10 @@
             >
               <div class="flex items-center gap-2">
                 <i class="fa-solid fa-sliders text-rv-pink"></i>
-                <h2 id="dashboard-dialog-title" class="text-lg font-extrabold tracking-tight text-gray-900 dark:text-white">
+                <h2
+                  id="dashboard-dialog-title"
+                  class="text-lg font-extrabold tracking-tight text-gray-900 dark:text-white"
+                >
                   Personalizar dashboard
                 </h2>
               </div>
