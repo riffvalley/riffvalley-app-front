@@ -60,22 +60,15 @@
       </button>
     </Transition>
 
-    <div v-if="rankingLoading" role="status" data-testid="ranking-loading" class="mt-4">
-      <span class="sr-only">Cargando ranking…</span>
-      <div class="grid grid-cols-1 justify-items-center gap-6 lg:grid-cols-3" aria-hidden="true">
-        <div
-          v-for="n in 3"
-          :key="`podium-${n}`"
-          class="h-64 w-full max-w-[23rem] animate-pulse rounded-[1.25rem] bg-gradient-to-b from-rv-pink/15 to-rv-purple/5 dark:from-rv-pink/10 dark:to-white/5"
-        ></div>
-      </div>
-      <div class="mt-10 grid grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 lg:grid-cols-4" aria-hidden="true">
-        <div
-          v-for="n in 4"
-          :key="`card-${n}`"
-          class="h-52 w-full max-w-[20rem] animate-pulse rounded-xl bg-gray-200 dark:bg-white/5"
-        ></div>
-      </div>
+    <!-- Misma carga que el listado de Discos: disco girando y texto. -->
+    <div
+      v-if="rankingLoading"
+      role="status"
+      data-testid="ranking-loading"
+      class="mt-10 flex flex-col items-center justify-center gap-3"
+    >
+      <i class="fa-solid fa-compact-disc animate-spin text-3xl text-rv-pink" aria-hidden="true"></i>
+      <span class="text-sm font-medium text-rv-navy dark:text-white">Cargando discos...</span>
     </div>
     <div
       v-else-if="rankingError"

@@ -242,7 +242,7 @@ describe("TopDiscs Rankings view", () => {
       },
     });
     await flushPromises();
-    expect(wrapper.text()).toContain("Cargando ranking");
+    expect(wrapper.text()).toContain("Cargando discos...");
     expect(wrapper.findAll('[data-testid="disc-card"]')).toHaveLength(0);
     resolveRanking?.({ data: { discs: [] } });
     await flushPromises();

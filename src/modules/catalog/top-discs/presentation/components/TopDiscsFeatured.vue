@@ -59,7 +59,7 @@ const tiers = ["gold", "silver", "bronze"] as const;
 
 <style scoped>
 .featured-section {
-  /* Deja sitio a la medalla, que sobresale por encima del marco del podio. */
+  /* Deja sitio a la medalla, que sobresale por encima del borde de la tarjeta. */
   margin-top: 2rem;
   border-bottom: 1px solid rgb(107 114 128 / 25%);
   padding-bottom: 2.5rem;
@@ -83,13 +83,20 @@ const tiers = ["gold", "silver", "bronze"] as const;
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 23rem;
+  max-width: 20rem;
   min-width: 0;
-  padding: 1.9rem 0.5rem 0.75rem;
-  border: 2px solid rgb(var(--tier) / 45%);
-  border-radius: 1.25rem;
-  background: linear-gradient(180deg, rgb(var(--tier) / 18%), rgb(var(--tier) / 4%) 70%);
-  box-shadow: 0 10px 30px -12px rgb(var(--tier) / 55%);
+}
+
+/* Sin marco alrededor: la propia tarjeta lleva el borde del color de la medalla,
+   un degradado suave por dentro y un brillo detrás. La medalla queda montada sobre su borde. */
+.featured-item > :deep(.card) {
+  /* Algo más fino que el borde de 2px de la tarjeta: con el color del podio se veía tosco. */
+  border-width: 1.5px;
+  border-color: rgb(var(--tier) / 85%);
+  background-image: linear-gradient(180deg, rgb(var(--tier) / 14%), rgb(var(--tier) / 0%) 55%);
+  box-shadow:
+    0 0 0 1px rgb(var(--tier) / 20%),
+    0 10px 28px -10px rgb(var(--tier) / 50%);
 }
 
 .podium-gold {
@@ -108,24 +115,26 @@ const tiers = ["gold", "silver", "bronze"] as const;
   position: absolute;
   top: 0;
   left: 50%;
-  transform: translate(-50%, -50%);
+  /* Apoyada sobre el borde, sin tapar la bandera de la cabecera de la tarjeta. */
+  transform: translate(-50%, -85%);
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.95rem;
+  gap: 0.35rem;
+  padding: 0.28rem 0.8rem;
   border: 2px solid #fff;
   border-radius: 9999px;
   color: #fff;
-  font-size: 0.9rem;
+  font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-shadow: 0 1px 2px rgb(0 0 0 / 25%);
   box-shadow: 0 4px 12px rgb(var(--tier) / 50%);
   white-space: nowrap;
+  z-index: 1;
 }
 
 .medal-icon {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
 }
 
 .medal-gold {
@@ -140,37 +149,35 @@ const tiers = ["gold", "silver", "bronze"] as const;
   background: linear-gradient(135deg, #e0a06a, #9a4f1c);
 }
 
-.dark .featured-item {
-  background: linear-gradient(180deg, rgb(var(--tier) / 22%), rgb(var(--tier) / 5%) 70%);
+.dark .featured-item > :deep(.card) {
+  border-color: rgb(var(--tier) / 90%);
+  background-image: linear-gradient(180deg, rgb(var(--tier) / 20%), rgb(var(--tier) / 0%) 55%);
+  box-shadow:
+    0 0 0 1px rgb(var(--tier) / 25%),
+    0 10px 32px -8px rgb(var(--tier) / 42%);
 }
 
 .dark .medal-chip {
   border-color: #1b1d3a;
 }
 
-/* Escritorio: podio clásico 2º · 1º · 3º, con el 1º más alto. */
-@media (min-width: 640px) {
-  .featured-item {
-    padding: 2rem 1rem 1rem;
-  }
-}
-
-@media (min-width: 1024px) {
+/* Desde 1280px: a 1024px, con el menú lateral, las tarjetas del podio quedaban demasiado estrechas. */
+@media (min-width: 1280px) {
   .featured-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: end;
+    /* Las tres tarjetas en fila, alineadas por arriba a la misma altura. */
+    align-items: start;
     gap: 2rem;
   }
 
+  /* Orden 2º · 1º · 3º: el 1º en el centro, destacado solo por su medalla más grande. */
   .podium-pos-1 {
     order: 2;
-    padding-top: 2.75rem;
-    padding-bottom: 2.25rem;
   }
 
   .podium-pos-1 .medal-chip {
-    font-size: 1.05rem;
-    padding: 0.45rem 1.2rem;
+    font-size: 0.9rem;
+    padding: 0.36rem 1rem;
   }
 
   .podium-pos-2 {
