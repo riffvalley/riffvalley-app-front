@@ -4,15 +4,18 @@ import { useArtistDirectory } from "../../application/useArtistDirectory";
 import { ARTIST_DIRECTORY_LETTERS } from "../../types/artistDirectory";
 import { artistGenrePillBackground } from "../artistGenreColor";
 import ArtistDetailsModal from "./ArtistDetailsModal.vue";
-import SearchableSelect from "@components/SearchableSelect.vue";
+import { DiscListCountrySelect, DiscListGenreSelect } from "@/modules/catalog/discs";
 
 const {
   activeLetter,
   searchText,
   selectedGenreId,
+  selectedCountryId,
   genres,
   isLoadingGenres,
   isGenreError,
+  countries,
+  isCountryError,
   isDebouncing,
   isSearchingGlobally,
   artists,
@@ -24,6 +27,7 @@ const {
   isFetchNextPageError,
   selectLetter,
   selectGenre,
+  selectCountry,
   loadMore,
   retry,
 } = useArtistDirectory();
@@ -31,6 +35,12 @@ const selectedArtistId = ref<string | null>(null);
 const loadMoreSentinel = useTemplateRef<HTMLDivElement>("loadMoreSentinel");
 let observer: IntersectionObserver | null = null;
 let stopSentinelWatch: (() => void) | null = null;
+
+/** El selector trabaja en minúsculas: se devuelve el id tal como viene del servidor. */
+function onGenreChange(ids: string[]): void {
+  const id = ids[0] ?? "";
+  selectGenre(genres.value.find((genre) => genre.id.toLowerCase() === id)?.id ?? id);
+}
 
 function requestNextPage(): void {
   if (!hasNextPage.value || isFetchingNextPage.value || isFetchNextPageError.value) return;
@@ -112,12 +122,14 @@ onBeforeUnmount(() => {
       </p>
     </header>
 
-    <div class="mb-5 flex flex-col gap-3 sm:flex-row">
-      <div class="relative min-w-0 flex-1">
+    <!-- Pantallas pequeñas: buscador arriba y país + género debajo. Grandes: todo en una fila. -->
+    <div class="mb-5 flex flex-col gap-3 lg:flex-row">
+      <div class="relative min-w-0 lg:flex-1">
         <i
-          class="fa-solid fa-magnifying-glass pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+          class="fa-solid fa-magnifying-glass pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-300"
           aria-hidden="true"
         ></i>
+        <!-- Mismo aspecto que el buscador de Discos. -->
         <input
           id="artist-directory-search"
           aria-label="Buscar artistas"
@@ -125,37 +137,46 @@ onBeforeUnmount(() => {
           type="search"
           autocomplete="off"
           placeholder="Buscar por nombre..."
-          class="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm text-rv-navy shadow-sm outline-none transition focus-visible:ring-2 focus-visible:ring-rv-pink dark:border-white/10 dark:bg-rv-darkCard dark:text-white"
+          class="h-[50px] w-full rounded-2xl border border-gray-300 bg-white pl-11 pr-4 text-base text-rv-navy shadow-sm placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy dark:border-white/20 dark:bg-rv-darkCard dark:text-white dark:placeholder:text-gray-300 dark:focus-visible:ring-gray-200"
         />
       </div>
-      <div class="artist-directory-genre w-full min-w-0 sm:w-56" data-test="artist-directory-genre">
-        <SearchableSelect
-          :model-value="selectedGenreId"
-          :options="genres"
-          :loading="isLoadingGenres"
-          placeholder="Buscar géneros..."
-          trigger-placeholder="Todos los géneros"
-          all-label="Todos los géneros"
-          title="name"
-          trackby="id"
-          :max="0"
-          @update:model-value="selectGenre(String($event))"
-        />
+      <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:w-[32rem]">
+        <!-- Mismos selectores que Discos. Género en modo de uno: la API filtra por uno. -->
+        <div class="min-w-0" data-test="artist-directory-country">
+          <DiscListCountrySelect
+            :model-value="selectedCountryId"
+            :options="countries"
+            @update:model-value="selectCountry"
+          />
+        </div>
+        <div class="min-w-0" data-test="artist-directory-genre">
+          <DiscListGenreSelect
+            :model-value="selectedGenreId ? [selectedGenreId] : []"
+            :options="genres"
+            :loading="isLoadingGenres"
+            :multiple="false"
+            @update:model-value="onGenreChange"
+          />
+        </div>
       </div>
     </div>
+    <p v-if="isCountryError" class="-mt-3 mb-4 text-xs text-gray-500 dark:text-gray-400" role="status">
+      No se pudo cargar la lista de países.
+    </p>
     <p v-if="isGenreError" class="-mt-3 mb-4 text-xs text-gray-500 dark:text-gray-400" role="status">
       No se pudo cargar el catálogo de géneros.
     </p>
 
     <nav aria-label="Filtrar artistas por letra" class="mb-6">
-      <div class="flex flex-wrap gap-1.5" role="group">
+      <!-- Escritorio (xl): las 27 letras se reparten el ancho en una fila. Móvil: varias filas. -->
+      <div class="flex flex-wrap gap-1.5 xl:flex-nowrap xl:gap-1" role="group">
         <button
           v-for="letter in ARTIST_DIRECTORY_LETTERS"
           :key="letter"
           type="button"
           :aria-pressed="activeLetter === letter"
           @click="selectLetter(letter)"
-          class="directory-letter rounded-lg border px-2.5 py-2 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink focus-visible:ring-offset-2 dark:focus-visible:ring-offset-rv-darkSurface"
+          class="directory-letter rounded-lg border px-2.5 py-2 xl:min-w-0 xl:flex-1 xl:px-0 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink focus-visible:ring-offset-2 dark:focus-visible:ring-offset-rv-darkSurface"
           :class="
             activeLetter === letter
               ? 'border-rv-navy bg-rv-navy text-white dark:border-gray-200 dark:bg-gray-200 dark:text-rv-navy'
@@ -264,10 +285,3 @@ onBeforeUnmount(() => {
     />
   </section>
 </template>
-
-<style scoped>
-.artist-directory-genre :deep(.search_input_trigger) {
-  height: 3rem;
-  line-height: 1.25rem;
-}
-</style>

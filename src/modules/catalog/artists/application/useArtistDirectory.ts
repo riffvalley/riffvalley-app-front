@@ -2,6 +2,7 @@ import { computed, onScopeDispose, ref, toValue, watch, type MaybeRefOrGetter } 
 import { useInfiniteQuery, useQuery } from "@tanstack/vue-query";
 import { getArtistDirectory } from "../api/artistDirectory";
 import { getGenres, type Genre } from "@services/genres/genres";
+import { getAllCountries } from "@services/countries/countries";
 import {
   ARTIST_DIRECTORY_PAGE_SIZE,
   getDistinctArtistDirectoryItems,
@@ -12,6 +13,7 @@ import type { ArtistDirectoryLetter } from "../types/artistDirectory";
 const SEARCH_DEBOUNCE_MS = 400;
 export const artistDirectoryQueryKey = ["catalog", "artist-directory"] as const;
 const artistDirectoryGenresQueryKey = ["catalog", "artist-directory-genres"] as const;
+const artistDirectoryCountriesQueryKey = ["catalog", "artist-directory-countries"] as const;
 
 async function getArtistDirectoryGenres(): Promise<Genre[]> {
   const pageSize = 200;
@@ -28,6 +30,7 @@ export function useArtistDirectory(initialLetter: MaybeRefOrGetter<ArtistDirecto
   const activeLetter = ref<ArtistDirectoryLetter>(toValue(initialLetter));
   const searchText = ref("");
   const selectedGenreId = ref("");
+  const selectedCountryId = ref("");
   const debouncedSearchText = ref("");
   let searchTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -49,8 +52,20 @@ export function useArtistDirectory(initialLetter: MaybeRefOrGetter<ArtistDirecto
     queryFn: getArtistDirectoryGenres,
     staleTime: 5 * 60_000,
   });
+  const countriesQuery = useQuery({
+    queryKey: artistDirectoryCountriesQueryKey,
+    queryFn: getAllCountries,
+    staleTime: 5 * 60_000,
+  });
   const queryKey = computed(
-    () => [...artistDirectoryQueryKey, activeLetter.value, debouncedSearchText.value, selectedGenreId.value] as const
+    () =>
+      [
+        ...artistDirectoryQueryKey,
+        activeLetter.value,
+        debouncedSearchText.value,
+        selectedGenreId.value,
+        selectedCountryId.value,
+      ] as const
   );
   const query = useInfiniteQuery({
     queryKey,
@@ -61,6 +76,7 @@ export function useArtistDirectory(initialLetter: MaybeRefOrGetter<ArtistDirecto
           letter: requestedKey[2],
           ...(requestedKey[3] ? { q: requestedKey[3] } : {}),
           ...(requestedKey[4] ? { genreId: requestedKey[4] } : {}),
+          ...(requestedKey[5] ? { countryId: requestedKey[5] } : {}),
           limit: ARTIST_DIRECTORY_PAGE_SIZE,
           offset: pageParam,
         },
@@ -72,6 +88,10 @@ export function useArtistDirectory(initialLetter: MaybeRefOrGetter<ArtistDirecto
 
   function selectLetter(letter: ArtistDirectoryLetter) {
     activeLetter.value = letter;
+  }
+
+  function selectCountry(countryId: string) {
+    selectedCountryId.value = countryId;
   }
 
   function selectGenre(genreId: string) {
@@ -87,9 +107,12 @@ export function useArtistDirectory(initialLetter: MaybeRefOrGetter<ArtistDirecto
     activeLetter,
     searchText,
     selectedGenreId,
+    selectedCountryId,
     genres: computed(() => genresQuery.data.value ?? []),
     isLoadingGenres: computed(() => genresQuery.isPending.value),
     isGenreError: genresQuery.isError,
+    countries: computed(() => countriesQuery.data.value ?? []),
+    isCountryError: countriesQuery.isError,
     isDebouncing,
     isSearchingGlobally,
     artists: computed(() => getDistinctArtistDirectoryItems(query.data.value?.pages)),
@@ -101,6 +124,7 @@ export function useArtistDirectory(initialLetter: MaybeRefOrGetter<ArtistDirecto
     isFetchNextPageError: query.isFetchNextPageError,
     selectLetter,
     selectGenre,
+    selectCountry,
     loadMore: query.fetchNextPage,
     retry: query.refetch,
   };

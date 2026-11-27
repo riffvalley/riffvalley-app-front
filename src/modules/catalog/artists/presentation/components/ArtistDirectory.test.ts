@@ -4,9 +4,14 @@ import { flushPromises, mount, type VueWrapper } from "@vue/test-utils";
 import { createPinia } from "pinia";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { get, getGenres } = vi.hoisted(() => ({ get: vi.fn(), getGenres: vi.fn() }));
+const { get, getGenres, getAllCountries } = vi.hoisted(() => ({
+  get: vi.fn(),
+  getGenres: vi.fn(),
+  getAllCountries: vi.fn(),
+}));
 vi.mock("@services/api/api", () => ({ default: { get } }));
 vi.mock("@services/genres/genres", () => ({ getGenres }));
+vi.mock("@services/countries/countries", () => ({ getAllCountries }));
 
 class IntersectionObserverMock {
   static instances: IntersectionObserverMock[] = [];
@@ -23,6 +28,7 @@ class IntersectionObserverMock {
 }
 
 import ArtistDirectory from "./ArtistDirectory.vue";
+import { DiscListCountrySelect } from "@/modules/catalog/discs";
 
 type ArtistRow = { id: string; name: string; genre: string | null; genreColor: string | null };
 const artist = (
@@ -60,15 +66,15 @@ async function settle() {
 }
 
 async function selectGenre(wrapper: VueWrapper, searchTerm = "Metal") {
-  await wrapper.get('[data-test="artist-directory-genre"] .search_input_trigger').trigger("click");
-  const searchInput = document.body.querySelector<HTMLInputElement>(
-    '.search__input[placeholder="Buscar géneros..."]'
+  await wrapper.get('[data-test="artist-directory-genre"] button[aria-haspopup="listbox"]').trigger("click");
+  const searchInput = wrapper.element.querySelector<HTMLInputElement>(
+    'input[placeholder="Buscar géneros..."]'
   );
   expect(searchInput).not.toBeNull();
   searchInput!.value = searchTerm;
   searchInput!.dispatchEvent(new Event("input", { bubbles: true }));
   await settle();
-  const option = [...document.body.querySelectorAll<HTMLElement>('[role="option"]')].find(
+  const option = [...wrapper.element.querySelectorAll<HTMLElement>('[role="option"]')].find(
     (item) => item.textContent?.trim() === searchTerm
   );
   expect(option).toBeDefined();
@@ -82,6 +88,7 @@ describe("ArtistDirectory", () => {
     IntersectionObserverMock.instances = [];
     vi.stubGlobal("IntersectionObserver", IntersectionObserverMock);
     get.mockReset().mockResolvedValue(response([]));
+    getAllCountries.mockReset().mockResolvedValue([{ id: "country-es", name: "España", isoCode: "ES" }]);
     getGenres.mockReset().mockResolvedValue({
       data: [{ id: "genre-metal", name: "Metal", color: "#123456" }],
       totalItems: 1,
@@ -131,9 +138,9 @@ describe("ArtistDirectory", () => {
 
     expect(getGenres).toHaveBeenNthCalledWith(1, 200, 0);
     expect(getGenres).toHaveBeenNthCalledWith(2, 200, 200);
-    await wrapper.get('[data-test="artist-directory-genre"] .search_input_trigger').trigger("click");
+    await wrapper.get('[data-test="artist-directory-genre"] button[aria-haspopup="listbox"]').trigger("click");
     expect(
-      [...document.body.querySelectorAll<HTMLElement>('[role="option"]')].map((option) =>
+      [...wrapper.element.querySelectorAll<HTMLElement>('[role="option"]')].map((option) =>
         option.textContent?.trim()
       )
     ).toEqual(["Todos los géneros", "Metal", "Rock"]);
@@ -322,6 +329,32 @@ describe("ArtistDirectory", () => {
     vi.useRealTimers();
   });
 
+  it("offers the countries and combines the chosen country with the genre", async () => {
+    const { wrapper, queryClient } = mountDirectory();
+    await settle();
+    const country = wrapper.findComponent(DiscListCountrySelect);
+    expect(country.props("options")).toEqual([{ id: "country-es", name: "España", isoCode: "ES" }]);
+
+    country.vm.$emit("update:modelValue", "country-es");
+    await settle();
+    await selectGenre(wrapper);
+
+    expect(get).toHaveBeenLastCalledWith("/artists/directory", {
+      params: { letter: "A", genreId: "genre-metal", countryId: "country-es", limit: 100, offset: 0 },
+      signal: expect.anything(),
+    });
+    expect(country.props("modelValue")).toBe("country-es");
+
+    country.vm.$emit("update:modelValue", "");
+    await settle();
+    expect(get).toHaveBeenLastCalledWith("/artists/directory", {
+      params: { letter: "A", genreId: "genre-metal", limit: 100, offset: 0 },
+      signal: expect.anything(),
+    });
+    wrapper.unmount();
+    queryClient.clear();
+  });
+
   it("keeps the modal and directory state mounted while selecting a genre", async () => {
     get.mockResolvedValue(response([artist("modal-artist", "A Artist")]));
     const { wrapper, queryClient } = mountDirectory();
@@ -336,7 +369,7 @@ describe("ArtistDirectory", () => {
     expect(document.body.querySelector("[data-test=artist-details-dialog]")).not.toBeNull();
     await document.body.querySelector<HTMLButtonElement>("[aria-label='Cerrar ficha del artista']")!.click();
     await settle();
-    expect(wrapper.get('[data-test="artist-directory-genre"] .search_input_trigger').text()).toContain("Metal");
+    expect(wrapper.get('[data-test="artist-directory-genre"] button[aria-haspopup="listbox"]').text()).toContain("Metal");
     wrapper.unmount();
     queryClient.clear();
   });

@@ -21,6 +21,8 @@ export interface ArtistDirectoryParams {
   letter: ArtistDirectoryLetter;
   q?: string;
   genreId?: string;
+  /** Pendiente en backend: /artists/directory aún rechaza countryId. */
+  countryId?: string;
   limit: number;
   offset: number;
 }
