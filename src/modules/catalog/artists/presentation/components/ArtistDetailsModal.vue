@@ -5,20 +5,30 @@ import DiscDetail from "@components/DiscDetail.vue";
 import { discCardDialogKey } from "@/composables/discCardDialog";
 import { usePageScrollLock } from "@/composables/usePageScrollLock";
 import { useAuthStore } from "@/modules/identity/auth";
+import { getAllCountries, type Country } from "@services/countries/countries";
 import { useArtistDetailInsights } from "../../application/useArtistDetailInsights";
+import { updateArtist } from "../../api/artistMutations";
 import type { RatesTopArtistDto } from "@services/rates/rates";
 import { useArtistDetails } from "../../application/useArtistDetails";
 import { artistGenrePillBackground } from "../artistGenreColor";
+import ArtistMetadataEditorModal from "./ArtistMetadataEditorModal.vue";
 
 const props = defineProps<{ artistId: string; favoriteArtist?: RatesTopArtistDto | null }>();
 const emit = defineEmits<{ close: []; "open-related-artist": [artistId: string] }>();
 const dialog = useTemplateRef<HTMLElement>("dialog");
 const closeButton = useTemplateRef<HTMLButtonElement>("closeButton");
+const metadataEditorButton = useTemplateRef<HTMLButtonElement>("metadataEditorButton");
 const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 // Bloquea el scroll de la página de detrás mientras el modal está abierto.
 usePageScrollLock();
 const isMounted = shallowRef(false);
 const authStore = useAuthStore();
+const canEditArtistMetadata = computed(() => authStore.authStatus === "authenticated" && authStore.hasRole("superadmin"));
+const metadataEditorOpen = shallowRef(false);
+const countries = shallowRef<Country[]>([]);
+const countriesLoading = shallowRef(false);
+const metadataSaving = shallowRef(false);
+const metadataError = shallowRef<string | null>(null);
 // La parte personal se pide para cualquier artista. Desde el Dashboard (artista favorito) se
 // muestra siempre; en el resto, solo cuando tienes algún disco valorado de esa banda.
 const personalEnabled = computed(() => isMounted.value);
@@ -118,6 +128,7 @@ function formatRate(value: number | null): string {
   return value === null ? "—" : new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 }).format(value);
 }
 function onKeydown(event: KeyboardEvent): void {
+  if (metadataEditorOpen.value) return;
   // Con la ficha del disco abierta, ella gestiona Escape y el foco.
   if (discCardDialog?.isOpen.value) return;
   if (event.key === "Escape") {
@@ -157,6 +168,48 @@ function navigateRelated(id: string | null): void {
   expandedSimilar.value = null;
   emit("open-related-artist", id);
 }
+function closeMetadataEditor(): void {
+  metadataEditorOpen.value = false;
+  void nextTick(() => (metadataEditorButton.value ?? closeButton.value)?.focus());
+}
+async function openMetadataEditor(): Promise<void> {
+  if (!canEditArtistMetadata.value || !artist.value) return;
+  metadataError.value = null;
+  metadataEditorOpen.value = true;
+  countriesLoading.value = true;
+  try {
+    countries.value = await getAllCountries();
+  } catch {
+    metadataError.value = "No se pudieron cargar los países. Cierra y vuelve a abrir el editor para intentarlo de nuevo.";
+  } finally {
+    countriesLoading.value = false;
+  }
+}
+
+async function saveArtistMetadata(payload: { image: string; countryId: string }): Promise<void> {
+  if (!canEditArtistMetadata.value || !artist.value || metadataSaving.value) return;
+  metadataError.value = null;
+  metadataSaving.value = true;
+  try {
+    const update: { image?: string; countryId?: string } = {};
+    const image = payload.image.trim();
+    if (image && image !== artist.value.image) update.image = image;
+    if (payload.countryId && payload.countryId !== artist.value.country?.id) update.countryId = payload.countryId;
+    if (Object.keys(update).length) await updateArtist(props.artistId, update);
+    metadataEditorOpen.value = false;
+    if (Object.keys(update).length) retryCatalog();
+    await nextTick();
+    metadataEditorButton.value?.focus();
+  } catch {
+    metadataError.value = "No se pudieron guardar los cambios. Revisa la imagen y el país e inténtalo de nuevo.";
+  } finally {
+    metadataSaving.value = false;
+  }
+}
+
+watch(canEditArtistMetadata, (canEdit) => {
+  if (!canEdit && metadataEditorOpen.value) closeMetadataEditor();
+});
 
 watch(() => props.artistId, () => { selectedDisc.value = null; expandedSimilar.value = null; });
 onMounted(async () => {
@@ -184,7 +237,17 @@ onBeforeUnmount(() => {
             <div v-else class="absolute inset-0 -z-10 grid place-items-center text-white/15" aria-hidden="true"><i class="fa-solid fa-music text-8xl"></i></div>
             <div class="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/40 to-black/10" aria-hidden="true"></div>
             <div class="w-full min-w-0 px-4 pb-4 pr-14 pt-16 sm:px-6 sm:pb-5">
-              <h3 class="break-words text-xl font-extrabold tracking-tight text-white drop-shadow sm:text-2xl">{{ artist.name }}</h3>
+              <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                <h3 class="min-w-0 break-words text-xl font-extrabold tracking-tight text-white drop-shadow sm:text-2xl">{{ artist.name }}</h3>
+                <button
+                  v-if="canEditArtistMetadata"
+                  ref="metadataEditorButton"
+                  type="button"
+                  class="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg border border-white/40 bg-rv-navy/90 px-3 py-2 text-sm font-semibold text-white shadow-md transition-colors hover:bg-rv-pink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
+                  data-test="artist-edit-metadata"
+                  @click="openMetadataEditor"
+                ><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>Editar artista</button>
+              </div>
               <p v-if="artist.country" class="mt-1 text-sm font-medium text-white/85 drop-shadow"><i class="fa-solid fa-location-dot mr-1.5 text-rv-pink" aria-hidden="true"></i>{{ artist.country.name }}</p>
               <ul v-if="artistGenres.length" aria-label="Géneros del artista" class="mt-2 flex list-none flex-wrap gap-1.5 p-0">
                 <li v-for="genre in artistGenres" :key="genre.id" class="rounded-full px-2.5 py-1 text-xs font-semibold text-white shadow-sm" :style="{ backgroundColor: artistGenrePillBackground(genre.color, genre.name) }" data-test="artist-genre-pill">{{ genre.name }}</li>
@@ -286,6 +349,18 @@ onBeforeUnmount(() => {
           </div>
           </div>
         </main>
+        <ArtistMetadataEditorModal
+          v-if="metadataEditorOpen && artist && canEditArtistMetadata"
+          :artist-name="artist.name"
+          :image="artist.image"
+          :country-id="artist.country?.id ?? ''"
+          :countries="countries"
+          :countries-loading="countriesLoading"
+          :saving="metadataSaving"
+          :error="metadataError"
+          @close="closeMetadataEditor"
+          @save="saveArtistMetadata"
+        />
       </section>
       <DiscDetail v-if="selectedDisc" :disc="selectedDisc" @close="selectedDisc = null" />
     </div>
