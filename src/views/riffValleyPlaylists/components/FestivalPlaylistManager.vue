@@ -471,7 +471,7 @@
                     ></span>
                   </a>
                 </div>
-                <div v-if="canManage" class="mt-3 flex justify-end gap-2">
+                <div v-if="canManage" class="mt-3 flex flex-wrap justify-end gap-2">
                   <button
                     v-if="entry.status === 'failed'"
                     class="rounded-md bg-[#1DB954]/15 px-3 py-1.5 text-xs font-semibold text-[#15803d] disabled:opacity-50 dark:text-[#4ade80]"
@@ -479,6 +479,13 @@
                     @click="openManualTrackSelection(entry)"
                   >
                     Elegir canciones
+                  </button>
+                  <button
+                    class="rounded-md bg-rv-purple/10 px-3 py-1.5 text-xs font-semibold text-rv-purple transition-colors hover:bg-rv-purple/20 disabled:cursor-wait disabled:opacity-50 dark:text-rv-pink"
+                    :disabled="syncingArtistId !== null || entry.status === 'syncing'"
+                    @click="prepareManualTrackSelection(entry)"
+                  >
+                    {{ syncingArtistId === entry.artistId ? "Limpiando canciones…" : "Elegir canciones a mano" }}
                   </button>
                   <button
                     v-if="entry.status === 'failed'"
@@ -516,7 +523,16 @@
         >
           <div>
             <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-              Canciones de {{ manualTrackArtist.artist.name }}
+              Canciones de
+              <a
+                v-if="manualTrackSource === 'manual'"
+                :href="manualTrackSetlistUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-rv-purple underline decoration-current underline-offset-2 hover:text-rv-pink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:text-rv-pink"
+                data-test="manual-setlist-search-link"
+              >{{ manualTrackArtist.artist.name }}</a>
+              <span v-else>{{ manualTrackArtist.artist.name }}</span>
             </h3>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-300">
               Selecciona entre 1 y 10 canciones para añadirlas a la playlist.
@@ -773,12 +789,13 @@ import SwalService from "@services/swal/SwalService";
 import {
   addArtistToFestivalPlaylist,
   clearFestivalPlaylist,
+  clearFestivalArtistTracks,
   createPendingFestivalArtist,
   deleteFestivalPlaylist,
   getArtistTopSongs,
   getFestivalPlaylist,
   removeArtistFromFestivalPlaylist,
-  replaceFailedFestivalArtistTracks,
+  replaceFestivalArtistTracks,
   searchFestivalArtists,
   searchFailedFestivalArtistTracks,
   updateFestivalPlaylist,
@@ -823,6 +840,7 @@ const searchFailed = ref(false);
 const creatingArtist = ref(false);
 const syncingArtistId = ref<string | null>(null);
 const manualTrackArtist = ref<PlaylistArtist | null>(null);
+const manualTrackSource = ref<"failed" | "manual" | null>(null);
 const manualTrackQuery = ref("");
 const manualTrackCandidates = ref<PlaylistTrack[]>([]);
 const selectedManualTrackIds = ref<string[]>([]);
@@ -869,6 +887,12 @@ const canCreateSearchedArtist = computed(
     !searchFailed.value &&
     !hasExactArtistMatch.value,
 );
+const manualTrackSetlistUrl = computed(() => {
+  const artistName = manualTrackArtist.value?.artist.name.trim();
+  return artistName
+    ? `https://www.setlist.fm/search?query=${encodeURIComponent(artistName)}`
+    : undefined;
+});
 function errorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError<{ message?: string }>(error))
     return error.response?.data?.message || fallback;
@@ -1071,21 +1095,57 @@ async function addArtist(artistId: string) {
   }
 }
 
-function openManualTrackSelection(entry: PlaylistArtist) {
-  if (entry.status !== "failed" || syncingArtistId.value) return;
+function showManualTrackSelection(
+  entry: PlaylistArtist,
+  source: "failed" | "manual",
+  selectExistingTracks: boolean,
+) {
+  manualTrackSource.value = source;
   manualTrackArtist.value = entry;
   manualTrackQuery.value = "";
-  manualTrackCandidates.value = [...entry.tracks];
-  selectedManualTrackIds.value = entry.tracks
-    .slice(0, 10)
-    .map((track) => track.spotifyTrackId);
+  manualTrackCandidates.value = selectExistingTracks ? [...entry.tracks] : [];
+  selectedManualTrackIds.value = selectExistingTracks
+    ? entry.tracks.slice(0, 10).map((track) => track.spotifyTrackId)
+    : [];
   void loadManualTracks("");
+}
+
+function openManualTrackSelection(entry: PlaylistArtist) {
+  if (entry.status !== "failed" || syncingArtistId.value) return;
+  showManualTrackSelection(entry, "failed", true);
+}
+
+async function prepareManualTrackSelection(entry: PlaylistArtist) {
+  if (!detail.value || !props.canManage || syncingArtistId.value) return;
+  const playlistId = detail.value.id;
+  syncingArtistId.value = entry.artistId;
+  try {
+    const updated = await clearFestivalArtistTracks(playlistId, entry.artistId);
+    applyDetail(updated);
+    const clearedEntry = updated.playlistArtists.find(
+      (artist) => artist.artistId === entry.artistId,
+    );
+    if (!clearedEntry) {
+      SwalService.error(
+        "Se vaciaron sus canciones, pero no pudimos abrir la selección manual. Vuelve a cargar la playlist.",
+      );
+      return;
+    }
+    showManualTrackSelection(clearedEntry, "manual", false);
+  } catch (error) {
+    SwalService.error(
+      errorMessage(error, "No se pudieron limpiar las canciones del artista"),
+    );
+  } finally {
+    syncingArtistId.value = null;
+  }
 }
 
 function closeManualTrackSelection() {
   if (savingManualTracks.value) return;
   if (manualTrackSearchTimer) clearTimeout(manualTrackSearchTimer);
   manualTrackArtist.value = null;
+  manualTrackSource.value = null;
   manualTrackQuery.value = "";
   manualTrackCandidates.value = [];
   selectedManualTrackIds.value = [];
@@ -1159,7 +1219,7 @@ async function saveManualTracks() {
   savingManualTracks.value = true;
   try {
     applyDetail(
-      await replaceFailedFestivalArtistTracks(
+      await replaceFestivalArtistTracks(
         detail.value.id,
         manualTrackArtist.value.artistId,
         selectedManualTrackIds.value,

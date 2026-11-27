@@ -282,7 +282,7 @@ export async function searchFailedFestivalArtistTracks(
   return data;
 }
 
-export async function replaceFailedFestivalArtistTracks(
+export async function replaceFestivalArtistTracks(
   playlistId: string,
   artistId: string,
   spotifyTrackIds: string[],
@@ -292,6 +292,15 @@ export async function replaceFailedFestivalArtistTracks(
     { spotifyTrackIds },
   );
   return data;
+}
+
+export const replaceFailedFestivalArtistTracks = replaceFestivalArtistTracks;
+
+export async function clearFestivalArtistTracks(
+  playlistId: string,
+  artistId: string,
+): Promise<SyncedFestivalPlaylist> {
+  return replaceFestivalArtistTracks(playlistId, artistId, []);
 }
 
 export async function removeArtistFromFestivalPlaylist(
