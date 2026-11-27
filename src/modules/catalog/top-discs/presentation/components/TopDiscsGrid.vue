@@ -50,7 +50,6 @@ const emit = defineEmits<{ "card-updated": [event: TopDiscsCardUpdateEvent] }>()
 <style scoped>
 .remaining-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
   list-style: none;
   margin: 0;
@@ -94,15 +93,14 @@ const emit = defineEmits<{ "card-updated": [event: TopDiscsCardUpdateEvent] }>()
   color: #9ca3af;
 }
 
-@media (min-width: 640px) {
-  .remaining-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1024px) {
-  .remaining-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+/* Columnas según el ancho REAL de la rejilla, no el de la pantalla: el menú lateral aparece a 768px
+   y resta espacio, así que una media query dejaba tarjetas de ~180px con iconos fuera.
+   Cada tarjeta mide al menos 14.5rem (por debajo, la portada fija de 136px no deja sitio a los iconos);
+   como máximo 4 columnas, y una sola si ni siquiera caben dos. */
+.remaining-grid {
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, max(14.5rem, calc((100% - 4.5rem) / 4))), 1fr)
+  );
 }
 </style>

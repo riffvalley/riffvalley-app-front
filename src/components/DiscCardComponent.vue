@@ -104,23 +104,26 @@
           </p>
         </div>
 
-        <!-- Botón de Escuchar -->
-        <div class="flex items-center space-x-2 mt-2 mb-2">
+        <!-- Botón de Escuchar + iconos. flex-wrap: si la tarjeta se estrecha (tablet), los iconos
+             bajan a otra fila en vez de salirse de la tarjeta. Se usa gap porque space-x descuadra al saltar. -->
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 mb-2">
           <div class="flex items-center gap-1">
             <font-awesome-icon v-if="embedUrl" :icon="['fas', 'circle-chevron-down']"
               class="text-[14px] cursor-pointer transition-all duration-300 text-gray-400 dark:text-gray-400 hover:text-green-500 dark:hover:text-green-500 flex-shrink-0 translate-y-[8px]"
               :class="{ 'rotate-180': showPlayer }"
               :title="showPlayer ? 'Ocultar reproductor' : 'Mostrar reproductor'"
               @click="showPlayer = !showPlayer" />
+            <!-- p-0 y border-0 anulan el padding global de <button> (style.css), que deformaba el círculo y descentraba el icono.
+                 32×32 px coincide con la altura que «.card button» impone a los botones de la tarjeta. -->
             <button v-if="link" @click="openPlatformLink(link)"
-              class="w-5 h-5 rounded-full cursor-pointer text-white shadow-sm transition-all flex-shrink-0 flex items-center justify-center focus:outline-none hover:opacity-80"
+              class="w-8 h-8 p-0 border-0 rounded-full cursor-pointer text-white shadow-sm transition-all flex-shrink-0 flex items-center justify-center focus:outline-none hover:opacity-80"
               :class="platformInfo.bg" :title="platformInfo.label">
-              <i :class="platformInfo.icon" class="text-[20px] leading-none translate-y-[1px]"></i>
+              <i :class="platformInfo.icon" class="text-[20px] leading-none"></i>
             </button>
           </div>
 
           <!-- Íconos: corazón y bookmark -->
-          <div class="flex space-x-2 items-center">
+          <div class="flex flex-wrap gap-2 items-center">
             <div class="relative group">
               <!-- Corazón: spinner mientras carga, pop al activar -->
               <i v-if="isTogglingHeart" class="fa-solid fa-spinner animate-spin text-red-400"
@@ -174,7 +177,7 @@
         <div class="flex flex-col space-y-1">
           <label class="text-xs text-gray-500 dark:text-gray-300 translate-x-1.5">
             Disco:
-            <input type="number" step="0.01" v-model="localRating.rate" min="1" max="10" class="px-0 py-1 border rounded w-16 text-xs font-bold text-center
+            <input type="number" step="0.01" v-model="localRating.rate" min="1" max="10" class="px-0 py-1 border rounded w-full max-w-16 text-xs font-bold text-center
         bg-white dark:bg-rv-darkSurface
         text-gray-500 dark:text-white
         border-gray-300 dark:border-gray-200/40" />
@@ -182,7 +185,7 @@
 
           <label class="text-xs text-gray-500 dark:text-gray-300">
             Portada:
-            <input type="number" step="0.01" v-model="localRating.cover" min="1" max="10" class="px-0 py-1 border rounded w-16 text-xs font-bold text-center
+            <input type="number" step="0.01" v-model="localRating.cover" min="1" max="10" class="px-0 py-1 border rounded w-full max-w-16 text-xs font-bold text-center
         bg-white dark:bg-rv-darkSurface
         text-gray-500 dark:text-white
         border-gray-300 dark:border-gray-200/40" />
