@@ -37,7 +37,14 @@ vi.mock("@services/swal/SwalService", () => ({
 async function mountPasswordChange() {
   const wrapper = mount(PasswordChange, {
     attachTo: document.body,
-    global: { stubs: { DashboardBuilder: true, SavedDiscFiltersProfileCard: true, Teleport: true, Transition: false } },
+    global: {
+      stubs: {
+        DashboardBuilder: true,
+        SavedDiscFiltersProfileCard: true,
+        Teleport: true,
+        Transition: false,
+      },
+    },
   });
   await wrapper.vm.$nextTick();
   return wrapper;

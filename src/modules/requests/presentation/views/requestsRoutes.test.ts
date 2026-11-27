@@ -11,7 +11,10 @@ describe("Requests and Feedback routes", () => {
     await router.push("/login");
   });
 
-  async function navigate(role: "user" | "collaborator" | "riffvalley" | "superadmin" | null, path: string) {
+  async function navigate(
+    role: "user" | "collaborator" | "riffvalley" | "superadmin" | null,
+    path: string
+  ) {
     const auth = useAuthStore();
     auth.$patch({
       authStatus: role ? "authenticated" : "anonymous",
@@ -32,16 +35,19 @@ describe("Requests and Feedback routes", () => {
   it.each([
     ["/disc-requests", "DiscRequests", "SuggestPage", "user"],
     ["/admin/disc-requests", "AdminDiscRequests", "PetitionsPage", "riffvalley"],
-    ["/feedback", "Feedback", "SuggestionsPage", undefined],
-  ] as const)("registers %s with its canonical view and original permissions", async (path, name, viewName, role) => {
-    const record = route(path);
-    expect(record.name).toBe(name);
-    expect(record.meta.requiresAuth).toBe(true);
-    expect(record.meta.requiresRole).toBe(role);
+    ["/feedback", "Feedback", "FeedbackView", undefined],
+  ] as const)(
+    "registers %s with its canonical view and original permissions",
+    async (path, name, viewName, role) => {
+      const record = route(path);
+      expect(record.name).toBe(name);
+      expect(record.meta.requiresAuth).toBe(true);
+      expect(record.meta.requiresRole).toBe(role);
 
-    const loader = record.components?.default as () => Promise<{ default: { name?: string } }>;
-    expect((await loader()).default.name).toBe(viewName);
-  });
+      const loader = record.components?.default as () => Promise<{ default: { name?: string } }>;
+      expect((await loader()).default.name).toBe(viewName);
+    }
+  );
 
   it("requires authentication and retains the user minimum role for disc requests", async () => {
     expect((await navigate(null, "/disc-requests")).name).toBe("Login");
@@ -71,20 +77,23 @@ describe("Requests and Feedback routes", () => {
     ["/suggest", "/disc-requests", "DiscRequests"],
     ["/petitions", "/admin/disc-requests", "AdminDiscRequests"],
     ["/suggestions", "/feedback", "Feedback"],
-  ])("redirects %s to %s once and preserves query and hash", async (legacyPath, canonicalPath, canonicalName) => {
-    const legacy = route(legacyPath);
-    expect(typeof legacy.redirect).toBe("function");
-    expect(legacy.components).toBeUndefined();
-    expect(legacy.redirect).toEqual(expect.any(Function));
+  ])(
+    "redirects %s to %s once and preserves query and hash",
+    async (legacyPath, canonicalPath, canonicalName) => {
+      const legacy = route(legacyPath);
+      expect(typeof legacy.redirect).toBe("function");
+      expect(legacy.components).toBeUndefined();
+      expect(legacy.redirect).toEqual(expect.any(Function));
 
-    const current = await navigate(
-      legacyPath === "/petitions" ? "riffvalley" : "user",
-      `${legacyPath}?source=bookmark&tab=mine#request-form`,
-    );
-    expect(current.path).toBe(canonicalPath);
-    expect(current.name).toBe(canonicalName);
-    expect(current.query).toEqual({ source: "bookmark", tab: "mine" });
-    expect(current.hash).toBe("#request-form");
-    expect(current.redirectedFrom?.path).toBe(legacyPath);
-  });
+      const current = await navigate(
+        legacyPath === "/petitions" ? "riffvalley" : "user",
+        `${legacyPath}?source=bookmark&tab=mine#request-form`
+      );
+      expect(current.path).toBe(canonicalPath);
+      expect(current.name).toBe(canonicalName);
+      expect(current.query).toEqual({ source: "bookmark", tab: "mine" });
+      expect(current.hash).toBe("#request-form");
+      expect(current.redirectedFrom?.path).toBe(legacyPath);
+    }
+  );
 });

@@ -37,7 +37,10 @@
             alt="Riff Valley Logo"
             class="w-12 h-12 mx-auto mb-3 drop-shadow"
           />
-          <h2 id="access-request-title" class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-sm">
+          <h2
+            id="access-request-title"
+            class="text-xl sm:text-2xl font-extrabold tracking-tight text-white drop-shadow-sm"
+          >
             Solicitar acceso
           </h2>
           <p class="mt-1 text-sm text-white/80 leading-relaxed">

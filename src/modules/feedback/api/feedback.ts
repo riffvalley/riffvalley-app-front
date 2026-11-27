@@ -23,8 +23,11 @@ export async function getFeedback(
   return data;
 }
 
-export async function getMyFeedback(signal?: AbortSignal): Promise<MyFeedbackResponse> {
-  const { data } = await api.get<MyFeedbackResponse>("/suggestions/my", { signal });
+export async function getMyFeedback(
+  params: FeedbackListParams = {},
+  signal?: AbortSignal
+): Promise<MyFeedbackResponse> {
+  const { data } = await api.get<MyFeedbackResponse>("/suggestions/my", { params, signal });
   return data;
 }
 
@@ -43,7 +46,10 @@ export async function rejectFeedback(id: string, dto: RejectFeedbackDto): Promis
   return data;
 }
 
-export async function completeFeedback(id: string, dto: CompleteFeedbackDto): Promise<FeedbackEntry> {
+export async function completeFeedback(
+  id: string,
+  dto: CompleteFeedbackDto
+): Promise<FeedbackEntry> {
   const { data } = await api.patch<FeedbackEntry>(`/suggestions/${id}/done`, dto);
   return data;
 }

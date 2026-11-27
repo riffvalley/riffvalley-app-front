@@ -40,7 +40,9 @@ function handleTabKeydown(event: KeyboardEvent, currentIndex: number) {
   >
     <div class="mx-auto max-w-7xl">
       <header class="mb-5 border-b border-gray-200 pb-4 dark:border-white/10">
-        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white">Estadísticas de uso</h1>
+        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white">
+          Estadísticas de uso
+        </h1>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
           Actividad general, actividad de usuarios e inactividad de voto nuevo.
         </p>

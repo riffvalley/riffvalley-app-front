@@ -17,6 +17,7 @@ import {
 import type {
   FeedbackListParams,
   FeedbackListResponse,
+  FeedbackCategoryFilter,
   FeedbackStatus,
   FeedbackType,
 } from "../types/feedback";
@@ -30,23 +31,34 @@ export function feedbackQueryKeyForSession(
   scope: "mine" | "admin",
   userId: string | null,
   generation: number,
+  params: FeedbackListParams = {}
 ) {
-  return [...feedbackQueryKey, scope, userId, generation] as const;
+  return [
+    ...feedbackQueryKey,
+    scope,
+    userId,
+    generation,
+    params.type ?? "all",
+    params.status ?? "all",
+    params.category ?? "all",
+  ] as const;
 }
 
 export function adminFeedbackQueryKeyForSession(
   params: FeedbackListParams,
   userId: string | null,
-  generation: number,
+  generation: number
 ) {
-  return [...feedbackQueryKeyForSession("admin", userId, generation), params.type ?? "all", params.status ?? "all"] as const;
+  return feedbackQueryKeyForSession("admin", userId, generation, params);
 }
 
 function canReadFeedback(auth: ReturnType<typeof useAuthStore>, scope: "mine" | "admin") {
-  return auth.authStatus === "authenticated"
-    && auth.isAuthenticated
-    && !!auth.userId
-    && (scope === "mine" || hasMinimumRole(auth.role, "superadmin"));
+  return (
+    auth.authStatus === "authenticated" &&
+    auth.isAuthenticated &&
+    !!auth.userId &&
+    (scope === "mine" || hasMinimumRole(auth.role, "superadmin"))
+  );
 }
 
 function assertFeedbackSession(
@@ -54,31 +66,52 @@ function assertFeedbackSession(
   userId: string | null,
   generation: number,
   signal: AbortSignal,
-  scope: "mine" | "admin",
+  scope: "mine" | "admin"
 ): asserts userId is string {
   if (
-    signal.aborted
-    || !userId
-    || !canReadFeedback(auth, scope)
-    || auth.userId !== userId
-    || auth.authSessionGeneration !== generation
+    signal.aborted ||
+    !userId ||
+    !canReadFeedback(auth, scope) ||
+    auth.userId !== userId ||
+    auth.authSessionGeneration !== generation
   ) {
     throw new Error("La sesión cambió antes de completar la consulta de Feedback.");
   }
 }
 
-export function useMyFeedbackQuery() {
+export function useMyFeedbackQuery(
+  type: MaybeRefOrGetter<FeedbackType | "all"> = "all",
+  status: MaybeRefOrGetter<FeedbackStatus | "all"> = "all",
+  category: MaybeRefOrGetter<FeedbackCategoryFilter | "all"> = "all"
+) {
   const auth = useAuthStore();
-  const queryKey = computed(() => feedbackQueryKeyForSession("mine", auth.userId, auth.authSessionGeneration));
+  const params = computed<FeedbackListParams>(() => ({
+    ...(toValue(type) !== "all" ? { type: toValue(type) } : {}),
+    ...(toValue(status) !== "all" ? { status: toValue(status) } : {}),
+    ...(toValue(category) !== "all" ? { category: toValue(category) } : {}),
+  }));
+  const queryKey = computed(() =>
+    feedbackQueryKeyForSession("mine", auth.userId, auth.authSessionGeneration, params.value)
+  );
   return useQuery({
     queryKey,
     enabled: computed(() => canReadFeedback(auth, "mine")),
     staleTime: 30_000,
     retry: false,
     queryFn: async ({ queryKey: requestedKey, signal }) => {
-      const [, , userId, generation] = requestedKey;
+      const [, , userId, generation, requestedType, requestedStatus, requestedCategory] =
+        requestedKey;
       assertFeedbackSession(auth, userId, generation, signal, "mine");
-      const result = await getMyFeedback(signal);
+      const result = await getMyFeedback(
+        {
+          ...(requestedType !== "all" ? { type: requestedType as FeedbackType } : {}),
+          ...(requestedStatus !== "all" ? { status: requestedStatus as FeedbackStatus } : {}),
+          ...(requestedCategory !== "all"
+            ? { category: requestedCategory as FeedbackCategoryFilter }
+            : {}),
+        },
+        signal
+      );
       assertFeedbackSession(auth, userId, generation, signal, "mine");
       return result;
     },
@@ -88,13 +121,17 @@ export function useMyFeedbackQuery() {
 export function useAdminFeedbackQuery(
   type: MaybeRefOrGetter<FeedbackType | "all">,
   status: MaybeRefOrGetter<FeedbackStatus | "all">,
+  category: MaybeRefOrGetter<FeedbackCategoryFilter | "all"> = "all"
 ) {
   const auth = useAuthStore();
   const params = computed<FeedbackListParams>(() => ({
     ...(toValue(type) !== "all" ? { type: toValue(type) } : {}),
     ...(toValue(status) !== "all" ? { status: toValue(status) } : {}),
+    ...(toValue(category) !== "all" ? { category: toValue(category) } : {}),
   }));
-  const queryKey = computed(() => adminFeedbackQueryKeyForSession(params.value, auth.userId, auth.authSessionGeneration));
+  const queryKey = computed(() =>
+    adminFeedbackQueryKeyForSession(params.value, auth.userId, auth.authSessionGeneration)
+  );
 
   return useQuery({
     queryKey,
@@ -105,11 +142,18 @@ export function useAdminFeedbackQuery(
       const [, , userId, generation] = requestedKey;
       const requestedType = requestedKey[4];
       const requestedStatus = requestedKey[5];
+      const requestedCategory = requestedKey[6];
       assertFeedbackSession(auth, userId, generation, signal, "admin");
-      const result = await getFeedback({
-        ...(requestedType !== "all" ? { type: requestedType as FeedbackType } : {}),
-        ...(requestedStatus !== "all" ? { status: requestedStatus as FeedbackStatus } : {}),
-      }, signal);
+      const result = await getFeedback(
+        {
+          ...(requestedType !== "all" ? { type: requestedType as FeedbackType } : {}),
+          ...(requestedStatus !== "all" ? { status: requestedStatus as FeedbackStatus } : {}),
+          ...(requestedCategory !== "all"
+            ? { category: requestedCategory as FeedbackCategoryFilter }
+            : {}),
+        },
+        signal
+      );
       assertFeedbackSession(auth, userId, generation, signal, "admin");
       return result;
     },
@@ -119,7 +163,9 @@ export function useAdminFeedbackQuery(
 export function useCurrentFeedbackVersionItemsQuery(enabled: MaybeRefOrGetter<boolean>) {
   const auth = useAuthStore();
   const isEnabled = computed(() => toValue(enabled) && canReadFeedback(auth, "admin"));
-  const queryKey = computed(() => [...currentVersionItemsQueryKey, auth.userId, auth.authSessionGeneration] as const);
+  const queryKey = computed(
+    () => [...currentVersionItemsQueryKey, auth.userId, auth.authSessionGeneration] as const
+  );
   return useQuery({
     queryKey,
     enabled: isEnabled,
@@ -139,18 +185,27 @@ export function useFeedbackMutations() {
   const queryClient = useQueryClient();
   const invalidateFeedback = () => queryClient.invalidateQueries({ queryKey: feedbackQueryKey });
   const invalidateFeedbackAndSidebar = async () => {
-    await Promise.all([
-      invalidateFeedback(),
-      invalidateSidebarSummary(queryClient),
-    ]);
+    await Promise.all([invalidateFeedback(), invalidateSidebarSummary(queryClient)]);
   };
 
   return {
     create: useMutation({ mutationFn: createFeedback, onSuccess: invalidateFeedbackAndSidebar }),
-    update: useMutation({ mutationFn: ({ id, dto }: { id: string; dto: Parameters<typeof updateFeedback>[1] }) => updateFeedback(id, dto), onSuccess: invalidateFeedback }),
+    update: useMutation({
+      mutationFn: ({ id, dto }: { id: string; dto: Parameters<typeof updateFeedback>[1] }) =>
+        updateFeedback(id, dto),
+      onSuccess: invalidateFeedback,
+    }),
     reopen: useMutation({ mutationFn: reopenFeedback, onSuccess: invalidateFeedbackAndSidebar }),
-    reject: useMutation({ mutationFn: ({ id, rejectionReason }: { id: string; rejectionReason: string }) => rejectFeedback(id, { rejectionReason }), onSuccess: invalidateFeedbackAndSidebar }),
-    complete: useMutation({ mutationFn: ({ id, versionItemId }: { id: string; versionItemId?: string }) => completeFeedback(id, { versionItemId }), onSuccess: invalidateFeedbackAndSidebar }),
+    reject: useMutation({
+      mutationFn: ({ id, rejectionReason }: { id: string; rejectionReason: string }) =>
+        rejectFeedback(id, { rejectionReason }),
+      onSuccess: invalidateFeedbackAndSidebar,
+    }),
+    complete: useMutation({
+      mutationFn: ({ id, versionItemId }: { id: string; versionItemId?: string }) =>
+        completeFeedback(id, { versionItemId }),
+      onSuccess: invalidateFeedbackAndSidebar,
+    }),
     remove: useMutation({ mutationFn: deleteFeedback, onSuccess: invalidateFeedbackAndSidebar }),
   };
 }
