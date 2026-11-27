@@ -4,13 +4,15 @@ Esta página reúne los comandos y prácticas de desarrollo comprobados en el ch
 
 ## Entorno e instalación
 
-- Node.js **24.22.1** es la versión fijada en [.nvmrc](../../.nvmrc); `package.json` declara `>=24 <25`.
-- pnpm **11.28.8** es la versión exacta de `packageManager` en [`package.json`](../../package.json), seleccionada por Corepack. El checkout tiene `pnpm-workspace.yaml` con `pmOnFail: error`.
+- `package.json` admite Node.js **24 o posterior** (`>=24`, sin límite superior). [.nvmrc](../../.nvmrc) y CI siguen fijando **24.22.1** como versión de referencia; versiones posteriores pueden usarse, aunque no quedan validadas por CI hasta ampliar su matriz.
+- `package.json` requiere pnpm **11.28.8 o posterior**, sin límite superior (`engines.pnpm`). CI conserva pnpm **11.28.8** como versión de referencia; pnpm posteriores pueden usarse localmente, pero no quedan validados por CI hasta ampliar su matriz.
+- El builder de Docker y CI fijan Node **24.22.1** y pnpm **11.28.8** para despliegues reproducibles. Se sustituyó el builder anterior Node 18/`npm install`, que incumplía el mínimo declarado y no consumía `pnpm-lock.yaml`; las instalaciones de despliegue usan `pnpm install --frozen-lockfile`.
+- El rango abierto de Node es la política declarada por el proyecto, no una garantía de compatibilidad de cada dependencia con cada major. El lockfile actual incluye `dependency-cruiser@18.7.0` (`^22 || ^24 || >=26`) y su dependencia `watskeburt@6.0.0` (`^22.13 || ^24 || >=26`), que no declaran soporte para Node 25. Node 26.13.0 se verificó localmente; Node 25 no. Mantener la referencia CI en Node 24.22.1 permite detectar incompatibilidades antes de cambiar esa matriz.
+- En Node 26, Node expone Web Storage experimental; los tests que usan `happy-dom` fallan sin configurar ese global. En este checkout, `NODE_OPTIONS=--no-experimental-webstorage pnpm test` evita la colisión y la suite completa pasa. El build y typecheck no requieren ese ajuste. CI aún valida Node 24.22.1.
 - Instala dependencias desde el lockfile sin reescribirlo:
 
   ```sh
   nvm use 24.22.1
-  corepack enable
   pnpm install --frozen-lockfile
   ```
 
