@@ -4,6 +4,7 @@ import { useArtistDirectory } from "../../application/useArtistDirectory";
 import { ARTIST_DIRECTORY_LETTERS } from "../../types/artistDirectory";
 import { artistGenrePillBackground } from "../artistGenreColor";
 import ArtistDetailsModal from "./ArtistDetailsModal.vue";
+import ArtistGenreLegendInfo from "./ArtistGenreLegendInfo.vue";
 import { DiscListCountrySelect, DiscListGenreSelect } from "@/modules/catalog/discs";
 
 const {
@@ -106,10 +107,14 @@ onBeforeUnmount(() => {
     aria-labelledby="artist-directory-title"
     class="artist-directory"
   >
-    <header class="mb-6">
-      <h1 id="artist-directory-title" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white m-0">
-        <i class="fa-solid fa-microphone mr-2" aria-hidden="true"></i>Artistas
-      </h1>
+    <header class="relative mb-6">
+      <div class="flex items-center justify-center gap-2">
+        <h1 id="artist-directory-title" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white m-0">
+          <i class="fa-solid fa-microphone mr-2" aria-hidden="true"></i>Artistas
+        </h1>
+        <!-- Leyenda de los colores de género (bloques de géneros afines). -->
+        <ArtistGenreLegendInfo :genres="genres" />
+      </div>
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Explora el catálogo por nombre.</p>
       <p class="mt-2 text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
         {{ totalItems }} artistas
