@@ -111,9 +111,9 @@ describe("Statistics view EST-FE-2/3/4", () => {
     await vi.waitFor(() => expect(view.text()).toContain("26"));
     expect(getStatisticsSummary).toHaveBeenCalledWith({ year: 2026, timeZone: "UTC" }, expect.any(AbortSignal));
 
-    await view.get(".ss-trigger").trigger("click");
-    await view.get("[role=listbox]").trigger("keydown", { key: "ArrowDown" });
-    await view.get('[role="option"][data-option-index="1"]').trigger("keydown", { key: "Enter" });
+    const yearSelect = view.get('select[aria-label="Año de las estadísticas"]');
+    expect(yearSelect.findAll("option").map((option) => option.text())).toEqual(["2026", "2025"]);
+    await yearSelect.setValue("2025");
     await vi.waitFor(() => expect(getStatisticsSummary).toHaveBeenCalledWith(
       { year: 2025, timeZone: "UTC" }, expect.any(AbortSignal),
     ));
@@ -122,13 +122,22 @@ describe("Statistics view EST-FE-2/3/4", () => {
 
     resolve2025(makeSummary({ year: 2025, timeZone: "UTC", activityCount: 25, scoredDiscs: 25 }));
     await vi.waitFor(() => expect(view.get('[aria-label="Resumen anual"]').text()).toContain("25"));
-    expect(view.get(".ss-trigger").attributes("aria-label")).toBe("Año de las estadísticas");
-    expect(view.find('[role="option"][data-option-index="2"]').exists()).toBe(false);
+    expect((yearSelect.element as HTMLSelectElement).value).toBe("2025");
 
-    await view.get(".ss-trigger").trigger("click");
-    await view.get('[role="option"][data-option-index="0"]').trigger("keydown", { key: "Enter" });
+    await yearSelect.setValue("2026");
     await vi.waitFor(() => expect(view.get('[aria-label="Resumen anual"]').text()).toContain("26"));
-    expect(view.get(".ss-trigger").text()).toContain("2026");
+    expect((yearSelect.element as HTMLSelectElement).value).toBe("2026");
+  });
+
+  it("always opens on the current year even if another year was chosen before", async () => {
+    getStatisticsSummary.mockImplementation(async ({ year, timeZone }) => makeSummary({ year, timeZone }));
+    useStatisticsFilters().setYear(2025);
+
+    const view = mountView();
+    await flushPromises();
+
+    expect((view.get('select[aria-label="Año de las estadísticas"]').element as HTMLSelectElement).value).toBe("2026");
+    expect(getStatisticsSummary).toHaveBeenCalledWith({ year: 2026, timeZone: "UTC" }, expect.any(AbortSignal));
   });
 
   it("distinguishes no activity from activity without any currently scored discs", async () => {
@@ -331,9 +340,7 @@ describe("Statistics view EST-FE-2/3/4", () => {
     const view = mountView();
     await vi.waitFor(() => expect(view.text()).toContain("Featured 2026"));
 
-    await view.get(".ss-trigger").trigger("click");
-    await view.get("[role=listbox]").trigger("keydown", { key: "ArrowDown" });
-    await view.get('[role="option"][data-option-index="1"]').trigger("keydown", { key: "Enter" });
+    await view.get('select[aria-label="Año de las estadísticas"]').setValue("2025");
     await vi.waitFor(() => expect(view.text()).toContain("Featured 2025"));
     expect(view.text()).toContain("Controversial 2025");
     expect(view.text()).not.toContain("Featured 2026");

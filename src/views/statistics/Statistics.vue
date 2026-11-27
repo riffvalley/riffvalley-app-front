@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref } from "vue";
-import SimpleSelect from "@components/SimpleSelect.vue";
 import { useStatisticsSummaryQuery } from "@/modules/statistics/application/useStatisticsQueries";
 import { useStatisticsFilters } from "@/modules/statistics/application/statisticsFilters";
 import ActivityCalendar from "./components/ActivityCalendar.vue";
@@ -14,6 +13,8 @@ import StatisticsSummaryCards from "./components/StatisticsSummaryCards.vue";
 defineOptions({ name: "StatisticsView" });
 
 const filters = useStatisticsFilters();
+// Al entrar en la sección se muestra siempre el año actual, aunque antes se eligiera otro.
+filters.setYear(filters.currentYear.value);
 const summaryQuery = useStatisticsSummaryQuery();
 const isGalaxyOpen = ref(false);
 const GenreGalaxyModal = defineAsyncComponent(() => import("./components/GenreGalaxyModal.vue"));
@@ -34,8 +35,8 @@ const summary = computed(() => {
 
 const isInitialLoading = computed(() => summaryQuery.isPending.value || (summaryQuery.isFetching.value && !summary.value));
 
-function updateYear(value: string | number | null): void {
-  if (typeof value === "number") filters.setYear(value);
+function updateYear(value: number): void {
+  if (Number.isInteger(value)) filters.setYear(value);
 }
 
 function retry(): void {
@@ -52,16 +53,23 @@ function retry(): void {
       <p class="text-sm text-gray-500 dark:text-gray-400">Tus estadísticas anuales de actividad y puntuaciones.</p>
     </header>
 
+    <!-- Mismo selector de año que Calendario y Discos. -->
     <div class="flex justify-center mb-6">
-      <div class="w-full max-w-[320px] sm:max-w-[380px]">
-        <SimpleSelect
-          :model-value="filters.year.value"
-          :options="yearOptions"
-          placeholder="Selecciona un año"
+      <div class="relative w-full max-w-[12rem]">
+        <select
+          :value="filters.year.value"
           aria-label="Año de las estadísticas"
-          class="w-full"
-          @update:model-value="updateYear"
-        />
+          class="h-[50px] w-full cursor-pointer appearance-none rounded-2xl border border-gray-300 bg-white pl-4 pr-10 text-base text-rv-navy shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy dark:border-white/20 dark:bg-rv-darkCard dark:text-white dark:focus-visible:ring-gray-200"
+          @change="updateYear(Number(($event.target as HTMLSelectElement).value))"
+        >
+          <option v-for="option in yearOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+        <i
+          class="fa-solid fa-chevron-down pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-gray-300"
+          aria-hidden="true"
+        ></i>
       </div>
     </div>
 
