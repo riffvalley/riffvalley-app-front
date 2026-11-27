@@ -47,18 +47,17 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <main class="min-h-screen bg-gray-50 px-4 py-8 text-gray-900 dark:bg-rv-darkBg dark:text-white sm:px-6 lg:px-8">
-    <div class="mx-auto max-w-5xl">
+  <div class="mx-auto mt-10 max-w-5xl px-4 text-gray-900 dark:text-white sm:px-6 lg:px-8">
+    <div>
       <header class="mb-8 text-center">
-        <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white inline-flex items-center justify-center gap-3">
-          <i class="fa-solid fa-clock-rotate-left text-rv-purple dark:text-rv-pink" aria-hidden="true"></i>
-          Actividad
+        <h1 class="mb-2 text-center text-2xl font-extrabold tracking-tight text-rv-navy dark:text-white sm:text-3xl">
+          <i class="fa-solid fa-clock-rotate-left mr-3" aria-hidden="true"></i>Actividad
         </h1>
-        <p class="mx-auto mt-3 max-w-2xl text-base text-gray-600 dark:text-gray-300">
+        <p class="text-center text-sm text-gray-500 dark:text-gray-400">
           Consulta el historial de tus valoraciones y los cambios que has hecho en ellas.
         </p>
         <ActivityDateFilter
-          class="mt-5"
+          class="mt-6"
           :model-value="dateFilter"
           :time-zone="timeZone"
           @update:model-value="updateDateFilter"
@@ -75,5 +74,5 @@ onBeforeUnmount(() => {
         @clear-filter="updateDateFilter({ mode: 'all' })"
       />
     </div>
-  </main>
+  </div>
 </template>

@@ -76,19 +76,19 @@ onBeforeUnmount(() => {
       <p>No se pudo cargar el historial de actividad. Comprueba la conexión e inténtalo de nuevo.</p>
       <button
         type="button"
-        class="mt-3 rounded-lg border border-gray-300 px-3 py-2 font-semibold text-gray-800 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-blueDark dark:border-white/20 dark:text-white dark:hover:bg-white/10 dark:focus-visible:outline-rv-pink"
+        class="mt-3 rounded-full bg-gray-200 px-4 py-2 text-sm font-semibold text-rv-navy shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-rv-navy hover:text-white hover:shadow-lg active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-gray-200 dark:hover:text-rv-navy dark:focus-visible:outline-rv-pink"
         @click="history.retry()"
       >
         Reintentar
       </button>
     </div>
 
-    <div v-else-if="!hasEvents" role="status" class="text-sm text-gray-600 dark:text-gray-300">
+    <div v-else-if="!hasEvents" role="status" class="text-sm text-gray-500 dark:text-gray-400">
       <p>{{ isDateFiltered ? (isDateRange ? "No hay actividad registrada para este intervalo." : "No hay actividad registrada para esta fecha.") : "Todavía no hay eventos en tu historial de actividad." }}</p>
       <button
         v-if="isDateFiltered"
         type="button"
-        class="mt-3 rounded-lg border border-gray-300 px-3 py-2 font-semibold text-gray-800 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-blueDark dark:border-white/20 dark:text-white dark:hover:bg-white/10 dark:focus-visible:outline-rv-pink"
+        class="mt-3 rounded-full bg-gray-200 px-4 py-2 text-sm font-semibold text-rv-navy shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-rv-navy hover:text-white hover:shadow-lg active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-gray-200 dark:hover:text-rv-navy dark:focus-visible:outline-rv-pink"
         @click="emit('clearFilter')"
       >
         Limpiar fecha
@@ -107,17 +107,17 @@ onBeforeUnmount(() => {
         <p v-if="history.isFetchNextPageError.value" role="alert" class="text-sm text-red-700 dark:text-red-300">
           No se pudieron cargar los eventos anteriores. Puedes intentarlo de nuevo.
         </p>
-        <p v-else-if="history.isFetchingNextPage.value" role="status" aria-live="polite" class="text-sm text-gray-600 dark:text-gray-300">
+        <p v-else-if="history.isFetchingNextPage.value" role="status" aria-live="polite" class="text-sm text-gray-500 dark:text-gray-400">
           Cargando eventos anteriores…
         </p>
-        <p v-else-if="!history.hasMore.value" role="status" class="text-sm text-gray-600 dark:text-gray-300">
+        <p v-else-if="!history.hasMore.value" role="status" class="text-sm text-gray-500 dark:text-gray-400">
           Has llegado al final del historial.
         </p>
 
         <button
           v-if="history.hasMore.value"
           type="button"
-          class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-blueDark disabled:cursor-wait disabled:opacity-70 dark:border-white/20 dark:text-white dark:hover:bg-white/10 dark:focus-visible:outline-rv-pink"
+          class="rounded-full bg-gray-200 px-4 py-2 text-sm font-semibold text-rv-navy shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-rv-navy hover:text-white hover:shadow-lg active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:bg-rv-darkSurface dark:text-white dark:hover:bg-gray-200 dark:hover:text-rv-navy dark:focus-visible:outline-rv-pink disabled:cursor-wait disabled:opacity-70"
           :disabled="history.isFetchingNextPage.value"
           @click="history.loadMore()"
         >

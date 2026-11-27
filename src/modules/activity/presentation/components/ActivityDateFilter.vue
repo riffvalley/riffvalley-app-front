@@ -66,7 +66,7 @@ function clearFilter(): void {
 
 <template>
   <section class="date-filter" aria-label="Filtrar actividad por fecha">
-      <p v-if="timeZone === null" class="timezone-error" role="alert">
+    <p v-if="timeZone === null" class="timezone-error" role="alert">
       No se pudo determinar la zona horaria del navegador. El historial no se consultará hasta que haya una zona IANA válida.
     </p>
 
@@ -168,31 +168,21 @@ function clearFilter(): void {
 </template>
 
 <style scoped>
+/* Mismo lenguaje visual que el resto de secciones: sin panel propio,
+   píldoras como los meses de Calendario y campos como los formularios. */
 .date-filter {
-  margin: 0 auto;
+  margin-inline: auto;
   max-width: 44rem;
-  border: 1px solid rgb(148 163 184 / 32%);
-  border-radius: 0.75rem;
-  background: rgb(255 255 255 / 78%);
-  padding: 1rem;
-  text-align: left;
+  text-align: center;
 }
 
-.filter-actions,
 .mode-list,
 .date-fields {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-}
-
-.filter-actions {
-  display: block;
-}
-
-.mode-list {
   justify-content: center;
+  gap: 0.5rem;
 }
 
 .clear-button {
@@ -201,49 +191,68 @@ function clearFilter(): void {
 }
 
 .mode-button,
-.clear-button,
 .apply-button {
   min-height: 2.5rem;
-  border: 1px solid rgb(148 163 184 / 48%);
-  border-radius: 0.5rem;
-  background: #fff;
-  padding: 0.45rem 0.75rem;
-  color: #243047;
-  font-size: 0.8rem;
+  border: 0;
+  border-radius: 9999px;
+  background: #e5e7eb; /* gray-200 */
+  padding: 0.5rem 1rem;
+  color: #00021f; /* rv-navy */
+  font-size: 0.875rem;
   font-weight: 600;
-  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+  white-space: nowrap;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
+  transition: background-color 200ms ease, color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
 }
 
 .mode-button:hover,
-.clear-button:hover,
 .apply-button:hover:not(:disabled) {
-  border-color: #7d3d70;
-  color: #7d3d70;
+  background: #00021f;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 4px 6px -4px rgb(0 0 0 / 10%);
 }
 
-.mode-button--active {
-  border-color: #7d3d70;
-  background: rgb(176 102 159 / 13%);
-  color: #652e59;
+.mode-button:active,
+.apply-button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.mode-button--active,
+.apply-button {
+  background: #00021f;
+  color: #fff;
+}
+
+.mode-button--active:hover,
+.apply-button:hover:not(:disabled) {
+  opacity: 0.85;
 }
 
 .clear-button {
-  border-color: transparent;
+  min-height: 2.5rem;
+  border: 0;
   background: transparent;
-  color: #652e59;
+  padding: 0.45rem 0.75rem;
+  color: #6b7280; /* gray-500 */
+  font-size: 0.8rem;
+  font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 0.18em;
+  transition: color 150ms ease;
 }
 
+.clear-button:hover { color: #e46e8a; }
+
 .date-fields {
-  margin-top: 0.75rem;
+  margin-top: 1rem;
 }
 
 .date-field {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  color: #334155;
+  color: #00021f;
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -251,11 +260,11 @@ function clearFilter(): void {
 .date-input {
   min-height: 2.5rem;
   min-width: 10rem;
-  border: 1px solid rgb(148 163 184 / 55%);
+  border: 1px solid #e5e7eb; /* gray-200 */
   border-radius: 0.5rem;
   background: #fff;
   padding: 0.4rem 0.6rem;
-  color: #1e293b;
+  color: #1f2937;
   color-scheme: light;
   font-size: 0.85rem;
 }
@@ -264,7 +273,7 @@ function clearFilter(): void {
 .clear-button:focus-visible,
 .apply-button:focus-visible,
 .date-input:focus-visible {
-  outline: 2px solid #7d3d70;
+  outline: 2px solid #b0669f;
   outline-offset: 2px;
 }
 
@@ -281,41 +290,40 @@ function clearFilter(): void {
   font-size: 0.78rem;
 }
 
-.date-hint { color: #475569; }
+.date-hint { color: #6b7280; }
 .date-error,
 .timezone-error { color: #b91c1c; }
 .timezone-error { margin: 0 0 0.75rem; }
 
-.dark .date-filter {
-  border-color: rgb(255 255 255 / 12%);
-  background: #2a2b3d;
-}
+.dark .date-hint { color: #9ca3af; }
+.dark .date-field { color: #fff; }
+.dark .clear-button { color: #9ca3af; }
+.dark .clear-button:hover { color: #e46e8a; }
 
-.dark .date-hint { color: #cbd5e1; }
-.dark .date-field { color: #e2e8f0; }
-
-.dark .mode-button,
-.dark .clear-button,
-.dark .apply-button,
-.dark .date-input {
-  border-color: rgb(255 255 255 / 18%);
-  background: #404157;
-  color: #f8fafc;
-  color-scheme: dark;
-}
-
-.dark .mode-button--active {
-  border-color: #e46e8a;
-  background: rgb(228 110 138 / 16%);
-  color: #fecdd6;
+.dark .mode-button {
+  background: #2a2b3d; /* rv-darkSurface */
+  color: #fff;
 }
 
 .dark .mode-button:hover,
-.dark .clear-button:hover,
+.dark .mode-button--active,
+.dark .apply-button,
 .dark .apply-button:hover:not(:disabled) {
-  border-color: #e46e8a;
-  color: #fecdd6;
+  background: #e5e7eb;
+  color: #00021f;
 }
+
+.dark .date-input {
+  border-color: rgb(255 255 255 / 10%);
+  background: #2a2b3d;
+  color: #fff;
+  color-scheme: dark;
+}
+
+.dark .mode-button:focus-visible,
+.dark .clear-button:focus-visible,
+.dark .apply-button:focus-visible,
+.dark .date-input:focus-visible { outline-color: #e46e8a; }
 
 .dark .date-error,
 .dark .timezone-error { color: #fca5a5; }
@@ -324,5 +332,9 @@ function clearFilter(): void {
   .mode-button,
   .clear-button,
   .apply-button { transition: none; }
+  .mode-button:hover,
+  .mode-button:active,
+  .apply-button:hover:not(:disabled),
+  .apply-button:active:not(:disabled) { transform: none; }
 }
 </style>
