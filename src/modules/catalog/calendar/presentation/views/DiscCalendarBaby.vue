@@ -7,16 +7,9 @@
 </h1>
 <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">Todos los lanzamientos ordenados por fecha.</p>
 
-    <!-- Fila única: Search + Género + Año -->
-    <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
-      <DiscFilters :searchQuery="searchQuery" :selectedGenre="selectedGenre"
-        :genres="genres" :showWeekPicker="false" :showCountryFilter="false" :externalRow1="true"
-        wrapperClass="contents" selectClass="w-full" @update:searchQuery="searchQuery = $event"
-        @update:selectedGenre="selectedGenre = $event" />
-
-      <SimpleSelect v-model="selectedYear" :options="yearOptions" placeholder="Selecciona un año" class="w-full"
-        selectClass="w-full" />
-    </div>
+    <!-- Filtros: buscador + año arriba, país + género abajo -->
+    <CalendarFilters v-model:searchQuery="searchQuery" v-model:year="selectedYear" :yearOptions="yearOptions"
+      v-model:country="selectedCountry" :countries="countries" v-model:genre="selectedGenre" :genres="genres" />
 
     <div class="flex flex-wrap justify-center gap-2 mb-6 mt-6 py-1">
       <button v-for="(month, index) in months" :key="index" @click="selectMonth(index)"
@@ -24,8 +17,8 @@
                transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0
                focus:outline-none focus:ring-0 focus:ring-offset-0"
         :class="selectedMonth === index
-          ? 'bg-rv-navy dark:bg-rv-purple text-white hover:opacity-80 hover:shadow-lg'
-          : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple hover:shadow-lg'">
+          ? 'bg-rv-navy dark:bg-gray-200 text-white dark:text-rv-navy hover:opacity-80 hover:shadow-lg'
+          : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-gray-200 dark:hover:text-rv-navy hover:shadow-lg'">
         {{ month }}
       </button>
     </div>
@@ -37,20 +30,20 @@
                   transition-all duration-200 shadow-sm border border-gray-100 dark:border-white/10
                   hover:-translate-y-0.5 hover:shadow-md"
            :class="groupState[index]
-             ? 'bg-rv-navy dark:bg-rv-purple shadow-md -translate-y-0.5'
-             : 'bg-white dark:bg-rv-darkSurface hover:bg-rv-navy dark:hover:bg-rv-purple'"
+             ? 'bg-rv-navy dark:bg-gray-200 shadow-md -translate-y-0.5'
+             : 'bg-white dark:bg-rv-darkSurface hover:bg-rv-navy dark:hover:bg-gray-200'"
            @click="toggleGroup(index)">
 
         <!-- Fecha + conteo -->
         <div class="flex items-center gap-3 min-w-0">
           <h3 class="text-base sm:text-lg font-bold transition-colors duration-200 truncate"
-              :class="groupState[index] ? 'text-white' : 'text-rv-navy dark:text-white group-hover:text-white'">
+              :class="groupState[index] ? 'text-white dark:text-rv-navy' : 'text-rv-navy dark:text-white group-hover:text-white dark:group-hover:text-rv-navy'">
             {{ formatDate(group.releaseDate) }}
           </h3>
           <span class="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full transition-colors"
                 :class="groupState[index]
-                  ? 'bg-white/20 text-white'
-                  : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 group-hover:bg-white/20 group-hover:text-white'">
+                  ? 'bg-white/20 text-white dark:bg-rv-navy/10 dark:text-rv-navy'
+                  : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 group-hover:bg-white/20 group-hover:text-white dark:group-hover:bg-rv-navy/10 dark:group-hover:text-rv-navy'">
             {{ group.discs.length }} disco{{ group.discs.length !== 1 ? 's' : '' }}
           </span>
         </div>
@@ -101,8 +94,7 @@ import { getDiscsDated } from "@services/discs/discs";
 import DiscComponentBaby from "../components/DiscComponentBaby.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";
 import { MONTHS, getYearOptions } from "@helpers/dateConstants";
-import DiscFilters from "@components/DiscFilters.vue";
-import SimpleSelect from "@components/SimpleSelect.vue";
+import CalendarFilters from "../components/CalendarFilters.vue";
 import SwalService from "@services/swal/SwalService";
 import {
   appendDatedDiscGroups,
@@ -116,7 +108,7 @@ import {
 } from "../utils/calendarViewUtils";
 
 export default defineComponent({
-  components: { DiscComponent: DiscComponentBaby, DiscFilters, SimpleSelect },
+  components: { DiscComponent: DiscComponentBaby, CalendarFilters },
   name: "DiscsList",
   setup() {
     const groupedDiscs = ref<any[]>([]);
@@ -131,6 +123,7 @@ export default defineComponent({
     // --- Filtros ---
     const searchQuery = ref("");
     const selectedGenre = ref("");
+    const selectedCountry = ref("");
 
     const filteredGroupedDiscs = computed(() => {
       return groupedDiscs.value
@@ -193,7 +186,7 @@ export default defineComponent({
         const response = await getDiscsDated(limit.value, offset.value, [
           startDate,
           endDate,
-        ]);
+        ], selectedCountry.value || undefined);
 
         if (gen !== fetchGen) return;
 
@@ -252,7 +245,7 @@ export default defineComponent({
         const response = await getDiscsDated(limit.value, offset.value, [
           startDate,
           endDate,
-        ]);
+        ], selectedCountry.value || undefined);
 
         if (gen !== undefined && gen !== fetchGen) return;
 
@@ -286,6 +279,10 @@ export default defineComponent({
 
     watch(selectedYear, () => {
       selectMonth(0); // Cargar enero al cambiar el año
+    });
+
+    watch(selectedCountry, () => {
+      selectMonth(selectedMonth.value);
     });
 
     // --- Scroll to top ---
@@ -323,6 +320,8 @@ export default defineComponent({
       formatDate,
       searchQuery,
       selectedGenre,
+      selectedCountry,
+      countries: computed(() => catalogStore.countries),
       filteredGroupedDiscs,
       yearOptions,
       selectedYear,

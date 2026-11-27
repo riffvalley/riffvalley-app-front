@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col rounded-2xl shadow-sm border overflow-hidden transition-all duration-200 h-full"
-       :class="hasColor ? 'border-white/20 text-white' : 'bg-white dark:bg-rv-darkCard text-rv-navy dark:text-white border-gray-100 dark:border-white/10'"
+       :class="hasColor ? 'border-white/20 text-white' : 'bg-white dark:bg-rv-darkSurface text-rv-navy dark:text-white border-gray-100 dark:border-white/10'"
        :style="hasColor ? { backgroundColor: genreColor } : {}">
 
     <!-- Zona principal -->
@@ -69,12 +69,12 @@
         </span>
         <span v-if="disc.ep"
               class="px-2 py-0.5 rounded-full text-[10px] font-medium leading-tight"
-              :class="hasColor ? 'bg-white/20 text-white' : 'bg-rv-purple text-white'">
+              :class="hasColor ? 'bg-white/20 text-white' : 'bg-rv-purple text-white dark:bg-gray-200 dark:text-rv-navy'">
           EP
         </span>
         <span v-if="disc.debut"
               class="px-2 py-0.5 rounded-full text-[10px] font-medium leading-tight"
-              :class="hasColor ? 'bg-white/20 text-white' : 'bg-rv-purple text-white'">
+              :class="hasColor ? 'bg-white/20 text-white' : 'bg-rv-purple text-white dark:bg-gray-200 dark:text-rv-navy'">
           Debut
         </span>
 

@@ -1,12 +1,12 @@
 ```
 <template>
   <!-- Tarjeta principal -->
-  <div class="flex flex-col sm:flex-row w-full rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden transition-all duration-200 bg-white dark:bg-rv-darkCard"
+  <div class="flex flex-col sm:flex-row w-full rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden transition-all duration-200 bg-white dark:bg-rv-darkSurface"
        :class="isFocused ? 'ring-2 ring-rv-pink/60 shadow-lg' : ''">
 
     <!-- ── Columna izquierda: fondo de género (solo imagen + info básica) ── -->
     <div class="flex items-start gap-4 p-5 sm:w-[44%] shrink-0 min-w-0 genre-col"
-         :class="getGenreColor(disc.genreId) !== 'transparent' ? 'text-white' : 'bg-white dark:bg-rv-darkCard text-rv-navy dark:text-white'"
+         :class="getGenreColor(disc.genreId) !== 'transparent' ? 'text-white' : 'bg-white dark:bg-rv-darkSurface text-rv-navy dark:text-white'"
          :style="getGenreColor(disc.genreId) !== 'transparent'
            ? { backgroundColor: getGenreColor(disc.genreId) }
            : {}">
@@ -82,7 +82,7 @@
     </div>
 
     <!-- ── Columna derecha: controles admin (fondo neutro siempre) ── -->
-    <div class="flex-1 p-4 flex flex-col gap-2.5 bg-white dark:bg-rv-darkCard min-w-0">
+    <div class="flex-1 p-4 flex flex-col gap-2.5 bg-white dark:bg-rv-darkSurface min-w-0">
 
       <!-- Género (full width) -->
       <SearchableSelect v-if="canEditCatalog" :key="`genres-${genres.length}`" v-model="editedData.genreId" :options="genres"
@@ -109,7 +109,7 @@
             <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200"
                  :class="disc.ep ? 'translate-x-4' : 'translate-x-0'"></div>
           </div>
-          <span class="text-xs font-semibold" :class="disc.ep ? 'text-rv-purple' : 'text-gray-400 dark:text-gray-500'">EP</span>
+          <span class="text-xs font-semibold" :class="disc.ep ? 'text-rv-purple dark:text-white' : 'text-gray-400 dark:text-gray-400'">EP</span>
         </label>
 
         <!-- Separador -->
@@ -124,7 +124,7 @@
             <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200"
                  :class="disc.debut ? 'translate-x-4' : 'translate-x-0'"></div>
           </div>
-          <span class="text-xs font-semibold" :class="disc.debut ? 'text-rv-purple' : 'text-gray-400 dark:text-gray-500'">Debut</span>
+          <span class="text-xs font-semibold" :class="disc.debut ? 'text-rv-purple dark:text-white' : 'text-gray-400 dark:text-gray-400'">Debut</span>
         </label>
 
         <!-- Separador -->
