@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { get, post, patch, remove } = vi.hoisted(() => ({
-  get: vi.fn(), post: vi.fn(), patch: vi.fn(), remove: vi.fn(),
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  remove: vi.fn(),
 }));
 vi.mock("@services/api/api", () => ({ default: { get, post, patch, delete: remove } }));
 
@@ -32,10 +35,18 @@ describe("Feedback API", () => {
   });
 
   it("supports a catalog category on creation without changing legacy payloads", async () => {
-    const dto = { title: "Festival filter", description: "Add event filter", type: "suggestion" as const, category: "events" as const };
+    const dto = {
+      title: "Festival filter",
+      description: "Add event filter",
+      type: "suggestion" as const,
+      category: "events" as const,
+    };
     await createFeedback(dto);
     expect(post).toHaveBeenCalledWith("/suggestions", dto);
-    expect(post).not.toHaveBeenCalledWith("/suggestions", expect.objectContaining({ category: null }));
+    expect(post).not.toHaveBeenCalledWith(
+      "/suggestions",
+      expect.objectContaining({ category: null })
+    );
   });
 
   it("loads own and admin lists with their existing paths and passes cancellation", async () => {
@@ -63,9 +74,14 @@ describe("Feedback API", () => {
       counts: { in_progress: 3, done: 2, rejected: 1 },
     };
     get.mockResolvedValueOnce({ data: response });
-    await expect(getFeedback({ type: "bug", status: "rejected" }, signal)).resolves.toEqual(response);
+    await expect(getFeedback({ type: "bug", status: "rejected" }, signal)).resolves.toEqual(
+      response
+    );
     expect(get).toHaveBeenNthCalledWith(1, "/suggestions/my", { params: {}, signal });
-    expect(get).toHaveBeenNthCalledWith(2, "/suggestions", { params: { type: "bug", status: "rejected" }, signal });
+    expect(get).toHaveBeenNthCalledWith(2, "/suggestions", {
+      params: { type: "bug", status: "rejected" },
+      signal,
+    });
   });
 
   it("preserves an empty administrative list and its zero counts", async () => {
@@ -79,10 +95,12 @@ describe("Feedback API", () => {
     await getFeedback({ type: "bug", status: "rejected", category: "uncategorized" }, signal);
     await getMyFeedback({ type: "suggestion", status: "done", category: "other" }, signal);
     expect(get).toHaveBeenNthCalledWith(1, "/suggestions", {
-      params: { type: "bug", status: "rejected", category: "uncategorized" }, signal,
+      params: { type: "bug", status: "rejected", category: "uncategorized" },
+      signal,
     });
     expect(get).toHaveBeenNthCalledWith(2, "/suggestions/my", {
-      params: { type: "suggestion", status: "done", category: "other" }, signal,
+      params: { type: "suggestion", status: "done", category: "other" },
+      signal,
     });
   });
 
@@ -98,9 +116,15 @@ describe("Feedback API", () => {
     expect(patch).toHaveBeenNthCalledWith(2, "/suggestions/entry-1", { category: "rankings" });
     expect(patch).toHaveBeenNthCalledWith(3, "/suggestions/entry-1", { category: null });
     expect(patch).toHaveBeenNthCalledWith(4, "/suggestions/entry-2/progress");
-    expect(patch).toHaveBeenNthCalledWith(5, "/suggestions/entry-3/reject", { rejectionReason: "Duplicate" });
-    expect(patch).toHaveBeenNthCalledWith(6, "/suggestions/entry-4/done", { versionItemId: "version-item-1" });
-    expect(patch).toHaveBeenNthCalledWith(7, "/suggestions/entry-5/done", { versionItemId: undefined });
+    expect(patch).toHaveBeenNthCalledWith(5, "/suggestions/entry-3/reject", {
+      rejectionReason: "Duplicate",
+    });
+    expect(patch).toHaveBeenNthCalledWith(6, "/suggestions/entry-4/done", {
+      versionItemId: "version-item-1",
+    });
+    expect(patch).toHaveBeenNthCalledWith(7, "/suggestions/entry-5/done", {
+      versionItemId: undefined,
+    });
   });
 
   it("deletes by the existing endpoint and propagates transport errors", async () => {

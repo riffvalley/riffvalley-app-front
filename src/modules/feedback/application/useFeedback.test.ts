@@ -7,12 +7,21 @@ import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import type { FeedbackListResponse } from "../types/feedback";
 
 const api = vi.hoisted(() => ({
-  createFeedback: vi.fn(), getFeedback: vi.fn(), getMyFeedback: vi.fn(), updateFeedback: vi.fn(),
-  reopenFeedback: vi.fn(), rejectFeedback: vi.fn(), completeFeedback: vi.fn(), deleteFeedback: vi.fn(),
-  getCurrentVersionItems: vi.fn(), invalidateSidebarSummary: vi.fn(),
+  createFeedback: vi.fn(),
+  getFeedback: vi.fn(),
+  getMyFeedback: vi.fn(),
+  updateFeedback: vi.fn(),
+  reopenFeedback: vi.fn(),
+  rejectFeedback: vi.fn(),
+  completeFeedback: vi.fn(),
+  deleteFeedback: vi.fn(),
+  getCurrentVersionItems: vi.fn(),
+  invalidateSidebarSummary: vi.fn(),
 }));
 vi.mock("../api/feedback", () => api);
-vi.mock("@services/versions/currentVersionItems", () => ({ getCurrentVersionItems: api.getCurrentVersionItems }));
+vi.mock("@services/versions/currentVersionItems", () => ({
+  getCurrentVersionItems: api.getCurrentVersionItems,
+}));
 vi.mock("@/app/sidebarSummary", () => ({ invalidateSidebarSummary: api.invalidateSidebarSummary }));
 
 import { useAuthStore } from "@/modules/identity/auth";
@@ -34,11 +43,20 @@ describe("Feedback application queries and mutations", () => {
     vi.clearAllMocks();
     pinia = createPinia();
     setActivePinia(pinia);
-    queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
-    useAuthStore().$patch({
-      authStatus: "authenticated", token: "token", userId: "admin-1", role: "superadmin", authSessionGeneration: 4,
+    queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false, gcTime: Infinity } },
     });
-    api.getMyFeedback.mockResolvedValue({ data: [], counts: { in_progress: 0, done: 0, rejected: 0 } });
+    useAuthStore().$patch({
+      authStatus: "authenticated",
+      token: "token",
+      userId: "admin-1",
+      role: "superadmin",
+      authSessionGeneration: 4,
+    });
+    api.getMyFeedback.mockResolvedValue({
+      data: [],
+      counts: { in_progress: 0, done: 0, rejected: 0 },
+    });
     api.getFeedback.mockResolvedValue({
       data: [],
       counts: { in_progress: 0, done: 0, rejected: 0 },
@@ -66,13 +84,27 @@ describe("Feedback application queries and mutations", () => {
   }
 
   it("isolates own/admin/filter query identities by user and session generation", () => {
-    expect(feedbackQueryKeyForSession("mine", "a", 1)).not.toEqual(feedbackQueryKeyForSession("mine", "b", 1));
-    expect(feedbackQueryKeyForSession("mine", "a", 1)).not.toEqual(feedbackQueryKeyForSession("mine", "a", 2));
-    expect(feedbackQueryKeyForSession("mine", "a", 1)).not.toEqual(feedbackQueryKeyForSession("admin", "a", 1));
-    expect(adminFeedbackQueryKeyForSession({ type: "bug" }, "a", 1)).not.toEqual(adminFeedbackQueryKeyForSession({ type: "suggestion" }, "a", 1));
-    expect(adminFeedbackQueryKeyForSession({ category: "other" }, "a", 1)).not.toEqual(adminFeedbackQueryKeyForSession({ category: "uncategorized" }, "a", 1));
-    expect(adminFeedbackQueryKeyForSession({ category: "other" }, "a", 1)).not.toEqual(adminFeedbackQueryKeyForSession({}, "a", 1));
-    expect(feedbackQueryKeyForSession("mine", "a", 1, { category: "other" })).not.toEqual(feedbackQueryKeyForSession("mine", "a", 1, { category: "uncategorized" }));
+    expect(feedbackQueryKeyForSession("mine", "a", 1)).not.toEqual(
+      feedbackQueryKeyForSession("mine", "b", 1)
+    );
+    expect(feedbackQueryKeyForSession("mine", "a", 1)).not.toEqual(
+      feedbackQueryKeyForSession("mine", "a", 2)
+    );
+    expect(feedbackQueryKeyForSession("mine", "a", 1)).not.toEqual(
+      feedbackQueryKeyForSession("admin", "a", 1)
+    );
+    expect(adminFeedbackQueryKeyForSession({ type: "bug" }, "a", 1)).not.toEqual(
+      adminFeedbackQueryKeyForSession({ type: "suggestion" }, "a", 1)
+    );
+    expect(adminFeedbackQueryKeyForSession({ category: "other" }, "a", 1)).not.toEqual(
+      adminFeedbackQueryKeyForSession({ category: "uncategorized" }, "a", 1)
+    );
+    expect(adminFeedbackQueryKeyForSession({ category: "other" }, "a", 1)).not.toEqual(
+      adminFeedbackQueryKeyForSession({}, "a", 1)
+    );
+    expect(feedbackQueryKeyForSession("mine", "a", 1, { category: "other" })).not.toEqual(
+      feedbackQueryKeyForSession("mine", "a", 1, { category: "uncategorized" })
+    );
   });
 
   it("loads own and admin lists with Query cancellation signals and typed filters", async () => {
@@ -84,17 +116,23 @@ describe("Feedback application queries and mutations", () => {
     });
     await flushPromises();
     expect(api.getMyFeedback).toHaveBeenCalledWith(
-      { type: "suggestion", status: "done", category: "other" }, expect.any(AbortSignal),
+      { type: "suggestion", status: "done", category: "other" },
+      expect.any(AbortSignal)
     );
     expect(api.getFeedback).toHaveBeenCalledWith(
-      { type: "bug", status: "rejected", category: "uncategorized" }, expect.any(AbortSignal),
+      { type: "bug", status: "rejected", category: "uncategorized" },
+      expect.any(AbortSignal)
     );
     expect(api.getCurrentVersionItems).toHaveBeenCalledWith(expect.any(AbortSignal));
   });
 
   it("disables the administrative query for a user role but keeps the own list", async () => {
     useAuthStore().role = "user";
-    mountHarness(() => { useMyFeedbackQuery(); useAdminFeedbackQuery("all", "all"); return {}; });
+    mountHarness(() => {
+      useMyFeedbackQuery();
+      useAdminFeedbackQuery("all", "all");
+      return {};
+    });
     await flushPromises();
     expect(api.getMyFeedback).toHaveBeenCalledOnce();
     expect(api.getFeedback).not.toHaveBeenCalled();
@@ -104,7 +142,10 @@ describe("Feedback application queries and mutations", () => {
     const failure = new Error("offline");
     api.getMyFeedback.mockRejectedValueOnce(failure);
     let query: ReturnType<typeof useMyFeedbackQuery> | undefined;
-    mountHarness(() => { query = useMyFeedbackQuery(); return {}; });
+    mountHarness(() => {
+      query = useMyFeedbackQuery();
+      return {};
+    });
     await vi.waitFor(() => expect(query?.isError.value).toBe(true));
     expect(query?.error.value).toBe(failure);
     expect(query?.data.value).toBeUndefined();
@@ -112,7 +153,10 @@ describe("Feedback application queries and mutations", () => {
 
   it("invalidates Feedback after mutations and Sidebar summary only for membership changes", async () => {
     let mutations: ReturnType<typeof useFeedbackMutations> | undefined;
-    mountHarness(() => { mutations = useFeedbackMutations(); return {}; });
+    mountHarness(() => {
+      mutations = useFeedbackMutations();
+      return {};
+    });
     const invalidate = vi.spyOn(queryClient, "invalidateQueries");
 
     await mutations?.create.mutateAsync({ title: "t", description: "d", type: "bug" });
@@ -127,7 +171,9 @@ describe("Feedback application queries and mutations", () => {
     expect(api.invalidateSidebarSummary).toHaveBeenCalledTimes(5);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ["feedback"] });
     expect(api.rejectFeedback).toHaveBeenCalledWith("entry-1", { rejectionReason: "Duplicate" });
-    expect(api.completeFeedback).toHaveBeenCalledWith("entry-1", { versionItemId: "version-item-1" });
+    expect(api.completeFeedback).toHaveBeenCalledWith("entry-1", {
+      versionItemId: "version-item-1",
+    });
     expect(api.updateFeedback).toHaveBeenCalledWith("entry-1", { category: "rankings" });
   });
 
@@ -151,7 +197,11 @@ describe("Feedback application queries and mutations", () => {
     });
     await vi.waitFor(() => expect(query?.data.value).toEqual(initial));
 
-    await mutations?.create.mutateAsync({ title: "Idea", description: "Details", type: "suggestion" });
+    await mutations?.create.mutateAsync({
+      title: "Idea",
+      description: "Details",
+      type: "suggestion",
+    });
 
     await vi.waitFor(() => expect(query?.data.value).toEqual(afterCreation));
     expect(api.invalidateSidebarSummary).toHaveBeenCalledOnce();
