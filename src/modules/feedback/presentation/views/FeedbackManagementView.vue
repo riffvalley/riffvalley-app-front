@@ -115,6 +115,9 @@
               <span :class="statusClass(s.status)" class="text-xs font-semibold px-2 py-0.5 rounded-full">
                 {{ statusLabel(s.status) }}
               </span>
+              <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300">
+                {{ feedbackCategoryLabel(s.category) }}
+              </span>
             </div>
 
             <!-- Motivo de rechazo -->
@@ -303,6 +306,7 @@ import type {
   FeedbackStatus,
   FeedbackType,
 } from "../../types/feedback";
+import { feedbackCategoryLabel } from "../../types/feedback";
 import { useSupportStore } from "@stores/support/support";
 import SwalService from "@services/swal/SwalService";
 

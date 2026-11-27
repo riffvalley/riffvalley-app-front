@@ -1,4 +1,8 @@
 import type { VersionItem } from "@services/versions/versions";
+import type { FeedbackCategoryFilter, FeedbackCategoryId } from "./categories";
+
+export { feedbackCategories, feedbackCategoryLabel } from "./categories";
+export type { FeedbackCategoryFilter, FeedbackCategoryId } from "./categories";
 
 export type FeedbackType = "suggestion" | "bug";
 export type FeedbackStatus = "in_progress" | "done" | "rejected";
@@ -21,6 +25,7 @@ export interface FeedbackEntry {
   title: string;
   description: string;
   type: FeedbackType;
+  category: FeedbackCategoryId | null;
   status: FeedbackStatus;
   priority: FeedbackPriority;
   rejectionReason: string | null;
@@ -37,6 +42,8 @@ export interface CreateFeedbackDto {
   description: string;
   type?: FeedbackType;
   priority?: FeedbackPriority;
+  /** Temporarily optional while existing send forms migrate to category selection. */
+  category?: FeedbackCategoryId;
 }
 
 export interface UpdateFeedbackDto {
@@ -44,6 +51,7 @@ export interface UpdateFeedbackDto {
   description?: string;
   type?: FeedbackType;
   priority?: FeedbackPriority;
+  category?: FeedbackCategoryId | null;
 }
 
 export interface FeedbackListResponse {
@@ -60,6 +68,8 @@ export interface MyFeedbackResponse {
 export interface FeedbackListParams {
   type?: FeedbackType;
   status?: FeedbackStatus;
+  /** Omit to include all categories; `uncategorized` selects historical null rows. */
+  category?: FeedbackCategoryFilter;
 }
 
 export interface RejectFeedbackDto {

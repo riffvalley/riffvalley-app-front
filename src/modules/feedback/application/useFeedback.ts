@@ -17,6 +17,7 @@ import {
 import type {
   FeedbackListParams,
   FeedbackListResponse,
+  FeedbackCategoryFilter,
   FeedbackStatus,
   FeedbackType,
 } from "../types/feedback";
@@ -30,8 +31,9 @@ export function feedbackQueryKeyForSession(
   scope: "mine" | "admin",
   userId: string | null,
   generation: number,
+  params: FeedbackListParams = {},
 ) {
-  return [...feedbackQueryKey, scope, userId, generation] as const;
+  return [...feedbackQueryKey, scope, userId, generation, params.type ?? "all", params.status ?? "all", params.category ?? "all"] as const;
 }
 
 export function adminFeedbackQueryKeyForSession(
@@ -39,7 +41,7 @@ export function adminFeedbackQueryKeyForSession(
   userId: string | null,
   generation: number,
 ) {
-  return [...feedbackQueryKeyForSession("admin", userId, generation), params.type ?? "all", params.status ?? "all"] as const;
+  return feedbackQueryKeyForSession("admin", userId, generation, params);
 }
 
 function canReadFeedback(auth: ReturnType<typeof useAuthStore>, scope: "mine" | "admin") {
@@ -67,18 +69,31 @@ function assertFeedbackSession(
   }
 }
 
-export function useMyFeedbackQuery() {
+export function useMyFeedbackQuery(
+  type: MaybeRefOrGetter<FeedbackType | "all"> = "all",
+  status: MaybeRefOrGetter<FeedbackStatus | "all"> = "all",
+  category: MaybeRefOrGetter<FeedbackCategoryFilter | "all"> = "all",
+) {
   const auth = useAuthStore();
-  const queryKey = computed(() => feedbackQueryKeyForSession("mine", auth.userId, auth.authSessionGeneration));
+  const params = computed<FeedbackListParams>(() => ({
+    ...(toValue(type) !== "all" ? { type: toValue(type) } : {}),
+    ...(toValue(status) !== "all" ? { status: toValue(status) } : {}),
+    ...(toValue(category) !== "all" ? { category: toValue(category) } : {}),
+  }));
+  const queryKey = computed(() => feedbackQueryKeyForSession("mine", auth.userId, auth.authSessionGeneration, params.value));
   return useQuery({
     queryKey,
     enabled: computed(() => canReadFeedback(auth, "mine")),
     staleTime: 30_000,
     retry: false,
     queryFn: async ({ queryKey: requestedKey, signal }) => {
-      const [, , userId, generation] = requestedKey;
+      const [, , userId, generation, requestedType, requestedStatus, requestedCategory] = requestedKey;
       assertFeedbackSession(auth, userId, generation, signal, "mine");
-      const result = await getMyFeedback(signal);
+      const result = await getMyFeedback({
+        ...(requestedType !== "all" ? { type: requestedType as FeedbackType } : {}),
+        ...(requestedStatus !== "all" ? { status: requestedStatus as FeedbackStatus } : {}),
+        ...(requestedCategory !== "all" ? { category: requestedCategory as FeedbackCategoryFilter } : {}),
+      }, signal);
       assertFeedbackSession(auth, userId, generation, signal, "mine");
       return result;
     },
@@ -88,11 +103,13 @@ export function useMyFeedbackQuery() {
 export function useAdminFeedbackQuery(
   type: MaybeRefOrGetter<FeedbackType | "all">,
   status: MaybeRefOrGetter<FeedbackStatus | "all">,
+  category: MaybeRefOrGetter<FeedbackCategoryFilter | "all"> = "all",
 ) {
   const auth = useAuthStore();
   const params = computed<FeedbackListParams>(() => ({
     ...(toValue(type) !== "all" ? { type: toValue(type) } : {}),
     ...(toValue(status) !== "all" ? { status: toValue(status) } : {}),
+    ...(toValue(category) !== "all" ? { category: toValue(category) } : {}),
   }));
   const queryKey = computed(() => adminFeedbackQueryKeyForSession(params.value, auth.userId, auth.authSessionGeneration));
 
@@ -105,10 +122,12 @@ export function useAdminFeedbackQuery(
       const [, , userId, generation] = requestedKey;
       const requestedType = requestedKey[4];
       const requestedStatus = requestedKey[5];
+      const requestedCategory = requestedKey[6];
       assertFeedbackSession(auth, userId, generation, signal, "admin");
       const result = await getFeedback({
         ...(requestedType !== "all" ? { type: requestedType as FeedbackType } : {}),
         ...(requestedStatus !== "all" ? { status: requestedStatus as FeedbackStatus } : {}),
+        ...(requestedCategory !== "all" ? { category: requestedCategory as FeedbackCategoryFilter } : {}),
       }, signal);
       assertFeedbackSession(auth, userId, generation, signal, "admin");
       return result;

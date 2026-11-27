@@ -23,8 +23,11 @@ export async function getFeedback(
   return data;
 }
 
-export async function getMyFeedback(signal?: AbortSignal): Promise<MyFeedbackResponse> {
-  const { data } = await api.get<MyFeedbackResponse>("/suggestions/my", { signal });
+export async function getMyFeedback(
+  params: FeedbackListParams = {},
+  signal?: AbortSignal,
+): Promise<MyFeedbackResponse> {
+  const { data } = await api.get<MyFeedbackResponse>("/suggestions/my", { params, signal });
   return data;
 }
 

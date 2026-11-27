@@ -9,6 +9,7 @@ import type { FeedbackEntry, FeedbackListResponse } from "../../types/feedback";
 const sampleEntry = {
   id: "entry-1", title: "Bug title", description: "Details", type: "bug" as const,
   status: "in_progress" as const, priority: "medium" as const, rejectionReason: null,
+  category: null,
   userId: "user-1", user: { id: "user-1", username: "Member" }, versionItemId: null,
   versionItem: null, createdAt: "2026-01-01", updatedAt: "2026-01-01",
 };
@@ -111,6 +112,11 @@ describe("FeedbackManagementView", () => {
     state.query.isError.value = false;
     await nextTick();
     expect(wrapper.text()).toContain("No hay entradas en este estado.");
+  });
+
+  it("labels historical rows as uncategorized in the admin list", () => {
+    const wrapper = mountPage();
+    expect(wrapper.text()).toContain("Sin categorizar");
   });
 
   it("shows loading separately from empty results", () => {
