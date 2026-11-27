@@ -13,6 +13,10 @@
     <CalendarFilters v-model:searchQuery="searchQuery" v-model:year="selectedYear" :yearOptions="yearOptions"
       v-model:country="selectedCountry" :countries="countries" v-model:genre="selectedGenre" :genres="genreOptions" />
 
+    <div v-if="canSyncReleases" class="mb-4">
+      <NationalReleaseSync :month="selectedMonth" :year="selectedYear" />
+    </div>
+
 
     <div>
       <div class="flex flex-wrap justify-center gap-2 mb-6 mt-6 py-1">
@@ -144,6 +148,7 @@ import { useCatalogStore } from "@stores/catalog/catalog";
 import { MONTHS, getYearOptions } from "@helpers/dateConstants";
 import { resolveSpotifyAlbum } from "@services/spotify/spotifyLookup";
 import CalendarFilters from "../components/CalendarFilters.vue";
+import NationalReleaseSync from "../components/NationalReleaseSync.vue";
 import { useAuthStore } from "@/modules/identity/auth";
 import { hasMinimumRole } from "@/modules/identity/shared";
 import SwalService from "@services/swal/SwalService";
@@ -159,7 +164,7 @@ import {
 } from "../utils/calendarViewUtils";
 
 export default defineComponent({
-  components: { DiscComponent, CalendarFilters },
+  components: { DiscComponent, CalendarFilters, NationalReleaseSync },
   name: "DiscsList",
 
   props: {
@@ -173,6 +178,9 @@ export default defineComponent({
     const authStore = useAuthStore();
     const canEditCatalog = computed(() => hasMinimumRole(authStore.role, "riffvalley"));
     const canFillImages = computed(() => hasMinimumRole(authStore.role, "superadmin"));
+    const canSyncReleases = computed(
+      () => authStore.authStatus === "authenticated" && authStore.role === "superadmin",
+    );
     const groupedDiscs = ref<any[]>([]);
     const groupState = reactive<Record<number, boolean>>({});
 
@@ -589,6 +597,7 @@ export default defineComponent({
       handleDateChange,
       canEditCatalog,
       canFillImages,
+      canSyncReleases,
       buscarImagenesLastFm,
       showScrollTop,
       scrollToTop,

@@ -109,6 +109,34 @@ export interface NationalReleasesResponse {
   pendingMonths?: number[];
 }
 
+export interface SyncNationalReleasesMonthDto {
+  month: number;
+  year: number;
+}
+
+export interface SyncNationalReleasesMonthResponse {
+  month: number;
+  year: number;
+  scanned: number;
+  created: NationalRelease[];
+  linked: NationalRelease[];
+  errors: Array<{
+    discId: string;
+    discName: string;
+    message: string;
+  }>;
+}
+
+export async function syncNationalReleasesMonth(
+  dto: SyncNationalReleasesMonthDto,
+): Promise<SyncNationalReleasesMonthResponse> {
+  const response = await api.post<SyncNationalReleasesMonthResponse>(
+    "/national-releases/sync-month",
+    dto,
+  );
+  return response.data;
+}
+
 export async function getNationalReleases(params?: { month?: number; year?: number; approved?: boolean }): Promise<NationalReleasesResponse> {
   const response = await api.get<NationalReleasesResponse>("/national-releases/all", { params });
   return response.data;
