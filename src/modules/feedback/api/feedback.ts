@@ -3,6 +3,7 @@ import type {
   CompleteFeedbackDto,
   CreateFeedbackDto,
   FeedbackEntry,
+  FeedbackListResponse,
   FeedbackListParams,
   MyFeedbackResponse,
   RejectFeedbackDto,
@@ -14,8 +15,11 @@ export async function createFeedback(dto: CreateFeedbackDto): Promise<FeedbackEn
   return data;
 }
 
-export async function getFeedback(params: FeedbackListParams = {}, signal?: AbortSignal): Promise<FeedbackEntry[]> {
-  const { data } = await api.get<FeedbackEntry[]>("/suggestions", { params, signal });
+export async function getFeedback(
+  params: FeedbackListParams = {},
+  signal?: AbortSignal
+): Promise<FeedbackListResponse> {
+  const { data } = await api.get<FeedbackListResponse>("/suggestions", { params, signal });
   return data;
 }
 

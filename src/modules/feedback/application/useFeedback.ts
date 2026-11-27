@@ -14,7 +14,12 @@ import {
   reopenFeedback,
   updateFeedback,
 } from "../api/feedback";
-import type { FeedbackListParams, FeedbackType, FeedbackStatus } from "../types/feedback";
+import type {
+  FeedbackListParams,
+  FeedbackListResponse,
+  FeedbackStatus,
+  FeedbackType,
+} from "../types/feedback";
 
 export const feedbackQueryKey = ["feedback"] as const;
 export const myFeedbackQueryKey = [...feedbackQueryKey, "mine"] as const;
@@ -96,7 +101,7 @@ export function useAdminFeedbackQuery(
     enabled: computed(() => canReadFeedback(auth, "admin")),
     staleTime: 30_000,
     retry: false,
-    queryFn: async ({ queryKey: requestedKey, signal }) => {
+    queryFn: async ({ queryKey: requestedKey, signal }): Promise<FeedbackListResponse> => {
       const [, , userId, generation] = requestedKey;
       const requestedType = requestedKey[4];
       const requestedStatus = requestedKey[5];

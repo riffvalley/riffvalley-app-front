@@ -4,13 +4,33 @@ import { createPinia } from "pinia";
 import { flushPromises, mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { nextTick, ref } from "vue";
-import type { FeedbackEntry } from "../../types/feedback";
+import type { FeedbackEntry, FeedbackListResponse } from "../../types/feedback";
 
 const sampleEntry = {
   id: "entry-1", title: "Bug title", description: "Details", type: "bug" as const,
   status: "in_progress" as const, priority: "medium" as const, rejectionReason: null,
   userId: "user-1", user: { id: "user-1", username: "Member" }, versionItemId: null,
   versionItem: null, createdAt: "2026-01-01", updatedAt: "2026-01-01",
+};
+const versionedEntry: FeedbackEntry = {
+  ...sampleEntry,
+  id: "entry-2",
+  title: "Keyboard shortcuts",
+  type: "suggestion",
+  status: "done",
+  userId: null,
+  user: null,
+  versionItemId: "version-item-1",
+  versionItem: {
+    id: "version-item-1",
+    type: "feat",
+    description: "Add keyboard shortcuts",
+    state: "done",
+  },
+};
+const emptyResponse: FeedbackListResponse = {
+  data: [],
+  counts: { in_progress: 0, done: 0, rejected: 0 },
 };
 const state = vi.hoisted(() => ({
   query: undefined as unknown as ReturnType<typeof makeQuery>,
@@ -22,7 +42,13 @@ const state = vi.hoisted(() => ({
 }));
 function makeQuery() {
   return {
-    data: ref<FeedbackEntry[]>([sampleEntry]), isPending: ref(false), isError: ref(false), refetch: vi.fn(),
+    data: ref<FeedbackListResponse | undefined>({
+      data: [sampleEntry, versionedEntry],
+      counts: { in_progress: 1, done: 1, rejected: 0 },
+    }),
+    isPending: ref(false),
+    isError: ref(false),
+    refetch: vi.fn(),
     queryKey: ref(["feedback", "admin", "admin-1", 1, "all", "in_progress"]),
   };
 }
@@ -75,7 +101,7 @@ describe("FeedbackManagementView", () => {
   }
 
   it("shows list errors separately from empty results and retries", async () => {
-    state.query.data.value = [];
+    state.query.data.value = emptyResponse;
     state.query.isError.value = true;
     const wrapper = mountPage();
     expect(wrapper.text()).toContain("No se pudieron cargar las entradas de soporte.");
@@ -85,6 +111,43 @@ describe("FeedbackManagementView", () => {
     state.query.isError.value = false;
     await nextTick();
     expect(wrapper.text()).toContain("No hay entradas en este estado.");
+  });
+
+  it("shows loading separately from empty results", () => {
+    state.query.data.value = undefined;
+    state.query.isPending.value = true;
+    const wrapper = mountPage();
+    expect(wrapper.text()).toContain("Cargando...");
+    expect(wrapper.text()).not.toContain("No hay entradas en este estado.");
+  });
+
+  it("renders multiple entries, nullable users and linked version items without exceptions", () => {
+    const wrapper = mountPage();
+    expect(wrapper.findAll("li")).toHaveLength(2);
+    expect(wrapper.text()).toContain("Member");
+    expect(wrapper.text()).toContain("Keyboard shortcuts");
+    expect(wrapper.text()).toContain("Add keyboard shortcuts");
+  });
+
+  it("shows backend counts across statuses while the list is filtered by status", () => {
+    state.query.data.value = {
+      data: [sampleEntry],
+      counts: { in_progress: 4, done: 2, rejected: 3 },
+    };
+    const wrapper = mountPage();
+    const statusButtons = wrapper.findAll("button");
+    expect(
+      statusButtons.find((button) => button.text().includes("Pendientes"))?.text()
+    ).toContain("(4)");
+    expect(statusButtons.find((button) => button.text().includes("Hechas"))?.text()).toContain(
+      "(2)"
+    );
+    expect(
+      statusButtons.find((button) => button.text().includes("Rechazadas"))?.text()
+    ).toContain("(3)");
+    expect(statusButtons.find((button) => button.text().includes("Todas ("))?.text()).toContain(
+      "(9)"
+    );
   });
 
   it("filters and cycles priority optimistically while preserving the failure message", async () => {
@@ -108,8 +171,8 @@ describe("FeedbackManagementView", () => {
     const wrapper = mountPage();
     await wrapper.get('button[title="Click para cambiar prioridad"]').trigger("click");
     await flushPromises();
-    const cached = queryClient.getQueryData<FeedbackEntry[]>(state.query.queryKey.value);
-    expect(cached?.[0].priority).toBe("medium");
+    const cached = queryClient.getQueryData<FeedbackListResponse>(state.query.queryKey.value);
+    expect(cached?.data[0].priority).toBe("medium");
     expect(state.error).toHaveBeenCalledWith("Error al cambiar la prioridad");
   });
 
@@ -128,7 +191,10 @@ describe("FeedbackManagementView", () => {
     expect(state.create).toHaveBeenCalledWith({ title: "Admin suggestion", description: "Details", type: "suggestion", priority: "medium" });
     expect(state.success).toHaveBeenCalledWith("Creado correctamente");
 
-    state.query.data.value = [{ ...sampleEntry, status: "rejected" }];
+    state.query.data.value = {
+      ...state.query.data.value,
+      data: [{ ...sampleEntry, status: "rejected" }],
+    };
     await nextTick();
     await wrapper.findAll("button").find((button) => button.text().includes("Volver a pendiente"))?.trigger("click");
     await flushPromises();
@@ -149,7 +215,7 @@ describe("FeedbackManagementView", () => {
     await flushPromises();
     expect(state.reject).toHaveBeenCalledWith({ id: "entry-1", rejectionReason: "Duplicate" });
 
-    state.query.data.value = [{ ...sampleEntry, status: "in_progress" }];
+    state.query.data.value = { ...state.query.data.value, data: [sampleEntry] };
     await wrapper.findAll("button").find((button) => button.text().includes("Marcar como hecho"))?.trigger("click");
     expect(state.versionEnabled?.()).toBe(true);
     expect(document.body.textContent).toContain("Item description");

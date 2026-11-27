@@ -4,8 +4,8 @@ Entrada para instalar y arrancar el frontend. La documentación vigente está en
 
 ## Requisitos
 
-- Node.js **24.22.1**, fijado en `.nvmrc`.
-- pnpm **11.28.8**, seleccionado por Corepack desde `package.json`.
+- Node.js **24 o posterior**; CI utiliza **24.22.1**, fijado en `.nvmrc`.
+- pnpm **11.28.8 o posterior**; el proyecto no limita las versiones mayores.
 
 ## Instalación y desarrollo
 
@@ -13,7 +13,6 @@ Desde la raíz del repositorio:
 
 ```sh
 nvm use 24.22.1
-corepack enable
 pnpm install --frozen-lockfile
 pnpm dev
 ```
@@ -55,7 +54,8 @@ navegador sigue comunicándose solo con `localhost`. El proxy no se incluye en
 
 Requisitos y límites:
 
-- Node.js 24 y pnpm 11, como en el resto del proyecto. No hace falta
+- Node.js 24 o posterior y pnpm 11.28.8 o posterior. CI sigue usando las
+  versiones de referencia fijadas en `.nvmrc` y sus workflows. No hace falta
   instalar ni arrancar NestJS, PostgreSQL o integraciones externas localmente.
 - La primera ejecución requiere `pnpm install --frozen-lockfile` si aún no están
   instaladas las dependencias.

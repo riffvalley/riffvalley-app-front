@@ -1,18 +1,20 @@
 # Etapa de construcción
-FROM node:18 AS builder
+FROM node:24.22.1 AS builder
 
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Instalar dependencias
-COPY package*.json ./
-RUN npm install
+# Instalar dependencias desde el lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN corepack enable \
+    && corepack prepare pnpm@11.28.8 --activate \
+    && pnpm install --frozen-lockfile
 
 # Copiar código fuente
 COPY . .
 
 # Construir la aplicación
-RUN npm run build
+RUN pnpm run build
 
 # Etapa de producción
 FROM nginx:stable

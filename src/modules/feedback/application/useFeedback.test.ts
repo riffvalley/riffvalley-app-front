@@ -38,7 +38,10 @@ describe("Feedback application queries and mutations", () => {
       authStatus: "authenticated", token: "token", userId: "admin-1", role: "superadmin", authSessionGeneration: 4,
     });
     api.getMyFeedback.mockResolvedValue({ data: [], counts: { in_progress: 0, done: 0, rejected: 0 } });
-    api.getFeedback.mockResolvedValue([]);
+    api.getFeedback.mockResolvedValue({
+      data: [],
+      counts: { in_progress: 0, done: 0, rejected: 0 },
+    });
     api.getCurrentVersionItems.mockResolvedValue([]);
     api.createFeedback.mockResolvedValue({ id: "new-entry" });
     api.updateFeedback.mockResolvedValue({ id: "entry-1" });
