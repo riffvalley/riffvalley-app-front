@@ -1,26 +1,18 @@
 <template>
-  <div class="p-4 md:p-6">
-    <div class="max-w-2xl mx-auto space-y-6">
-
-      <!-- Cabecera -->
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  <main class="p-4 md:p-6">
+    <div class="mx-auto max-w-3xl space-y-5">
+      <header class="border-b border-gray-200 pb-4 text-left dark:border-white/10">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white mb-2">
-            <i class="fa-solid fa-bug mr-2"></i>Bugs y Sugerencias
+          <h1
+            class="text-2xl font-extrabold tracking-tight text-rv-navy dark:text-white sm:text-3xl"
+          >
+            Sugerencias y bugs
           </h1>
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            ¿Encontraste un error o tienes una idea? Cuéntanos aquí.
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Ayúdanos a mejorar Riff Valley compartiendo tus ideas o comunicando errores
           </p>
         </div>
-        <button
-          type="button"
-          class="inline-flex items-center justify-center gap-2 rounded-xl bg-rv-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-rv-navy/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink focus-visible:ring-offset-2 dark:bg-rv-purple dark:focus-visible:ring-offset-rv-darkBg"
-          @click="openSubmitModal"
-        >
-          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
-          Enviar feedback
-        </button>
-      </div>
+      </header>
 
       <FeedbackFormModal
         :open="submitModalOpen"
@@ -30,79 +22,97 @@
         @submit="handleSubmit"
       />
 
-      <!-- Mis envíos -->
-      <div class="bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
-        <div class="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center gap-2 flex-wrap">
-          <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-            <i class="fa-solid fa-clock-rotate-left text-amber-500 dark:text-amber-400 text-xs"></i>
-          </div>
-          <h2 class="text-sm font-bold text-gray-900 dark:text-white">Mis envíos</h2>
-          <div v-if="suggestions.length > 0" class="ml-auto flex items-center gap-1.5">
-            <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">
-              {{ counts.in_progress }} pendiente{{ counts.in_progress !== 1 ? 's' : '' }}
-            </span>
-            <span v-if="counts.done" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
-              {{ counts.done }} hecho{{ counts.done !== 1 ? 's' : '' }}
-            </span>
-            <span v-if="counts.rejected" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
-              {{ counts.rejected }} rechazado{{ counts.rejected !== 1 ? 's' : '' }}
+      <section aria-labelledby="feedback-history-title">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex min-w-0 items-baseline gap-2">
+            <h2
+              id="feedback-history-title"
+              class="text-base font-bold text-gray-900 dark:text-white"
+            >
+              Mis aportaciones
+            </h2>
+            <span v-if="query.data.value" class="text-xs text-gray-500 dark:text-gray-400">
+              {{ suggestions.length }}
+              {{ suggestions.length === 1 ? "aportación" : "aportaciones" }}
             </span>
           </div>
+          <button
+            type="button"
+            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-rv-navy px-3.5 py-2 text-sm font-semibold text-white hover:bg-rv-navy/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink focus-visible:ring-offset-2 dark:bg-rv-purple dark:focus-visible:ring-offset-rv-darkBg"
+            @click="openSubmitModal"
+          >
+            <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            Nueva aportación
+          </button>
         </div>
 
-        <!-- Loading -->
-        <div v-if="isInitialLoading" class="flex items-center justify-center gap-2 py-10 text-gray-400 dark:text-gray-500 text-sm">
-          <i class="fa-solid fa-spinner fa-spin"></i>
-          Cargando...
+        <section
+          v-if="query.data.value"
+          aria-label="Resumen de aportaciones"
+          class="mt-2 flex flex-wrap gap-2"
+        >
+          <span
+            class="inline-flex items-center gap-1.5 rounded-lg bg-yellow-100 px-2.5 py-1.5 text-xs font-semibold text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+          >
+            <i class="fa-solid fa-clock" aria-hidden="true"></i>
+            {{ counts.in_progress }} pendiente{{ counts.in_progress === 1 ? "" : "s" }}
+          </span>
+          <span
+            class="inline-flex items-center gap-1.5 rounded-lg bg-green-100 px-2.5 py-1.5 text-xs font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-300"
+          >
+            <i class="fa-solid fa-check" aria-hidden="true"></i>
+            {{ counts.done }} resuelto{{ counts.done === 1 ? "" : "s" }}
+          </span>
+          <span
+            class="inline-flex items-center gap-1.5 rounded-lg bg-red-100 px-2.5 py-1.5 text-xs font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-300"
+          >
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            {{ counts.rejected }} rechazado{{ counts.rejected === 1 ? "" : "s" }}
+          </span>
+        </section>
+
+        <div
+          v-if="isInitialLoading"
+          role="status"
+          class="flex items-center gap-2 rounded-xl bg-gray-50 px-4 py-5 text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300"
+        >
+          <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+          Cargando tus aportaciones...
         </div>
 
-        <div v-else-if="isError" class="py-8 px-5 text-center">
-          <p class="text-sm text-red-600 dark:text-red-400 mb-3">No se pudieron cargar tus envíos.</p>
-          <button type="button" @click="retry" class="text-sm font-semibold text-rv-pink hover:underline">Reintentar</button>
+        <div v-else-if="isError" class="rounded-xl bg-red-50 px-4 py-4 dark:bg-red-900/20">
+          <p class="text-sm text-red-700 dark:text-red-300">
+            No se pudieron cargar tus aportaciones.
+          </p>
+          <button
+            type="button"
+            class="mt-2 text-sm font-semibold text-red-700 underline decoration-red-300 underline-offset-2 hover:text-red-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:text-red-300 dark:hover:text-red-200"
+            @click="retry"
+          >
+            Reintentar
+          </button>
         </div>
 
-        <!-- Empty -->
-        <div v-else-if="suggestions.length === 0" class="py-12 text-center">
-          <div class="w-12 h-12 bg-gray-50 dark:bg-rv-darkSurface rounded-2xl flex items-center justify-center mx-auto mb-3">
-            <i class="fas fa-inbox text-gray-300 dark:text-gray-600 text-xl"></i>
-          </div>
-          <p class="font-semibold text-gray-900 dark:text-white mb-1 text-sm">Sin envíos todavía</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500">Tus envíos aparecerán aquí una vez enviados.</p>
+        <div
+          v-else-if="suggestions.length === 0"
+          class="rounded-xl bg-gray-50 px-4 py-5 dark:bg-rv-darkSurface"
+        >
+          <p class="text-sm font-semibold text-gray-900 dark:text-white">
+            Sin aportaciones todavía
+          </p>
+          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Cuando envíes una sugerencia o un bug, aparecerá aquí.
+          </p>
         </div>
 
-        <!-- Lista -->
-        <ul v-else class="divide-y divide-gray-100 dark:divide-white/5">
-          <li v-for="s in suggestions" :key="s.id" class="px-5 py-4">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap mb-1.5">
-                  <span :class="typeClass(s.type)" class="text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                    <i :class="[typeIcon(s.type), 'mr-1']"></i>{{ typeLabel(s.type) }}
-                  </span>
-                  <span :class="statusClass(s.status)" class="text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                    {{ statusLabel(s.status) }}
-                  </span>
-                  <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300">
-                    {{ feedbackCategoryLabel(s.category) }}
-                  </span>
-                </div>
-                <p class="font-semibold text-gray-800 dark:text-white text-sm">{{ s.title }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">{{ s.description }}</p>
-                <p v-if="s.rejectionReason" class="text-xs text-red-500 dark:text-red-400 mt-1.5 italic bg-red-50 dark:bg-red-900/20 rounded-lg px-2.5 py-1.5">
-                  <i class="fa-solid fa-circle-xmark mr-1"></i>{{ s.rejectionReason }}
-                </p>
-                <p v-if="s.versionItem" class="text-xs text-green-600 dark:text-green-400 mt-1.5">
-                  <i class="fa-solid fa-code-branch mr-1"></i>Incluido en: {{ s.versionItem.description }}
-                </p>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">{{ formatDate(s.createdAt) }}</p>
-              </div>
-            </div>
+        <ul v-else class="mt-3 space-y-2">
+          <li v-for="entry in suggestions" :key="entry.id">
+            <FeedbackHistoryCard :entry="entry" />
           </li>
         </ul>
-      </div>
-
+      </section>
     </div>
-  </div>
+  </main>
 </template>
 
 <script setup lang="ts">
@@ -110,14 +120,11 @@ import { computed, ref } from "vue";
 import { useMyFeedbackQuery, useFeedbackMutations } from "../../application/useFeedback";
 import { feedbackErrorMessage } from "../../application/feedbackErrorMessage";
 import FeedbackFormModal from "../components/FeedbackFormModal.vue";
-import {
-  feedbackCategoryLabel,
-  type CreateFeedbackDto,
-  type FeedbackType,
-} from "../../types/feedback";
+import FeedbackHistoryCard from "../components/FeedbackHistoryCard.vue";
+import type { CreateFeedbackDto } from "../../types/feedback";
 import SwalService from "@services/swal/SwalService";
 
-defineOptions({ name: "SuggestionsPage" });
+defineOptions({ name: "FeedbackView" });
 
 const query = useMyFeedbackQuery();
 const mutations = useFeedbackMutations();
@@ -152,22 +159,4 @@ async function handleSubmit(dto: CreateFeedbackDto) {
     submitError.value = feedbackErrorMessage(error, "Error al enviar la solicitud");
   }
 }
-
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
-
-const typeLabel = (type: FeedbackType) => type === "bug" ? "Bug" : "Sugerencia";
-const typeIcon = (type: FeedbackType) => type === "bug" ? "fa-solid fa-bug" : "fa-solid fa-lightbulb";
-const typeClass = (type: FeedbackType) => type === "bug"
-  ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-  : "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400";
-
-const statusLabel = (status: string) =>
-  ({ in_progress: "Pendiente", done: "Hecho", rejected: "Rechazado" }[status] ?? status);
-const statusClass = (status: string) =>
-  ({
-    in_progress: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400",
-    done: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
-    rejected: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
-  }[status] ?? "");
 </script>

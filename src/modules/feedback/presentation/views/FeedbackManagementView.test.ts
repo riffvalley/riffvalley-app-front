@@ -1,20 +1,39 @@
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia } from "pinia";
-import { flushPromises, mount } from "@vue/test-utils";
+import { enableAutoUnmount, flushPromises, mount } from "@vue/test-utils";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { nextTick, ref } from "vue";
 import type { FeedbackEntry, FeedbackListResponse } from "../../types/feedback";
 
-const sampleEntry = {
-  id: "entry-1", title: "Bug title", description: "Details", type: "bug" as const,
-  status: "in_progress" as const, priority: "medium" as const, rejectionReason: null,
+const pendingBug: FeedbackEntry = {
+  id: "entry-1",
+  title: "Bug title",
+  description: "Details",
+  type: "bug",
+  status: "in_progress",
+  priority: "medium",
+  rejectionReason: null,
   category: null,
-  userId: "user-1", user: { id: "user-1", username: "Member" }, versionItemId: null,
-  versionItem: null, createdAt: "2026-01-01", updatedAt: "2026-01-01",
+  userId: "user-1",
+  user: { id: "user-1", username: "Member" },
+  versionItemId: null,
+  versionItem: null,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
 };
-const versionedEntry: FeedbackEntry = {
-  ...sampleEntry,
+const pendingSuggestion: FeedbackEntry = {
+  ...pendingBug,
+  id: "entry-3",
+  title: "Suggestion",
+  type: "suggestion",
+  priority: "high",
+  category: "albums",
+  user: null,
+  createdAt: "2026-01-03T00:00:00.000Z",
+};
+const resolvedEntry: FeedbackEntry = {
+  ...pendingBug,
   id: "entry-2",
   title: "Keyboard shortcuts",
   type: "suggestion",
@@ -29,36 +48,49 @@ const versionedEntry: FeedbackEntry = {
     state: "done",
   },
 };
-const emptyResponse: FeedbackListResponse = {
-  data: [],
-  counts: { in_progress: 0, done: 0, rejected: 0 },
+const baseResponse: FeedbackListResponse = {
+  data: [pendingBug, resolvedEntry],
+  counts: { in_progress: 4, done: 2, rejected: 3 },
 };
 const state = vi.hoisted(() => ({
   query: undefined as unknown as ReturnType<typeof makeQuery>,
   filters: [] as Array<{ value: string }>,
   versionEnabled: undefined as (() => boolean) | undefined,
   versionQuery: undefined as unknown as ReturnType<typeof makeVersionQuery>,
-  create: vi.fn(), update: vi.fn(), reopen: vi.fn(), reject: vi.fn(), complete: vi.fn(), remove: vi.fn(),
-  confirm: vi.fn(), success: vi.fn(), error: vi.fn(),
+  create: vi.fn(),
+  update: vi.fn(),
+  reopen: vi.fn(),
+  reject: vi.fn(),
+  complete: vi.fn(),
+  remove: vi.fn(),
+  confirm: vi.fn(),
+  success: vi.fn(),
+  error: vi.fn(),
 }));
 function makeQuery() {
   return {
-    data: ref<FeedbackListResponse | undefined>({
-      data: [sampleEntry, versionedEntry],
-      counts: { in_progress: 1, done: 1, rejected: 0 },
-    }),
+    data: ref<FeedbackListResponse | undefined>(structuredClone(baseResponse)),
     isPending: ref(false),
     isError: ref(false),
     refetch: vi.fn(),
-    queryKey: ref(["feedback", "admin", "admin-1", 1, "all", "in_progress"]),
+    queryKey: ref(["feedback", "admin", "admin-1", 1, "all", "in_progress", "all"]),
   };
 }
 function makeVersionQuery() {
-  return { data: ref([{ id: "version-item-1", type: "feat", description: "Item description" }]), isPending: ref(false), isError: ref(false), refetch: vi.fn() };
+  return {
+    data: ref([{ id: "version-item-1", type: "feat", description: "Item description" }]),
+    isPending: ref(false),
+    isError: ref(false),
+    refetch: vi.fn(),
+  };
 }
 vi.mock("../../application/useFeedback", () => ({
-  useAdminFeedbackQuery: (type: { value: string }, status: { value: string }) => {
-    state.filters = [type, status];
+  useAdminFeedbackQuery: (
+    type: { value: string },
+    status: { value: string },
+    category: { value: string }
+  ) => {
+    state.filters = [type, status, category];
     return state.query;
   },
   useCurrentFeedbackVersionItemsQuery: (enabled: () => boolean) => {
@@ -74,11 +106,18 @@ vi.mock("../../application/useFeedback", () => ({
     remove: { mutateAsync: state.remove, isPending: ref(false) },
   }),
 }));
-vi.mock("@services/swal/SwalService", () => ({ default: {
-  confirm: state.confirm, success: state.success, error: state.error,
-} }));
+vi.mock("@services/swal/SwalService", () => ({
+  default: {
+    confirm: state.confirm,
+    success: state.success,
+    error: state.error,
+  },
+}));
 
 import FeedbackManagementView from "./FeedbackManagementView.vue";
+import FeedbackFormModal from "../components/FeedbackFormModal.vue";
+
+enableAutoUnmount(afterEach);
 
 describe("FeedbackManagementView", () => {
   let queryClient: QueryClient;
@@ -88,170 +127,311 @@ describe("FeedbackManagementView", () => {
     state.versionQuery = makeVersionQuery();
     state.confirm.mockResolvedValue({ isConfirmed: true });
     state.create.mockResolvedValue({ id: "created" });
-    state.update.mockResolvedValue({ ...sampleEntry, priority: "high" });
-    state.reopen.mockResolvedValue({ ...sampleEntry, status: "in_progress" });
-    state.reject.mockResolvedValue({ ...sampleEntry, status: "rejected" });
-    state.complete.mockResolvedValue({ ...sampleEntry, status: "done" });
+    state.update.mockResolvedValue(pendingBug);
+    state.reopen.mockResolvedValue({ ...pendingBug, status: "in_progress" });
+    state.reject.mockResolvedValue({ ...pendingBug, status: "rejected" });
+    state.complete.mockResolvedValue({ ...pendingBug, status: "done" });
     state.remove.mockResolvedValue(undefined);
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   });
 
   function mountPage() {
     queryClient.setQueryData(state.query.queryKey.value, state.query.data.value);
-    return mount(FeedbackManagementView, { global: { plugins: [createPinia(), [VueQueryPlugin, { queryClient }]] } });
+    return mount(FeedbackManagementView, {
+      attachTo: document.body,
+      global: { plugins: [createPinia(), [VueQueryPlugin, { queryClient }]] },
+    });
+  }
+  function getSelect(wrapper: ReturnType<typeof mountPage>, label: string) {
+    return wrapper
+      .findAll("label")
+      .find((item) => item.text().startsWith(label))!
+      .get("select");
   }
 
-  it("shows list errors separately from empty results and retries", async () => {
-    state.query.data.value = emptyResponse;
-    state.query.isError.value = true;
-    const wrapper = mountPage();
-    expect(wrapper.text()).toContain("No se pudieron cargar las entradas de soporte.");
-    expect(wrapper.text()).not.toContain("No hay bugs en este estado.");
-    await wrapper.findAll("button").find((button) => button.text().includes("Reintentar"))?.trigger("click");
-    expect(state.query.refetch).toHaveBeenCalledOnce();
-    state.query.isError.value = false;
-    await nextTick();
-    expect(wrapper.text()).toContain("No hay entradas en este estado.");
-  });
-
-  it("labels historical rows as uncategorized in the admin list", () => {
-    const wrapper = mountPage();
-    expect(wrapper.text()).toContain("Sin categorizar");
-  });
-
-  it("shows loading separately from empty results", () => {
+  it("renders admin heading, shared create modal, loading/error/empty states and retries", async () => {
     state.query.data.value = undefined;
     state.query.isPending.value = true;
     const wrapper = mountPage();
-    expect(wrapper.text()).toContain("Cargando...");
-    expect(wrapper.text()).not.toContain("No hay entradas en este estado.");
+    expect(wrapper.text()).toContain("Soporte");
+    expect(wrapper.text()).not.toContain(
+      "Gestiona las sugerencias y bugs enviados por los usuarios"
+    );
+    expect(wrapper.text()).toContain("Aportaciones");
+    expect(wrapper.text()).toContain("Cargando aportaciones...");
+    expect(wrapper.findComponent(FeedbackFormModal).exists()).toBe(true);
+    state.query.isPending.value = false;
+    state.query.isError.value = true;
+    await nextTick();
+    expect(wrapper.text()).toContain("No se pudieron cargar las aportaciones.");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Reintentar"))!
+      .trigger("click");
+    expect(state.query.refetch).toHaveBeenCalledOnce();
+    state.query.isError.value = false;
+    state.query.data.value = { data: [], counts: { in_progress: 0, done: 0, rejected: 0 } };
+    await nextTick();
+    expect(wrapper.text()).toContain("Sin resultados");
+    wrapper.unmount();
   });
 
-  it("renders multiple entries, nullable users and linked version items without exceptions", () => {
+  it("combines type, status and category server filters, defaults to pending and can reset all filters", async () => {
     const wrapper = mountPage();
-    expect(wrapper.findAll("li")).toHaveLength(2);
-    expect(wrapper.text()).toContain("Member");
-    expect(wrapper.text()).toContain("Keyboard shortcuts");
-    expect(wrapper.text()).toContain("Add keyboard shortcuts");
+    expect(state.filters.map((filter) => filter.value)).toEqual(["all", "in_progress", "all"]);
+    await getSelect(wrapper, "Tipo").setValue("bug");
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Rechazados"))!
+      .trigger("click");
+    await getSelect(wrapper, "Apartado").setValue("uncategorized");
+    await getSelect(wrapper, "Prioridad").setValue("low");
+    await getSelect(wrapper, "Orden").setValue("oldest");
+    expect(state.filters.map((filter) => filter.value)).toEqual([
+      "bug",
+      "rejected",
+      "uncategorized",
+    ]);
+    expect(wrapper.text()).not.toContain("resultados visibles");
+    const reset = wrapper
+      .findAll("button")
+      .find((button) => button.text() === "Restablecer filtros");
+    await reset!.trigger("click");
+    expect(state.filters.map((filter) => filter.value)).toEqual(["all", "in_progress", "all"]);
+    expect((getSelect(wrapper, "Prioridad").element as HTMLSelectElement).value).toBe("all");
   });
 
-  it("shows backend counts across statuses while the list is filtered by status", () => {
+  it("uses backend counters, pluralization, local priority filtering and deterministic priority/date ordering", async () => {
     state.query.data.value = {
-      data: [sampleEntry],
-      counts: { in_progress: 4, done: 2, rejected: 3 },
+      data: [
+        pendingBug,
+        {
+          ...pendingBug,
+          id: "entry-4",
+          title: "Low",
+          priority: "low",
+          createdAt: "2026-01-04T00:00:00Z",
+        },
+        pendingSuggestion,
+      ],
+      counts: { in_progress: 4, done: 5, rejected: 2 },
     };
     const wrapper = mountPage();
-    const statusButtons = wrapper.findAll("button");
+    expect(wrapper.text()).toContain("Todas (11)");
     expect(
-      statusButtons.find((button) => button.text().includes("Pendientes"))?.text()
-    ).toContain("(4)");
-    expect(statusButtons.find((button) => button.text().includes("Hechas"))?.text()).toContain(
-      "(2)"
-    );
+      wrapper
+        .findAll("button")
+        .find((button) => button.text().includes("Pendientes"))
+        ?.attributes("aria-pressed")
+    ).toBe("true");
+    expect(wrapper.text()).toContain("Pendientes (4)");
+    expect(wrapper.text()).toContain("Resueltos (5)");
+    expect(wrapper.text()).toContain("Rechazados (2)");
     expect(
-      statusButtons.find((button) => button.text().includes("Rechazadas"))?.text()
-    ).toContain("(3)");
-    expect(statusButtons.find((button) => button.text().includes("Todas ("))?.text()).toContain(
-      "(9)"
-    );
-  });
-
-  it("filters and cycles priority optimistically while preserving the failure message", async () => {
-    const wrapper = mountPage();
-    const bugs = wrapper.findAll("button").find((button) => button.text().includes("Bugs"));
-    await bugs?.trigger("click");
-    expect(state.filters[0].value).toBe("bug");
-    const rejected = wrapper.findAll("button").find((button) => button.text().includes("Rechazadas"));
-    await rejected?.trigger("click");
-    expect(state.filters[1].value).toBe("rejected");
-
-    const priority = wrapper.get('button[title="Click para cambiar prioridad"]');
-    await priority.trigger("click");
-    await flushPromises();
-    expect(state.update).toHaveBeenCalledWith({ id: "entry-1", dto: { priority: "high" } });
-    expect(state.success).not.toHaveBeenCalled();
-  });
-
-  it("restores the previous priority and reports a failed update", async () => {
-    state.update.mockRejectedValueOnce(new Error("offline"));
-    const wrapper = mountPage();
-    await wrapper.get('button[title="Click para cambiar prioridad"]').trigger("click");
-    await flushPromises();
-    const cached = queryClient.getQueryData<FeedbackListResponse>(state.query.queryKey.value);
-    expect(cached?.data[0].priority).toBe("medium");
-    expect(state.error).toHaveBeenCalledWith("Error al cambiar la prioridad");
-  });
-
-  it("preserves creation, rejection and reopen actions", async () => {
-    const wrapper = mountPage();
-    await wrapper.findAll("button").find((button) => button.text().includes("Nueva entrada"))?.trigger("click");
-    const createTitle = document.body.querySelector('input[maxlength="200"]') as HTMLInputElement;
-    const createDescription = document.body.querySelector("textarea") as HTMLTextAreaElement;
-    createTitle.value = "Admin suggestion";
-    createTitle.dispatchEvent(new Event("input", { bubbles: true }));
-    createDescription.value = "Details";
-    createDescription.dispatchEvent(new Event("input", { bubbles: true }));
-    await flushPromises();
-    await Array.from(document.body.querySelectorAll("button")).find((button) => button.textContent?.trim() === "Crear")?.click();
-    await flushPromises();
-    expect(state.create).toHaveBeenCalledWith({ title: "Admin suggestion", description: "Details", type: "suggestion", priority: "medium" });
-    expect(state.success).toHaveBeenCalledWith("Creado correctamente");
-
+      wrapper
+        .findAll("button")
+        .find((button) => button.text().includes("Pendientes"))
+        ?.classes()
+    ).toContain("bg-yellow-600");
+    const titles = () => wrapper.findAll("article h3").map((item) => item.text());
+    expect(titles()).toEqual(["Suggestion", "Bug title", "Low"]);
+    await getSelect(wrapper, "Prioridad").setValue("medium");
+    expect(titles()).toEqual(["Bug title"]);
+    expect(wrapper.text()).not.toContain("resultados visibles");
+    await getSelect(wrapper, "Prioridad").setValue("all");
+    await getSelect(wrapper, "Orden").setValue("newest");
+    expect(titles()).toEqual(["Low", "Suggestion", "Bug title"]);
     state.query.data.value = {
-      ...state.query.data.value,
-      data: [{ ...sampleEntry, status: "rejected" }],
+      ...state.query.data.value!,
+      counts: { in_progress: 1, done: 1, rejected: 1 },
     };
     await nextTick();
-    await wrapper.findAll("button").find((button) => button.text().includes("Volver a pendiente"))?.trigger("click");
-    await flushPromises();
-    expect(state.reopen).toHaveBeenCalledWith("entry-1");
+    expect(wrapper.text()).toContain("Pendiente (1)");
+    expect(wrapper.text()).toContain("Resuelto (1)");
+    expect(wrapper.text()).toContain("Rechazado (1)");
   });
 
-  it("rejects with a reason, completes with a version or internally, and confirms deletion", async () => {
+  it("creates categorized suggestions and bugs through the approved shared modal", async () => {
     const wrapper = mountPage();
-    await wrapper.findAll("button").find((button) => button.text().includes("Rechazar"))?.trigger("click");
-    const reason = document.body.querySelector("textarea") as HTMLTextAreaElement;
-    await Array.from(document.body.querySelectorAll("button")).find((button) => button.textContent?.trim() === "Rechazar")?.click();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Nueva aportación"))!
+      .trigger("click");
+    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
+    const typeBug = document.body.querySelector("#feedback-form-type-bug") as HTMLInputElement;
+    typeBug.click();
+    const category = document.body.querySelector("#feedback-form-category") as HTMLSelectElement;
+    category.value = "artists";
+    category.dispatchEvent(new Event("change", { bubbles: true }));
+    const title = document.body.querySelector("#feedback-form-title-input") as HTMLInputElement;
+    const description = document.body.querySelector(
+      "#feedback-form-description"
+    ) as HTMLTextAreaElement;
+    title.value = "Admin bug";
+    title.dispatchEvent(new Event("input", { bubbles: true }));
+    description.value = "Details";
+    description.dispatchEvent(new Event("input", { bubbles: true }));
     await flushPromises();
-    expect(state.reject).not.toHaveBeenCalled();
-    reason.value = "Duplicate";
-    reason.dispatchEvent(new Event("input", { bubbles: true }));
+    await nextTick();
+    await Array.from(document.body.querySelectorAll("button"))
+      .find((button) => button.textContent?.includes("Comunicar bug"))!
+      .click();
     await flushPromises();
-    await Array.from(document.body.querySelectorAll("button")).find((button) => button.textContent?.trim() === "Rechazar")?.click();
-    await flushPromises();
-    expect(state.reject).toHaveBeenCalledWith({ id: "entry-1", rejectionReason: "Duplicate" });
+    await nextTick();
+    await nextTick();
+    expect(state.create).toHaveBeenCalledWith({
+      title: "Admin bug",
+      description: "Details",
+      type: "bug",
+      category: "artists",
+    });
+    expect(state.success).toHaveBeenCalledWith("Enviado correctamente");
+    expect(wrapper.findComponent(FeedbackFormModal).props("open")).toBe(false);
+    wrapper.unmount();
+  });
 
-    state.query.data.value = { ...state.query.data.value, data: [sampleEntry] };
-    await wrapper.findAll("button").find((button) => button.text().includes("Marcar como hecho"))?.trigger("click");
-    expect(state.versionEnabled?.()).toBe(true);
-    expect(document.body.textContent).toContain("Item description");
-    const select = document.body.querySelector("select") as HTMLSelectElement;
-    select.value = "version-item-1";
-    select.dispatchEvent(new Event("change", { bubbles: true }));
+  it("sends null for uncategorized edits and supports explicit priority values with rollback", async () => {
+    const wrapper = mountPage();
+    const card = wrapper.findAll("article")[0];
+    const actions = card.find("details");
+    await actions
+      .findAll("button")
+      .find((button) => button.text() === "Cambiar categoría")!
+      .trigger("click");
+    (document.body.querySelector("#feedback-edit-value") as HTMLSelectElement).value =
+      "uncategorized";
+    document.body
+      .querySelector("#feedback-edit-value")!
+      .dispatchEvent(new Event("change", { bubbles: true }));
     await flushPromises();
-    await Array.from(document.body.querySelectorAll("button")).find((button) => button.textContent?.trim() === "Confirmar")?.click();
+    await Array.from(document.body.querySelectorAll("button"))
+      .find((button) => button.textContent?.trim() === "Guardar")!
+      .click();
+    await flushPromises();
+    expect(state.update).toHaveBeenCalledWith({ id: "entry-1", dto: { category: null } });
+
+    const freshCard = wrapper.findAll("article")[0];
+    await freshCard
+      .find("details")
+      .findAll("button")
+      .find((button) => button.text() === "Cambiar prioridad")!
+      .trigger("click");
+    (document.body.querySelector("#feedback-edit-value") as HTMLSelectElement).value = "low";
+    document.body
+      .querySelector("#feedback-edit-value")!
+      .dispatchEvent(new Event("change", { bubbles: true }));
+    await flushPromises();
+    state.update.mockRejectedValueOnce(new Error("offline"));
+    await Array.from(document.body.querySelectorAll("button"))
+      .find((button) => button.textContent?.trim() === "Guardar")!
+      .click();
+    await flushPromises();
+    expect(state.update).toHaveBeenLastCalledWith({ id: "entry-1", dto: { priority: "low" } });
+    expect(state.error).toHaveBeenCalledWith("No se pudo cambiar la prioridad");
+    const cached = queryClient.getQueryData<FeedbackListResponse>(state.query.queryKey.value);
+    expect(cached?.data.find((entry) => entry.id === "entry-1")?.priority).toBe("medium");
+  });
+
+  it("keeps status-based actions, resolution variants, rejection, reopen, read and confirmed delete", async () => {
+    const wrapper = mountPage();
+    const pending = wrapper.findAll("article")[0];
+    expect(pending.text()).toContain("Resolver");
+    expect(pending.text()).toContain("Rechazar");
+    expect(pending.find("details").text()).toContain("Marcar como leído");
+    expect(wrapper.findAll("article")[1].text()).toContain("Add keyboard shortcuts");
+    expect(wrapper.findAll("article")[1].text()).toContain("Usuario eliminado");
+    expect(wrapper.findAll("article")[1].find("details").text()).not.toContain("Marcar como leído");
+
+    await pending
+      .findAll("button")
+      .find((button) => button.text().includes("Resolver"))!
+      .trigger("click");
+    expect(state.versionEnabled?.()).toBe(true);
+    (document.body.querySelector("#feedback-version-item") as HTMLSelectElement).value =
+      "version-item-1";
+    document.body
+      .querySelector("#feedback-version-item")!
+      .dispatchEvent(new Event("change", { bubbles: true }));
+    await flushPromises();
+    await Array.from(document.body.querySelectorAll("button"))
+      .find((button) => button.textContent?.includes("Confirmar resolución"))!
+      .click();
     await flushPromises();
     expect(state.complete).toHaveBeenCalledWith({ id: "entry-1", versionItemId: "version-item-1" });
 
-    await wrapper.findAll("button").find((button) => button.text().includes("Marcar como hecho"))?.trigger("click");
-    const checkbox = document.body.querySelector('input[type="checkbox"]') as HTMLInputElement;
-    checkbox.click();
+    await wrapper
+      .findAll("article")[0]
+      .findAll("button")
+      .find((button) => button.text().includes("Resolver"))!
+      .trigger("click");
+    (document.body.querySelector("#feedback-internal-done") as HTMLInputElement).click();
     await flushPromises();
-    await Array.from(document.body.querySelectorAll("button")).find((button) => button.textContent?.trim() === "Confirmar")?.click();
+    await Array.from(document.body.querySelectorAll("button"))
+      .find((button) => button.textContent?.includes("Confirmar resolución"))!
+      .click();
     await flushPromises();
     expect(state.complete).toHaveBeenLastCalledWith({ id: "entry-1", versionItemId: undefined });
 
-    await wrapper.findAll("button").find((button) => button.text().includes("Eliminar"))?.trigger("click");
+    const rejectActionButton = wrapper
+      .findAll("article")[0]
+      .findAll("button")
+      .find((button) => button.text().includes("Rechazar"))!;
+    (rejectActionButton.element as HTMLButtonElement).focus();
+    await rejectActionButton.trigger("click");
+    await nextTick();
+    const rejectDialog = document
+      .querySelector("#feedback-reject-reason")
+      ?.closest("[role='dialog']");
+    const rejectFocusable = Array.from(
+      rejectDialog!.querySelectorAll<HTMLElement>("textarea, button:not([disabled])")
+    );
+    expect(rejectDialog!.contains(document.activeElement)).toBe(true);
+    rejectFocusable.at(-1)!.focus();
+    rejectFocusable
+      .at(-1)!
+      .dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
+    expect(document.activeElement).toBe(rejectFocusable[0]);
+    const reason = document.body.querySelector("#feedback-reject-reason") as HTMLTextAreaElement;
+    reason.value = "Duplicate";
+    reason.dispatchEvent(new Event("input", { bubbles: true }));
     await flushPromises();
-    expect(state.confirm).toHaveBeenCalledWith("¿Eliminar esta entrada?", "Esta acción no se puede deshacer.", "Sí, eliminar", "Cancelar");
-    expect(state.remove).toHaveBeenCalledWith("entry-1");
-  });
+    await Array.from(rejectDialog!.querySelectorAll("button"))
+      .find((button) => button.textContent?.trim() === "Rechazar")!
+      .click();
+    await flushPromises();
+    expect(state.reject).toHaveBeenCalledWith({ id: "entry-1", rejectionReason: "Duplicate" });
+    await nextTick();
+    expect(document.activeElement).toBe(rejectActionButton.element);
 
-  it("marks pending entries as read in the existing local support store", async () => {
-    const pinia = createPinia();
-    const wrapper = mount(FeedbackManagementView, { global: { plugins: [pinia, [VueQueryPlugin, { queryClient }]] } });
-    await wrapper.findAll("button").find((button) => button.text().includes("Marcar como leído"))?.trigger("click");
-    const { useSupportStore } = await import("@stores/support/support");
-    expect(useSupportStore(pinia).isRead("entry-1")).toBe(true);
+    await wrapper
+      .findAll("article")[0]
+      .find("details")
+      .findAll("button")
+      .find((button) => button.text() === "Marcar como leído")!
+      .trigger("click");
+    await nextTick();
+    expect(wrapper.findAll("article")[0].find("details").text()).not.toContain("Marcar como leído");
+
+    state.query.data.value = {
+      ...state.query.data.value!,
+      data: [{ ...pendingBug, status: "rejected" }],
+    };
+    await nextTick();
+    await wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Reabrir"))!
+      .trigger("click");
+    await flushPromises();
+    expect(state.reopen).toHaveBeenCalledWith("entry-1");
+    await wrapper
+      .findAll("article")[0]
+      .find("details")
+      .findAll("button")
+      .find((button) => button.text() === "Eliminar")!
+      .trigger("click");
+    await flushPromises();
+    expect(state.confirm).toHaveBeenCalledOnce();
+    expect(state.remove).toHaveBeenCalledWith("entry-1");
+    wrapper.unmount();
   });
 });

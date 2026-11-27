@@ -184,11 +184,18 @@ describe("FeedbackView submission flow", () => {
     expect(state.create).toHaveBeenCalledTimes(2);
   });
 
-  it("distinguishes own-list errors from a successful empty result and retries", async () => {
-    state.query.isError.value = true;
+  it("distinguishes loading, own-list errors, retries, and a successful empty result", async () => {
+    state.query.isPending.value = true;
     wrapper = mount(FeedbackView);
-    expect(wrapper.text()).toContain("No se pudieron cargar tus envíos.");
-    expect(wrapper.text()).not.toContain("Sin envíos todavía");
+    expect(wrapper.text()).toContain("Cargando tus aportaciones...");
+    expect(wrapper.text()).not.toContain("Sin aportaciones todavía");
+    expect(wrapper.text()).not.toContain("0 pendientes");
+
+    state.query.isPending.value = false;
+    state.query.isError.value = true;
+    await nextTick();
+    expect(wrapper.text()).toContain("No se pudieron cargar tus aportaciones.");
+    expect(wrapper.text()).not.toContain("Sin aportaciones todavía");
     await wrapper
       .findAll("button")
       .find((button) => button.text().includes("Reintentar"))
@@ -198,10 +205,25 @@ describe("FeedbackView submission flow", () => {
     state.query.isError.value = false;
     state.query.data.value = { data: [], counts: { in_progress: 0, done: 0, rejected: 0 } };
     await nextTick();
-    expect(wrapper.text()).toContain("Sin envíos todavía");
+    expect(wrapper.text()).toContain("Sin aportaciones todavía");
+    expect(wrapper.text()).toContain("0 pendientes");
+    expect(wrapper.text()).toContain("0 resueltos");
+    expect(wrapper.text()).toContain("0 rechazados");
   });
 
-  it("renders categorized and historical entries with their existing details", () => {
+  it("uses singular status labels when the backend count is one", () => {
+    state.query.data.value = {
+      data: [],
+      counts: { in_progress: 1, done: 1, rejected: 1 },
+    };
+    wrapper = mount(FeedbackView);
+
+    expect(wrapper.text()).toContain("1 pendiente");
+    expect(wrapper.text()).toContain("1 resuelto");
+    expect(wrapper.text()).toContain("1 rechazado");
+  });
+
+  it("renders type, category, status, server counts, rejection reason, and resolution details", () => {
     state.query.data.value = {
       data: [
         {
@@ -219,9 +241,33 @@ describe("FeedbackView submission flow", () => {
         {
           id: "new",
           title: "Idea",
-          description: "Mejora",
+          description: "Mejora\ncon más detalle",
+          type: "suggestion",
+          category: "events",
+          status: "done",
+          priority: "medium",
+          rejectionReason: null,
+          versionItem: { id: "version-1", description: "Versión 2.0" },
+          createdAt: "2026-01-01",
+        },
+        {
+          id: "internal",
+          title: "Mejora interna",
+          description: "Optimización interna",
           type: "suggestion",
           category: "other",
+          status: "done",
+          priority: "medium",
+          rejectionReason: null,
+          versionItem: null,
+          createdAt: "2026-01-01",
+        },
+        {
+          id: "pending",
+          title: "Aportación pendiente",
+          description: "A la espera de revisión",
+          type: "bug",
+          category: "artists",
           status: "in_progress",
           priority: "medium",
           rejectionReason: null,
@@ -229,12 +275,40 @@ describe("FeedbackView submission flow", () => {
           createdAt: "2026-01-01",
         },
       ],
-      counts: { in_progress: 1, done: 0, rejected: 1 },
+      // Las cifras del resumen proceden del backend, aunque no coincidan con estas filas.
+      counts: { in_progress: 8, done: 4, rejected: 2 },
     };
     wrapper = mount(FeedbackView);
+    expect(wrapper.text()).toContain("Sugerencias y bugs");
+    expect(wrapper.text()).toContain(
+      "Ayúdanos a mejorar Riff Valley compartiendo tus ideas o comunicando errores"
+    );
+    expect(wrapper.text()).toContain("Mis aportaciones");
+    expect(wrapper.get("button").text()).toContain("Nueva aportación");
+    expect(wrapper.get("button i").classes()).toContain("fa-plus");
+    expect(wrapper.findAll(".feedback-history-card")).toHaveLength(4);
+    expect(wrapper.get(".feedback-history-card").classes()).toEqual(
+      expect.arrayContaining(["rounded-xl", "border", "bg-white", "p-3", "dark:bg-rv-darkCard"])
+    );
+    expect(
+      wrapper.get(".feedback-history-card__status").element.parentElement?.className
+    ).toContain("justify-between");
     expect(wrapper.text()).toContain("Sin categorizar");
+    expect(wrapper.text()).toContain("Conciertos y festivales");
     expect(wrapper.text()).toContain("General / Otros");
+    expect(wrapper.text()).toContain("Bug");
+    expect(wrapper.text()).toContain("Sugerencia");
+    expect(wrapper.text()).toContain("Pendiente");
+    expect(wrapper.text()).toContain("Resuelto");
+    expect(wrapper.text()).toContain("Rechazado");
+    expect(wrapper.text()).toContain("8 pendientes");
+    expect(wrapper.text()).toContain("4 resueltos");
+    expect(wrapper.text()).toContain("2 rechazados");
     expect(wrapper.text()).toContain("Duplicado");
+    expect(wrapper.text()).toContain("Incluido en Versiones: Versión 2.0");
+    expect(wrapper.text()).toContain("Resuelto como mejora interna");
+    expect(wrapper.text()).toContain("Enviado el");
+    expect(wrapper.text()).toContain("Mejora\ncon más detalle");
   });
 
   it("has no active view or service imports from the removed legacy locations", () => {
