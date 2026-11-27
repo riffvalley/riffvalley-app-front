@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { useQuery } from "@tanstack/vue-query";
 import { useAuthStore } from "@/modules/identity/auth";
 import DiscCard from "@components/DiscCardComponent.vue";
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
 import {
   activityDiscCardQueryKey,
   activityDiscCardStaleTime,
@@ -11,12 +12,13 @@ import {
 import { toActivityDiscCardProps } from "../../application/activityDiscCard";
 
 const props = defineProps<{ discId: string }>();
-const emit = defineEmits<{ close: [] }>();
+const emit = defineEmits<{ close: []; updated: [] }>();
 const authStore = useAuthStore();
 const closeButton = ref<HTMLButtonElement | null>(null);
 const dialogElement = ref<HTMLElement | null>(null);
 const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-const previousBodyOverflow = document.body.style.overflow;
+// Bloquea el scroll de la página de detrás mientras el modal está abierto.
+usePageScrollLock();
 const queryKey = computed(() =>
   activityDiscCardQueryKey(props.discId, authStore.userId, authStore.authSessionGeneration),
 );
@@ -49,6 +51,8 @@ function close(): void {
 function onKeydown(event: KeyboardEvent): void {
   if (event.key === "Escape") {
     event.preventDefault();
+    // Que Escape cierre solo esta ficha y no el modal que la abrió debajo.
+    event.stopPropagation();
     close();
     return;
   }
@@ -76,45 +80,43 @@ function onKeydown(event: KeyboardEvent): void {
 }
 
 onMounted(() => {
-  document.body.style.overflow = "hidden";
   dialogElement.value?.addEventListener("keydown", onKeydown);
   closeButton.value?.focus();
 });
 
 onBeforeUnmount(() => {
   dialogElement.value?.removeEventListener("keydown", onKeydown);
-  document.body.style.overflow = previousBodyOverflow;
   if (opener?.isConnected) opener.focus();
 });
 </script>
 
 <template>
-  <div class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/60 p-3 sm:items-center sm:p-6">
+  <!-- `m-auto` en la tarjeta la centra también en móvil (a mano del pulgar) sin recortarla si no cabe en pantalla. -->
+  <div class="fixed inset-0 z-[60] flex overflow-y-auto bg-black/60 p-6 backdrop-blur-sm" data-test="activity-disc-card-overlay" @click.self="close">
+    <!-- Sin marco propio: la tarjeta flota sola y el botón de cerrar estándar de los modales se apoya en su esquina. -->
     <section
       ref="dialogElement"
       role="dialog"
       aria-modal="true"
       aria-labelledby="activity-disc-card-title"
       tabindex="-1"
-      class="relative my-2 w-full max-w-xl rounded-xl bg-gray-50 p-4 text-gray-900 shadow-xl dark:bg-rv-darkBg dark:text-white sm:my-6 sm:p-6"
+      class="relative m-auto w-full max-w-[20rem] text-gray-900 focus:outline-none dark:text-white"
     >
-      <div class="mb-4 flex items-center justify-between gap-4">
-        <h2 id="activity-disc-card-title" class="text-xl sm:text-2xl font-extrabold tracking-tight">Ficha del disco</h2>
-        <button
-          ref="closeButton"
-          type="button"
-          class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-300 text-gray-800 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-blueDark dark:border-white/20 dark:text-white dark:hover:bg-white/10 dark:focus-visible:outline-rv-pink"
-          aria-label="Cerrar ficha del disco"
-          @click="close"
-        >
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
-      </div>
+      <h2 id="activity-disc-card-title" class="sr-only">Ficha del disco</h2>
+      <button
+        ref="closeButton"
+        type="button"
+        class="absolute -right-5 -top-5 z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 bg-rv-navy p-0 text-white shadow-md transition hover:bg-rv-pink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
+        aria-label="Cerrar ficha del disco"
+        @click="close"
+      >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
 
-      <p v-if="query.isPending.value" role="status" aria-live="polite" aria-busy="true" class="py-8 text-center text-sm text-gray-600 dark:text-gray-300">
+      <p v-if="query.isPending.value" role="status" aria-live="polite" aria-busy="true" class="rounded-xl bg-white px-4 py-8 text-center text-sm text-gray-600 shadow-xl dark:bg-rv-darkCard dark:text-gray-300">
         Cargando la ficha del disco…
       </p>
-      <div v-else-if="query.isError.value" role="alert" class="py-5 text-sm text-red-700 dark:text-red-300">
+      <div v-else-if="query.isError.value" role="alert" class="rounded-xl bg-white px-4 py-5 text-sm text-red-700 shadow-xl dark:bg-rv-darkCard dark:text-red-300">
         <p>No se pudo cargar la ficha del disco.</p>
         <button
           type="button"
@@ -124,7 +126,7 @@ onBeforeUnmount(() => {
           Reintentar
         </button>
       </div>
-      <DiscCard v-else-if="cardProps" v-bind="cardProps" />
+      <DiscCard v-else-if="cardProps" v-bind="cardProps" @card-updated="emit('updated')" />
     </section>
   </div>
 </template>

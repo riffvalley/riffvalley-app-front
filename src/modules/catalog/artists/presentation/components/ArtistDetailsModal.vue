@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef, toRef, useTemplateRef, watch } from "vue";
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, shallowRef, toRef, useTemplateRef, watch } from "vue";
 import defaultDiscImage from "@/assets/disco.png";
 import DiscDetail from "@components/DiscDetail.vue";
+import { discCardDialogKey } from "@/composables/discCardDialog";
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
 import { useAuthStore } from "@/modules/identity/auth";
 import { useArtistDetailInsights } from "../../application/useArtistDetailInsights";
 import type { RatesTopArtistDto } from "@services/rates/rates";
@@ -13,10 +15,13 @@ const emit = defineEmits<{ close: []; "open-related-artist": [artistId: string] 
 const dialog = useTemplateRef<HTMLElement>("dialog");
 const closeButton = useTemplateRef<HTMLButtonElement>("closeButton");
 const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-const priorOverflow = document.body.style.overflow;
+// Bloquea el scroll de la página de detrás mientras el modal está abierto.
+usePageScrollLock();
 const isMounted = shallowRef(false);
 const authStore = useAuthStore();
-const personalEnabled = computed(() => isMounted.value && Boolean(props.favoriteArtist));
+// La parte personal se pide para cualquier artista. Desde el Dashboard (artista favorito) se
+// muestra siempre; en el resto, solo cuando tienes algún disco valorado de esa banda.
+const personalEnabled = computed(() => isMounted.value);
 const artistId = toRef(() => props.artistId);
 const { detail: catalogDetail, loading: catalogLoading, error: catalogError, notFound, load: retryCatalog } = useArtistDetails(artistId, isMounted);
 const {
@@ -63,6 +68,11 @@ const artistGenres = computed(() => {
 const tags = computed(() => uniqueByName(lastfmDetail.value?.tags ?? []));
 const relatedArtists = computed(() => uniqueByName(lastfmDetail.value?.similarArtists ?? []));
 const personalDiscs = computed(() => personalDetail.value?.discs.data ?? []);
+const ratedDiscIds = computed(() => new Set(personalDiscs.value.map((disc) => disc.id)));
+// Ficha votable del disco (la misma que abre «Ver disco» en Actividad). La provee el shell de
+// la app; sin proveedor (p. ej. en pruebas aisladas) los botones no se muestran.
+const discCardDialog = inject(discCardDialogKey, null);
+const showPersonal = computed(() => Boolean(props.favoriteArtist) || (personalDetail.value?.discs.total ?? 0) > 0);
 const hasSession = computed(() => authStore.authStatus === "authenticated" && Boolean(authStore.userId));
 
 // Estilos compartidos para que todas las secciones del modal tengan la misma jerarquía visual.
@@ -73,6 +83,8 @@ const tagPill = `${pillBase} bg-gray-100 text-gray-700 dark:bg-white/10 dark:tex
 const tagPillLink = `${tagPill} transition-colors hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rv-pink dark:hover:bg-rv-pink dark:hover:text-white`;
 const relatedPill = `${pillBase} border border-gray-300 bg-transparent text-rv-navy dark:border-white/20 dark:text-white`;
 const relatedPillAction = `${relatedPill} transition-colors hover:border-rv-pink hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rv-pink dark:hover:border-rv-pink`;
+// Acción discreta junto al nombre del disco: abre la tarjeta para votar o editar la nota.
+const voteAction = "inline-flex shrink-0 items-center gap-1 rounded-full border border-gray-300 bg-transparent px-2 py-0.5 text-[11px] font-semibold text-gray-600 transition-colors hover:border-rv-pink hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-rv-pink dark:border-white/20 dark:text-gray-300 dark:hover:border-rv-pink dark:hover:text-white";
 const statTile = "min-w-0 rounded-lg bg-white/80 px-3 py-2 shadow-sm dark:bg-white/5 dark:shadow-none";
 const statLabel = "text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400";
 const statValue = "mt-0.5 text-lg font-extrabold tabular-nums text-rv-navy dark:text-white";
@@ -106,6 +118,8 @@ function formatRate(value: number | null): string {
   return value === null ? "—" : new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 }).format(value);
 }
 function onKeydown(event: KeyboardEvent): void {
+  // Con la ficha del disco abierta, ella gestiona Escape y el foco.
+  if (discCardDialog?.isOpen.value) return;
   if (event.key === "Escape") {
     event.preventDefault();
     emit("close");
@@ -128,6 +142,16 @@ function useFallbackImage(event: Event): void {
 function openDisc(disc: { id: string; name: string; image: string | null }): void {
   selectedDisc.value = { ...disc, artist: { name: artistName.value } };
 }
+function openVoteCard(discId: string): void {
+  discCardDialog?.open(discId, {
+    // Si se votó o se cambió la nota, refrescamos tu historia y los datos de comunidad.
+    onClose: (changed) => {
+      if (!changed) return;
+      retrySummary();
+      retryCatalog();
+    },
+  });
+}
 function navigateRelated(id: string | null): void {
   if (!validCatalogId(id) || id === props.artistId) return;
   expandedSimilar.value = null;
@@ -136,7 +160,6 @@ function navigateRelated(id: string | null): void {
 
 watch(() => props.artistId, () => { selectedDisc.value = null; expandedSimilar.value = null; });
 onMounted(async () => {
-  document.body.style.overflow = "hidden";
   document.addEventListener("keydown", onKeydown);
   isMounted.value = true;
   await nextTick();
@@ -144,7 +167,6 @@ onMounted(async () => {
 });
 onBeforeUnmount(() => {
   document.removeEventListener("keydown", onKeydown);
-  document.body.style.overflow = priorOverflow;
   if (opener?.isConnected) void nextTick(() => opener.focus());
 });
 </script>
@@ -177,7 +199,7 @@ onBeforeUnmount(() => {
           </section>
           <div v-if="artist" class="mx-auto max-w-3xl space-y-5">
 
-            <section v-if="favoriteArtist" class="rounded-xl border border-rv-pink/20 bg-gradient-to-r from-rv-pink/10 to-rv-purple/10 p-4 dark:border-white/10 dark:from-rv-pink/15 dark:to-rv-purple/15" aria-labelledby="artist-personal-title" data-test="artist-personal-summary">
+            <section v-if="showPersonal" class="rounded-xl border border-rv-pink/20 bg-gradient-to-r from-rv-pink/10 to-rv-purple/10 p-4 dark:border-white/10 dark:from-rv-pink/15 dark:to-rv-purple/15" aria-labelledby="artist-personal-title" data-test="artist-personal-summary">
               <h3 id="artist-personal-title" :class="sectionTitle"><i class="fa-solid fa-heart" :class="sectionIcon" aria-hidden="true"></i><span class="min-w-0 break-words">Tu historia con {{ artist.name }}</span></h3>
               <p v-if="summaryLoading" class="mt-2 text-sm text-gray-600 dark:text-gray-300" role="status">Cargando tus valoraciones…</p>
               <div v-else-if="summaryError || summaryNotFound" class="mt-2 text-sm text-red-700 dark:text-red-300" role="alert"><span>{{ summaryNotFound ? "No hay resumen personal disponible para este artista." : "No se pudo cargar tu resumen personal." }}</span><button v-if="summaryError" type="button" class="ml-2 font-semibold underline" @click="retrySummary">Reintentar</button></div>
@@ -225,7 +247,7 @@ onBeforeUnmount(() => {
               <ul v-else class="overflow-hidden rounded-xl border border-gray-200 divide-y divide-gray-200 dark:border-white/10 dark:divide-white/10">
                 <li v-for="disc in artist.discs" :key="disc.id" class="flex min-w-0 items-center gap-3 p-2.5 sm:p-3" data-test="artist-catalog-disc">
                   <img :src="disc.image || defaultDiscImage" :alt="disc.image ? `Portada de ${disc.name}` : ''" class="h-12 w-12 shrink-0 rounded-md bg-gray-100 object-cover dark:bg-white/5 sm:h-14 sm:w-14" loading="lazy" @error="useFallbackImage" />
-                  <div class="min-w-0 flex-1"><button type="button" class="block max-w-full truncate rounded-lg border-2 border-rv-navy bg-rv-navy px-2 py-1 text-left text-sm font-semibold text-white transition hover:border-rv-pink hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:border-gray-200 dark:bg-gray-200 dark:text-rv-navy dark:hover:border-rv-pink dark:hover:bg-rv-pink dark:hover:text-white" :aria-label="`Abrir detalle de ${disc.name}`" @click="openDisc(disc)">{{ disc.name }}</button><p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ formatDate(disc.releaseDate) }}<span v-if="disc.genre"> · {{ disc.genre.name }}</span></p></div>
+                  <div class="min-w-0 flex-1"><div class="flex min-w-0 flex-wrap items-center gap-1.5"><button type="button" class="block max-w-full truncate rounded-lg border-2 border-rv-navy bg-rv-navy px-2 py-1 text-left text-sm font-semibold text-white transition hover:border-rv-pink hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:border-gray-200 dark:bg-gray-200 dark:text-rv-navy dark:hover:border-rv-pink dark:hover:bg-rv-pink dark:hover:text-white" :aria-label="`Abrir detalle de ${disc.name}`" @click="openDisc(disc)">{{ disc.name }}</button><button v-if="discCardDialog" type="button" :class="voteAction" :aria-label="`${ratedDiscIds.has(disc.id) ? 'Editar tu nota de' : 'Votar'} ${disc.name}`" data-test="artist-disc-vote" @click="openVoteCard(disc.id)"><i :class="ratedDiscIds.has(disc.id) ? 'fa-solid fa-pen' : 'fa-solid fa-star'" class="text-[9px]" aria-hidden="true"></i>{{ ratedDiscIds.has(disc.id) ? "Editar nota" : "Votar disco" }}<i class="fa-solid fa-arrow-right text-[9px] opacity-70" aria-hidden="true"></i></button></div><p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ formatDate(disc.releaseDate) }}</p></div>
                   <div class="ml-auto flex shrink-0 items-center justify-end gap-1.5" :aria-label="`Datos de comunidad para ${disc.name}`" data-test="artist-disc-community-stats">
                     <div class="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-gray-700 dark:border-white/10 dark:bg-white/5 dark:text-gray-200" :title="`${disc.rateCount.toLocaleString('es-ES')} ${disc.rateCount === 1 ? 'valoración' : 'valoraciones'}`">
                       <i class="fa-solid fa-users text-[10px] text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
@@ -243,10 +265,10 @@ onBeforeUnmount(() => {
               <p v-if="catalogLoading" class="mt-2 text-xs text-gray-500" role="status">Actualizando discografía…</p>
             </section>
 
-            <section v-if="favoriteArtist" aria-labelledby="artist-rated-discs-title" data-test="artist-rated-discs">
+            <section v-if="showPersonal" aria-labelledby="artist-rated-discs-title" data-test="artist-rated-discs">
               <h3 id="artist-rated-discs-title" class="mb-2" :class="sectionTitle"><i class="fa-solid fa-star" :class="sectionIcon" aria-hidden="true"></i>Discos valorados <span class="font-normal text-gray-500 dark:text-gray-400">({{ personalDetail?.discs.total ?? 0 }})</span></h3>
               <p v-if="personalDetail && !personalDetail.discs.total" class="rounded-xl border border-dashed border-gray-300 px-4 py-6 text-center text-sm text-gray-600 dark:border-white/15 dark:text-gray-300" role="status">Todavía no has valorado discos de este artista.</p>
-              <ul v-else-if="personalDetail" class="overflow-hidden rounded-xl border border-gray-200 divide-y divide-gray-200 dark:border-white/10 dark:divide-white/10"><li v-for="disc in personalDiscs" :key="disc.id" class="flex min-w-0 items-center gap-3 p-2.5 sm:p-3"><img :src="disc.image || defaultDiscImage" :alt="disc.image ? `Portada de ${disc.name}` : ''" class="h-12 w-12 shrink-0 rounded-md bg-gray-100 object-cover dark:bg-white/5 sm:h-14 sm:w-14" loading="lazy" @error="useFallbackImage"/><div class="min-w-0 flex-1"><button type="button" class="block max-w-full truncate rounded-lg border-2 border-rv-navy bg-rv-navy px-2 py-1 text-left text-sm font-semibold text-white transition hover:border-rv-pink hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:border-gray-200 dark:bg-gray-200 dark:text-rv-navy dark:hover:border-rv-pink dark:hover:bg-rv-pink dark:hover:text-white" :aria-label="`Abrir detalle de ${disc.name}`" @click="openDisc(disc)">{{ disc.name }}</button><p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ formatDate(disc.releaseDate) }}</p></div><div class="ml-auto flex shrink-0 items-center justify-end gap-1.5" :aria-label="`Tus notas para ${disc.name}`" data-test="artist-rated-disc-rates">
+              <ul v-else-if="personalDetail" class="overflow-hidden rounded-xl border border-gray-200 divide-y divide-gray-200 dark:border-white/10 dark:divide-white/10"><li v-for="disc in personalDiscs" :key="disc.id" class="flex min-w-0 items-center gap-3 p-2.5 sm:p-3"><img :src="disc.image || defaultDiscImage" :alt="disc.image ? `Portada de ${disc.name}` : ''" class="h-12 w-12 shrink-0 rounded-md bg-gray-100 object-cover dark:bg-white/5 sm:h-14 sm:w-14" loading="lazy" @error="useFallbackImage"/><div class="min-w-0 flex-1"><div class="flex min-w-0 flex-wrap items-center gap-1.5"><button type="button" class="block max-w-full truncate rounded-lg border-2 border-rv-navy bg-rv-navy px-2 py-1 text-left text-sm font-semibold text-white transition hover:border-rv-pink hover:bg-rv-pink hover:text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:border-gray-200 dark:bg-gray-200 dark:text-rv-navy dark:hover:border-rv-pink dark:hover:bg-rv-pink dark:hover:text-white" :aria-label="`Abrir detalle de ${disc.name}`" @click="openDisc(disc)">{{ disc.name }}</button><button v-if="discCardDialog" type="button" :class="voteAction" :aria-label="`Editar tu nota de ${disc.name}`" data-test="artist-rated-disc-edit" @click="openVoteCard(disc.id)"><i class="fa-solid fa-pen text-[9px]" aria-hidden="true"></i>Editar nota<i class="fa-solid fa-arrow-right text-[9px] opacity-70" aria-hidden="true"></i></button></div><p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ formatDate(disc.releaseDate) }}</p></div><div class="ml-auto flex shrink-0 items-center justify-end gap-1.5" :aria-label="`Tus notas para ${disc.name}`" data-test="artist-rated-disc-rates">
                     <div class="flex items-center gap-1.5 rounded-lg border border-rv-pink/30 bg-rv-pink/10 px-2 py-1.5 text-rv-navy dark:border-rv-pink/30 dark:bg-rv-pink/15 dark:text-white">
                       <i class="fa-solid fa-compact-disc text-[10px] text-rv-pink" aria-hidden="true"></i>
                       <span class="text-[9px] font-semibold uppercase tracking-wide">disco</span>

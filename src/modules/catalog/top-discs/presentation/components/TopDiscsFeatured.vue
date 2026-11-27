@@ -34,6 +34,7 @@ const tiers = ["gold", "silver", "bronze"] as const;
           :name="disc.name"
           :releaseDate="disc.releaseDate"
           :artistName="disc.artist?.name"
+          :artistId="disc.artist?.id"
           :genreName="disc.genre?.name"
           :genreColor="disc.genre?.color"
           :link="disc.link"

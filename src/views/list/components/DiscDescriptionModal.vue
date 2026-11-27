@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
 import { QuillEditor } from '@vueup/vue-quill';
 import '@vueup/vue-quill/dist/vue-quill.snow.css';
 import { getDiscSpotifyTracks, type DiscSpotifyTrack } from '@services/discs/discs';
@@ -194,8 +195,8 @@ function handleClose() {
   emit('close');
 }
 
-onMounted(() => { document.body.style.overflow = 'hidden'; });
-onUnmounted(() => { document.body.style.overflow = ''; });
+// Bloquea el scroll de la página de detrás mientras el modal está abierto.
+usePageScrollLock();
 </script>
 
 <template>

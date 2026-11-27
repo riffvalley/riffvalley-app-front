@@ -1,9 +1,25 @@
 import { computed, onMounted, reactive, ref, toRefs } from "vue";
-import { useQueryClient } from "@tanstack/vue-query";
+import { useQuery, useQueryClient } from "@tanstack/vue-query";
+import { getAllCountries } from "@services/countries/countries";
+import { getAllGenres } from "@services/genres/genres";
 import { getTopDiscsOptions } from "../api/topDiscs";
 import { topDiscsOptionsQueryKeyFor, useTopDiscsOptionsQuery } from "./useTopDiscsQueries";
-import { resolveTopDiscsSelection, type TopDiscsFilterAction } from "./topDiscsFilterSelection";
-import type { TopDiscsOptionsParams } from "../types/topDiscs";
+import type { TopDiscsOptionsParams, TopDiscsOptionsResponse } from "../types/topDiscs";
+
+/**
+ * Catálogo completo de países y géneros, el mismo que ofrece Discos sin periodo.
+ * Los selectores de Top Discos muestran siempre todas las opciones: si una
+ * combinación no tiene discos en el periodo, el ranking enseña su estado vacío.
+ */
+async function loadFilterCatalog(): Promise<TopDiscsOptionsResponse> {
+  const [genres, countries] = await Promise.all([getAllGenres(), getAllCountries()]);
+  const byName = (left: { name: string }, right: { name: string }) =>
+    left.name.localeCompare(right.name, "es");
+  return {
+    countries: countries.map(({ id, name, isoCode }) => ({ id, name, isoCode })).sort(byName),
+    genres: genres.map(({ id, name, color }) => ({ id, name, color: color ?? null })).sort(byName),
+  };
+}
 
 export type TopDiscsPeriod = "week" | "month" | "year" | "all";
 export type TopDiscsDateRange = [string, string] | null;
@@ -35,7 +51,6 @@ export function useTopDiscsFilterCoordinator() {
   });
   const validationPending = ref(false);
   const settledOptionsKey = ref<string | null>(null);
-  const lastAction = ref<TopDiscsFilterAction>("period");
   let revision = 0;
 
   const optionsParams = computed<TopDiscsOptionsParams>(() => ({
@@ -45,7 +60,13 @@ export function useTopDiscsFilterCoordinator() {
   }));
   const currentOptionsKey = computed(() => paramsFingerprint(optionsParams.value));
   const optionsQuery = useTopDiscsOptionsQuery(optionsParams, false);
+  const catalogQuery = useQuery({
+    queryKey: ["top-discs", "filter-catalog"],
+    queryFn: loadFilterCatalog,
+    staleTime: 10 * 60 * 1000,
+  });
 
+  // El catálogo completo no bloquea el ranking: mientras llega, se ven las opciones del periodo.
   const optionsLoading = computed(() => validationPending.value || optionsQuery.isFetching.value);
   const optionsError = computed(
     () => settledOptionsKey.value === currentOptionsKey.value && optionsQuery.isError.value
@@ -53,22 +74,26 @@ export function useTopDiscsFilterCoordinator() {
   const optionsReady = computed(
     () => settledOptionsKey.value === currentOptionsKey.value && optionsQuery.isSuccess.value
   );
-  const countries = computed(() =>
-    optionsReady.value ? (optionsQuery.data.value?.countries ?? []) : []
+  // Si el catálogo completo falla, las opciones del periodo sirven de respaldo.
+  const countries = computed(
+    () =>
+      catalogQuery.data.value?.countries ??
+      (optionsReady.value ? (optionsQuery.data.value?.countries ?? []) : [])
   );
-  const genres = computed(() =>
-    optionsReady.value ? (optionsQuery.data.value?.genres ?? []) : []
+  const genres = computed(
+    () =>
+      catalogQuery.data.value?.genres ??
+      (optionsReady.value ? (optionsQuery.data.value?.genres ?? []) : [])
   );
   const optionsEmpty = computed(
     () => optionsReady.value && countries.value.length === 0 && genres.value.length === 0
   );
   const canLoadRanking = computed(() => settledOptionsKey.value === currentOptionsKey.value);
 
-  function setFilters(action: TopDiscsFilterAction, update: () => void): Promise<void> {
+  function setFilters(update: () => void): Promise<void> {
     const previousParams = optionsParams.value;
     const previousKey = topDiscsOptionsQueryKeyFor(previousParams);
     const currentRevision = ++revision;
-    lastAction.value = action;
     settledOptionsKey.value = null;
     validationPending.value = true;
     update();
@@ -78,54 +103,29 @@ export function useTopDiscsFilterCoordinator() {
       void queryClient.cancelQueries({ queryKey: previousKey, exact: true });
     }
 
-    return validateOptions(currentRevision, action, requestedParams);
+    return validateOptions(currentRevision, requestedParams);
   }
 
   async function validateOptions(
     currentRevision: number,
-    action: TopDiscsFilterAction,
-    firstParams: TopDiscsOptionsParams
+    requestedParams: TopDiscsOptionsParams
   ): Promise<void> {
-    let requestedParams = firstParams;
-
     try {
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        const requestedKey = topDiscsOptionsQueryKeyFor(requestedParams);
-        const response = await queryClient.fetchQuery({
-          queryKey: requestedKey,
-          queryFn: ({ signal }) => getTopDiscsOptions(requestedParams, signal),
-        });
+      await queryClient.fetchQuery({
+        queryKey: topDiscsOptionsQueryKeyFor(requestedParams),
+        queryFn: ({ signal }) => getTopDiscsOptions(requestedParams, signal),
+      });
 
-        if (
-          currentRevision !== revision ||
-          paramsFingerprint(optionsParams.value) !== paramsFingerprint(requestedParams)
-        ) {
-          return;
-        }
-
-        const resolved = resolveTopDiscsSelection(
-          action,
-          { countryId: filters.countryId, genreId: filters.genreId },
-          response
-        );
-        const selectionChanged =
-          resolved.countryId !== filters.countryId || resolved.genreId !== filters.genreId;
-
-        if (!selectionChanged) {
-          settledOptionsKey.value = paramsFingerprint(requestedParams);
-          return;
-        }
-
-        // Both IDs change in the same transaction. The next options request then
-        // represents the final filter state before the ranking query is enabled.
-        filters.countryId = resolved.countryId;
-        filters.genreId = resolved.genreId;
-        requestedParams = optionsParams.value;
+      if (
+        currentRevision !== revision ||
+        paramsFingerprint(optionsParams.value) !== paramsFingerprint(requestedParams)
+      ) {
+        return;
       }
 
-      if (currentRevision === revision) {
-        settledOptionsKey.value = paramsFingerprint(optionsParams.value);
-      }
+      // Las listas son completas: la elección del usuario se respeta aunque no
+      // tenga discos en el periodo; el ranking mostrará entonces su estado vacío.
+      settledOptionsKey.value = paramsFingerprint(requestedParams);
     } catch {
       if (
         currentRevision === revision &&
@@ -148,7 +148,7 @@ export function useTopDiscsFilterCoordinator() {
   function setPeriod(period: TopDiscsPeriod, dateRange: TopDiscsDateRange): Promise<void> {
     if (filters.period === period && sameRange(filters.dateRange, dateRange))
       return Promise.resolve();
-    return setFilters("period", () => {
+    return setFilters(() => {
       filters.period = period;
       filters.dateRange = copyRange(dateRange);
     });
@@ -156,7 +156,7 @@ export function useTopDiscsFilterCoordinator() {
 
   function setYear(year: number, dateRange: TopDiscsDateRange): Promise<void> {
     if (filters.year === year && sameRange(filters.dateRange, dateRange)) return Promise.resolve();
-    return setFilters("period", () => {
+    return setFilters(() => {
       filters.year = year;
       filters.dateRange = copyRange(dateRange);
     });
@@ -164,21 +164,21 @@ export function useTopDiscsFilterCoordinator() {
 
   function setDateRange(dateRange: TopDiscsDateRange): Promise<void> {
     if (sameRange(filters.dateRange, dateRange)) return Promise.resolve();
-    return setFilters("period", () => {
+    return setFilters(() => {
       filters.dateRange = copyRange(dateRange);
     });
   }
 
   function setCountry(countryId: string): Promise<void> {
     if (filters.countryId === countryId) return Promise.resolve();
-    return setFilters("country", () => {
+    return setFilters(() => {
       filters.countryId = countryId;
     });
   }
 
   function setGenre(genreId: string): Promise<void> {
     if (filters.genreId === genreId) return Promise.resolve();
-    return setFilters("genre", () => {
+    return setFilters(() => {
       filters.genreId = genreId;
     });
   }
@@ -188,7 +188,8 @@ export function useTopDiscsFilterCoordinator() {
     const currentRevision = ++revision;
     settledOptionsKey.value = null;
     validationPending.value = true;
-    return validateOptions(currentRevision, lastAction.value, optionsParams.value);
+    if (catalogQuery.isError.value) void catalogQuery.refetch();
+    return validateOptions(currentRevision, optionsParams.value);
   }
 
   function sameRange(left: TopDiscsDateRange, right: TopDiscsDateRange): boolean {
@@ -204,7 +205,7 @@ export function useTopDiscsFilterCoordinator() {
   onMounted(() => {
     const currentRevision = ++revision;
     validationPending.value = true;
-    void validateOptions(currentRevision, "period", optionsParams.value);
+    void validateOptions(currentRevision, optionsParams.value);
   });
 
   return {

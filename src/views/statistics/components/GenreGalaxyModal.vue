@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
 import { useStatisticsGalaxyQuery } from "@/modules/statistics/application/useStatisticsQueries";
 import GenreGalaxyDesktop from "./GenreGalaxyDesktop.vue";
 
@@ -18,12 +19,11 @@ const currentYearData = computed(() => query.data.value && query.data.value.leng
 const selectedDisc = computed(() => discs.value.find((disc) => disc.id === selectedDiscId.value) ?? null);
 
 let previouslyFocused: HTMLElement | null = null;
-let previousBodyOverflow = "";
+// Bloquea el scroll de la página de detrás mientras el modal está abierto.
+usePageScrollLock();
 
 onMounted(async () => {
   previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  previousBodyOverflow = document.body.style.overflow;
-  document.body.style.overflow = "hidden";
   await nextTick();
   dialog.value?.addEventListener("keydown", handleKeydown);
   closeButton.value?.focus();
@@ -32,7 +32,6 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   dialog.value?.removeEventListener("keydown", handleKeydown);
   queryEnabled.value = false;
-  document.body.style.overflow = previousBodyOverflow;
   if (previouslyFocused?.isConnected) previouslyFocused.focus();
 });
 

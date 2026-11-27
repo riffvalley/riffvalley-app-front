@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, watch } from "vue";
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
 import { getAllGenres, type Genre } from "@services/genres/genres";
 import { getAllCountries, type Country } from "@services/countries/countries";
 import { useSavedDiscFilters } from "../../../application/useSavedDiscFilters";
@@ -181,8 +182,10 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
+// Bloquea el scroll de la página de detrás mientras el modal está abierto.
+usePageScrollLock(open);
+
 watch(open, (isOpen) => {
-  document.body.style.overflow = isOpen ? "hidden" : "";
   if (isOpen) {
     returnFocusTo = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     void loadOptions();
@@ -199,7 +202,6 @@ watch(open, (isOpen) => {
 });
 
 onUnmounted(() => {
-  document.body.style.overflow = "";
   document.removeEventListener("keydown", onKeydown);
 });
 </script>

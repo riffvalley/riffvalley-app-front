@@ -199,6 +199,9 @@
 </template>
 
 <script setup>
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
+// Bloquea el scroll de la página de detrás mientras el modal está abierto.
+usePageScrollLock();
 // solo emitimos `close`
 </script>
 

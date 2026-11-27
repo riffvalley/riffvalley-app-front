@@ -18,6 +18,7 @@ const {
   successImage,
   fire,
   mutateSummary,
+  getDiscById,
 } = vi.hoisted(() => ({
   getDiscRates: vi.fn(),
   postRateService: vi.fn(),
@@ -30,6 +31,7 @@ const {
   successImage: vi.fn(),
   fire: vi.fn(),
   mutateSummary: vi.fn(),
+  getDiscById: vi.fn(),
 }));
 
 vi.mock("@services/rates/rates.ts", () => ({ getDiscRates, postRateService, updateRateService }));
@@ -45,6 +47,16 @@ vi.mock("@helpers/SpotifyFunctions", () => ({ obtenerTrackMasPopularAlbum: vi.fn
 vi.mock("@services/swal/SwalService", () => ({ default: { success, successImage } }));
 vi.mock("sweetalert2", () => ({ default: { fire } }));
 vi.mock("@/app/dashboardSummary", () => ({ mutateAndInvalidateDashboardSummary: mutateSummary }));
+vi.mock("@services/discs/discs", () => ({ getDiscById }));
+// La ficha real hace sus propias peticiones; aquí basta con saber qué artista recibe.
+vi.mock("@/modules/catalog/artists", () => ({
+  ArtistDetailsModal: {
+    name: "ArtistDetailsModal",
+    props: ["artistId"],
+    emits: ["close", "open-related-artist"],
+    template: "<div data-testid=\"artist-details-modal\" />",
+  },
+}));
 
 import DiscCard from "./DiscCardComponent.vue";
 
@@ -229,6 +241,51 @@ describe("DiscCard rating-saved event", () => {
     calendar.vm.$emit("close");
     await flushPromises();
     expect(wrapper.find('[data-testid="embedded-disc-calendar"]').exists()).toBe(false);
+    wrapper.unmount();
+    queryClient.clear();
+  });
+});
+
+describe("DiscCard artist details", () => {
+  beforeEach(() => {
+    getDiscRates.mockReset().mockResolvedValue([]);
+    getDiscById.mockReset();
+  });
+
+  const artistModal = (wrapper: ReturnType<typeof mountCard>["wrapper"]) =>
+    wrapper.findComponent({ name: "ArtistDetailsModal" });
+  const artistLink = (wrapper: ReturnType<typeof mountCard>["wrapper"]) =>
+    wrapper.findAll("p").find((element) => element.text() === "Artista")!;
+
+  it("opens the Artists section modal with the artist id it receives", async () => {
+    const { wrapper, queryClient } = mountCard({ artistId: "artist-7" });
+
+    await artistLink(wrapper).trigger("click");
+    await flushPromises();
+
+    expect(getDiscById).not.toHaveBeenCalled();
+    expect(artistModal(wrapper).props("artistId")).toBe("artist-7");
+
+    artistModal(wrapper).vm.$emit("open-related-artist", "artist-8");
+    await flushPromises();
+    expect(artistModal(wrapper).props("artistId")).toBe("artist-8");
+
+    artistModal(wrapper).vm.$emit("close");
+    await flushPromises();
+    expect(artistModal(wrapper).exists()).toBe(false);
+    wrapper.unmount();
+    queryClient.clear();
+  });
+
+  it("looks the artist up from the disc when the list does not provide its id", async () => {
+    getDiscById.mockResolvedValue({ id: "disc-1", artist: { id: "artist-9", name: "Artista" } });
+    const { wrapper, queryClient } = mountCard();
+
+    await artistLink(wrapper).trigger("click");
+    await flushPromises();
+
+    expect(getDiscById).toHaveBeenCalledWith("disc-1");
+    expect(artistModal(wrapper).props("artistId")).toBe("artist-9");
     wrapper.unmount();
     queryClient.clear();
   });

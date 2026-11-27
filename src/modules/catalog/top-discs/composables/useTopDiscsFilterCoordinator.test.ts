@@ -4,15 +4,23 @@ import { flushPromises, mount } from "@vue/test-utils";
 import { defineComponent, h } from "vue";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { get } = vi.hoisted(() => ({ get: vi.fn() }));
+const { get, getAllCountries, getAllGenres } = vi.hoisted(() => ({
+  get: vi.fn(),
+  getAllCountries: vi.fn(),
+  getAllGenres: vi.fn(),
+}));
 vi.mock("@services/api/api", () => ({ default: { get } }));
+vi.mock("@services/countries/countries", () => ({ getAllCountries }));
+vi.mock("@services/genres/genres", () => ({ getAllGenres }));
 
 import { useTopDiscsFilterCoordinator } from "./useTopDiscsFilterCoordinator";
 
 const countryOne = { id: "country-1", name: "País 1", isoCode: "P1" };
 const countryTwo = { id: "country-2", name: "País 2", isoCode: "P2" };
+const countrySpain = { id: "country-es", name: "España", isoCode: "ES" };
 const genreOne = { id: "genre-1", name: "Género 1", color: "#111111" };
 const genreTwo = { id: "genre-2", name: "Género 2", color: "#222222" };
+const genreJazz = { id: "genre-jazz", name: "Jazz", color: "#333333" };
 
 function responseForOptions(params: Record<string, unknown>) {
   const dateRange = params.dateRange as [string, string] | undefined;
@@ -54,6 +62,8 @@ function createHarness() {
 
 describe("useTopDiscsFilterCoordinator", () => {
   beforeEach(() => {
+    getAllCountries.mockReset().mockResolvedValue([countryTwo, countrySpain, countryOne]);
+    getAllGenres.mockReset().mockResolvedValue([genreJazz, genreTwo, genreOne]);
     get
       .mockReset()
       .mockImplementation((url: string, config: { params?: Record<string, unknown> }) => {
@@ -70,7 +80,7 @@ describe("useTopDiscsFilterCoordinator", () => {
 
     expect(wrapper.vm.filters.period.value).toBe("week");
     expect(wrapper.vm.filters.dateRange.value).toHaveLength(2);
-    expect(wrapper.vm.filters.countries.value).toHaveLength(2);
+    expect(wrapper.vm.filters.countries.value).toHaveLength(3);
     expect(get).toHaveBeenCalledWith("/discs/topDiscs/options", {
       params: expect.objectContaining({ dateRange: wrapper.vm.filters.dateRange.value }),
       signal: expect.any(AbortSignal),
@@ -109,7 +119,26 @@ describe("useTopDiscsFilterCoordinator", () => {
     wrapper.unmount();
   });
 
-  it("clears period-invalid filters together and validates only the final combination", async () => {
+  it("offers the complete country and genre catalog, sorted by name, regardless of the period", async () => {
+    const { wrapper } = createHarness();
+    await flushPromises();
+    await wrapper.vm.filters.setPeriod("month", ["period-without-selections", "2026-06-30"]);
+    await flushPromises();
+
+    expect(wrapper.vm.filters.countries.value.map((country: { name: string }) => country.name)).toEqual(
+      ["España", "País 1", "País 2"]
+    );
+    expect(wrapper.vm.filters.genres.value.map((genre: { name: string }) => genre.name)).toEqual([
+      "Género 1",
+      "Género 2",
+      "Jazz",
+    ]);
+    expect(getAllCountries).toHaveBeenCalledTimes(1);
+    expect(getAllGenres).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
+  it("keeps filters without discs in the new period and validates a single request", async () => {
     const { wrapper } = createHarness();
     await flushPromises();
     await wrapper.vm.filters.setCountry("country-1");
@@ -118,42 +147,27 @@ describe("useTopDiscsFilterCoordinator", () => {
 
     await wrapper.vm.filters.setPeriod("month", ["period-without-selections", "2026-06-30"]);
 
-    expect(wrapper.vm.filters.countryId.value).toBe("");
-    expect(wrapper.vm.filters.genreId.value).toBe("");
-    expect(get).toHaveBeenCalledTimes(2);
-    expect(get.mock.calls[1]?.[1].params).toEqual({
-      dateRange: ["period-without-selections", "2026-06-30"],
-    });
+    expect(wrapper.vm.filters.countryId.value).toBe("country-1");
+    expect(wrapper.vm.filters.genreId.value).toBe("genre-1");
+    expect(wrapper.vm.filters.canLoadRanking.value).toBe(true);
+    expect(get).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });
 
-  it("prioritizes a changed country and refreshes dependent genres", async () => {
+  it("keeps the genre when the country changes and the country when the genre changes", async () => {
     const { wrapper } = createHarness();
     await flushPromises();
     await wrapper.vm.filters.setCountry("country-1");
     await wrapper.vm.filters.setGenre("genre-1");
-    await wrapper.vm.filters.setCountry("country-2");
+    await wrapper.vm.filters.setCountry("country-es");
 
-    expect(wrapper.vm.filters.countryId.value).toBe("country-2");
-    expect(wrapper.vm.filters.genreId.value).toBe("");
-    expect(wrapper.vm.filters.genres.value.map((genre: { id: string }) => genre.id)).toEqual([
-      "genre-2",
-    ]);
-    wrapper.unmount();
-  });
+    expect(wrapper.vm.filters.countryId.value).toBe("country-es");
+    expect(wrapper.vm.filters.genreId.value).toBe("genre-1");
 
-  it("prioritizes a changed genre and refreshes dependent countries", async () => {
-    const { wrapper } = createHarness();
-    await flushPromises();
-    await wrapper.vm.filters.setCountry("country-1");
-    await wrapper.vm.filters.setGenre("genre-1");
-    await wrapper.vm.filters.setGenre("genre-2");
-
-    expect(wrapper.vm.filters.countryId.value).toBe("");
-    expect(wrapper.vm.filters.genreId.value).toBe("genre-2");
-    expect(wrapper.vm.filters.countries.value.map((country: { id: string }) => country.id)).toEqual(
-      ["country-2"]
-    );
+    await wrapper.vm.filters.setGenre("genre-jazz");
+    expect(wrapper.vm.filters.countryId.value).toBe("country-es");
+    expect(wrapper.vm.filters.genreId.value).toBe("genre-jazz");
+    expect(wrapper.vm.filters.genres.value).toHaveLength(3);
     wrapper.unmount();
   });
 
@@ -165,15 +179,28 @@ describe("useTopDiscsFilterCoordinator", () => {
 
     expect(wrapper.vm.filters.countryId.value).toBe("country-1");
     expect(wrapper.vm.filters.optionsError.value).toBe(true);
-    expect(wrapper.vm.filters.countries.value).toEqual([]);
+    // El catálogo completo sigue disponible aunque falle la validación del periodo.
+    expect(wrapper.vm.filters.countries.value).toHaveLength(3);
 
     await wrapper.vm.filters.retryOptions();
     expect(wrapper.vm.filters.optionsError.value).toBe(false);
-    expect(wrapper.vm.filters.countries.value).toHaveLength(2);
+    expect(wrapper.vm.filters.countries.value).toHaveLength(3);
+    wrapper.unmount();
+  });
+
+  it("falls back to the period options when the complete catalog cannot be loaded", async () => {
+    getAllCountries.mockRejectedValueOnce(new Error("offline"));
+    const { wrapper } = createHarness();
+    await flushPromises();
+
+    expect(wrapper.vm.filters.countries.value.map((country: { id: string }) => country.id)).toEqual(
+      ["country-1", "country-2"]
+    );
     wrapper.unmount();
   });
 
   it("supports an empty options response without clearing on request failure", async () => {
+    getAllCountries.mockRejectedValueOnce(new Error("offline"));
     get.mockResolvedValueOnce({ data: { countries: [], genres: [] } });
     const { wrapper } = createHarness();
     await flushPromises();
@@ -229,9 +256,8 @@ describe("useTopDiscsFilterCoordinator", () => {
     await oldAction;
 
     expect(wrapper.vm.filters.countryId.value).toBe("country-2");
-    expect(wrapper.vm.filters.genres.value.map((genre: { id: string }) => genre.id)).toEqual([
-      "genre-2",
-    ]);
+    expect(wrapper.vm.filters.optionsParams.value.countryId).toBe("country-2");
+    expect(wrapper.vm.filters.canLoadRanking.value).toBe(true);
     wrapper.unmount();
   });
 });

@@ -178,6 +178,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted } from "vue";
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
 import axios from "axios";
 import {
   findSpotifyArtist,
@@ -198,6 +199,8 @@ export default defineComponent({
     },
   },
   setup(props) {
+    // Bloquea el scroll de la página de detrás mientras el modal está abierto.
+    usePageScrollLock();
     const artist = ref<any>(null);
     const topTracks = ref<any[]>([]);
     const lastFmData = ref<any>(null);

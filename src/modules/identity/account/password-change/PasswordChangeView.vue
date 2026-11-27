@@ -542,6 +542,7 @@
 
 <script>
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
 import SwalService from "@services/swal/SwalService";
 import { useUserStore } from "@stores/user/users";
 import { useAuthStore } from "@/modules/identity/auth";
@@ -568,8 +569,9 @@ export default {
       hasMinimumRole(authStore.role, "riffvalley")
     );
 
+    // Bloquea el scroll de la página de detrás mientras el modal está abierto.
+    usePageScrollLock(showDashboardModal);
     watch(showDashboardModal, (val) => {
-      document.body.style.overflow = val ? "hidden" : "";
       if (val) {
         document.addEventListener("keydown", handleDashboardDialogKeydown);
         document.addEventListener("focusin", keepFocusInDashboardDialog);
@@ -581,7 +583,6 @@ export default {
       }
     });
     onUnmounted(() => {
-      document.body.style.overflow = "";
       document.removeEventListener("keydown", handleDashboardDialogKeydown);
       document.removeEventListener("focusin", keepFocusInDashboardDialog);
     });

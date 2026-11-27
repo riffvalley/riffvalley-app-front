@@ -205,7 +205,7 @@
         </svg>
         <span class="flex items-center">
           {{ showVotes ? "Ocultar" : "Votos" }}
-          <span v-if="rateCount > 0" class="ml-1 mt-1 text-[9px] text-pink-300">({{ rateCount }})</span>
+          <span v-if="rateCount > 0" class="ml-1 text-[9px] text-pink-300">({{ rateCount }})</span>
         </span>
       </button>
 
@@ -214,7 +214,7 @@
         <i class="fa-solid fa-comment-dots text-md"></i>
         <span class="flex items-center">
           Chat
-          <span v-if="commentCount > 0" class="ml-1 mt-1 text-[9px] text-pink-300">({{ commentCount }})</span>
+          <span v-if="commentCount > 0" class="ml-1 text-[9px] text-pink-300">({{ commentCount }})</span>
         </span>
       </button>
 
@@ -272,13 +272,13 @@
     </div>
   </div>
 
-  <!-- Modal para mostrar ArtistDetail -->
-  <div v-if="showArtistDetail" class="fixed inset-0 flex items-center justify-center bg-rv-navy bg-opacity-50 z-50">
-    <div class="p-4 relative max-w-3xl w-full">
-      <!-- Se pasa el nombre del artista al componente ArtistDetail -->
-      <ArtistDetail :disc-name="name" :artistName="artistName" @close="closeArtistDetail" />
-    </div>
-  </div>
+  <!-- Ficha del artista: la misma que se abre desde la sección Artistas. -->
+  <ArtistDetailsModal
+    v-if="showArtistDetail && artistModalId"
+    :artist-id="artistModalId"
+    @close="closeArtistDetail"
+    @open-related-artist="artistModalId = $event"
+  />
 
   <div v-if="showComentsModal" class="fixed inset-0 flex items-center justify-center bg-rv-navy bg-opacity-50 z-50">
     <div class="p-4 relative max-w-3xl w-full">
@@ -323,8 +323,10 @@ import { useQueryClient } from "@tanstack/vue-query";
 import { obtenerTrackMasPopularAlbum } from "@helpers/SpotifyFunctions";
 import defaultImage from "/src/assets/disco.png";
 import DiscDetail from "./DiscDetail.vue";
-import ArtistDetail from "./ArtistDetail.vue";
+import { ArtistDetailsModal } from "@/modules/catalog/artists";
+import { getDiscById } from "@services/discs/discs";
 import VotesModal from "./VotesModal.vue";
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
 import ComentsModal from "./ComentsModal.vue";
 import { DiscCalendar } from "@/modules/catalog/calendar";
 import {
@@ -385,7 +387,7 @@ type DiscCardUpdateEvent =
     };
 
 export default defineComponent({
-  components: { DiscDetail, ArtistDetail, ComentsModal, VotesModal, DiscCalendar }, // Add VotesModal
+  components: { DiscDetail, ArtistDetailsModal, ComentsModal, VotesModal, DiscCalendar },
   emits: {
     "rating-saved": (payload: RatingSavedEvent) =>
       typeof payload.discId === "string" &&
@@ -399,6 +401,8 @@ export default defineComponent({
     name: { type: String, required: true },
     releaseDate: { type: String, required: true },
     artistName: { type: String, required: true },
+    // Si no llega, se averigua a partir del disco al abrir la ficha del artista.
+    artistId: { type: String, required: false, default: null },
     genreName: { type: String, required: false, default: "" },
     genreColor: { type: String, required: false, default: "grey" },
     link: { type: String, required: false, default: "" },
@@ -767,12 +771,30 @@ export default defineComponent({
       showDiscDetail.value = false;
     };
 
-    const showArtistDetail = ref(false);
-    const openArtistDetail = () => {
-      showArtistDetail.value = true;
+    // Misma ficha de artista que en la sección Artistas. Necesita el id del artista:
+    // si quien pinta la tarjeta no lo pasa, se obtiene del propio disco al abrirla.
+    const artistModalId = ref<string | null>(null);
+    const showArtistDetail = computed(() => artistModalId.value !== null);
+    const resolvingArtist = ref(false);
+    const openArtistDetail = async () => {
+      if (resolvingArtist.value) return;
+      if (props.artistId) {
+        artistModalId.value = props.artistId;
+        return;
+      }
+      resolvingArtist.value = true;
+      try {
+        const disc = await getDiscById(props.id);
+        if (!disc.artist?.id) throw new Error("Disco sin artista");
+        artistModalId.value = disc.artist.id;
+      } catch {
+        SwalService.error("No se ha podido abrir la ficha del artista.");
+      } finally {
+        resolvingArtist.value = false;
+      }
     };
     const closeArtistDetail = () => {
-      showArtistDetail.value = false;
+      artistModalId.value = null;
     };
 
     // Variables y funciones para el modal de ComentsModal
@@ -1246,6 +1268,9 @@ ctx.textBaseline = "alphabetic";
       averageCover: props.averageCover,
     }));
 
+    // Votos, chat y calendario se abren como modales: bloquean el scroll de la página.
+    usePageScrollLock(() => showVotes.value || showComentsModal.value || showCalendarModal.value);
+
     return {
       localRating,
       formattedDate,
@@ -1271,6 +1296,7 @@ ctx.textBaseline = "alphabetic";
       showDiscDetail,
       discData,
       showArtistDetail,
+      artistModalId,
       openArtistDetail,
       closeArtistDetail,
       showComentsModal,

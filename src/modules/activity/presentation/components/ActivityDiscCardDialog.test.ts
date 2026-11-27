@@ -77,6 +77,12 @@ describe("ActivityDiscCardDialog", () => {
     expect(document.activeElement).toBe(wrapper.get('[aria-label="Cerrar ficha del disco"]').element);
     await wrapper.get('[aria-label="Cerrar ficha del disco"]').trigger("click");
     expect(wrapper.emitted("close")).toHaveLength(1);
+
+    // Pulsar dentro de la tarjeta no cierra; pulsar el fondo desenfocado sí.
+    await wrapper.get('[data-test="disc-card"]').trigger("click");
+    expect(wrapper.emitted("close")).toHaveLength(1);
+    await wrapper.get('[data-test="activity-disc-card-overlay"]').trigger("click");
+    expect(wrapper.emitted("close")).toHaveLength(2);
     wrapper.unmount();
     queryClient.clear();
   });

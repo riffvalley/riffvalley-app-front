@@ -176,7 +176,10 @@ function comment(entryId: string) {
 function createDiscListRouter(): Router {
   return createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: "/disc-list", name: "DiscList", component: { template: "<div />" } }],
+    routes: [
+      { path: "/disc-list", name: "DiscList", component: { template: "<div />" } },
+      { path: "/rankings", name: "Rankings", component: { template: "<div />" } },
+    ],
   });
 }
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from "vue";
 import type { Component } from "vue";
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
 import { useAuthStore } from "@/modules/identity/auth";
 import {
   getRatesGeographyWorld,
@@ -23,7 +24,8 @@ const hoveredCountry = shallowRef<RatesGeographyCountryDto | null>(null);
 const mapComponent = shallowRef<Component | null>(null);
 let controller: AbortController | null = null;
 let liveRequest = 0;
-let priorOverflow = "";
+// Bloquea el scroll de la página de detrás mientras el modal está abierto.
+usePageScrollLock();
 let closing = false;
 
 const matchResult = computed(() => response.value
@@ -121,8 +123,6 @@ watch(
 );
 
 onMounted(() => {
-  priorOverflow = document.body.style.overflow;
-  document.body.style.overflow = "hidden";
   document.addEventListener("keydown", onKeydown);
   void loadGeometry();
   loadWorld();
@@ -132,7 +132,6 @@ onBeforeUnmount(() => {
   controller?.abort();
   liveRequest += 1;
   document.removeEventListener("keydown", onKeydown);
-  document.body.style.overflow = priorOverflow;
   if (opener?.isConnected) void nextTick(() => opener.focus());
 });
 </script>

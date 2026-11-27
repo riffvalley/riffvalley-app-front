@@ -24,6 +24,7 @@ const emit = defineEmits<{ "card-updated": [event: TopDiscsCardUpdateEvent] }>()
           :name="disc.name"
           :releaseDate="disc.releaseDate"
           :artistName="disc.artist?.name"
+          :artistId="disc.artist?.id"
           :genreName="disc.genre?.name"
           :genreColor="disc.genre?.color"
           :link="disc.link"

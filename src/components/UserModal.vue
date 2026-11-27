@@ -178,6 +178,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, watch, onMounted, computed } from 'vue';
+import { usePageScrollLock } from '@/composables/usePageScrollLock';
 import { getUserHistoryService, type GetUserHistoryResponse } from '@/services/rates/rates.ts';
 
 export default defineComponent({
@@ -190,6 +191,8 @@ export default defineComponent({
   },
   emits: ['close'],
   setup(props) {
+    // Bloquea el scroll de la página de detrás mientras el modal está abierto.
+    usePageScrollLock();
     const history = ref<GetUserHistoryResponse | null>(null);
     const loading = ref(false);
     const error   = ref<string | null>(null);

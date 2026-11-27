@@ -63,9 +63,11 @@
     </section>
   </main>
   <div v-else-if="authReady" id="app-container">
-    <component :is="layoutComponent">
-      <router-view />
-    </component>
+    <ActivityDiscCardDialogHost>
+      <component :is="layoutComponent">
+        <router-view />
+      </component>
+    </ActivityDiscCardDialogHost>
   </div>
 </template>
 
@@ -76,9 +78,11 @@ import DefaultLayout from "./layouts/default/DefaultLayout.vue";
 import LoginLayout from "./layouts/auth/LoginLayout.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";
 import { useAuthStore } from "@/modules/identity/auth";
+import { ActivityDiscCardDialogHost } from "@/modules/activity";
 
 export default defineComponent({
   name: "App",
+  components: { ActivityDiscCardDialogHost },
   setup() {
     const route = useRoute();
     const router = useRouter();

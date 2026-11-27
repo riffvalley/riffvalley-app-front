@@ -5,9 +5,20 @@
     <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-rv-navy dark:text-white mb-2 text-center">
       <i class="fa-solid fa-compact-disc mr-3"></i>Discos
     </h1>
-    <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-8">
-      Vota, guarda y descubre lanzamientos desde 2025 en adelante.
-    </p>
+    <!-- Igual que en Top Discos, pero al revés: un acceso directo al ranking. -->
+    <div class="mb-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+      <p class="text-center text-sm text-gray-500 dark:text-gray-400">
+        Vota, guarda y descubre lanzamientos desde 2025 en adelante.
+      </p>
+      <router-link
+        :to="{ name: 'Rankings' }"
+        data-testid="disc-list-top-discs-link"
+        class="group inline-flex items-center gap-2 px-4 py-1.5 rounded-full shadow-md text-sm font-medium transition-all duration-200 bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-rv-purple hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0 border-0 outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink"
+      >
+        <i class="fa-solid fa-arrow-up rotate-45 transition-colors duration-200 group-hover:text-white" aria-hidden="true"></i>
+        <span>Ver el Top Discos</span>
+      </router-link>
+    </div>
     <p
       v-if="createdDiscNotice"
       class="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900 dark:border-green-800/50 dark:bg-green-900/20 dark:text-green-100"
@@ -300,6 +311,7 @@
         :name="disc.name"
         :releaseDate="disc.releaseDate"
         :artistName="disc.artist?.name || 'Desconocido'"
+        :artistId="disc.artist?.id"
         :genreName="disc.genre?.name"
         :genreColor="disc.genre?.color"
         :link="disc.link"

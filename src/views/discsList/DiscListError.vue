@@ -39,6 +39,7 @@
         :name="disc.name"
         :releaseDate="disc.releaseDate"
         :artistName="disc.artist?.name || 'Desconocido'"
+        :artistId="disc.artist?.id"
         :genreName="disc.genre?.name"
         :genreColor="disc.genre?.color"
         :link="disc.link"

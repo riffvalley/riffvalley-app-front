@@ -127,6 +127,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
 import {
   getSpotifyAlbumDetails,
   resolveSpotifyAlbum,
@@ -145,7 +146,8 @@ export default defineComponent({
     const dialog = ref<HTMLElement | null>(null);
     const closeButton = ref<HTMLButtonElement | null>(null);
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const priorOverflow = document.body.style.overflow;
+    // Bloquea el scroll de la página de detrás mientras el modal está abierto.
+    usePageScrollLock();
     const album = ref<any>(null);
     const tracks = ref<any[]>([]);
     const loading = ref<boolean>(true);
@@ -248,7 +250,6 @@ export default defineComponent({
     });
 
     onMounted(() => {
-      document.body.style.overflow = "hidden";
       dialog.value?.addEventListener("keydown", onKeydown);
       void nextTick(() => closeButton.value?.focus());
       searchAlbum();
@@ -256,7 +257,6 @@ export default defineComponent({
 
     onBeforeUnmount(() => {
       dialog.value?.removeEventListener("keydown", onKeydown);
-      document.body.style.overflow = priorOverflow;
       if (opener?.isConnected) void nextTick(() => opener.focus());
     });
 
