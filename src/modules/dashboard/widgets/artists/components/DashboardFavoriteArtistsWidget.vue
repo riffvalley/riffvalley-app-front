@@ -176,10 +176,10 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <p v-else-if="!hasSession" class="text-center text-gray-400 dark:text-gray-500 text-sm py-6" role="status">
+      <p v-else-if="!hasSession" class="text-center text-gray-400 dark:text-gray-400 text-sm py-6" role="status">
         Tu sesión ya no está disponible.
       </p>
-      <p v-else class="text-center text-gray-400 dark:text-gray-500 text-sm py-6" role="status">
+      <p v-else class="text-center text-gray-400 dark:text-gray-400 text-sm py-6" role="status">
         {{ emptyMessage }}
       </p>
     </div>

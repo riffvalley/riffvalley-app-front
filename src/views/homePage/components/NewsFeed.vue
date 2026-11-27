@@ -17,7 +17,7 @@
                focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple"
         :class="activeFilter === null
           ? 'bg-rv-purple text-white border-rv-purple shadow-sm'
-          : 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-purple hover:text-rv-purple dark:hover:border-purple-300 dark:hover:text-purple-300'"
+          : 'bg-transparent text-gray-500 dark:text-gray-300 border-gray-300 dark:border-white/20 hover:border-rv-purple hover:text-rv-purple dark:hover:border-purple-300 dark:hover:text-purple-300'"
       >
         <i class="fa-solid fa-rss text-[9px]"></i>
         Feed
@@ -212,7 +212,7 @@ const FILTERS: FilterDef[] = [
     icon: 'fa-brands fa-telegram',
     params: { source: 'telegram', limit: 6 },
     activeClass:   'bg-yellow-400 text-rv-navy border-yellow-400 shadow-sm',
-    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-yellow-400 hover:text-yellow-500 dark:hover:border-yellow-400 dark:hover:text-yellow-400',
+    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-300 border-gray-300 dark:border-white/20 hover:border-yellow-400 hover:text-yellow-500 dark:hover:border-yellow-400 dark:hover:text-yellow-400',
   },
   {
     key: 'riffvalley',
@@ -220,7 +220,7 @@ const FILTERS: FilterDef[] = [
     icon: 'fa-solid fa-globe',
     params: { source: 'riffvalley.es' },
     activeClass:   'bg-rv-pink text-white border-rv-pink shadow-sm',
-    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-pink hover:text-rv-pink dark:hover:border-pink-300 dark:hover:text-pink-300',
+    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-300 border-gray-300 dark:border-white/20 hover:border-rv-pink hover:text-rv-pink dark:hover:border-pink-300 dark:hover:text-pink-300',
   },
   {
     key: 'equipo',
@@ -228,7 +228,7 @@ const FILTERS: FilterDef[] = [
     icon: 'fa-solid fa-users',
     params: { source: 'app', type: 'team_notes' },
     activeClass:   'bg-rv-blue text-white border-rv-blue shadow-sm',
-    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-400 border-gray-300 dark:border-white/20 hover:border-rv-blue hover:text-rv-blue dark:hover:border-blue-300 dark:hover:text-blue-300',
+    inactiveClass: 'bg-transparent text-gray-500 dark:text-gray-300 border-gray-300 dark:border-white/20 hover:border-rv-blue hover:text-rv-blue dark:hover:border-blue-300 dark:hover:text-blue-300',
   },
 ];
 

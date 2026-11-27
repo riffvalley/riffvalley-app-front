@@ -95,17 +95,17 @@ async function closeCommunityStatsModal(): Promise<void> {
           </h3>
           <div class="flex flex-col gap-2">
             <div class="community-row">
-              <span class="community-label">App</span>
+              <span class="community-label text-gray-400 dark:text-gray-300">App</span>
               <a href="https://t.me/RiffValleyAppUpdates" target="_blank" rel="noopener noreferrer" class="community-pill bg-[#229ED9] hover:bg-[#1a8bc2]"><i class="fa-brands fa-telegram"></i> Canal</a>
               <a href="https://t.me/RiffValleyApp" target="_blank" rel="noopener noreferrer" class="community-pill bg-rv-pink hover:bg-rv-pink/80"><i class="fa-solid fa-comments"></i> Grupo</a>
             </div>
             <div class="community-row">
-              <span class="community-label">Web</span>
+              <span class="community-label text-gray-400 dark:text-gray-300">Web</span>
               <a href="https://riffvalley.es" target="_blank" rel="noopener noreferrer" class="community-pill bg-rv-navy hover:bg-rv-navy/70"><i class="fa-solid fa-globe"></i> Web</a>
               <a href="https://www.riffvalley.es/agenda-conciertos" target="_blank" rel="noopener noreferrer" class="community-pill bg-rv-purple hover:bg-rv-purple/80"><i class="fa-solid fa-calendar-days"></i> Conciertos</a>
             </div>
             <div class="community-row">
-              <span class="community-label">Conciertos</span>
+              <span class="community-label text-gray-400 dark:text-gray-300">Conciertos</span>
               <a href="https://t.me/conciertosrockmetal" target="_blank" rel="noopener noreferrer" class="community-pill bg-[#229ED9] hover:bg-[#1a8bc2]"><i class="fa-brands fa-telegram"></i> Canal</a>
               <a href="https://t.me/riffvalley" target="_blank" rel="noopener noreferrer" class="community-pill bg-rv-pink hover:bg-rv-pink/80"><i class="fa-solid fa-comments"></i> Grupo</a>
             </div>
@@ -150,14 +150,14 @@ async function closeCommunityStatsModal(): Promise<void> {
             <button type="button" class="text-xs font-semibold underline" @click="retryRankings">Reintentar</button>
           </div>
           <template v-else-if="topUsersTab === 'rates'">
-            <p v-if="topUsersByRates.length === 0" class="text-gray-400 italic text-xs text-center py-3">No hay datos</p>
+            <p v-if="topUsersByRates.length === 0" class="text-gray-400 dark:text-gray-300 italic text-xs text-center py-3">No hay datos</p>
             <div v-else class="grid grid-cols-2 gap-x-2">
               <ul v-for="(col, colIdx) in topUsersByRatesColumns" :key="colIdx">
                 <li v-for="entry in col" :key="entry.user.user.id"
                   class="flex items-center gap-1.5 py-1 px-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-0">
                   <span class="text-xs w-4 text-center shrink-0" :aria-label="`Posición ${entry.index + 1}`">
                     <i v-if="entry.index < 3" class="fas fa-trophy" :class="trophyClasses[entry.index]" aria-hidden="true"></i>
-                    <span v-else class="text-gray-400 text-xs">{{ entry.index + 1 }}</span>
+                    <span v-else class="text-gray-400 dark:text-gray-300 text-xs">{{ entry.index + 1 }}</span>
                   </span>
                   <span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ entry.user.user.username }}</span>
                   <span class="text-[10px] font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1.5 py-0.5 rounded-full">{{ entry.user.rateCount }}</span>
@@ -166,14 +166,14 @@ async function closeCommunityStatsModal(): Promise<void> {
             </div>
           </template>
           <template v-else-if="!isLoading && !hasError">
-            <p v-if="topUsersByCover.length === 0" class="text-gray-400 italic text-xs text-center py-3">No hay datos</p>
+            <p v-if="topUsersByCover.length === 0" class="text-gray-400 dark:text-gray-300 italic text-xs text-center py-3">No hay datos</p>
             <div v-else class="grid grid-cols-2 gap-x-2">
               <ul v-for="(col, colIdx) in topUsersByCoverColumns" :key="colIdx">
                 <li v-for="entry in col" :key="entry.user.user.id"
                   class="flex items-center gap-1.5 py-1 px-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-0">
                   <span class="text-xs w-4 text-center shrink-0" :aria-label="`Posición ${entry.index + 1}`">
                     <i v-if="entry.index < 3" class="fas fa-trophy" :class="trophyClasses[entry.index]" aria-hidden="true"></i>
-                    <span v-else class="text-gray-400 text-xs">{{ entry.index + 1 }}</span>
+                    <span v-else class="text-gray-400 dark:text-gray-300 text-xs">{{ entry.index + 1 }}</span>
                   </span>
                   <span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ entry.user.user.username }}</span>
                   <span class="text-[10px] font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1.5 py-0.5 rounded-full">{{ entry.user.totalCover }}</span>
@@ -215,7 +215,6 @@ async function closeCommunityStatsModal(): Promise<void> {
 .community-label {
   font-size: 0.7rem;
   font-weight: 600;
-  color: #9ca3af;
   width: 5.5rem;
   flex-shrink: 0;
   text-align: right;

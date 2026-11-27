@@ -209,12 +209,12 @@ onUnmounted(() => {
         <div v-for="slot in 2" :key="slot" class="aspect-square rounded-xl bg-gray-100 dark:bg-white/5 animate-pulse"></div>
       </div>
 
-      <p v-else-if="!sessionKey" class="text-center text-gray-400 dark:text-gray-500 text-sm py-6" role="status">
+      <p v-else-if="!sessionKey" class="text-center text-gray-400 dark:text-gray-400 text-sm py-6" role="status">
         Inicia sesión para buscar discos olvidados.
       </p>
 
       <template v-else>
-        <p v-if="isLoading && discs.length > 0" class="mb-3 text-center text-xs text-gray-400 dark:text-gray-500" role="status">
+        <p v-if="isLoading && discs.length > 0" class="mb-3 text-center text-xs text-gray-400 dark:text-gray-400" role="status">
           Buscando otros discos olvidados…
         </p>
         <p v-if="errorMessage" class="mb-3 text-center text-sm text-rose-600 dark:text-rose-400" role="alert" data-test="cemetery-error">
@@ -250,7 +250,7 @@ onUnmounted(() => {
           </div>
         </div>
 
-        <p v-else-if="showEmpty" class="text-center text-gray-400 dark:text-gray-500 text-sm py-6" role="status" data-test="cemetery-empty">
+        <p v-else-if="showEmpty" class="text-center text-gray-400 dark:text-gray-400 text-sm py-6" role="status" data-test="cemetery-empty">
           No quedan discos sin valoraciones musicales en el catálogo.
         </p>
       </template>

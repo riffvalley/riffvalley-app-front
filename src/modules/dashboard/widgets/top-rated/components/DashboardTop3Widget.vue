@@ -163,7 +163,7 @@ function retry(): void {
         </h3>
         <p class="mt-0.5 pl-6 text-xs text-gray-500 dark:text-gray-400">{{ title }}</p>
       </div>
-      <span class="shrink-0 text-xs text-gray-400 dark:text-gray-500 capitalize">{{
+      <span class="shrink-0 text-xs text-gray-400 dark:text-gray-400 capitalize">{{
         periodLabel
       }}</span>
     </header>
@@ -237,7 +237,7 @@ function retry(): void {
 
       <p
         v-else
-        class="text-center text-gray-400 dark:text-gray-500 text-sm py-6"
+        class="text-center text-gray-400 dark:text-gray-400 text-sm py-6"
         role="status"
         aria-live="polite"
       >
