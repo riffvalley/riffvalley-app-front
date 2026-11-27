@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   create: vi.fn(),
   success: vi.fn(),
   error: vi.fn(),
+  filters: [] as unknown[],
 }));
 function makeQuery() {
   return {
@@ -23,7 +24,10 @@ function makeQuery() {
   };
 }
 vi.mock("../../application/useFeedback", () => ({
-  useMyFeedbackQuery: () => state.query,
+  useMyFeedbackQuery: (...filters: unknown[]) => {
+    state.filters = filters;
+    return state.query;
+  },
   useFeedbackMutations: () => {
     const isPending = ref(false);
     return {
@@ -53,6 +57,7 @@ describe("FeedbackView submission flow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     state.query = makeQuery();
+    state.filters = [];
     state.create.mockResolvedValue({ id: "created" });
   });
 
@@ -206,9 +211,9 @@ describe("FeedbackView submission flow", () => {
     state.query.data.value = { data: [], counts: { in_progress: 0, done: 0, rejected: 0 } };
     await nextTick();
     expect(wrapper.text()).toContain("Sin aportaciones todavía");
-    expect(wrapper.text()).toContain("0 pendientes");
-    expect(wrapper.text()).toContain("0 resueltos");
-    expect(wrapper.text()).toContain("0 rechazados");
+    expect(wrapper.text()).toContain("Pendientes (0)");
+    expect(wrapper.text()).toContain("Resueltos (0)");
+    expect(wrapper.text()).toContain("Rechazados (0)");
   });
 
   it("uses singular status labels when the backend count is one", () => {
@@ -218,9 +223,32 @@ describe("FeedbackView submission flow", () => {
     };
     wrapper = mount(FeedbackView);
 
-    expect(wrapper.text()).toContain("1 pendiente");
-    expect(wrapper.text()).toContain("1 resuelto");
-    expect(wrapper.text()).toContain("1 rechazado");
+    expect(wrapper.text()).toContain("Pendiente (1)");
+    expect(wrapper.text()).toContain("Resuelto (1)");
+    expect(wrapper.text()).toContain("Rechazado (1)");
+  });
+
+  it("filters the user's history by status while keeping all as the default", async () => {
+    state.query.data.value = {
+      data: [],
+      counts: { in_progress: 2, done: 3, rejected: 1 },
+    };
+    wrapper = mount(FeedbackView);
+
+    const allFilter = wrapper.get('button[aria-pressed="true"]');
+    expect(allFilter.text()).toContain("Todas (6)");
+    expect(state.filters[0]).toBe("all");
+    expect((state.filters[1] as { value: string }).value).toBe("all");
+
+    const doneFilter = wrapper
+      .findAll("button")
+      .find((button) => button.text().includes("Resueltos (3)"));
+    expect(doneFilter).toBeDefined();
+    await doneFilter?.trigger("click");
+
+    expect(doneFilter?.attributes("aria-pressed")).toBe("true");
+    expect(allFilter.attributes("aria-pressed")).toBe("false");
+    expect((state.filters[1] as { value: string }).value).toBe("done");
   });
 
   it("renders type, category, status, server counts, rejection reason, and resolution details", () => {
@@ -301,9 +329,9 @@ describe("FeedbackView submission flow", () => {
     expect(wrapper.text()).toContain("Pendiente");
     expect(wrapper.text()).toContain("Resuelto");
     expect(wrapper.text()).toContain("Rechazado");
-    expect(wrapper.text()).toContain("8 pendientes");
-    expect(wrapper.text()).toContain("4 resueltos");
-    expect(wrapper.text()).toContain("2 rechazados");
+    expect(wrapper.text()).toContain("Pendientes (8)");
+    expect(wrapper.text()).toContain("Resueltos (4)");
+    expect(wrapper.text()).toContain("Rechazados (2)");
     expect(wrapper.text()).toContain("Duplicado");
     expect(wrapper.text()).toContain("Incluido en Versiones: Versión 2.0");
     expect(wrapper.text()).toContain("Resuelto como mejora interna");

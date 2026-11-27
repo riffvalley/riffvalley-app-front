@@ -51,24 +51,24 @@
           aria-label="Resumen de aportaciones"
           class="mt-2 flex flex-wrap gap-2"
         >
-          <span
-            class="inline-flex items-center gap-1.5 rounded-lg bg-yellow-100 px-2.5 py-1.5 text-xs font-semibold text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+          <div
+            class="flex flex-wrap gap-2"
+            role="group"
+            aria-label="Filtrar mis aportaciones por estado"
           >
-            <i class="fa-solid fa-clock" aria-hidden="true"></i>
-            {{ counts.in_progress }} pendiente{{ counts.in_progress === 1 ? "" : "s" }}
-          </span>
-          <span
-            class="inline-flex items-center gap-1.5 rounded-lg bg-green-100 px-2.5 py-1.5 text-xs font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-300"
-          >
-            <i class="fa-solid fa-check" aria-hidden="true"></i>
-            {{ counts.done }} resuelto{{ counts.done === 1 ? "" : "s" }}
-          </span>
-          <span
-            class="inline-flex items-center gap-1.5 rounded-lg bg-red-100 px-2.5 py-1.5 text-xs font-semibold text-red-700 dark:bg-red-900/30 dark:text-red-300"
-          >
-            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-            {{ counts.rejected }} rechazado{{ counts.rejected === 1 ? "" : "s" }}
-          </span>
+            <button
+              v-for="option in statusOptions"
+              :key="option.value"
+              type="button"
+              :aria-pressed="activeStatus === option.value"
+              :class="statusPillClass(option.value)"
+              class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink focus-visible:ring-offset-2 dark:focus-visible:ring-offset-rv-darkBg"
+              @click="activeStatus = option.value"
+            >
+              {{ statusPillLabel(option.value) }}
+              <span class="tabular-nums">({{ countByStatus(option.value) }})</span>
+            </button>
+          </div>
         </section>
 
         <div
@@ -116,9 +116,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, shallowRef } from "vue";
 import { useMyFeedbackQuery, useFeedbackMutations } from "../../application/useFeedback";
 import { feedbackErrorMessage } from "../../application/feedbackErrorMessage";
+import type { FeedbackStatus } from "../../types/feedback";
 import FeedbackFormModal from "../components/FeedbackFormModal.vue";
 import FeedbackHistoryCard from "../components/FeedbackHistoryCard.vue";
 import type { CreateFeedbackDto } from "../../types/feedback";
@@ -126,7 +127,10 @@ import SwalService from "@services/swal/SwalService";
 
 defineOptions({ name: "FeedbackView" });
 
-const query = useMyFeedbackQuery();
+type StatusFilter = FeedbackStatus | "all";
+
+const activeStatus = shallowRef<StatusFilter>("all");
+const query = useMyFeedbackQuery("all", activeStatus);
 const mutations = useFeedbackMutations();
 const suggestions = computed(() => query.data.value?.data ?? []);
 const counts = computed(() => query.data.value?.counts ?? { in_progress: 0, done: 0, rejected: 0 });
@@ -136,6 +140,55 @@ const retry = () => query.refetch();
 const submitting = computed(() => mutations.create.isPending.value);
 const submitModalOpen = ref(false);
 const submitError = ref("");
+
+const statusOptions: { value: StatusFilter; label: string }[] = [
+  { value: "all", label: "Todas" },
+  { value: "in_progress", label: "Pendientes" },
+  { value: "done", label: "Resueltos" },
+  { value: "rejected", label: "Rechazados" },
+];
+
+function countByStatus(status: StatusFilter) {
+  return status === "all"
+    ? counts.value.in_progress + counts.value.done + counts.value.rejected
+    : counts.value[status];
+}
+
+function statusPillLabel(status: StatusFilter) {
+  if (status === "all") return "Todas";
+  const labels: Record<FeedbackStatus, [singular: string, plural: string]> = {
+    in_progress: ["Pendiente", "Pendientes"],
+    done: ["Resuelto", "Resueltos"],
+    rejected: ["Rechazado", "Rechazados"],
+  };
+  return labels[status][counts.value[status] === 1 ? 0 : 1];
+}
+
+function statusPillClass(status: StatusFilter) {
+  if (status === "all") {
+    return activeStatus.value === status
+      ? "bg-rv-navy text-white dark:bg-rv-purple"
+      : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-rv-darkSurface dark:text-gray-200 dark:hover:bg-white/10";
+  }
+  const palettes: Record<FeedbackStatus, { selected: string; idle: string }> = {
+    in_progress: {
+      selected:
+        "bg-yellow-600 text-white hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-600",
+      idle: "bg-yellow-100 text-yellow-900 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-200 dark:hover:bg-yellow-900/50",
+    },
+    done: {
+      selected:
+        "bg-green-700 text-white hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-600",
+      idle: "bg-green-100 text-green-900 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-200 dark:hover:bg-green-900/50",
+    },
+    rejected: {
+      selected: "bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600",
+      idle: "bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-200 dark:hover:bg-red-900/50",
+    },
+  };
+  const palette = palettes[status];
+  return activeStatus.value === status ? palette.selected : palette.idle;
+}
 
 function openSubmitModal() {
   submitError.value = "";
