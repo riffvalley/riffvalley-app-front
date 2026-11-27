@@ -36,6 +36,16 @@
             </p>
           </div>
 
+          <!-- Top Discos -->
+          <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
+            <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
+              <i class="fa-solid fa-star mr-2 text-rv-pink"></i>Top Discos
+            </h2>
+            <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
+              El ranking de la app. Aquí encontrarás el <strong class="text-gray-800 dark:text-white">top de discos mejor valorados</strong> filtrable por semana, mes, año o histórico. También puedes filtrar por género y país. En la parte superior hay un panel con las novedades de Riff Valley y un ranking de los usuarios más activos votando.
+            </p>
+          </div>
+
           <!-- Discos -->
           <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
             <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
@@ -55,16 +65,6 @@
             </ul>
             <img src="@/assets/DiscosEjemplo.png" alt="Ejemplo sección Discos"
               class="rounded-lg shadow mx-auto w-full max-w-md" />
-          </div>
-
-          <!-- Top Discos -->
-          <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
-            <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
-              <i class="fa-solid fa-star mr-2 text-rv-pink"></i>Top Discos
-            </h2>
-            <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
-              El ranking de la app. Aquí encontrarás el <strong class="text-gray-800 dark:text-white">top 20 de discos mejor valorados</strong> filtrable por semana, mes, año o histórico. También puedes filtrar por género y país. En la parte superior hay un panel con las novedades de Riff Valley y un ranking de los usuarios más activos votando.
-            </p>
           </div>
 
           <!-- Artistas -->
@@ -107,6 +107,22 @@
             <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
               Un resumen visual de tu actividad en la app: cuántos discos has votado, cómo se distribuyen tus notas, qué géneros predominan en tus votaciones y tu evolución a lo largo del tiempo. Puedes filtrar por año para ver períodos concretos.
             </p>
+          </div>
+
+          <!-- Actividad -->
+          <div class="bg-white dark:bg-rv-darkCard rounded-xl shadow p-5">
+            <h2 class="text-base font-bold text-rv-navy dark:text-white mb-2">
+              <i class="fa-solid fa-clock-rotate-left mr-2 text-rv-pink"></i>Actividad
+            </h2>
+            <p class="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-3">
+              Consulta el <strong class="text-gray-800 dark:text-white">historial de tus valoraciones</strong> y los cambios que has hecho en ellas. Todo aparece ordenado por días, como una línea del tiempo:
+            </p>
+            <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1.5">
+              <li><i class="fa-solid fa-check-to-slot text-rv-pink mr-2 w-4 text-center"></i>Cada voto que das a un disco, con su nota.</li>
+              <li><i class="fa-solid fa-arrow-right-arrow-left text-rv-purple mr-2 w-4 text-center"></i>Cada cambio de nota, con la nota anterior y la nueva.</li>
+              <li><i class="fa-solid fa-calendar-day text-blue-400 mr-2 w-4 text-center"></i>Filtro por un día concreto o por un intervalo de fechas.</li>
+              <li><i class="fa-solid fa-hand-pointer text-gray-400 mr-2 w-4 text-center"></i>Pulsa en un disco para abrir su tarjeta y revisar tu voto.</li>
+            </ul>
           </div>
 
           <!-- Bugs y Sugerencias -->
