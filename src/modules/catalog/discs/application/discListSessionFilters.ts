@@ -86,6 +86,17 @@ export function writeDiscListAppliedSavedFilterId(userId: string | null, filterI
   }
 }
 
+function isUnfilteredVisitState(
+  filters: DiscListSessionFilters,
+  visit: SessionFilterBindings["unfilteredVisit"],
+): boolean {
+  if (!visit) return false;
+  const sameWeek =
+    filters.week === visit.week ||
+    Boolean(filters.week && visit.week && filters.week.every((value, index) => value === visit.week![index]));
+  return sameWeek && filters.genreIds.length === 0 && !filters.countryId && !filters.noRatesOnly;
+}
+
 interface SessionFilterBindings {
   userId: Ref<string | null>;
   selectedWeek: Ref<[string, string] | null>;
@@ -96,6 +107,12 @@ interface SessionFilterBindings {
   setGenres: (ids: string[]) => void;
   setCountry: (countryId: string) => void;
   setNoRatesOnly: (enabled: boolean) => void;
+  /**
+   * Visita «sin filtros» (accesos directos Novedades de hoy y Mis pendientes):
+   * enseña todo con este rango de fechas, pero sin tocar lo guardado. Lo
+   * guardado solo se reemplaza si el usuario cambia algún filtro a mano.
+   */
+  unfilteredVisit?: { week: [string, string] | null };
 }
 
 /**
@@ -104,14 +121,21 @@ interface SessionFilterBindings {
  * defecto no pise un «Todos los años» elegido por el usuario.
  */
 export function useDiscListSessionFilters(bindings: SessionFilterBindings): boolean {
-  const stored = readDiscListSessionFilters(bindings.userId.value);
-  if (stored) {
+  const visit = bindings.unfilteredVisit;
+  const stored = visit ? null : readDiscListSessionFilters(bindings.userId.value);
+  if (visit) {
+    bindings.setSelectedWeek(visit.week);
+    bindings.setGenres([]);
+    bindings.setCountry("");
+    bindings.setNoRatesOnly(false);
+  } else if (stored) {
     bindings.setSelectedWeek(stored.week);
     bindings.setGenres(stored.genreIds);
     bindings.setCountry(stored.countryId);
     bindings.setNoRatesOnly(stored.noRatesOnly);
   }
 
+  let keepStored = Boolean(visit);
   watch(
     () => ({
       week: bindings.selectedWeek.value,
@@ -119,7 +143,12 @@ export function useDiscListSessionFilters(bindings: SessionFilterBindings): bool
       countryId: bindings.selectedCountry.value,
       noRatesOnly: bindings.noRatesOnly.value,
     }),
-    (filters) => writeDiscListSessionFilters(bindings.userId.value, filters),
+    (filters) => {
+      // Mientras siga viendo la visita sin filtros tal cual, no se pisa lo guardado.
+      if (keepStored && isUnfilteredVisitState(filters, visit)) return;
+      keepStored = false;
+      writeDiscListSessionFilters(bindings.userId.value, filters);
+    },
     { deep: true },
   );
 

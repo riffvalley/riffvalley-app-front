@@ -53,6 +53,8 @@
         <span v-else-if="!disc.link">
           <SpotifyArtistButton :artistName="disc.artist.name" />
         </span>
+        <!-- Ya ha salido: votar o editar tu nota, como en el modal de Artistas -->
+        <CalendarVoteButton :disc="disc" :tinted="hasColor" class="ml-auto" />
       </div>
     </div>
 
@@ -127,10 +129,11 @@ import SpotifyArtistButton from "@components/SpotifyArtistButton.vue";
 import { postPendingService, deletePendingService } from "@services/pendings/pendings";
 import DiscDetail from "@components/DiscDetail.vue";
 import ArtistDetail from "@components/ArtistDetail.vue";
+import CalendarVoteButton from "./CalendarVoteButton.vue";
 
 export default defineComponent({
   name: "DiscBaby",
-  components: { SpotifyArtistButton, DiscDetail, ArtistDetail },
+  components: { SpotifyArtistButton, DiscDetail, ArtistDetail, CalendarVoteButton },
   props: {
     disc: {
       type: Object as PropType<{
@@ -145,6 +148,7 @@ export default defineComponent({
         debut: boolean;
         releaseDate: Date;
         pendingId: string | null;
+        userRate?: unknown;
       }>,
       required: true,
     },

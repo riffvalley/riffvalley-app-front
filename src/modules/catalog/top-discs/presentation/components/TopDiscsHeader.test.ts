@@ -78,8 +78,7 @@ describe("TopDiscsHeader", () => {
         group.getAttribute("data-testid")
       )
     ).toEqual(["temporal-controls", "catalog-controls"]);
-    expect(catalogRow.classes()).toContain("md:grid-cols-2");
-    expect(catalogRow.classes()).toContain("grid-cols-1");
+    expect(catalogRow.classes()).toContain("grid-cols-2");
     expect(country.props("options")).toEqual(props.countries);
     expect(genre.props("options")).toEqual(props.genres);
     // El Top solo filtra por un género: mismo selector que Discos, en modo de uno.

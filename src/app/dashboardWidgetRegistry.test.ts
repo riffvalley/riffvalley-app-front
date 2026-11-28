@@ -8,6 +8,7 @@ import {
 } from "./dashboardWidgetRegistry";
 
 const expectedOrder: DashboardWidgetId[] = [
+  "accesosDirectos",
   "novedades",
   "comunidad",
   "discoAleatorio",
@@ -19,7 +20,6 @@ const expectedOrder: DashboardWidgetId[] = [
   "mundoMusical",
   "ultimosVotos",
   "aventura",
-  "accesosDirectos",
 ];
 
 describe("dashboard widget registry", () => {
@@ -37,6 +37,7 @@ describe("dashboard widget registry", () => {
 
   it("preserves current labels, sizes, icons, and enabled defaults", () => {
     expect(dashboardWidgetDefaults.map(({ label, size, enabled }) => ({ label, size, enabled }))).toEqual([
+      { label: "Accesos directos", size: "full", enabled: true },
       { label: "Novedades Riff Valley", size: "half", enabled: true },
       { label: "Comunidad / Top usuarios", size: "half", enabled: true },
       { label: "Disco aleatorio", size: "half", enabled: true },
@@ -48,7 +49,6 @@ describe("dashboard widget registry", () => {
       { label: "Tu mundo musical", size: "half", enabled: true },
       { label: "Tus últimos 5 votos", size: "half", enabled: true },
       { label: "Crea tu propia aventura", size: "half", enabled: true },
-      { label: "Accesos directos", size: "full", enabled: true },
     ]);
     expect(dashboardWidgetDefaults.every(({ icon }) => icon.startsWith("fa-solid "))).toBe(true);
   });

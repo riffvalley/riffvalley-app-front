@@ -1,6 +1,7 @@
 import type { StatisticsRatedDisc } from "@/modules/statistics/types/statistics";
 
-const FALLBACK_COLOR = "#6b7280";
+/** Color de los discos sin género (o con género sin color). */
+export const FALLBACK_COLOR = "#6b7280";
 const NO_GENRE_LABEL = "Sin género";
 
 /** Blanco o negro según la luminancia del color de fondo, para que un texto

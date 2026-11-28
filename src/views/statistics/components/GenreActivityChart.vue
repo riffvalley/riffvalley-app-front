@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, inject } from "vue";
+import { discCardDialogKey } from "@/composables/discCardDialog";
 import type { StatisticsGenreActivity } from "@/modules/statistics/types/statistics";
 import { totalActivity } from "../utils/activityVisualizations";
 
@@ -13,6 +14,12 @@ const props = defineProps<{
 const emit = defineEmits<{
   openGalaxy: [];
 }>();
+
+// Pulsar la portada abre la ficha votable del disco (la misma que «Ver disco»).
+const discCardDialog = inject(discCardDialogKey, null);
+function openDisc(discId: string): void {
+  discCardDialog?.open(discId);
+}
 
 const genres = computed(() => [...props.activity]
   .sort((a, b) => b.activityCount - a.activityCount || a.genre.localeCompare(b.genre, "es", { sensitivity: "base" }))
@@ -70,12 +77,18 @@ function barWidth(count: number): string {
           </div>
 
           <div class="flex min-w-0 items-center gap-3">
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gray-100 text-rv-navy dark:bg-white/10 dark:text-gray-200">
+            <component
+              :is="discCardDialog && genre.topDisc ? 'button' : 'div'"
+              v-bind="discCardDialog && genre.topDisc ? { type: 'button', 'aria-label': `Abrir tarjeta de ${genre.topDisc.name}`, 'aria-haspopup': 'dialog', 'data-test': 'genre-disc-open' } : {}"
+              class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md bg-gray-100 text-rv-navy dark:bg-white/10 dark:text-gray-200"
+              :class="discCardDialog && genre.topDisc ? 'p-0 border-0 cursor-pointer transition hover:ring-2 hover:ring-rv-pink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink' : ''"
+              @click="genre.topDisc && openDisc(genre.topDisc.id)"
+            >
               <img v-if="genre.topDisc?.image" :src="genre.topDisc.image" :alt="`Portada de ${genre.topDisc.name}`" class="h-full w-full object-cover" />
               <i v-else class="fa-solid fa-compact-disc text-xl opacity-60" aria-hidden="true" />
               <span v-if="genre.topDisc && !genre.topDisc.image" class="sr-only">Portada no disponible</span>
               <span v-if="!genre.topDisc" class="sr-only">Sin disco destacado</span>
-            </div>
+            </component>
 
             <div class="min-w-0">
               <template v-if="genre.topDisc">

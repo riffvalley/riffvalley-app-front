@@ -42,7 +42,7 @@ describe("DashboardWelcomeBanner", () => {
     expect(wrapper.text()).toContain("Este año");
     expect(wrapper.text()).toContain("Histórico");
     expect(wrapper.get('[data-test="banner-stats"] .grid').classes()).toContain("xl:grid-cols-4");
-    expect(wrapper.get('[data-test="banner-stats"] .grid').classes()).toContain("min-[390px]:grid-cols-2");
+    expect(wrapper.get('[data-test="banner-stats"] .grid').classes()).toContain("grid-cols-2");
   });
 
   it("maps monthly, yearly, historical, and catalog release counts to their periods", () => {

@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ref } from "vue";
+import { discCardDialogKey } from "@/composables/discCardDialog";
 import ControversialDiscsList from "./ControversialDiscsList.vue";
 import FeaturedDiscCard from "./FeaturedDiscCard.vue";
 import type { StatisticsControversialDisc, StatisticsDisc } from "@/modules/statistics/types/statistics";
@@ -30,6 +32,23 @@ describe("Statistics disc presentations", () => {
     expect(withoutCoverOrArtist.text()).not.toContain("undefined");
     expect(withoutCoverOrArtist.find("img").exists()).toBe(false);
     expect(withoutCoverOrArtist.find(".fa-compact-disc").exists()).toBe(true);
+  });
+
+  it("titles the card as yours and opens the votable disc card from «Ver disco»", async () => {
+    const open = vi.fn();
+    const wrapper = mount(FeaturedDiscCard, {
+      props: { disc },
+      global: { provide: { [discCardDialogKey as symbol]: { isOpen: ref(false), open } } },
+    });
+    expect(wrapper.get("h2").text()).toContain("Tu disco destacado del año");
+
+    const button = wrapper.get('[data-test="featured-disc-open"]');
+    expect(button.attributes("aria-label")).toBe("Abrir tarjeta de A New Dawn");
+    await button.trigger("click");
+    expect(open).toHaveBeenCalledWith("album-42");
+
+    // Sin el host de la ficha (por ejemplo, fuera del shell), no hay botón.
+    expect(mount(FeaturedDiscCard, { props: { disc } }).find('[data-test="featured-disc-open"]').exists()).toBe(false);
   });
 
   it("shows a proper empty state when there is no featured disc", () => {
@@ -72,6 +91,25 @@ describe("Statistics disc presentations", () => {
     expect(rows[0].findAll("dt").every((label) => label.classes().includes("min-h-4"))).toBe(true);
     expect(scores.every((score) => score.classes().includes("min-h-5"))).toBe(true);
     expect(wrapper.text()).not.toContain("undefined");
+  });
+
+  it("titles the list «Discos controvertidos» and opens the disc card from each cover", async () => {
+    const open = vi.fn();
+    const discs = [controversialDisc({ id: "first", name: "First", image: "/fixtures/first.jpg" })];
+    const wrapper = mount(ControversialDiscsList, {
+      props: { discs },
+      global: { provide: { [discCardDialogKey as symbol]: { isOpen: ref(false), open } } },
+    });
+    expect(wrapper.get("h2").text()).toBe("Discos controvertidos");
+
+    const cover = wrapper.get('[data-test="controversial-disc-open"]');
+    expect(cover.element.tagName).toBe("BUTTON");
+    expect(cover.attributes("aria-label")).toBe("Abrir tarjeta de First");
+    await cover.trigger("click");
+    expect(open).toHaveBeenCalledWith("first");
+
+    // Sin el host de la ficha, la portada no es un botón.
+    expect(mount(ControversialDiscsList, { props: { discs } }).find('[data-test="controversial-disc-open"]').exists()).toBe(false);
   });
 
   it("explains why no controversial discs are available", () => {

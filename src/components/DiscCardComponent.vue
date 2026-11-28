@@ -6,13 +6,14 @@
   bg-white dark:bg-rv-darkCard
   border-gray-100 dark:border-white/20
   flex flex-col mx-auto p-2 relative">
-    <!-- Badge Debut -->
-    <div v-if="debut" class="absolute -top-3 -left-2 z-10
-         px-2 py-1 rounded-full text-[10px] font-bold
+    <!-- Badge Debut: encajada sobre el borde superior (lo «corta»), para que se vea que es de este disco -->
+    <div v-if="debut" class="absolute top-0 left-4 -translate-y-1/2 z-10
+         px-2 py-0.5 rounded-full text-[10px] font-bold leading-4
          text-rv-purple dark:text-purple-300 shadow-sm
-         bg-white dark:bg-rv-darkSurface
-         border-rv-purple dark:border-purple-300 border-2">
-      Álbum debut
+         bg-white dark:bg-rv-darkCard
+         border-rv-purple dark:border-purple-300 border-2"
+         data-test="disc-card-debut">
+      Debut
     </div>
 
     <!-- Botón editar (solo Riff Valley) -->
@@ -22,7 +23,8 @@
     </button>
 
     <!-- Fecha y género nunca se parten en dos líneas: si falta sitio, el género se recorta con «…». -->
-    <div class="flex items-center justify-between gap-1 px-2 p-1">
+    <!-- Con la etiqueta Debut, algo más de aire arriba para que no toque la fecha. -->
+    <div class="flex items-center justify-between gap-1 px-2 pb-1" :class="debut ? 'pt-3' : 'pt-1'">
       <p class="shrink-0 whitespace-nowrap text-xs text-gray-500 dark:text-gray-300">{{ formattedDate }}</p>
       <div class="flex shrink-0 items-center space-x-2">
         <p v-if="isEP" class="px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500 text-center shadow-sm">

@@ -346,12 +346,14 @@
 
           <form @submit.prevent="changePassword" class="space-y-4">
             <div>
+              <label
+                for="password"
+                class="block font-medium mb-1 text-gray-700 dark:text-gray-300 text-sm"
+              >
+                Nueva contraseña
+              </label>
+              <!-- Solo la caja y el ojo: así el ojo se centra en la caja, no con el título -->
               <div class="relative">
-                <label
-                  for="password"
-                  class="block font-medium mb-1 text-gray-700 dark:text-gray-300 text-sm"
-                >
-                  Nueva contraseña
                   <input
                     v-model="password"
                     :type="showPassword ? 'text' : 'password'"
@@ -360,12 +362,11 @@
                     placeholder="Crea tu nueva contraseña"
                     required
                   />
-                </label>
                 <button
                   type="button"
                   @click="showPassword = !showPassword"
                   :aria-label="showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-                  class="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 border-0 outline-none focus:outline-none ring-0 focus:ring-0 active:bg-transparent transition-colors"
+                  class="absolute right-1 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-md border-0 p-0 bg-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 active:bg-transparent transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-pink"
                 >
                   <i
                     :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"
@@ -430,12 +431,13 @@
             </div>
 
             <div>
+              <label
+                for="confirmPassword"
+                class="block font-medium mb-1 text-gray-700 dark:text-gray-300 text-sm"
+              >
+                Confirmar contraseña
+              </label>
               <div class="relative">
-                <label
-                  for="confirmPassword"
-                  class="block font-medium mb-1 text-gray-700 dark:text-gray-300 text-sm"
-                >
-                  Confirmar contraseña
                   <input
                     v-model="confirmPassword"
                     :type="showConfirmPassword ? 'text' : 'password'"
@@ -444,7 +446,6 @@
                     placeholder="Confirma tu nueva contraseña"
                     required
                   />
-                </label>
                 <button
                   type="button"
                   @click="showConfirmPassword = !showConfirmPassword"
@@ -453,7 +454,7 @@
                       ? 'Ocultar confirmación de contraseña'
                       : 'Mostrar confirmación de contraseña'
                   "
-                  class="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 border-0 outline-none focus:outline-none ring-0 focus:ring-0 active:bg-transparent transition-colors"
+                  class="absolute right-1 top-1/2 -translate-y-1/2 inline-flex h-8 w-8 items-center justify-center rounded-md border-0 p-0 bg-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 active:bg-transparent transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-rv-pink"
                 >
                   <i
                     :class="showConfirmPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"
@@ -527,10 +528,12 @@
               <button
                 ref="dashboardCloseButton"
                 type="button"
+                aria-label="Cerrar personalizar dashboard"
+                data-test="dashboard-dialog-close"
                 @click="showDashboardModal = false"
-                class="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 bg-gray-100 dark:bg-white/10 hover:text-white hover:bg-rv-pink dark:hover:bg-rv-pink border-0 outline-none transition-colors duration-150"
+                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 p-0 bg-gray-100 text-gray-600 hover:bg-rv-pink hover:text-white dark:bg-white/10 dark:text-gray-200 dark:hover:bg-rv-pink dark:hover:text-white transition-colors duration-150 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
               >
-                <i class="fa-solid fa-xmark text-sm"></i>
+                <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
               </button>
             </div>
 

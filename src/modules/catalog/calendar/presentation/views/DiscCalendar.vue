@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-7xl mx-auto mt-10 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto mt-10 sm:px-6 lg:px-8">
   <!-- Sentinel scroll-to-top -->
   <div ref="scrollSentinel" class="h-px w-full"></div>
 <template v-if="!embedded">
@@ -19,11 +19,12 @@
 
 
     <div>
-      <div class="flex flex-wrap justify-center gap-2 mb-6 mt-6 py-1">
-        <button v-for="(month, index) in months" :key="index" @click="selectMonth(index)"
-          class="px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap shadow-md
+      <!-- Móvil: los 12 meses a la vista en una cuadrícula de 3 columnas; desde sm, centrados en varias líneas -->
+    <div role="group" aria-label="Mes" class="grid grid-cols-3 gap-2 mb-6 mt-6 sm:flex sm:flex-wrap sm:justify-center">
+        <button v-for="(month, index) in months" :key="index" type="button" :aria-pressed="selectedMonth === index" @click="selectMonth(index)"
+          class="px-2 py-2 sm:px-4 rounded-full text-sm font-semibold whitespace-nowrap shadow-md
                  transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] active:translate-y-0
-                 focus:outline-none focus:ring-0 focus:ring-offset-0"
+                 focus:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink focus-visible:ring-offset-2"
           :class="selectedMonth === index
             ? 'bg-rv-navy dark:bg-gray-200 text-white dark:text-rv-navy hover:opacity-80 hover:shadow-lg'
             : 'bg-gray-200 dark:bg-rv-darkSurface text-rv-navy dark:text-white hover:bg-rv-navy hover:text-white dark:hover:bg-gray-200 dark:hover:text-rv-navy hover:shadow-lg'">
@@ -33,7 +34,7 @@
 
       <!-- Lista de discos agrupados (resto del template) -->
       <div v-for="(group, index) in filteredGroupedDiscs" :key="group.releaseDate" class="mb-8">
-        <div class="group flex justify-between items-center px-5 py-3 rounded-2xl cursor-pointer
+        <div class="group flex justify-between items-center gap-2 px-4 py-3 sm:px-5 rounded-2xl cursor-pointer
                     transition-all duration-200 shadow-sm border border-gray-100 dark:border-white/10
                     hover:-translate-y-0.5 hover:shadow-md"
              :class="(groupState[index] || closing[index])
@@ -42,7 +43,7 @@
              @click="toggleGroup(index)">
 
           <!-- Fecha + conteo -->
-          <div class="flex items-center gap-3 min-w-0">
+          <div class="flex items-center gap-2 min-w-0 sm:gap-3">
             <h3 class="text-base sm:text-lg font-bold transition-colors duration-200 truncate"
                 :class="(groupState[index] || closing[index]) ? 'text-white dark:text-rv-navy' : 'text-rv-navy dark:text-white group-hover:text-white dark:group-hover:text-rv-navy'">
               {{ formatDate(group.releaseDate) }}
@@ -69,29 +70,8 @@
           @after-leave="() => (closing[index] = false)">
           <!-- ÚNICO hijo raíz del transition -->
           <div v-show="groupState[index]" class="mt-4 overflow-x-auto">
-            <!-- Contenedor de botones centrado -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-center gap-2 mt-4 w-full">
-              <button v-if="canFillImages" @click="buscarImagenesLastFm(group.releaseDate)"
-                class="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-full text-sm font-semibold
-                       hover:bg-red-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
-                       w-full max-w-[300px] sm:max-w-none sm:w-auto justify-center self-center shadow-md">
-                <i class="fa-brands fa-lastfm"></i> Last.fm búsqueda
-              </button>
-
-              <button v-if="canEditCatalog && new Date(group.releaseDate) < new Date()" @click="buscarEnlacesSpotify(group.discs)"
-                class="inline-flex items-center gap-2 bg-[#1DB954] text-white px-4 py-2 rounded-full text-sm font-semibold
-                       hover:bg-[#1aa34a] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
-                       w-full max-w-[300px] sm:max-w-none sm:w-auto justify-center self-center shadow-md">
-                <i class="fa-brands fa-spotify"></i> Buscar en Spotify
-              </button>
-
-              <button v-if="canEditCatalog" @click="exportarHtml(group)"
-                class="inline-flex items-center gap-2 bg-rv-navy dark:bg-gray-200 text-white dark:text-rv-navy px-4 py-2 rounded-full text-sm font-semibold
-                       hover:opacity-80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.97] active:translate-y-0
-                       w-full max-w-[300px] sm:max-w-none sm:w-auto justify-center self-center shadow-md">
-                <i class="fa-solid fa-code"></i> Exportar HTML
-              </button>
-            </div>
+            <!-- Herramientas del día (Last.fm, Spotify, exportar HTML), solo roles altos -->
+            <CalendarDayTools :group="group" :genres="genres" />
 
             <div v-if="optionsReady">
               <ul class="w-full mt-3 flex flex-col gap-3">
@@ -143,16 +123,14 @@ import {
   watch,
   toRef,
 } from "vue";
-import { updateDisc, getDiscsDated } from "@services/discs/discs";
-import { fillImages } from "@services/lastfm/lastfm.ts";
+import { getDiscsDated } from "@services/discs/discs";
 import DiscComponent from "../components/DiscComponent.vue";
 import { useCatalogStore } from "@stores/catalog/catalog";
 import { MONTHS, getYearOptions } from "@helpers/dateConstants";
-import { resolveSpotifyAlbum } from "@services/spotify/spotifyLookup";
 import CalendarFilters from "../components/CalendarFilters.vue";
 import NationalReleaseSync from "../components/NationalReleaseSync.vue";
+import CalendarDayTools from "../components/CalendarDayTools.vue";
 import { useAuthStore } from "@/modules/identity/auth";
-import { hasMinimumRole } from "@/modules/identity/shared";
 import SwalService from "@services/swal/SwalService";
 import {
   appendDatedDiscGroups,
@@ -166,7 +144,7 @@ import {
 } from "../utils/calendarViewUtils";
 
 export default defineComponent({
-  components: { DiscComponent, CalendarFilters, NationalReleaseSync },
+  components: { DiscComponent, CalendarFilters, NationalReleaseSync, CalendarDayTools },
   name: "DiscsList",
 
   props: {
@@ -178,8 +156,6 @@ export default defineComponent({
 
   setup(props) {
     const authStore = useAuthStore();
-    const canEditCatalog = computed(() => hasMinimumRole(authStore.role, "riffvalley"));
-    const canFillImages = computed(() => hasMinimumRole(authStore.role, "superadmin"));
     const canSyncReleases = computed(
       () => authStore.authStatus === "authenticated" && authStore.role === "superadmin",
     );
@@ -446,81 +422,6 @@ export default defineComponent({
 
     const optionsReady = computed(() => catalogStore.loaded);
 
-    const buscarEnlacesSpotify = async (discs: any[]) => {
-      for (const disc of discs) {
-        try {
-          const album = await resolveSpotifyAlbum(disc.name, disc.artist.name);
-          if (!album) {
-            disc.link = "No se encontró el álbum";
-            continue;
-          }
-          disc.link = album.listenUrl ?? "No se encontró el álbum";
-          disc.image = album.coverUrl;
-          await updateDisc(disc.id, {
-            link: disc.link,
-            image: disc.image,
-            verified: true,
-            genreId: disc.genreId ?? disc.genre?.id ?? null,
-          });
-        } catch (error) {
-          console.error(`Error al buscar el álbum ${disc.name}:`, error);
-          disc.link = "Error al realizar la búsqueda";
-        }
-      }
-    };
-
-    const exportarHtml = (group: any) => {
-      const genreById = new Map(
-        genres.value.map((g: any) => [String(g.id), g.name || "(Sin nombre)"])
-      );
-
-      let html = `
-  <figure class="wp-block-table is-style-stripes">
-    <table>
-      <tbody>`;
-
-      group.discs.forEach((disc: any) => {
-        const genreName =
-          genreById.get(String(disc.genreId ?? disc.genre?.id ?? "")) ||
-          disc.genre?.name ||
-          "Sin género";
-
-        if (disc.link) {
-          html += `
-        <tr>
-          <td class="has-text-align-left" data-align="left">${genreName}</td>
-          <td><strong><a href="${disc.link}" target="_blank" rel="noreferrer noopener">${disc.artist.name} - ${disc.name}</a></strong></td>
-        </tr>`;
-        } else {
-          html += `
-        <tr>
-          <td class="has-text-align-left" data-align="left">${genreName}</td>
-          <td><strong>${disc.artist.name} - ${disc.name}</strong></td>
-        </tr>`;
-        }
-      });
-
-      html += `
-      </tbody>
-    </table>
-  </figure>`;
-
-      const blob = new Blob([html], { type: "text/html" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = `discs_${group.releaseDate}.html`;
-      link.click();
-      URL.revokeObjectURL(link.href);
-    };
-
-    const buscarImagenesLastFm = async (releaseDate: string) => {
-      const date = new Date(releaseDate);
-      const month = date.getMonth() + 1;
-      const year = date.getFullYear();
-      const week = Math.ceil(date.getDate() / 7);
-      await fillImages(month, year, week);
-    };
-
     watch(selectedYear, () => {
       selectMonth(0);
     });
@@ -577,8 +478,6 @@ export default defineComponent({
       loadMore,
       loading,
       hasMore,
-      buscarEnlacesSpotify,
-      exportarHtml,
       toggleGroup,
       months,
       selectedMonth,
@@ -597,10 +496,7 @@ export default defineComponent({
       optionsReady,
       removeDisc,
       handleDateChange,
-      canEditCatalog,
-      canFillImages,
       canSyncReleases,
-      buscarImagenesLastFm,
       showScrollTop,
       scrollToTop,
       scrollSentinel,

@@ -217,7 +217,8 @@ describe("NewsFeed dashboard widget", () => {
     expect(dashboardWidgetRegistry.find(({ id }) => id === "novedades")).toMatchObject({
       id: "novedades",
       size: "half",
-      order: 0,
+      // «Accesos directos» va primero (order 0); Novedades queda justo detrás.
+      order: 1,
     });
 
     wrapper.unmount();

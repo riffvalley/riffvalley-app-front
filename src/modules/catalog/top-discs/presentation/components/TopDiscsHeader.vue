@@ -83,7 +83,7 @@
         role="group"
         aria-label="Filtros de catálogo"
         data-testid="catalog-controls"
-        class="grid w-full grid-cols-1 md:grid-cols-2 gap-4 mb-4"
+        class="grid w-full grid-cols-2 gap-2 sm:gap-4 mb-4"
       >
         <!-- Mismos selectores que en Discos. El Top solo filtra por un género. -->
         <DiscListCountrySelect

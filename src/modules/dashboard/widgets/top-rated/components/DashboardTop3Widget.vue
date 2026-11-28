@@ -153,7 +153,7 @@ function retry(): void {
     class="bg-white dark:bg-rv-darkSurface rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden"
   >
     <header
-      class="flex items-center justify-between gap-4 px-6 py-4 border-b border-gray-100 dark:border-white/10"
+      class="flex flex-col items-start gap-1 px-4 py-4 border-b sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 border-gray-100 dark:border-white/10"
       :class="headerClasses"
     >
       <div class="min-w-0 text-left">
@@ -163,7 +163,7 @@ function retry(): void {
         </h3>
         <p class="mt-0.5 pl-6 text-xs text-gray-500 dark:text-gray-400">{{ title }}</p>
       </div>
-      <span class="shrink-0 text-xs text-gray-400 dark:text-gray-400 first-letter:uppercase">{{
+      <span class="shrink-0 pl-6 text-xs text-gray-400 dark:text-gray-400 first-letter:uppercase sm:pl-0">{{
         periodLabel
       }}</span>
     </header>

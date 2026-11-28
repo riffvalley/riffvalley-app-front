@@ -143,7 +143,7 @@ async function closeCommunityStatsModal(): Promise<void> {
             </button>
           </div>
 
-          <!-- Ranking en 2 columnas: izquierda 1-10, derecha 11-20 (no intercalado por fila) -->
+          <!-- Ranking: en móvil una sola columna (1-20); desde sm, dos columnas: izquierda 1-10, derecha 11-20 -->
           <p v-if="isLoading" class="text-gray-500 text-xs text-center py-3" role="status" aria-live="polite">Cargando rankings…</p>
           <div v-else-if="hasError" class="text-center py-3" role="alert">
             <p class="text-red-600 dark:text-red-400 text-xs mb-2">No se pudieron cargar los rankings.</p>
@@ -151,7 +151,7 @@ async function closeCommunityStatsModal(): Promise<void> {
           </div>
           <template v-else-if="topUsersTab === 'rates'">
             <p v-if="topUsersByRates.length === 0" class="text-gray-400 dark:text-gray-300 italic text-xs text-center py-3">No hay datos</p>
-            <div v-else class="grid grid-cols-2 gap-x-2">
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-x-2">
               <ul v-for="(col, colIdx) in topUsersByRatesColumns" :key="colIdx">
                 <li v-for="entry in col" :key="entry.user.user.id"
                   class="flex items-center gap-1.5 py-1 px-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-0">
@@ -159,7 +159,7 @@ async function closeCommunityStatsModal(): Promise<void> {
                     <i v-if="entry.index < 3" class="fas fa-trophy" :class="trophyClasses[entry.index]" aria-hidden="true"></i>
                     <span v-else class="text-gray-400 dark:text-gray-300 text-xs">{{ entry.index + 1 }}</span>
                   </span>
-                  <span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ entry.user.user.username }}</span>
+                  <span class="text-left text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ entry.user.user.username }}</span>
                   <span class="text-[10px] font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1.5 py-0.5 rounded-full">{{ entry.user.rateCount }}</span>
                 </li>
               </ul>
@@ -167,7 +167,7 @@ async function closeCommunityStatsModal(): Promise<void> {
           </template>
           <template v-else-if="!isLoading && !hasError">
             <p v-if="topUsersByCover.length === 0" class="text-gray-400 dark:text-gray-300 italic text-xs text-center py-3">No hay datos</p>
-            <div v-else class="grid grid-cols-2 gap-x-2">
+            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-x-2">
               <ul v-for="(col, colIdx) in topUsersByCoverColumns" :key="colIdx">
                 <li v-for="entry in col" :key="entry.user.user.id"
                   class="flex items-center gap-1.5 py-1 px-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors min-w-0">
@@ -175,7 +175,7 @@ async function closeCommunityStatsModal(): Promise<void> {
                     <i v-if="entry.index < 3" class="fas fa-trophy" :class="trophyClasses[entry.index]" aria-hidden="true"></i>
                     <span v-else class="text-gray-400 dark:text-gray-300 text-xs">{{ entry.index + 1 }}</span>
                   </span>
-                  <span class="text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ entry.user.user.username }}</span>
+                  <span class="text-left text-xs font-medium text-gray-800 dark:text-gray-200 truncate min-w-0 flex-1">{{ entry.user.user.username }}</span>
                   <span class="text-[10px] font-bold tabular-nums shrink-0 bg-gray-100 dark:bg-rv-darkSurface text-rv-navy dark:text-white px-1.5 py-0.5 rounded-full">{{ entry.user.totalCover }}</span>
                 </li>
               </ul>
@@ -210,7 +210,7 @@ async function closeCommunityStatsModal(): Promise<void> {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  overflow: hidden;
+  flex-wrap: wrap;
 }
 .community-label {
   font-size: 0.7rem;
@@ -237,5 +237,11 @@ async function closeCommunityStatsModal(): Promise<void> {
 .community-pill:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+/* Pantallas estrechas: etiqueta y botones más compactos para que quepan en la tarjeta */
+@media (max-width: 420px) {
+  .community-row { gap: 0.375rem; }
+  .community-label { width: 4.75rem; font-size: 0.65rem; }
+  .community-pill { padding: 0.3rem 0.6rem; }
 }
 </style>

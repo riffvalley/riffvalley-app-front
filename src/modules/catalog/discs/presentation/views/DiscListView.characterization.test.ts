@@ -976,6 +976,47 @@ describe("DiscList new backend integration", () => {
     vi.useRealTimers();
   });
 
+  it("opens only today's releases from the Dashboard shortcut, of every genre and country", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(2026, 10, 26, 12));
+    const remembered = { week: null, genreIds: ["genre-a"], countryId: "country-a", noRatesOnly: false };
+    sessionStorage.setItem("rv_disc_list_filters:user-a", JSON.stringify(remembered));
+    const router = createDiscListRouter();
+    await router.push({ name: "DiscList", query: { periodo: "hoy" } });
+
+    const wrapper = mountList(false, router);
+    await settle();
+
+    expect(wrapper.findComponent(FiltersStub).props("selectedWeek")).toEqual([
+      "2026-11-26T00:00:00.000Z",
+      "2026-11-26T23:59:59.999Z",
+    ]);
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ genreIds: [], countryId: "" }),
+    );
+    // «Mis novedades de la semana/del mes» siguen teniendo tus filtros guardados.
+    expect(JSON.parse(sessionStorage.getItem("rv_disc_list_filters:user-a")!)).toEqual(remembered);
+    expect(router.currentRoute.value.query).toEqual({});
+    wrapper.unmount();
+    vi.useRealTimers();
+    sessionStorage.clear();
+  });
+
+  it("opens the whole pending list from the Dashboard shortcut, without a date filter", async () => {
+    const router = createDiscListRouter();
+    await router.push({ name: "DiscList", query: { periodo: "hoy", vista: "pendientes" } });
+
+    const wrapper = mountList(false, router);
+    await settle();
+
+    expect(wrapper.findComponent(FiltersStub).props("selectedWeek")).toBeNull();
+    expect(api.getDiscListPage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ mode: "pendientes", dateRange: null }),
+    );
+    expect(router.currentRoute.value.query).toEqual({});
+    wrapper.unmount();
+  });
+
   it("loads dynamic options and sends changed country, period, search, and multi-genre criteria", async () => {
     const wrapper = mountList();
     await settle();

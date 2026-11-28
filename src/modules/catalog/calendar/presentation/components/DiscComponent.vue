@@ -141,6 +141,8 @@
                 :class="disc.pinned ? 'bg-rv-pink hover:bg-rv-pink/80' : 'bg-gray-300 dark:bg-white/20 hover:bg-rv-pink'">
           {{ disc.pinned ? '★ Destacado' : '☆ Destacar' }}
         </button>
+        <!-- Ya ha salido: votar o editar tu nota, como en el modal de Artistas -->
+        <CalendarVoteButton :disc="disc" size="md" />
         <button @click="toggleBookmark()"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full whitespace-nowrap
                        text-xs font-semibold text-white shadow-sm
@@ -250,6 +252,7 @@ import {
 } from "@services/spotify/spotifyLookup";
 import SearchableSelect from "@components/SearchableSelect.vue";
 import EditModal from "./EditModal.vue";
+import CalendarVoteButton from "./CalendarVoteButton.vue";
 
 // Componentes de detalle
 import DiscDetail from "@components/DiscDetail.vue";
@@ -263,6 +266,7 @@ export default defineComponent({
     EditModal,
     DiscDetail,
     ArtistDetail,
+    CalendarVoteButton,
   },
   props: {
     disc: {
@@ -280,6 +284,7 @@ export default defineComponent({
         releaseDate: Date;
         pendingId: string | null;
         nationalReleaseId: string | null;
+        userRate?: unknown;
       }>,
       required: true,
     },

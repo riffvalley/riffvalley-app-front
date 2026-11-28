@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ref } from "vue";
+import { discCardDialogKey } from "@/composables/discCardDialog";
 import type { StatisticsDisc, StatisticsMonthlyActivity } from "@/modules/statistics/types/statistics";
 import MonthlyActivityChart from "./MonthlyActivityChart.vue";
 
@@ -14,6 +16,21 @@ function month(month: string, activityCount: number, topDisc: StatisticsDisc | n
 }
 
 describe("MonthlyActivityChart", () => {
+  it("opens the votable disc card when the month cover is clicked", async () => {
+    const open = vi.fn();
+    const activity = [month("2026-01", 1, disc()), month("2026-02", 2, null)];
+    const wrapper = mount(MonthlyActivityChart, { props: { year: 2026, activity, annualActivityCount: 3 }, global: { provide: { [discCardDialogKey as symbol]: { isOpen: ref(false), open } } } });
+
+    const covers = wrapper.findAll('[data-test="monthly-disc-open"]');
+    expect(covers).toHaveLength(1);
+    expect(covers[0]!.attributes("aria-label")).toBe("Abrir tarjeta de Moon Music");
+    await covers[0]!.trigger("click");
+    expect(open).toHaveBeenCalledWith("disc-1");
+
+    // Sin el host de la ficha, la portada no es un botón.
+    expect(mount(MonthlyActivityChart, { props: { year: 2026, activity, annualActivityCount: 3 } }).find("button").exists()).toBe(false);
+  });
+
   it("shows twelve chronological months, zeros, current highlights, nullable covers and nullable artists", async () => {
     const activity = [
       month("2026-12", 3, null),

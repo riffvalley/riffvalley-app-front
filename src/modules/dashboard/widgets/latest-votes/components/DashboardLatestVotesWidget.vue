@@ -303,7 +303,7 @@ function retry(): void {
           No hay discos disponibles para mostrar.
         </p>
         <ul v-else class="divide-y divide-gray-100 dark:divide-white/10">
-          <li v-for="rate in recentRates" :key="rate.id" class="flex min-w-0 items-center gap-3 py-2">
+          <li v-for="rate in recentRates" :key="rate.id" class="flex min-w-0 items-center gap-2 py-2 sm:gap-3">
             <img
               :src="rate.coverImage || defaultDiscImage"
               :alt="rate.coverImage ? `Portada de ${rate.discName}` : ''"
@@ -328,7 +328,8 @@ function retry(): void {
                 <span aria-hidden="true">·</span>&#32;<time :datetime="rate.lastActivityAt">{{ formatActivityDate(rate.lastActivityAt) }}</time>
               </p>
             </div>
-            <div class="flex shrink-0 items-center gap-1.5" data-test="recent-rate-scores">
+            <!-- En móvil las dos notas se apilan para dejar más ancho al título -->
+            <div class="flex shrink-0 flex-col items-center gap-1 sm:flex-row sm:gap-1.5" data-test="recent-rate-scores">
               <template v-if="rate.rate !== null || rate.cover !== null">
                 <span v-if="rate.rate !== null" :class="discChip" :aria-label="`Nota musical ${formatScore(rate.rate)} sobre 10`">
                   <font-awesome-icon :icon="faMusic" class="text-[10px] text-rv-pink" aria-hidden="true" />

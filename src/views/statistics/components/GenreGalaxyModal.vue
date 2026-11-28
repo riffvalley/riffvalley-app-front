@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
+import { computed, inject, nextTick, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue";
 import { usePageScrollLock } from "@/composables/usePageScrollLock";
+import { discCardDialogKey } from "@/composables/discCardDialog";
 import { useStatisticsGalaxyQuery } from "@/modules/statistics/application/useStatisticsQueries";
+import { FALLBACK_COLOR, textColorFor } from "../utils/galaxyLayout";
 import GenreGalaxyDesktop from "./GenreGalaxyDesktop.vue";
 
 defineOptions({ name: "GenreGalaxyModal" });
@@ -17,6 +19,25 @@ const selectedDiscId = ref<string | null>(null);
 const discs = computed(() => query.data.value ?? []);
 const currentYearData = computed(() => query.data.value && query.data.value.length >= 0);
 const selectedDisc = computed(() => discs.value.find((disc) => disc.id === selectedDiscId.value) ?? null);
+// Mismo color que la estrella y que el puntito de la leyenda.
+const selectedGenreColor = computed(() => selectedDisc.value?.genre?.color || FALLBACK_COLOR);
+// Algunos géneros guardan el color con nombre («dimgray», «gold»…): se pasa a hex para
+// elegir texto blanco o negro con contraste legible.
+const selectedGenreTextColor = computed(() => textColorFor(toHexColor(selectedGenreColor.value)));
+
+function toHexColor(color: string): string {
+  const context = document.createElement("canvas").getContext?.("2d");
+  if (!context) return color;
+  context.fillStyle = "#000000";
+  context.fillStyle = color;
+  return context.fillStyle;
+}
+
+// «Ver disco»: abre la ficha votable por encima de la galaxia (el host la apila en z-[100]).
+const discCardDialog = inject(discCardDialogKey, null);
+function openSelectedDisc(): void {
+  if (selectedDisc.value) discCardDialog?.open(selectedDisc.value.id);
+}
 
 let previouslyFocused: HTMLElement | null = null;
 // Bloquea el scroll de la página de detrás mientras el modal está abierto.
@@ -200,7 +221,7 @@ function formatRate(rate: number): string {
               aria-live="polite"
               data-test="selected-disc"
             >
-              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rv-pink/15 text-rv-pink" aria-hidden="true">
+              <span class="hidden h-9 w-9 shrink-0 place-items-center rounded-full bg-rv-pink/15 text-rv-pink sm:grid" aria-hidden="true">
                 <i class="fa-solid fa-compact-disc"></i>
               </span>
               <div class="min-w-0 flex-1">
@@ -211,8 +232,24 @@ function formatRate(rate: number): string {
                 <span class="font-bold tabular-nums text-amber-700 dark:text-amber-300">
                   <i class="fa-solid fa-star" aria-hidden="true"></i> {{ formatRate(selectedDisc.rate) }}
                 </span>
-                <span class="max-w-28 truncate text-gray-600 dark:text-gray-300 sm:max-w-40">{{ selectedDisc.genre?.name ?? "Sin género" }}</span>
+                <!-- Tag del género con su color, igual que la estrella y la leyenda -->
+                <span
+                  class="inline-block max-w-28 truncate rounded-full px-2 py-0.5 text-[11px] font-semibold sm:max-w-40"
+                  :style="{ backgroundColor: selectedGenreColor, color: selectedGenreTextColor }"
+                  data-test="selected-disc-genre"
+                >{{ selectedDisc.genre?.name ?? "Sin género" }}</span>
               </div>
+              <button
+                v-if="discCardDialog"
+                type="button"
+                class="inline-flex shrink-0 items-center rounded-full bg-rv-navy px-3 py-1.5 text-xs font-semibold text-white shadow-md transition-colors hover:bg-rv-navy/85 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:bg-gray-200 dark:text-rv-navy dark:hover:bg-gray-300 dark:focus-visible:outline-rv-pink sm:px-4 sm:py-2 sm:text-sm"
+                :aria-label="`Abrir tarjeta de ${selectedDisc.name}`"
+                aria-haspopup="dialog"
+                data-test="selected-disc-open"
+                @click="openSelectedDisc"
+              >
+                Ver disco
+              </button>
             </aside>
           </template>
         </div>

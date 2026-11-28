@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, inject } from "vue";
+import { discCardDialogKey } from "@/composables/discCardDialog";
 import type { StatisticsMonthlyActivity } from "@/modules/statistics/types/statistics";
 import { buildMonthlyActivity, totalActivity } from "../utils/activityVisualizations";
 
@@ -14,6 +15,12 @@ const maxCount = computed(() => Math.max(1, ...months.value.map(({ count }) => c
 const monthTotal = computed(() => totalActivity(months.value.map(({ count }) => count)));
 const totalMismatch = computed(() => monthTotal.value !== props.annualActivityCount);
 const scoreFormatter = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2 });
+
+// Pulsar la portada abre la ficha votable del disco (la misma que «Ver disco»).
+const discCardDialog = inject(discCardDialogKey, null);
+function openDisc(discId: string): void {
+  discCardDialog?.open(discId);
+}
 
 function barHeight(count: number): string {
   return count === 0 ? "0%" : `${Math.max(5, (count / maxCount.value) * 100)}%`;
@@ -43,7 +50,13 @@ function barHeight(count: number): string {
       <li v-for="month in months" :key="month.month" class="min-w-0">
         <article class="flex h-full min-w-0 flex-col items-center text-center">
           <div class="flex min-h-[132px] w-full min-w-0 flex-col items-center">
-            <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100 text-rv-navy ring-1 ring-black/5 dark:bg-white/10 dark:text-gray-200 dark:ring-white/10 sm:h-16 sm:w-16">
+            <component
+              :is="discCardDialog && month.count > 0 && month.topDisc ? 'button' : 'div'"
+              v-bind="discCardDialog && month.count > 0 && month.topDisc ? { type: 'button', 'aria-label': `Abrir tarjeta de ${month.topDisc.name}`, 'aria-haspopup': 'dialog', 'data-test': 'monthly-disc-open' } : {}"
+              class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100 text-rv-navy ring-1 ring-black/5 dark:bg-white/10 dark:text-gray-200 dark:ring-white/10 sm:h-16 sm:w-16"
+              :class="discCardDialog && month.count > 0 && month.topDisc ? 'p-0 border-0 cursor-pointer transition hover:ring-2 hover:ring-rv-pink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink' : ''"
+              @click="month.count > 0 && month.topDisc && openDisc(month.topDisc.id)"
+            >
               <img
                 v-if="month.count > 0 && month.topDisc?.image"
                 :src="month.topDisc.image"
@@ -54,7 +67,7 @@ function barHeight(count: number): string {
               <i v-else class="fa-solid fa-music text-xl opacity-40" aria-hidden="true" />
               <span v-if="month.count > 0 && month.topDisc && !month.topDisc.image" class="sr-only">Portada no disponible</span>
               <span v-if="month.count > 0 && !month.topDisc" class="sr-only">Sin disco destacado</span>
-            </div>
+            </component>
 
             <template v-if="month.count > 0 && month.topDisc">
               <h3 class="mt-2 w-full truncate whitespace-nowrap text-[11px] font-semibold leading-tight text-gray-900 dark:text-white sm:text-xs" :title="month.topDisc.name">

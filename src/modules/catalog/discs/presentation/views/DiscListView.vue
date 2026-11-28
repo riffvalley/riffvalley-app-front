@@ -77,7 +77,7 @@
     <DiscListExplorationFilters
       class="mb-6 w-full"
       :selectedWeek="selectedWeek"
-      :skipDefaultYear="restoredSessionFilters"
+      :skipDefaultYear="skipDefaultYear"
       :selectedCountry="selectedCountry"
       :selectedGenres="selectedGenres"
       :noRatesOnly="noRatesOnly"
@@ -287,7 +287,21 @@
             “{{ comment.comment }}”
           </p>
 
-          <p class="mt-2 text-xs text-gray-400">Comentado el {{ formatDate(comment.createdAt) }}</p>
+          <div class="mt-2 flex flex-wrap items-center justify-between gap-2">
+            <p class="text-xs text-gray-500 dark:text-gray-400">Comentado el {{ formatDate(comment.createdAt) }}</p>
+            <!-- La misma ficha votable que «Ver disco» en Actividad -->
+            <button
+              v-if="discCardDialog && comment.disc?.id"
+              type="button"
+              class="inline-flex shrink-0 items-center rounded-full bg-rv-navy px-3 py-1.5 text-xs font-semibold text-white shadow-md transition-colors hover:bg-rv-navy/85 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple dark:bg-gray-200 dark:text-rv-navy dark:hover:bg-gray-300 dark:focus-visible:outline-rv-pink"
+              :aria-label="`Abrir tarjeta de ${comment.disc.name}`"
+              aria-haspopup="dialog"
+              data-test="comment-open-disc"
+              @click="openCommentDisc(comment.disc.id)"
+            >
+              Ver disco
+            </button>
+          </div>
         </div>
       </div>
 
@@ -297,6 +311,18 @@
       >
         Todavía no has escrito comentarios.
       </p>
+    </div>
+
+    <!-- Filtro en «hoy» sin lanzamientos -->
+    <div
+      v-else-if="showNothingToday"
+      class="mx-auto mt-8 flex max-w-md flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-white px-6 py-8 text-center shadow-sm dark:border-white/10 dark:bg-rv-darkSurface"
+      role="status"
+      data-test="nothing-today"
+    >
+      <i class="fa-solid fa-calendar-xmark text-2xl text-rv-pink" aria-hidden="true"></i>
+      <p class="font-semibold text-rv-navy dark:text-white">Hoy no ha salido nada nuevo</p>
+      <p class="text-sm text-gray-600 dark:text-gray-300">Cambia la semana o el periodo para ver otros lanzamientos.</p>
     </div>
 
     <!-- Contenedor de cuadrícula para las tarjetas -->
@@ -394,7 +420,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, inject, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { discCardDialogKey } from "@/composables/discCardDialog";
 import { useQueryClient } from "@tanstack/vue-query";
 import { useRoute, useRouter } from "vue-router";
 import DiscCard from "@components/DiscCardComponent.vue";
@@ -417,6 +444,7 @@ import { discListSuggestionsQueryKey } from "../../application/useDiscListSugges
 import { useSavedDiscFilters } from "../../application/useSavedDiscFilters";
 import {
   getDiscListDateSelection,
+  getDiscListDayRange,
   getDiscListQuickPeriodRange,
   isDiscListQuickPeriod,
 } from "../../application/discListDateFilters";
@@ -468,6 +496,34 @@ const {
   keepSelections: () => Boolean(appliedSavedFilterId.value),
 });
 
+// «Ver disco» en Mis comentarios: abre la ficha votable; si se cambió algo
+// (por ejemplo, editaste o borraste el comentario), se recarga la lista.
+const discCardDialog = inject(discCardDialogKey, null);
+function openCommentDisc(discId: string): void {
+  discCardDialog?.open(discId, {
+    onClose: (changed) => {
+      if (changed) refresh();
+    },
+  });
+}
+
+// Accesos directos desde el Dashboard:
+// - /disc-list?periodo=semana|mes («Mis novedades»): fechas de ahora + tus filtros guardados.
+// - /disc-list?periodo=hoy («Novedades de hoy») y ?vista=pendientes («Mis
+//   pendientes»): enseñan todo, sin géneros ni país, pero sin borrar lo guardado.
+// Se aplican antes de montar los filtros para que no los pise el año por
+// defecto, y luego se limpia la URL para que el usuario siga libremente.
+const route = useRoute();
+const router = useRouter();
+const quickPeriod = route.query.periodo;
+const quickView = route.query.vista;
+const unfilteredVisit =
+  quickView === "pendientes"
+    ? { week: null }
+    : quickPeriod === "hoy"
+      ? { week: getDiscListQuickPeriodRange("hoy") }
+      : undefined;
+
 // Recupera los filtros que el usuario dejó puestos al salir de Discos.
 const restoredSessionFilters = useDiscListSessionFilters({
   userId: computed(() => useAuthStore().userId),
@@ -479,19 +535,25 @@ const restoredSessionFilters = useDiscListSessionFilters({
   setGenres,
   setCountry,
   setNoRatesOnly,
+  unfilteredVisit,
 });
 
-// Acceso directo desde el Dashboard: /disc-list?periodo=semana|mes precarga el
-// filtro de fechas. Se aplica antes de montar los filtros para que no lo pise el
-// año por defecto, y luego se limpia la URL para que el usuario siga libremente.
-const route = useRoute();
-const router = useRouter();
-const quickPeriod = route.query.periodo;
-if (isDiscListQuickPeriod(quickPeriod)) {
+if (!unfilteredVisit && isDiscListQuickPeriod(quickPeriod)) {
   setSelectedWeek(getDiscListQuickPeriodRange(quickPeriod));
-  const { periodo: _periodo, ...restQuery } = route.query;
+}
+if (quickView === "pendientes") setMode("pendientes");
+const skipDefaultYear = restoredSessionFilters || Boolean(unfilteredVisit);
+if (quickPeriod !== undefined || quickView !== undefined) {
+  const { periodo: _periodo, vista: _vista, ...restQuery } = route.query;
   void router.replace({ query: restQuery });
 }
+
+// Con el filtro puesto en el día de hoy y ningún disco, se avisa en vez de dejar la página vacía.
+const showNothingToday = computed(() => {
+  if (viewMode.value !== "all" || loading.value || error.value || discs.value.length > 0) return false;
+  const today = getDiscListDayRange();
+  return Boolean(selectedWeek.value && selectedWeek.value.every((value, index) => value === today[index]));
+});
 
 const savedFilterState = useSavedDiscFilters();
 const savedFilters = savedFilterState.filters;
@@ -882,13 +944,29 @@ onUnmounted(() => {
   align-items: start;
 }
 
+/* Móvil: una sola fila que se desliza en horizontal (llega hasta el borde de la pantalla) */
 .filters-wrap {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
   gap: 0.5rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  margin-inline: -1rem;
+  padding: 0.5rem 1rem 0.75rem;
+}
+
+.filters-wrap::-webkit-scrollbar {
+  display: none;
 }
 
 .filters-wrap label {
+  /* Contiene el radio oculto (sr-only es absoluto): si no, ensancha la página en móvil */
+  position: relative;
+  flex-shrink: 0;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  scroll-margin-inline: 1rem;
   text-align: center;
   justify-content: center;
 }
@@ -898,6 +976,9 @@ onUnmounted(() => {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
+    overflow-x: visible;
+    margin-inline: 0;
+    padding: 0;
     align-items: center;
     gap: 0.5rem;
   }

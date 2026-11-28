@@ -32,6 +32,12 @@ function formatCount(value: number | null | undefined, singular: string, plural:
   return value == null ? "—" : `${formatNumber(value)} ${value === 1 ? singular : plural}`;
 }
 
+// Unidad que acompaña al número («géneros», «días»…). En móvil se oculta porque la etiqueta ya la indica.
+function countUnit(value: number | null | undefined, singular: string, plural: string): string {
+  if (props.loading || value == null) return "";
+  return value === 1 ? singular : plural;
+}
+
 function countLabel(value: number | null | undefined, singular: string, plural: string): string {
   return !props.loading && value === 1 ? singular : plural;
 }
@@ -75,7 +81,7 @@ const periods = [
 <template>
   <section
     data-test="welcome-banner"
-    class="relative mb-8 overflow-hidden rounded-2xl border border-rv-pink/20 bg-gradient-to-br from-rv-pink/10 via-rv-purple/5 to-transparent p-6 dark:border-white/10 dark:from-rv-pink/10 dark:via-rv-purple/5 dark:to-transparent md:p-8"
+    class="relative mb-8 overflow-hidden rounded-2xl border border-rv-pink/20 bg-gradient-to-br from-rv-pink/10 via-rv-purple/5 to-transparent p-4 sm:p-6 dark:border-white/10 dark:from-rv-pink/10 dark:via-rv-purple/5 dark:to-transparent md:p-8"
   >
     <div class="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-rv-pink/10 blur-2xl" />
     <div class="pointer-events-none absolute -bottom-8 right-20 h-64 w-64 rounded-full bg-rv-purple/10 blur-2xl" />
@@ -90,35 +96,36 @@ const periods = [
       </div>
 
       <div v-if="hasSession" data-test="banner-stats" class="min-w-0 flex-1">
-        <div class="grid grid-cols-1 gap-3 min-[390px]:grid-cols-2 xl:grid-cols-4">
+        <div class="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
           <section
             v-for="period in periods"
             :key="period.id"
             :data-test="`banner-period-${period.id}`"
-            class="min-w-0 rounded-2xl border border-white/60 bg-white/70 px-4 py-3 shadow-sm dark:border-white/10 dark:bg-white/5"
+            class="min-w-0 rounded-2xl border border-white/60 bg-white/70 px-3 py-3 shadow-sm sm:px-4 dark:border-white/10 dark:bg-white/5"
           >
             <h2 class="mb-2 text-xs font-bold uppercase tracking-wide text-gray-600 dark:text-gray-300">{{ period.label }}</h2>
             <p class="truncate text-2xl font-bold tabular-nums text-rv-pink" :aria-label="`${formatValue(props.summary ? period.rated(props.summary) : null)} discos votados`">
               {{ formatValue(props.summary ? period.rated(props.summary) : null) }}
             </p>
             <p class="mb-2 text-[11px] text-gray-500 dark:text-gray-400">{{ countLabel(props.summary ? period.rated(props.summary) : null, 'disco votado', 'discos votados') }}</p>
-            <dl class="space-y-1 border-t border-gray-200/80 pt-2 text-xs dark:border-white/10">
-              <div class="flex min-w-0 justify-between gap-2">
+            <!-- En móvil la tarjeta es estrecha: solo el número junto a la etiqueta (la unidad ya la dice la etiqueta) -->
+            <dl class="space-y-1 border-t border-gray-200/80 pt-2 text-[11px] sm:text-xs dark:border-white/10">
+              <div class="flex min-w-0 justify-between gap-1.5 sm:gap-2">
                 <dt class="truncate text-gray-500 dark:text-gray-400">Géneros</dt>
-                <dd class="shrink-0 font-semibold tabular-nums text-gray-800 dark:text-gray-100">{{ formatCount(props.summary ? period.genres(props.summary) : null, 'género', 'géneros') }}</dd>
+                <dd class="shrink-0 font-semibold tabular-nums text-gray-800 dark:text-gray-100">{{ formatValue(props.summary ? period.genres(props.summary) : null) }}<span v-if="countUnit(props.summary ? period.genres(props.summary) : null, 'género', 'géneros')" class="hidden sm:inline">{{ ` ${countUnit(props.summary ? period.genres(props.summary) : null, 'género', 'géneros')}` }}</span></dd>
               </div>
-              <div class="flex min-w-0 justify-between gap-2">
+              <div class="flex min-w-0 justify-between gap-1.5 sm:gap-2">
                 <dt class="truncate text-gray-500 dark:text-gray-400">Días activos</dt>
-                <dd class="shrink-0 font-semibold tabular-nums text-gray-800 dark:text-gray-100">{{ formatCount(props.summary ? period.activeDays(props.summary) : null, 'día', 'días') }}</dd>
+                <dd class="shrink-0 font-semibold tabular-nums text-gray-800 dark:text-gray-100">{{ formatValue(props.summary ? period.activeDays(props.summary) : null) }}<span v-if="countUnit(props.summary ? period.activeDays(props.summary) : null, 'día', 'días')" class="hidden sm:inline">{{ ` ${countUnit(props.summary ? period.activeDays(props.summary) : null, 'día', 'días')}` }}</span></dd>
               </div>
-              <div class="flex min-w-0 justify-between gap-2" :title="period.id === 'history' ? 'Catálogo completo' : 'Lanzamientos musicales según su fecha de lanzamiento'">
+              <div class="flex min-w-0 justify-between gap-1.5 sm:gap-2" :title="period.id === 'history' ? 'Catálogo completo' : 'Lanzamientos musicales según su fecha de lanzamiento'">
                 <dt class="truncate text-gray-500 dark:text-gray-400">Catálogo</dt>
-                <dd class="shrink-0 font-semibold tabular-nums text-gray-800 dark:text-gray-100">{{ formatCount(props.summary ? period.catalog(props.summary) : null, 'disco', 'discos') }}</dd>
+                <dd class="shrink-0 font-semibold tabular-nums text-gray-800 dark:text-gray-100">{{ formatValue(props.summary ? period.catalog(props.summary) : null) }}<span v-if="countUnit(props.summary ? period.catalog(props.summary) : null, 'disco', 'discos')" class="hidden sm:inline">{{ ` ${countUnit(props.summary ? period.catalog(props.summary) : null, 'disco', 'discos')}` }}</span></dd>
               </div>
             </dl>
           </section>
 
-          <section data-test="banner-streak" class="flex min-w-0 flex-col justify-center rounded-2xl border border-white/60 bg-white/70 px-4 py-3 text-center shadow-sm dark:border-white/10 dark:bg-white/5">
+          <section data-test="banner-streak" class="flex min-w-0 flex-col justify-center rounded-2xl border border-white/60 bg-white/70 px-3 py-3 text-center shadow-sm sm:px-4 dark:border-white/10 dark:bg-white/5">
             <h2 class="mb-2 text-xs font-bold uppercase tracking-wide text-gray-600 dark:text-gray-300">Racha</h2>
             <i class="fa-solid fa-fire mb-1 text-lg text-amber-500" aria-hidden="true" />
             <p class="text-3xl font-bold tabular-nums text-amber-500">{{ formatValue(props.summary?.personal.currentStreak) }}</p>

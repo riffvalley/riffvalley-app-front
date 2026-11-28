@@ -1,11 +1,20 @@
 export const dashboardWidgetRegistry = [
+  // Primero: lo más práctico al entrar (hoy, semana, mes y pendientes).
+  {
+    id: "accesosDirectos",
+    label: "Accesos directos",
+    icon: "fa-solid fa-bolt",
+    size: "full",
+    enabledByDefault: true,
+    order: 0,
+  },
   {
     id: "novedades",
     label: "Novedades Riff Valley",
     icon: "fa-solid fa-newspaper",
     size: "half",
     enabledByDefault: true,
-    order: 0,
+    order: 1,
   },
   {
     id: "comunidad",
@@ -13,7 +22,7 @@ export const dashboardWidgetRegistry = [
     icon: "fa-solid fa-users",
     size: "half",
     enabledByDefault: true,
-    order: 1,
+    order: 2,
   },
   {
     id: "discoAleatorio",
@@ -21,7 +30,7 @@ export const dashboardWidgetRegistry = [
     icon: "fa-solid fa-shuffle",
     size: "half",
     enabledByDefault: true,
-    order: 2,
+    order: 3,
   },
   {
     id: "portadaDia",
@@ -29,7 +38,7 @@ export const dashboardWidgetRegistry = [
     icon: "fa-solid fa-image",
     size: "half",
     enabledByDefault: true,
-    order: 3,
+    order: 4,
   },
   {
     id: "top3mes",
@@ -37,7 +46,7 @@ export const dashboardWidgetRegistry = [
     icon: "fa-solid fa-fire",
     size: "full",
     enabledByDefault: true,
-    order: 4,
+    order: 5,
   },
   {
     id: "top3semana",
@@ -45,7 +54,7 @@ export const dashboardWidgetRegistry = [
     icon: "fa-solid fa-fire",
     size: "full",
     enabledByDefault: true,
-    order: 5,
+    order: 6,
   },
   {
     id: "artistas",
@@ -53,7 +62,7 @@ export const dashboardWidgetRegistry = [
     icon: "fa-solid fa-heart",
     size: "full",
     enabledByDefault: true,
-    order: 6,
+    order: 7,
   },
   {
     id: "cementerio",
@@ -61,7 +70,7 @@ export const dashboardWidgetRegistry = [
     icon: "fa-solid fa-skull",
     size: "half",
     enabledByDefault: true,
-    order: 7,
+    order: 8,
   },
   {
     id: "mundoMusical",
@@ -69,7 +78,7 @@ export const dashboardWidgetRegistry = [
     icon: "fa-solid fa-earth-americas",
     size: "half",
     enabledByDefault: true,
-    order: 8,
+    order: 9,
   },
   {
     id: "ultimosVotos",
@@ -77,21 +86,13 @@ export const dashboardWidgetRegistry = [
     icon: "fa-solid fa-clock-rotate-left",
     size: "half",
     enabledByDefault: true,
-    order: 9,
+    order: 10,
   },
   {
     id: "aventura",
     label: "Crea tu propia aventura",
     icon: "fa-solid fa-book-open",
     size: "half",
-    enabledByDefault: true,
-    order: 10,
-  },
-  {
-    id: "accesosDirectos",
-    label: "Accesos directos",
-    icon: "fa-solid fa-bolt",
-    size: "full",
     enabledByDefault: true,
     order: 11,
   },

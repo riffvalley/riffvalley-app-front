@@ -188,7 +188,7 @@ onUnmounted(() => {
           <span class="text-base leading-none" aria-hidden="true">🪦</span>
           <h3 id="cemetery-title" class="font-bold text-gray-900 dark:text-white">Cementerio de discos</h3>
         </div>
-        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 pl-6">Solo discos sin valoraciones musicales</p>
+        <p class="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 pl-6">Solo discos que nadie ha votado</p>
       </div>
       <button
         type="button"

@@ -33,7 +33,15 @@ describe("disc list quick periods", () => {
     expect(getDiscListQuickPeriodRange("mes", new Date(2026, 10, 26))).toEqual(getDiscListMonthRange(2026, 11));
   });
 
+  it("maps «hoy» to today only", () => {
+    expect(getDiscListQuickPeriodRange("hoy", new Date(2026, 10, 28, 23, 30))).toEqual([
+      "2026-11-28T00:00:00.000Z",
+      "2026-11-28T23:59:59.999Z",
+    ]);
+  });
+
   it("only accepts the supported URL values", () => {
+    expect(isDiscListQuickPeriod("hoy")).toBe(true);
     expect(isDiscListQuickPeriod("semana")).toBe(true);
     expect(isDiscListQuickPeriod("mes")).toBe(true);
     expect(isDiscListQuickPeriod("año")).toBe(false);

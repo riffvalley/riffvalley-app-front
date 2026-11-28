@@ -47,6 +47,32 @@ describe("disc list session filters", () => {
     expect(second.noRatesOnly.value).toBe(true);
   });
 
+  it("shows everything on an unfiltered visit without overwriting the remembered filters", async () => {
+    writeDiscListSessionFilters("user-a", { week, genreIds: ["genre-a"], countryId: "country-a", noRatesOnly: true });
+    const visit = createBindings("user-a");
+
+    expect(useDiscListSessionFilters({ ...visit, unfilteredVisit: { week: null } })).toBe(false);
+    await nextTick();
+
+    expect(visit.selectedWeek.value).toBeNull();
+    expect(visit.selectedGenres.value).toEqual([]);
+    expect(visit.selectedCountry.value).toBe("");
+    expect(visit.noRatesOnly.value).toBe(false);
+    expect(readDiscListSessionFilters("user-a")).toEqual({ week, genreIds: ["genre-a"], countryId: "country-a", noRatesOnly: true });
+  });
+
+  it("remembers the filters again once the user changes one during an unfiltered visit", async () => {
+    writeDiscListSessionFilters("user-a", { week, genreIds: ["genre-a"], countryId: "", noRatesOnly: false });
+    const visit = createBindings("user-a");
+    useDiscListSessionFilters({ ...visit, unfilteredVisit: { week: null } });
+    await nextTick();
+
+    visit.selectedCountry.value = "country-b";
+    await nextTick();
+
+    expect(readDiscListSessionFilters("user-a")).toEqual({ week: null, genreIds: [], countryId: "country-b", noRatesOnly: false });
+  });
+
   it("keeps an explicit «all years» choice and separates users", () => {
     writeDiscListSessionFilters("user-a", { week: null, genreIds: [], countryId: "", noRatesOnly: false });
 

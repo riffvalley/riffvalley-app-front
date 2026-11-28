@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { QueryClient, VueQueryPlugin } from "@tanstack/vue-query";
 import { flushPromises, mount } from "@vue/test-utils";
+import { ref } from "vue";
+import { discCardDialogKey } from "@/composables/discCardDialog";
 
 const { getStatisticsSummary, getStatisticsRatedDiscs } = vi.hoisted(() => ({
   getStatisticsSummary: vi.fn(),
@@ -233,6 +235,35 @@ describe("Statistics view EST-FE-2/3/4", () => {
     document.body.querySelector("dialog")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     await vi.waitFor(() => expect(document.body.querySelector("dialog")).toBeNull());
     expect(document.activeElement).toBe(openButton!.element);
+  });
+
+  it("shows the selected star genre with its color and opens the disc card from «Ver disco»", async () => {
+    getStatisticsSummary.mockResolvedValue(makeSummary());
+    getStatisticsRatedDiscs.mockResolvedValue([
+      { id: "album-b", name: "Album B", rate: 9, artist: { name: "Artist B" }, genre: { name: "Rock", color: "#334155" } },
+    ]);
+    const open = vi.fn();
+    wrapper = mount(Statistics, {
+      attachTo: document.body,
+      global: {
+        plugins: [[VueQueryPlugin, { queryClient }]],
+        provide: { [discCardDialogKey as symbol]: { isOpen: ref(false), open } },
+      },
+    });
+    await vi.waitFor(() => expect(wrapper!.text()).toContain("Actividad mensual"));
+    await wrapper.findAll("button").find((button) => button.text().includes("Abrir galaxia"))!.trigger("click");
+    await vi.waitFor(() => expect(wrapper!.findComponent({ name: "GenreGalaxyDesktop" }).exists()).toBe(true));
+    wrapper.findComponent({ name: "GenreGalaxyDesktop" }).vm.$emit("select", "album-b");
+    await flushPromises();
+
+    const genreTag = document.body.querySelector("[data-test=\"selected-disc-genre\"]") as HTMLElement;
+    expect(genreTag.textContent).toBe("Rock");
+    expect(genreTag.getAttribute("style")).toMatch(/#334155|rgb(51, 65, 85)/);
+
+    const openDisc = document.body.querySelector("[data-test=\"selected-disc-open\"]") as HTMLButtonElement;
+    expect(openDisc.getAttribute("aria-label")).toBe("Abrir tarjeta de Album B");
+    openDisc.click();
+    expect(open).toHaveBeenCalledWith("album-b");
   });
 
   it("cancels a pending galaxy request when the modal closes", async () => {

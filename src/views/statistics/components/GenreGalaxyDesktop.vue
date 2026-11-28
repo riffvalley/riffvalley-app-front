@@ -12,7 +12,8 @@ const SKY = {
   glowAlpha: 0.4,
   dust: "255 255 255",
   dustAlpha: 0.55,
-  nebulaAlpha: 0.22,
+  // Nebulosas tenues: dan ambiente de color sin tapar las estrellas.
+  nebulaAlpha: 0.09,
   label: "rgb(255 255 255 / 88%)",
   labelHalo: "rgb(0 2 31 / 75%)",
   sparkle: "rgb(255 255 255 / 80%)",
@@ -186,7 +187,7 @@ function draw(): void {
     const nebula = context.createRadialGradient(sx, sy, 0, sx, sy, radius);
     nebula.addColorStop(0, sector.color);
     nebula.addColorStop(1, "transparent");
-    context.globalAlpha = (activeGenre.value ? palette.nebulaAlpha * 1.6 : palette.nebulaAlpha) * introEase;
+    context.globalAlpha = (activeGenre.value ? palette.nebulaAlpha * 2 : palette.nebulaAlpha) * introEase;
     context.fillStyle = nebula;
     context.beginPath();
     context.arc(sx, sy, radius, 0, Math.PI * 2);

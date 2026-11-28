@@ -82,7 +82,9 @@ describe('useDashboardConfig remote persistence', () => {
     ]);
     expect(config.modules.value).toHaveLength(dashboardWidgetDefaults.length);
     expect(config.modules.value.map(({ id }) => id)).not.toContain('future-widget');
-    expect(config.modules.value[2].id).toBe('comunidad');
+    // Los que faltan se añaden detrás, en el orden por defecto (Accesos directos es el primero).
+    expect(config.modules.value[2].id).toBe('accesosDirectos');
+    expect(config.modules.value[3].id).toBe('comunidad');
   });
 
   it('keeps desktop and mobile configurations independent', async () => {

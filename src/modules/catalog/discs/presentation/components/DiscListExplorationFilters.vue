@@ -189,6 +189,8 @@ import {
   getDiscListDateSelection,
   getDiscListMonthRange,
   getDiscListPeriodOptions,
+  formatDiscListDay,
+  isDiscListSingleDayRange,
   getDiscListYearRange,
 } from "../../application/discListDateFilters";
 import DiscListCountrySelect from "./DiscListCountrySelect.vue";
@@ -251,7 +253,15 @@ const monthsOptions = computed(() => [
   { value: 0, label: "Año completo" },
   ...MONTHS.map((label, index) => ({ value: index + 1, label })),
 ]);
+// Un solo día (acceso directo «Hoy» del Dashboard) no es ninguna semana del
+// selector: se añade como opción propia para que el selector no diga «Mes completo».
+const dayOption = computed(() => {
+  const range = props.selectedWeek;
+  if (!isDiscListSingleDayRange(range)) return null;
+  return { value: `D-${range[0].slice(0, 10)}`, label: `Solo el ${formatDiscListDay(range[0])}`, range };
+});
 const selectedPeriod = computed(() => {
+  if (dayOption.value) return dayOption.value.value;
   const option = periodOptions.value.find((item) =>
     item.range?.every((v, i) => v === props.selectedWeek?.[i])
   );
@@ -269,7 +279,9 @@ const monthSelectOptions = computed(() =>
 );
 /** Sin mes, la semana desactivada solo muestra «Todas las semanas». */
 const periodSelectOptions = computed(() =>
-  periodEnabled.value ? periodOptions.value : [{ value: "", label: "Todas las semanas" }]
+  periodEnabled.value
+    ? [...(dayOption.value ? [dayOption.value] : []), ...periodOptions.value]
+    : [{ value: "", label: "Todas las semanas" }]
 );
 
 const activeFilters = computed(() => {
@@ -310,6 +322,7 @@ function describeRange(range: [string, string]) {
   if (endYear === 9999 && startYear !== 1) return `Desde ${startYear}`;
   const format = (date: Date) =>
     `${String(date.getUTCDate()).padStart(2, "0")}-${String(date.getUTCMonth() + 1).padStart(2, "0")}-${date.getUTCFullYear()}`;
+  if (isDiscListSingleDayRange(range)) return format(start);
   return `${format(start)} – ${format(end)}`;
 }
 function selectYear(value: string | number | null) {

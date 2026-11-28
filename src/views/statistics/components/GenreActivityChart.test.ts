@@ -1,6 +1,8 @@
 // @vitest-environment happy-dom
 import { mount } from "@vue/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { ref } from "vue";
+import { discCardDialogKey } from "@/composables/discCardDialog";
 import type { StatisticsDisc, StatisticsGenreActivity } from "@/modules/statistics/types/statistics";
 import GenreActivityChart from "./GenreActivityChart.vue";
 
@@ -12,6 +14,18 @@ const featuredDisc: StatisticsDisc = {
 const genre = (name: string, activityCount: number, topDisc: StatisticsDisc | null = null): StatisticsGenreActivity => ({ genre: name, activityCount, topDisc });
 
 describe("GenreActivityChart", () => {
+  it("opens the votable disc card when the genre cover is clicked", async () => {
+    const open = vi.fn();
+    const activity = [genre("Rock", 3, featuredDisc), genre("Jazz", 2)];
+    const wrapper = mount(GenreActivityChart, { props: { year: 2026, activity, activityWithoutGenre: 0, annualActivityCount: 5 }, global: { provide: { [discCardDialogKey as symbol]: { isOpen: ref(false), open } } } });
+
+    const covers = wrapper.findAll('[data-test="genre-disc-open"]');
+    expect(covers).toHaveLength(1);
+    expect(covers[0]!.attributes("aria-label")).toBe("Abrir tarjeta de Blue Weekend");
+    await covers[0]!.trigger("click");
+    expect(open).toHaveBeenCalledWith("featured");
+  });
+
   it("shows only seven genres ranked by assignment count with alphabetical tie breaks", () => {
     const activity = [
       genre("Zulu", 14), genre("Rock", 13, featuredDisc), genre("Ambient", 13), genre("Metal", 12),

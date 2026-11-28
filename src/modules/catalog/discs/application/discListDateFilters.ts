@@ -68,10 +68,27 @@ export function getDiscListPeriodOptions(year: number, month: number): DiscListP
   ];
 }
 
-export type DiscListQuickPeriod = "semana" | "mes";
+export type DiscListQuickPeriod = "hoy" | "semana" | "mes";
 
 export function isDiscListQuickPeriod(value: unknown): value is DiscListQuickPeriod {
-  return value === "semana" || value === "mes";
+  return value === "hoy" || value === "semana" || value === "mes";
+}
+
+/** Rango de un solo día (el de hoy por defecto), con la fecha local del usuario. */
+export function getDiscListDayRange(today: Date = new Date()): DiscListDateRange {
+  const day = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+  return [startOfUtcDate(day), endOfUtcDate(day)];
+}
+
+/** true si el rango empieza y acaba el mismo día. */
+export function isDiscListSingleDayRange(range: DiscListDateRange | null): range is DiscListDateRange {
+  return Boolean(range && range[0].slice(0, 10) === range[1].slice(0, 10));
+}
+
+/** Etiqueta corta de un día: «28 nov». */
+export function formatDiscListDay(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]!.slice(0, 3).toLowerCase()}`;
 }
 
 /**
@@ -90,6 +107,7 @@ export function getDiscListQuickPeriodRange(
   period: DiscListQuickPeriod,
   today: Date = new Date(),
 ): DiscListDateRange {
+  if (period === "hoy") return getDiscListDayRange(today);
   return period === "semana"
     ? getDiscListCurrentWeekRange(today)
     : getDiscListMonthRange(today.getFullYear(), today.getMonth() + 1);

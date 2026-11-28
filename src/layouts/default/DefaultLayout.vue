@@ -28,7 +28,7 @@
 
     <!-- Contenido principal. En móvil el menú se abre por encima: el contenido no se mueve ni se estrecha. -->
 <main :class="[
-'flex-1 min-w-0 bg-gray-100 dark:bg-rv-darkBg text-rv-navy dark:text-white p-6 pt-20 md:pt-6 transition-[margin] duration-300',
+'flex-1 min-w-0 bg-gray-100 dark:bg-rv-darkBg text-rv-navy dark:text-white px-4 py-6 pt-20 sm:px-6 md:pt-6 transition-[margin] duration-300',
   'ml-0 md:ml-72',
 ]">
       <slot />

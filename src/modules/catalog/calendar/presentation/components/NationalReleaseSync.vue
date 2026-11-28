@@ -2,11 +2,12 @@
   <div class="flex justify-end">
     <button
       type="button"
-      class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-rv-pink px-4 py-2 text-sm font-semibold text-rv-navy shadow-sm transition-colors hover:bg-rv-pink/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-purple disabled:cursor-not-allowed disabled:opacity-60"
+      class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-rv-navy px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-rv-navy/85 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-200 dark:text-rv-navy dark:hover:bg-white"
       :disabled="pending"
       @click="syncMonth"
     >
-      <span aria-hidden="true">🇪🇸</span>
+      <!-- Icono en vez de la bandera: en Windows el emoji 🇪🇸 se ve como las letras «ES» -->
+      <i class="fa-solid fa-arrows-rotate text-rv-pink dark:text-rv-purple" :class="{ 'animate-spin motion-reduce:animate-none': pending }" aria-hidden="true"></i>
       Sincronizar lanzamientos nacionales
     </button>
   </div>

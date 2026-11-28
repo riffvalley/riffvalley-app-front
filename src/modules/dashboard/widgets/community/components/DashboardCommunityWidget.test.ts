@@ -413,7 +413,7 @@ describe("DashboardCommunityWidget", () => {
     expect(dashboardWidgetRegistry.find(({ id }) => id === "comunidad")).toMatchObject({
       id: "comunidad",
       size: "half",
-      order: 1,
+      order: 2,
     });
     wrapper.unmount();
   });
