@@ -44,8 +44,8 @@
               class="cursor-help" />
           </template>
 
-          <!-- Tooltip -->
-          <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-[9px] font-semibold 
+          <!-- Tooltip: z-20 para quedar por encima de lo que se monte sobre la tarjeta (p. ej. las medallas del podio en Top Discos) -->
+          <span data-test="disc-card-country-tooltip" class="pointer-events-none absolute z-20 bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 text-[9px] font-semibold
            text-white bg-rv-navy rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300
            max-w-[160px] whitespace-normal text-center"
             style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
