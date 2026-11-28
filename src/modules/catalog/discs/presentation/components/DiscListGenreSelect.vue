@@ -110,7 +110,7 @@
         {{
           selectedIds.length
             ? `${selectedIds.length} seleccionados · se combinan con OR`
-            : "No se aplicará filtro de género"
+            : emptyHint
         }}
       </p>
     </div>
@@ -133,8 +133,17 @@ const props = withDefaults(
     loading?: boolean;
     /** false: un solo género (Top Discos). Elegir uno sustituye al anterior y cierra la lista. */
     multiple?: boolean;
+    /** Texto cuando no hay género elegido. En formularios (Solicitar discos) no es un filtro. */
+    emptyLabel?: string;
+    /** Aviso bajo la lista cuando no hay género elegido. */
+    emptyHint?: string;
   }>(),
-  { loading: false, multiple: true }
+  {
+    loading: false,
+    multiple: true,
+    emptyLabel: "Todos los géneros",
+    emptyHint: "No se aplicará filtro de género",
+  }
 );
 const emit = defineEmits<{ "update:modelValue": [value: string[]] }>();
 
@@ -155,7 +164,7 @@ const visibleGenres = computed(() => {
 /** Lo que se recorre con el teclado. Con un solo género, «Todos los géneros» va primero para poder quitarlo. */
 const entries = computed<GenreOption[]>(() =>
   !props.multiple && !searchQuery.value.trim()
-    ? [{ id: "", name: "Todos los géneros" }, ...visibleGenres.value]
+    ? [{ id: "", name: props.emptyLabel }, ...visibleGenres.value]
     : visibleGenres.value
 );
 const selectedGenreName = computed(() => {
@@ -163,7 +172,7 @@ const selectedGenreName = computed(() => {
   return props.options.find((genre) => genre.id.toLowerCase() === id)?.name ?? "";
 });
 const triggerLabel = computed(() => {
-  if (!selectedIds.value.length) return "Todos los géneros";
+  if (!selectedIds.value.length) return props.emptyLabel;
   if (!props.multiple) return selectedGenreName.value || "1 género seleccionado";
   const count = selectedIds.value.length;
   return `${count} ${count === 1 ? "género seleccionado" : "géneros seleccionados"}`;

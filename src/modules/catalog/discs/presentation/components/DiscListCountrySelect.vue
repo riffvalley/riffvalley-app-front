@@ -6,8 +6,8 @@
       v-model="model"
       :options="options"
       placeholder="Buscar país..."
-      trigger-placeholder="Todos los países"
-      all-label="Todos los países"
+      :trigger-placeholder="emptyLabel"
+      :all-label="emptyLabel"
       title="name"
       trackby="id"
       :max="150"
@@ -26,10 +26,15 @@ interface CountryOption {
   name: string;
 }
 
-const props = defineProps<{
-  modelValue: string;
-  options: CountryOption[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    modelValue: string;
+    options: CountryOption[];
+    /** Texto cuando no hay país elegido. En formularios (Solicitar discos) no es un filtro. */
+    emptyLabel?: string;
+  }>(),
+  { emptyLabel: "Todos los países" }
+);
 const emit = defineEmits<{ "update:modelValue": [value: string] }>();
 
 const model = computed({

@@ -2,6 +2,7 @@
 import { computed, nextTick, onUnmounted, reactive, ref, watch } from "vue";
 import { feedbackCategories } from "../../types/categories";
 import type { CreateFeedbackDto, FeedbackType } from "../../types/feedback";
+import { usePageScrollLock } from "@/composables/usePageScrollLock";
 
 const props = defineProps<{
   open: boolean;
@@ -64,6 +65,9 @@ const typePresentation = computed(() =>
       }
 );
 const controlsDisabled = computed(() => props.submitting || submissionStarted.value);
+
+// Como el resto de modales: la página de detrás no se desplaza mientras está abierto.
+usePageScrollLock(() => props.open);
 
 function typeCardClass(type: FeedbackType): string {
   if (form.type !== type)
@@ -163,7 +167,7 @@ function handleSubmit() {
     <div
       v-if="open"
       role="presentation"
-      class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4"
+      class="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/70 p-3 backdrop-blur-sm sm:p-4"
       @click.self="!controlsDisabled && emit('close')"
     >
       <section
@@ -172,9 +176,19 @@ function handleSubmit() {
         aria-modal="true"
         aria-labelledby="feedback-form-title"
         tabindex="-1"
-        class="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-xl dark:border-white/10 dark:bg-rv-darkCard sm:max-h-[calc(100dvh-2rem)] sm:p-6"
+        class="relative my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-xl overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-2xl dark:border-white/10 dark:bg-rv-darkCard sm:max-h-[calc(100dvh-2rem)] sm:p-6"
       >
-        <header class="mb-5 flex items-center justify-between gap-4">
+        <!-- Botón de cerrar redondo arriba a la derecha, igual que en los demás modales. -->
+        <button
+          type="button"
+          class="absolute right-3 top-3 z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 bg-rv-navy p-0 text-white shadow-md transition hover:bg-rv-pink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-200 dark:text-rv-navy dark:hover:bg-rv-pink dark:hover:text-white"
+          aria-label="Cerrar diálogo de envío"
+          :disabled="controlsDisabled"
+          @click="emit('close')"
+        >
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+        <header class="mb-5 flex items-center gap-4 pr-12">
           <div class="flex min-w-0 items-center gap-3">
             <span
               :class="typePresentation.headerSurface"
@@ -186,15 +200,6 @@ function handleSubmit() {
               Enviar feedback
             </h2>
           </div>
-          <button
-            type="button"
-            class="-mr-1 -mt-1 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-pink dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white"
-            aria-label="Cerrar diálogo de envío"
-            :disabled="controlsDisabled"
-            @click="emit('close')"
-          >
-            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-          </button>
         </header>
 
         <form class="space-y-4" @submit.prevent="handleSubmit">

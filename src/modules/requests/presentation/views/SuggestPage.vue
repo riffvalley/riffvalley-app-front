@@ -12,8 +12,8 @@
         </p>
       </div>
 
-      <!-- Formulario -->
-      <div class="bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm overflow-hidden">
+      <!-- Formulario. Sin overflow-hidden: si no, recorta las listas desplegables de género y país. -->
+      <div class="bg-white dark:bg-rv-darkCard rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
         <div class="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center gap-2">
           <div class="w-7 h-7 rounded-lg bg-rv-pink/10 dark:bg-rv-pink/20 flex items-center justify-center">
             <i class="fa-solid fa-pen text-rv-pink text-xs"></i>
@@ -33,10 +33,7 @@
                 v-model="form.artistName"
                 type="text"
                 placeholder="Ej: Metallica"
-                class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm
-                       text-gray-800 dark:text-white bg-white dark:bg-rv-darkSurface
-                       placeholder:text-gray-400 dark:placeholder:text-gray-500
-                       focus:outline-none focus:ring-2 focus:ring-rv-pink/40 focus:border-rv-pink/40 transition-colors"
+                class="h-[50px] w-full rounded-2xl border border-gray-300 bg-white px-4 text-base text-rv-navy shadow-sm placeholder:text-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy dark:border-white/20 dark:bg-rv-darkCard dark:text-white dark:placeholder:text-gray-300 dark:[color-scheme:dark] dark:focus-visible:ring-gray-200"
               />
               </label>
             </div>
@@ -48,10 +45,7 @@
                 v-model="form.discName"
                 type="text"
                 placeholder="Ej: Master of Puppets"
-                class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm
-                       text-gray-800 dark:text-white bg-white dark:bg-rv-darkSurface
-                       placeholder:text-gray-400 dark:placeholder:text-gray-500
-                       focus:outline-none focus:ring-2 focus:ring-rv-pink/40 focus:border-rv-pink/40 transition-colors"
+                class="h-[50px] w-full rounded-2xl border border-gray-300 bg-white px-4 text-base text-rv-navy shadow-sm placeholder:text-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy dark:border-white/20 dark:bg-rv-darkCard dark:text-white dark:placeholder:text-gray-300 dark:[color-scheme:dark] dark:focus-visible:ring-gray-200"
               />
               </label>
             </div>
@@ -66,9 +60,7 @@
               v-model="form.releaseDate"
               type="date"
               min="2025-01-01"
-              class="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-2.5 text-sm
-                     text-gray-800 dark:text-white bg-white dark:bg-rv-darkSurface
-                     focus:outline-none focus:ring-2 focus:ring-rv-pink/40 focus:border-rv-pink/40 transition-colors"
+              class="h-[50px] w-full rounded-2xl border border-gray-300 bg-white px-4 text-base text-rv-navy shadow-sm placeholder:text-gray-500 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rv-navy dark:border-white/20 dark:bg-rv-darkCard dark:text-white dark:placeholder:text-gray-300 dark:[color-scheme:dark] dark:focus-visible:ring-gray-200"
             />
             </label>
           </div>
@@ -79,24 +71,24 @@
               <span class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                 Género
               </span>
-              <SearchableSelect
-                v-model="form.genreId"
+              <!-- Mismos selectores que Discos y Artistas, con textos de formulario. -->
+              <DiscListGenreSelect
+                :model-value="form.genreId ? [form.genreId] : []"
                 :options="catalogStore.genres"
-                title="name" trackby="id"
-                triggerPlaceholder="Selecciona un género"
-                allLabel="Sin género" placeholder="Buscar género..." :max="4000"
+                :multiple="false"
+                empty-label="Sin género"
+                empty-hint="El disco se enviará sin género"
+                @update:model-value="onGenreChange"
               />
             </div>
             <div>
               <span class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
                 País
               </span>
-              <SearchableSelect
+              <DiscListCountrySelect
                 v-model="form.countryId"
                 :options="catalogStore.countries"
-                title="name" trackby="id"
-                triggerPlaceholder="Selecciona un país"
-                allLabel="Sin país" placeholder="Buscar país..." :max="4000"
+                empty-label="Sin país"
               />
             </div>
           </div>
@@ -211,12 +203,12 @@ import { requestErrorMessage } from '../../application/requestErrorMessage';
 import type { CreateRequestDto, DiscRequest } from '../../types/requests';
 import { useCatalogStore } from '@stores/catalog/catalog';
 import SwalService from '@services/swal/SwalService';
-import SearchableSelect from '@components/SearchableSelect.vue';
+import { DiscListCountrySelect, DiscListGenreSelect } from '@/modules/catalog/discs';
 import { mutateAndInvalidateSidebarSummary } from '@/app/sidebarSummary';
 
 export default defineComponent({
   name: 'SuggestPage',
-  components: { SearchableSelect },
+  components: { DiscListCountrySelect, DiscListGenreSelect },
   setup() {
     const queryClient = useQueryClient();
     const catalogStore = useCatalogStore();
@@ -239,6 +231,12 @@ export default defineComponent({
     const requestsLoading = computed(() => myRequestsQuery.isPending.value);
     const requestsError = computed(() => myRequestsQuery.isError.value);
     const retryRequests = () => myRequestsQuery.refetch();
+
+    /** El selector trabaja en minúsculas: se guarda el id tal como viene del servidor. */
+    const onGenreChange = (ids: string[]) => {
+      const id = ids[0] ?? '';
+      form.genreId = catalogStore.genres.find((genre) => genre.id.toLowerCase() === id)?.id ?? id;
+    };
 
     const resetForm = () => {
       form.discName = '';
@@ -312,6 +310,7 @@ export default defineComponent({
       retryRequests,
       catalogStore,
       submitRequest,
+      onGenreChange,
       formatDate,
       statusLabel,
       statusClass,

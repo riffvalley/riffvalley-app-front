@@ -1,14 +1,15 @@
 <template>
   <main class="p-4 md:p-6">
     <div class="mx-auto max-w-3xl space-y-5">
-      <header class="border-b border-gray-200 pb-4 text-left dark:border-white/10">
+      <!-- Misma cabecera que el resto de secciones: centrada, con icono y subtítulo gris. -->
+      <header class="mb-8 text-center">
         <div>
           <h1
-            class="text-2xl font-extrabold tracking-tight text-rv-navy dark:text-white sm:text-3xl"
+            class="mb-2 text-2xl font-extrabold tracking-tight text-rv-navy dark:text-white sm:text-3xl"
           >
-            Sugerencias y bugs
+            <i class="fa-solid fa-bug mr-3" aria-hidden="true"></i>Sugerencias y bugs
           </h1>
-          <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
             Ayúdanos a mejorar Riff Valley compartiendo tus ideas o comunicando errores
           </p>
         </div>
