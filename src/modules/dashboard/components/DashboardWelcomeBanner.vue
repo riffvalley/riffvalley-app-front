@@ -82,7 +82,7 @@ const periods = [
 
     <div data-test="banner-content" class="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
       <div class="min-w-0 lg:max-w-[25rem]">
-        <p class="mb-1 text-sm capitalize text-gray-400 dark:text-gray-400">{{ todayFormatted }}</p>
+        <p class="mb-1 text-sm first-letter:uppercase text-gray-400 dark:text-gray-400">{{ todayFormatted }}</p>
         <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-rv-navy dark:text-white leading-tight">
           Hola, <span class="text-rv-pink">{{ username }}</span>
         </h1>

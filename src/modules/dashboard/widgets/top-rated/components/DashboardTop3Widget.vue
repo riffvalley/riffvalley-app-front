@@ -163,7 +163,7 @@ function retry(): void {
         </h3>
         <p class="mt-0.5 pl-6 text-xs text-gray-500 dark:text-gray-400">{{ title }}</p>
       </div>
-      <span class="shrink-0 text-xs text-gray-400 dark:text-gray-400 capitalize">{{
+      <span class="shrink-0 text-xs text-gray-400 dark:text-gray-400 first-letter:uppercase">{{
         periodLabel
       }}</span>
     </header>

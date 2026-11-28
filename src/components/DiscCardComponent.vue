@@ -17,13 +17,14 @@
 
     <!-- Botón editar (solo Riff Valley) -->
     <button v-if="canModerate" type="button" class="absolute bottom-30 translate-y-28 left-2 z-10 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200
-         flex items-center justify-center hover:bg-gray-50" title="Editar en calendario" @click="openCalendarModal">
-      <i class="fa-solid fa-wrench text-rv-navy text-sm"></i>
+         flex items-center justify-center hover:bg-gray-50" title="Editar en calendario" aria-label="Editar en calendario" @click="openCalendarModal">
+      <i class="fa-solid fa-wrench text-rv-navy text-sm" aria-hidden="true"></i>
     </button>
 
-    <div class="flex items-center justify-between px-2 p-1">
-      <p class="text-xs text-gray-500 dark:text-gray-300">{{ formattedDate }}</p>
-      <div class="flex items-center space-x-2">
+    <!-- Fecha y género nunca se parten en dos líneas: si falta sitio, el género se recorta con «…». -->
+    <div class="flex items-center justify-between gap-1 px-2 p-1">
+      <p class="shrink-0 whitespace-nowrap text-xs text-gray-500 dark:text-gray-300">{{ formattedDate }}</p>
+      <div class="flex shrink-0 items-center space-x-2">
         <p v-if="isEP" class="px-2 py-1 rounded-full text-xs font-medium text-white bg-blue-500 text-center shadow-sm">
           EP
         </p>
@@ -51,8 +52,8 @@
         </div>
 
       </div>
-      <p class="px-2 py-1 rounded-full text-xs font-medium text-white text-center shadow-sm"
-        :style="{ backgroundColor: genreColor || 'grey' }">
+      <p class="min-w-0 truncate whitespace-nowrap px-2 py-1 rounded-full text-xs font-medium text-white text-center shadow-sm"
+        :style="{ backgroundColor: genreColor || 'grey' }" :title="genreName || 'Sin género'">
         {{ genreName || "Sin género" }}
       </p>
     </div>
@@ -174,18 +175,20 @@
         </div>
 
         <!-- Formulario de votación -->
-        <div class="flex flex-col space-y-1">
-          <label class="text-xs text-gray-500 dark:text-gray-300 translate-x-1.5">
-            Disco:
-            <input type="number" step="0.01" v-model="localRating.rate" min="1" max="10" class="px-0 py-1 border rounded w-full max-w-16 text-xs font-bold text-center
+        <!-- Etiqueta de ancho fijo (las dos cajas quedan alineadas) y caja pequeña; el bloque va centrado
+             en su columna para que no quede un hueco grande a un lado. -->
+        <div class="flex flex-col items-center space-y-1">
+          <label class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-300">
+            <span class="w-12 shrink-0 text-right">Disco:</span>
+            <input type="number" step="0.01" v-model="localRating.rate" min="1" max="10" class="px-0 py-1 border rounded w-14 shrink-0 text-xs font-bold text-center
         bg-white dark:bg-rv-darkSurface
         text-gray-500 dark:text-white
         border-gray-300 dark:border-gray-200/40" />
           </label>
 
-          <label class="text-xs text-gray-500 dark:text-gray-300">
-            Portada:
-            <input type="number" step="0.01" v-model="localRating.cover" min="1" max="10" class="px-0 py-1 border rounded w-full max-w-16 text-xs font-bold text-center
+          <label class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-300">
+            <span class="w-12 shrink-0 text-right">Portada:</span>
+            <input type="number" step="0.01" v-model="localRating.cover" min="1" max="10" class="px-0 py-1 border rounded w-14 shrink-0 text-xs font-bold text-center
         bg-white dark:bg-rv-darkSurface
         text-gray-500 dark:text-white
         border-gray-300 dark:border-gray-200/40" />
@@ -218,9 +221,12 @@
         </span>
       </button>
 
+      <!-- Desactivado: gris sólido en vez de rosa transparente, para que el texto se lea en ambos temas. -->
       <button @click="submitRating" :disabled="disableSubmitButton"
-        class="w-1/3 border-2 border-rv-pink bg-rv-pink text-white font-bold py-2 px-1 rounded-lg transition-all focus:outline-none flex items-center justify-center space-x-1 hover:bg-[#ea849a] hover:border-[#ea849a]"
-        :class="{ 'opacity-40 cursor-not-allowed': disableSubmitButton }">
+        class="w-1/3 border-2 font-bold py-2 px-1 rounded-lg transition-all focus:outline-none flex items-center justify-center space-x-1"
+        :class="disableSubmitButton
+          ? 'cursor-not-allowed border-gray-200 bg-gray-200 text-gray-600 dark:border-white/10 dark:bg-white/10 dark:text-gray-300'
+          : 'border-rv-pink bg-rv-pink text-white hover:bg-[#ea849a] hover:border-[#ea849a]'">
         <i v-if="hasVoted" class="fa-solid fa-arrows-rotate text-md"></i>
         <i v-else class="fa-solid fa-pen-to-square text-md"></i>
         <span>{{ hasVoted ? "Editar" : "Votar" }}</span>

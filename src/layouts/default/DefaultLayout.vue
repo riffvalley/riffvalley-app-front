@@ -1,13 +1,19 @@
 <template>
   <div class="flex w-full">
-    <!-- ✅ Botón hamburguesa fijado a la pantalla -->
-    <button v-if="!menuVisible" class="menu-hamburguesa fixed top-4 left-4 z-30
+    <!-- ✅ Botón hamburguesa fijado a la pantalla (solo móvil).
+         Se esconde al bajar por la página para no tapar el contenido y vuelve al subir. -->
+    <button v-if="!menuVisible" type="button" aria-label="Abrir menú" aria-controls="sidebar-menu" :aria-expanded="menuVisible"
+      class="menu-hamburguesa fixed top-4 left-4 z-30
          bg-gradient-to-r from-rv-pink/90 to-rv-pink
          text-white p-3 rounded-lg shadow-lg
-         md:hidden transition-all duration-300
-         hover:from-rv-pink/80 hover:to-rv-pink/90" @click="toggleMenu">
+         md:hidden transition-all duration-300 motion-reduce:transition-none
+         hover:from-rv-pink/80 hover:to-rv-pink/90
+         focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-rv-pink"
+      :class="hamburgerHidden ? '-translate-y-24 opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'"
+      :tabindex="hamburgerHidden ? -1 : undefined"
+      @click="toggleMenu">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-        stroke-width="2">
+        stroke-width="2" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
       </svg>
     </button>
@@ -20,10 +26,10 @@
       @close-menu="closeMenu"
     />
 
-    <!-- Contenido principal -->
+    <!-- Contenido principal. En móvil el menú se abre por encima: el contenido no se mueve ni se estrecha. -->
 <main :class="[
-'flex-1 min-w-0 bg-gray-100 dark:bg-rv-darkBg text-rv-navy dark:text-white p-6 transition-[margin] duration-300',
-  menuVisible ? 'ml-72' : 'ml-0 md:ml-72',
+'flex-1 min-w-0 bg-gray-100 dark:bg-rv-darkBg text-rv-navy dark:text-white p-6 pt-20 md:pt-6 transition-[margin] duration-300',
+  'ml-0 md:ml-72',
 ]">
       <slot />
     </main>
@@ -37,13 +43,14 @@
       container-aria-label="Notificaciones"
     />
 
-    <!-- Overlay -->
-    <div v-if="menuVisible" class="overlay fixed inset-0 bg-black bg-opacity-50 z-10 md:hidden" @click="closeMenu">
+    <!-- Overlay: oscurece y desenfoca el contenido de detrás mientras el menú está abierto -->
+    <div v-if="menuVisible" class="overlay fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-10 md:hidden" @click="closeMenu">
       <transition name="fade-slide" appear>
         <button
+          type="button" aria-label="Cerrar menú"
           class="absolute top-4 left-[calc(18rem+1rem)] w-10 h-10 flex items-center justify-center rounded-lg bg-rv-navy bg-opacity-75 text-white transition-all duration-300 hover:bg-rv-navy z-20"
           @click.stop="closeMenu">
-          <i class="fa-solid fa-xmark text-lg"></i>
+          <i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i>
         </button>
       </transition>
     </div>
@@ -52,7 +59,7 @@
 
 
 <script lang="ts">
-import { onBeforeUnmount, ref, watch } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import SidebarMenu from "./components/SidebarMenu.vue";
 import { Toaster } from "vue-sonner";
@@ -112,7 +119,27 @@ export default {
       }
     }, { flush: "sync" });
 
-    onBeforeUnmount(unlockScroll);
+    // Botón ☰: se oculta al bajar más de 80px y reaparece en cuanto se sube un poco.
+    const hamburgerHidden = ref(false);
+    let lastScrollY = 0;
+    const onWindowScroll = () => {
+      if (scrollLocked) return; // el menú abierto mueve el scroll; no cuenta como gesto del usuario
+      const current = window.scrollY;
+      const delta = current - lastScrollY;
+      if (current < 80) hamburgerHidden.value = false;
+      else if (delta > 8) hamburgerHidden.value = true;
+      else if (delta < -8) hamburgerHidden.value = false;
+      if (Math.abs(delta) > 8 || current < 80) lastScrollY = current;
+    };
+    onMounted(() => {
+      lastScrollY = window.scrollY;
+      window.addEventListener("scroll", onWindowScroll, { passive: true });
+    });
+
+    onBeforeUnmount(() => {
+      window.removeEventListener("scroll", onWindowScroll);
+      unlockScroll();
+    });
 
 
     // ✅ Función para cerrar menú desde `SidebarMenu.vue`
@@ -123,6 +150,7 @@ export default {
 
     return {
       menuVisible,
+      hamburgerHidden,
       toggleMenu,
       closeMenu,
       isDark,

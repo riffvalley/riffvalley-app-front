@@ -55,9 +55,11 @@
             </span>
           </div>
 
-          <button class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center
-                         bg-rv-pink text-white transition-all focus:outline-none focus:ring-0">
-            <i class="fas fa-chevron-down text-xs transition-transform duration-200"
+          <button type="button" :aria-expanded="!!groupState[index]"
+                         :aria-label="`${groupState[index] ? 'Ocultar' : 'Mostrar'} discos del ${formatDate(group.releaseDate)}`"
+                         class="shrink-0 w-8 h-8 p-0 rounded-full flex items-center justify-center
+                         bg-rv-pink text-white transition-all focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-rv-pink focus-visible:ring-offset-2">
+            <i class="fas fa-chevron-down text-xs transition-transform duration-200" aria-hidden="true"
                :class="(groupState[index] || closing[index]) ? 'rotate-180' : ''"></i>
           </button>
         </div>
@@ -122,9 +124,9 @@
       v-if="showScrollTop"
       @click="scrollToTop"
       class="fixed bottom-6 right-6 z-50 w-11 h-11 rounded-full bg-rv-pink hover:opacity-80 text-white shadow-lg flex items-center justify-center"
-      title="Volver arriba"
+      title="Volver arriba" aria-label="Volver arriba"
     >
-      <i class="fa-solid fa-chevron-up text-sm"></i>
+      <i class="fa-solid fa-chevron-up text-sm" aria-hidden="true"></i>
     </button>
   </Transition>
 </template>

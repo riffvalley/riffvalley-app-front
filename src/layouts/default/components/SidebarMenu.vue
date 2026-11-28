@@ -1,5 +1,5 @@
 <template>
-  <aside :class="[
+  <aside id="sidebar-menu" :class="[
     'w-72 bg-rv-navy text-white fixed left-0 top-0 z-30 transform transition-transform duration-300 h-screen flex flex-col border-r border-white/10 dark:border-r-2 dark:border-white/20',
     menuVisible ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
   ]">
@@ -261,7 +261,7 @@
   <label class="col-start-2 justify-self-end flex shrink-0 items-center justify-end pr-2 gap-3 text-white/75 cursor-pointer">
     <!-- Sol -->
     <i
-      class="fa-regular fa-sun text-base transition-colors"
+      class="fa-regular fa-sun text-base transition-colors" aria-hidden="true"
       :class="!isDark ? 'text-rv-pink' : 'text-white/45'"
     ></i>
 
@@ -269,13 +269,14 @@
     <button
       type="button"
       role="switch"
+      aria-label="Modo oscuro"
       :aria-checked="isDark"
       @click="$emit('toggle-theme')"
-      class="relative w-11 h-6 rounded-full transition-all duration-300
+      class="relative w-11 h-6 p-0 rounded-full transition-all duration-300
         border border-white/20
         bg-white/15 hover:bg-white/25
         outline-none focus:outline-none focus-visible:outline-none
-        ring-0 focus:ring-0 focus-visible:ring-0"
+        ring-0 focus:ring-0 focus-visible:ring-2 focus-visible:ring-rv-pink focus-visible:ring-offset-2 focus-visible:ring-offset-rv-navy"
     >
       <span
         class="absolute top-1/2 left-0.5 -translate-y-1/2
@@ -287,7 +288,7 @@
 
     <!-- Luna -->
     <i
-      class="fa-solid fa-moon text-base transition-colors"
+      class="fa-solid fa-moon text-base transition-colors" aria-hidden="true"
       :class="isDark ? 'text-rv-pink' : 'text-white/45'"
     ></i>
   </label>
