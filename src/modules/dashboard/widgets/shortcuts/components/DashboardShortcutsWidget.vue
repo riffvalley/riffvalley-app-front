@@ -93,7 +93,7 @@ const shortcuts = computed(() => [
     aria-labelledby="shortcuts-title"
     data-test="shortcuts-widget"
   >
-    <header class="flex flex-col px-6 py-4 bg-gradient-to-r from-rv-pink/8 to-rv-purple/8 dark:from-rv-pink/10 dark:to-rv-purple/10 border-b border-gray-100 dark:border-white/10 shrink-0">
+    <header class="flex flex-col text-left px-6 py-4 bg-gradient-to-r from-rv-pink/8 to-rv-purple/8 dark:from-rv-pink/10 dark:to-rv-purple/10 border-b border-gray-100 dark:border-white/10 shrink-0">
       <div class="flex items-center gap-2">
         <i class="fa-solid fa-bolt text-rv-pink" aria-hidden="true"></i>
         <h3 id="shortcuts-title" class="font-bold text-gray-900 dark:text-white">Accesos directos</h3>
