@@ -103,20 +103,21 @@ const shortcuts = computed(() => [
       </p>
     </header>
 
-    <!-- En pantallas anchas, una sola fila de 4: es el primer módulo y no debe empujar el resto -->
+    <!-- En pantallas anchas, una sola fila de 4: es el primer módulo y no debe empujar el resto.
+         Cada tarjeta ocupa toda su celda (h-full) para que todas midan lo mismo aunque el texto salte de línea. -->
     <ul class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 p-4 sm:p-6">
-      <li v-for="shortcut in shortcuts" :key="shortcut.key">
+      <li v-for="shortcut in shortcuts" :key="shortcut.key" class="flex">
         <!-- Sin discos hoy: tarjeta informativa, no enlace -->
         <div
           v-if="shortcut.empty"
           :data-test="`shortcut-${shortcut.key}`"
-          class="flex items-center gap-3 xl:gap-2.5 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-left xl:px-3 dark:border-white/15 dark:bg-white/5"
+          class="flex h-full w-full items-center gap-3 xl:gap-2.5 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-left xl:px-3 dark:border-white/15 dark:bg-white/5"
         >
           <span class="flex h-10 w-10 xl:h-9 xl:w-9 shrink-0 items-center justify-center rounded-full bg-gray-200 text-gray-600 dark:bg-white/10 dark:text-gray-300" aria-hidden="true">
             <i class="fa-solid fa-calendar-xmark"></i>
           </span>
           <span class="flex min-w-0 flex-1 flex-col">
-            <span class="font-semibold text-rv-navy dark:text-white">{{ shortcut.title }}</span>
+            <span class="font-semibold leading-snug text-rv-navy dark:text-white xl:text-[15px]">{{ shortcut.title }}</span>
             <span class="text-xs text-gray-600 dark:text-gray-300">Hoy no ha salido nada nuevo</span>
           </span>
         </div>
@@ -125,14 +126,14 @@ const shortcuts = computed(() => [
           type="button"
           :data-test="`shortcut-${shortcut.key}`"
           aria-haspopup="dialog"
-          class="group flex w-full items-center gap-3 xl:gap-2.5 rounded-xl border border-rv-pink/20 bg-gradient-to-r from-rv-pink/10 to-rv-purple/10 px-4 py-3 text-left xl:px-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-rv-pink/50 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:border-white/10 dark:from-rv-pink/15 dark:to-rv-purple/15 dark:hover:border-rv-pink/50"
+          class="group flex h-full w-full items-center gap-3 xl:gap-2.5 rounded-xl border border-rv-pink/20 bg-gradient-to-r from-rv-pink/10 to-rv-purple/10 px-4 py-3 text-left xl:px-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-rv-pink/50 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:border-white/10 dark:from-rv-pink/15 dark:to-rv-purple/15 dark:hover:border-rv-pink/50"
           @click="showTodayModal = true"
         >
           <span class="flex h-10 w-10 xl:h-9 xl:w-9 shrink-0 items-center justify-center rounded-full bg-rv-navy text-white dark:bg-rv-purple" aria-hidden="true">
             <i :class="shortcut.icon"></i>
           </span>
           <span class="flex min-w-0 flex-1 flex-col">
-            <span class="font-semibold text-rv-navy dark:text-white">{{ shortcut.title }}</span>
+            <span class="font-semibold leading-snug text-rv-navy dark:text-white xl:text-[15px]">{{ shortcut.title }}</span>
             <span class="text-xs text-gray-600 dark:text-gray-300">{{ shortcut.detail }}</span>
           </span>
           <i class="fa-solid fa-up-right-from-square text-sm xl:hidden text-rv-pink transition-transform duration-200 group-hover:scale-110" aria-hidden="true"></i>
@@ -141,13 +142,13 @@ const shortcuts = computed(() => [
           v-else
           :to="shortcut.to"
           :data-test="`shortcut-${shortcut.key}`"
-          class="group flex items-center gap-3 xl:gap-2.5 rounded-xl border border-rv-pink/20 bg-gradient-to-r from-rv-pink/10 to-rv-purple/10 px-4 py-3 text-left xl:px-3 no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-rv-pink/50 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:border-white/10 dark:from-rv-pink/15 dark:to-rv-purple/15 dark:hover:border-rv-pink/50"
+          class="group flex h-full w-full items-center gap-3 xl:gap-2.5 rounded-xl border border-rv-pink/20 bg-gradient-to-r from-rv-pink/10 to-rv-purple/10 px-4 py-3 text-left xl:px-3 no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-rv-pink/50 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:border-white/10 dark:from-rv-pink/15 dark:to-rv-purple/15 dark:hover:border-rv-pink/50"
         >
           <span class="flex h-10 w-10 xl:h-9 xl:w-9 shrink-0 items-center justify-center rounded-full bg-rv-navy text-white dark:bg-rv-purple" aria-hidden="true">
             <i :class="shortcut.icon"></i>
           </span>
           <span class="flex min-w-0 flex-1 flex-col">
-            <span class="font-semibold text-rv-navy dark:text-white">{{ shortcut.title }}</span>
+            <span class="font-semibold leading-snug text-rv-navy dark:text-white xl:text-[15px]">{{ shortcut.title }}</span>
             <span class="text-xs text-gray-600 dark:text-gray-300">{{ shortcut.detail }}</span>
           </span>
           <i class="fa-solid fa-arrow-right text-sm xl:hidden text-rv-pink transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true"></i>

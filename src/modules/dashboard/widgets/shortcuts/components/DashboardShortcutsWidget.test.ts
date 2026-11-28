@@ -43,6 +43,19 @@ describe("DashboardShortcutsWidget", () => {
     ]);
   });
 
+  it("stretches every shortcut card to the full height of its grid cell", async () => {
+    const wrapper = mountWidget();
+    await flushPromises();
+
+    // Aunque un título salte de línea, todas las tarjetas miden lo mismo.
+    const cards = wrapper.findAll('[data-test^="shortcut-"]');
+    expect(cards).toHaveLength(4);
+    cards.forEach((card) => {
+      expect(card.classes()).toContain("h-full");
+      expect(card.element.parentElement?.classList.contains("flex")).toBe(true);
+    });
+  });
+
   it("shows which dates each shortcut covers and how many discs come out today", async () => {
     const wrapper = mountWidget();
     await flushPromises();
