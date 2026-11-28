@@ -66,7 +66,7 @@ describe("Statistics disc presentations", () => {
     const scores = rows[0].findAll("dd");
     expect(scores[0]?.classes()).toContain("text-rv-navy");
     expect(scores[1]?.classes()).toContain("text-amber-700");
-    expect(wrapper.get("ul").classes()).toContain("max-w-4xl");
+    expect(rows[0].classes()).toContain("justify-between");
     expect(rows[0].get("dl").classes()).toContain("sm:w-60");
     expect(rows[0].get("dl").classes()).toContain("grid-cols-[repeat(3,minmax(0,1fr))]");
     expect(rows[0].findAll("dt").every((label) => label.classes().includes("min-h-4"))).toBe(true);

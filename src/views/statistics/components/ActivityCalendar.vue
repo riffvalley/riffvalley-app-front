@@ -149,14 +149,14 @@ watch(() => props.year, () => {
 <template>
   <article
     aria-labelledby="activity-calendar-title"
-    class="rounded-2xl border border-gray-100 bg-white p-5 shadow-md dark:border-white/10 dark:bg-rv-navy sm:p-6"
+    class="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm dark:border-white/10 dark:bg-rv-darkCard sm:p-6"
   >
     <header class="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
       <div>
-        <h2 id="activity-calendar-title" class="text-lg font-semibold text-gray-800 dark:text-white">Calendario de actividad</h2>
+        <h2 id="activity-calendar-title" class="text-lg font-semibold text-rv-navy dark:text-white">Calendario de actividad</h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Selecciona un día para consultar sus discos con actividad</p>
       </div>
-      <p class="text-sm tabular-nums text-gray-500 dark:text-gray-400">{{ year }} · {{ annualActivityCount.toLocaleString("es-ES") }} votos</p>
+      <p class="text-sm tabular-nums text-gray-500 dark:text-gray-400">{{ year }} <span class="mx-1 text-rv-pink" aria-hidden="true">·</span> {{ annualActivityCount.toLocaleString("es-ES") }} votos</p>
     </header>
 
     <p v-if="dailyDiscTotal === 0" role="status" class="mb-4 text-sm text-gray-600 dark:text-gray-300">

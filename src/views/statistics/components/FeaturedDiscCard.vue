@@ -7,7 +7,7 @@ const scoreFormatter = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 2
 </script>
 
 <template>
-  <article class="flex h-full min-w-0 flex-col rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-rv-navy sm:p-6">
+  <article class="flex h-full min-w-0 flex-col rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm dark:border-white/10 dark:bg-rv-darkCard sm:p-6">
     <h2 class="flex items-center gap-2 text-base font-semibold text-rv-navy dark:text-white sm:text-lg">
       <i class="fa-solid fa-star text-amber-500" aria-hidden="true"></i>
       Disco destacado del año

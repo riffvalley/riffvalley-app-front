@@ -34,14 +34,17 @@ function barColor(score: number): string {
 </script>
 
 <template>
-  <article class="rounded-2xl border border-gray-100 bg-white p-6 shadow-md dark:border-white/10 dark:bg-rv-navy">
-    <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Discos puntuados {{ year }}</h2>
+  <article class="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm dark:border-white/10 dark:bg-rv-darkCard sm:p-6">
+    <header>
+      <h2 class="text-lg font-semibold text-rv-navy dark:text-white">Discos puntuados {{ year }}</h2>
+      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Cuántos discos has puntuado con cada nota</p>
+    </header>
 
     <p v-if="scoredDiscs === 0" role="status" class="mt-5 rounded-xl bg-gray-50 p-4 text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300">
       No hay discos con una puntuación vigente para mostrar en esta distribución.
     </p>
     <p v-if="scoredDiscs > 0 && buckets.length === 0" role="status" class="mt-5 rounded-xl bg-gray-50 p-4 text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300">
-      Hay {{ numberFormatter.format(scoredDiscs) }} discos con puntuación vigente, pero no hay buckets de distribución disponibles.
+      Hay {{ numberFormatter.format(scoredDiscs) }} discos con puntuación vigente, pero no hay datos de distribución disponibles.
     </p>
     <template v-if="buckets.length > 0">
       <ul aria-label="Discos puntuados por intervalo de nota" class="mt-5 grid grid-cols-3 gap-x-3 gap-y-5 sm:grid-cols-6 xl:grid-cols-11">
@@ -74,13 +77,13 @@ function barColor(score: number): string {
         </li>
       </ul>
       <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">
-        Total en los buckets: {{ numberFormatter.format(bucketTotal) }} · Discos puntuados: {{ numberFormatter.format(scoredDiscs) }}
+        Total en la distribución: {{ numberFormatter.format(bucketTotal) }} · Discos puntuados: {{ numberFormatter.format(scoredDiscs) }}
       </p>
       <p v-if="!distributionMatchesSummary" role="status" class="mt-2 text-sm text-amber-800 dark:text-amber-300">
-        La suma de los buckets no coincide con el total de discos puntuados; se muestran los valores recibidos sin modificarlos.
+        La suma de la distribución no coincide con el total de discos puntuados; se muestran los valores recibidos sin modificarlos.
       </p>
       <p v-if="!hasAllBuckets" role="status" class="mt-2 text-sm text-amber-800 dark:text-amber-300">
-        El backend no ha enviado los once buckets esperados; solo se muestran los intervalos recibidos.
+        No se han recibido las once notas esperadas; solo se muestran las notas recibidas.
       </p>
     </template>
   </article>

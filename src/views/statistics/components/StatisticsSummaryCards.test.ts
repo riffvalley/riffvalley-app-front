@@ -63,8 +63,8 @@ describe("StatisticsSummaryCards", () => {
     const button = wrapper.get('button[aria-controls="deviation-help"]');
 
     expect(button.attributes("aria-expanded")).toBe("false");
-    expect((wrapper.get("#deviation-help").element as HTMLElement).style.display).toBe("none");
-    expect(button.classes().join(" ")).toContain("focus-visible:outline");
+    expect(wrapper.find("#deviation-help").exists()).toBe(false);
+    expect(button.classes().join(" ")).toContain("focus-visible:!outline");
     await button.trigger("click");
 
     expect(button.attributes("aria-expanded")).toBe("true");
@@ -72,5 +72,20 @@ describe("StatisticsSummaryCards", () => {
       "Mide cuánto se alejan tus puntuaciones de tu nota media. Se calcula con las notas vigentes de los discos incluidos en las estadísticas del año. Cuanto menor es, más parecidas son tus notas.",
     );
     expect(wrapper.get("#deviation-help").text()).toContain("criterios orientativos de Riff Valley, no categorías universales");
+  });
+
+  it("explains the median in its own popover", async () => {
+    const wrapper = mount(StatisticsSummaryCards, { props: { summary: makeSummary(1.2) } });
+    const button = wrapper.get('button[aria-controls="median-help"]');
+
+    expect(button.attributes("aria-label")).toBe("Explicación de la mediana");
+    expect(wrapper.find("#median-help").exists()).toBe(false);
+    await button.trigger("click");
+
+    expect(button.attributes("aria-expanded")).toBe("true");
+    expect(wrapper.get("#median-help").text()).toContain("¿Qué es la mediana?");
+    expect(wrapper.get("#median-help").text()).toContain("justo en el centro");
+    await button.trigger("keydown", { key: "Escape" });
+    expect(wrapper.find("#median-help").exists()).toBe(false);
   });
 });

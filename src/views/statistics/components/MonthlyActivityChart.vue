@@ -23,11 +23,11 @@ function barHeight(count: number): string {
 <template>
   <article
     aria-labelledby="monthly-activity-title"
-    class="rounded-2xl border border-gray-100 bg-white p-5 shadow-md dark:border-white/10 dark:bg-rv-navy sm:p-6"
+    class="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm dark:border-white/10 dark:bg-rv-darkCard sm:p-6"
   >
     <header class="mb-6 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
       <div>
-        <h2 id="monthly-activity-title" class="text-lg font-semibold text-gray-800 dark:text-white">Resumen del año</h2>
+        <h2 id="monthly-activity-title" class="text-lg font-semibold text-rv-navy dark:text-white">Resumen del año</h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Actividad mensual y disco mejor puntuado</p>
       </div>
       <p class="text-sm tabular-nums text-gray-500 dark:text-gray-400">

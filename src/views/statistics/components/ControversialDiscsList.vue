@@ -12,16 +12,16 @@ function formatDifference(value: number): string {
 </script>
 
 <template>
-  <article class="rounded-2xl border border-gray-100 bg-white p-6 shadow-md dark:border-white/10 dark:bg-rv-navy">
-    <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Discos polémicos</h2>
+  <article class="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm dark:border-white/10 dark:bg-rv-darkCard sm:p-6">
+    <h2 class="text-lg font-semibold text-rv-navy dark:text-white">Discos polémicos</h2>
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">La diferencia compara tu puntuación con la media comunitaria.</p>
 
     <p v-if="discs.length === 0" role="status" class="mt-4 rounded-xl bg-gray-50 p-4 text-sm text-gray-600 dark:bg-rv-darkSurface dark:text-gray-300">
       Aún no hay discos con suficientes valoraciones ajenas para calcular discrepancias.
     </p>
-    <ul v-else aria-label="Discos con mayor discrepancia respecto a la media comunitaria" class="mx-auto mt-4 w-full max-w-4xl space-y-3">
-      <li v-for="disc in discs" :key="disc.id" class="flex min-w-0 flex-col items-start justify-center gap-3 rounded-xl bg-gray-50 p-3 text-left dark:bg-rv-darkSurface sm:flex-row sm:items-center sm:gap-4 sm:p-4">
-        <div class="flex w-full min-w-0 items-center gap-3 sm:w-80">
+    <ul v-else aria-label="Discos con mayor discrepancia respecto a la media comunitaria" class="mt-4 w-full space-y-3">
+      <li v-for="disc in discs" :key="disc.id" class="flex min-w-0 flex-col items-start justify-between gap-3 rounded-xl bg-gray-50 p-3 text-left dark:bg-rv-darkSurface sm:flex-row sm:items-center sm:gap-4 sm:p-4">
+        <div class="flex w-full min-w-0 items-center gap-3 sm:flex-1">
           <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-200 text-rv-navy dark:bg-white/10 dark:text-gray-200">
             <img v-if="disc.image" :src="disc.image" :alt="`Portada de ${disc.name}`" class="h-full w-full object-cover" />
             <i v-else class="fa-solid fa-compact-disc text-2xl opacity-60" aria-hidden="true" />

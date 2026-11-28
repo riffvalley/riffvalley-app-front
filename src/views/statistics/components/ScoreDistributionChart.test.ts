@@ -36,7 +36,7 @@ describe("ScoreDistributionChart", () => {
     expect(rows[0]?.get('[aria-hidden="true"].relative').classes()).toContain("bg-red-700");
     expect(rows[10]?.get('[aria-hidden="true"].relative').classes()).toContain("bg-green-900");
     expect(wrapper.get("ul").classes()).toEqual(expect.arrayContaining(["grid-cols-3", "sm:grid-cols-6", "xl:grid-cols-11"]));
-    expect(wrapper.text()).toContain("Total en los buckets: 2 · Discos puntuados: 2");
+    expect(wrapper.text()).toContain("Total en la distribución: 2 · Discos puntuados: 2");
     expect(wrapper.text()).not.toContain("% del total");
     expect(wrapper.text()).not.toContain("no ha enviado los once buckets");
   });
@@ -45,7 +45,7 @@ describe("ScoreDistributionChart", () => {
     const wrapper = mount(ScoreDistributionChart, {
       props: { scoreDistribution: distribution, scoredDiscs: 8, year: 2026 },
     });
-    expect(wrapper.text()).toContain("Total en los buckets: 2 · Discos puntuados: 8");
+    expect(wrapper.text()).toContain("Total en la distribución: 2 · Discos puntuados: 8");
     expect(wrapper.text()).toContain("se muestran los valores recibidos sin modificarlos");
   });
 
@@ -63,7 +63,7 @@ describe("ScoreDistributionChart", () => {
       props: { scoreDistribution: [{ score: 2, scoredDiscCount: 1 }], scoredDiscs: 0, year: 2026 },
     });
     expect(wrapper.text()).toContain("No hay discos con una puntuación vigente");
-    expect(wrapper.text()).toContain("La suma de los buckets no coincide");
+    expect(wrapper.text()).toContain("La suma de la distribución no coincide");
     expect(wrapper.findAll("ul li")).toHaveLength(1);
   });
 
@@ -72,6 +72,6 @@ describe("ScoreDistributionChart", () => {
       props: { scoreDistribution: [{ score: 2, scoredDiscCount: 1 }], scoredDiscs: 1, year: 2026 },
     });
     expect(wrapper.findAll("ul li")).toHaveLength(1);
-    expect(wrapper.text()).toContain("El backend no ha enviado los once buckets esperados");
+    expect(wrapper.text()).toContain("No se han recibido las once notas esperadas");
   });
 });

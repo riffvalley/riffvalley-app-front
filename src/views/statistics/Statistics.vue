@@ -84,19 +84,19 @@ function retry(): void {
             class="grid grid-cols-2 gap-3 sm:gap-4"
           >
             <span class="sr-only">Cargando estadísticas del año {{ filters.year.value }}…</span>
-            <div v-for="item in 4" :key="item" class="flex min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-rv-navy sm:min-h-44">
+            <div v-for="item in 4" :key="item" class="flex min-h-40 flex-col items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-rv-darkCard sm:min-h-44">
               <div class="h-10 w-10 animate-pulse rounded-full bg-gray-200 dark:bg-white/10"></div>
               <div class="h-3 w-24 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
               <div class="h-8 w-16 animate-pulse rounded bg-gray-200 dark:bg-white/10"></div>
             </div>
           </div>
-          <div aria-hidden="true" class="min-h-80 animate-pulse rounded-2xl border border-gray-200 bg-white dark:border-white/10 dark:bg-rv-navy"></div>
+          <div aria-hidden="true" class="min-h-80 animate-pulse rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-white/10 dark:bg-rv-darkCard"></div>
         </template>
 
         <section
           v-else-if="summaryQuery.isError.value"
           role="alert"
-          class="rounded-2xl border border-red-200 bg-white p-6 text-center text-red-700 dark:border-red-400/30 dark:bg-rv-navy dark:text-red-300 lg:col-span-2"
+          class="rounded-2xl border border-red-200 bg-white p-6 text-center text-red-700 shadow-sm dark:border-red-400/30 dark:bg-rv-darkCard dark:text-red-300 lg:col-span-2"
         >
           <p>No se pudieron cargar las estadísticas de {{ filters.year.value }}.</p>
           <button
@@ -118,7 +118,7 @@ function retry(): void {
         <p
           v-if="summary.activityCount === 0"
           role="status"
-          class="rounded-2xl border border-gray-100 bg-white p-6 text-center text-gray-600 shadow-md dark:border-white/10 dark:bg-rv-navy dark:text-gray-300"
+          class="rounded-2xl border border-gray-200 bg-white p-6 text-center text-gray-600 shadow-sm dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-300"
         >
           No hay actividad de voto registrada en {{ summary.year }}. Puedes elegir otro año para consultar sus estadísticas.
         </p>
@@ -126,7 +126,7 @@ function retry(): void {
         <p
           v-else-if="summary.scoredDiscs === 0"
           role="status"
-          class="rounded-2xl border border-gray-100 bg-white p-5 text-center text-gray-600 shadow-md dark:border-white/10 dark:bg-rv-navy dark:text-gray-300"
+          class="rounded-2xl border border-gray-200 bg-white p-5 text-center text-gray-600 shadow-sm dark:border-white/10 dark:bg-rv-darkCard dark:text-gray-300"
         >
           Hay actividad este año, pero ningún disco conserva una puntuación vigente para calcular la media o la mediana.
         </p>

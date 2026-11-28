@@ -98,26 +98,36 @@ function formatRate(rate: number): string {
 
 <template>
   <Teleport to="body">
-    <div class="galaxy-overlay">
-      <button type="button" class="galaxy-backdrop" tabindex="-1" aria-label="Cerrar diálogo desde el fondo" @click="close"></button>
+    <div class="fixed inset-0 z-[100] flex items-stretch justify-center sm:items-center sm:p-4">
+      <!-- Fondo oscuro translúcido: al pulsarlo se cierra, igual que en los demás modales. -->
+      <button
+        type="button"
+        class="absolute inset-0 h-full w-full cursor-default rounded-none border-0 bg-black/70 p-0 backdrop-blur-sm"
+        tabindex="-1"
+        aria-label="Cerrar diálogo desde el fondo"
+        @click="close"
+      ></button>
       <dialog
         open
         ref="dialog"
-        class="galaxy-dialog"
+        class="galaxy-dialog relative z-[1] m-0 flex h-[100dvh] max-h-none w-full max-w-none flex-col overflow-hidden border-0 bg-white p-0 text-left text-gray-900 shadow-2xl outline-none dark:bg-rv-darkCard dark:text-white sm:h-[min(88dvh,56rem)] sm:w-[min(100%,76rem)] sm:rounded-2xl sm:border sm:border-gray-200 sm:dark:border-white/10"
         aria-modal="true"
         aria-labelledby="galaxy-title"
         tabindex="-1"
         data-test="galaxy-dialog"
       >
-        <header class="galaxy-header">
+        <header class="galaxy-header flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 dark:border-white/10 sm:px-5 sm:py-4">
           <div class="min-w-0">
-            <h2 id="galaxy-title" class="galaxy-title">Galaxia musical <span>· {{ year }}</span></h2>
-            <p class="galaxy-subtitle">Tus discos con puntuación vigente</p>
+            <h2 id="galaxy-title" class="text-xl font-extrabold tracking-tight text-rv-navy dark:text-white sm:text-2xl">
+              Galaxia musical <span class="text-rv-pink">· {{ year }}</span>
+            </h2>
+            <p class="galaxy-subtitle mt-0.5 text-sm text-gray-500 dark:text-gray-400">Tus discos con puntuación vigente</p>
           </div>
+          <!-- Botón de cerrar redondo, el mismo que en el resto de modales. -->
           <button
             ref="closeButton"
             type="button"
-            class="close-button"
+            class="close-button inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-0 bg-rv-navy p-0 text-white shadow-md transition hover:bg-rv-pink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:bg-gray-200 dark:text-rv-navy dark:hover:bg-rv-pink dark:hover:text-white"
             aria-label="Cerrar galaxia musical"
             @click="close"
           >
@@ -125,7 +135,7 @@ function formatRate(rate: number): string {
           </button>
         </header>
 
-        <label for="galaxy-disc-select" class="galaxy-disc-select-label">
+        <label for="galaxy-disc-select">
           <span class="sr-only">Seleccionar disco de la galaxia</span>
           <select
             class="galaxy-disc-select sr-only"
@@ -141,36 +151,67 @@ function formatRate(rate: number): string {
           </select>
         </label>
 
-        <div class="galaxy-body">
-          <div v-if="query.isPending.value" class="galaxy-state" role="status" aria-live="polite" aria-busy="true">
-            <i class="fa-solid fa-compact-disc fa-spin" aria-hidden="true"></i>
+        <div class="flex min-h-0 flex-1 flex-col gap-3 p-3 sm:p-4">
+          <div
+            v-if="query.isPending.value"
+            class="grid min-h-40 flex-1 place-content-center justify-items-center gap-3 p-4 text-center text-sm text-gray-600 dark:text-gray-300"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <i class="fa-solid fa-compact-disc fa-spin text-2xl text-rv-pink" aria-hidden="true"></i>
             <span>Cargando discos de {{ year }}…</span>
           </div>
-          <div v-else-if="query.isError.value" class="galaxy-state error-state" role="alert">
+          <div
+            v-else-if="query.isError.value"
+            class="grid min-h-40 flex-1 place-content-center justify-items-center gap-3 p-4 text-center text-sm text-red-700 dark:text-red-300"
+            role="alert"
+          >
             <p>No se pudo cargar la galaxia de {{ year }}.</p>
-            <button type="button" class="retry-button" @click="query.refetch()">Reintentar</button>
+            <button
+              type="button"
+              class="min-h-10 rounded-lg border-0 bg-rv-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rv-pink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:bg-gray-200 dark:text-rv-navy dark:hover:bg-rv-pink dark:hover:text-white"
+              @click="query.refetch()"
+            >
+              Reintentar
+            </button>
           </div>
-          <p v-else-if="currentYearData && discs.length === 0" class="galaxy-state" role="status">
+          <p
+            v-else-if="currentYearData && discs.length === 0"
+            class="grid min-h-40 flex-1 place-content-center p-4 text-center text-sm text-gray-600 dark:text-gray-300"
+            role="status"
+          >
             No hay discos con puntuación vigente para este año.
           </p>
           <template v-else-if="currentYearData">
-            <div class="galaxy-canvas-wrap" aria-label="Visualización interactiva de discos por género">
+            <div
+              class="min-h-0 flex-1"
+              aria-label="Visualización interactiva de discos por género"
+            >
               <GenreGalaxyDesktop
                 :discs="discs"
                 :selected-disc-id="selectedDiscId"
                 @select="selectDisc"
               />
             </div>
-            <aside v-if="selectedDisc" class="selected-disc" aria-live="polite" data-test="selected-disc">
-              <span class="selected-mark" aria-hidden="true"><i class="fa-solid fa-compact-disc"></i></span>
-              <div class="selected-copy">
-                <h3>{{ selectedDisc.name }}</h3>
-                <p>{{ selectedDisc.artist?.name ?? "Artista no disponible" }}</p>
+            <aside
+              v-if="selectedDisc"
+              class="flex min-h-14 shrink-0 items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 dark:border-white/10 dark:bg-white/5"
+              aria-live="polite"
+              data-test="selected-disc"
+            >
+              <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-rv-pink/15 text-rv-pink" aria-hidden="true">
+                <i class="fa-solid fa-compact-disc"></i>
+              </span>
+              <div class="min-w-0 flex-1">
+                <h3 class="truncate text-sm font-bold text-rv-navy dark:text-white">{{ selectedDisc.name }}</h3>
+                <p class="truncate text-xs text-gray-600 dark:text-gray-300">{{ selectedDisc.artist?.name ?? "Artista no disponible" }}</p>
               </div>
-              <div class="selected-meta">
-                <span class="selected-rate"><i class="fa-solid fa-star" aria-hidden="true"></i> {{ formatRate(selectedDisc.rate) }}</span>
-                <span v-if="selectedDisc.genre" class="selected-genre">{{ selectedDisc.genre.name }}</span>
-                <span v-else class="selected-genre">Sin género</span>
+              <div class="flex shrink-0 flex-col items-end gap-0.5 text-xs">
+                <span class="font-bold tabular-nums text-amber-700 dark:text-amber-300">
+                  <i class="fa-solid fa-star" aria-hidden="true"></i> {{ formatRate(selectedDisc.rate) }}
+                </span>
+                <span class="max-w-28 truncate text-gray-600 dark:text-gray-300 sm:max-w-40">{{ selectedDisc.genre?.name ?? "Sin género" }}</span>
               </div>
             </aside>
           </template>
@@ -181,49 +222,14 @@ function formatRate(rate: number): string {
 </template>
 
 <style scoped>
-.galaxy-overlay { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-.galaxy-backdrop { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: rgb(3 8 22 / 76%); backdrop-filter: blur(5px); }
-.galaxy-dialog { position: relative; z-index: 1; display: flex; width: min(100%, 76rem); height: min(88dvh, 56rem); max-height: none; min-height: 0; flex-direction: column; overflow: hidden; margin: 0; padding: 0; border: 1px solid rgb(255 255 255 / 12%); border-radius: 1.1rem; background: #080d20; color: white; box-shadow: 0 24px 90px rgb(0 0 0 / 42%); outline: none; }
-.galaxy-disc-select:focus { position: fixed; z-index: 101; top: 1rem; left: 1rem; width: min(30rem, calc(100vw - 2rem)); height: auto; margin: 0; padding: .65rem .8rem; overflow: visible; clip: auto; border: 1px solid #f1a6bd; border-radius: .65rem; background: #fff; color: #080d20; white-space: normal; }
-.galaxy-header { display: flex; flex: 0 0 auto; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1.1rem; border-bottom: 1px solid rgb(255 255 255 / 10%); }
-.galaxy-title { margin: 0; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.75rem; }
-@media (min-width: 640px) { .galaxy-title { font-size: 1.5rem; line-height: 2rem; } }
-.galaxy-title span { color: #f1a6bd; }
-.galaxy-subtitle { margin: .2rem 0 0; color: rgb(255 255 255 / 62%); font-size: .78rem; }
-.close-button { display: grid; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; place-items: center; border: 1px solid rgb(255 255 255 / 18%); border-radius: .8rem; background: rgb(255 255 255 / 9%); color: white; font-size: 1.2rem; }
-.close-button:hover { background: rgb(255 255 255 / 18%); }
-.close-button:focus-visible, .retry-button:focus-visible { outline: 3px solid #ee91af; outline-offset: 2px; }
-.galaxy-body { display: flex; min-height: 0; flex: 1; flex-direction: column; padding: .65rem; }
-.galaxy-canvas-wrap { min-height: 0; flex: 1; overflow: hidden; border: 1px solid rgb(255 255 255 / 10%); border-radius: .8rem; }
-.selected-disc { display: flex; min-height: 3.8rem; flex: 0 0 auto; align-items: center; gap: .65rem; margin-top: .55rem; padding: .55rem .7rem; border: 1px solid rgb(255 255 255 / 13%); border-radius: .8rem; background: rgb(255 255 255 / 7%); }
-.selected-mark { display: grid; width: 2.2rem; height: 2.2rem; flex: 0 0 auto; place-items: center; border-radius: 50%; background: rgb(238 145 175 / 16%); color: #f1a6bd; }
-.selected-copy { min-width: 0; flex: 1; }
-.selected-copy h3, .selected-copy p { overflow: hidden; margin: 0; text-overflow: ellipsis; white-space: nowrap; }
-.selected-copy h3 { font-size: .83rem; font-weight: 700; }
-.selected-copy p { margin-top: .12rem; color: rgb(255 255 255 / 60%); font-size: .73rem; }
-.selected-meta { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; gap: .12rem; font-size: .72rem; }
-.selected-rate { color: #ffc857; font-weight: 750; }
-.selected-genre { max-width: 10rem; overflow: hidden; color: rgb(255 255 255 / 65%); text-overflow: ellipsis; white-space: nowrap; }
-.galaxy-state { display: grid; min-height: 10rem; flex: 1; place-content: center; justify-items: center; gap: .8rem; padding: 1rem; color: rgb(255 255 255 / 72%); text-align: center; }
-.galaxy-state > i { color: #f1a6bd; font-size: 1.6rem; }
-.error-state { color: #ffc2d2; }
-.retry-button { min-height: 2.65rem; padding: .4rem 1rem; border: 1px solid rgb(255 255 255 / 20%); border-radius: .65rem; background: rgb(255 255 255 / 10%); color: white; font-weight: 700; }
+/* El selector oculto de discos solo aparece al llegar con el teclado (Tab). */
+.galaxy-disc-select:focus { position: fixed; z-index: 101; top: 1rem; left: 1rem; width: min(30rem, calc(100vw - 2rem)); height: auto; margin: 0; padding: .65rem .8rem; overflow: visible; clip: auto; border: 1px solid #f1a6bd; border-radius: .65rem; background: #fff; color: #00021f; white-space: normal; }
+:global(.dark) .galaxy-disc-select:focus { background: #404157; color: #fff; }
 @media (max-width: 639px) {
-  .galaxy-overlay { align-items: stretch; padding: 0; }
-  .galaxy-dialog { width: 100%; height: 100dvh; max-height: 100dvh; border: 0; border-radius: 0; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-  .galaxy-header { gap: .6rem; padding: .6rem .75rem; }
-  .galaxy-subtitle { font-size: .72rem; }
-  .close-button { width: 2.8rem; height: 2.8rem; }
-  .galaxy-body { padding: .5rem; }
-  .selected-disc { gap: .45rem; padding: .45rem .5rem; }
-  .selected-mark { width: 1.9rem; height: 1.9rem; }
-  .selected-genre { max-width: 7rem; }
+  .galaxy-dialog { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 }
 @media (max-height: 480px) and (max-width: 900px) {
   .galaxy-header { padding-block: .35rem; }
   .galaxy-subtitle { display: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
 </style>

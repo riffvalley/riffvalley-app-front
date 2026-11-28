@@ -35,11 +35,11 @@ function barWidth(count: number): string {
 <template>
   <article
     aria-labelledby="genre-activity-title"
-    class="rounded-2xl border border-gray-100 bg-white p-5 shadow-md dark:border-white/10 dark:bg-rv-navy sm:p-6"
+    class="rounded-2xl border border-gray-200 bg-white p-5 text-left shadow-sm dark:border-white/10 dark:bg-rv-darkCard sm:p-6"
   >
     <header class="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
       <div>
-        <h2 id="genre-activity-title" class="text-lg font-semibold text-gray-800 dark:text-white">Géneros representativos</h2>
+        <h2 id="genre-activity-title" class="text-lg font-semibold text-rv-navy dark:text-white">Géneros representativos</h2>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Actividad anual y disco mejor puntuado</p>
       </div>
       <span class="text-sm text-gray-500 dark:text-gray-400">{{ year }}</span>
@@ -98,14 +98,17 @@ function barWidth(count: number): string {
       {{ annualActivityCount.toLocaleString("es-ES") }}. Se muestran los datos recibidos sin ajustes.
     </p>
 
-    <button
-      type="button"
-      aria-haspopup="dialog"
-      class="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-rv-navy px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rv-navy/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:bg-white dark:text-rv-navy dark:hover:bg-gray-200"
-      @click="emit('openGalaxy')"
-    >
-      <i class="fa-solid fa-star text-amber-400 dark:text-amber-500" aria-hidden="true" />
-      Abrir galaxia de géneros
-    </button>
+    <!-- Botón principal de la app: navy en claro, gris claro en oscuro y rosa al pasar el ratón. -->
+    <div class="mt-5 flex justify-center border-t border-gray-100 pt-4 dark:border-white/10">
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        class="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border-0 bg-rv-navy px-5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-rv-pink focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink dark:bg-gray-200 dark:text-rv-navy dark:hover:bg-rv-pink dark:hover:text-white"
+        @click="emit('openGalaxy')"
+      >
+        <i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true" />
+        Abrir galaxia de géneros
+      </button>
+    </div>
   </article>
 </template>
