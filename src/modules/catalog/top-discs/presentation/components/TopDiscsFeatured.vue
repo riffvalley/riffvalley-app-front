@@ -164,29 +164,21 @@ const tiers = ["gold", "silver", "bronze"] as const;
 
 /* Desde 1280px: a 1024px, con el menú lateral, las tarjetas del podio quedaban demasiado estrechas. */
 @media (min-width: 1280px) {
+  .featured-section {
+    /* En fila, el top 3 queda justo debajo de los filtros: algo más de aire para que no se peguen. */
+    margin-top: 3rem;
+  }
+
   .featured-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    /* Las tres tarjetas en fila, alineadas por arriba a la misma altura. */
-    align-items: start;
+    /* Las tres tarjetas en fila y por orden (1º · 2º · 3º), todas con la misma altura:
+       la etiqueta «Debut» añade aire arriba y hacía más alta la tarjeta que la lleva. */
+    align-items: stretch;
     gap: 2rem;
   }
 
-  /* Orden 2º · 1º · 3º: el 1º en el centro, destacado solo por su medalla más grande. */
-  .podium-pos-1 {
-    order: 2;
-  }
-
-  .podium-pos-1 .medal-chip {
-    font-size: 0.9rem;
-    padding: 0.36rem 1rem;
-  }
-
-  .podium-pos-2 {
-    order: 1;
-  }
-
-  .podium-pos-3 {
-    order: 3;
+  .featured-item > :deep(.card) {
+    flex: 1 1 auto;
   }
 }
 </style>
