@@ -82,6 +82,26 @@ describe("DashboardCommunityWidget", () => {
     }));
   });
 
+  it("groups the community links in three equal blocks with distinct, described links", () => {
+    const wrapper = mountWidget();
+    const groups = wrapper.get('[data-test="community-groups"]').findAll('[role="listitem"]');
+
+    expect(groups.map((group) => group.get("h4").text())).toEqual(["App", "Web", "Conciertos"]);
+    groups.forEach((group) => expect(group.findAll("a")).toHaveLength(2));
+    // El botón de la web ya no repite «Conciertos» (era confuso junto al bloque de conciertos).
+    expect(groups[1].findAll("a").map((link) => link.text())).toEqual(["Inicio", "Agenda"]);
+
+    const links = wrapper.get('[data-test="community-groups"]').findAll("a");
+    const labels = links.map((link) => link.attributes("aria-label"));
+    expect(new Set(labels).size).toBe(6);
+    links.forEach((link) => {
+      expect(link.attributes("target")).toBe("_blank");
+      expect(link.attributes("rel")).toContain("noopener");
+      expect(link.attributes("aria-label")).toContain("se abre en una pestaña nueva");
+    });
+    wrapper.unmount();
+  });
+
   it("requests the selected year and renders the musical ranking in backend order", async () => {
     const wrapper = mountWidget();
 

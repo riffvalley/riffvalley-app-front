@@ -41,6 +41,37 @@ const topUsersByCoverColumns = computed(() => splitIntoColumns(topUsersByCover.v
 
 const trophyClasses = ["text-yellow-500", "text-gray-400", "text-yellow-700"];
 
+// Comunidad: tres bloques iguales (columna con título, contexto y sus dos enlaces).
+// El color del botón indica el tipo de destino: canal de Telegram, grupo, web o agenda.
+const TELEGRAM_CHANNEL = "bg-[#0077cc] hover:bg-[#0066b3]";
+const TELEGRAM_GROUP = "bg-rv-pink hover:bg-rv-pink/80";
+const communityGroups = [
+  {
+    title: "App",
+    hint: "Novedades y charla",
+    links: [
+      { label: "Canal", icon: "fa-brands fa-telegram", href: "https://t.me/RiffValleyAppUpdates", aria: "Canal de Telegram de la app", tone: TELEGRAM_CHANNEL },
+      { label: "Grupo", icon: "fa-solid fa-comments", href: "https://t.me/RiffValleyApp", aria: "Grupo de Telegram de la app", tone: TELEGRAM_GROUP },
+    ],
+  },
+  {
+    title: "Web",
+    hint: "riffvalley.es",
+    links: [
+      { label: "Inicio", icon: "fa-solid fa-globe", href: "https://riffvalley.es", aria: "Web de Riff Valley", tone: "bg-rv-navy hover:bg-rv-navy/80 dark:bg-gray-200 dark:text-rv-navy dark:hover:bg-gray-300" },
+      { label: "Agenda", icon: "fa-solid fa-calendar-days", href: "https://www.riffvalley.es/agenda-conciertos", aria: "Agenda de conciertos en la web", tone: "bg-rv-purple hover:bg-rv-purple/80" },
+    ],
+  },
+  {
+    title: "Conciertos",
+    hint: "Avisos y charla",
+    links: [
+      { label: "Canal", icon: "fa-brands fa-telegram", href: "https://t.me/conciertosrockmetal", aria: "Canal de Telegram de conciertos", tone: TELEGRAM_CHANNEL },
+      { label: "Grupo", icon: "fa-solid fa-comments", href: "https://t.me/riffvalley", aria: "Grupo de Telegram de conciertos", tone: TELEGRAM_GROUP },
+    ],
+  },
+] as const;
+
 watch(
   [selectedStatsYear, retryVersion],
   async ([year], _previous, onCleanup) => {
@@ -93,21 +124,26 @@ async function closeCommunityStatsModal(): Promise<void> {
             <img src="/LOGO-RIFF-VALLEY.svg" alt="Riff Valley" class="w-4 h-4 brightness-0 dark:brightness-100" />
             Comunidad
           </h3>
-          <div class="flex flex-col gap-2">
-            <div class="community-row">
-              <span class="community-label text-gray-400 dark:text-gray-300">App</span>
-              <a href="https://t.me/RiffValleyAppUpdates" target="_blank" rel="noopener noreferrer" class="community-pill bg-[#229ED9] hover:bg-[#1a8bc2]"><i class="fa-brands fa-telegram"></i> Canal</a>
-              <a href="https://t.me/RiffValleyApp" target="_blank" rel="noopener noreferrer" class="community-pill bg-rv-pink hover:bg-rv-pink/80"><i class="fa-solid fa-comments"></i> Grupo</a>
-            </div>
-            <div class="community-row">
-              <span class="community-label text-gray-400 dark:text-gray-300">Web</span>
-              <a href="https://riffvalley.es" target="_blank" rel="noopener noreferrer" class="community-pill bg-rv-navy hover:bg-rv-navy/70"><i class="fa-solid fa-globe"></i> Web</a>
-              <a href="https://www.riffvalley.es/agenda-conciertos" target="_blank" rel="noopener noreferrer" class="community-pill bg-rv-purple hover:bg-rv-purple/80"><i class="fa-solid fa-calendar-days"></i> Conciertos</a>
-            </div>
-            <div class="community-row">
-              <span class="community-label text-gray-400 dark:text-gray-300">Conciertos</span>
-              <a href="https://t.me/conciertosrockmetal" target="_blank" rel="noopener noreferrer" class="community-pill bg-[#229ED9] hover:bg-[#1a8bc2]"><i class="fa-brands fa-telegram"></i> Canal</a>
-              <a href="https://t.me/riffvalley" target="_blank" rel="noopener noreferrer" class="community-pill bg-rv-pink hover:bg-rv-pink/80"><i class="fa-solid fa-comments"></i> Grupo</a>
+          <div role="list" class="grid grid-cols-3 gap-2" data-test="community-groups">
+            <div role="listitem"
+              v-for="group in communityGroups"
+              :key="group.title"
+              class="flex min-w-0 flex-col items-center rounded-xl border border-gray-100 bg-gray-50 px-2 py-2.5 text-center dark:border-white/10 dark:bg-rv-darkSurface"
+            >
+              <h4 class="text-[11px] font-bold uppercase tracking-wide text-rv-navy dark:text-white">{{ group.title }}</h4>
+              <p class="mb-2 text-[10px] leading-tight text-gray-500 dark:text-gray-300">{{ group.hint }}</p>
+              <div class="mt-auto flex w-full flex-col gap-1.5">
+                <a
+                  v-for="link in group.links"
+                  :key="link.href"
+                  :href="link.href"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  :aria-label="`${link.aria} (se abre en una pestaña nueva)`"
+                  class="community-pill text-white focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rv-pink"
+                  :class="link.tone"
+                ><i :class="link.icon" aria-hidden="true"></i>{{ link.label }}</a>
+              </div>
             </div>
           </div>
         </div>
@@ -205,31 +241,16 @@ async function closeCommunityStatsModal(): Promise<void> {
 </template>
 
 <style scoped>
-.community-row {
+.community-pill {
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.community-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  width: 5.5rem;
-  flex-shrink: 0;
-  text-align: right;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.community-pill {
-  display: inline-flex;
-  align-items: center;
   gap: 0.3rem;
-  padding: 0.3rem 0.75rem;
+  padding: 0.3rem 0.5rem;
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #fff;
   white-space: nowrap;
   transition: all 0.2s;
   box-shadow: 0 1px 3px rgba(0,0,0,.1);
@@ -237,11 +258,5 @@ async function closeCommunityStatsModal(): Promise<void> {
 .community-pill:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0,0,0,.15);
-}
-/* Pantallas estrechas: etiqueta y botones más compactos para que quepan en la tarjeta */
-@media (max-width: 420px) {
-  .community-row { gap: 0.375rem; }
-  .community-label { width: 4.75rem; font-size: 0.65rem; }
-  .community-pill { padding: 0.3rem 0.6rem; }
 }
 </style>
